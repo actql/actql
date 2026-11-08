@@ -107,7 +107,7 @@ fn interval_rows(kind : String, mode : String) -> Result[Table, RowIssue] raise 
     12L,
     { remaining: 100000, max_frames: 100, },
     value_budget(run_limits().output_values).unwrap(),
-    { limit: 10000, live: 0, peak: 0, },
+    row_workspace(10000),
   )
 }
 
@@ -227,7 +227,7 @@ test "interval join enforces search and output ceilings independently" {
       11L,
       { remaining: 100000, max_frames: 100, },
       value_budget(run_limits().output_values).unwrap(),
-      { limit: 10000, live: 0, peak: 0, },
+      row_workspace(10000),
     )
     is Err(RowLimit),
   )
@@ -240,7 +240,7 @@ test "interval join enforces search and output ceilings independently" {
       12L,
       { remaining: 100000, max_frames: 100, },
       value_budget(run_limits().output_values).unwrap(),
-      { limit: 10000, live: 0, peak: 0, },
+      row_workspace(10000),
     )
     is Err(RowLimit),
   )
@@ -297,7 +297,7 @@ test "interval join validates every endpoint before matching" {
       3L,
       { remaining: 100000, max_frames: 100, },
       value_budget(run_limits().output_values).unwrap(),
-      { limit: 10000, live: 0, peak: 0, },
+      row_workspace(10000),
     )
     is Err(InvalidRows),
   )
@@ -358,7 +358,7 @@ test "interval join uses exact canonical timestamp boundaries" {
     1L,
     { remaining: 100000, max_frames: 100, },
     value_budget(run_limits().output_values).unwrap(),
-    { limit: 10000, live: 0, peak: 0, },
+    row_workspace(10000),
   ).unwrap()
   assert_eq(result.rows.length(), 0)
 }

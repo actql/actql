@@ -676,3 +676,286 @@ test "catalog-only mock metadata cannot silently select the source-free installa
     local_project_read_execution_bindings(Some(project), "status") is Ok(_),
   )
 }
+
+///|
+test "Native Project Mock reads exact public declarations and retains same typed selection" {
+  let directory = @env.get_env_var(
+      "ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT",
+    ).unwrap() +
+    "/deal-review"
+  let matches = command().parse(argv=["check", "never-read.aql"])
+  let project = local_project_read_from(matches, directory).unwrap().unwrap()
+  let selected = local_project_read_execution_bindings(Some(project), "check")
+    .unwrap()
+    .unwrap()
+  let value = selected.mock_declarations.unwrap()
+  defer value.retire()
+  assert_true(
+    physical_equal(value._retained_project.metadata, project.metadata),
+  )
+  assert_true(
+    @run_host.client_project_profile_matches(
+      value.profile,
+      Some(project.metadata),
+      project.profile,
+    ),
+  )
+  assert_eq(value._retained_connections.count(), 2)
+  assert_eq(value._retained_connections.at(0).unwrap().0, "salesforce")
+  assert_eq(value._retained_connections.at(1).unwrap().0, "drive")
+  assert_eq(value._retained_catalog.count(), 2)
+  assert_eq(value._retained_registry.task_count(), 1)
+  assert_eq(value._retained_tasks.length(), 1)
+  let (task, selection, answers, _path) = value._retained_tasks[0]
+  assert_eq(
+    @run_host.client_project_model_task_selection_for(
+      selection,
+      value._retained_registry,
+      task,
+    ),
+    Some(("openai", None, "./model-tasks/deal-review.v1.yaml")),
+  )
+  let separately_read = @run_host.admit_client_project_model_registry(
+    value._retained_registry.original_wire(),
+  ).unwrap()
+  assert_eq(
+    @run_host.client_project_model_task_selection_for(
+      selection, separately_read, task,
+    ),
+    None,
+  )
+  assert_true(value._retained_data_file.has_suffix("/mock/data.json"))
+  assert_true(answers.contains("006Globex"))
+  // Declaration intake does not advertise or accept an unassembled runtime.
+  assert_false(local_project_binding_implementation(Some("mock"), true))
+  assert_true(
+    try {
+      local_project_apply_selection(matches, Some(selected))
+      false
+    } catch {
+      ClientStop(reason) => reason == "LocalProjectBindingsUnavailable"
+    },
+  )
+}
+
+///|
+test "Native Project Mock preserves missing Reader and rejects foreign registered Task" {
+  let configuration = "{\"version\":\"actql-config/0.1\",\"profile\":\"mock\",\"connectors\":\"./connectors.json\",\"model_tasks\":\"./model-tasks.json\",\"mock\":{\"catalog\":\"./mock/catalog.json\",\"data\":\"./mock/data.json\",\"answers\":{\"model-task:deal-review.v1\":\"./mock/deal-review.v1.answers.yaml\"}}}"
+  let missing = project_bindings_fixture(
+    "deal-review-missing-task", configuration,
+  )
+  let original = local_project_read_mock_declarations(
+    missing,
+    local_project_mock_task_limits(),
+  ).unwrap_err()
+  assert_true(original.issue() is @files.Missing)
+  original.retry_cleanup().unwrap()
+  let foreign = project_bindings_fixture(
+    "deal-review-wrong-task", configuration,
+  )
+  assert_true(
+    try {
+      ignore(
+        local_project_read_mock_declarations(
+          foreign,
+          local_project_mock_task_limits(),
+        ),
+      )
+      false
+    } catch {
+      ClientStop(reason) => reason == "InvalidProjectBindings"
+    },
+  )
+}
+
+///|
+fn native_project_mock_nested_original() -> @run_host.ClientProjectProfileSelection raise {
+  let directory = @env.get_env_var(
+      "ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT",
+    ).unwrap() +
+    "/deal-review-nested-registry"
+  let project = local_project_read_from(
+      command().parse(argv=["check", "never-read.aql"]),
+      directory,
+    )
+    .unwrap()
+    .unwrap()
+  let selected = local_project_read_execution_bindings(Some(project), "check")
+    .unwrap()
+    .unwrap()
+  let original = selected.mock_declarations.unwrap()
+  defer original.retire()
+  let (task, selection, answers, _path) = original._retained_tasks[0]
+  assert_eq(
+    @run_host.client_project_model_task_selection_for(
+      selection,
+      original._retained_registry,
+      task,
+    ),
+    Some(("openai", None, "../model-tasks/deal-review.v1.yaml")),
+  )
+  // These two original paths remain Project-relative, not registry-relative.
+  assert_true(original._retained_data_file.has_suffix("/mock/data.json"))
+  assert_true(answers.contains("006Globex"))
+  original.profile
+}
+
+///|
+test "Native Project Mock nested registry keeps original path bases and retires its nominal profile" {
+  let original = native_project_mock_nested_original()
+  assert_true(
+    original.selected_profile()
+    is Err(@run_host.ClientProjectProfileIssue::Retired),
+  )
+}
+
+///|
+fn native_project_mock_model_fixture(
+  name : String,
+  operation? : String = "check",
+) -> LocalProjectMockDeclarations raise {
+  let directory = @env.get_env_var(
+      "ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT",
+    ).unwrap() +
+    "/" +
+    name
+  let project = local_project_read_from(
+      command().parse(argv=["check", "never-read.aql"]),
+      directory,
+    )
+    .unwrap()
+    .unwrap()
+  local_project_read_execution_bindings(Some(project), operation)
+  .unwrap()
+  .unwrap().mock_declarations.unwrap()
+}
+
+///|
+test "Native Project Mock installs original typed answer Model once and retires its cycles" {
+  let original = native_project_mock_model_fixture("deal-review")
+  defer original.retire()
+  let mut clocks = 0
+  let now = fn() {
+    clocks += 1
+    "2026-01-01T00:00:00Z"
+  }
+  original
+  .prepare_models(
+    local_project_mock_task_limits(),
+    local_project_mock_answer_limits(),
+    now,
+  )
+  .unwrap()
+  assert_eq(clocks, 0)
+  assert_eq(original.models.length(), 1)
+  let entry = original.models[0]
+  let answers = entry.answers.unwrap()
+  let profile = original.model_profile.unwrap()
+  let normalized = entry.normalized.unwrap()
+  let installation = entry.installation.unwrap()
+  assert_eq(@model.model_mock_answer_count(answers, entry.declaration), Ok(2))
+  assert_true(
+    @compiler_environment.normalized_public_mock_model_task_original_for(
+      normalized,
+      entry.declaration,
+      profile,
+    ),
+  )
+  let provider = @model.original_model_mock_provider(installation).unwrap()
+  assert_true(
+    physical_equal(
+      provider,
+      @model.original_model_mock_provider(installation).unwrap(),
+    ),
+  )
+  assert_true(
+    original.prepare_models(
+      local_project_mock_task_limits(),
+      local_project_mock_answer_limits(),
+      now,
+    )
+    is Err(AlreadyPreparing),
+  )
+  assert_eq(clocks, 0)
+  assert_eq(original.retire_originals().unwrap(), true)
+  assert_eq(original.retire_originals().unwrap(), true)
+  assert_true(
+    @model.original_model_mock_provider(installation)
+    is Err(@model.ModelMockInstallationIssue::Retired),
+  )
+  assert_true(
+    @model.model_mock_answer_count(answers, entry.declaration)
+    is Err(@model.ModelMockAnswerIssue::Retired),
+  )
+  assert_false(@compiler_environment.model_mock_profile_current(profile))
+}
+
+///|
+test "Native Project Mock preserves partial typed answer failure without reinstalling" {
+  let original = native_project_mock_model_fixture("deal-review-wrong-answer")
+  defer original.retire()
+  let mut clocks = 0
+  let now = fn() {
+    clocks += 1
+    "2026-01-01T00:00:00Z"
+  }
+  assert_true(
+    original.prepare_models(
+      local_project_mock_task_limits(),
+      local_project_mock_answer_limits(),
+      now,
+    )
+    is Err(Answers(@model.ModelMockAnswerIssue::OutputValue)),
+  )
+  assert_true(original.model_profile is Some(_))
+  assert_eq(original.models.length(), 1)
+  assert_true(original.models[0].answers is None)
+  assert_true(original.models[0].installation is None)
+  assert_true(
+    original.prepare_models(
+      local_project_mock_task_limits(),
+      local_project_mock_answer_limits(),
+      now,
+    )
+    is Err(Answers(@model.ModelMockAnswerIssue::OutputValue)),
+  )
+  assert_eq(original.models.length(), 1)
+  assert_eq(clocks, 0)
+  assert_eq(original.retire_originals().unwrap(), true)
+  assert_true(original.model_profile is None)
+}
+
+///|
+test "Native Project Mock does not open Source data as a bounded declaration before Request" {
+  let original = native_project_mock_model_fixture("deal-review-missing")
+  defer original.retire()
+  assert_true(
+    original._retained_data_file.has_suffix(
+      "/deal-review-missing/mock/data.json",
+    ),
+  )
+  assert_eq(original._retained_tasks.length(), 1)
+  // A locator is neither an admitted Source snapshot nor missing-file ACK.
+  // Its actual source Owner must open it later under the checked Request.
+  assert_true(original.model_profile is None)
+}
+
+///|
+test "Mock initial adoption refuses incomplete declarations before document IO" {
+  let matches = command().parse(argv=["adopt"])
+  for
+    wire in [
+      "{\"version\":\"actql-config/0.1\",\"profile\":\"mock\"}", "{\"version\":\"actql-config/0.1\",\"profile\":\"mock\",\"connectors\":\"not-read.json\",\"model_tasks\":\"not-read-tasks.json\"}",
+    ] {
+    let project = local_project_select_loaded(
+      matches, "/never-created-mock", wire,
+    )
+    let refused = try {
+      ignore(local_project_read_execution_bindings(Some(project), "adopt"))
+      false
+    } catch {
+      ClientStop(reason) => reason == "LocalProjectBindingsUnavailable"
+    }
+    assert_true(refused)
+  }
+}

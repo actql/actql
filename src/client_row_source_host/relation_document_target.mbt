@@ -15,6 +15,21 @@ pub struct RelationDocument {
 }
 
 ///|
+// The original admitted declaration's schema only. It is DATA held by the
+// installing caller, not Source/Effect authority or a document observation.
+// Private fields prevent a caller-supplied Contract from replacing its schema.
+struct RelationDocumentPreparedContract {
+  declaration : RowDeclaration
+  resource : String
+  primary_identity : String
+  limits : RowPageLimits
+  contract : @contract.Contract
+  schema : @schema.Schema
+  columns : Array[String]
+  identity_index : Int
+}
+
+///|
 /// Bounded cumulative observations, not a capacity quotation or retirement
 /// receipt. Construction must be funded before receiving the original bytes.
 pub(all) struct RelationDocumentUsage {
@@ -251,6 +266,19 @@ pub fn discard_relation_target_document_original(
 }
 
 ///|
+/// Sever this row observation's private self-original after its consumer has
+/// returned. The parent document may already be invalidated by reentry. This
+/// invalidates row getters but neither closes a read nor acknowledges physical
+/// cleanup; returned immutable DATA keeps its existing meaning.
+pub fn discard_relation_target_row_original(row : RelationTargetRow) -> Bool {
+  guard row.original is Some(original) && physical_equal(row, original) else {
+    return false
+  }
+  row.original = None
+  true
+}
+
+///|
 /// Admit one owned original from explicit caller bytes, without model data or
 /// a schema cache. Later projections share this exact byte/cursor backing.
 pub fn admit_relation_document(
@@ -314,6 +342,7 @@ pub fn project_relation_target_document(
   key_path : Array[String]?,
   primary_identity : String,
   writable_fields : Array[String],
+  prepared_contract? : RelationDocumentPreparedContract? = None,
 ) -> Result[RelationTargetDocument, RowSourceIssue] {
   if !relation_document_original(backing) {
     return Err(ForeignSource)
@@ -341,29 +370,48 @@ pub fn project_relation_target_document(
         raise RelationDocumentStop(InvalidInputSchema)
       }
     }
-    relation_document_work(work, limits.max_nodes)
-    let (_, contract) = mapping_original_relation(
-      declaration,
-      resource,
-      primary_identity,
-      {
-        max_bytes: limits.max_bytes,
-        max_nodes: limits.max_nodes,
-        max_depth: limits.max_depth,
-        max_views: limits.max_nodes,
-        max_fields: limits.max_nodes,
-      },
-    ).unwrap_or_else(() => raise RelationDocumentStop(InvalidInputSchema))
-    let schema = @schema.from_object(contract).unwrap_or_else(() => {
-      raise RelationDocumentStop(InvalidInputSchema)
-    })
-    let columns = @schema.fields(schema).map(@schema.field_reference_name)
-    let identity_index = columns
-      .search(primary_identity)
-      .unwrap_or_else(() => raise RelationDocumentStop(InvalidInputSchema))
-    let identity = @schema.field_at(schema, identity_index).unwrap().contract
-    if identity.nullable || !(identity.shape is @contract.Text(_)) {
-      raise RelationDocumentStop(InvalidInputSchema)
+    let (schema, columns, identity_index) = match prepared_contract {
+      Some(original) => {
+        if !physical_equal(original.declaration, declaration) ||
+          original.resource != resource ||
+          original.primary_identity != primary_identity ||
+          original.limits.max_bytes != limits.max_bytes ||
+          original.limits.max_nodes != limits.max_nodes ||
+          original.limits.max_depth != limits.max_depth {
+          raise RelationDocumentStop(ForeignSource)
+        }
+        // Same already-admitted metadata; no schema read/hash or work charge
+        // for a mapping which was not reconstructed. Every actual row, path,
+        // key and Value below still spends this document's original work.
+        (original.schema, original.columns, original.identity_index)
+      }
+      None => {
+        relation_document_work(work, limits.max_nodes)
+        let (_, contract) = mapping_original_relation(
+          declaration,
+          resource,
+          primary_identity,
+          {
+            max_bytes: limits.max_bytes,
+            max_nodes: limits.max_nodes,
+            max_depth: limits.max_depth,
+            max_views: limits.max_nodes,
+            max_fields: limits.max_nodes,
+          },
+        ).unwrap_or_else(() => raise RelationDocumentStop(InvalidInputSchema))
+        let schema = @schema.from_object(contract).unwrap_or_else(() => {
+          raise RelationDocumentStop(InvalidInputSchema)
+        })
+        let columns = @schema.fields(schema).map(@schema.field_reference_name)
+        let identity_index = columns
+          .search(primary_identity)
+          .unwrap_or_else(() => raise RelationDocumentStop(InvalidInputSchema))
+        let identity = @schema.field_at(schema, identity_index).unwrap().contract
+        if identity.nullable || !(identity.shape is @contract.Text(_)) {
+          raise RelationDocumentStop(InvalidInputSchema)
+        }
+        (schema, columns, identity_index)
+      }
     }
     let writable = []
     for name in writable_fields {
@@ -751,6 +799,48 @@ pub fn accept_charged_relation_document(
   document : RelationTargetDocument,
   max_work : Int,
 ) -> Result[Int, RowHostIssue] {
+  accept_charged_relation_document_original(
+    run,
+    charge,
+    RelationDocumentQuery(acquisition),
+    document,
+    max_work,
+  )
+}
+
+///|
+/// The complete checked Source input uses the SAME response ticket/document
+/// owner. No Query requirement is fabricated and no physical byte is refunded.
+pub fn accept_charged_relation_input_document(
+  run : RowRun,
+  charge : RowPageCharge,
+  acquisition : RowInputAcquisition,
+  document : RelationTargetDocument,
+  max_work : Int,
+) -> Result[Int, RowHostIssue] {
+  accept_charged_relation_document_original(
+    run,
+    charge,
+    RelationDocumentInput(acquisition),
+    document,
+    max_work,
+  )
+}
+
+///|
+priv enum RelationDocumentAcquisition {
+  RelationDocumentQuery(RowAcquisition)
+  RelationDocumentInput(RowInputAcquisition)
+}
+
+///|
+fn accept_charged_relation_document_original(
+  run : RowRun,
+  charge : RowPageCharge,
+  original : RelationDocumentAcquisition,
+  document : RelationTargetDocument,
+  max_work : Int,
+) -> Result[Int, RowHostIssue] {
   guard !run.closed && run.attempt.state is Reading(read) else {
     return Err(InvalidState)
   }
@@ -759,11 +849,26 @@ pub fn accept_charged_relation_document(
     Err(issue) => return Err(issue)
   }
   let result = try {
+    let original_matches = match original {
+      RelationDocumentQuery(acquisition) =>
+        match run.attempt.preparation {
+          DirectPreparation(preparation) =>
+            physical_equal(preparation, acquisition.preparation) &&
+            physical_equal(read.schema, preparation.schema) &&
+            physical_equal(preparation.view, document.view)
+          _ => false
+        }
+      RelationDocumentInput(acquisition) =>
+        match run.attempt.preparation {
+          InputPreparation(preparation) =>
+            physical_equal(preparation, acquisition.preparation) &&
+            physical_equal(read.schema, preparation.schema) &&
+            physical_equal(preparation.view, document.view)
+          _ => false
+        }
+    }
     guard relation_target_original(document) &&
-      run.attempt.preparation is DirectPreparation(preparation) &&
-      physical_equal(preparation, acquisition.preparation) &&
-      physical_equal(read.schema, preparation.schema) &&
-      physical_equal(preparation.view, document.view) &&
+      original_matches &&
       charge.received_bytes == document.bytes.length().to_int64() &&
       document.bytes.length() <= read.page_limits.max_bytes &&
       document.usage.nodes <= read.page_limits.max_nodes &&
@@ -808,7 +913,22 @@ pub fn accept_charged_relation_document(
         })
       })
     })
-    accept_row_source_values(read, read.columns, rows)
+    if original is RelationDocumentInput(_) && run.physical is Some(_) {
+      let selected = match row_source_value_indices(read, read.columns, rows) {
+        Ok(value) => value
+        Err(issue) => raise RelationDocumentStop(issue)
+      }
+      match fund_row_input_values(run, read, rows) {
+        Ok(_) => ()
+        Err(issue) => {
+          abort_row_run(run)
+          return Err(issue)
+        }
+      }
+      append_row_source_values(read, read.columns, rows, selected)
+    } else {
+      accept_row_source_values(read, read.columns, rows)
+    }
   } catch {
     RelationDocumentStop(issue) => Err(issue)
   }

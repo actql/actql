@@ -6935,7 +6935,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5a3cd1c28d4ce4c4095a8ea88aecc0b34c601811ae0053ae77686b7837d36bd9",
+      "sha256": "04c2ae3cf8dcd2b04b205bce01f4b8ad340dd7bcc0a2fdfa8a176346d9f3e9c1",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6995,6 +6995,18 @@
         },
         {
           "name": "acquireStoreMetadataOwnership/ownership/init:attachLease/init:attachLease/init:attachLease",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "acquireStoreMetadataOwnership/ownership/init:attachLease/init:attachLease/init:attachLease#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquireStoreMetadataOwnership/ownership/init:attachLease/init:attachLease/replacement/replacement",
           "parameters": [
             "name"
           ],
@@ -7007,6 +7019,13 @@
         },
         {
           "name": "acquireStoreMetadataOwnership/ownership/init:release/init:release/acknowledged/acknowledged",
+          "parameters": [
+            "state"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquireStoreMetadataOwnership/ownership/init:release/init:release/sameOwnerFile/sameOwnerFile",
           "parameters": [
             "state"
           ],
@@ -14154,11 +14173,11 @@
             "resources": [
               {
                 "path": "adapters/host-node/host-result-service-recipe.cjs",
-                "anchor": "conditionalWireHistory: record("
+                "anchor": "maxReadWireBytes: 10 * 1024 * 1024"
               },
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
-                "anchor": "entry.storeOperations++;"
+                "anchor": "entry.storeCurrent = () => void resultCurrent(entry.original, held);"
               },
               {
                 "path": "docs/design/prepared-publication-custody.md",
@@ -15910,8 +15929,11 @@
             "acquireStoreMetadataOwnership/ownership/init:assertCurrent/init:assertCurrent/sameFile/sameFile/sameFile",
             "acquireStoreMetadataOwnership/ownership/init:attachLease/init:attachLease",
             "acquireStoreMetadataOwnership/ownership/init:attachLease/init:attachLease/init:attachLease",
+            "acquireStoreMetadataOwnership/ownership/init:attachLease/init:attachLease/init:attachLease#2",
+            "acquireStoreMetadataOwnership/ownership/init:attachLease/init:attachLease/replacement/replacement",
             "acquireStoreMetadataOwnership/ownership/init:release/init:release",
             "acquireStoreMetadataOwnership/ownership/init:release/init:release/acknowledged/acknowledged",
+            "acquireStoreMetadataOwnership/ownership/init:release/init:release/sameOwnerFile/sameOwnerFile",
             "acquireStoreOwnership/init:assertCurrent/init:assertCurrent",
             "acquireStoreOwnership/init:executionReceipt/init:executionReceipt",
             "acquireStoreOwnership/init:priorExecutionStopped/init:priorExecutionStopped",
@@ -16846,7 +16868,8 @@
           "name": "openPublicationOwnerLease",
           "parameters": [
             "path",
-            "inspector"
+            "inspector",
+            "deferred"
           ],
           "async": false
         },
@@ -16869,6 +16892,11 @@
           "async": false
         },
         {
+          "name": "openPublicationOwnerLease/closeMetadata/closeMetadata",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openPublicationOwnerLease/closeOne/closeOne",
           "parameters": [
             "original",
@@ -16885,6 +16913,25 @@
           "name": "openPublicationOwnerLease/init:matches/init:matches",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPublicationOwnerLease/init:publishDirectory/init:publishDirectory",
+          "parameters": [
+            "name",
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPublicationOwnerLease/init:replaceMetadata/init:replaceMetadata",
+          "parameters": [
+            "name",
+            "before",
+            "staged",
+            "originalDirectory",
+            "committed"
           ],
           "async": false
         },
@@ -16911,6 +16958,16 @@
           "name": "openPublicationOwnerLease/openPublicationOwnerLease#2",
           "parameters": [],
           "async": false
+        },
+        {
+          "name": "openPublicationOwnerLease/openPublicationOwnerLease#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPublicationOwnerLease/qualify/qualify",
+          "parameters": [],
+          "async": false
         }
       ],
       "contracts": [
@@ -16922,13 +16979,18 @@
             "openPublicationOwnerLease/assertCurrent/assertCurrent",
             "openPublicationOwnerLease/call/call",
             "openPublicationOwnerLease/close/close",
+            "openPublicationOwnerLease/closeMetadata/closeMetadata",
             "openPublicationOwnerLease/closeOne/closeOne",
             "openPublicationOwnerLease/current/current",
             "openPublicationOwnerLease/init:matches/init:matches",
+            "openPublicationOwnerLease/init:publishDirectory/init:publishDirectory",
+            "openPublicationOwnerLease/init:replaceMetadata/init:replaceMetadata",
             "openPublicationOwnerLease/init:retry/init:retry",
             "openPublicationOwnerLease/methods/methods",
             "openPublicationOwnerLease/openPublicationOwnerLease",
-            "openPublicationOwnerLease/openPublicationOwnerLease#2"
+            "openPublicationOwnerLease/openPublicationOwnerLease#2",
+            "openPublicationOwnerLease/openPublicationOwnerLease#3",
+            "openPublicationOwnerLease/qualify/qualify"
           ],
           "exports": [
             "openPublicationOwnerLease"
@@ -16937,7 +16999,7 @@
             "responsibility": [
               {
                 "path": "adapters/store-local/publication-owner-lease.mjs",
-                "anchor": "export function openPublicationOwnerLease(path, inspector)"
+                "anchor": "export function openPublicationOwnerLease(path, inspector, deferred = false)"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -16947,7 +17009,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/store-local/publication-owner-lease.mjs",
-                "anchor": "export function openPublicationOwnerLease(path, inspector)"
+                "anchor": "export function openPublicationOwnerLease(path, inspector, deferred = false)"
               }
             ],
             "identity": [
@@ -17056,7 +17118,14 @@
         }
       ],
       "referenceQualification": "Actual source syntax and owner references only; no runtime/platform or whole-distribution acceptance is inferred.",
-      "sha256": "fd57b841cc8c5765a6d75f3f4f7bf52a75c93a91bdc3de43c9e533d73dd437bf"
+      "sha256": "80e43eab276368650aedbb85e339a790a94a44f101c18dfafe304af9c5fb129a",
+      "imports": [
+        "../host-node/host-journal-directory.mjs",
+        "../host-node/local-files-native.mjs",
+        "node:crypto"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     }
   ],
   "verificationQualification": "Existing actual test entry references only. F prior actual SQLite/Store/INFER source-qualified receipts remain independent; this index does not claim the listed tests all ran at a6cab. Core typed row/data invariants remain with their existing authority and C/E acceptance. No Native/service/Provider/public-product operation executed in this metadata pass."

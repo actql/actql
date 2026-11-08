@@ -120,6 +120,7 @@ fn product_assemble_common(
   configuration_root : String,
   observed_at : String,
   assets : ClientLocalProductAssets,
+  mock? : @authorization.LocalMockAccountSubjects? = None,
 ) -> Result[ProductCommonAssembly, ClientLocalProductConfigurationIssue] raise ProductConfigurationFailure {
   if !product_absolute_location(configuration_root) {
     return Err(InvalidLocation)
@@ -212,47 +213,65 @@ fn product_assemble_common(
   }
   let principal = "local-cli"
   let connection = "local"
-  let account = product_require(
-    product_wire(
-      product_object([
-        ("version", Json::string("actql-execution-account-config/0.1")),
-        ("account_id", Json::string(principal)),
-        (
-          "entries",
-          Json::array([
-            product_object([
-              ("entry_id", Json::string("local-result-read")),
-              ("principal", product_selector(principal)),
-              ("connection", product_selector(connection)),
-              ("resource", product_selector("result/answer")),
-              ("operation", product_selector("read")),
-              ("outcome", Json::string("allow")),
-              ("exclusions", Json::array([])),
-            ]),
-            product_object([
-              ("entry_id", Json::string("local-run-control")),
-              ("principal", product_selector(principal)),
-              ("connection", product_selector(connection)),
-              ("resource", product_selector("run")),
-              (
-                "operation",
+  let account = match mock {
+    Some(subjects) => {
+      // This installer has one fixed principal/control connection. A Project
+      // supplies exact source/task subjects, never replacement Host identity.
+      if subjects.account_id != principal ||
+        subjects.principal != principal ||
+        subjects.control_connection != connection {
+        return Err(UnsupportedAsset)
+      }
+      match @authorization.local_mock_account_configuration(subjects) {
+        Ok(original) => original
+        Err(_) => return Err(UnsupportedAsset)
+      }
+    }
+    None => {
+      let account = product_require(
+        product_wire(
+          product_object([
+            ("version", Json::string("actql-execution-account-config/0.1")),
+            ("account_id", Json::string(principal)),
+            (
+              "entries",
+              Json::array([
                 product_object([
-                  (
-                    "any_of",
-                    product_texts(["cancel", "publish", "read", "submit"]),
-                  ),
+                  ("entry_id", Json::string("local-result-read")),
+                  ("principal", product_selector(principal)),
+                  ("connection", product_selector(connection)),
+                  ("resource", product_selector("result/answer")),
+                  ("operation", product_selector("read")),
+                  ("outcome", Json::string("allow")),
+                  ("exclusions", Json::array([])),
                 ]),
-              ),
-              ("outcome", Json::string("allow")),
-              ("exclusions", Json::array([])),
-            ]),
+                product_object([
+                  ("entry_id", Json::string("local-run-control")),
+                  ("principal", product_selector(principal)),
+                  ("connection", product_selector(connection)),
+                  ("resource", product_selector("run")),
+                  (
+                    "operation",
+                    product_object([
+                      (
+                        "any_of",
+                        product_texts(["cancel", "publish", "read", "submit"]),
+                      ),
+                    ]),
+                  ),
+                  ("outcome", Json::string("allow")),
+                  ("exclusions", Json::array([])),
+                ]),
+              ]),
+            ),
           ]),
         ),
-      ]),
-    ),
-  )
-  if @authorization.admit_account_configuration_json(account) is Err(_) {
-    return Err(ConfigurationLimit)
+      )
+      if @authorization.admit_account_configuration_json(account) is Err(_) {
+        return Err(ConfigurationLimit)
+      }
+      account
+    }
   }
   // Reuse the installed Local policy leaf contract and retain actual preimages.
   let dependencies : Array[Json] = []
@@ -360,6 +379,7 @@ fn product_assemble_originals(
   observed_at : String,
   assets : ClientLocalProductAssets,
   finite_run_profile? : Bool = false,
+  mock? : @authorization.LocalMockAccountSubjects? = None,
 ) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue] raise ProductConfigurationFailure {
   if !product_absolute_location(configuration_root) ||
     !product_absolute_location(sqlite_library) ||
@@ -368,7 +388,7 @@ fn product_assemble_originals(
     return Err(InvalidLocation)
   }
   let common = product_require(
-    product_assemble_common(configuration_root, observed_at, assets),
+    product_assemble_common(configuration_root, observed_at, assets, mock~),
   )
   let profile = if finite_run_profile {
     match
@@ -437,7 +457,20 @@ fn product_assemble_originals(
                 ("enabled", Json::boolean(true)),
                 ("principal", Json::string(principal)),
                 ("connection", Json::string(connection)),
-                ("result_names", product_texts(["answer"])),
+                (
+                  "result_names",
+                  product_texts(
+                    if mock is Some(subjects) {
+                      if subjects.update_target is Some(_) {
+                        ["answer", "main", "updates"]
+                      } else {
+                        ["answer", "main"]
+                      }
+                    } else {
+                      ["answer"]
+                    },
+                  ),
+                ),
                 ("formats", product_texts(["csv", "json", "jsonl"])),
                 ("purpose", Json::string("cli-read")),
                 ("sink", Json::string("stdout")),
@@ -641,6 +674,7 @@ pub fn client_local_product_finite_originals(
   signature_library : String,
   observed_at : String,
   assets : ClientLocalProductAssets,
+  mock? : @authorization.LocalMockAccountSubjects? = None,
 ) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue] {
   product_assemble_originals(
     configuration_root,
@@ -649,6 +683,7 @@ pub fn client_local_product_finite_originals(
     observed_at,
     assets,
     finite_run_profile=true,
+    mock~,
   ) catch {
     ProductConfigurationFailure(issue) => Err(issue)
   }

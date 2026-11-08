@@ -144,6 +144,9 @@ priv struct RowHostConfiguration {
   ]
   limits : RowCompletionLimits
   listing_rows : RowListingRows?
+  measurement_workspace : Int64
+  record_fields_retained : Int64
+  capture_columns : Int
 }
 
 ///|
@@ -307,6 +310,17 @@ fn prepare_row_acquisition_owned(
     Ok(value) => value
     Err(issue) => return Err(SourceEvidence(issue))
   }
+  guard row_capture_measurement_geometry(preparation)
+    is Some(
+      (
+        measurement_columns,
+        measurement_workspace,
+        record_fields_retained,
+        capture_columns,
+      )
+    ) else {
+    return Err(Physical(InvalidLimits))
+  }
   // The residual filter and capture measure every captured value; the
   // capture holds at most 500 KB of text, what the standard Host's Local
   // fragments evaluate at once.
@@ -324,6 +338,9 @@ fn prepare_row_acquisition_owned(
       choice,
       candidate,
       listing_rows,
+      measurement_workspace,
+      record_fields_retained,
+      capture_columns,
       limits: {
         execution: {
           rows: {
@@ -347,7 +364,7 @@ fn prepare_row_acquisition_owned(
           received_wire_bytes: 4000000,
           retained_wire_bytes: 4000000,
           measurement: {
-            max_columns: 100,
+            max_columns: measurement_columns,
             max_order_work: 100000,
             max_bytes: 4000000,
             max_nodes: 100000,
@@ -356,7 +373,7 @@ fn prepare_row_acquisition_owned(
         },
         records: {
           max_work: 1000000,
-          max_fields: 100,
+          max_fields: preparation.columns.length(),
           max_parameters: 100,
           max_bytes: 1000000,
           max_nodes: 100000,
@@ -396,7 +413,9 @@ pub fn row_acquisition_request_wire(
 /// bound for the simultaneously retained scan and output, not a heap estimate.
 pub fn row_acquisition_retained_capacity(value : RowAcquisition) -> Int64 {
   let (original, _) = row_original_input_capacity()
-  value.configuration.limits.retention.retained_wire_bytes.to_int64() + original
+  value.configuration.limits.retention.retained_wire_bytes.to_int64() +
+  value.configuration.record_fields_retained +
+  original
 }
 
 ///|
@@ -411,6 +430,7 @@ pub fn row_acquisition_execution_capacity(value : RowAcquisition) -> Int64 {
   limits.records.max_bytes +
   limits.records.max_bytes +
   limits.capture.max_bytes).to_int64() +
+  value.configuration.measurement_workspace +
   (if value.configuration.listing_rows is Some(rows) {
     // The immutable witness/limit records, parsed claims and admission writer
     // can overlap. Reserve their bounded representations before transport.
@@ -454,6 +474,7 @@ struct RowRun {
   mut physical : RowPhysical?
   mut page_charge : RowPageCharge?
   mut response_borrowed : Bool
+  input_progress : RowInputProgress?
   mut residual : RowCaptureResidual?
 }
 
@@ -543,6 +564,7 @@ pub fn start_row_acquisition(
     physical: None,
     page_charge: None,
     response_borrowed: false,
+    input_progress: None,
     residual: None,
   })
 }
@@ -842,7 +864,19 @@ pub fn accept_charged_row_run_page(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  match accept_row_source_page(read, bytes) {
+  let parsed = if run.configuration is InputConfiguration(_) &&
+    run.physical is Some(_) {
+    match prepare_row_input_page(run, read, bytes) {
+      Ok(value) => Some(value)
+      Err(issue) => {
+        abort_row_run(run)
+        return Err(issue)
+      }
+    }
+  } else {
+    None
+  }
+  match accept_row_source_page(read, bytes, parsed~) {
     Ok(count) => Ok(count)
     Err(issue) => {
       abort_row_run(run)
@@ -902,12 +936,24 @@ pub fn begin_charged_row_run_listing_page(
     Err(issue) => return Err(issue)
   }
   guard run.attempt.state is Reading(read) else { return Err(InvalidState) }
+  let parsed = match run.configuration {
+    InputConfiguration(acquisition) =>
+      match prepare_row_input_listing_page(run, read, acquisition, body) {
+        Ok(value) => Some(value)
+        Err(issue) => {
+          abort_row_run(run)
+          return Err(issue)
+        }
+      }
+    _ => None
+  }
   match
     begin_row_source_listing_page(
       read,
       body,
       elapsed_ms,
       received_bytes=charge.received_bytes,
+      parsed~,
     ) {
     Ok(_) => Ok(())
     Err(issue) => {
@@ -972,7 +1018,18 @@ pub fn finish_row_run(run : RowRun) -> Result[Unit, RowHostIssue] {
 }
 
 ///|
+/// Existing normal-use state only, never a current observation, acquisition
+/// grant or cleanup ACK. Retained/complete states remain usable; a stopped
+/// original cannot drive another physical provider read while cleanup waits.
+pub fn row_run_normal_available(run : RowRun) -> Bool {
+  !run.closed &&
+  !(run.attempt.state is Failed) &&
+  !(run.attempt.state is InputFailed(_))
+}
+
+///|
 pub fn abort_row_run(run : RowRun) -> Unit {
+  cancel_row_input_progress(run)
   if run.residual is Some(residual) {
     @local.cancel_managed_provider(
       @local.guarded_relation_execution(residual.execution),
@@ -1295,7 +1352,31 @@ pub fn accept_charged_row_run_values(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  match accept_row_source_values(read, columns, rows) {
+  // Keep the existing page/column rejection before inspecting payload values.
+  let indices = match row_source_value_indices(read, columns, rows) {
+    Ok(value) => value
+    Err(issue) => {
+      abort_row_run(run)
+      return Err(Source(issue))
+    }
+  }
+  for row in rows {
+    if row.length() != columns.length() {
+      cancel_row_source_read(read) |> ignore
+      abort_row_run(run)
+      return Err(Source(InvalidPage))
+    }
+  }
+  if run.configuration is InputConfiguration(_) && run.physical is Some(_) {
+    match fund_row_input_values(run, read, rows) {
+      Ok(_) => ()
+      Err(issue) => {
+        abort_row_run(run)
+        return Err(issue)
+      }
+    }
+  }
+  match append_row_source_values(read, columns, rows, indices) {
     Ok(count) => Ok(count)
     Err(issue) => {
       abort_row_run(run)

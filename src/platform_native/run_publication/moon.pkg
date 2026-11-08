@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/client_local_host" @local,
   "actql/actql/execution_relation" @execution,
   "actql/actql/platform_native/publication_store" @store,
   "actql/actql/publication_payload" @payload,

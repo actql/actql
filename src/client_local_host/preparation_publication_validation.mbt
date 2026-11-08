@@ -1,6 +1,6 @@
 ///|
-/// Same adopted publication owner; a validation continuation never exposes its
-/// semantic checker or substitutes a second reservation/registry.
+/// Same adopted publication owner. A scoped checker loan transfers no custody
+/// and never substitutes a second reservation/registry.
 pub(all) enum ClientProgramValidationIssue {
   Owner(ClientClosedValuesPreparationIssue)
   Chain(@publication.RunEvidenceChainIssue)
@@ -290,6 +290,7 @@ pub fn prepare_program_commit_validation(
 ///|
 pub fn start_program_validation(
   value : ClientProgramValidation,
+  max_workspace? : Int? = None,
 ) -> Result[ClientProgramValidation, ClientProgramValidationIssue] {
   if !validation_original(value) {
     return Err(Owner(ForeignOriginal))
@@ -309,12 +310,14 @@ pub fn start_program_validation(
     return validation_failure(value, Owner(ForeignOriginal))
   }
   if value.commit_kind {
-    guard @publication.start_planned_commit_validation(plan) is Some(checker) else {
+    guard @publication.start_planned_commit_validation(plan, max_workspace~)
+      is Some(checker) else {
       return validation_failure(value, Owner(WrongPhase))
     }
     value.commit = Some(checker)
   } else {
-    guard @publication.start_planned_chain_validation(plan) is Some(checker) else {
+    guard @publication.start_planned_chain_validation(plan, max_workspace~)
+      is Some(checker) else {
       return validation_failure(value, Owner(WrongPhase))
     }
     value.chain = Some(checker)
@@ -374,5 +377,74 @@ pub fn finish_program_validation(
       Ok(())
     }
     Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// Synchronous imported caller of the SAME reserved validation continuation.
+/// All original contract associations and current callbacks remain checked;
+/// failure always retires its own checker before returning the typed cause.
+pub fn check_program_commit_validation(
+  capture : ClientProgramCapture,
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  derivations : Array[@publication.PublicationContract],
+  orderings : Array[@publication.PublicationContract],
+  retentions : Array[@publication.PublicationContract],
+  bindings : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  captured_run : @publication.PublicationContract,
+  request : @publication.PublicationContract,
+  attempt : @publication.PublicationContract,
+  index_entry : @publication.PublicationContract,
+) -> Result[Unit, ClientProgramValidationIssue] {
+  let validation = match
+    prepare_program_commit_validation(
+      capture, run_definition, invocation, definitions, artifacts, derivations, orderings,
+      retentions, bindings, manifest, receipt, captured_run, request, attempt, index_entry,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match start_program_validation(validation) {
+    Ok(_) => ()
+    Err(issue) => {
+      cancel_program_validation(validation)
+      return Err(issue)
+    }
+  }
+  let mut done = false
+  while !done {
+    match advance_program_validation(validation, 256) {
+      Ok((ready, _)) => done = ready
+      Err(issue) => {
+        cancel_program_validation(validation)
+        return Err(issue)
+      }
+    }
+  }
+  match finish_program_validation(validation) {
+    Ok(_) => Ok(())
+    Err(issue) => {
+      cancel_program_validation(validation)
+      Err(issue)
+    }
+  }
+}
+
+///|
+/// Callback-free loan of the exact live checker to the existing typed Native
+/// observation boundary. The same controller retains its reservation/capture
+/// and cancels escaped aliases on retirement; this is no authority or transfer.
+pub fn borrow_program_commit_validation(
+  value : ClientProgramValidation,
+) -> @publication.PublicationCommitPreparation? {
+  if !validation_original(value) || !value.commit_kind || value.plan is Some(_) {
+    None
+  } else {
+    value.commit
   }
 }

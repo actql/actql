@@ -48,6 +48,8 @@ pub fn admitted_output_preparation_rows(AdmittedOutputPreparation) -> AdmittedOu
 
 pub fn admitted_output_row_count(AdmittedOutputRows) -> Int
 
+pub fn admitted_output_row_next_construction(AdmittedOutputRowCursor) -> PreparationRepresentationUnits?
+
 pub fn admitted_output_row_workspace_usage(AdmittedOutputRowCursor) -> (Int, Int)
 
 pub fn admitted_output_schema(AdmittedOutputRows) -> @relation_schema.Schema
@@ -239,6 +241,8 @@ pub fn bind_completed_source_input_operation(@lowering_relation.BoundPrepared, I
 pub fn bind_generated_numeric_execution(GeneratedSequence, NumericAggregateExecution) -> GeneratedSequence
 
 pub fn bind_generated_sequence_query_time(GeneratedSequence, @run_publication.QueryEvaluationTime, Int, Int) -> Result[GeneratedSequence, SequenceRunIssue]
+
+pub fn bind_generated_workspace_growth(GeneratedSequence, SequenceExecutionLimits, Int64, (Int64) -> Result[Unit, WorkspaceGrowthIssue]) -> Result[GeneratedSequence, SequenceRunIssue]
 
 pub fn bind_infer_captured_input(@lowering_relation.PreparedInferInputs, @lowering_relation.BoundPrepared, @pipeline_typing.Target, CapturedRows) -> Result[InferRowInput, InferPreparationIssue]
 
@@ -933,6 +937,8 @@ pub fn managed_output_value_measurement(ManagedOutputValueReceipt) -> (Int, Int,
 pub fn managed_output_value_receipt_matches(ManagedOutputValueReceipt, @lowering_relation.BoundPrepared, @pipeline_typing.Target) -> Bool
 
 pub fn managed_output_value_row_count(ManagedOutputValueReceipt) -> Int
+
+pub fn managed_output_value_row_wire_bound(ManagedOutputValueReceipt, ManagedResultOccurrence?, Int, Int) -> Int?
 
 pub fn managed_output_value_schema(ManagedOutputValueReceipt) -> @relation_schema.Schema
 
@@ -2943,6 +2949,10 @@ pub(all) enum WiringIssue {
   InvalidReference
   UnknownRetainedTarget(String)
 }
+
+pub(all) enum WorkspaceGrowthIssue {
+  WorkspaceUnavailable
+} derive(Eq, @debug.Debug)
 
 // Type aliases
 

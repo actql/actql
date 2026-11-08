@@ -6668,12 +6668,20 @@
             "maxSecretBytes",
             "authentication",
             "assertCurrent",
-            "secretPresentation"
+            "secretPresentation",
+            "originalSecretBinding"
           ],
           "async": false
         },
         {
           "name": "openHttpsCredentialBinding/openHttpsCredentialBinding",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "openHttpsCredentialBinding/openHttpsCredentialBinding#2",
           "parameters": [
             "key"
           ],
@@ -6885,6 +6893,13 @@
           "async": false
         },
         {
+          "name": "requireSecretOriginalCurrent",
+          "parameters": [
+            "state"
+          ],
+          "async": false
+        },
+        {
           "name": "retainHttpsCredentialBindingReadChild",
           "parameters": [
             "binding"
@@ -6994,7 +7009,9 @@
             "receive/receive/request/request/request#2",
             "receive/receive/request/request/request#3",
             "retireBinding",
-            "text/text"
+            "text/text",
+            "openHttpsCredentialBinding/openHttpsCredentialBinding#2",
+            "requireSecretOriginalCurrent"
           ],
           "exports": [
             "callHttpsCredentialResource",
@@ -7038,6 +7055,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Response reader responsibility:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "inputsOutputs": [
@@ -7084,6 +7105,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Response reader inputs and outputs:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "identity": [
@@ -7122,6 +7147,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Response reader identity:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "ownership": [
@@ -7156,6 +7185,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Response reader ownership:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "synchronization": [
@@ -7190,6 +7223,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Response reader synchronization:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "failure": [
@@ -7224,6 +7261,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Response reader failure:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "cancellation": [
@@ -7258,6 +7299,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Response reader cancellation:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "resources": [
@@ -7304,6 +7349,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Initial headers and trailers have separate parser counters and can"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "extension": [
@@ -7338,6 +7387,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Response reader extension:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "verification": [
@@ -7428,6 +7481,10 @@
               {
                 "path": "adapters/site-node/https-credential-response-accounting.test.mjs",
                 "anchor": "test('original HTTP overflow in either header block stays Unknown without another claim'"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ]
           }
@@ -7445,6 +7502,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Run response responsibility:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "inputsOutputs": [
@@ -7459,36 +7520,60 @@
               {
                 "path": "adapters/site-node/https-credential-resource.mjs",
                 "anchor": "requestRepresentation: response.requestRepresentation"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "identity": [
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Run response identity:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "ownership": [
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Run response ownership:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Run response synchronization:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "failure": [
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Run response failure:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Run response cancellation:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "resources": [
@@ -7503,12 +7588,20 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Initial headers and trailers have separate parser counters and can"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "extension": [
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Run response extension:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "verification": [
@@ -7539,6 +7632,10 @@
               {
                 "path": "adapters/site-node/https-credential-response-accounting.test.mjs",
                 "anchor": "test('original HTTP overflow in either header block stays Unknown without another claim'"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ]
           }
@@ -7570,6 +7667,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Response reader responsibility:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "inputsOutputs": [
@@ -7580,6 +7681,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Response reader inputs and outputs:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "identity": [
@@ -7590,6 +7695,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Response reader identity:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "ownership": [
@@ -7600,6 +7709,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Response reader ownership:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "synchronization": [
@@ -7610,6 +7723,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Response reader synchronization:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "failure": [
@@ -7620,6 +7737,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Response reader failure:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "cancellation": [
@@ -7630,6 +7751,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Response reader cancellation:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "resources": [
@@ -7644,6 +7769,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Initial headers and trailers have separate parser counters and can"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "extension": [
@@ -7654,6 +7783,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Response reader extension:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "verification": [
@@ -7676,6 +7809,10 @@
               {
                 "path": "adapters/site-node/https-credential-response-accounting.test.mjs",
                 "anchor": "test('original HTTP overflow in either header block stays Unknown without another claim'"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ]
           }
@@ -7720,6 +7857,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Response reader responsibility:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "inputsOutputs": [
@@ -7766,6 +7907,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Response reader inputs and outputs:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "identity": [
@@ -7804,6 +7949,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Response reader identity:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "ownership": [
@@ -7838,6 +7987,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Response reader ownership:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "synchronization": [
@@ -7872,6 +8025,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Response reader synchronization:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "failure": [
@@ -7906,6 +8063,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Response reader failure:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "cancellation": [
@@ -7940,6 +8101,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Response reader cancellation:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "resources": [
@@ -7986,6 +8151,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Initial headers and trailers have separate parser counters and can"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "extension": [
@@ -8020,6 +8189,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Response reader extension:"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "verification": [
@@ -8110,6 +8283,10 @@
               {
                 "path": "adapters/site-node/https-credential-response-accounting.test.mjs",
                 "anchor": "test('original HTTP overflow in either header block stays Unknown without another claim'"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ]
           }
@@ -8125,60 +8302,100 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "verification": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ]
           }
@@ -8193,66 +8410,106 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The managed HTTP response quotation receives its read quantum from the same"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The managed HTTP response quotation receives its read quantum from the same"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The managed HTTP response quotation receives its read quantum from the same"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The managed HTTP response quotation receives its read quantum from the same"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The managed HTTP response quotation receives its read quantum from the same"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The managed HTTP response quotation receives its read quantum from the same"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The managed HTTP response quotation receives its read quantum from the same"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The managed HTTP response quotation receives its read quantum from the same"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The managed HTTP response quotation receives its read quantum from the same"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ],
             "verification": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The managed HTTP response quotation receives its read quantum from the same"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
               }
             ]
           }
         }
       ],
-      "sha256": "3b118555698b288977363a87b15ada23a8b84f1477eaaafd74df81a17b06a72e",
+      "sha256": "bd04fa7701ff93435b1e11c3d689e8446a4ba911df772041bc0b029ab860bfdf",
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/credential-scope-fields.generated.mjs",

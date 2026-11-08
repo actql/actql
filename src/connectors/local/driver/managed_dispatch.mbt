@@ -49,6 +49,7 @@ struct LocalManagedDispatchConfiguration[T] {
   execution : @execution.SequenceExecutionLimits
   measurement : @execution.FixedInputGuardMeasureLimits
   imports : @local.LocalImportLimits
+  installation : LocalDispatchModule
   metadata : LocalManagedMetadataLimits
   capacity : @connector.ExecutionCapacity
   join_output_ceilings : Array[(Int, Int64)]
@@ -651,6 +652,7 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
         installed.implementation,
       ),
       imports,
+      installation: installed,
       metadata,
       capacity: {
         transfer_bytes: count * imports.wire.max_bytes.to_int64(),
@@ -1054,6 +1056,113 @@ pub fn[T] start_local_managed_dispatch(
     is Some(numeric_count) else {
     return Err(Execution(ForeignCandidate))
   }
+  // Configuration may select output after managed setup. Start has now
+  // recorded history, so the existing owner rejects further policy changes.
+  let exports = setup.installation.output_policy.map(value => value.0)
+  // Output framing belongs to the independently selected output policy.
+  // An input batch or its column ceiling does not constrain a checked output.
+  // Keep the established fallback for callers without an output profile.
+  let output_wire = match exports {
+    Some(limits) => limits.wire
+    None => setup.imports.wire
+  }
+  let output_values = match exports {
+    Some(limits) => limits.values
+    None => setup.imports.values
+  }
+  let output_max_rows = match exports {
+    Some(limits) => limits.max_rows
+    None => setup.imports.max_rows
+  }
+  // Both evaluator growth and later Result metadata extend the same original
+  // scratch extent. Keep their independent actual additions; neither may
+  // replace the other's reservation with the smaller initial quote.
+  let working_extra = Ref(0L)
+  let metadata_extra = Ref(0L)
+  let transport_extra = Ref(0L)
+  let output_row_extent : Ref[Int?] = Ref(None)
+  let working_failure : Ref[LocalDispatchIssue?] = Ref(None)
+  let reserve_working = fn(
+    extra : Int64,
+  ) -> Result[Unit, @execution.WorkspaceGrowthIssue] {
+    if !live.val ||
+      disposed.val ||
+      extra < working_extra.val ||
+      extra > 9223372036854775807L - setup.capacity.scratch_bytes ||
+      metadata_extra.val >
+      9223372036854775807L - setup.capacity.scratch_bytes - extra ||
+      transport_extra.val >
+      9223372036854775807L -
+      setup.capacity.scratch_bytes -
+      extra -
+      metadata_extra.val {
+      working_failure.val = Some(Execution(Stopped))
+      return Err(WorkspaceUnavailable)
+    }
+    let scratch = setup.capacity.scratch_bytes +
+      extra +
+      metadata_extra.val +
+      transport_extra.val
+    match
+      @strategy.grow_task_execution_workspace(setup.run, execution, scratch) {
+      Err(issue) => {
+        working_failure.val = Some(Execution(Physical(issue)))
+        return Err(WorkspaceUnavailable)
+      }
+      Ok(_) => ()
+    }
+    if !live.val || disposed.val {
+      working_failure.val = Some(Execution(Stopped))
+      return Err(WorkspaceUnavailable)
+    }
+    working_extra.val = extra
+    Ok(())
+  }
+  let export_frame_extent = fn(
+    receipt : @execution.ManagedOutputValueReceipt,
+    result : @execution.ManagedResultOccurrence?,
+  ) -> Result[Int, LocalDispatchIssue] {
+    guard @execution.managed_output_value_row_wire_bound(
+        receipt,
+        result,
+        output_wire.max_columns,
+        output_wire.max_bytes,
+      )
+      is Some(bytes) else {
+      return Err(Configuration(InvalidLimits))
+    }
+    let frame = Int::max(setup.imports.max_batch_bytes, bytes)
+    guard @execution.execution_capacity_inventory_add(
+        0L,
+        CanonicalWireBytes,
+        (frame - setup.imports.max_batch_bytes).to_int64(),
+        1,
+      )
+      is Some(extra) else {
+      return Err(Configuration(InvalidLimits))
+    }
+    if extra > transport_extra.val {
+      guard @execution.execution_capacity_inventory_add(
+          setup.capacity.scratch_bytes + working_extra.val + metadata_extra.val,
+          QuotedBytes,
+          extra,
+          1,
+        )
+        is Some(scratch) else {
+        return Err(Configuration(InvalidLimits))
+      }
+      match
+        @strategy.grow_task_execution_workspace(setup.run, execution, scratch) {
+        Ok(_) => ()
+        Err(issue) => return Err(Execution(Physical(issue)))
+      }
+      transport_extra.val = extra
+      if !live.val || disposed.val {
+        return Err(Execution(Stopped))
+      }
+    }
+    Ok(frame)
+  }
   let numeric = local_task_numeric_execution(
     setup.run,
     execution,
@@ -1273,6 +1382,18 @@ pub fn[T] start_local_managed_dispatch(
             if !live.val || disposed.val {
               return Err(Configuration(InputUnavailable))
             }
+            let constrained = match
+              @execution.bind_generated_workspace_growth(
+                constrained,
+                setup.execution,
+                @resources.ledger_admission_limits(
+                  @strategy.captured_dag_ledger(setup.run),
+                ).execution_bytes,
+                reserve_working,
+              ) {
+              Ok(value) => value
+              Err(issue) => return Err(Configuration(Execution(issue)))
+            }
             let started = match
               @local.start_managed_provider_with_inputs_and_execution(
                 provider,
@@ -1295,13 +1416,21 @@ pub fn[T] start_local_managed_dispatch(
                 numeric~,
               ) {
               Ok(value) => value
-              Err(issue) => return Err(Configuration(issue))
+              Err(issue) => {
+                if working_failure.val is Some(original) {
+                  return Err(original)
+                }
+                return Err(Configuration(issue))
+              }
             }
             provider_execution.val = Some(started)
             started
           }
         }
         let poll = @local.advance_managed_provider(active, quantum)
+        if working_failure.val is Some(original) {
+          return Err(original)
+        }
         if @local.managed_provider_cumulative_work(active) is Err(_) {
           live.val = false
           return Err(Configuration(InvalidLimits))
@@ -1616,6 +1745,18 @@ pub fn[T] start_local_managed_dispatch(
           })
         }
       }
+      if output_row_extent.val is None {
+        guard finalization_receipt.val is Some(receipt) else {
+          return Err(Configuration(InvalidLimits))
+        }
+        let extent = match export_frame_extent(receipt, None) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+        output_row_extent.val = Some(
+          Int::max(setup.imports.row.max_bytes, extent),
+        )
+      }
       if finalization_material.val is None {
         if finalization_work_remaining.val < 1 {
           return Err(Configuration(InvalidLimits))
@@ -1658,13 +1799,16 @@ pub fn[T] start_local_managed_dispatch(
           match
             (requirement.domain, requirement.subject, requirement.occurrence) {
             (@execution.OrderedRows, @execution.TaskOutput, None) => {
+              guard finalization_receipt.val is Some(receipt) else {
+                return Err(Configuration(InvalidLimits))
+              }
+              let frame = match export_frame_extent(receipt, None) {
+                Ok(value) => value
+                Err(issue) => return Err(issue)
+              }
               let stream = match
                 @execution.prepare_completed_output_export(
-                  output,
-                  setup.imports.max_rows,
-                  setup.imports.values,
-                  setup.imports.wire,
-                  setup.imports.max_batch_bytes,
+                  output, output_max_rows, output_values, output_wire, frame,
                 ) {
                 Ok(value) => value
                 Err(issue) => return Err(IdentityExport(issue))
@@ -1678,14 +1822,14 @@ pub fn[T] start_local_managed_dispatch(
                 if !finalization_metadata_grown.val {
                   if setup.metadata.result_rows_reserved is Some(initial) {
                     let rows = @execution.completed_row_count(output)
-                    if rows < 0 || rows > setup.imports.max_rows {
+                    if rows < 0 || rows > output_max_rows {
                       return Err(Configuration(InvalidLimits))
                     }
                     let extra_rows = Int::max(0, rows - initial)
                     // Result projection and stable ordering own two index arrays. This is
                     // their existing logical cursor-root allowance, not measured heap/RSS.
                     guard @execution.execution_capacity_inventory_add(
-                        setup.capacity.scratch_bytes,
+                        0L,
                         CursorRootSlots,
                         extra_rows.to_int64(),
                         2,
@@ -1694,15 +1838,27 @@ pub fn[T] start_local_managed_dispatch(
                       return Err(Configuration(InvalidLimits))
                     }
                     if extra_rows > 0 {
+                      guard @execution.execution_capacity_inventory_add(
+                          setup.capacity.scratch_bytes +
+                          working_extra.val +
+                          transport_extra.val,
+                          QuotedBytes,
+                          scratch,
+                          1,
+                        )
+                        is Some(total_scratch) else {
+                        return Err(Configuration(InvalidLimits))
+                      }
                       match
                         @strategy.grow_task_execution_workspace(
                           setup.run,
                           execution,
-                          scratch,
+                          total_scratch,
                         ) {
                         Ok(_) => ()
                         Err(issue) => return Err(Execution(Physical(issue)))
                       }
+                      metadata_extra.val = scratch
                       if !live.val || disposed.val || !available() {
                         return Err(Execution(Stopped))
                       }
@@ -1710,22 +1866,29 @@ pub fn[T] start_local_managed_dispatch(
                   }
                   finalization_metadata_grown.val = true
                 }
+                guard finalization_receipt.val is Some(receipt) else {
+                  return Err(Configuration(InvalidLimits))
+                }
+                let frame = match export_frame_extent(receipt, Some(result)) {
+                  Ok(value) => value
+                  Err(issue) => return Err(issue)
+                }
                 let preparation = match
                   @execution.start_completed_result_relation_export(
                     output,
                     result,
                     {
-                      max_fields: setup.imports.wire.max_columns,
-                      max_mapping_work: setup.imports.wire.max_order_work,
+                      max_fields: output_wire.max_columns,
+                      max_mapping_work: output_wire.max_order_work,
                       max_order_work: setup.execution.max_work,
                       max_workspace_entries: setup.metadata.result_workspace_entries,
                     },
-                    setup.imports.max_rows,
-                    setup.imports.values,
-                    setup.imports.wire,
-                    setup.imports.wire,
+                    output_max_rows,
+                    output_values,
+                    output_wire,
+                    output_wire,
                     setup.metadata.schema,
-                    setup.imports.max_batch_bytes,
+                    frame,
                   ) {
                   Ok(value) => value
                   Err(issue) => return Err(IdentityExport(issue))
@@ -2161,10 +2324,13 @@ pub fn[T] start_local_managed_dispatch(
       guard ordinary.val is Some(output) else {
         return Err(Configuration(InputUnavailable))
       }
+      // Before finalization, preserve the original funded small transport.
+      // A larger read needs the measured extent funded before settlement.
+      let extent = output_row_extent.val.unwrap_or(setup.imports.row.max_bytes)
       @execution.completed_output_row_wire(
         output,
         row,
-        setup.imports.row.max_bytes,
+        extent,
         setup.imports.row.max_nodes,
         setup.imports.row.max_depth,
       ).map_err(_ => Configuration(InputUnavailable))

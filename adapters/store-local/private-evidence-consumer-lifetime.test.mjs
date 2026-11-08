@@ -180,6 +180,8 @@ test('actual decoded capture retains SAME schema cleanup and reservation through
     assert.equal(definition, originalDefinition); return {$tag:1, _0:recovery};
   }, clientProgramReserveInstalledEffectCaptureRecovery(_value, bytes) {
     assert.equal(_value,recovery);assert.ok(bytes > 0); reserves++; return {$tag:1, _0:undefined};
+  }, clientProgramReserveInstalledEffectCaptureDecoded(value, wire) {
+    assert.equal(value,recovery);assert.equal(wire, JSON.stringify(body)); return {$tag:1, _0:undefined};
   }, clientProgramCompleteInstalledEffectCaptureRecovery(value) {
     assert.equal(value,recovery);assert.equal(reserves,1);assert.equal(retired,0);
     completed++;return {$tag:1, _0:undefined};
@@ -249,6 +251,21 @@ test('capture recovery keeps malformed JSON refusal inside the same temporary pl
     error.code === 'InvalidCompletedEffectfulCaptureRecord' && error.cause instanceof SyntaxError);
   c.assertReleased();
   assert.equal((await f.store.retirePhysicalHolding(f.holding)).cleanup.status().pending, false);
+});
+
+test('decoded capture capacity refuses before JSON.parse and preserves the same plaintext cleanup and primary', async t => {
+  const f = await fixture(t, '{'), c = captureOptions(f, new Error('unexpected typed admission'));
+  const primary = new Error('original decoded capacity refusal'), events = [];
+  await assert.rejects(recoverCompletedEffectfulComputation(c.options, {
+    begin() {events.push('begin');},
+    reserve(bytes) {assert.ok(bytes > 0); events.push('buffers');},
+    reserveDecoded(wire) {assert.equal(wire, '{'); events.push('trees'); throw primary;},
+    finish(failed, cause) {assert.equal(failed, true); assert.equal(cause, primary); events.push('finish');},
+    retainCleanup() {assert.fail('No typed child exists before its reservation');},
+  }), error => error === primary);
+  assert.deepEqual(events, ['begin', 'buffers', 'trees', 'finish']);
+  c.assertReleased();
+  assert.notEqual(await f.store.inspectPhysicalHolding(f.holding), undefined);
 });
 
 

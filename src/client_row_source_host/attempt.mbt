@@ -182,28 +182,16 @@ fn begin_row_source_read(
     page_limits.max_rows <= 0 {
     return Err(InvalidPage)
   }
-  let listing = match preparation.file_listing {
-    None => None
-    Some(profile) => {
-      if reference_issuer is None {
-        return Err(Value("resource"))
-      }
-      if listing_rows is None {
-        return Err(ListingLimitUnresolved("max_listing_items"))
-      }
-      let selection = match
-        prepare_row_file_selection(preparation.request, page_limits.max_bytes) {
-        Ok(value) => value
-        Err(issue) => return Err(issue)
-      }
-      Some(
-        new_row_listing_progress(
-          @environment.file_listing_limit_candidates(profile),
-          resolved_rows=listing_rows,
-          selection=Some(selection),
-        ),
-      )
-    }
+  let listing = match
+    prepare_row_listing_progress(
+      preparation.file_listing,
+      preparation.request,
+      page_limits.max_bytes,
+      reference_issuer,
+      listing_rows,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
   new_row_source_read(
     preparation.owner,
@@ -300,6 +288,7 @@ fn[T] fail_read(
 fn accept_row_source_page(
   read : RowSourceRead,
   bytes : Bytes,
+  parsed? : @source.Node? = None,
 ) -> Result[Int, RowSourceIssue] {
   if !read.open {
     return Err(Closed)
@@ -317,13 +306,20 @@ fn accept_row_source_page(
   // A physical page carries external DATA, not authored identifiers. Keep
   // JSON payload keys exact before their checked Value contract is known.
   // The existing row/typed-object readers still enforce the declared fields.
-  guard @source.parse_json_bytes_preserving(bytes, {
-      max_input_bytes: limits.max_bytes,
-      max_nodes: limits.max_nodes,
-      max_depth: limits.max_depth,
-    })
-    is Ok(node) &&
-    @decode.admit(node, {
+  let node = match parsed {
+    Some(value) => value
+    None =>
+      match
+        @source.parse_json_bytes_preserving(bytes, {
+          max_input_bytes: limits.max_bytes,
+          max_nodes: limits.max_nodes,
+          max_depth: limits.max_depth,
+        }) {
+        Ok(value) => value
+        Err(_) => return fail_read(read, InvalidPage)
+      }
+  }
+  guard @decode.admit(node, {
       max_nodes: limits.max_nodes,
       max_depth: limits.max_depth,
       max_string_bytes: limits.max_bytes,
@@ -410,6 +406,7 @@ fn admit_row_source_object(
   item : @decode.Cursor,
   values : @admitted.Limits,
   references? : (@admitted.ReferenceIssuer, @admitted.ReferenceLimits)? = None,
+  listing_retention? : RowListingRetention? = None,
 ) -> Result[Array[@admitted.CheckedValue?], RowSourceIssue] {
   guard @decode.object_field_names(item) is Ok(names) &&
     @decode.open_object(item) is Ok(object) else {
@@ -432,16 +429,54 @@ fn admit_row_source_object(
         cells.push(None)
       }
       Some(cell) => {
-        // Only the trusted Host may supply this capability. Connector JSON
-        // never creates provenance or current authorization by its shape.
-        let admitted = match references {
-          Some((issuer, limits)) =>
-            @admitted.admit_host(issuer, field.contract, cell, values, limits)
-          None => @admitted.admit(field.contract, cell, values)
+        // Restrict construction before admission, including excluded rows.
+        // Both paths call the same original typed owner exactly once.
+        let remaining = match listing_retention {
+          None => values
+          Some(budget) =>
+            {
+              ..values,
+              max_nodes: Int::min(
+                values.max_nodes,
+                budget.max_nodes - budget.nodes,
+              ),
+              max_text_bytes: Int::min(
+                values.max_text_bytes,
+                budget.max_text - budget.text,
+              ),
+            }
         }
-        let checked = match admitted {
+        let admitted = match references {
+          Some((issuer, limits)) => {
+            let reference_limits = match listing_retention {
+              None => limits
+              Some(_) =>
+                {
+                  ..limits,
+                  max_nodes: Int::min(limits.max_nodes, remaining.max_nodes),
+                  max_text_units: Int::min(
+                    limits.max_text_units,
+                    remaining.max_text_bytes,
+                  ),
+                }
+            }
+            @admitted.admit_host_usage(
+              issuer,
+              field.contract,
+              cell,
+              remaining,
+              reference_limits,
+            )
+          }
+          None => @admitted.admit_usage(field.contract, cell, remaining)
+        }
+        let (checked, nodes, text) = match admitted {
           Ok(value) => value
           Err(_) => return Err(Value(name))
+        }
+        if listing_retention is Some(budget) {
+          budget.nodes += nodes
+          budget.text += text
         }
         cells.push(Some(checked))
       }
@@ -561,11 +596,11 @@ pub fn declared_row_view(
 /// Admit already-typed provider values into the same input owner as JSON
 /// pages. append_admitted_input checks exact contract identity (including
 /// decimal precision/scale), width and retention limits before retaining a row.
-fn accept_row_source_values(
+fn row_source_value_indices(
   read : RowSourceRead,
   columns : Array[String],
   rows : Array[Array[@admitted.CheckedValue]],
-) -> Result[Int, RowSourceIssue] {
+) -> Result[Array[Int], RowSourceIssue] {
   if !read.open {
     return Err(Closed)
   }
@@ -589,6 +624,16 @@ fn accept_row_source_values(
     }
     indices.push(index)
   }
+  Ok(indices)
+}
+
+///|
+fn append_row_source_values(
+  read : RowSourceRead,
+  columns : Array[String],
+  rows : Array[Array[@admitted.CheckedValue]],
+  indices : Array[Int],
+) -> Result[Int, RowSourceIssue] {
   for row in rows {
     if row.length() != columns.length() {
       return fail_read(read, InvalidPage)
@@ -605,4 +650,17 @@ fn accept_row_source_values(
   read.pages += 1L
   read.rows += rows.length().to_int64()
   Ok(rows.length())
+}
+
+///|
+fn accept_row_source_values(
+  read : RowSourceRead,
+  columns : Array[String],
+  rows : Array[Array[@admitted.CheckedValue]],
+) -> Result[Int, RowSourceIssue] {
+  let indices = match row_source_value_indices(read, columns, rows) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  append_row_source_values(read, columns, rows, indices)
 }

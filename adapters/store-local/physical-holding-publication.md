@@ -1248,3 +1248,33 @@ the bounded physical census and retained custody originals. A replacement admitt
 before that death could not reuse the still-held old inode. Clean current-format
 reopen remains unchanged. This introduces no new public identity, normative version,
 capacity grant, private-format migration, or second physical accounting authority.
+
+### Store owner metadata publication
+
+On supported normal Local Files bindings, a new owner record is written, synced
+and closed in a private `.owner-opening-<UUID>` directory. Its directory is synced
+before the existing platform no-replace rename publishes the fixed `owner` name;
+the Store root then receives its separate durability acknowledgement. An existing
+empty directory, symlink or foreign owner is never an overwrite condition.
+Unpublished stages remain owned by their original opening handles. Another
+opener preserves them: its execution lease cannot prove that a concurrent fresh
+preparer, which has not qualified that lease yet, stopped or returned custody.
+An empty or corrupt *final* owner record remains invalid, including records left
+by an older implementation. This protocol does not repair historical state.
+
+Fresh preparation retains its existing root descriptor before staging but defers
+execution-lease qualification until Store startup, as before. Qualification keeps
+the original prepared owner and token. It writes a separate complete lease record,
+syncs and closes its writer, and atomically replaces only the original owner file.
+The private native replacement checks the old file identity, extent and timestamps
+under the original owner-directory descriptor immediately before replacement. Its
+committed replacement becomes the retained physical original before any subsequent
+child-close or directory-sync failure. A copied token in another inode is refused.
+
+The existing opening/retirement custody owns the temporary path, original writer,
+old/new metadata overlap and temporary native directory child. Failed writer close
+remains pending; a consumed native-close Unknown is never retried as a numeric FD.
+That child must retire before the owner metadata, stable lease, root or key can
+retire. Unsupported native delivery retains its conservative legacy behavior and
+cannot issue an execution-stop receipt. Public Files publication and Store identity,
+authorization, quotas, durable history and format contracts are unchanged.

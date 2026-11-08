@@ -1,7 +1,7 @@
 ///|
 test "exact decimal coefficients add without bounded integer conversion" {
   let control = { remaining: 10000, max_frames: 0, }
-  let workspace = { limit: 1000, live: 0, peak: 0, }
+  let workspace = row_workspace(1000)
   let add = fn(left : String, right : String) -> String {
     add_decimal_coefficients(left, right, control, workspace).unwrap()
   }
@@ -23,7 +23,7 @@ test "exact decimal coefficients add without bounded integer conversion" {
 ///|
 test "exact decimal coefficient addition has an exact control boundary" {
   let exact_control = { remaining: 4, max_frames: 0, }
-  let exact_workspace = { limit: 2, live: 0, peak: 0, }
+  let exact_workspace = row_workspace(2)
   guard add_decimal_coefficients("1", "2", exact_control, exact_workspace)
     is Ok(exact) else {
     fail("exact budget should succeed")
@@ -32,19 +32,21 @@ test "exact decimal coefficient addition has an exact control boundary" {
   assert_eq(exact_control.remaining, 0)
   assert_eq(exact_workspace.live, 0)
   assert_true(
-    add_decimal_coefficients("1", "2", { remaining: 3, max_frames: 0, }, {
-      limit: 2,
-      live: 0,
-      peak: 0,
-    })
+    add_decimal_coefficients(
+      "1",
+      "2",
+      { remaining: 3, max_frames: 0, },
+      row_workspace(2),
+    )
     is Err(RowLimit),
   )
   assert_true(
-    add_decimal_coefficients("1", "2", { remaining: 4, max_frames: 0, }, {
-      limit: 1,
-      live: 0,
-      peak: 0,
-    })
+    add_decimal_coefficients(
+      "1",
+      "2",
+      { remaining: 4, max_frames: 0, },
+      row_workspace(1),
+    )
     is Err(RowLimit),
   )
 }

@@ -6,7 +6,7 @@ import {parse} from 'yaml';
 import {focusedPattern, focusedFixtureObjects, stableFocusedFiles, focusedPlan,
   eligibleFocusedChanges, checkFocusedSource, readFocusedTests, validateFocusedTests,
   runFocusedPlan} from './ci-focused-tests.mjs';
-import {readChanges, selectTargets, validateSelection, verifyGate, gateJobs} from './ci-targets.mjs';
+import {readChanges, selectTargets, validateSelection, verifyGate, gateJobs, gateJobRequired} from './ci-targets.mjs';
 import {testExecutionResult} from './test-execution.mjs';
 import {fullCheckpointJobs, policyPaths, resolveMainBaseline} from './ci-main-base.mjs';
 
@@ -25,8 +25,8 @@ test "native candidates preserve fixed ports" {
   assert_false(@connector.fixed_compute_request_has_supplied_input(request))
 }`;
 const change = (path = current, addition = false) => ({path,
-  before: {mode: addition ? '000000' : '100644', object: addition ? zero : old},
-  after: {mode: '100644', object: fresh}});
+  before: {mode: addition ? '000000' : '100644', object: addition ? zero : path === 'docs/development.md' ? '4'.repeat(40) : old},
+  after: {mode: '100644', object: path === 'docs/development.md' ? '5'.repeat(40) : fresh}});
 
 test('the current Git package admits a body-only edit to each stable focused file', () => {
   const git = args => execFileSync('git', args, {encoding: 'utf8'});
@@ -58,6 +58,9 @@ function gitFixture({changes = [change()], sources = {}, badPin = false, extra =
     if (args[0] === 'ls-tree') return [...files].map(([path, entry]) => `${entry.mode} blob ${entry.object}\t${path}\0`).join('');
     if (args[0] === 'show') {
       if (args[1] in sources) return sources[args[1]];
+      if (['4'.repeat(40), '5'.repeat(40)].includes(args[1])) return readFileSync(
+        new URL('../docs/development.md', import.meta.url), 'utf8') +
+        (args[1][0] === '5' ? '\nReviewed prose-only change.\n' : '');
       if ([old, fresh].includes(args[1]) || args[1].includes(':')) return portable;
       return 'fn fixture_helper() { () }';
     }
@@ -75,6 +78,57 @@ function selection(changes = [change()], options = {}) {
 const results = value => Object.fromEntries(gateJobs.map(name => [name, {result:
   ['select-targets', 'preflight', 'lint', 'spec'].includes(name) || name === 'focused-tests' && ['focused-tests', 'draft-focused'].includes(value.profile)
     || name !== 'focused-tests' && value.profile === 'full' && (name !== 'native-macos' || value.macos) ? 'success' : 'skipped'}]));
+
+test('known maintenance and focused changes select their required job union', () => {
+  const entries = [change(), change('docs/development.md')];
+  const inspect = changes => {
+    const {git} = gitFixture({changes});
+    const read = readChanges({pull_request: {base: {sha: old}}}, git);
+    return validateSelection(selectTargets(read.paths, read));
+  };
+  const value = inspect(entries);
+  assert.equal(value.profile, 'focused-tests');
+  assert.deepEqual(value.focusedChanges, [entries[0]]);
+  assert.deepEqual(value.maintenanceChanges, [entries[1]]);
+  const separate = [selection(), selectTargets([entries[1].path], {maintenanceChanges: [entries[1]]})];
+  const required = new Set(separate.flatMap(item => gateJobs.filter(name => gateJobRequired(item, name))));
+  assert.deepEqual(gateJobs.filter(name => gateJobRequired(value, name)), gateJobs.filter(name => required.has(name)));
+  const envelope = {sourceRevision: head, selection: value}, context = {sourceRevision: head, event: 'pull_request'};
+  assert.equal(verifyGate(envelope, results(value), context).length, gateJobs.length);
+  for (const name of required) for (const result of ['failure', 'cancelled', 'skipped', undefined]) {
+    const needs = results(value); needs[name] = {result};
+    assert.throws(() => verifyGate(envelope, needs, context));
+  }
+  for (const path of ['package.json', '.github/workflows/ci.yml', 'src/query_integration/moon.pkg',
+    'proofs/relation-pipeline/inventory.mjs', 'examples/infer-evaluation/new.test.mjs'])
+    assert.equal(inspect([...entries, change(path)]).profile, 'full', path);
+  for (const bad of [
+    {...entries[1], before: {mode: '000000', object: zero}},
+    {...entries[1], after: {mode: '000000', object: zero}},
+    {...entries[1], after: {mode: '100755', object: fresh}},
+  ]) assert.equal(inspect([entries[0], bad]).profile, 'full');
+  for (const mutate of [input => {input.maintenanceChanges = null;},
+    input => {input.paths.push('unregistered');}, input => {input.focusedChanges = [];}]) {
+    const invalid = structuredClone(value); mutate(invalid); assert.throws(() => validateSelection(invalid));
+  }
+});
+
+test('mixed reviewed Draft preparation never becomes merge evidence', () => {
+  const entries = [change(), change('docs/development.md')];
+  const {git} = gitFixture({changes: entries});
+  const read = readChanges({pull_request: {base: {sha: old}}}, git);
+  const value = validateSelection(selectTargets(read.paths, {...read, draft: true}));
+  assert.equal(value.profile, 'draft-focused');
+  assert.deepEqual(value.maintenanceChanges, [entries[1]]);
+  assert.deepEqual(value.focusedChanges, [entries[0]]);
+  assert.throws(() => verifyGate({sourceRevision: head, selection: value}, results(value),
+    {event: 'pull_request', sourceRevision: head, draft: true}), /Draft preparation/);
+  const {git: bad} = gitFixture({changes: entries, badPin: true});
+  const unavailable = readChanges({pull_request: {base: {sha: old}}}, bad);
+  const refused = validateSelection(selectTargets(unavailable.paths, {...unavailable, draft: true}));
+  assert.equal(refused.profile, 'draft');
+  assert.equal(refused.focusedTests, null); assert.equal(refused.maintenanceChanges, null);
+});
 
 test('registered family includes existing siblings and NEW fixed-compute/join tests', () => {
   for (const path of [current, stableFocusedFiles[1], added, 'src/query_integration/fixed_join_ordered_ports_wbtest.mbt']) {
@@ -220,7 +274,7 @@ test('focused runner installs only Node and MoonBit while preserving upstream ar
 test('full success checkpoint accepts focused-only job skipped but requires every full family', async () => {
   const fullJobs = fullCheckpointJobs(gateJobs.filter(name => name !== 'focused-tests'));
   assert(!fullJobs.includes('focused-tests'));
-  for (const name of ['core (js)', 'core (wasm)', 'core (native)', 'host', 'client', 'native',
+  for (const name of ['core (js)', 'core (wasm)', 'core (native 1/2)', 'core (native 2/2)', 'host', 'client', 'native',
     'session-evidence', 'pipeline-evidence', 'native-macos', 'workers', 'duckdb-node']) assert(fullJobs.includes(name));
   const run = {id: 101, run_attempt: 1, workflow_id: 7, path: '.github/workflows/ci.yml',
     event: 'push', head_branch: 'main', repository: {id: 12, full_name: 'actql/actql'},
@@ -243,7 +297,7 @@ test('full success checkpoint accepts focused-only job skipped but requires ever
   const focused = selection([change()], {event: 'push', mainIntegration: false});
   assert.equal(validateSelection(focused).profile, 'full', 'normal main selection never reuses a prior run to narrow coverage');
   verifyGate({selection: focused, sourceRevision: head}, results(focused), {event: 'push', sourceRevision: head});
-  jobs.find(job => job.name === 'core (native)').conclusion = 'skipped';
+  jobs.find(job => job.name === 'core (native 2/2)').conclusion = 'skipped';
   assert.equal((await resolveMainBaseline(options)).baseSha, null);
 });
 

@@ -5,7 +5,7 @@ fn check_take_scale(count : Int) -> Unit raise {
   )
   let allowance = count * 4 + 100
   let control = { remaining: allowance, max_frames: 0, }
-  let workspace = { limit: count * 4 + 20, live: 0, peak: 0, }
+  let workspace = { ..row_workspace(count * 4 + 20), live: 0, peak: 0, }
   let selected = evaluate_take_selection(
     input,
     1L,
@@ -34,7 +34,7 @@ fn check_take_scale(count : Int) -> Unit raise {
       count,
       { remaining: work, max_frames: 0, },
       row_output(),
-      { limit: slots, live: 0, peak: 0, },
+      { ..row_workspace(slots), live: 0, peak: 0, },
     )
     assert_eq(attempt is Ok(_), succeeds)
   }

@@ -28,8 +28,8 @@
             "installed_managed_run_accounting",
             "installed_managed_run_accounting_values",
             "installed_managed_run_compilation_original",
-            "installed_managed_run_model_input_prefix",
             "installed_managed_run_invocation_original",
+            "installed_managed_run_model_input_prefix",
             "installed_managed_run_owner",
             "installed_managed_run_purpose_supported",
             "installed_managed_run_requirements",
@@ -47,10 +47,10 @@
             "prepare_installed_managed_source_free_with_contracts",
             "prepared_installed_managed_publication_limits",
             "prepared_installed_managed_source_free_requirements",
+            "quiesce_installed_managed_run",
             "require_installed_managed_run",
             "retire_installed_managed_run",
-            "source_free_installed_managed_preparation_owned",
-            "quiesce_installed_managed_run"
+            "source_free_installed_managed_preparation_owned"
           ],
           "exports": [],
           "attributes": {
@@ -273,7 +273,7 @@
         },
         {
           "name": "open_installed_managed_source_free_host",
-          "declaration": "open_installed_managed_source_free_host ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , retained_output : Bool , provider_factory ? : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ]"
+          "declaration": "open_installed_managed_source_free_host ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , retained_output : Bool , backing ? : @ resources . Ledger ?"
         },
         {
           "name": "open_installed_managed_source_free_host_original",
@@ -320,12 +320,12 @@
           "declaration": "source_free_installed_managed_preparation_owned ( owner : ClientLocalSequenceOwner , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , mock_model : Bool , model ? : @ publication_host . ClientInferPlanGraph ?"
         }
       ],
-      "sha256": "bc6ee72e92e010f066171f442bd3140f62654aa22ea4587f27ea6f27bf9a80d0"
+      "sha256": "eed678f29df8223287110f2e58c16ce06a7c97eba0c4ed246d4773d64891f5fe"
     },
     {
       "module": "src/client_local_host/installed_capture_plan.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "76404d7bb4bc19e58b3a89d24b457b4a4b662bbae1af9e3c90c8cdfd847425d9",
+      "sha256": "b33cebf5ee2c68aca5d0904d1e9ea4d92e64896b8603be08914742846a7e47f9",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -333,6 +333,14 @@
         {
           "name": "begin_installed_managed_capture_read",
           "declaration": "begin_installed_managed_capture_read ( value : ClientInstalledManagedRun , occurrence : Int , ) - > Result [ ClientInstalledSourceRead , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "bind_retained_installed_capture_host",
+          "declaration": "bind_retained_installed_capture_host ( value : ClientInstalledManagedRun , plan : ClientInstalledManagedCapturePlan , ledger : @ resources . Ledger , run : @ strategy . CapturedDAG , ) - > Result [ ( @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , @ strategy . CapturedDAG , Array [ @ execution . GeneratedSequence ] , ) , ClientInstalledCaptureHostIssue , ]"
+        },
+        {
+          "name": "installed_managed_capture_parent_fits",
+          "declaration": "installed_managed_capture_parent_fits ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , ledger : @ resources . Ledger , limits : @ resources . LedgerLimits , ) - > Bool"
         },
         {
           "name": "installed_managed_capture_plan",
@@ -345,6 +353,14 @@
         {
           "name": "open_installed_managed_capture_host_owned",
           "declaration": "open_installed_managed_capture_host_owned ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , sources : Array [ @ query . CapturedInputSource ] , ) - > Result [ ( @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , @ strategy . CapturedDAG , Array [ @ execution . GeneratedSequence ] , ) , ClientInstalledCaptureHostIssue , ]"
+        },
+        {
+          "name": "open_installed_managed_keyed_capture_host",
+          "declaration": "open_installed_managed_keyed_capture_host ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , lookup : @ publication_host . ClientKeyedLookupInput , ) - > Result [ ( @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , @ strategy . CapturedDAG , Array [ @ execution . GeneratedSequence ] , ) , ClientInstalledCaptureHostIssue , ]"
+        },
+        {
+          "name": "open_installed_managed_keyed_capture_host_owned",
+          "declaration": "open_installed_managed_keyed_capture_host_owned ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , lookup : @ publication_host . ClientKeyedLookupInput , ) - > Result [ ( @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , @ strategy . CapturedDAG , Array [ @ execution . GeneratedSequence ] , ) , ClientInstalledCaptureHostIssue , ]"
         },
         {
           "name": "prepare_installed_managed_capture_plan",
@@ -372,9 +388,13 @@
           "operations": [
             "<module>",
             "begin_installed_managed_capture_read",
+            "bind_retained_installed_capture_host",
+            "installed_managed_capture_parent_fits",
             "installed_managed_capture_plan",
             "open_installed_managed_capture_host",
             "open_installed_managed_capture_host_owned",
+            "open_installed_managed_keyed_capture_host",
+            "open_installed_managed_keyed_capture_host_owned",
             "prepare_installed_managed_capture_plan",
             "prepare_installed_managed_capture_plan_owned",
             "prepare_retained_installed_capture_ledger",
@@ -450,7 +470,7 @@
     {
       "module": "src/client_local_host/installed_effect_operation_demand.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "d29ad016b228016f22a78736ac55851b651ef0fa487b900a713487615dd30df4",
+      "sha256": "747d36fcf056217dc4f018c242720f7f5a68f00ee110030e13702e50156316d6",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -552,6 +572,10 @@
           "declaration": "prepared_installed_effect_managed_source ( plan : ClientInstalledEffectManagedPlan , occurrence : Int , ) - > Result [ ( @ row_source_host . RowDeclaration , @ planning . QueryRequirement , @ row_source_host . RowAcquisition , ClientInstalledCaptureCapacity , ) , ClientInstalledManagedRunIssue , ]"
         },
         {
+          "name": "prepared_installed_effect_model_sequence",
+          "declaration": "prepared_installed_effect_model_sequence ( plan : ClientInstalledEffectManagedPlan , graph : @ publication_host . ClientInferPlanGraph , ) - > Result [ @ execution . GeneratedSequence , ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "resolve_installed_effect_capture_extent",
           "declaration": "resolve_installed_effect_capture_extent ( original : ClientInstalledEffectOperationExtent , rows : Int , ) - > ClientInstalledEffectOperationExtent ?"
         },
@@ -585,7 +609,8 @@
             "prepared_installed_effect_managed_source",
             "resolve_installed_effect_capture_extent",
             "resolve_installed_effect_id_extent",
-            "prepare_installed_effect_managed_plan_owned"
+            "prepare_installed_effect_managed_plan_owned",
+            "prepared_installed_effect_model_sequence"
           ],
           "exports": [],
           "attributes": {
@@ -806,7 +831,7 @@
     {
       "module": "src/client_local_host/installed_mock_model_plan.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "ce6af926d1bb34ee72929a67e8eb87ffe23a050ab95b9665d0fdf7448407dc94",
+      "sha256": "91862175dbae4af12f399a981e9286c677360f1500b17ebe795753fd5bfbbb0c",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -926,7 +951,7 @@
     {
       "module": "src/client_local_host/installed_source_read.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "83ec77509f18947b55e2d91d8f19009223e823552ddf356c633ed745da8eafea",
+      "sha256": "a520b0ea48be6ad30e15a0556858660a08f0b3410ee69e4f0ea3578860575cec",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -956,8 +981,20 @@
           "declaration": "check_installed_source_read_current ( value : ClientInstalledSourceRead , ) - > Result [ Unit , ClientInstalledSourceReadIssue ]"
         },
         {
+          "name": "check_installed_source_read_frame",
+          "declaration": "check_installed_source_read_frame ( value : ClientInstalledSourceRead , frame : @ resources . ImportedChildLedger , ) - > Result [ ClientInstalledSourceReadFrame , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "check_installed_source_read_frame_retained",
+          "declaration": "check_installed_source_read_frame_retained ( observation : ClientInstalledSourceReadFrame , value : ClientInstalledSourceRead , frame : @ resources . ImportedChildLedger , ) - > Result [ Unit , ClientInstalledSourceReadIssue ]"
+        },
+        {
           "name": "check_installed_source_read_ledger",
           "declaration": "check_installed_source_read_ledger ( value : ClientInstalledSourceRead , expected : @ resources . Ledger , ) - > Result [ Unit , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "check_installed_source_read_retained_ledger",
+          "declaration": "check_installed_source_read_retained_ledger ( value : ClientInstalledSourceRead , ledger : @ resources . Ledger , ) - > Result [ Unit , ClientInstalledSourceReadIssue ]"
         },
         {
           "name": "claim_installed_source_read_start",
@@ -981,7 +1018,7 @@
         },
         {
           "name": "start_installed_source_read_listing_rows",
-          "declaration": "start_installed_source_read_listing_rows ( value : ClientInstalledSourceRead , acquisition : @ row_source_host . RowAcquisition , capacity : @ execution . ExecutionCapacity ? , nonce : String , original_stop : ( @ row_source_host . RowAttempt ) - > Bool , transfer_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ @ row_source_host . RowRun , ClientInstalledSourceReadIssue ]"
+          "declaration": "start_installed_source_read_listing_rows ( value : ClientInstalledSourceRead , acquisition : @ row_source_host . RowAcquisition , capacity : @ execution . ExecutionCapacity ? , nonce : String , original_stop : ( @ row_source_host . RowAttempt ) - > Bool , transfer_bytes : Int64 , execution_bytes : Int64 , response_capacity ? : Bool"
         },
         {
           "name": "start_installed_source_read_provider_rows",
@@ -1002,7 +1039,10 @@
             "bind_installed_source_read_owner",
             "bind_installed_source_read_program",
             "check_installed_source_read_current",
+            "check_installed_source_read_frame",
+            "check_installed_source_read_frame_retained",
             "check_installed_source_read_ledger",
+            "check_installed_source_read_retained_ledger",
             "claim_installed_source_read_start",
             "require_installed_source_read_current",
             "require_installed_source_read_original",
@@ -1081,14 +1121,26 @@
     {
       "module": "src/client_local_host/installed_whole_source_plan.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "024675bbf64577c9b66944d00c05fbf88650c293ace18afd05476415d1fb8bd7",
+      "sha256": "32b5e7a94ed8f1b9eba8c946d3d8d599a9cc43b745fa5b4ed49927402151ea0b",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
       "operations": [
         {
+          "name": "begin_installed_managed_catalog_whole_source_read",
+          "declaration": "begin_installed_managed_catalog_whole_source_read ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , source : ClientInstalledWholeSourceCapacity , ) - > Result [ ( ClientInstalledSourceRead , @ sourceviews . SourceAcquisition , @ row_source_host . RowInputAcquisition , ClientInstalledWholeSourceCapacity , ) , ClientInstalledManagedRunIssue , ]"
+        },
+        {
           "name": "begin_installed_managed_whole_source_read",
           "declaration": "begin_installed_managed_whole_source_read ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , declaration : @ row_source_host . RowDeclaration , ) - > Result [ ( ClientInstalledSourceRead , @ sourceviews . SourceAcquisition , @ row_source_host . RowInputAcquisition , ClientInstalledWholeSourceCapacity , ) , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "begin_installed_managed_whole_source_read_at",
+          "declaration": "begin_installed_managed_whole_source_read_at ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , declaration : @ row_source_host . RowDeclaration , occurrence : Int , ) - > Result [ ( ClientInstalledSourceRead , @ sourceviews . SourceAcquisition , @ row_source_host . RowInputAcquisition , ClientInstalledWholeSourceCapacity , ) , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "begin_installed_managed_whole_source_read_original",
+          "declaration": "begin_installed_managed_whole_source_read_original ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , declaration : @ row_source_host . RowDeclaration ? , expected : ClientInstalledWholeSourceCapacity ? , occurrence : Int , ) - > Result [ ( ClientInstalledSourceRead , @ sourceviews . SourceAcquisition , @ row_source_host . RowInputAcquisition , ClientInstalledWholeSourceCapacity , ) , ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "check_installed_whole_source_capacity",
@@ -1107,6 +1159,18 @@
           "declaration": "installed_managed_whole_source_ledger ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , capacity : ClientInstalledWholeSourceCapacity , transfer : Int64 , scratch : Int64 , ) - > Result [ @ resources . Ledger , ClientInstalledManagedRunIssue ]"
         },
         {
+          "name": "installed_managed_whole_sources_ledger",
+          "declaration": "installed_managed_whole_sources_ledger ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , capacities : Array [ ClientInstalledWholeSourceCapacity ] , transfer : Array [ Int64 ] , scratch : Array [ Int64 ] , ) - > Result [ @ resources . Ledger , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "installed_row_input_policy",
+          "declaration": "installed_row_input_policy ( max_rows : Int , max_page_bytes : Int , max_page_nodes : Int , max_page_depth : Int , max_page_rows : Int , ) - > @ row_source_host . RowInputLimits"
+        },
+        {
+          "name": "installed_source_listing_policy",
+          "declaration": "installed_source_listing_policy ( graph : @ strategy . CheckedDAG , ) - > @ capacity . Policy"
+        },
+        {
           "name": "installed_whole_source_acquisition",
           "declaration": "installed_whole_source_acquisition ( value : ClientInstalledWholeSourceCapacity , ) - > @ row_source_host . RowInputAcquisition"
         },
@@ -1117,6 +1181,14 @@
         {
           "name": "installed_whole_source_original",
           "declaration": "installed_whole_source_original ( value : ClientInstalledWholeSourceCapacity , ) - > @ sourceviews . SourceAcquisition"
+        },
+        {
+          "name": "installed_whole_source_read_capacity_matches",
+          "declaration": "installed_whole_source_read_capacity_matches ( read : ClientInstalledSourceRead , value : ClientInstalledWholeSourceCapacity , acquisition : @ row_source_host . RowInputAcquisition , provider : @ execution . ExecutionCapacity , ) - > Bool"
+        },
+        {
+          "name": "prepare_installed_catalog_whole_source_capacity",
+          "declaration": "prepare_installed_catalog_whole_source_capacity ( prepared : @ publication_host . PreparedClientProgram , original : @ sourceviews . SourceAcquisition , contracts : ClientInstalledSequenceContracts , limits : @ row_source_host . RowInputLimits , ) - > Result [ ClientInstalledWholeSourceCapacity , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "prepare_installed_managed_whole_source_plan",
@@ -1131,8 +1203,24 @@
           "declaration": "prepare_installed_managed_whole_source_plan_owned ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , source : ClientInstalledWholeSourceCapacity , transport_bytes : Int64 , transport_execution_bytes : Int64 , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , query_time : @ publication_host . ClientQueryTimePreparation ? , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , ) - > Result [ ClientInstalledManagedCapturePlan , ClientInstalledManagedRunIssue ]"
         },
         {
+          "name": "prepare_installed_managed_whole_sources_plan",
+          "declaration": "prepare_installed_managed_whole_sources_plan ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , sources : Array [ ClientInstalledWholeSourceCapacity ] , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , query_time ? : @ publication_host . ClientQueryTimePreparation ?"
+        },
+        {
+          "name": "prepare_installed_managed_whole_sources_plan_at_query_time",
+          "declaration": "prepare_installed_managed_whole_sources_plan_at_query_time ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , sources : Array [ ClientInstalledWholeSourceCapacity ] , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , invocation : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , @ publication_host . ClientCompiledRun , @ publication . PublicationContract , ) ? , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , ) - > Result [ ClientInstalledManagedCapturePlan , ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "prepare_installed_whole_source_capacity",
           "declaration": "prepare_installed_whole_source_capacity ( prepared : @ publication_host . PreparedClientProgram , original : @ sourceviews . SourceAcquisition , declaration : @ row_source_host . RowDeclaration , contracts : ClientInstalledSequenceContracts , limits : @ row_source_host . RowInputLimits , provider : @ execution . ExecutionCapacity ? , ) - > Result [ ClientInstalledWholeSourceCapacity , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "prepare_installed_whole_source_capacity_original",
+          "declaration": "prepare_installed_whole_source_capacity_original ( prepared : @ publication_host . PreparedClientProgram , original : @ sourceviews . SourceAcquisition , declaration : @ row_source_host . RowDeclaration ? , contracts : ClientInstalledSequenceContracts , limits : @ row_source_host . RowInputLimits , provider : @ execution . ExecutionCapacity ? , ) - > Result [ ClientInstalledWholeSourceCapacity , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "render_installed_catalog_source_sql",
+          "declaration": "render_installed_catalog_source_sql ( capacity : ClientInstalledWholeSourceCapacity , database_schema : String , table : String , max_bytes : Int , ) - > Result [ String , @ row_source_host . RowHostIssue ]"
         },
         {
           "name": "select_installed_effect_source_input",
@@ -1148,25 +1236,37 @@
         },
         {
           "name": "start_installed_whole_source_read_rows",
-          "declaration": "start_installed_whole_source_read_rows ( read : ClientInstalledSourceRead , acquisition : @ row_source_host . RowInputAcquisition , nonce : String , original_stop : ( @ row_source_host . RowAttempt ) - > Bool , transfer_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ @ row_source_host . RowRun , ClientInstalledSourceReadIssue ]"
+          "declaration": "start_installed_whole_source_read_rows ( read : ClientInstalledSourceRead , acquisition : @ row_source_host . RowInputAcquisition , nonce : String , original_stop : ( @ row_source_host . RowAttempt ) - > Bool , transfer_bytes : Int64 , execution_bytes : Int64 , expected_ledger ? : @ resources . Ledger ?"
         }
       ],
       "contracts": [
         {
           "operations": [
             "<module>",
+            "begin_installed_managed_catalog_whole_source_read",
             "begin_installed_managed_whole_source_read",
+            "begin_installed_managed_whole_source_read_at",
+            "begin_installed_managed_whole_source_read_original",
             "check_installed_whole_source_capacity",
             "installed_managed_acquisition_result_publication",
             "installed_managed_source_input_kind",
             "installed_managed_whole_source_ledger",
+            "installed_managed_whole_sources_ledger",
+            "installed_row_input_policy",
+            "installed_source_listing_policy",
             "installed_whole_source_acquisition",
             "installed_whole_source_capture_capacity",
             "installed_whole_source_original",
+            "installed_whole_source_read_capacity_matches",
+            "prepare_installed_catalog_whole_source_capacity",
             "prepare_installed_managed_whole_source_plan",
             "prepare_installed_managed_whole_source_plan_at_query_time",
             "prepare_installed_managed_whole_source_plan_owned",
+            "prepare_installed_managed_whole_sources_plan",
+            "prepare_installed_managed_whole_sources_plan_at_query_time",
             "prepare_installed_whole_source_capacity",
+            "prepare_installed_whole_source_capacity_original",
+            "render_installed_catalog_source_sql",
             "select_installed_effect_source_input",
             "select_installed_source_input",
             "select_installed_source_input_graph",
@@ -1326,7 +1426,7 @@
     {
       "module": "src/client_local_host/preparation_request_program_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "7f4ec5821a48c745744a85a29f0c213c14ae3f0843f015c8b2d38820da619e24",
+      "sha256": "c4d20d00f573acbcbd99931da04c5fb99ba4ad2684358d6dc0bda77a784afe87",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -1384,6 +1484,10 @@
           "declaration": "[ I ] prepare_request_program_module_body_owned ( owner : ClientRequestPreparation [ I ] , input : I , contracts : ClientInstalledSequenceContracts , captured : ClientInstalledManagedCapturePlan ? , manifests ~ : @ publication_host . ClientCompilationManifests , compilation_limits ~ : @ publication_host . ClientPureCompilationLimits , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , invocation ? : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , @ publication_host . ClientCompiledRun , @ publication . PublicationContract , ) ?"
         },
         {
+          "name": "[I]request_program_compilation_limits",
+          "declaration": "[ I ] request_program_compilation_limits ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ publication_host . ClientPureCompilationLimits , ClientRequestProgramPlanIssue , ]"
+        },
+        {
           "name": "[I]request_program_plan_quote",
           "declaration": "[ I ] request_program_plan_quote ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ ( Int64 , Int64 ) , ClientRequestPreparationIssue ]"
         },
@@ -1430,7 +1534,8 @@
             "[I]reserve_request_program_plan",
             "[I]reserve_request_query_time_invocation",
             "[I]retain_request_program_module_inputs",
-            "request_query_time_invocation_extent"
+            "request_query_time_invocation_extent",
+            "[I]request_program_compilation_limits"
           ],
           "exports": [],
           "attributes": {
@@ -1444,6 +1549,10 @@
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Inputs and outputs:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Checked compiler configuration at the installed module boundary"
               }
             ],
             "identity": [
@@ -1681,7 +1790,7 @@
     {
       "module": "src/client_local_host/preparation_request_model_module.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "c4cd75cdd16118cbc4101cb3b7a90cb85ef2e455119d534f2e5dc4737dffd5db",
+      "sha256": "541b71caee759be78804fad939e4e42876241c3e7a0f3246ba8321633e6c3853",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -1743,14 +1852,14 @@
             "[I]construct_request_model_input",
             "[I]prepare_request_model_capture_module",
             "[I]prepare_request_model_source_free_module",
+            "[I]reconcile_request_native_model_construction",
             "[I]request_model_direct_occurrences",
             "[I]request_model_direct_occurrences_owned",
+            "[I]request_native_model_protocol_construction_bytes",
             "prepared_request_model_input_prefix",
             "prepared_request_model_input_suffix",
             "request_model_module_container_bytes",
-            "request_model_provider_count",
-            "[I]request_native_model_protocol_construction_bytes",
-            "[I]reconcile_request_native_model_construction"
+            "request_model_provider_count"
           ],
           "exports": [],
           "attributes": {
@@ -1857,7 +1966,7 @@
     {
       "module": "src/client_local_host/installed_direct_occurrences.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "618e6df7af77a4efcbbca82907db2166be0d5d335ec0edb5f749140230ddd0a0",
+      "sha256": "056ab5742ac6822b8f9e4b9ba30216403bbc5c58126254678ffd31e7b2e19d19",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -2327,7 +2436,7 @@
     {
       "module": "src/client_local_host/installed_effect_native_source.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "7186d728b0c45ba321383f3058580c455551aabef2501de040da5e88a237cb43",
+      "sha256": "f7b08427dc6e47aa9d9e876c31e3bac1febf2e22fde8fd2d729cf54a65b24619",
       "role": "common-semantics",
       "owner": "Existing checked Effect Plan, original Row/DuckDB capture and managed Run/Ledger owners; installation DATA is not authority",
       "exports": [],
@@ -2335,6 +2444,10 @@
         {
           "name": "installed_effect_managed_duckdb_capture",
           "declaration": "installed_effect_managed_duckdb_capture ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , occurrence : Int , ) - > Result [ ( @ planning . QueryRequirement , ClientInstalledCaptureCapacity ) , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "installed_effect_source_capture_index",
+          "declaration": "installed_effect_source_capture_index ( plan : ClientInstalledEffectManagedPlan , occurrence : Int , ) - > Int ?"
         },
         {
           "name": "installed_effect_source_row_index",
@@ -2350,11 +2463,19 @@
         },
         {
           "name": "prepare_installed_effect_row_source_input",
-          "declaration": "prepare_installed_effect_row_source_input ( declaration : @ row_source_host . RowDeclaration , provider : @ execution . ExecutionCapacity ? , ) - > Result [ ClientInstalledEffectSourceInput , ClientInstalledManagedRunIssue ]"
+          "declaration": "prepare_installed_effect_row_source_input ( declaration : @ row_source_host . RowDeclaration , provider : @ execution . ExecutionCapacity ? , input_limits ? : @ row_source_host . RowInputLimits ?"
         },
         {
           "name": "prepare_installed_effect_source_inputs",
-          "declaration": "prepare_installed_effect_source_inputs ( prepared : @ publication_host . PreparedClientEffectComputation , inputs : Array [ ClientInstalledEffectSourceInput ] , query_contract : String , evidence_contract : String , contracts : ClientInstalledSequenceContracts , values : String , fragment : String ? , ordered : String ? , occurrences : @ publication_host . ClientDirectAcquisitionOccurrences ? , invocation : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , ) ? , ) - > Result [ ( Array [ @ row_source_host . RowDeclaration ] , Array [ @ row_source_host . RowAcquisition ] , Array [ ClientInstalledCaptureCapacity ] , ) , ClientInstalledManagedRunIssue , ]"
+          "declaration": "prepare_installed_effect_source_inputs ( prepared : @ publication_host . PreparedClientEffectComputation , inputs : Array [ ClientInstalledEffectSourceInput ] , query_contract : String , evidence_contract : String , contracts : ClientInstalledSequenceContracts , values : String , fragment : String ? , ordered : String ? , occurrences : @ publication_host . ClientDirectAcquisitionOccurrences ? , transport_execution : Array [ Int64 ] , sequences : Array [ @ execution . GeneratedSequence ] , invocation : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , ) ? , ) - > Result [ ( Array [ @ row_source_host . RowDeclaration ] , Array [ @ row_source_host . RowAcquisition ] , Array [ ClientInstalledCaptureCapacity ] , Array [ ( @ row_source_host . RowDeclaration , ClientInstalledWholeSourceCapacity ) ? , ] , ) , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "prepare_installed_effect_whole_source_capacity",
+          "declaration": "prepare_installed_effect_whole_source_capacity ( prepared : @ publication_host . PreparedClientEffectComputation , stage : Int , ordinal : Int , original : @ sourceviews . SourceAcquisition , declaration : @ row_source_host . RowDeclaration , contracts : ClientInstalledSequenceContracts , provider : @ execution . ExecutionCapacity ? , input_limits : @ row_source_host . RowInputLimits , transport_execution : Int64 , sequences : Array [ @ execution . GeneratedSequence ] , ) - > Result [ ClientInstalledWholeSourceCapacity , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "prepared_installed_effect_managed_whole_source",
+          "declaration": "prepared_installed_effect_managed_whole_source ( plan : ClientInstalledEffectManagedPlan , occurrence : Int , ) - > Result [ ( @ sourceviews . SourceAcquisition , @ row_source_host . RowInputAcquisition , ClientInstalledWholeSourceCapacity , ) , ClientInstalledManagedRunIssue , ]"
         }
       ],
       "contracts": [
@@ -2362,11 +2483,14 @@
           "operations": [
             "<module>",
             "installed_effect_managed_duckdb_capture",
+            "installed_effect_source_capture_index",
             "installed_effect_source_row_index",
             "prepare_installed_effect_duckdb_source_input",
             "prepare_installed_effect_managed_source_plan",
             "prepare_installed_effect_row_source_input",
-            "prepare_installed_effect_source_inputs"
+            "prepare_installed_effect_source_inputs",
+            "prepare_installed_effect_whole_source_capacity",
+            "prepared_installed_effect_managed_whole_source"
           ],
           "exports": [],
           "attributes": {

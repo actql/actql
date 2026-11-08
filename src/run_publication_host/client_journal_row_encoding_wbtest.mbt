@@ -105,3 +105,88 @@ test "original submitted row codec retains preparing and ready bytes and exact I
     "{\"intent\":\"{\\\"input\\\":{\\\"text\\\":\\\"é\\\\r\\\\n\\\",\\\"é\\\":null},\\\"kind\\\":\\\"program\\\",\\\"parameters\\\":null}\",\"phase\":\"ready\",\"reference\":\"{\\\"epoch\\\":\\\"original-é\\\",\\\"nonce\\\":\\\"é\\\\r\\\\n\\\"}\",\"run_admission\":\"{\\\"admitted_revision\\\":\\\"9007199254740993\\\",\\\"request\\\":\\\"{\\\\\\\"authority_scope_cid\\\\\\\":\\\\\\\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\\\\\\\",\\\\\\\"caller_input_intent_cid\\\\\\\":\\\\\\\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\\\\\\\",\\\\\\\"caller_request_id\\\\\\\":\\\\\\\"caller-é\\\\\\\",\\\\\\\"intent_fingerprint_cid\\\\\\\":\\\\\\\"sha256:585c858537f5e7ec79a326a54e2891d2c3fc83c2dac4047e1b63f648d9d8f010\\\\\\\",\\\\\\\"logical_request_scope_cid\\\\\\\":\\\\\\\"sha256:11db8fa880c5aaf9c54a60dffecdb102d4b7c0cfbeb4ea3c0b86eb8b46f0b2c6\\\\\\\",\\\\\\\"parameter_values_cid\\\\\\\":\\\\\\\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\\\\\\\",\\\\\\\"program_definition_cid\\\\\\\":\\\\\\\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\\\\\\\"}\\\",\\\"run_definition_cid\\\":\\\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\\\"}\",\"version\":\"actql-native-client-submitted-intent-row/0.1\"}",
   )
 }
+
+///|
+test "observed submitted row requests original constructor backing before encoding large admitted intent" {
+  let intent = prepare_client_submitted_intent(
+    "{\"input\":{\"text\":\"" +
+    "x".repeat(70000) +
+    "\"},\"kind\":\"aql\",\"parameters\":null}",
+    100000,
+    64,
+    8,
+  ).unwrap()
+  // The old explicit finite codec route stays exact. A retained intent is
+  // not itself a constructor debit or permission to ignore that profile.
+  assert_eq(
+    client_submitted_intent_journal_row_body("original-reference", intent),
+    Err(CapacityExceeded),
+  )
+  let calls : Array[(Int, Int, Int)] = []
+  let denied = client_submitted_intent_journal_row_body(
+    "original-reference",
+    intent,
+    before_construction=Some((bytes, nodes, depth) => {
+      calls.push((bytes, nodes, depth))
+      Err(CapacityExceeded)
+    }),
+  )
+  assert_eq(denied, Err(CapacityExceeded))
+  assert_eq(calls.length(), 1)
+  assert_true(calls[0].0 > intent.wire_bytes)
+  assert_eq((calls[0].1, calls[0].2), (16, 2))
+  // Explicit constructor port only; this fixture does not establish Native
+  // Read backing, its physical allocator, COMMIT or normal acceptance.
+  // One emission requests each finite next batch from actual writer progress.
+  // Keep the original first debit, rather than requiring every later debit to
+  // repeat that first tuple after the writer has already emitted bytes.
+  let observed : Array[(Int, Int, Int)] = []
+  let mut maximum = 0
+  let body_result = client_submitted_intent_journal_row_body(
+    "original-reference",
+    intent,
+    before_construction=Some((bytes, nodes, depth) => {
+      let valid = bytes >= maximum &&
+        nodes == 16 &&
+        depth == 2 &&
+        (observed.length() > 0 || (bytes, nodes, depth) == calls[0])
+      observed.push((bytes, nodes, depth))
+      maximum = bytes
+      if valid {
+        Ok(())
+      } else {
+        Err(Encoding)
+      }
+    }),
+  )
+  let body = match body_result {
+    Ok(value) => value
+    Err(Encoding) => fail("ObservedSubmittedRowEncoding")
+    Err(CapacityExceeded) => fail("ObservedSubmittedRowCapacityExceeded")
+  }
+  assert_true(observed.length() > 1)
+  assert_eq(observed[0], calls[0])
+  assert_true(maximum >= body.length())
+  // At most the original finite next batch remains beyond the emitted row.
+  assert_true(maximum < body.length() + calls[0].0)
+  let expected = "{\"intent\":\"{\\\"input\\\":{\\\"text\\\":\\\"" +
+    "x".repeat(70000) +
+    "\\\"},\\\"kind\\\":\\\"aql\\\",\\\"parameters\\\":null}\",\"phase\":\"preparing\",\"reference\":\"original-reference\",\"version\":\"actql-native-client-submitted-intent-row/0.1\"}"
+  assert_eq(body, @utf8.encode(expected))
+}
+
+///|
+test "finite submitted row preserves earlier output overflow before invalid admission" {
+  let intent = prepare_client_submitted_intent(
+    "{\"kind\":\"program\",\"input\":{},\"parameters\":null}", 4096, 64, 8,
+  ).unwrap()
+  let record = journal_encoding_original()
+  assert_eq(
+    client_submitted_intent_journal_row_body(
+      "r".repeat(262145),
+      intent,
+      run_admission=Some((record.request, "invalid-definition", 0L)),
+    ),
+    Err(CapacityExceeded),
+  )
+}

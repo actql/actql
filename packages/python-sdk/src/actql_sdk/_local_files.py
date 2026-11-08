@@ -1438,3 +1438,17 @@ class LocalFileRoot:
                 return False
             self._descriptor = None
             return True
+
+
+# Definition-time provenance for the fixed original reconciliation driver.
+from ._local_prepare_provenance import _capture_prepare_methods
+_PREPARE_METHODS = (
+    _capture_prepare_methods(LocalFileRoot, (
+        '_final_name_stamp', '_match_name', '_nominal_root',
+        '_observation_root', '_observe_originals', '_observe_original_validated', '_open',
+        '_owned', '_owned_finalization', '_owned_original',
+        '_owned_reader', '_validate_original', '_validate_original_directory',
+        '_validate_original_member', '_validate_reader', 'observe_completed_reader',
+        'observe_original',
+    )),
+)

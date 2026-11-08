@@ -43,7 +43,7 @@ test('NULL and receiver counterexamples distinguish exact IS truth tables from o
   assert.equal(negatedPredicateReuseSuccesses.length, 19);
   assert.equal(negatedPredicateReuseRefusals.length, 8);
   assert.ok(negatedPredicateReuseRefusals.slice(0, 7)
-    .every(item => item.expectedCode === 'ClientProgramImplementationLimit'));
+    .every(item => item.expectedCode === 'ClientProgramInvalidInput'));
   assert.equal(negatedPredicateReuseRefusals.at(-1).expectedCode, 'ClientProgramInvalidInput');
   assert.ok(negatedPredicateReuseSuccesses.every(item => item.sourceReadSessionCount === 1));
   const names = [...negatedPredicateReuseSuccesses, ...negatedPredicateReuseRefusals].map(item => item.name);

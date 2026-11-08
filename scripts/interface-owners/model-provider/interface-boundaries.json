@@ -5108,7 +5108,7 @@
     },
     {
       "module": "src/run_publication_host/client_infer_call_scope.mbt",
-      "sha256": "2a960409697f5ccfee898bb84d0a6f9c00afabb793690f2be968a7f2e71cb99c",
+      "sha256": "a1988dc6b5e135caf8dbd7bfad4efb9868e3106aeba307e60d4da45245de6ebf",
       "exports": [],
       "operations": [
         {
@@ -5184,6 +5184,10 @@
           "declaration": "infer_scope_expected_sources ( occurrence : ClientInferOccurrence , plan ? : ClientInferPlanGraph ?"
         },
         {
+          "name": "infer_scope_expected_whole_sources",
+          "declaration": "infer_scope_expected_whole_sources ( occurrence : ClientInferOccurrence , ) - > Result [ Array [ ( String , @ planning . QuerySourceEvidenceFacts ) ] ? , ClientInferCallScopeIssue , ]"
+        },
+        {
           "name": "infer_scope_string",
           "declaration": "infer_scope_string ( value : @ canonical . CanonicalValue , field : String , ) - > String ?"
         },
@@ -5237,7 +5241,8 @@
             "issue_client_infer_occurrence_call_scope",
             "issue_prepared_client_infer_call_scope",
             "read_client_infer_saved_call_scope",
-            "restore_client_infer_call_scope"
+            "restore_client_infer_call_scope",
+            "infer_scope_expected_whole_sources"
           ],
           "exports": [],
           "attributes": {

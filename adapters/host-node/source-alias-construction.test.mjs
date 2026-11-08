@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {captureSourceAliasConstruction, sourceAliasProfileConstructionGeometry as profileGeometry,
+import {captureSourceAliasConstruction,
   sourceAliasIdentityConstructionGeometry as identityGeometry,
   sourceAliasDataGeometry} from './source-alias-construction.mjs';
 import {splitSourceAliasProfile} from './source-alias-publication.mjs';
@@ -18,64 +18,27 @@ const sum = quantity => {
   }
 };
 
-test('profile quote scans original wire without entering JSON parse or stringify', () => {
-  const wire = JSON.stringify({version: 'sample', queryAliases: [alias({x: '\\"\n日本語😀'})]});
+test('profile wire facts are observed without native parse or stringify', () => {
+  const wire = JSON.stringify({version: 'sample', queryAliases: [alias({x: '\\\"日本語😀'})]});
   const parse = JSON.parse, stringify = JSON.stringify;
-  let quantity;
+  let facts;
   try {
-    JSON.parse = JSON.stringify = () => assert.fail('No constructor in geometry');
-    quantity = profileGeometry(wire);
+    JSON.parse = JSON.stringify = () => assert.fail('No constructor in observation');
+    facts = sourceJsonWireGeometry(wire, true);
   } finally {JSON.parse = parse; JSON.stringify = stringify;}
-  sum(quantity);
-  assert.ok(quantity.bounds.aliasWireUnits >= BigInt(JSON.stringify(JSON.parse(wire).queryAliases).length));
-  assert.ok(quantity.retained.text >= 2n * BigInt(wire.length));
-  assert.ok(quantity.retained.nodes > quantity.bounds.input.nodes);
+  assert(facts.nodes > 1n && facts.units > 0n);
 });
 
-test('profile snapshot and serializer families grow with actual original DATA', () => {
-  const small = profileGeometry(JSON.stringify({queryAliases: [alias({x: 'a'})]}));
-  const long = profileGeometry(JSON.stringify({queryAliases: [alias({x: '😀\\"'.repeat(500)})]}));
-  const many = profileGeometry(JSON.stringify({queryAliases: [alias({x: Array.from({length: 100}, () => ({v: 1}))})]}));
-  assert.ok(long.text > small.text);
-  assert.ok(many.nodes > small.nodes);
-  assert.equal(small.wire, 0n, 'profile parse/snapshot does not hash or own UTF8 bytes');
-});
-
-test('profile payload demand omits only outer RFC JSON whitespace while the full wire stays distinct', () => {
-  const string = JSON.stringify(' \t\n\r\\"日本語😀 ');
-  const compact = '{"s":' + string + ',"n":-1.25e+3,"a":[true,null]}';
-  const spaced = ' \t\r\n{\n "s" \t: ' + string + ' ,\n "n" : -1.25e+3 , "a": [true , null]\n}\r\n';
+test('profile wire facts preserve payload whitespace escapes numbers and malformed prefixes', () => {
+  const compact = '{"s":" \\t日本語😀 ","n":-1.25e+3,"a":[true,null]}';
+  const spaced = ' \t\r\n{\n "s" : " \\t日本語😀 " , "n" : -1.25e+3 , "a": [true , null]}\n';
+  const a = sourceJsonWireGeometry(compact, true), b = sourceJsonWireGeometry(spaced, true);
   assert.deepEqual(JSON.parse(spaced), JSON.parse(compact));
-  assert.deepEqual(profileGeometry(spaced), profileGeometry(compact));
-  const full = sourceJsonWireGeometry(spaced);
-  assert.equal(full.units, BigInt(spaced.length));
-  assert(full.weighted > sourceJsonWireGeometry(compact).weighted, 'default Environment demand still includes its full wire');
-  const inside = JSON.stringify({s: ' '.repeat(4096)});
-  assert.equal(profileGeometry(inside).bounds.input.units, BigInt(inside.length));
-  assert(profileGeometry(inside).text > profileGeometry('{"s":""}').text);
-  assert.equal(sourceJsonWireGeometry('\u00a0{}', true).units, 3n, 'non-RFC whitespace is not discarded');
-  assert.throws(() => JSON.parse('\u00a0{}'), SyntaxError);
-});
-
-test('profile payload demand retains escapes numbers nested JSON and malformed-prefix allocation', () => {
-  const hidden = {nested: [null, false, {text: '[]{}:,\\" \t\n日本語😀'}]};
-  const samples = [JSON.stringify({body: JSON.stringify(hidden)}),
-    '[0,-1.7976931348623157e+308,5e-324,9007199254740991]',
-    '{"body":"\\u005bnull\\u002c{\\u0022x\\u0022:[1,2]}\\u005d"}'];
-  const count = value => 1n + (value !== null && typeof value === 'object'
-    ? Object.values(value).reduce((total, child) => total + count(child), 0n) : 0n);
-  for (const wire of samples) {
-    const value = JSON.parse(wire), quote = profileGeometry(wire);
-    assert.equal(quote.bounds.input.units, BigInt(wire.length));
-    assert(quote.bounds.input.nodes >= count(value));
-    if (value.body) assert(quote.bounds.input.nodes >= count(JSON.parse(value.body)));
-    assert(quote.bounds.aliasWireUnits >= BigInt(JSON.stringify(value).length));
-  }
+  assert.equal(a.nodes, b.nodes); assert.equal(a.units, b.units);
+  assert.equal(sourceJsonWireGeometry('\u00a0{}', true).units, 3n);
   for (const wire of ['', ' \t[\n', ' { "x": \r', ' [null,\n', '"unterminated \t\n', '"\\u005']) {
     assert.throws(() => JSON.parse(wire), SyntaxError);
-    const quote = profileGeometry(wire);
-    assert(quote.bounds.input.nodes >= 1n);
-    assert(quote.retained.nodes > 0n && quote.workspace.nodes > 0n, 'geometry never admits a malformed document');
+    assert(sourceJsonWireGeometry(wire, true).nodes >= 1n);
   }
 });
 
@@ -114,7 +77,7 @@ test('construction captures exact reader/runtime methods and reserves before pro
   }};
   const construct = captureSourceAliasConstruction(reader, moon);
   reader.prepareNativeInput = moon.clientProgramInstalledSourceConstructionCapacity = () => assert.fail('Replacement method');
-  const quantity = profileGeometry('{}'), result = Object.freeze({original: true});
+  const quantity = {retained:{nodes:1n,text:2n,wire:0n},workspace:{nodes:3n,text:4n,wire:0n}}, result = Object.freeze({original: true});
   assert.equal(construct(quantity, () => {events.push(['project']); return result;}), result);
   assert.deepEqual(events.map(value => value[0]), ['quote', 'reserve', 'project']);
   assert.deepEqual(events[0][1], [quantity.retained.nodes, quantity.retained.text, quantity.retained.wire,
@@ -126,7 +89,7 @@ test('funding refusal never enters snapshot and absent owner stays a standalone 
   const moon = {clientProgramInstalledSourceConstructionCapacity() {return {$tag: 1, _0: {}};}};
   const reader = {prepareNativeInput(projection) {projection.capacity(); throw refusal;}};
   const construct = captureSourceAliasConstruction(reader, moon);
-  assert.throws(() => construct(profileGeometry('{}'), () => assert.fail('Unfunded snapshot')), error => error === refusal);
+  assert.throws(() => construct({retained:{nodes:1n,text:0n,wire:0n},workspace:{nodes:1n,text:0n,wire:0n}}, () => assert.fail('Unfunded snapshot')), error => error === refusal);
   assert.throws(() => captureSourceAliasConstruction(reader, {}), /InvalidSourceAliasConstruction/);
   const result = Object.freeze({diagnostic: true});
   assert.equal(captureSourceAliasConstruction(undefined, undefined)(undefined, () => result), result);
@@ -153,6 +116,12 @@ async function identityFixture(request, {refuseStage, onReserve} = {}) {
   const reader = {
     readJson() {assert.fail('Profile must not parse before its constructor quote');},
     readText() {events.push('text'); return wire;},
+    prepareProfile(text, project) {
+      assert.equal(text, wire);
+      const construct = project => reader.prepareNativeInput(Object.freeze({
+        capacity() {events.push('quote'); return Object.freeze({nativeProfile: true});}, project}));
+      return Object.freeze({value: construct(project), construct});
+    },
     prepareNativeInput(projection) {
       projection.capacity(); events.push('reserve');
       const index = stage++; onReserve?.(index);

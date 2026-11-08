@@ -224,7 +224,8 @@ import {sourceGraphMemberSuccesses, sourceGraphMemberRefusals}
 import {graphDiagnosticSourceSuccesses, graphDiagnosticSourceRefusals, graphDiagnosticSourceExecutionFailures}
   from './graph-diagnostics-source-input.mjs';
 
-import {transportWorker, requireCompleteInventory, sourceFixturePaths} from './packed-query-transport-owner.mjs';
+import {transportWorker, requireCompleteInventory, sourceFixturePaths,
+  observePackedSubmissionCause} from './packed-query-transport-owner.mjs';
 const transport = process.env.ACTQL_TEST_QUERY_TRANSPORT;
 assert.ok(transport === undefined || ['local', 'remote', 'tail'].includes(transport));
 const worker = transport === 'local' || transport === 'remote' ? transportWorker() : undefined;
@@ -1414,7 +1415,12 @@ const recordCohort = (mode, directory, cohort, authorization) => {
 };
 try {
 if (transport === undefined || transport === 'local') {
-let localAcceptedRuns = 0;
+let localAcceptedRuns = 0, submissionCause;
+try {
+  submissionCause = await observePackedSubmissionCause({boundary: 'local-submission-500', sourceURL: new URL(
+    './adapters/host-node/in-process-client.mjs', import.meta.resolve('@actql/local-node'))});
+} catch { /* A missing diagnostic cannot replace the original test outcome. */ }
+try {
 for (const [index, cohort] of cohorts.entries()) {
   const directory = cohortDirectory(localDirectory, index);
   const authorization = graphRemainingOperationsOnly || inputStageResultOnly || typedSubscriptOnly
@@ -1441,10 +1447,16 @@ for (const [index, cohort] of cohorts.entries()) {
 assert.equal(localAcceptedRuns, expectedQueryRuns);
 assert.ok(sourceIo >= expectedSourceReads);
 console.log(`packed raw SQL/Pipe Embedded Local ${profileName} acceptance passed`);
+} finally {await submissionCause?.close();}
 }
 if (transport === undefined || transport === 'remote') {
 const beforeRemote = sourceIo;
-let remoteAcceptedRuns = 0;
+let remoteAcceptedRuns = 0, submissionCause;
+try {
+  submissionCause = await observePackedSubmissionCause({boundary: 'http-500', sourceURL: new URL(
+    './adapters/host-node/client-http.mjs', import.meta.resolve('@actql/local-node'))});
+} catch { /* A missing diagnostic cannot replace the original test outcome. */ }
+try {
   for (const [index, cohort] of cohorts.entries()) {
     const directory = cohortDirectory(remoteDirectory, index);
     const authorization = graphRemainingOperationsOnly || inputStageResultOnly || typedSubscriptOnly
@@ -1488,6 +1500,7 @@ let remoteAcceptedRuns = 0;
   assert.equal(remoteAcceptedRuns, expectedQueryRuns);
   assert.ok(sourceIo >= beforeRemote + expectedSourceReads);
   console.log(`packed raw SQL/Pipe HTTP ${profileName} acceptance passed`);
+} finally {await submissionCause?.close();}
 }
   if (!scopeOnly && profileName === 'standard' &&
       (transport === undefined || transport === 'tail')) await exerciseExactPhysicalTargets();

@@ -15,6 +15,8 @@ export const openAcquiredEffectComputation = options => {
   };
   const moon = original.moon ?? {};
   const defaults = {clientProgramEffectAcquisitionCount: () => 1,
+    clientProgramEffectDirectSourceCoordinates: () => ({$tag: 1,
+      _0: sourceRefs.map((_, index) => [index, 0, index, index])}),
     clientProgramEffectSerializationOccurrences: () => [],
     clientProgramEffectPrepareLocalQueryRequirement() {assert.fail('The original Plan already owns the checked requirement');},
     clientProgramQueryRequirementSourceRef: value => value,

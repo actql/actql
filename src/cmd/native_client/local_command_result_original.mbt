@@ -233,8 +233,14 @@ fn LocalCommandPreparationOriginal::prepare_original_result(
         !published.current(host, settings, published.environment) {
         stop("LocalReadOriginalCustodyUnavailable")
       }
+      guard @local_host.native_client_submitted_preparation(
+          published.preparation,
+        )
+        is Computation(prepared) else {
+        stop("LocalReadOriginalCustodyUnavailable")
+      }
       let request = @run_host.prepare_source_free_client_request_identity(
-        published.prepared,
+        prepared,
         published.scope,
         @run_host.client_request_caller_id(original.request()),
       ).unwrap_or_else(() => stop("LocalOriginalRunReferenceMismatch"))

@@ -32,41 +32,20 @@ fn create_construction_max(
 }
 
 ///|
-/// One standard row's EXISTING native constructor and saved-value wire export,
-/// including retained cells/documents and a failed prefix. Native batch is unchanged;
-/// this selected per-row implementation requires max_records=1. No constructor
-/// runs here and no unsupported field can select a default inventory.
-pub fn record_create_mapped_request_construction_inventory(
-  mapping : RecordCreateMapping,
-  max_input_bytes : Int,
+// Shared mapped-write Value body family. CREATE and UPDATE use the SAME
+// original Catalog/checked text, date, timestamp and String-array admission.
+// This inspects types only, without constructing values or a copied Mapping.
+fn record_write_value_construction_extents(
+  original : RecordDeclaration,
   write : @catalog.RecordWriteLimits,
-  request : @catalog.RecordMutationLimits,
-) -> RecordCreateRequestConstructionInventory? {
-  if !record_create_mapping_is_original(mapping) ||
-    max_input_bytes < 1 ||
-    write.max_fields < 1 ||
-    write.max_name_bytes < 1 ||
+) -> (@shape.CollectionConstructionExtent, @shape.CollectionConstructionExtent)? {
+  if write.max_fields < 1 ||
     write.max_nodes < 1 ||
     write.max_nodes == 2147483647 ||
-    write.max_depth < 1 ||
-    write.max_text_bytes < 1 ||
-    write.max_output_bytes < 1 ||
-    request.max_records != 1 ||
-    request.max_identity_bytes < 1 ||
-    request.max_comparison_work < 1 ||
-    request.max_output_bytes < 1 ||
-    request.max_output_nodes < 1 ||
-    request.max_output_depth < 1 {
+    write.max_text_bytes < 1 {
     return None
   }
-  if mapping.written_fields.is_empty() ||
-    mapping.written_fields.length() > write.max_fields {
-    return None
-  }
-  // Native admission can construct an unmapped but otherwise writable field
-  // before final Mapping correspondence refuses it. Cover that failed prefix.
   let fields = Int::min(write.max_fields, write.max_nodes)
-  let f = fields.to_int64()
   let n = write.max_nodes.to_int64()
   // All cells share the native max_nodes/max_text_bytes counters. A synthetic
   // envelope ROOT describes their forest; it is quantity DATA only and is
@@ -93,11 +72,8 @@ pub fn record_create_mapped_request_construction_inventory(
   }
   let mut traversal = values
   let mut supported = 0
-  for index in 0..<@catalog.form_field_count(mapping.original.catalog) {
-    guard @catalog.record_write_field_contract_at(
-        mapping.original.catalog,
-        index,
-      )
+  for index in 0..<@catalog.form_field_count(original.catalog) {
+    guard @catalog.record_write_field_contract_at(original.catalog, index)
       is Some(contract) else {
       continue
     }
@@ -121,6 +97,72 @@ pub fn record_create_mapped_request_construction_inventory(
     traversal = create_construction_max(traversal, body.traversal_extent)
   }
   if supported == 0 {
+    return None
+  }
+  Some((values, traversal))
+}
+
+///|
+/// One standard row's EXISTING native constructor and saved-value wire export,
+/// including retained cells/documents and a failed prefix. Native batch is unchanged;
+/// this selected per-row implementation requires max_records=1. No constructor
+/// runs here and no unsupported field can select a default inventory.
+pub fn record_create_mapped_request_construction_inventory(
+  mapping : RecordCreateMapping,
+  max_input_bytes : Int,
+  write : @catalog.RecordWriteLimits,
+  request : @catalog.RecordMutationLimits,
+) -> RecordCreateRequestConstructionInventory? {
+  if !record_create_mapping_is_original(mapping) {
+    return None
+  }
+  record_write_admission_construction_inventory(
+    mapping.original,
+    mapping.written_fields.length(),
+    max_input_bytes,
+    write,
+    request,
+  )
+}
+
+///|
+// The original CREATE envelope also covers UPDATE's identical mapped-value
+// admission, correspondence, native document and saved-value writer. Its
+// unused CREATE request writer remains a conservative WORKSPACE alternative;
+// UPDATE prices its own returned proposal separately, without retaining it.
+fn record_write_admission_construction_inventory(
+  original : RecordDeclaration,
+  written_fields : Int,
+  max_input_bytes : Int,
+  write : @catalog.RecordWriteLimits,
+  request : @catalog.RecordMutationLimits,
+) -> RecordCreateRequestConstructionInventory? {
+  if max_input_bytes < 1 ||
+    write.max_fields < 1 ||
+    write.max_name_bytes < 1 ||
+    write.max_nodes < 1 ||
+    write.max_nodes == 2147483647 ||
+    write.max_depth < 1 ||
+    write.max_text_bytes < 1 ||
+    write.max_output_bytes < 1 ||
+    request.max_records != 1 ||
+    request.max_identity_bytes < 1 ||
+    request.max_comparison_work < 1 ||
+    request.max_output_bytes < 1 ||
+    request.max_output_nodes < 1 ||
+    request.max_output_depth < 1 {
+    return None
+  }
+  if written_fields <= 0 || written_fields > write.max_fields {
+    return None
+  }
+  // Native admission can construct an unmapped but otherwise writable field
+  // before final Mapping correspondence refuses it. Cover that failed prefix.
+  let fields = Int::min(write.max_fields, write.max_nodes)
+  let f = fields.to_int64()
+  let n = write.max_nodes.to_int64()
+  guard record_write_value_construction_extents(original, write)
+    is Some((values, traversal)) else {
     return None
   }
   // Per field: two original Form-derived Contract projections at most6H10R5W

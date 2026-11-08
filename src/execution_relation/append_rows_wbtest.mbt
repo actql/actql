@@ -232,7 +232,7 @@ test "append preserves every relation value domain and NULL" {
         max_depth: 10,
         max_work: 100000,
       }).unwrap(),
-      { limit: 10000, live: 0, peak: 0, },
+      row_workspace(10000),
     ).unwrap()
     assert_eq(result.rows.length(), 2)
     assert_true(append_value_equal(result.rows[0][0], capture(value)))

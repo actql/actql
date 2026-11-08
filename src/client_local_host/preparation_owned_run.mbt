@@ -383,6 +383,11 @@ fn[P] retire_preparation_owned_installed_run(
   value.source_free_captured = None
   value.content = NoContent
   value.serialization_prefix = None
+  // clear() alone retains its backing slots on Native. These reads already
+  // acknowledged their own logical cleanup; drop our actual cached borrows.
+  for index in 0..<value.reads.length() {
+    value.reads[index] = None
+  }
   value.reads.clear()
   value.keyed_reads.clear()
   if original.holder is Some(holder) {

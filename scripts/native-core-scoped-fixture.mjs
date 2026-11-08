@@ -8,11 +8,14 @@ import {isAbsolute, join} from 'node:path';
 
 const namedBackingFiles = Object.freeze([
   'initialization-original.backing', 'initialization-budget-refused.backing',
+  'request-original.backing', 'request-run-transfer.backing', 'request-unstarted.backing',
+  'common-request-entrance.backing',
+  'source-frame-original.backing', 'source-frame-left.backing', 'source-frame-right.backing',
   'consumer-current.backing', 'consumer-managed-graph.backing',
   'consumer-alias.backing', 'consumer-usage-alias.backing',
   'consumer-serial.backing', 'consumer-entry-first.backing',
   'consumer-entry-second.backing', 'consumer-leave-refused.backing',
-  'consumer-serial-alias.backing', 'root-binding-first.backing',
+  'consumer-serial-alias.backing', 'consumer-working-growth.backing', 'root-binding-first.backing',
   'root-binding-second.backing',
 ]);
 
@@ -57,6 +60,17 @@ function backingFixture(namespace) {
   return {root, backing};
 }
 
+// The Model frame correspondence cases use only the existing real FD-backed
+// Request originals. They do not acquire a Crypto or SQLite component, so do
+// not select an unrelated library merely to populate an unused environment.
+export function nativeCoreModelFrameFixture(namespace) {
+  const {root, backing} = backingFixture(namespace);
+  for (const name of ['source-frame-original', 'source-frame-left', 'source-frame-right']) {
+    backing(name + '.backing', 64);
+  }
+  return {ACTQL_TEST_INSTALLED_PROCESS_ROOT: root};
+}
+
 export function nativeCoreScopedFixture(namespace, {cryptoLibrary, sqliteLibrary, backingPages}) {
   for (const library of [cryptoLibrary, sqliteLibrary]) {
     assert(typeof library === 'string' && isAbsolute(library) && !library.includes('\0'),
@@ -68,6 +82,7 @@ export function nativeCoreScopedFixture(namespace, {cryptoLibrary, sqliteLibrary
   const {root, backing} = backingFixture(namespace);
   backing('backing', backingPages);
   for (const probe of [0, 3, 4]) backing('backing-' + probe, 256);
+  for (const probe of [0, 1, 2]) backing('extent-backing-' + probe, 256);
   for (const name of namedBackingFiles) backing(name, 64);
   mkdirSync(join(root, 'store'), {mode: 0o700});
   assert.equal(statSync(join(root, 'store')).mode & 0o777, 0o700);
@@ -84,8 +99,12 @@ export function nativeRelationFileCaptureFixture(namespace) {
   const root = join(realpathSync(namespace), 'installed-process');
   mkdirSync(root, {mode: 0o700});
   assert.equal(statSync(root).mode & 0o777, 0o700, 'Private capture fixture required');
+  const input = Buffer.from('{"items":[{"id":"first","value":1},{"id":"second","value":2}]}');
+  const listing = Buffer.from('{"items":[{"id":"first","name":"Acme🌱","version":"label","media_type":"text/plain","body":"first\\nnotes","path":null},{"id":"second","name":"Globex","version":"label","media_type":"text/plain","body":"second notes","path":"notes/globex"}]}');
   const files = [
-    ['row-source-input', Buffer.from('{"items":[{"id":"first","value":1},{"id":"second","value":2}]}')],
+    ['row-source-input', input],
+    ['row-source-large-input', Buffer.concat([input, Buffer.alloc(70000, 0x20)])],
+    ['row-source-files', listing],
     ['row-source-malformed', Buffer.from('{"items":[')],
     ['row-source-oversized', 8193],
     ['row-source-backing', 384 * 1024 ** 2],
@@ -104,4 +123,31 @@ export function nativeRelationFileCaptureFixture(namespace) {
   // This namespace owns files after the test closes its actual physical owner.
   // An interrupted test retains the namespace for diagnosis, never resets it.
   return {ACTQL_TEST_INSTALLED_PROCESS_ROOT: root};
+}
+
+// Each selected target case owns its original input and never reopens another
+// case's initialized Arena backing. The sparse file is the authored 384 MiB
+// physical-component fixture, not an ordinary Host capacity or permission.
+export function nativeRelationTargetIOFixture(namespace, index) {
+  assert(Number.isInteger(index) && index >= 0 && index <= 2,
+    'An exact original Native target I/O case index is required');
+  const root = join(realpathSync(namespace), 'target-io');
+  mkdirSync(root, {mode: 0o700});
+  const suffix = ['update', 'cancel', 'sync'][index];
+  const input = Buffer.from(' {"items":[{"id":"first","value":1},{"id":"second","value":2}],"keep":"untouched"}\n');
+  for (const [name, content] of [
+    ['target-' + suffix + '.json', input],
+    ['target-backing-' + suffix, 384 * 1024 ** 2],
+  ]) {
+    const fd = openSync(join(root, name), 'wx', 0o600);
+    try {
+      if (typeof content === 'number') ftruncateSync(fd, content);
+      else writeFileSync(fd, content);
+      const stat = fstatSync(fd);
+      assert(stat.isFile() && stat.nlink === 1, 'Exclusive regular target fixture required');
+      assert.equal(stat.mode & 0o777, 0o600);
+      assert.equal(stat.size, typeof content === 'number' ? content : content.length);
+    } finally { closeSync(fd); }
+  }
+  return {ACTQL_TEST_NATIVE_TARGET_IO_ROOT: root};
 }

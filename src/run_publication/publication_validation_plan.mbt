@@ -252,9 +252,17 @@ pub fn publication_validation_plan_limits(
 ///|
 pub fn start_planned_chain_validation(
   plan : PublicationValidationPlan,
+  max_workspace? : Int? = None,
 ) -> ComputationEvidenceCheck? {
   guard plan.originals is Some(Chain(i)) else { return None }
   guard publication_validation_plan_reuses_capture(plan) is Some(_) else {
+    return None
+  }
+  let workspace = match max_workspace {
+    Some(ceiling) => Int::min(plan.workspace, ceiling)
+    None => plan.workspace
+  }
+  if workspace < 1 {
     return None
   }
   let original = plan.retained
@@ -275,9 +283,9 @@ pub fn start_planned_chain_validation(
           i.max_wire_bytes,
           i.max_nodes,
           i.max_depth,
-          plan.workspace,
+          workspace,
         )
-      None => start_computation_evidence_check(i, plan.workspace)
+      None => start_computation_evidence_check(i, workspace)
     },
   )
 }
@@ -285,9 +293,17 @@ pub fn start_planned_chain_validation(
 ///|
 pub fn start_planned_commit_validation(
   plan : PublicationValidationPlan,
+  max_workspace? : Int? = None,
 ) -> PublicationCommitPreparation? {
   guard plan.originals is Some(Commit(i)) else { return None }
   guard publication_validation_plan_reuses_capture(plan) is Some(_) else {
+    return None
+  }
+  let workspace = match max_workspace {
+    Some(ceiling) => Int::min(plan.workspace, ceiling)
+    None => plan.workspace
+  }
+  if workspace < 1 {
     return None
   }
   let original = plan.retained
@@ -298,7 +314,7 @@ pub fn start_planned_commit_validation(
   let preparation : PublicationCommitPreparation = {
     inputs: Some(i),
     retained_capture: None,
-    max_workspace: plan.workspace,
+    max_workspace: workspace,
     phase: BeginResultEvidence,
     live: 12,
     peak: 12,
@@ -306,7 +322,7 @@ pub fn start_planned_commit_validation(
     view: None,
   }
   if original is Some(original) &&
-    plan.workspace > preparation.live &&
+    workspace > preparation.live &&
     original.matches_computation(c) {
     preparation.retained_capture = Some(original)
     preparation.live += 1

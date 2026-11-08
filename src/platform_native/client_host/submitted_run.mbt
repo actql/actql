@@ -551,6 +551,10 @@ fn NativeClientRunJournal::accept_original_submitted_run(
       }
       let body = match
         submitted_intent_body(
+          before_construction=submitted_encode_construction(
+            self.database,
+            operations,
+          ),
           reference,
           original.intent,
           run_admission=Some(run_admission),

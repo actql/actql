@@ -1,0 +1,292 @@
+///|
+// This is an explicit physical-component fixture, not Account, Effect claim,
+// operation-ledger, ordinary CLI or complete constructor-envelope acceptance.
+let target_io_fixture_text = " {\"items\":[{\"id\":\"first\",\"value\":1},{\"id\":\"second\",\"value\":2}],\"keep\":\"untouched\"}\n"
+
+///|
+fn target_io_fixture_provider(
+  directory : String,
+  name : String,
+) -> NativeRelationFilePreparedProvider {
+  prepare_native_relation_file_provider(
+    capture_fixture_declaration(),
+    {
+      directory,
+      name,
+      resource: "records",
+      items_path: ["items"],
+      key_path: None,
+      primary_identity: "id",
+    },
+    {
+      page: { max_bytes: 4096, max_nodes: 128, max_depth: 8, max_rows: 2, },
+      max_work: 1000000,
+      chunk_bytes: 32,
+      diagnostic_ceiling: 256,
+    },
+  ).unwrap()
+}
+
+///|
+fn target_io_fixture_run(child : NativeRelationFileTargetIO) -> Unit raise {
+  let mut complete = false
+  for _ in 0..<100 {
+    if child.advance().unwrap() {
+      complete = true
+      break
+    }
+  }
+  assert_true(complete)
+}
+
+///|
+fn target_io_fixture_update_work(directory : String) -> Unit raise {
+  let provider = target_io_fixture_provider(directory, "target-update.json")
+  let read = prepare_native_relation_file_target_io(
+    provider,
+    ["value"],
+    "first",
+  ).unwrap()
+  assert_eq(read.snapshot(), None)
+  assert_eq(read.byte_counts(), (0L, 0L))
+  target_io_fixture_run(read)
+  let (before, version) = read.snapshot().unwrap()
+  assert_eq(before, "{\"id\":\"first\",\"value\":1}")
+  // Independent literal canonical-row digest, not a product-generated oracle.
+  assert_eq(
+    version, "sha256:a77b7acbf9bec014f38f734e7a6a4aad2907d4ca590d3a5e25cd108485f356b1",
+  )
+  assert_eq(
+    read.byte_counts(),
+    (target_io_fixture_text.length().to_int64(), 0L),
+  )
+  // Preview preparation validates against the SAME complete observed target,
+  // without acquiring a Writer or changing either original observation.
+  read.check_update("{\"value\":9}").unwrap()
+  assert_true(read.check_update("{\"value\":\"bad\"}") is Err(Document(_)))
+  assert_eq(read.snapshot(), Some((before, version)))
+  assert_false(read.replacement_attempted)
+  assert_eq(read.byte_counts().1, 0L)
+  assert_true(read.close().unwrap())
+  assert_true(read.check_update("{\"value\":9}") is Err(Unavailable))
+  assert_true(read.close().unwrap())
+  assert_eq(read.snapshot(), None)
+
+  let update = prepare_native_relation_file_target_io(
+    provider,
+    ["value"],
+    "first",
+    update=Some((version, "{\"value\":9}", "target-update-stage")),
+  ).unwrap()
+  target_io_fixture_run(update)
+  assert_eq(update.snapshot(), Some((before, version)))
+  assert_eq(
+    update.byte_counts(),
+    (
+      target_io_fixture_text.length().to_int64(),
+      target_io_fixture_text.length().to_int64(),
+    ),
+  )
+  assert_true(update.replacement_attempted)
+  assert_true(update.close().unwrap())
+  let fresh = prepare_native_relation_file_target_io(
+    provider,
+    ["value"],
+    "first",
+  ).unwrap()
+  target_io_fixture_run(fresh)
+  let (after, after_version) = fresh.snapshot().unwrap()
+  assert_eq(after, "{\"id\":\"first\",\"value\":9}")
+  assert_true(after_version != version)
+  assert_true(fresh.close().unwrap())
+
+  let stale = prepare_native_relation_file_target_io(
+    provider,
+    ["value"],
+    "first",
+    update=Some((version, "{\"value\":7}", "target-stale-stage")),
+  ).unwrap()
+  let mut refused = false
+  for _ in 0..<100 {
+    match stale.advance() {
+      Ok(false) => ()
+      Err(Document(@rows.ForeignSource)) => {
+        refused = true
+        break
+      }
+      _ => fail("stale original target version did not refuse before write")
+    }
+  }
+  assert_true(refused)
+  assert_false(stale.replacement_attempted)
+  assert_eq(
+    stale.byte_counts(),
+    (target_io_fixture_text.length().to_int64(), 0L),
+  )
+  assert_true(stale.advance() is Err(Document(@rows.ForeignSource)))
+  assert_eq(stale.snapshot(), None)
+  assert_true(stale.close().unwrap())
+}
+
+///|
+fn target_io_fixture_cancel_work(directory : String) -> Unit raise {
+  let provider = target_io_fixture_provider(directory, "target-cancel.json")
+  let child = prepare_native_relation_file_target_io(
+    provider,
+    ["value"],
+    "first",
+  ).unwrap()
+  assert_false(child.advance().unwrap())
+  assert_false(child.advance().unwrap())
+  assert_eq(child.byte_counts(), (32L, 0L))
+  assert_eq(child.snapshot(), None)
+  assert_true(child.reader is Some(_))
+  assert_true(child.close().unwrap())
+  assert_true(child.reader is None && child.root is None)
+  assert_true(child.close().unwrap())
+  assert_true(child.advance() is Err(Unavailable))
+  assert_eq(child.byte_counts(), (32L, 0L))
+}
+
+///|
+fn target_io_fixture_physical(kind : Int) -> Unit raise {
+  let directory = @env.get_env_var("ACTQL_TEST_NATIVE_TARGET_IO_ROOT").unwrap()
+  let suffix = match kind {
+    0 => "update"
+    1 => "cancel"
+    _ => "sync"
+  }
+  let path = @utf8.encode(directory + "/target-backing-" + suffix + "\u{0000}")
+  let descriptor = capture_fixture_open(path, 2)
+  assert_true(descriptor >= 0)
+  let parent_bytes = 384L * 1024L * 1024L
+  let arena = @arena.prepare_installed_arena_host(
+    "0123456789012345678901234567890123456789",
+    Bytes::make(32, 17),
+    1L,
+    parent_bytes,
+    {
+      planning_work: 20,
+      attempts: 8,
+      holdings: 4,
+      transfer_bytes: 65536L,
+      retained_bytes: 0L,
+      execution_bytes: parent_bytes,
+    },
+    65536L,
+  ).unwrap()
+  arena.acquire_fd(descriptor).unwrap()
+  let backing = arena.borrow_backing().unwrap()
+  arena.enter_backing_borrow_scope(backing).unwrap()
+  let domain = match
+    arena
+    .prepare_domain(backing, descriptor, 256L * 1024L * 1024L, {
+      planning_work: 8,
+      attempts: 4,
+      holdings: 2,
+      transfer_bytes: 16384L,
+      retained_bytes: 16L * 1024L * 1024L,
+      execution_bytes: 64L * 1024L * 1024L,
+    })
+    .unwrap() {
+    @arena.PreparedDomain(value) => value
+    _ =>
+      fail("selected Native target fixture did not prepare its original domain")
+  }
+  arena.transfer_domain(domain).unwrap()
+  arena.leave_backing_borrow_scope(backing).unwrap()
+  arena.return_backing_borrow(backing).unwrap()
+  arena.prepare_domain_read(domain).unwrap()
+  let execution = match
+    arena.prepare_domain_retained_execution(domain).unwrap() {
+    @arena.ReadyRetainedExecution(value) => value
+    _ => fail("selected Native target fixture retained execution is partial")
+  }
+  arena.enter_domain_retained_execution(execution).unwrap()
+  match kind {
+    0 => target_io_fixture_update_work(directory)
+    1 => target_io_fixture_cancel_work(directory)
+    _ => target_io_fixture_sync_work(directory)
+  }
+  arena.leave_domain_retained_execution(execution).unwrap()
+  arena.close_domain_retained_execution(execution).unwrap()
+  arena.close_domain_after_owner_ack(domain).unwrap()
+  arena.try_close().unwrap()
+  assert_eq(capture_fixture_close(descriptor), 0)
+}
+
+///|
+test "Native target I/O reads original before and updates only the checked row once" {
+  target_io_fixture_physical(0)
+}
+
+///|
+test "Native target I/O retires its same partial Reader without refunding bytes" {
+  target_io_fixture_physical(1)
+}
+
+///|
+#borrow(root)
+extern "C" fn target_io_fail_root_sync(
+  root : @files.Root,
+  failures : Int,
+) -> Unit = "actql_native_filesystem_test_fail_root_sync"
+
+///|
+fn target_io_fixture_sync_work(directory : String) -> Unit raise {
+  let provider = target_io_fixture_provider(directory, "target-sync.json")
+  let read = prepare_native_relation_file_target_io(
+    provider,
+    ["value"],
+    "first",
+  ).unwrap()
+  target_io_fixture_run(read)
+  let (_, version) = read.snapshot().unwrap()
+  assert_true(read.close().unwrap())
+  let child = prepare_native_relation_file_target_io(
+    provider,
+    ["value"],
+    "first",
+    update=Some((version, "{\"value\":9}", "target-sync-stage")),
+  ).unwrap()
+  let mut prepared = false
+  for _ in 0..<100 {
+    assert_false(child.advance().unwrap())
+    if child.phase is TargetWriting {
+      prepared = true
+      break
+    }
+  }
+  assert_true(prepared)
+  target_io_fail_root_sync(child.root.unwrap(), 1)
+  assert_true(child.advance() is Err(Filesystem(@files.Write(_))))
+  assert_true(child.replacement_attempted)
+  assert_eq(child.snapshot(), None)
+  let observed = child.byte_counts()
+  assert_eq(
+    observed,
+    (
+      target_io_fixture_text.length().to_int64(),
+      target_io_fixture_text.length().to_int64(),
+    ),
+  )
+  // A failed durable replacement has no normal result or retry entrance.
+  assert_true(child.advance() is Err(Filesystem(@files.Write(_))))
+  assert_eq(child.byte_counts(), observed)
+  assert_true(child.close().unwrap())
+  // Physical cleanup preserves the already replaced business file. This
+  // independent read is not a business success or a claim/Journal ACK.
+  let fresh = prepare_native_relation_file_target_io(
+    provider,
+    ["value"],
+    "first",
+  ).unwrap()
+  target_io_fixture_run(fresh)
+  assert_eq(fresh.snapshot().unwrap().0, "{\"id\":\"first\",\"value\":9}")
+  assert_true(fresh.close().unwrap())
+}
+
+///|
+test "Native target I/O preserves a replaced file after ambiguous directory sync" {
+  target_io_fixture_physical(2)
+}

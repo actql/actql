@@ -99,6 +99,33 @@ function runChild(script, env, args = [], expectedExit = 0) {
   });
 }
 
+function assertReleasedComputationCleanup(completed, released) {
+  assert.ok(completed && released,
+    'the same completed computation owner must report its actual release');
+  assert.equal(released.resourceUsage.heldBytes, '0',
+    'temporary computation holdings must be released');
+  // These snapshots cover the shared Request Ledger. Preview and control
+  // reservations can remain after the computation's actual custody retires;
+  // its later Preview read may also charge transfer and work. Neither that
+  // progress nor cleanup may refund cumulative use. The caller separately
+  // verifies original Model/Source call counts and no unapproved Effect send.
+  for (const name of ['transferredBytes', 'planningWork']) {
+    assert.ok(BigInt(released.resourceUsage[name]) >= BigInt(completed.resourceUsage[name]),
+      name + ' must not be refunded by cleanup');
+  }
+}
+
+function assertCompletedComputationCleanup(completed, pending, released) {
+  assert.ok(completed && pending && released,
+    'the original completed computation must report pending and then actual release');
+  assert.ok(BigInt(pending.resourceUsage.reservedExecutionBytes) > 0n);
+  assertReleasedComputationCleanup(pending, released);
+  for (const name of ['transferredBytes', 'planningWork']) {
+    assert.ok(BigInt(pending.resourceUsage[name]) >= BigInt(completed.resourceUsage[name]),
+      name + ' must not be refunded while cleanup is pending');
+  }
+}
+
 const server = await (async () => {
   execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
     '-keyout', 'org.key', '-out', 'org.crt', '-days', '1',
@@ -950,6 +977,9 @@ try {
         problem: {code: 'submission_history_unresolvable'}});
     console.log('empty');
   } else if (step === 'rce-unsupported') {
+    // This Source-only installation also omits the Effect Mapping contracts.
+    // The same Request therefore refuses static preparation before it can
+    // select the later unsupported-executor boundary. Keep this case's ID.
     const submission = JSON.parse(readFileSync('rce-submission.json', 'utf8'));
     assert.equal(createHash('sha256').update(submission.document).digest('hex'),
       process.argv[3], 'the exact positively executed Program is reused');
@@ -962,7 +992,7 @@ try {
       assert.equal(outcome.kind, 'not_accepted');
       assert.deepEqual(outcome.submissionRef, submissionRef);
       assert.deepEqual(outcome.problem,
-        {code: 'ClientProgramUnsupported', classification: 'implementation_limit'});
+        {code: 'ClientProgramRejected', classification: 'operation_failed'});
       assert.equal(outcome.admission, undefined);
       return true;
     });
@@ -1134,7 +1164,21 @@ try {
       throw error;
     }
     if (pendingScratch) {
-      await waitFor(async () => (await execution.status()).status === 'waiting_checkpoint');
+      let pendingStatus;
+      try {
+        await waitFor(async () => {
+          pendingStatus = (await execution.status()).status;
+          return pendingStatus === 'waiting_checkpoint';
+        });
+      } catch (error) {
+        // Keep the original wait failure and its finite bound. Report only
+        // the same Run's last status, never its input or retained owner graph.
+        console.error('packed composition wait ' + JSON.stringify({
+          boundary: 'pending-composition-wait', status: pendingStatus,
+          expectedStatus: 'waiting_checkpoint',
+        }));
+        throw error;
+      }
     } else {
       const state = await execution.wait();
       const expectedStatus = optionalKind && !optionalEnabled ? 'succeeded' : 'waiting_checkpoint';
@@ -1661,10 +1705,10 @@ try {
           'source-free Graph acceptance must not borrow an unused Source Policy');
         const custody = (await readFile(join(root, 'composition-custody.jsonl'), 'utf8'))
           .trim().split('\n').filter(Boolean).slice(custodyBefore).map(line => JSON.parse(line));
+        const completed = custody.find(item => item.name === 'effect_computation_completed');
         const released = custody.find(item => item.name === 'effect_computation_cleanup_completed');
         assert.ok(released, 'the original owner confirms cleanup before the capture-waiting crash');
-        for (const field of ['heldBytes', 'reservedTransferBytes',
-          'reservedRetentionBytes', 'reservedExecutionBytes']) assert.equal(released.resourceUsage[field], '0');
+        assertReleasedComputationCleanup(completed, released);
         assert.deepEqual(normalResult.retainedNamedResults.map(({name, rows}) => ({name, rows})),
           [{name:'classified', rows:2}, {name:'updates', rows:1}]);
         observation.temporaryRetention = {cleanupConfirmed:true, resourceUsage:released.resourceUsage};
@@ -1740,7 +1784,9 @@ try {
     if (!composed) {
       // The preceding public execution and independent rows establish semantic
       // validity. Reuse its exact bytes in a fresh source-only installation;
-      // the unsupported refusal alone must never be treated as a validity check.
+      // this different installation's refusal alone is not a validity check.
+      // Removing the Effect profile removes its declarations as well as its
+      // executor; the earlier static refusal is not implementation selection.
       const submission = JSON.parse(await readFile(join(root,
         'rce-submission.json'), 'utf8'));
       const programSha256 = createHash('sha256').update(
@@ -1760,7 +1806,7 @@ try {
       assert.equal(refusal.code, 'SubmissionNotAccepted');
       assert.equal(refusal.lookup.kind, 'not_accepted');
       assert.deepEqual(refusal.lookup.problem,
-        {code: 'ClientProgramUnsupported', classification: 'implementation_limit'});
+        {code: 'ClientProgramRejected', classification: 'operation_failed'});
       assert.equal(refusal.lookup.admission, undefined);
       assert.equal(refusal.programSha256, programSha256);
       const journalAfter = readTwoSourceJournal(
@@ -1769,9 +1815,9 @@ try {
         'unsupported input creates no Run, dispatch or physical-start reservation');
       assert.deepEqual(server.seen, providerBefore,
         'unsupported input performs no provider HTTP request, including source reads or Effect writes');
-      console.log('packed unsupported admission ' + JSON.stringify({
+      console.log('packed missing Effect contract admission ' + JSON.stringify({
         transport, sourceRevision, programSha256,
-        profile: 'installed Salesforce Source; no Effect execution profile',
+        profile: 'installed Salesforce Source; no Effect declaration or execution profile',
         positive: 'same bytes completed Read→Compute→Effect with independent rows',
         ...refusal, providerRequests: 0, journalBefore, journalAfter}));
       assert.equal((await runChild('effect-run.mjs', unsupportedEnvironment,
@@ -1876,15 +1922,7 @@ try {
       const completed = custody.find(item => item.name === 'effect_computation_completed');
       const pending = custody.find(item => item.name === 'effect_computation_cleanup_pending');
       const released = custody.filter(item => item.name === 'effect_computation_cleanup_completed').at(-1);
-      assert.ok(completed && pending && released,
-        'the original completed computation must report pending and then actual release');
-      assert.ok(BigInt(pending.resourceUsage.reservedExecutionBytes) > 0n);
-      assert.equal(released.resourceUsage.reservedExecutionBytes, '0');
-      assert.equal(released.resourceUsage.reservedTransferBytes, '0');
-      assert.equal(released.resourceUsage.reservedRetentionBytes, '0');
-      assert.equal(released.resourceUsage.heldBytes, '0');
-      assert.equal(released.resourceUsage.transferredBytes, completed.resourceUsage.transferredBytes);
-      assert.equal(released.resourceUsage.planningWork, completed.resourceUsage.planningWork);
+      assertCompletedComputationCleanup(completed, pending, released);
       assert.equal((await runChild('effect-run.mjs', rceEnvironment,
         ['answer'], 77)).trim(), 'approved');
       for (let restart = 0; restart < 2; restart++) {

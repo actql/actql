@@ -55,6 +55,12 @@ fn original_composed_keyed_consumer(
   foreign_run? : (() -> @publication_host.PreparedClientEffectRun raise)? = None,
   following? : Bool = false,
   parallel? : Bool = false,
+  whole? : Bool = false,
+  restored? : Bool = false,
+  native_keyed? : Bool = false,
+  keyed_start_observer? : ((ClientInstalledKeyedSourceRead) -> Unit)? = None,
+  retained_input_root? : Bool = false,
+  large_lookup_policy? : Bool = false,
 ) -> Unit raise {
   let (declaration, keyed_environment) = original_keyed_declaration_environment(
     relation_versions=true,
@@ -116,6 +122,24 @@ fn original_composed_keyed_consumer(
     }
     document = parsed.stringify()
   }
+  if whole {
+    guard @json.parse(document) is Object(fields) &&
+      fields["stages"] is Array(stages) &&
+      stages[2] is Object(unit) &&
+      unit["inputs"] is Object(inputs) else {
+      fail("whole fixture")
+    }
+    inputs["a"] = @json.parse(
+      "{\"connector\":\"content-fixture\",\"resource\":\"files\"}",
+    )
+    inputs["b"] = inputs["a"]
+    let retained = [stages[2]]
+    for index in 3..<stages.length() {
+      retained.push(stages[index])
+    }
+    fields["stages"] = Json::array(retained)
+    document = Json::object(fields).stringify()
+  }
   let shared = prepare_parent is Some(_)
   let request_parent = match prepare_parent {
     None => None
@@ -134,8 +158,64 @@ fn original_composed_keyed_consumer(
           @publication_host.client_standard_effect_computation_limits(),
         ) {
         Ok(value) => value
+        Err(@publication_host.Graph(issue)) =>
+          fail("two-Direct keyed Model graph: " + @debug.to_string(issue))
+        Err(@publication_host.Candidate(_)) =>
+          fail("two-Direct keyed Model candidate")
+        Err(@publication_host.Stage(_)) => fail("two-Direct keyed Model stage")
+        Err(@publication_host.Static(_)) =>
+          fail("two-Direct keyed Model static")
         Err(_) => fail("two-Direct keyed Model fixture preparation")
       }
+  }
+  if whole && !following {
+    let limits = @publication_host.client_standard_effect_computation_limits()
+    assert_true(
+      @publication_host.prepare_client_effect_computation(
+        document,
+        Json,
+        environment,
+        None,
+        [],
+        { ..limits, program: { ..limits.program, max_tasks: 0, }, },
+      )
+      is Err(@publication_host.Graph(@strategy.GraphIssue::TaskLimit)),
+    )
+    // A later public output cannot stand in for an earlier private Effect Step
+    // on an unsplit captured root. Keep its exact target until real splitting.
+    guard @json.parse(document) is Object(fields) &&
+      fields["stages"] is Array(stages) &&
+      stages[0] is Object(unit) &&
+      unit["steps"] is Array(steps) &&
+      unit["results"] is Object(results) else {
+      fail("private Whole source fixture")
+    }
+    steps.push(
+      @json.parse(
+        "{\"from\":\"selected\",\"select\":[\"id\"],\"as\":\"public_output\"}",
+      ),
+    )
+    results["public_rows"] = @json.parse(
+      "{\"from\":\"public_output\",\"fields\":[\"id\"]}",
+    )
+    fields["results"] = @json.parse(
+      "{\"rows\":{\"from\":{\"stage\":\"classify\",\"result\":\"public_rows\"}}}",
+    )
+    assert_true(
+      @publication_host.prepare_client_effect_computation(
+        Json::object(fields).stringify(),
+        Json,
+        environment,
+        None,
+        [],
+        limits,
+      )
+      is Err(
+        @publication_host.Graph(
+          @strategy.GraphIssue::UnsupportedEffectSource(0)
+        )
+      ),
+    )
   }
   // These are three distinct checked response originals even though the two
   // Direct occurrences select the same SourceView. The keyed response is not
@@ -145,7 +225,15 @@ fn original_composed_keyed_consumer(
       @publication_host.prepared_client_effect_computation_graph(prepared),
     ),
   )
-  let final_publication = @checked.unit_publication_at(checked_program, 2, 0).unwrap()
+  let final_publication = @checked.unit_publication_at(
+    checked_program,
+    if whole {
+      0
+    } else {
+      2
+    },
+    0,
+  ).unwrap()
   let policy = @checked.publication_source_policy(final_publication).unwrap()
   assert_eq(@checked.publication_policy_source_count(policy), 3)
   assert_eq(
@@ -195,13 +283,34 @@ fn original_composed_keyed_consumer(
     )
     .unwrap()
     .unwrap()
-  let prefix = prepare_client_composed_infer_prefix(
-    model.graph.owner,
-    model._occurrence,
-    contracts,
-    source_query_original_values,
-    fragment_body=Some(source_query_original_fragment),
-  ).unwrap()
+  let prefix = if retained_input_root {
+    let installed = original_composed_keyed_installed_plan(
+      prepared, request, contracts, model, declaration,
+    )
+    let sequence = prepared_installed_effect_model_sequence(
+      installed,
+      model.graph,
+    ).unwrap()
+    let (_, _, step) = @publication_host.client_infer_occurrence_coordinates(
+      model._occurrence,
+    )
+    assert_true(@execution.generated_sequence_step_count(sequence) > step)
+    assert_true(
+      physical_equal(
+        sequence,
+        prepared_installed_effect_model_sequence(installed, model.graph).unwrap(),
+      ),
+    )
+    sequence
+  } else {
+    prepare_client_composed_infer_prefix(
+      model.graph.owner,
+      model._occurrence,
+      contracts,
+      source_query_original_values,
+      fragment_body=Some(source_query_original_fragment),
+    ).unwrap()
+  }
   let ledger = match request_parent {
     Some((parent, _, _)) => parent.ledger
     None =>
@@ -274,43 +383,93 @@ fn original_composed_keyed_consumer(
   let captures = []
   let requirements = []
   let acquisitions = []
+  let whole_capacities = []
+  let closed_inputs = []
+  let restorations = []
+  let whole_observations = []
   for task in 0..<2 {
-    let requirement = prepare_effect_local_query_requirement(
-      prepared,
-      task,
-      0,
-      contracts,
-      source_query_original_values,
-      Some(source_query_original_fragment),
-      None,
-    ).unwrap()
-    let facts = @planning.query_requirement_source_evidence_facts(requirement).unwrap()
-    let view = @row_source_host.row_declaration_view(
-      declaration,
-      facts.source_ref,
-    ).unwrap()
-    let source = @row_source_host.prepare_declared_row_source(
-      requirement, "content-fixture", view,
-    ).unwrap()
-    let acquisition = @row_source_host.prepare_declared_row_acquisition(
-      source, "two-direct-keyed-model", original_row_query_contract_fixture, original_row_evidence_contract_fixture,
-    ).unwrap()
-    let run = @row_source_host.start_accounted_row_acquisition(
-      acquisition,
-      "original-" + task.to_string(),
-      _ => true,
-      ledger,
-      4096L,
-      4096L,
-    ).unwrap()
-    runs.push(run)
-    @row_source_host.begin_row_run(
-      run,
-      4096,
-      1,
-      1,
-      reference_issuer=Some(issuer),
-    ).unwrap()
+    let run = if whole {
+      let selected = @publication_host.prepare_client_effect_source_acquisition(
+        prepared, 0, task,
+      ).unwrap()
+      let policy = installed_row_input_policy(2, 4096, 10000, 32, 2)
+      let acquisition = @row_source_host.prepare_row_input_acquisition(
+        selected,
+        @checked.source_identity(checked_program),
+        @execution.generated_prepared_sequence(prefix),
+        contracts.original.value.contracts,
+        declaration,
+        policy,
+      ).unwrap()
+      let capacity = installed_whole_source_capture_capacity(
+        selected,
+        acquisition,
+        None,
+      ).unwrap()
+      whole_capacities.push(capacity)
+      @row_source_host.start_accounted_row_input_acquisition(
+        acquisition,
+        None,
+        "whole-original-" + task.to_string(),
+        _ => true,
+        ledger,
+        4096L,
+        4096L,
+      ).unwrap()
+    } else {
+      let requirement = prepare_effect_local_query_requirement(
+        prepared,
+        task,
+        0,
+        contracts,
+        source_query_original_values,
+        Some(source_query_original_fragment),
+        None,
+      ).unwrap()
+      let facts = @planning.query_requirement_source_evidence_facts(requirement).unwrap()
+      let view = @row_source_host.row_declaration_view(
+        declaration,
+        facts.source_ref,
+      ).unwrap()
+      let source = @row_source_host.prepare_declared_row_source(
+        requirement, "content-fixture", view,
+      ).unwrap()
+      let acquisition = @row_source_host.prepare_declared_row_acquisition(
+        source, "two-direct-keyed-model", original_row_query_contract_fixture, original_row_evidence_contract_fixture,
+      ).unwrap()
+      let run = @row_source_host.start_accounted_row_acquisition(
+        acquisition,
+        "original-" + task.to_string(),
+        _ => true,
+        ledger,
+        4096L,
+        4096L,
+      ).unwrap()
+      requirements.push(requirement)
+      acquisitions.push(acquisition)
+      run
+    }
+    if !restored {
+      runs.push(run)
+    }
+    if whole {
+      @row_source_host.begin_row_run_with_page_limits(
+        run,
+        @row_source_host.row_input_acquisition_limits(
+          whole_capacities[task].acquisition,
+        ).page,
+        1,
+        reference_issuer=Some(issuer),
+      ).unwrap()
+    } else {
+      @row_source_host.begin_row_run(
+        run,
+        4096,
+        1,
+        1,
+        reference_issuer=Some(issuer),
+      ).unwrap()
+    }
     assert_eq(@row_source_host.accept_row_run_page(run, page).unwrap(), 1)
     @row_source_host.finish_row_run(run).unwrap()
     @row_source_host.begin_row_capture(run).unwrap()
@@ -322,59 +481,150 @@ fn original_composed_keyed_consumer(
       }
     }
     assert_true(complete)
-    captures.push(@row_source_host.capture_row_run(run).unwrap())
-    requirements.push(requirement)
-    acquisitions.push(acquisition)
+    let captured = @row_source_host.capture_row_run(run).unwrap()
+    captures.push(captured)
+    if whole {
+      let capacity = whole_capacities[task]
+      let source = @row_source_host.row_capture_source(captured).unwrap()
+      let limits = original_keyed_content_workspace().export_limits
+      let identity = @query.identify_captured_source_relation(
+        source,
+        1,
+        limits.values,
+        limits.payload_wire,
+        limits.logical_wire,
+        limits.schema,
+        limits.max_batch_bytes,
+      ).unwrap()
+      let logical = @publication_host.issue_captured_whole_source_input_logical(
+        @strategy.checked_effect_computation_graph(
+          @publication_host.prepared_client_effect_computation_graph(prepared),
+        ),
+        source,
+        identity,
+        capacity.original,
+        task=0,
+      ).unwrap()
+      let facts = @planning.source_acquisition_evidence_facts(capacity.original).unwrap()
+      let observation = @row_source_host.issue_row_input_source_evidence(
+        capacity.acquisition,
+        captured,
+        identity,
+        logical,
+        "sha256:" + "2".repeat(64),
+        facts.source_data_policy_cid,
+        "2026-11-05T00:00:01.000Z",
+      ).unwrap()
+      whole_observations.push((logical, observation))
+      if restored {
+        let (saved_identity, schema, rows_cid, rows) = export_client_whole_source_capture(
+          source, capacity, "same-composed-input",
+        ).unwrap()
+        @row_source_host.close_accounted_row_run(run).unwrap()
+        let saved = restore_accounted_client_whole_source_capture(
+          capacity,
+          "same-composed-input",
+          "same-composed-input",
+          saved_identity,
+          schema,
+          rows_cid,
+          rows,
+          ledger,
+          () => true,
+          reference_issuer=issuer,
+        ).unwrap()
+        closed_inputs.push(
+          accounted_client_source_capture_input(saved).unwrap(),
+        )
+        restorations.push(saved)
+      } else {
+        closed_inputs.push(
+          @row_source_host.row_capture_input(captured).unwrap(),
+        )
+      }
+    }
   }
   assert_eq(@resources.ledger_usage(ledger).attempts, prior_attempts + 2)
   let (execution, measurement, mapping) = original_composed_keyed_test_limits()
-  let start_prefix = rows => {
-    match managed {
-      Some((owner, _)) =>
-        start_installed_original_composed_keyed_prefix(
-          owner,
-          scope,
-          model.compiled,
-          model.definition,
-          model.graph,
-          keyed,
-          rows,
-          execution,
-          measurement,
-        )
-      None =>
-        start_client_original_composed_keyed_prefix(
-          scope,
-          model.compiled,
-          model.definition,
-          model.graph,
-          keyed,
-          rows,
-          prefix,
-          execution,
-          measurement,
-        )
+  let start_prefix = (rows : Array[@row_source_host.RowSourceCapture]) => {
+    if whole {
+      let selected = rows.map(row => {
+        let mut selected = None
+        for index, capture in captures {
+          if physical_equal(row, capture) {
+            selected = Some(closed_inputs[index])
+          }
+        }
+        selected.unwrap()
+      })
+      start_client_original_composed_keyed_input_prefix(
+        scope,
+        model.compiled,
+        model.definition,
+        model.graph,
+        keyed,
+        selected,
+        prefix,
+        execution,
+        measurement,
+      )
+    } else {
+      match managed {
+        Some((owner, _)) =>
+          start_installed_original_composed_keyed_prefix(
+            owner,
+            scope,
+            model.compiled,
+            model.definition,
+            model.graph,
+            keyed,
+            rows,
+            execution,
+            measurement,
+          )
+        None =>
+          start_client_original_composed_keyed_prefix(
+            scope,
+            model.compiled,
+            model.definition,
+            model.graph,
+            keyed,
+            rows,
+            prefix,
+            execution,
+            measurement,
+          )
+      }
     }
   }
   let before_refusal = @resources.ledger_usage(ledger)
   assert_true(start_prefix([captures[1], captures[0]]) is Err(_))
   assert_true(start_prefix([captures[0]]) is Err(_))
   assert_eq(@resources.ledger_usage(ledger), before_refusal)
-  if shared {
+  if whole {
     assert_true(
-      @row_source_host.retain_row_captured_inputs(captures, ledger, 100000)
-      is None,
+      @row_source_host.borrow_row_captured_input_originals(
+        closed_inputs, ledger, 100000,
+      )
+      is Some(_),
     )
   } else {
+    if shared {
+      assert_true(
+        @row_source_host.retain_row_captured_inputs(captures, ledger, 100000)
+        is None,
+      )
+    } else {
+      assert_true(
+        @row_source_host.retain_row_captured_inputs(captures, ledger, 100000)
+        is Some(_),
+      )
+    }
     assert_true(
-      @row_source_host.retain_row_captured_inputs(captures, ledger, 100000)
+      @row_source_host.borrow_row_captured_inputs(captures, ledger, 100000)
       is Some(_),
     )
   }
-  assert_true(
-    @row_source_host.borrow_row_captured_inputs(captures, ledger, 100000)
-    is Some(_),
-  )
   let (_, _, join_step) = @publication_host.client_keyed_acquisition_coordinates(
     keyed,
   ).unwrap()
@@ -402,7 +652,17 @@ fn original_composed_keyed_consumer(
     is Some(_),
     msg="existing bounded left prefix capacity",
   )
-  let selected_inputs = if shared {
+  let selected_inputs = if whole {
+    @publication_host.borrow_client_original_composed_keyed_input_captures(
+      scope,
+      model.compiled,
+      model.definition,
+      model.graph,
+      keyed,
+      closed_inputs,
+      installed=true,
+    )
+  } else if shared {
     @publication_host.borrow_client_original_composed_keyed_captures(
       scope,
       model.compiled,
@@ -450,6 +710,17 @@ fn original_composed_keyed_consumer(
       fail("prefix original resource: " + @debug.to_string(issue))
     Err(Unavailable) => fail("prefix original input unavailable")
     Err(Physical(issue)) => fail("prefix capacity: " + @debug.to_string(issue))
+    Err(Provider(@connector.Execution(@execution.InputSet))) =>
+      fail("prefix provider InputSet")
+    Err(Provider(@connector.Execution(@execution.InputOwnership))) =>
+      fail("prefix provider InputOwnership")
+    Err(Provider(@connector.InputUnavailable)) =>
+      fail("prefix provider InputUnavailable")
+    Err(Provider(@connector.ComputeUnsupported)) =>
+      fail("prefix provider ComputeUnsupported")
+    Err(Provider(@connector.Execution(_))) =>
+      fail("prefix provider other Execution")
+    Err(Provider(_)) => fail("prefix provider other")
     Err(_) => fail("prefix original child refusal")
   }
   if shared {
@@ -478,9 +749,83 @@ fn original_composed_keyed_consumer(
     complete_client_original_composed_keyed_prefix(original, 10000, 4096)
     is Err(_),
   )
-  let lookup = @publication_host.start_client_keyed_lookup_input(
-    left, ledger, 4096, 10000,
-  ).unwrap()
+  let before_lookup = @resources.ledger_usage(ledger)
+  let lookup = match
+    @publication_host.start_client_original_composed_keyed_lookup_input(
+      left,
+      if large_lookup_policy {
+        2147483647
+      } else {
+        4096
+      },
+      if large_lookup_policy {
+        2147483647
+      } else {
+        10000
+      },
+    ) {
+    Ok(value) => value
+    Err(issue) => {
+      let reason = match issue {
+        @publication_host.ForeignLeft => "ForeignLeft"
+        @publication_host.Assembly(reason) => "Assembly:" + reason
+        @publication_host.Physical(_) => "Physical"
+        _ => "Other"
+      }
+      fail("original Model Scope lookup: " + reason)
+    }
+  }
+
+  if large_lookup_policy {
+    let after_lookup = @resources.ledger_usage(ledger)
+    // The two actual empty assembly buffers fit the existing small fixture
+    // allowance even with large logical quotas. The complete expected keyed
+    // input/Model mapping below still executes; no row or byte cap is lowered.
+    assert_true(
+      after_lookup.reserved_execution_bytes -
+      before_lookup.reserved_execution_bytes <
+      1048576L,
+    )
+    assert_true(
+      after_lookup.reserved_retention_bytes -
+      before_lookup.reserved_retention_bytes <
+      1048576L,
+    )
+  }
+  assert_true(
+    @publication_host.client_composed_keyed_lookup_matches_model_parent(
+      lookup,
+      model.compiled,
+      model.definition,
+      model.graph,
+      ledger,
+    ),
+  )
+  // The SAME left cannot open another assembly, even with identical bounds.
+  assert_true(
+    @publication_host.start_client_original_composed_keyed_lookup_input(
+      left, 4096, 10000,
+    )
+    is Err(_),
+  )
+  if retained_input_root {
+    let before = @resources.ledger_usage(ledger)
+    // No completed right input exists yet. An omitted duplicate vector never
+    // substitutes for the original lookup's completed-input association.
+    assert_true(
+      start_client_composed_infer_input(
+        model._occurrence,
+        prefix,
+        [],
+        execution,
+        measurement,
+        mapping,
+        keyed=Some(lookup),
+      )
+      is Err(UnsupportedProgram),
+    )
+    assert_eq(@resources.ledger_usage(ledger), before)
+  }
   let preparation = @publication_host.start_client_keyed_lookup_request(
     lookup, 0,
   ).unwrap()
@@ -523,31 +868,77 @@ fn original_composed_keyed_consumer(
   let request_value = @publication_host.client_keyed_request_value(
     request, keyed,
   ).unwrap()
-  let acquisition = @row_source_host.prepare_keyed_row_acquisition(
-    @publication_host.client_keyed_acquisition_owner(keyed),
-    @publication_host.client_keyed_acquisition_facts(keyed),
-    request_value,
-    declaration,
-    original_keyed_child_limits(),
-    input_available=Some(() => {
-      @publication_host.client_composed_keyed_request_retained_model_parent(
-        request,
-        model.compiled,
-        model.definition,
-        model.graph,
-        ledger,
+  let (native_read, acquisition, child) = if native_keyed {
+    guard managed is Some((owner, _)) else {
+      fail("original managed keyed parent")
+    }
+    let read = begin_installed_managed_model_keyed_source_read(
+      owner,
+      keyed,
+      request,
+      declaration,
+      original_keyed_child_limits(),
+    ).unwrap()
+    let acquisition = installed_keyed_source_read_acquisition(read).unwrap()
+    assert_true(
+      installed_keyed_source_read_acquisition_matches(read, acquisition),
+    )
+    assert_false(
+      installed_keyed_source_read_acquisition_matches({ ..read, }, acquisition),
+    )
+    @row_source_host.check_row_keyed_acquisition_original(
+      acquisition, declaration,
+    ).unwrap()
+    let (foreign_declaration, _) = original_keyed_declaration_environment(
+      relation_versions=true,
+    )
+    assert_true(
+      @row_source_host.check_row_keyed_acquisition_original(
+        acquisition, foreign_declaration,
       )
-    }),
-  ).unwrap()
-  let child = @row_source_host.start_accounted_keyed_row_acquisition(
-    acquisition,
-    "same-keyed-child",
-    _ => true,
-    ledger,
-    8192L,
-    4096L,
-    _ => true,
-  ).unwrap()
+      is Err(@row_source_host.ForeignDeclaration),
+    )
+    if keyed_start_observer is Some(observe) {
+      observe(read)
+    }
+    let child = start_installed_keyed_source_read_rows(
+      read,
+      acquisition,
+      "same-native-keyed-child",
+      _ => true,
+      8192L,
+      4096L,
+      _ => true,
+    ).unwrap()
+    (Some(read), acquisition, child)
+  } else {
+    let acquisition = @row_source_host.prepare_keyed_row_acquisition(
+      @publication_host.client_keyed_acquisition_owner(keyed),
+      @publication_host.client_keyed_acquisition_facts(keyed),
+      request_value,
+      declaration,
+      original_keyed_child_limits(),
+      input_available=Some(() => {
+        @publication_host.client_composed_keyed_request_retained_model_parent(
+          request,
+          model.compiled,
+          model.definition,
+          model.graph,
+          ledger,
+        )
+      }),
+    ).unwrap()
+    let child = @row_source_host.start_accounted_keyed_row_acquisition(
+      acquisition,
+      "same-keyed-child",
+      _ => true,
+      ledger,
+      8192L,
+      4096L,
+      _ => true,
+    ).unwrap()
+    (None, acquisition, child)
+  }
   let response = @utf8.encode("[" + original_keyed_child_expected_row(0) + "]")
   @publication_host.observe_client_keyed_request_attempt(
     request,
@@ -558,6 +949,18 @@ fn original_composed_keyed_consumer(
     0L,
   ).unwrap()
   @row_source_host.begin_keyed_row_run(child, reference_issuer=Some(issuer)).unwrap()
+  if native_keyed {
+    let before = @resources.ledger_usage(ledger)
+    @row_source_host.begin_keyed_row_run_response_attempt(child, acquisition).unwrap()
+    assert_eq(@resources.ledger_usage(ledger).attempts, before.attempts + 1)
+    // The original latch never spends a second attempt on a repeated entrance.
+    @row_source_host.begin_keyed_row_run_response_attempt(child, acquisition).unwrap()
+    assert_eq(@resources.ledger_usage(ledger).attempts, before.attempts + 1)
+    assert_eq(
+      @resources.ledger_usage(ledger).transferred_bytes,
+      before.transferred_bytes,
+    )
+  }
   @publication_host.observe_client_keyed_response(
     request,
     response.length().to_int64(),
@@ -587,6 +990,69 @@ fn original_composed_keyed_consumer(
     }
   }
   let right = @publication_host.finish_client_keyed_lookup_input(lookup).unwrap()
+  if whole {
+    let original_graph = @strategy.checked_effect_computation_graph(
+      @publication_host.prepared_client_effect_computation_graph(prepared),
+    )
+    let supplied = @strategy.prepare_source_inputs_dag(
+      original_graph,
+      whole_capacities.map(capacity => capacity.original),
+    ).unwrap()
+    let allowed = @publication_host.issue_client_effect_allowed_run(
+      model._compilation,
+      "sha256:" + "a".repeat(64),
+      "sha256:" + "b".repeat(64),
+      "2027-01-01T00:00:00.000Z",
+    ).unwrap()
+    let bound = @publication_host.bind_client_effect_compiled_run(
+      prepared,
+      allowed,
+      model.definition,
+    ).unwrap()
+    let checked = @publication_host.prepared_client_effect_run_graph(bound)
+    assert_true(
+      @strategy.open_source_inputs_effect_run_dag(
+        checked, supplied, sources, ledger,
+      )
+      is Err(_),
+    )
+    let (task, _, step) = @publication_host.client_infer_occurrence_coordinates(
+      model._occurrence,
+    )
+    let complete = @strategy.graph_with_completed_keyed_model_input(
+      supplied, task, step, right,
+    ).unwrap()
+    assert_eq(complete.supplied_slots_count(), 3)
+    assert_true(
+      @strategy.open_source_inputs_effect_run_dag(
+        checked, complete, sources, ledger,
+      )
+      is Err(_),
+    )
+    assert_true(
+      physical_equal(
+        @strategy.graph_with_completed_keyed_model_input(
+          complete, task, step, right,
+        ).unwrap(),
+        complete,
+      ),
+    )
+    let captured = @strategy.open_source_inputs_effect_run_dag(
+      checked,
+      complete,
+      sources,
+      ledger,
+      keyed=Some((task, step, right)),
+    ).unwrap()
+    let dag = @strategy.captured_effect_run_dag(captured)
+    assert_true(
+      @strategy.captured_effect_run_matches_preparation(captured, dag, supplied),
+    )
+    assert_false(@strategy.captured_task_completed(dag, task))
+    @strategy.stop_captured_dag(dag)
+    assert_true(@strategy.retire_captured_task_outputs(dag))
+  }
+
   let authority = "sha256:" + "2".repeat(64)
   let started = "2026-11-05T00:00:00.000Z"
   let completed = "2026-11-05T00:00:01.000Z"
@@ -604,27 +1070,32 @@ fn original_composed_keyed_consumer(
       limits.schema,
       limits.max_batch_bytes,
     ).unwrap()
-    let logical = @publication_host.issue_captured_source_input_logical(
-      @strategy.checked_effect_computation_graph(
-        @publication_host.prepared_client_effect_computation_graph(prepared),
-      ),
-      source,
-      identity,
-      requirements[task],
-      task~,
-    ).unwrap()
-    let facts = @planning.query_requirement_source_evidence_facts(
-      requirements[task],
-    ).unwrap()
-    let observation = @row_source_host.issue_row_source_evidence(
-      acquisitions[task],
-      captures[task],
-      identity,
-      logical,
-      authority,
-      facts.source_data_policy_cid,
-      completed,
-    ).unwrap()
+    let (logical, observation) = if whole {
+      whole_observations[task]
+    } else {
+      let logical = @publication_host.issue_captured_source_input_logical(
+        @strategy.checked_effect_computation_graph(
+          @publication_host.prepared_client_effect_computation_graph(prepared),
+        ),
+        source,
+        identity,
+        requirements[task],
+        task~,
+      ).unwrap()
+      let facts = @planning.query_requirement_source_evidence_facts(
+        requirements[task],
+      ).unwrap()
+      let observation = @row_source_host.issue_row_source_evidence(
+        acquisitions[task],
+        captures[task],
+        identity,
+        logical,
+        authority,
+        facts.source_data_policy_cid,
+        completed,
+      ).unwrap()
+      (logical, observation)
+    }
     identities.push(identity)
     logicals.push(logical)
     observations.push(observation)
@@ -632,46 +1103,60 @@ fn original_composed_keyed_consumer(
   let keyed_observation = @publication_host.issue_client_keyed_lookup_observation(
     lookup, authority, completed,
   ).unwrap()
+  let admit_sources = (
+    selected,
+    selected_identities,
+    selected_logicals,
+    selected_evidence,
+    lookup,
+  ) => {
+    if whole {
+      @publication_host.admit_client_infer_composed_whole_sources(
+        model._occurrence,
+        selected,
+        selected_identities,
+        whole_capacities.map(capacity => capacity.original),
+        selected_logicals,
+        selected_evidence,
+        authority,
+        started,
+        completed,
+        keyed=lookup,
+      )
+    } else {
+      @publication_host.admit_client_infer_composed_sources(
+        model._occurrence,
+        selected,
+        selected_identities,
+        requirements,
+        selected_logicals,
+        selected_evidence,
+        authority,
+        started,
+        completed,
+        keyed=lookup,
+      )
+    }
+  }
   assert_true(
-    @publication_host.admit_client_infer_composed_sources(
-      model._occurrence,
-      sources,
-      identities,
-      requirements,
-      logicals,
-      observations,
-      authority,
-      started,
-      completed,
-    )
-    is Err(_),
+    admit_sources(sources, identities, logicals, observations, None) is Err(_),
   )
   assert_true(
-    @publication_host.admit_client_infer_composed_sources(
-      model._occurrence,
+    admit_sources(
       [sources[1], sources[0]],
       identities,
-      requirements,
       logicals,
       observations,
-      authority,
-      started,
-      completed,
-      keyed=Some(keyed_observation),
+      Some(keyed_observation),
     )
     is Err(_),
   )
-  let source_closure = @publication_host.admit_client_infer_composed_sources(
-    model._occurrence,
+  let source_closure = admit_sources(
     sources,
     identities,
-    requirements,
     logicals,
     observations,
-    authority,
-    started,
-    completed,
-    keyed=Some(keyed_observation),
+    Some(keyed_observation),
   ).unwrap()
   assert_true(
     @publication_host.client_infer_composed_sources_matches(
@@ -792,7 +1277,11 @@ fn original_composed_keyed_consumer(
   let input = start_client_composed_infer_input(
     model._occurrence,
     prefix,
-    inputs,
+    if retained_input_root {
+      []
+    } else {
+      inputs
+    },
     execution,
     measurement,
     mapping,
@@ -1009,12 +1498,32 @@ fn original_composed_keyed_consumer(
   }
   assert_true(cleanup_client_infer_input(input).unwrap())
   @row_source_host.close_accounted_row_run(child).unwrap()
+  if native_read is Some(read) {
+    assert_true(
+      @row_source_host.begin_keyed_row_run_response_attempt(child, acquisition)
+      is Err(_),
+    )
+    retire_installed_keyed_source_read(read).unwrap()
+    assert_false(
+      installed_keyed_source_read_acquisition_matches(read, acquisition),
+    )
+  }
   assert_true(
     @publication_host.cleanup_client_keyed_lookup_input(lookup, 10000).unwrap(),
   )
   assert_true(cleanup_client_serialization_prefix(original.prefix).unwrap())
   for run in runs {
     @row_source_host.close_accounted_row_run(run).unwrap()
+  }
+  for saved in restorations {
+    let mut closed = false
+    for _ in 0..<10000 {
+      if close_accounted_client_source_capture(saved, quantum=7) {
+        closed = true
+        break
+      }
+    }
+    assert_true(closed)
   }
   if managed is Some((owner, _)) {
     quiesce_installed_managed_run(owner).unwrap()
@@ -1118,4 +1627,63 @@ fn original_composed_keyed_test_limits() -> (
       },
     },
   )
+}
+
+///|
+test "same-stage two Whole Inputs feed actual keyed and Model mapping on one Ledger" {
+  original_composed_keyed_consumer(whole=true)
+}
+
+///|
+#cfg(target="js")
+test "restored same-stage two Whole Inputs retain actual custody through keyed and Model mapping" {
+  original_composed_keyed_consumer(whole=true, restored=true)
+}
+
+///|
+test "two dependent Models retain the exact Whole keyed Source closure" {
+  original_composed_keyed_consumer(whole=true, following=true)
+}
+
+///|
+fn start_client_original_composed_keyed_input_prefix(
+  scope : @publication_host.ClientModelReadScope,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : @publication_host.ClientInferPlanGraph,
+  keyed : @publication_host.ClientKeyedAcquisition,
+  rows : Array[@row_source_host.RowCapturedInput],
+  input_prefix : @execution.GeneratedSequence,
+  execution : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+) -> Result[ClientOriginalComposedKeyedPrefix, ClientSerializationPrefixIssue] {
+  start_client_original_composed_keyed_prefix_owned(
+    scope,
+    compiled,
+    definition,
+    plan,
+    keyed,
+    rows,
+    input_prefix,
+    execution,
+    measurement,
+    None,
+    borrowed_inputs=true,
+  )
+}
+
+///|
+#cfg(target="js")
+test "restored Whole inputs preserve two dependent Model Source snapshots" {
+  original_composed_keyed_consumer(whole=true, restored=true, following=true)
+}
+
+///|
+test "original composed keyed root maps its retained input originals without a duplicate producer vector" {
+  original_composed_keyed_consumer(retained_input_root=true)
+}
+
+///|
+test "large keyed logical quotas preserve actual input without an all-key upfront reservation" {
+  original_composed_keyed_consumer(whole=true, large_lookup_policy=true)
 }

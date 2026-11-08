@@ -5,6 +5,8 @@
 /// composer. Metadata output lives once per member; its synchronous workspace
 /// lives on the existing Run control frame by default. Input-staged metadata
 /// instead lives on its SAME physical child through native decode/projection.
+/// A multi-read installation declares its additional metadata/target Grant
+/// occurrences and may place the target decoder on that physical child too.
 /// No provider policy, authority, new allocation Owner or tariff is selected.
 pub fn installed_described_effect_recipe_capacities(
   original : Array[
@@ -36,6 +38,9 @@ pub fn installed_described_effect_recipe_capacities(
   control_wire_bytes? : Int? = None,
   host_input_bytes? : Int? = None,
   defer_ledger_codec? : Bool = false,
+  metadata_occurrences? : Int = 3,
+  target_occurrences? : Int = 3,
+  target_on_child? : Bool = false,
 ) -> Result[Array[@execution.ExecutionCapacity], ClientInstalledManagedRunIssue] {
   guard original is Some(entries) &&
     entries.length() == 4 &&
@@ -45,6 +50,14 @@ pub fn installed_described_effect_recipe_capacities(
     target_response_bytes > 0 &&
     metadata_request_bytes > 0 &&
     metadata_response_bytes > 0 else {
+    return Err(Unsupported)
+  }
+  // Existing callers keep the exact three-phase quantities. A declared
+  // multi-read driver can only add original occurrences, never lower them.
+  // Physical attempts/transfers are still the SAME checked Plan inventory.
+  if metadata_occurrences < 3 ||
+    target_occurrences < 3 ||
+    (!target_reads && (target_occurrences != 3 || target_on_child)) {
     return Err(Unsupported)
   }
   let (native_metadata, metadata_input, metadata_output) = entries[3]
@@ -195,6 +208,57 @@ pub fn installed_described_effect_recipe_capacities(
     }
     controls = next
   }
+  let metadata_extra = metadata_occurrences - 3
+  let target_extra = if target_reads { target_occurrences - 3 } else { 0 }
+  if metadata_extra > 0 || target_extra > 0 {
+    // Original Grant/auth/purpose records remain for EACH actual occurrence.
+    // Signing/Journal scratch completes synchronously on this SAME control
+    // frame. Inventory multiplication is checked and does not loop over an
+    // untrusted count or alter any Grant's actual maxUses/current duty.
+    let retained = @execution.execution_capacity_retained_bytes(grant)
+    let workspace = @execution.execution_capacity_execution_bytes(grant) -
+      retained
+    guard @execution.execution_capacity_inventory(
+        [
+          { unit: QuotedBytes, count: retained, copies: metadata_extra, },
+          { unit: QuotedBytes, count: retained, copies: target_extra, },
+        ],
+        [{ unit: QuotedBytes, count: workspace, copies: 1, }],
+        RetainedAlongsideExecution,
+      )
+      is Some(additional) &&
+      standard_create_sequence_pair_capacity(controls, additional) is Some(next) else {
+      return Err(Unsupported)
+    }
+    controls = next
+  }
+  let target_physical = if target_reads {
+    if target_on_child {
+      let (native, input, output) = entries[1]
+      let complete = match
+        installed_standard_create_constructor_capacity(native, input, output) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      // The original target result/body retention is already on base[5].
+      // Its Native decoder now runs INSIDE the SAME physical child; keep its
+      // complete private W there until that child's projection-complete cut.
+      guard @execution.execution_capacity(
+          0L,
+          @execution.execution_capacity_execution_bytes(complete) -
+          @execution.execution_capacity_retained_bytes(complete),
+        )
+        is Some(workspace) &&
+        @execution.add_execution_capacity(base[5], workspace) is Some(physical) else {
+        return Err(Unsupported)
+      }
+      physical
+    } else {
+      base[5]
+    }
+  } else {
+    empty
+  }
   Ok([
     fixed,
     base[1],
@@ -202,11 +266,7 @@ pub fn installed_described_effect_recipe_capacities(
     base[3],
     controls,
     base[base.length() - 1],
-    if target_reads {
-      base[5]
-    } else {
-      empty
-    },
+    target_physical,
     metadata_physical,
   ])
 }

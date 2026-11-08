@@ -126,9 +126,14 @@ fn[E] read_client_saved_submission_row(
     E,
   ],
   custody_lost : E,
+  before_construction? : ((ClientSubmittedJournalConstruction) -> Result[
+    Unit,
+    ClientJournalDecodingIssue,
+  ])? = None,
   expected_reference? : ClientSubmissionReferenceRecord? = None,
 ) -> Result[ClientSavedSubmissionSnapshot, E] {
-  let record = match decode_client_submitted_journal_row(row.body) {
+  let record = match
+    decode_client_submitted_journal_row(row.body, before_construction~) {
     Ok(value) => value
     Err(_) => return Err(custody_lost)
   }
@@ -228,6 +233,10 @@ pub fn[E] read_client_saved_submission(
     E,
   ],
   custody_lost : E,
+  before_construction? : ((ClientSubmittedJournalConstruction) -> Result[
+    Unit,
+    ClientJournalDecodingIssue,
+  ])? = None,
 ) -> Result[ClientSavedSubmissionSnapshot?, E] {
   let key = client_submission_reference_record_request_id(reference)
   let row = match read("client_submitted_intents", key) {
@@ -243,6 +252,7 @@ pub fn[E] read_client_saved_submission(
       validate_run,
       custody_lost,
       expected_reference=Some(reference),
+      before_construction~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)

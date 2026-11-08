@@ -869,3 +869,75 @@ pub fn managed_output_values_reclamation_runnable(
   value.active_uses == 0 &&
   !value.buffer.reading
 }
+
+///|
+// JSON object punctuation plus a conservative escape bound for actual field
+// names. Cell sizes come from the original successful measurement, not policy.
+fn measured_row_wire_add(
+  total : Int,
+  name : String,
+  cell : Int,
+  maximum : Int,
+) -> Int? {
+  if total < 0 || cell < 0 || maximum < total {
+    return None
+  }
+  let bytes = total.to_int64() +
+    4L +
+    name.length().to_int64() * 6L +
+    cell.to_int64()
+  if bytes > maximum.to_int64() {
+    None
+  } else {
+    Some(bytes.to_int())
+  }
+}
+
+///|
+/// Bound one physical batch from the SAME admitted values and optional checked
+/// Result projection. Uses cached column maxima, never rescans rows or issues
+/// permission. Projection duplicates and renamed fields are counted separately.
+pub fn managed_output_value_row_wire_bound(
+  receipt : ManagedOutputValueReceipt,
+  result : ManagedResultOccurrence?,
+  max_columns : Int,
+  max_bytes : Int,
+) -> Int? {
+  if max_columns < 0 ||
+    max_bytes < 3 ||
+    receipt.column_maxima.length() != @schema.field_count(receipt.schema) {
+    return None
+  }
+  let schema = match result {
+    None => receipt.schema
+    Some(occurrence) => {
+      if !physical_equal(occurrence.owner, receipt.owner) ||
+        @results.port_target(occurrence.port) != receipt.target {
+        return None
+      }
+      @results.port_schema(occurrence.port)
+    }
+  }
+  if @schema.field_count(schema) > max_columns {
+    return None
+  }
+  if receipt.rows == 0 {
+    return Some(3)
+  }
+  let mut cell = 0
+  for maximum in receipt.column_maxima {
+    if maximum < 0 {
+      return None
+    }
+    cell = Int::max(cell, maximum)
+  }
+  let mut total = 3
+  for column in 0..<@schema.field_count(schema) {
+    guard @schema.field_reference_name_at(schema, column) is Some(name) &&
+      measured_row_wire_add(total, name, cell, max_bytes) is Some(next) else {
+      return None
+    }
+    total = next
+  }
+  Some(total)
+}

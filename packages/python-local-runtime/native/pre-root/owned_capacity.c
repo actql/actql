@@ -71,7 +71,9 @@ struct owned_domain_growth {
     uint64_t serial;
     size_t expected_parent, expected_domain;
     size_t parent_bytes, parent_controls, domain_bytes, domain_controls;
-    unsigned state;
+    size_t ceiling_before;
+    bool expand_read_bound;
+    unsigned state, outcome;
 };
 
 struct actql_owned_capacity {
@@ -97,7 +99,9 @@ struct actql_owned_capacity {
     /* Optional one-shot physical ceiling, including original control pages.
      * It never changes mapping size, ownership, reservations or retirement. */
     size_t allocation_ceiling_pages;
+    size_t allocation_maximum_pages;
     bool allocation_ceiling_attempted;
+    bool allocation_working_bound;
     size_t rust_available[8];
     uint64_t rust_serial;
     atomic_int rust_process;
@@ -250,6 +254,7 @@ int actql_native_owned_acquire(size_t capacity, uint64_t generation,
     lease->first_free_page = control_pages;
     lease->occupied_pages = lease->peak_occupied_pages = control_pages;
     lease->allocation_ceiling_pages = count;
+    lease->allocation_maximum_pages = count;
     lease->backing_device = 0;
     lease->backing_inode = 0;
     lease->fd_backed = false;
@@ -339,6 +344,7 @@ static int grow_capacity_locked(actql_owned_capacity *lease, size_t expected_byt
     lease->page_count += count;
     lease->length += additional_bytes;
     lease->allocation_ceiling_pages += count;
+    lease->allocation_maximum_pages += count;
     lease->occupied_pages += controls;
     if (lease->occupied_pages > lease->peak_occupied_pages)
         lease->peak_occupied_pages = lease->occupied_pages;
@@ -439,8 +445,8 @@ int actql_native_owned_control_bytes(actql_owned_capacity *lease, uint64_t *out)
 /* Trusted same-original supplier only, before the first payload allocation.
  * Failed selection is consumed too. Freeing an extent never changes this
  * ceiling or discharges the mapping, domain, loan or descriptor responsibility. */
-int actql_native_owned_bound_allocations(actql_owned_capacity *lease,
-                                        size_t bytes) {
+static int bound_allocations_original(actql_owned_capacity *lease,
+    size_t initial_bytes, size_t maximum_bytes, bool working) {
     if (lease == NULL || current_capacity != lease || current_depth == 0 ||
         foreign_domain_process(lease)) return ACTQL_OWNED_INVALID;
     lock_capacity(lease);
@@ -450,16 +456,33 @@ int actql_native_owned_bound_allocations(actql_owned_capacity *lease,
         !lease->closing && !foreign_domain_process(lease)) {
         lease->allocation_ceiling_attempted = true;
         lease->allocation_ceiling_pages = lease->control_pages;
-        if (bytes != 0 && bytes % lease->page_size == 0 &&
-            bytes <= lease->length && bytes / lease->page_size > lease->control_pages &&
+        lease->allocation_maximum_pages = lease->control_pages;
+        if (initial_bytes != 0 && initial_bytes % lease->page_size == 0 &&
+            maximum_bytes >= initial_bytes && maximum_bytes <= PTRDIFF_MAX &&
+            maximum_bytes % lease->page_size == 0 && initial_bytes <= lease->length &&
+            initial_bytes / lease->page_size > lease->control_pages &&
             lease->occupied_pages == lease->control_pages &&
             lease->peak_occupied_pages == lease->control_pages) {
-            lease->allocation_ceiling_pages = bytes / lease->page_size;
+            lease->allocation_ceiling_pages = initial_bytes / lease->page_size;
+            lease->allocation_maximum_pages = maximum_bytes / lease->page_size;
+            lease->allocation_working_bound = working;
             status = ACTQL_OWNED_OK;
         }
     }
     unlock_capacity(lease);
     return status;
+}
+
+int actql_native_owned_bound_allocations(actql_owned_capacity *lease, size_t bytes) {
+    return bound_allocations_original(lease, bytes, bytes, false);
+}
+
+/* Same immutable selected maximum, smaller actually backed initial prefix.
+ * Selection creates no mapping or semantic allowance. Only checked acquisition
+ * can extend the current bound, and never beyond this original maximum. */
+int actql_native_owned_bound_working_allocations(actql_owned_capacity *lease,
+    size_t initial_bytes, size_t maximum_bytes) {
+    return bound_allocations_original(lease, initial_bytes, maximum_bytes, true);
 }
 
 int actql_native_owned_rounded_bytes(actql_owned_capacity *lease, size_t bytes,

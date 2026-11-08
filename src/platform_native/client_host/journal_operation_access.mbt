@@ -4,6 +4,10 @@
 // Journal, permission, initialization route or acknowledgement.
 priv struct NativeClientJournalOperationAccess {
   reads : NativeClientJournalReadAccess
+  before_construction : ((Int, Int, Int) -> Result[
+    Unit,
+    @host.ClientJournalEncodingIssue,
+  ])?
   read_evidence_usage : (String, Int64, Int64) -> Result[
     (Int64, Int64),
     @sqlite.NativeSqliteIssue,
@@ -204,4 +208,21 @@ fn read_client_journal_evidence_usage(
       (original.read_evidence_usage)(request_wire, max_entries, max_bytes)
     _ => Err(@sqlite.Collision)
   }
+}
+
+///|
+// The same entered Read pays every emission of its original submitted row,
+// including admission and saved-state CAS. Without an operation, keep the
+// legacy finite codec; a foreign Database cannot lend this reservation.
+fn submitted_encode_construction(
+  database : @sqlite.Database,
+  access : NativeClientJournalOperationAccess?,
+) -> ((Int, Int, Int) -> Result[Unit, @host.ClientJournalEncodingIssue])? {
+  access.bind(original => {
+    if physical_equal(database, original.reads.database) {
+      original.before_construction
+    } else {
+      Some((_, _, _) => Err(@host.ClientJournalEncodingIssue::Encoding))
+    }
+  })
 }

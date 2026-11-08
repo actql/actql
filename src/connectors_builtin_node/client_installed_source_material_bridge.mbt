@@ -85,6 +85,72 @@ pub fn client_program_installed_source_construction_capacity(
 }
 
 ///|
+#export_name("clientProgramInstalledSourceJsonConstructionCapacity")
+pub fn client_program_installed_source_json_construction_capacity(
+  wire_nodes : Int64,
+  wire_units : Int64,
+  buffer_bytes : Int64,
+  returned_nodes : Int64,
+  returned_text_bytes : Int64,
+) -> Result[@execution.ExecutionCapacity?, @resources.PreparationCapacityIssue] {
+  match
+    @client_local_host.installed_source_json_construction_capacity(
+      wire_nodes, wire_units, buffer_bytes, returned_nodes, returned_text_bytes,
+    ) {
+    Some(value) => Ok(Some(value))
+    None => Err(@resources.InvalidExtent)
+  }
+}
+
+///|
+#export_name("clientProgramInstalledProfileConstructionCapacities")
+pub fn client_program_installed_profile_construction_capacities(
+  nodes : Int64,
+  units : Int64,
+) -> Result[
+  Array[@execution.ExecutionCapacity?],
+  @resources.PreparationCapacityIssue,
+] {
+  match
+    @client_local_host.installed_profile_construction_capacities(nodes, units) {
+    Some(values) => Ok(values.map(value => Some(value)))
+    None => Err(@resources.InvalidExtent)
+  }
+}
+
+///|
+#export_name("clientProgramInstalledSourceInspectionConstructionCapacity")
+pub fn client_program_installed_source_inspection_construction_capacity(
+  original : @execution.ExecutionCapacity?,
+) -> Result[@execution.ExecutionCapacity?, @resources.PreparationCapacityIssue] {
+  guard original is Some(value) else { return Err(@resources.InvalidExtent) }
+  Ok(
+    Some(
+      @client_local_host.installed_source_inspection_construction_capacity(
+        value,
+      ),
+    ),
+  )
+}
+
+///|
+#export_name("clientProgramInstalledTableConstructionInventory")
+pub fn client_program_installed_table_construction_inventory(
+  nodes : Int64,
+  wire : Int64,
+  strings : Int64,
+  serializer_text : Int64,
+) -> Result[Array[Int64], @resources.PreparationCapacityIssue] {
+  match
+    @client_local_host.installed_table_construction_inventory(
+      nodes, wire, strings, serializer_text,
+    ) {
+    Some(value) => Ok(value)
+    None => Err(@resources.InvalidExtent)
+  }
+}
+
+///|
 #export_name("clientProgramComposeInstalledSourceConstructionCapacity")
 pub fn client_program_compose_installed_source_construction_capacity(
   original : @execution.ExecutionCapacity,

@@ -687,7 +687,7 @@ test "fixed numeric workload shapes share source and contracts across all layout
             count,
             control,
             invocation.output_budget,
-            { limit: limits.operation_entries, live: 0, peak: 0, },
+            { ..row_workspace(limits.operation_entries), live: 0, peak: 0, },
             physical,
             logical,
           )

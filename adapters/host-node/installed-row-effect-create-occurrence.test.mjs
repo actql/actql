@@ -7,7 +7,7 @@ import {parse} from 'acorn';
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
 import {prepareInstalledRowCaptureChild, retainInstalledRowCaptureChild, releaseInstalledRowCapture} from './installed-row-capture-cleanup.mjs';
 import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
-import {prepareInstalledEffectOwnedRequestChild, prepareInstalledEffectRequestChild, prepareInstalledEffectCredentialChild, captureInstalledEffectPlanRecipe, prepareInstalledEffectControlConstruction} from './installed-effect-plan.mjs';
+import {prepareInstalledEffectOwnedRequestChild, prepareInstalledEffectRequestChild, prepareInstalledEffectCredentialChild, captureInstalledEffectPlanRecipe, selectInstalledEffectCredentialOperation, prepareInstalledEffectControlConstruction} from './installed-effect-plan.mjs';
 
 // Actual enclosing row-stage loop/callees. Core inventory, checked Preview,
 // driver request/claim, Resource and physical ports are explicit here.
@@ -29,7 +29,7 @@ const recipePort = ownerOf => expression('recipeOf', {ownerOf,
   controlRecipes: {get: original => original}});
 const readPorts = (ownerOf, resourceFields = () => ({})) => {
   const recipeOf = recipePort(ownerOf);
-  const managedReadChild = expression('managedReadChild', {ownerOf, recipeOf, fail});
+  const managedReadChild = expression('managedReadChild', {ownerOf, recipeOf, fail, selectInstalledEffectCredentialOperation});
   const describeMember = expression('describeMember', {ownerOf, managedReadChild, resourceFields});
   return {recipeOf, managedReadChild, describeMember};
 };
@@ -111,8 +111,8 @@ test('actual capture failure input callback retires only its pins after the shar
   let releaseInputs, finishCapture, observations = 0;
   const moon = {clientProgramPinEffectSources: () => ({ok: input}),
     clientProgramReleaseEffectInputs(original) {assert.strictEqual(original, input); events.push('pins');}};
-  const actual = Function('moon', 'checked', 'limits', 'fail', 'releaseInstalledRowCapture',
-    `return (${source.slice(capture.start, capture.end)});`)(moon, checked, {maxPinnedResults: 1}, fail,
+  const actual = Function('moon', 'checked', 'runLimits', 'fail', 'releaseInstalledRowCapture',
+    `return (${source.slice(capture.start, capture.end)});`)(moon, checked, () => ({maxPinnedResults: 1}), fail,
     releaseInstalledRowCapture);
   await assert.rejects(actual({members:[],ownChildren(original) {
     original.push({prepared: {status() {observations++; return {pending: false};},
@@ -194,7 +194,7 @@ function fixture({child=false,inventoryError,managed=false,constructorFailureAt,
   const managedEffect={controlConstruction:(receiver,method,args)=>Reflect.apply(method,receiver,args),runtime:moon,value:parent,prepared,request:identity,operationPlan:nativePlan,
     readPlan:runtime.clientProgramInstalledEffectManagedOperationPlan};
   const ownerOf=value=>{assert.strictEqual(value,member);return {owned,managedPlanRecipe:managedRecipe};};
-  const limits={preview:{maxWireBytes:10000,maxNodes:100,maxDepth:10},maxRows:3};
+  const limits={preview:{maxWireBytes:10000,maxNodes:100,maxDepth:10},maxRows:3,maxRowsPerMember:3};
   const createRows=nodes.find(({node})=>node.type==='FunctionDeclaration'&&node.id.name==='prepareInstalledCreateRows').node;
   const prepareInstalledCreateRows=Function('checked','runtimeField','fail','parseExactJson',
     `return (${source.slice(createRows.start,createRows.end)});`)(checked,runtimeField,fail,
@@ -418,6 +418,7 @@ test('actual capture operation retains the original bound child before invoking 
   const recipe={rowOperations:[{},{},{},{operation:'form-read'}],credentialOperations:[
     {phase:'capture-check',operationIndex:3,maxRequestBytes:64,maxResponseBytes:64}]};
   const actual=expression('prepareCredentialOperation',{moon,ownerOf:()=>({managedPlanRecipe:recipe}),fail,
+    selectInstalledEffectCredentialOperation,
     installedRowCredentialOperationSite:original=>{assert.equal(original,credential);return originalSite;},
     prepareInstalledRowCaptureChild,prepareInstalledEffectCredentialChild});
   const input={member:selected,rowIndex:0,phase:'capture-check',operation:'form-read',site:{credential},originalAuthorization:raw,
@@ -590,7 +591,8 @@ function prefixFixture({failBorrowAt, exportFailure}={}) {
       return index>=count?'finished':!checked?'inspect':pending&&available&&!attempted?'retry':'advance';
     }};
   const ports={...readPorts(()=>owned),moon,prepared,identity,managedEffect,members,checkedHost:{},checked,fail,
-    limits:{maxPinnedResults:2,maxRows:2,maxWork:100,maxFields:4,body:{maxBytes:100,maxNodes:20,maxDepth:5}},
+    runLimits:()=>ports.limits,
+    limits:{maxPinnedResults:2,maxRows:2,maxRowsPerMember:2,maxWork:100,maxFields:4,body:{maxBytes:100,maxNodes:20,maxDepth:5}},
     ownerOf:()=>owned,assertCurrent(){},own(){},ownChildren(value){assert.equal(children.length,0);children.push(value);},
     ownInputs(release,complete){releaseInputs=release;finish=complete;},control,
     prepareInstalledRowCaptureChild,retainInstalledRowCaptureChild,prepareInstalledEffectRequestChild,releaseInstalledRowCapture,
@@ -901,7 +903,7 @@ test('managed Salesforce read handoff retains exact issuer originals across memb
         return current;
       }});
   };
-  const managedReadChild = expression('managedReadChild', {recipeOf, ownerOf, fail});
+  const managedReadChild = expression('managedReadChild', {recipeOf, ownerOf, fail, selectInstalledEffectCredentialOperation});
   const describe = expression('describeMember', {ownerOf, managedReadChild, resourceFields: () => ({})});
   assert.strictEqual(await describe({member, runInvocationCid: 'run', dispatchRequestCid: 'dispatch',
     physicalOperations, operationPhase: 'capture', label: 'original', assertCurrent() {}}), current);

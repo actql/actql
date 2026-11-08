@@ -6,7 +6,7 @@ test "ordered bindings advance one expression transition and retain roots" {
   }
   let logical = test_logical_budget(10000L, 10000L)
   let scope = expression_roots(logical, 100)
-  let workspace = { limit: 1000, live: 0, peak: 0, }
+  let workspace = row_workspace(1000)
   let execution = start_ordered_bindings_execution(
     [
       ("score", lowered_vector_score("dot")),
@@ -53,7 +53,7 @@ test "ordered bindings cancellation reclaims active and completed slots" {
   }
   let logical = test_logical_budget(10000L, 10000L)
   let scope = expression_roots(logical, 100)
-  let workspace = { limit: 1000, live: 0, peak: 0, }
+  let workspace = row_workspace(1000)
   let execution = start_ordered_bindings_execution(
     [
       ("score", lowered_vector_score("dot")),

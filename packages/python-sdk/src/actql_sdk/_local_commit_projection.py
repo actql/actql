@@ -620,3 +620,15 @@ class OriginalCommitProjection:
             self._closing = True
             self._retire_outputs()
             return not self._outputs
+
+
+# Definition-time provenance for the fixed original reconciliation driver.
+from ._local_prepare_provenance import _capture_prepare_methods
+_PREPARE_METHODS = (
+    _capture_prepare_methods(OriginalCommitProjection, (
+        '_address', '_current', '_lookup_key',
+        '_output', '_ready', '_require_live',
+        '_retire_outputs', 'project_index_lookup_key', 'project_stored_contract_lookup_key',
+        'validate_payload_binding', 'validate_reader_facts',
+    )),
+)

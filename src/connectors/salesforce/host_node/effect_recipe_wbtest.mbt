@@ -355,8 +355,14 @@ test "current Effect metadata uses original Source geometry within the unchanged
     @execution.execution_capacity_retained_bytes(current),
     @execution.execution_capacity_retained_bytes(legacy),
   )
+  // Shared Source/decoder active-map bounds also let the full fallback fit the
+  // unchanged parent. Original-body geometry must still reduce its workspace.
   assert_true(
-    @execution.execution_capacity_execution_bytes(legacy) > 536870912L,
+    @execution.execution_capacity_execution_bytes(legacy) <= 536870912L,
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(current) <
+    @execution.execution_capacity_execution_bytes(legacy),
   )
   assert_true(
     @execution.execution_capacity_execution_bytes(current) < 536870912L,

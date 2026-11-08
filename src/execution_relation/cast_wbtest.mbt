@@ -155,7 +155,7 @@ test "CAST failure remains lazy and variable conversion respects control limits"
   let root = lowered(
     cast_test_expression("{\"literal\":\"12345\"}", "{\"type\":\"number\"}"),
   )
-  let workspace : RowWorkspace = { limit: 100, live: 0, peak: 0, }
+  let workspace : RowWorkspace = row_workspace(100)
   assert_true(
     evaluate_expression_with_workspace(
       root,

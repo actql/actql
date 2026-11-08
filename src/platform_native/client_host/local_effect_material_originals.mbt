@@ -174,7 +174,7 @@ pub fn NativeLocalHostConnection::accept_submitted_effect_material_original(
 }
 
 ///|
-// Both public entry points retain the same existing acceptance transaction.
+// All entry points retain the same existing acceptance transaction.
 // The optional finite original can only enter with its current selected Host
 // binding; Common metadata by itself never supplies that physical authority.
 fn NativeLocalHostConnection::accept_submitted_effect_material_with_policy(
@@ -194,6 +194,8 @@ fn NativeLocalHostConnection::accept_submitted_effect_material_with_policy(
     NativeLocalRunPolicyBinding,
     @host.ClientLocalRunPolicyOriginal,
   )?,
+  capture? : NativeLocalJournalCapture? = None,
+  operations? : NativeClientJournalOperationAccess? = None,
 ) -> Result[
   NativeClientSubmittedIntentRecord,
   NativeClientSubmittedEffectMaterialsIssue,
@@ -206,6 +208,7 @@ fn NativeLocalHostConnection::accept_submitted_effect_material_with_policy(
       connection,
       request,
       SubmitOriginals,
+      capture~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Journal(issue))
@@ -218,6 +221,7 @@ fn NativeLocalHostConnection::accept_submitted_effect_material_with_policy(
       authority.scope,
       authority.current_for(self.journal, request),
       now,
+      operations~,
     ) {
     Ok(_) => ()
     Err(issue) => return Err(Journal(issue))
@@ -315,7 +319,11 @@ fn NativeLocalHostConnection::accept_submitted_effect_material_with_policy(
     (match local_policy {
       None => true
       Some((binding, _)) =>
-        binding.current_for(self.journal, Some(request), true)
+        match capture {
+          None => binding.current_for(self.journal, Some(request), true)
+          Some(original) =>
+            binding.current_in_original_read(original, Some(request), true)
+        }
     })
   }
   self.journal
@@ -331,8 +339,68 @@ fn NativeLocalHostConnection::accept_submitted_effect_material_with_policy(
     publication_policy_originals=policy_wire,
     local_run_policy_original~,
     current_fence=Some(current),
+    operations~,
   )
   .map_err(issue => Journal(issue))
+}
+
+///|
+/// Accept the SAME issued material and Run while the original captured Read
+/// owns the operation. Every epoch/read/write uses that capture's existing
+/// Read/SQLite exchange. Neither a new Host nor a standalone SQL entrance is
+/// selected. The caller admits the packet's construction before entering here.
+/// The outer result preserves Read/current/return failure independently of
+/// the inner material/acceptance result, including a committed-but-lost return.
+pub fn NativeLocalJournalCapture::accept_submitted_effect_material_original_in_original_read(
+  self : NativeLocalJournalCapture,
+  principal : String,
+  connection : String,
+  expected_scope : String,
+  reference : NativeClientSubmissionReference,
+  preparation : NativeClientSubmittedPreparation,
+  request : @host.ClientRequestIdentity,
+  allowed : @host.ClientEffectAllowedRun,
+  definition : @publication.PublicationContract,
+  issued : @host.ClientEffectIssuedNormalizationMaterials,
+  now : Double,
+  local_policy? : (
+    NativeLocalRunPolicyBinding,
+    @host.ClientLocalRunPolicyOriginal,
+  )? = None,
+) -> Result[
+  Result[
+    NativeClientSubmittedIntentRecord,
+    NativeClientSubmittedEffectMaterialsIssue,
+  ],
+  NativeLocalAdoptionIssue,
+] {
+  self.with_current_adoption_material_in_original_read((
+    host,
+    _material,
+    operations,
+  ) => {
+    if @host.client_request_authority_scope_cid(request) != expected_scope {
+      return Err(Epoch(ScopeMismatch))
+    }
+    Ok(
+      host.accept_submitted_effect_material_with_policy(
+        self.crypto,
+        principal,
+        connection,
+        reference,
+        preparation,
+        request,
+        allowed,
+        definition,
+        issued,
+        now,
+        None,
+        local_policy,
+        capture=Some(self),
+        operations=Some(operations),
+      ),
+    )
+  })
 }
 
 ///|

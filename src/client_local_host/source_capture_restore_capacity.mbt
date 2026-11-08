@@ -5,7 +5,8 @@
 // - canonical normalizer, hash/text writer and append-capacity reports;
 // - retained/temporary Unit records, two/eight-item composition arrays,
 //   checked arithmetic/Some/Result carriers and the final two-scalar quote.
-// These contain counts only, not input text/trees. The bounded 100-row loop
+// Source identity arrays and occurrence decimal strings share these fixed
+// controls. These contain counts only, not input text/trees. The policy-bounded loop
 // keeps only its current reports and aggregate, never a history of quotes.
 // 512H/2048R/2048W deliberately co-counts sequential helper alternatives.
 // The original Ledger must admit this temporary debit; it is not a grant.
@@ -27,6 +28,17 @@ fn source_capture_restore_json_units(
   max_nodes : Int,
   max_depth : Int,
 ) -> @execution.PreparationRepresentationUnits? {
+  // Whole Input recovery has no Query descriptor to parse. Empty refused row
+  // wires likewise allocate no parser/admission tree.
+  if units == 0 {
+    return Some({
+      record_headers: 0L,
+      reference_slots: 0L,
+      scalar_words: 0L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+  }
   guard units >= 0 &&
     @execution.checked_preparation_add_product(0L, units.to_int64(), 3L)
     is Some(bytes) &&
@@ -60,7 +72,24 @@ fn source_capture_restoration_capacity(
   descriptor : String,
   rows : Array[String],
   original_input : (String, String, Array[String])?,
+  input_policy? : @row_source_host.RowInputLimits,
+  input_columns? : Int,
+  original_capacity? : (Int64, Int64),
 ) -> @execution.ExecutionCapacity? {
+  let max_rows = input_policy.map(value => value.max_rows).unwrap_or(100)
+  let wire = input_policy
+    .map(value => value.wire)
+    .unwrap_or_else(source_capture_wire)
+  let decode : @execution.RetainedRowDecodeLimits = match input_policy {
+    Some(value) =>
+      {
+        max_bytes: value.wire.max_bytes,
+        max_nodes: value.wire.max_nodes,
+        max_depth: value.wire.max_depth,
+        max_text_bytes: value.wire.max_bytes,
+      }
+    None => source_capture_decode()
+  }
   // Existing refusal paths precede Json/row allocation. Sizing does not
   // replace their original InvalidDescriptor/BindingMismatch/InputLimit.
   let descriptor_units = if descriptor.length() > 8192 {
@@ -68,7 +97,7 @@ fn source_capture_restoration_capacity(
   } else {
     descriptor.length()
   }
-  let count = if descriptor.length() > 8192 || rows.length() > 100 {
+  let count = if descriptor.length() > 8192 || rows.length() > max_rows {
     0
   } else {
     rows.length()
@@ -93,15 +122,11 @@ fn source_capture_restoration_capacity(
     let row = rows[index]
     // An oversized borrowed String is refused by the byte preflight before
     // Json allocation; its original failure still comes from that decoder.
-    let units = if row.length() > source_capture_decode().max_bytes {
-      0
-    } else {
-      row.length()
-    }
+    let units = if row.length() > decode.max_bytes { 0 } else { row.length() }
     guard source_capture_restore_json_units(
         units,
-        source_capture_decode().max_nodes,
-        source_capture_decode().max_depth,
+        decode.max_nodes,
+        decode.max_depth,
       )
       is Some(value) &&
       @execution.compose_preparation_representation([retained, value])
@@ -114,7 +139,7 @@ fn source_capture_restoration_capacity(
       is Some(next_units) &&
       @execution.checked_preparation_add_product(
         total_nodes,
-        Int::min(units, source_capture_decode().max_nodes).to_int64(),
+        Int::min(units, decode.max_nodes).to_int64(),
         1L,
       )
       is Some(next_nodes) else {
@@ -131,10 +156,22 @@ fn source_capture_restoration_capacity(
   let row_count = count.to_int64()
   // Original rows.copy plus receiving/verification row and presence arrays,
   // including append growth. Field slots are bounded by the row node count;
-  // four schema/order arrays can reach the existing 100-column refusal bound.
-  guard @execution.preparation_array_representation(
+  // four schema/order arrays use the actual constructor column bound.
+  guard @execution.checked_preparation_add_product(
+      8L * row_count,
+      total_nodes,
+      4L,
+    )
+    is Some(array_items) &&
+    @execution.checked_preparation_add_product(
+      array_items,
+      input_columns.unwrap_or(wire.max_columns).to_int64(),
+      4L,
+    )
+    is Some(array_items) &&
+    @execution.preparation_array_representation(
       6L + 4L * row_count,
-      8L * row_count + 4L * total_nodes + 400L,
+      array_items,
       true,
     )
     is Some(arrays) &&
@@ -148,8 +185,8 @@ fn source_capture_restoration_capacity(
     is Some(descriptor_work) &&
     source_capture_restore_json_units(
       largest,
-      source_capture_decode().max_nodes,
-      source_capture_decode().max_depth,
+      decode.max_nodes,
+      decode.max_depth,
     )
     is Some(row_work) else {
     return None
@@ -183,12 +220,9 @@ fn source_capture_restoration_capacity(
     is Some(encoded) else {
     return None
   }
-  let bytes = Int64::min(encoded, source_capture_wire().max_bytes.to_int64()).to_int()
-  let nodes = Int64::min(
-    total_nodes + 1L,
-    source_capture_wire().max_nodes.to_int64(),
-  ).to_int()
-  let depth = Int::min(Int::max(1, largest), source_capture_decode().max_depth)
+  let bytes = Int64::min(encoded, wire.max_bytes.to_int64()).to_int()
+  let nodes = Int64::min(total_nodes + 1L, wire.max_nodes.to_int64()).to_int()
+  let depth = Int::min(Int::max(1, largest), decode.max_depth)
   guard @encode.hash_writer_construction_inventory(nodes, depth) is Some(hash) &&
     @encode.text_writer_construction_inventory(bytes, Int::max(1, nodes), depth)
     is Some(text) else {
@@ -213,7 +247,11 @@ fn source_capture_restoration_capacity(
   }
   let (original_retained, original_execution) = match original_input {
     None => (0L, 0L)
-    Some(_) => @row_source_host.row_original_input_capacity()
+    Some(_) =>
+      match original_capacity {
+        Some(value) => value
+        None => return None
+      }
   }
   @execution.preparation_execution_capacity({
     retained,
@@ -222,7 +260,7 @@ fn source_capture_restoration_capacity(
     // and one in-flight decoded row use the existing Value-node slot owner.
     retained_nodes: total_nodes,
     workspace_nodes: total_nodes +
-    Int::min(largest, source_capture_decode().max_nodes).to_int64(),
+    Int::min(largest, decode.max_nodes).to_int64(),
     retained_bytes: original_retained,
     workspace_bytes: original_execution - original_retained,
   })

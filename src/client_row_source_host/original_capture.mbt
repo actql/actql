@@ -77,40 +77,109 @@ fn original_capture_wire_limits() -> @execution.RowWireLimits {
 }
 
 ///|
+// The checked Query owner supplies the INPUT schema, never the capture port.
+fn original_query_input_schema(
+  requirement : @planning.QueryRequirement,
+) -> @schema.Schema? {
+  let query = @planning.query_material_owner(
+    @planning.query_requirement_material(requirement),
+  )
+  @lower.preparation_input_schema(
+    @lower.bound_preparation(@query.query_sequence_owner(query)),
+    @query.query_receipt_input_index(query),
+  )
+}
+
+///|
+/// Same existing receiver allocation, including original checked INPUT metadata.
+/// Shared representation units add no physical quota or execution permission.
+pub fn row_original_input_query_capacity(
+  requirement : @planning.QueryRequirement,
+) -> (Int64, Int64)? {
+  guard original_query_input_schema(requirement) is Some(schema) &&
+    row_schema_measurement_capacity(schema) is Some((workspace, retained)) else {
+    return None
+  }
+  let (base_retained, base_execution) = row_original_input_capacity()
+  guard @execution.checked_preparation_add_product(base_retained, retained, 1L)
+    is Some(retained) &&
+    @execution.checked_preparation_add_product(base_execution, workspace, 1L)
+    is Some(execution) &&
+    @execution.checked_preparation_add_product(
+      execution,
+      retained - base_retained,
+      1L,
+    )
+    is Some(execution) else {
+    return None
+  }
+  Some((retained, execution))
+}
+
+///|
+/// Export only the SAME checked Query's live original input binding. Legacy
+/// generic export policy remains separate; equal schema DATA is not a binding.
+pub fn export_query_row_original_read(
+  read : @execution.SuppliedRelationRead,
+  requirement : @planning.QueryRequirement,
+) -> Result[RowOriginalCaptureExport, RowOriginalCaptureIssue] {
+  let query = @planning.query_material_owner(
+    @planning.query_requirement_material(requirement),
+  )
+  guard @execution.supplied_relation_read_matches_input(
+      read,
+      @query.query_sequence_owner(query),
+      @query.query_receipt_input_index(query),
+    ) &&
+    original_query_input_schema(requirement) is Some(schema) else {
+    return Err(InvalidBinding)
+  }
+  let columns = @schema.field_count(schema)
+  export_original_read_with_limits(
+    read,
+    100,
+    { ..original_capture_wire_limits(), max_columns: columns, },
+    { ..original_capture_schema_limits(), max_fields: columns, },
+  )
+}
+
+///|
 pub fn export_row_original_read(
   read : @execution.SuppliedRelationRead,
 ) -> Result[RowOriginalCaptureExport, RowOriginalCaptureIssue] {
+  export_original_read_with_limits(
+    read,
+    100,
+    original_capture_wire_limits(),
+    original_capture_schema_limits(),
+  )
+}
+
+///|
+fn export_original_read_with_limits(
+  read : @execution.SuppliedRelationRead,
+  max_rows : Int,
+  wire : @execution.RowWireLimits,
+  schema_limits : @execution.RelationSchemaIdentityLimits,
+) -> Result[RowOriginalCaptureExport, RowOriginalCaptureIssue] {
   if !@execution.supplied_relation_read_available(read) ||
-    @execution.supplied_relation_read_row_count(read) > 100 {
+    @execution.supplied_relation_read_row_count(read) > max_rows {
     return Err(Unavailable)
   }
   let schema = @execution.supplied_relation_read_schema(read)
   let identity = match
-    @execution.identify_relation_schema(schema, {
-      max_fields: 100,
-      max_bytes: 100000,
-      max_nodes: 10000,
-      max_depth: 64,
-    }) {
+    @execution.identify_relation_schema(schema, schema_limits) {
     Ok(value) => value
     Err(issue) => return Err(Schema(issue))
   }
   let rows_identity = match
-    @execution.supplied_relation_read_rows_identity(
-      read,
-      original_capture_wire_limits(),
-    ) {
+    @execution.supplied_relation_read_rows_identity(read, wire) {
     Ok(value) => value
     Err(issue) => return Err(Wire(issue))
   }
   let rows : Array[String] = []
   for row in 0..<@execution.supplied_relation_read_row_count(read) {
-    match
-      @execution.supplied_relation_read_row_wire(
-        read,
-        row,
-        original_capture_wire_limits(),
-      ) {
+    match @execution.supplied_relation_read_row_wire(read, row, wire) {
       Ok(wire) => rows.push(wire)
       Err(issue) => return Err(Wire(issue))
     }
@@ -144,14 +213,55 @@ pub fn restore_row_original_read(
   available : () -> Bool,
   reference_issuer? : @admitted.ReferenceIssuer,
 ) -> Result[RowRestoredOriginalInput, RowOriginalCaptureIssue] {
-  if rows.length() > 100 || !available() {
-    return Err(Unavailable)
-  }
   let query = @planning.query_material_owner(
     @planning.query_requirement_material(requirement),
   )
-  let owner = @query.query_sequence_owner(query)
-  let input_index = @query.query_receipt_input_index(query)
+  guard original_query_input_schema(requirement) is Some(schema) else {
+    return Err(InvalidBinding)
+  }
+  let columns = @schema.field_count(schema)
+  restore_original_read_with_limits(
+    @query.query_sequence_owner(query),
+    @query.query_receipt_input_index(query),
+    schema_cid,
+    rows_cid,
+    rows,
+    100,
+    {
+      max_nodes: 100000,
+      max_text_bytes: 2000000,
+      max_depth: 64,
+      max_work: 20000000,
+    },
+    { ..original_capture_wire_limits(), max_columns: columns, },
+    { ..original_capture_schema_limits(), max_fields: columns, },
+    available,
+    reference_issuer?,
+  )
+}
+
+///|
+fn original_capture_schema_limits() -> @execution.RelationSchemaIdentityLimits {
+  { max_fields: 100, max_bytes: 100000, max_nodes: 10000, max_depth: 64, }
+}
+
+///|
+fn restore_original_read_with_limits(
+  owner : @lower.BoundPrepared,
+  input_index : Int,
+  schema_cid : String,
+  rows_cid : String,
+  rows : Array[String],
+  max_rows : Int,
+  retention : @execution.ValueLimits,
+  wire_limits : @execution.RowWireLimits,
+  schema_limits : @execution.RelationSchemaIdentityLimits,
+  available : () -> Bool,
+  reference_issuer? : @admitted.ReferenceIssuer,
+) -> Result[RowRestoredOriginalInput, RowOriginalCaptureIssue] {
+  if rows.length() > max_rows || !available() {
+    return Err(Unavailable)
+  }
   guard @lower.preparation_input_schema(
       @lower.bound_preparation(owner),
       input_index,
@@ -160,27 +270,16 @@ pub fn restore_row_original_read(
     return Err(InvalidBinding)
   }
   let identity = match
-    @execution.identify_relation_schema(schema, {
-      max_fields: 100,
-      max_bytes: 100000,
-      max_nodes: 10000,
-      max_depth: 64,
-    }) {
+    @execution.identify_relation_schema(schema, schema_limits) {
     Ok(value) => value
     Err(issue) => return Err(Schema(issue))
   }
   if @execution.relation_schema_cid(identity) != schema_cid {
     return Err(InvalidBinding)
   }
-  let retention : @execution.ValueLimits = {
-    max_nodes: 100000,
-    max_text_bytes: 2000000,
-    max_depth: 64,
-    max_work: 20000000,
-  }
   let input = match
     @execution.prepare_bounded_admitted_input(
-      owner, input_index, 100, retention,
+      owner, input_index, max_rows, retention,
     ) {
     Ok(input) => input
     Err(issue) => return Err(Admission(Capture(issue)))
@@ -190,15 +289,15 @@ pub fn restore_row_original_read(
       (
         issuer,
         {
-          max_bytes: 2000000,
-          max_nodes: 100000,
-          max_depth: 64,
-          max_text_units: 2000000,
+          max_bytes: wire_limits.max_bytes,
+          max_nodes: wire_limits.max_nodes,
+          max_depth: wire_limits.max_depth,
+          max_text_units: wire_limits.max_bytes,
         },
       )
     },
   )
-  let mut remaining = 2000000
+  let mut remaining = wire_limits.max_bytes
   for wire in rows {
     if !available() {
       discard_failed_original_input(input)
@@ -216,16 +315,16 @@ pub fn restore_row_original_read(
     }
     remaining -= bytes
     guard @source.parse_json(wire, {
-        max_input_bytes: 2000000,
-        max_nodes: 100000,
-        max_depth: 64,
+        max_input_bytes: wire_limits.max_bytes,
+        max_nodes: wire_limits.max_nodes,
+        max_depth: wire_limits.max_depth,
       })
       is Ok(node) &&
       @decode.admit(node, {
-        max_nodes: 100000,
-        max_depth: 64,
-        max_string_bytes: 2000000,
-        max_total_string_bytes: 2000000,
+        max_nodes: wire_limits.max_nodes,
+        max_depth: wire_limits.max_depth,
+        max_string_bytes: wire_limits.max_bytes,
+        max_total_string_bytes: wire_limits.max_bytes,
       })
       is Ok(cursor) else {
       discard_failed_original_input(input)
@@ -237,7 +336,11 @@ pub fn restore_row_original_read(
         schema,
         declared_fields,
         cursor,
-        { max_nodes: 100000, max_depth: 64, max_text_bytes: 2000000, },
+        {
+          max_nodes: wire_limits.max_nodes,
+          max_depth: wire_limits.max_depth,
+          max_text_bytes: wire_limits.max_bytes,
+        },
         retention,
         references~,
       ) {
@@ -255,8 +358,7 @@ pub fn restore_row_original_read(
       return Err(Admission(Capture(issue)))
     }
   }
-  let actual = match
-    @execution.identify_captured_rows(captured, original_capture_wire_limits()) {
+  let actual = match @execution.identify_captured_rows(captured, wire_limits) {
     Ok(value) => value
     Err(issue) => {
       discard_failed_original_input(input)

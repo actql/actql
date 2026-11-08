@@ -3,8 +3,11 @@
 // allowances. These are not installed Node profiles, Store ACKs or public E2E.
 fn original_observation_test_start(
   producer? : Ref[@resources.Reservation?]? = None,
+  source? : String = infer_fixture_program,
+  provider? : @model.ModelProvider = original_funded_start_provider(Ref(0)),
+  run_id? : String = "run",
 ) -> (Execution, @resources.Ledger, @publication_host.ClientModelReadConsumer) {
-  let prepared = fixture_prepared()
+  let prepared = fixture_prepared(source~)
   let plan = call_identity_plan(prepared)
   let limits = standard_limits()
   let (compiled, _) = original_input_capacity_run(prepared, plan)
@@ -20,7 +23,7 @@ fn original_observation_test_start(
     20,
   ).unwrap()
   let definition = @publication_host.issue_client_compiled_run_definition(
-    compiled, "original-observation", "run", "2026-10-12T00:00:00.000Z", "2099-01-01T00:00:00.000Z",
+    compiled, "original-observation", run_id, "2026-10-12T00:00:00.000Z", "2099-01-01T00:00:00.000Z",
   ).unwrap()
   let ledger = @resources.create_ledger({
     ..limits.model.ledger,
@@ -58,7 +61,7 @@ fn original_observation_test_start(
     2,
     infer_fixture_installed_contracts(),
     infer_fixture_values,
-    original_funded_start_provider(Ref(0)),
+    provider,
     limits,
     compiled,
     definition,
@@ -512,4 +515,35 @@ test "complete original observation keeps compiler order when the second Model o
   )
   assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
   assert_eq(@resources.ledger_usage(ledger).attempts, 2)
+}
+
+///|
+test "original observation metadata quote reads the same completed row inventory without debit" {
+  let (active, ledger, _) = original_observation_test_start()
+  assert_true(
+    original_observation_issuance_metadata_bytes(active, issuance_limits())
+    is None,
+  )
+  assert_true(fixture_finish(active) is Complete(_, ..))
+  let before = @resources.ledger_usage(ledger)
+  let uses = active.output_uses
+  assert_eq(
+    original_observation_issuance_metadata_bytes(active, issuance_limits()),
+    Some(65664L),
+  )
+  assert_true(
+    original_observation_issuance_metadata_bytes(active, {
+      ..issuance_limits(),
+      max_slots: 0,
+    })
+    is None,
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
+  assert_eq(active.output_uses, uses)
+  cancel(active) |> ignore
+  assert_true(cleanup(active).unwrap())
+  assert_true(
+    original_observation_issuance_metadata_bytes(active, issuance_limits())
+    is None,
+  )
 }

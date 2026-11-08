@@ -19,7 +19,7 @@ class LocalNamespaceScopeTests(unittest.TestCase):
         else:
             connect = sqlite3.connect
             with patch('actql_sdk._local_storage.sqlite3.connect',
-                       side_effect=lambda *a, **k: connect(*a, **k, factory=factory)):
+                       side_effect=lambda *a, **k: connect(*a, **(k | {'factory': factory}))):
                 store = LocalByteStore(path, max_records=8, max_record_bytes=256, max_payload_bytes=1024)
         self.addCleanup(store.close)
         store.compare_exchange('epoch', None, b'original')

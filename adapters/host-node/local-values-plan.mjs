@@ -5,6 +5,7 @@ import {createHash, randomUUID} from 'node:crypto';
 import {checked} from '../host-common/runtime-result.mjs';
 import {valuesExecutionContextCid} from './local-values-capacity.mjs';
 import {resultOutputLimitFields} from '../host-common/result-output-limits.mjs';
+import {hostResultStorePolicy} from './host-result-service-recipe.cjs';
 import {sampleOriginalQueryTime} from './query-evaluation-clock.mjs';
 
 function prepareQueryInvocation(control, prepared, request, retained) {
@@ -105,10 +106,10 @@ export function checkedLocalOutputLimits(moon, preparedProgram, publicationOrigi
   let values;
   if (publicationOriginal?.kind === 'preparation') {
     values = moon.clientProgramPreparedLocalPublicationLimits(publicationOriginal.value,
-      preparedProgram, localOutputLimits.maxWireBytes);
+      preparedProgram, hostResultStorePolicy.maxObjectBytes);
   } else if (publicationOriginal?.kind === 'installed_run') {
     values = moon.clientProgramInstalledManagedPublicationLimits(publicationOriginal.value,
-      preparedProgram, localOutputLimits.maxWireBytes);
+      preparedProgram, hostResultStorePolicy.maxObjectBytes);
   } else {
     throw new TypeError('InvalidCheckedLocalPublicationOriginal');
   }
@@ -868,7 +869,7 @@ export function sourceFreeTaskPlan(options) {
 // physical capture and current authorization. This Host binds that evidence to
 // the checked task Run and the captured relation before publication.
 export function acquiredTaskPublicationPlan({moon, control, acquired,
-  preparedProgram, captured, sourceEvidence, authorityScopeCid,
+  preparedProgram, publicationOriginal, captured, sourceEvidence, authorityScopeCid,
   effectiveDataPolicyCid, captureStartedAt, captureCompletedAt, namespaceId,
   storeAuthorityCid, now}) {
   control.checkClientCompiledRunOwner(acquired.compiled, preparedProgram);
@@ -896,7 +897,10 @@ export function acquiredTaskPublicationPlan({moon, control, acquired,
     authorityScopeCid, namespaceId, storeAuthorityCid,
     dataPolicyCid: effectiveDataPolicyCid, createdAt: acquired.createdAt,
     now, resultCount: moon.clientProgramResultCount(preparedProgram),
-    compiled: acquired.compiled, preparedProgram});
+    compiled: acquired.compiled, preparedProgram,
+    ...(publicationOriginal === undefined ? {} : {
+      outputLimits: checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal),
+    })});
 }
 
 
@@ -904,15 +908,19 @@ export function acquiredTaskPublicationPlan({moon, control, acquired,
 // inventory. Each source evidence retains its own read policy; the final
 // publication policy is the checker's join of exact Result contributors.
 export function acquiredMultiTaskPublicationPlan({moon, control, acquired,
-  preparedProgram, sources, authorityScopeCid, effectiveDataPolicyCid,
+  preparedProgram, publicationOriginal, sources, authorityScopeCid, effectiveDataPolicyCid,
   captureStartedAt, captureCompletedAt, namespaceId, storeAuthorityCid, now}) {
   control.checkClientCompiledRunOwner(acquired.compiled, preparedProgram);
+  const whole = Array.isArray(sources) && sources.some(({captured}) => captured?.inputKind === 'whole-input');
   if (!Array.isArray(sources) || sources.length !== 2 ||
       moon.clientProgramPublicationDataPolicyCid(preparedProgram) !== effectiveDataPolicyCid ||
       sources.some(({captured, sourceEvidence}, task) =>
         sourceEvidence === undefined || captured?.logicalInput === undefined ||
-        captured?.identity === undefined || captured?.requirement === undefined ||
-        !moon.clientProgramCapturedTaskSourceMatches(preparedProgram, captured.capture.source(), task))) {
+        captured?.identity === undefined || (whole
+          ? captured.inputKind !== 'whole-input' || captured.wholeCapacity === undefined ||
+            typeof captured.capture?.originalWholeInput !== 'function' || acquired.publicationPreparation === undefined
+          : captured?.requirement === undefined ||
+            !moon.clientProgramCapturedTaskSourceMatches(preparedProgram, captured.capture.source(), task)))) {
     throw new TypeError('InvalidAcquiredTaskPublication');
   }
   const observed = sources;
@@ -933,14 +941,17 @@ export function acquiredMultiTaskPublicationPlan({moon, control, acquired,
     authorityScopeCid, namespaceId, storeAuthorityCid,
     dataPolicyCid: effectiveDataPolicyCid, createdAt: acquired.createdAt,
     now, resultCount: moon.clientProgramResultCount(preparedProgram),
-    compiled: acquired.compiled, preparedProgram});
+    compiled: acquired.compiled, preparedProgram,
+    ...(publicationOriginal === undefined ? {} : {
+      outputLimits: checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal),
+    })});
 }
 
 // A keyed JOIN completes a second Source, not a second Direct task prefix.
 // Retain both Source evidence entries while reusing the admitted compilation
 // and the ordinary Result publication/retention plan.
 export function acquiredKeyedTaskPublicationPlan({moon, control, acquired,
-  preparedProgram, captured, sourceEvidence, keyedObservation,
+  preparedProgram, publicationOriginal, captured, sourceEvidence, keyedObservation,
   authorityScopeCid, effectiveDataPolicyCid, captureStartedAt, captureCompletedAt,
   namespaceId, storeAuthorityCid, now}) {
   control.checkClientCompiledRunOwner(acquired.compiled, preparedProgram);
@@ -971,5 +982,8 @@ export function acquiredKeyedTaskPublicationPlan({moon, control, acquired,
     authorityScopeCid, namespaceId, storeAuthorityCid,
     dataPolicyCid: effectiveDataPolicyCid, createdAt: acquired.createdAt,
     now, resultCount: moon.clientProgramResultCount(preparedProgram),
-    compiled: acquired.compiled, preparedProgram});
+    compiled: acquired.compiled, preparedProgram,
+    ...(publicationOriginal === undefined ? {} : {
+      outputLimits: checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal),
+    })});
 }

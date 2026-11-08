@@ -59,8 +59,8 @@ test('read-only ref lookup verifies exact ref/type and never follows token-beari
   }
 });
 test('mandatory preflight admits every normal heavy primitive and does not serialize the compound spec suite', () => {
-  const heavy = ['core', 'host', 'client-packages', 'client-distribution', 'client-distribution-callers',
-    'client-distribution-mutations', 'client-distribution-packed', 'client-distribution-native', 'client-packed', 'client-salesforce',
+  const heavy = ['core', 'host', 'client-packages', 'client-supported-versions', 'client-distribution', 'client-distribution-callers',
+    'client-distribution-mutations', 'client-distribution-packed', 'client-distribution-native', 'client-packed', 'client-packed-composition', 'client-salesforce',
     'native-cli-installed', 'native-cli-linux-local', 'native', 'session-evidence', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos',
     'native-separated-network', 'workers', 'connector-addition', 'duckdb-node'];
   for (const name of [...heavy, 'lint', 'spec']) {
@@ -77,6 +77,20 @@ test('mandatory preflight admits every normal heavy primitive and does not seria
   assert.equal(preflight.at(-1), 'node scripts/ci-preflight.mjs');
   assert(!preflight.some(command => /sleep|check:spec|run\.mjs all/u.test(command)));
 });
+test('pinned actionlint checks every workflow before expensive fan-out', () => {
+  const steps = jobs.preflight.steps;
+  const step = steps.find(step => step.name === 'Check all workflows with pinned actionlint');
+  assert(step);
+  assert.equal(step.if, undefined);
+  assert.equal(step['continue-on-error'], undefined);
+  assert(steps.indexOf(step) < steps.findIndex(step => step.name === 'Install pinned MoonBit'));
+  assert.match(step.run, /releases\/download\/v1\.7\.12\/actionlint_1\.7\.12_linux_amd64\.tar\.gz/u);
+  assert(step.run.includes('8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8'));
+  assert.match(step.run, /sha256sum --check --strict/u);
+  assert.match(step.run, /"\$tool\/actionlint" -oneline -shellcheck= -pyflakes=\s*$/u);
+  assert(!/--ignore|\|\| true/u.test(step.run));
+});
+
 test('runtime command inventory fails before expensive fan-out with nonzero execution required', () => {
   const steps = jobs.preflight.steps;
   const index = steps.findIndex(step => step.name === 'Check runtime command inventory before fan-out');

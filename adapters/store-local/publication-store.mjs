@@ -607,6 +607,9 @@ async function acquireStoreOwnership(root, bootstrap, key, fresh = false, direct
       if (result?.pending !== false) fail('PublicationStoreCleanupPending');
       failureCleanup = undefined;
     }
+    // A consumed/uncertain native metadata child must drain before its
+    // original directory/token, lease, key or root may retire.
+    lease?.drainMetadata();
     if (metadata !== undefined) {
       if (await metadata.release() !== true) return false;
       metadata = undefined;
@@ -614,7 +617,8 @@ async function acquireStoreOwnership(root, bootstrap, key, fresh = false, direct
     return lease?.close() ?? true;
   };
   try {
-    if (!fresh) {qualificationAttempted = true; lease = openPublicationOwnerLease(root, directoryInspection);}
+    qualificationAttempted = !fresh;
+    lease = openPublicationOwnerLease(root, directoryInspection, fresh);
     metadata = await acquireStoreMetadataOwnership(root, bootstrap, key, lease);
     const token = metadata.token;
     return Object.freeze({
@@ -623,17 +627,18 @@ async function acquireStoreOwnership(root, bootstrap, key, fresh = false, direct
         if (!qualificationAttempted) {
           qualificationAttempted = true;
           try {
-            lease = openPublicationOwnerLease(root, directoryInspection);
-            if (lease !== undefined) await metadata.attachLease(lease);
+            if (lease === undefined) lease = openPublicationOwnerLease(root, directoryInspection);
+            else if (!lease.qualify()) lease = undefined;
+            if (lease?.anchor !== undefined) await metadata.attachLease(lease);
           } catch (cause) {failureCleanup = cause?.cleanupHandle; throw cause;}
         }
         lease?.current();
       },
       release,
-      executionReceipt() {if (lease === undefined) return undefined; lease.current(); if (metadata === undefined) fail('PublicationStoreOwnershipLost');
+      executionReceipt() {if (lease?.anchor === undefined) return undefined; lease.current(); if (metadata === undefined) fail('PublicationStoreOwnershipLost');
         return Object.freeze({token, anchor: lease.anchor});},
       priorExecutionStopped(receipt) {
-        if (lease === undefined) return false;
+        if (lease?.anchor === undefined) return false;
         try {
           lease.current(); return metadata !== undefined && typeof receipt?.token === 'string' &&
             receipt.token !== token && lease.matches(receipt.anchor);
@@ -651,19 +656,30 @@ async function acquireStoreOwnership(root, bootstrap, key, fresh = false, direct
 
 async function acquireStoreMetadataOwnership(root, bootstrap, key, lease) {
   const ownershipDirectory = resolve(root, 'owner');
-  const ownerPath = resolve(ownershipDirectory, 'owner.json');
+  const finalOwnerPath = resolve(ownershipDirectory, 'owner.json');
   const token = randomUUID();
   // Read before acquiring ownership: a failed identity observation cannot
   // strand a newly created owner. Keep scalars, not the entire Stats object.
   const {dev: rootDevice, ino: rootInode} = await lstat(root, {bigint: true});
   while (true) {
+    let directoryPath = ownershipDirectory, ownerPath = finalOwnerPath;
+    let staging = false;
     try {
-      await mkdir(ownershipDirectory, {mode: 0o700});
+      if (lease !== undefined) {
+        // An existence check selects old-owner validation; only the native
+        // no-replace rename below is the publication condition.
+        try {await lstat(directoryPath); throw Object.assign(new Error('Owner exists'), {code: 'EEXIST'});}
+        catch (cause) {if (cause?.code !== 'ENOENT') throw cause;}
+        directoryPath = resolve(root, `.owner-opening-${token}`);
+        ownerPath = resolve(directoryPath, 'owner.json');
+        staging = true;
+      }
+      await mkdir(directoryPath, {mode: 0o700});
       const owner = Buffer.from(JSON.stringify({
         version: 'actql-local-publication-store-owner/0.1',
         pid: process.pid,
         token,
-        ...(lease === undefined ? {} : {leaseAnchor: lease.anchor}),
+        ...(lease?.anchor === undefined ? {} : {leaseAnchor: lease.anchor}),
       }), 'utf8');
       let released = false, ownerRemoved = false, directoryRemoved = false;
       let ownershipDevice, ownershipInode;
@@ -671,16 +687,18 @@ async function acquireStoreMetadataOwnership(root, bootstrap, key, lease) {
       let ownerWriter, ownerWriterClose, ownerFileIdentity;
       let retirementReadCleanup, retirementReadFailure;
       let ownerFileCreated = false, ownerWritten = false;
+      let leaseStaging, leaseStagingIdentity;
       const ownership = Object.freeze({
         token,
         async attachLease(currentLease) {
           await ownership.assertCurrent(); currentLease.current();
           const bytes = Buffer.from(JSON.stringify({version: 'actql-local-publication-store-owner/0.1',
             pid: process.pid, token, leaseAnchor: currentLease.anchor}), 'utf8');
-          ownerWriter = await open(ownerPath, constants.O_RDWR | constants.O_NOFOLLOW);
+          leaseStaging = resolve(directoryPath, `.lease-${token}.json`);
+          ownerWriter = await open(leaseStaging, constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY, 0o600);
           ownerWriterClose = ownerWriter.close;
           const original = await ownerWriter.stat({bigint: true});
-          if (original.dev !== ownerFileIdentity.dev || original.ino !== ownerFileIdentity.ino) fail('PublicationStoreOwnershipLost');
+          leaseStagingIdentity = {dev: original.dev, ino: original.ino};
           let offset = 0;
           while (offset < bytes.byteLength) {
             const {bytesWritten} = await ownerWriter.write(bytes, offset, bytes.byteLength - offset, offset);
@@ -689,10 +707,22 @@ async function acquireStoreMetadataOwnership(root, bootstrap, key, lease) {
           }
           await ownerWriter.sync();
           const written = await ownerWriter.stat({bigint: true});
-          ownerFileIdentity = Object.fromEntries(['dev', 'ino', 'size', 'mtimeNs', 'ctimeNs'].map(name => [name, written[name]]));
+          const replacement = Object.fromEntries(['dev', 'ino', 'size', 'mtimeNs', 'ctimeNs'].map(name => [name, written[name]]));
           if (await Reflect.apply(ownerWriterClose, ownerWriter, []) === false) fail('PublicationStoreCleanupPending');
           ownerWriter = undefined;
-          await syncDirectoryPath(ownershipDirectory); currentLease.current();
+          await ownership.assertCurrent(); currentLease.current();
+          currentLease.replaceMetadata(`.lease-${token}.json`, ownerFileIdentity, replacement,
+            {dev: ownershipDevice, ino: ownershipInode}, () => {
+            // Commit precedes any child-close or durability failure. Cleanup
+            // owns this exact replacement without another rename/reissue.
+            ownerFileIdentity = replacement;
+            leaseStaging = leaseStagingIdentity = undefined;
+          });
+          const committed = await lstat(ownerPath, {bigint: true});
+          if (committed.dev !== replacement.dev || committed.ino !== replacement.ino ||
+              !committed.isFile() || committed.isSymbolicLink()) fail('PublicationStoreOwnershipLost');
+          ownerFileIdentity = Object.fromEntries(['dev', 'ino', 'size', 'mtimeNs', 'ctimeNs'].map(name => [name, committed[name]]));
+          await syncDirectoryPath(directoryPath); currentLease.current();
         },
         async assertCurrent() {
           if (!ownerWritten || ownerWriter !== undefined || released || ownerRemoved ||
@@ -700,7 +730,7 @@ async function acquireStoreMetadataOwnership(root, bootstrap, key, lease) {
             fail('PublicationStoreOwnershipLost');
           }
           const currentRoot = await lstat(root, {bigint: true});
-          const directory = await lstat(ownershipDirectory, {bigint: true});
+          const directory = await lstat(directoryPath, {bigint: true});
           if (!currentRoot.isDirectory() || currentRoot.isSymbolicLink() ||
               currentRoot.dev !== rootDevice || currentRoot.ino !== rootInode ||
               !directory.isDirectory() || directory.isSymbolicLink()) fail('PublicationStoreOwnershipLost');
@@ -761,13 +791,16 @@ async function acquireStoreMetadataOwnership(root, bootstrap, key, lease) {
           }
           if (!directoryRemoved) {
             let directory;
-            try { directory = await lstat(ownershipDirectory, {bigint: true}); }
+            try { directory = await lstat(directoryPath, {bigint: true}); }
             catch (error) { if (error?.code === 'ENOENT') return false; throw error; }
             if (!directory.isDirectory() || directory.isSymbolicLink()) {
               fail('PublicationStoreOwnershipLost');
             }
             if (!ownerRemoved) {
               if (ownerWritten) {
+                const sameOwnerFile = state => state.isFile() && !state.isSymbolicLink() &&
+                  state.dev === ownerFileIdentity?.dev && state.ino === ownerFileIdentity?.ino;
+                if (!sameOwnerFile(await lstat(ownerPath, {bigint: true}))) fail('PublicationStoreOwnershipLost');
                 let existing;
                 try { existing = JSON.parse(bootstrap === undefined
                   ? await readFile(ownerPath, 'utf8') : await readBounded(ownerPath, 4096)); }
@@ -786,7 +819,8 @@ async function acquireStoreMetadataOwnership(root, bootstrap, key, lease) {
                   if (error?.code === 'ENOENT') return false;
                   throw error;
                 }
-                if (existing?.token !== token || existing?.pid !== process.pid) {
+                if (!sameOwnerFile(await lstat(ownerPath, {bigint: true})) ||
+                    existing?.token !== token || existing?.pid !== process.pid) {
                   fail('PublicationStoreOwnershipLost');
                 }
               } else if (ownerFileCreated) {
@@ -808,13 +842,22 @@ async function acquireStoreMetadataOwnership(root, bootstrap, key, lease) {
             } else if (directory.dev !== ownershipDevice || directory.ino !== ownershipInode) {
               fail('PublicationStoreOwnershipLost');
             }
+            if (leaseStaging !== undefined) {
+              const state = await lstat(leaseStaging, {bigint: true});
+              if (!state.isFile() || state.isSymbolicLink() ||
+                  state.dev !== leaseStagingIdentity?.dev || state.ino !== leaseStagingIdentity?.ino) {
+                fail('PublicationStoreOwnershipLost');
+              }
+              await unlink(leaseStaging);
+              leaseStaging = leaseStagingIdentity = undefined;
+            }
             // Record only actually acknowledged phases in this original
             // handle. Never reconstruct an absent record or unlink again.
             if (!ownerRemoved) {
               if (ownerFileCreated) await unlink(ownerPath);
               ownerRemoved = true;
             }
-            await rmdir(ownershipDirectory);
+            await rmdir(directoryPath);
             directoryRemoved = true;
           }
           // A successor may now own root/owner. It must never be inspected
@@ -845,6 +888,9 @@ async function acquireStoreMetadataOwnership(root, bootstrap, key, lease) {
         },
       });
       try {
+        const originalDirectory = await lstat(directoryPath, {bigint: true});
+        if (!originalDirectory.isDirectory() || originalDirectory.isSymbolicLink()) fail('PublicationStoreOwnershipLost');
+        ownershipDevice = originalDirectory.dev; ownershipInode = originalDirectory.ino;
         ownerWriter = await open(ownerPath, constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY, 0o600);
         ownerFileCreated = true;
         ownerWriterClose = ownerWriter.close;
@@ -864,8 +910,15 @@ async function acquireStoreMetadataOwnership(root, bootstrap, key, lease) {
         if (await Reflect.apply(ownerWriterClose, ownerWriter, []) === false) fail('PublicationStoreCleanupPending');
         ownerWriter = undefined;
         ownerWritten = true;
-        await syncDirectoryPath(ownershipDirectory);
+        await syncDirectoryPath(directoryPath);
+        if (staging) {
+          lease.publishDirectory(`.owner-opening-${token}`, {dev: ownershipDevice, ino: ownershipInode});
+          directoryPath = ownershipDirectory; ownerPath = finalOwnerPath; staging = false;
+        }
         await syncDirectoryPath(root);
+        // A fresh preparer may still own another unpublished stage before
+        // qualifying its kernel lease. Our lease proves no custody or stop
+        // for that writer: only its original handle may retire its stage.
         return ownership;
       } catch (cause) {
         // The original token/release closure exists before either awaited
@@ -877,7 +930,7 @@ async function acquireStoreMetadataOwnership(root, bootstrap, key, lease) {
       if (error?.code !== 'EEXIST') throw error;
       let existing;
       try { existing = JSON.parse(bootstrap === undefined
-        ? await readFile(ownerPath, 'utf8') : await bootstrap.readMetadata(ownerPath)); }
+        ? await readFile(finalOwnerPath, 'utf8') : await bootstrap.readMetadata(finalOwnerPath)); }
       catch (readError) {
         if (readError?.cleanupHandle !== undefined) throw readError;
         if (readError?.code === 'ENOENT') {

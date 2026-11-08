@@ -26,6 +26,8 @@ export function captureConfigurationReaders(reader, readJson, unavailable) {
   const originalText = Object.getOwnPropertyDescriptor(reader, 'readOriginalText');
   const originalBytes = Object.getOwnPropertyDescriptor(reader, 'readOriginalBytes');
   const parseText = Object.getOwnPropertyDescriptor(reader, 'parseJsonText');
+  const prepareProfile = Object.getOwnPropertyDescriptor(reader, 'prepareProfile');
+  const readProfile = Object.getOwnPropertyDescriptor(reader, 'readProfile');
   if (!json || !Object.hasOwn(json, 'value') || typeof json.value !== 'function' ||
       !text || !Object.hasOwn(text, 'value') || typeof text.value !== 'function' ||
       originalText !== undefined && (!Object.hasOwn(originalText, 'value') ||
@@ -33,12 +35,18 @@ export function captureConfigurationReaders(reader, readJson, unavailable) {
       originalBytes !== undefined && (!Object.hasOwn(originalBytes, 'value') ||
         typeof originalBytes.value !== 'function') ||
       parseText !== undefined && (!Object.hasOwn(parseText, 'value') ||
-        typeof parseText.value !== 'function')) refuse();
+        typeof parseText.value !== 'function') ||
+      prepareProfile !== undefined && (!Object.hasOwn(prepareProfile, 'value') ||
+        typeof prepareProfile.value !== 'function') ||
+      readProfile !== undefined && (!Object.hasOwn(readProfile, 'value') ||
+        typeof readProfile.value !== 'function')) refuse();
   // Capture the initializer's optional actual-FD text method before any read awaits.
   // Its absence cannot substitute a bounded reader or manufacture a byte ceiling.
   return Object.freeze({
     readJson: readJson ?? ((...args) => Reflect.apply(json.value, reader, args)),
     readText: (...args) => Reflect.apply(text.value, reader, args),
+    ...(prepareProfile === undefined ? {} : {prepareProfile: (...args) => Reflect.apply(prepareProfile.value, reader, args)}),
+    ...(readProfile === undefined ? {} : {readProfile: (...args) => Reflect.apply(readProfile.value, reader, args)}),
     ...(parseText === undefined ? {} : {
       parseJsonText: (...args) => Reflect.apply(parseText.value, reader, args),
     }),
@@ -52,13 +60,24 @@ export function captureConfigurationReaders(reader, readJson, unavailable) {
 }
 
 export async function readSourceProfileJson(path,
-  {maxBytes = profileByteLimit, openFile = open, beforeDecode, io} = {}) {
+  {maxBytes = profileByteLimit, openFile = open, beforeDecode, beforeParse, io} = {}) {
   if (!Number.isSafeInteger(maxBytes) || maxBytes < 0 ||
       maxBytes > profileByteLimit) {
     throw new TypeError('InvalidInstalledSourceProfileByteLimit');
   }
+  if (beforeParse !== undefined && typeof beforeParse !== 'function') {
+    throw new TypeError('InvalidInstalledConfigurationConstruction');
+  }
   return readConfiguration(path, maxBytes, openFile,
-    bytes => JSON.parse(bytes.toString('utf8')), beforeDecode, io);
+    bytes => {
+      const wire = bytes.toString('utf8');
+      // The SAME decoded original supplies construction geometry before the
+      // native parser allocates a value tree. This callback is no validator.
+      if (beforeParse !== undefined && beforeParse(wire) !== undefined) {
+        throw new TypeError('InvalidInstalledConfigurationConstruction');
+      }
+      return JSON.parse(wire);
+    }, beforeDecode, io);
 }
 
 // Publications may have a different declared ceiling and hash their original
@@ -132,9 +151,9 @@ async function readConfigurationBody(original, maxBytes, project, beforeDecode) 
           buffer.length - used, null);
         if (bytesRead === 0) {
           chunks.push(buffer.subarray(0, used));
-          // The fixed initializer reserves the complete received native decode
-          // before concatenation/text/JSON construction. The old absent port
-          // keeps this reader's exact buffering and parsing semantics.
+          // The fixed initializer funds the received buffer/text overlap here;
+          // JSON construction separately observes that SAME decoded String.
+          // An absent port keeps the exact buffering/parsing semantics.
           if (beforeDecode !== undefined && beforeDecode(bytes) !== undefined) {
             throw new TypeError('InvalidInstalledConfigurationConstruction');
           }

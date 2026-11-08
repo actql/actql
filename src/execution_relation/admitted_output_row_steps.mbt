@@ -319,3 +319,53 @@ pub fn admitted_output_row_workspace_usage(
 ) -> (Int, Int) {
   (cursor.workspace.live, cursor.workspace.peak)
 }
+
+///|
+/// Construction for the NEXT original row-admission step. Payloads and field
+/// contracts remain borrowed. Recheck and value-charge continuations each pop
+/// one frame and push at most two, so live pending frames plus one suffice.
+/// This is an actual cursor projection, not the logical node/work ceiling.
+/// The caller retains its existing fixed controls and grows before advancing.
+pub fn admitted_output_row_next_construction(
+  cursor : AdmittedOutputRowCursor,
+) -> PreparationRepresentationUnits? {
+  if cursor.cleaned || cursor.phase is Complete || cursor.phase is Failed {
+    return None
+  }
+  let pending = match cursor.phase {
+    RecheckCell =>
+      cursor.recheck.map(@admitted.recheck_pending_frames).unwrap_or(0)
+    Charge =>
+      match cursor.charge {
+        Some(charge) =>
+          charge.measure.map(value => value.frames.length()).unwrap_or(0)
+        None => 0
+      }
+    _ => 0
+  }
+  // Include the popped frame and transient next-frame/result carriers. Every
+  // recheck variant has at most four references/six scalar payload words;
+  // the charge variants fit the same envelope. No child array/String is copied.
+  let frames = pending.to_int64() + 2L
+  guard @shape.collection_construction_extent({
+      records: frames,
+      record_references: frames * 4L,
+      record_words: frames * 6L,
+      reference_arrays: 1L,
+      reference_items: frames,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(extent) else {
+    return None
+  }
+  Some({
+    record_headers: extent.record_headers,
+    reference_slots: extent.reference_slots,
+    scalar_words: extent.scalar_words,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  })
+}

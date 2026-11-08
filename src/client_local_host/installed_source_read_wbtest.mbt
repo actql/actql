@@ -69,7 +69,7 @@ test "Source read consumer identity without an original child is unavailable" {
     acquisition: None,
     whole_input: None,
     run: None,
-    started: false,
+    start: Unstarted,
   }
   assert_true(
     check_installed_source_read_current(value) is Err(ForeignOriginal),

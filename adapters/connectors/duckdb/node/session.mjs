@@ -286,9 +286,10 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
   const openResidentAppender = (...args) =>
     trackFlight(startResidentAppender(...args), recordAppenderFailure);
   const runCommand = async (sql, parameters, consume, reuseInsert = false,
-    statementMode = 'ordinary') => {
+    statementMode = 'ordinary', receiveMetadata) => {
     assertLive();
     if (busy) throw new DuckDBTransportError('ConcurrentCommand');
+    if (receiveMetadata !== undefined && typeof receiveMetadata !== 'function') throw new DuckDBTransportError('InvalidMetadataReceiver');
     if (typeof sql !== 'string' || Buffer.byteLength(sql, 'utf8') > limits.maxSqlBytes) {
       throw new DuckDBTransportError('SqlBytes');
     }
@@ -376,6 +377,8 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
       const metadataBytes = Buffer.byteLength(JSON.stringify({ fields }) + '\n', 'utf8');
       if (bounded && metadataBytes > limits.maxChunkBytes) throw new DuckDBTransportError('ChunkBytes');
       chargeBytes(metadataBytes);
+      // The same cursor's typed metadata also exists for an empty result.
+      if (receiveMetadata !== undefined) {await receiveMetadata(fields);assertLive();}
       for (;;) {
         pending = true;
         const chunk = await result.fetchChunk();

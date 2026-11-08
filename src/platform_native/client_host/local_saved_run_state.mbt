@@ -178,6 +178,10 @@ fn NativeClientRunJournal::retain_observed_run_state(
       let wire = state.wire()
       let body = match
         submitted_intent_body(
+          before_construction=submitted_encode_construction(
+            self.database,
+            operations,
+          ),
           original.reference,
           original.intent,
           run_admission=original.run_admission,

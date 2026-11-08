@@ -232,6 +232,20 @@ fn NativeLocalAdoptionSession::bind_journal(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  // The SAME physical adoption row/epoch has now acknowledged persistence.
+  // Bind its actual identity to the installed profile, never a fresh record
+  // fabricated by the caller or an acknowledgement before COMMIT. The Native
+  // Session keeps that exact configuration and custody through current reads.
+  if self.configuration.bootstrap_profile() is Some(profile) {
+    if @authorization.bind_bootstrap_adoption(self.configuration, {
+        record_id: adoption_cid,
+        account_id: self.configuration.account_id(),
+        profile,
+      })
+      is Err(_) {
+      return Err(UninstalledBootstrapProfile)
+    }
+  }
   let connected = {
     session: self,
     database,

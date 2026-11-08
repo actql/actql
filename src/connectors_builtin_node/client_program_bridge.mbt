@@ -367,6 +367,8 @@ pub fn client_program_request_preparation_issue_code(
       return Some(client_source_preparation_issue_code(Frontend(issue)))
     Err(Publication(Publication(Declarations))) =>
       return Some(client_source_preparation_issue_code(Declarations))
+    Err(Preparation(SourceInput(Source(@publication_host.ArrayProfile(issue))))) =>
+      return Some(client_source_preparation_issue_code(ArrayProfile(issue)))
     Err(CheckOutcome(Rejected(diagnostic))) => Preparation(Check(diagnostic))
     Err(CheckOutcome(NeedsInputs(_))) => return Some("needs_inputs")
     Err(Preparation(ProgramCheck(Compilation(Syntax(issue)))))
@@ -2583,6 +2585,7 @@ pub fn client_program_captured_source_dependency_bodies(
 fn identify_installed_captured_source(
   source : @query.CapturedInputSource,
   retain_body_bytes : Int,
+  columns? : Int = 100,
 ) -> Result[@query.CapturedSourceRelationIdentity, @query.CapturedSourceIssue] {
   @query.identify_captured_source_relation(
     source,
@@ -2594,20 +2597,20 @@ fn identify_installed_captured_source(
       max_work: 1000000,
     },
     {
-      max_columns: 100,
+      max_columns: columns,
       max_order_work: 1000000,
       max_bytes: 10000000,
       max_nodes: 1000000,
       max_depth: 64,
     },
     {
-      max_columns: 100,
+      max_columns: columns,
       max_order_work: 1000000,
       max_bytes: 10000000,
       max_nodes: 1000003,
       max_depth: 66,
     },
-    { max_fields: 100, max_bytes: 100000, max_nodes: 10000, max_depth: 64, },
+    { max_fields: columns, max_bytes: 100000, max_nodes: 10000, max_depth: 64, },
     65536,
     retain_body_bytes~,
   )
@@ -7785,7 +7788,7 @@ fn compile_client_local_effects(
   @publication_host.issue_prepared_client_effect_compilation(
     prepared,
     manifests,
-    client_local_sequence_limits(),
+    @publication_host.prepared_client_effect_sequence_limits(prepared),
     1000,
     10000,
     1000000,
@@ -8660,11 +8663,13 @@ pub fn client_program_effect_publication_data_policy_cid(
 pub fn client_program_effect_acquisition_count(
   value : @publication_host.PreparedClientEffectComputation,
 ) -> Int {
-  @strategy.graph_captured_prefix(
-    @strategy.checked_effect_computation_graph(
-      @publication_host.prepared_client_effect_computation_graph(value),
-    ),
+  @publication_host.select_client_effect_direct_acquisition_occurrences(
+    value, 1000000,
   )
+  .map(value => {
+    @publication_host.client_direct_acquisition_occurrence_count(value)
+  })
+  .unwrap_or(-1)
 }
 
 ///|

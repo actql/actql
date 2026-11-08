@@ -96,9 +96,14 @@ fn select_installed_effect_managed_host(
     ) {
     return Err(ForeignOriginal)
   }
-  let graph = installed_managed_owner_graph(Effect(plan.prepared))
+  let graph = plan.graph
   let first = @strategy.graph_captured_prefix(graph)
-  if sources.length() != first ||
+  if sources.length() !=
+    (if plan.whole_sources.any(value => value is Some(_)) {
+      plan.whole_sources.length()
+    } else {
+      first
+    }) ||
     plan.sequences.length() != @strategy.graph_task_count(graph) ||
     !client_local_capacity_plan_matches(
       plan.capacity_plan,
@@ -139,14 +144,64 @@ fn open_installed_effect_managed_host_original(
   )?,
   ClientInstalledManagedRunIssue,
 ] {
-  let graph = installed_managed_owner_graph(Effect(plan.prepared))
+  let original_graph = installed_managed_owner_graph(Effect(plan.prepared))
+  let graph = plan.graph
+  let whole = plan.whole_sources.any(value => value is Some(_))
   let first = @strategy.graph_captured_prefix(graph)
   let checked = @publication_host.prepared_client_effect_run_graph(bound)
-  if !physical_equal(@strategy.checked_effect_run_graph(checked), graph) ||
+  if !physical_equal(
+      @strategy.checked_effect_run_graph(checked),
+      original_graph,
+    ) ||
     !installed_effect_managed_limits_fit(owner, plan, ledger) {
     return Err(ForeignOriginal)
   }
-  let opened = if keyed is Some(lookup) {
+  let opened = if whole {
+    if sources.length() != plan.whole_sources.length() {
+      return Err(ForeignOriginal)
+    }
+    for occurrence, source in sources {
+      guard plan.whole_sources[occurrence] is Some((_, selected)) &&
+        @query.captured_source_matches_input_acquisition(
+          source,
+          selected.original,
+        ) else {
+        return Err(ForeignOriginal)
+      }
+    }
+    let completed_keyed = match keyed {
+      None => None
+      Some(lookup) => {
+        guard plan.model is Some(model) &&
+          @publication_host.client_composed_keyed_lookup_matches_model_parent(
+            lookup,
+            model.compiled,
+            model.definition,
+            model.graph,
+            ledger,
+          ) &&
+          @publication_host.client_composed_keyed_lookup_sources_match(
+            lookup,
+            model._occurrence,
+            sources,
+          ) &&
+          @publication_host.finish_client_keyed_lookup_input(lookup) is Ok(read) else {
+          return Err(ForeignOriginal)
+        }
+        let (task, _, step) = @publication_host.client_infer_occurrence_coordinates(
+          model._occurrence,
+        )
+        Some((task, step, read))
+      }
+    }
+    @strategy.open_source_inputs_effect_run_dag(
+      checked,
+      graph,
+      sources,
+      ledger,
+      keyed=completed_keyed,
+    )
+  } else if keyed is Some(lookup) {
     guard plan.model is Some(model) &&
       @publication_host.client_composed_keyed_lookup_matches_model_parent(
         lookup,

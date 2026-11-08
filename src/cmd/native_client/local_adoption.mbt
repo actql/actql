@@ -205,6 +205,9 @@ fn execute_native_local_adoption(
 ) -> String raise ClientStop {
   native_timing_begin(12)
   defer native_timing_end(12)
+  if preparation is None && command_preparation_invocation.val is Some(original) {
+    return original.execute_operator_command(matches, operation, child)
+  }
   if operation == "adopt" && child.flags.get("migrate-journal").unwrap_or(false) {
     command_preparation_diagnostic.val = JournalMaintenanceFailed
   }
@@ -240,6 +243,17 @@ fn execute_native_local_adoption(
       let body = text_file(root, name, 65536L)
       (body, local_host_settings(body))
     }
+  }
+  if configuration_original is None && preparation_runtime is Some(runtime) {
+    if settings.sqlite_library != runtime.sqlite ||
+      settings.signature_library != runtime.crypto ||
+      !settings.installation_files.contains("runtime.json") {
+      stop("PackagedLocalRuntimeChanged")
+    }
+    local_product_require_same_runtime_wire(
+      text_file(root, "runtime.json", 65536L),
+      @run_host.client_native_local_runtime_original(runtime.manifest),
+    )
   }
   let (environment_file, evidence_cid) = local_configuration(configuration)
   let environment = text_file(root, environment_file, 65536L)

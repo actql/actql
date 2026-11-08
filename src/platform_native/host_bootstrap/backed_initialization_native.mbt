@@ -15,6 +15,8 @@ priv struct NativeBackedInitialization[T, C, I] {
   mut inventory_finished : Bool
   mut reported : Bool
   mut closed : Bool
+  // Original failed acquisition DATA, never a retry or resource grant.
+  mut window_issue : NativeBackedExecutionIssue?
 }
 
 ///|
@@ -50,6 +52,26 @@ pub fn[T, C, I] NativeHostBootstrap::initialize_backed_preparation(
   @resources.BackedInitializationAdmission[I],
   NativeBackedInitializationIssue,
 ] {
+  self.initialize_backed_preparation_selected(
+    original, record, input, budget, false,
+  )
+}
+
+///|
+// Select once before frame construction. Source owns its existing standalone
+// bootstrap; Request owns the first preparation reservation/census instead.
+// Both use the same Native control carrier and physical retirement sequence.
+fn[T, C, I] NativeHostBootstrap::initialize_backed_preparation_selected(
+  self : NativeHostBootstrap[T],
+  original : T,
+  record : NativeBackedLiveChild[T, C, I],
+  input : I,
+  budget : NativeBackedInitializationBudget,
+  request : Bool,
+) -> Result[
+  @resources.BackedInitializationAdmission[I],
+  NativeBackedInitializationIssue,
+] {
   match self.original_live_child(original, record, input) {
     Err(issue) => return Err(Domain(issue))
     Ok(_) => ()
@@ -80,13 +102,78 @@ pub fn[T, C, I] NativeHostBootstrap::initialize_backed_preparation(
     inventory_finished: false,
     reported: false,
     closed: false,
+    window_issue: None,
   }
   record.initialization = Some(state)
   let outcome = self.initialize_backed_preparation_original(
-    original, record, input, budget, state,
+    original, record, input, budget, state, request,
   )
   state.transitioning = false
   outcome
+}
+
+///|
+/// The ordinary Request consumes this SAME initialized physical child once.
+/// The existing Native carrier keeps its physical frame/partial cleanup and
+/// report. The Request funds and owns its FIRST reservation/census; it never
+/// converts the Source initializer's standalone bootstrap or resets history.
+pub fn[T, C, I] NativeHostBootstrap::initialize_backed_request_preparation(
+  self : NativeHostBootstrap[T],
+  original : T,
+  record : NativeBackedLiveChild[T, C, I],
+  input : I,
+  budget : NativeBackedInitializationBudget,
+) -> Result[
+  @resources.BackedPreparationAdmission[I],
+  NativeBackedInitializationIssue,
+] {
+  let initial = match
+    self.initialize_backed_preparation_selected(
+      original, record, input, budget, true,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  @resources.prepare_initialized_backed_preparation_admission(initial, input).map_err(issue => {
+      Child(issue)
+    },
+  )
+}
+
+///|
+/// Trusted Native issuer view of its SAME retained frame. Request adoption
+/// does not replace this physical owner's Ledger or after-owner-ACK duties.
+pub fn[T, C, I] NativeHostBootstrap::borrow_initialized_preparation_ledger(
+  self : NativeHostBootstrap[T],
+  original : T,
+  record : NativeBackedLiveChild[T, C, I],
+  input : I,
+) -> Result[@resources.Ledger, NativeBackedInitializationIssue] {
+  match self.original_live_child(original, record, input) {
+    Err(issue) => return Err(Domain(issue))
+    Ok(_) => ()
+  }
+  guard record.initialization is Some(state) &&
+    !state.transitioning &&
+    state.started &&
+    !state.closed &&
+    state.ledger is Some(ledger) &&
+    state.frame is Some(frame) else {
+    return Err(Domain(Bootstrap(Unavailable)))
+  }
+  match @resources.check_imported_original_child_ledger(frame, ledger) {
+    Err(issue) => return Err(Child(issue))
+    Ok(_) => ()
+  }
+  match
+    self.require_backed_read_context_current(
+      original,
+      record.domain,
+      record.child,
+    ) {
+    Err(issue) => Err(Domain(issue))
+    Ok(_) => Ok(ledger)
+  }
 }
 
 ///|
@@ -97,6 +184,7 @@ fn[T, C, I] NativeHostBootstrap::initialize_backed_preparation_original(
   input : I,
   budget : NativeBackedInitializationBudget,
   state : NativeBackedInitialization[T, C, I],
+  request : Bool,
 ) -> Result[
   @resources.BackedInitializationAdmission[I],
   NativeBackedInitializationIssue,
@@ -105,9 +193,31 @@ fn[T, C, I] NativeHostBootstrap::initialize_backed_preparation_original(
     Err(issue) => return Err(Domain(issue))
     Ok(_) => ()
   }
+  // The same physical issuer binds this optional duty before frame creation.
+  // Its closure/captures stay in the existing outer initialization envelope.
+  let acquire_window : ((Int64, Int64) -> Result[Unit, @resources.LedgerIssue])? = if request &&
+    record.domain.view.loan.initial_window is Some(_) {
+    Some((retained, execution) => {
+      match
+        self.prepare_initialized_working_window(
+          original, record, input, retained, execution,
+        ) {
+        Ok(_) => Ok(())
+        Err(issue) => {
+          state.window_issue = Some(issue)
+          Err(@resources.ChildFundingUnavailable)
+        }
+      }
+    })
+  } else {
+    None
+  }
   let initial = match
     self.prepare_backed_original_initialization_admission(
-      original, record, input,
+      original,
+      record,
+      input,
+      acquire_window~,
     ) {
     Err(Domain(issue)) => return Err(Domain(issue))
     Err(Child(issue)) => return Err(Child(issue))
@@ -127,6 +237,22 @@ fn[T, C, I] NativeHostBootstrap::initialize_backed_preparation_original(
   }
   state.ledger = Some(ledger)
   state.started = true
+  if request {
+    // Native initializer controls are in their existing outer control scope.
+    // Before any input/Source payload the same retained Request reserves its
+    // complete fixed entrance and grows each variable constructor phase.
+    // Installing Source's separate bootstrap here would make that pristine
+    // first reservation impossible; never settle/reset it as a workaround.
+    match
+      self.require_backed_read_context_current(
+        original,
+        record.domain,
+        record.child,
+      ) {
+      Err(issue) => return Err(Domain(issue))
+      Ok(_) => return Ok(initial)
+    }
+  }
   let bootstrap = match
     @resources.reserve_capacity(
       ledger,
@@ -192,6 +318,44 @@ pub fn[T, C, I] NativeHostBootstrap::close_backed_preparation(
   original : T,
   record : NativeBackedLiveChild[T, C, I],
 ) -> Result[Unit, NativeBackedInitializationIssue] {
+  if record.initialization is None {
+    if !(record.original is Some(selected) && physical_equal(selected, record)) ||
+      !physical_equal(record.owner, self) ||
+      record.purpose != Initialization {
+      return Err(Domain(Bootstrap(ForeignOriginal)))
+    }
+    match self.original_domain_carrier(original, record.domain, record.child) {
+      Err(issue) => return Err(Domain(issue))
+      Ok(_) => ()
+    }
+    if record.retired {
+      return Ok(())
+    }
+    let closed = self.close_backed_read_context(
+      original,
+      record.domain,
+      record.child,
+    )
+    match
+      self.require_backed_read_context_retired(
+        original,
+        record.domain,
+        record.child,
+      ) {
+      Err(issue) =>
+        return match closed {
+          Err(primary) => Err(Domain(primary))
+          Ok(_) => Err(Domain(issue))
+        }
+      Ok(_) => ()
+    }
+    guard record.runtime is Some(input) else {
+      return Err(Domain(Bootstrap(Unavailable)))
+    }
+    return self
+      .retire_backed_live_child_after_owner_ack(original, record, input)
+      .map_err(issue => Domain(issue))
+  }
   let state = match self.original_initialization_cleanup(original, record) {
     Err(issue) => return Err(issue)
     Ok(value) => value
@@ -245,6 +409,7 @@ fn[T, C, I] NativeHostBootstrap::close_backed_preparation_original(
     if initialization_control_scope_clear_ffi() != 1 {
       return Err(Domain(Bootstrap(ReadersPending)))
     }
+    state.window_issue = state.window_issue.map(copy_native_working_issue_data)
     if state.started && state.frame is Some(frame) {
       match @resources.relocate_imported_child_cleanup_usage(frame) {
         Err(issue) => return Err(Child(issue))
@@ -334,3 +499,109 @@ fn[T, C, I] NativeHostBootstrap::close_backed_preparation_original(
 
 ///|
 extern "C" fn initialization_control_scope_clear_ffi() -> Int = "actql_bootstrap_control_scope_clear"
+
+///|
+/// Actual initialized Native caller only. This covers the SAME acquired pool
+/// before a canonical reservation; it claims no contiguous constructor span.
+/// Raw Reader/String/array geometry remains a separate physical obligation.
+pub fn[T, C, I] NativeHostBootstrap::prepare_initialized_working_window(
+  self : NativeHostBootstrap[T],
+  original : T,
+  record : NativeBackedLiveChild[T, C, I],
+  input : I,
+  retained : Int64,
+  execution : Int64,
+) -> Result[Unit, NativeBackedExecutionIssue] {
+  match self.original_live_child(original, record, input) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard record.purpose == Initialization &&
+    record.initialization is Some(state) &&
+    physical_equal(state.original, record) &&
+    state.started &&
+    !state.transitioning &&
+    !state.closed &&
+    !state.physical_retired &&
+    record.projection is Some(projection) else {
+    return Err(Bootstrap(Unavailable))
+  }
+  if state.window_issue is Some(issue) {
+    return Err(issue)
+  }
+  match
+    @resources.check_backed_original_child_window_demand(
+      projection, input, retained, execution,
+    ) {
+    Err(issue) => return Err(Accounting(issue))
+    Ok(_) => ()
+  }
+  let current = match
+    @resources.read_backed_original_child_window_bytes(projection, input) {
+    Err(issue) => return Err(Accounting(issue))
+    Ok(value) => value
+  }
+  if retained < 0L ||
+    execution < 0L ||
+    execution > 9223372036854775807L - retained {
+    return Err(Bootstrap(Unavailable))
+  }
+  let additional = Int64::max(0L, retained + execution - current)
+  if additional == 0L {
+    return Ok(())
+  }
+  match
+    self.require_backed_read_context_current(
+      original,
+      record.domain,
+      record.child,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  match
+    self.require_backed_read_context_entered(
+      original,
+      record.domain,
+      record.child,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let acquired = self.grow_backed_domain_working(
+    original,
+    record.domain,
+    record.child,
+    0L,
+    checked_read=true,
+    minimum_usable_bytes=additional,
+  )
+  match acquired {
+    Err(issue) => {
+      state.window_issue = Some(issue)
+      Err(issue)
+    }
+    Ok(_) =>
+      self.require_backed_read_context_current(
+        original,
+        record.domain,
+        record.child,
+      )
+  }
+}
+
+///|
+// The same failure DATA moves to the existing outer cleanup lifetime. No
+// nominal resource handle, receipt, status or physical acknowledgement is copied.
+fn copy_native_working_issue_data(
+  issue : NativeBackedExecutionIssue,
+) -> NativeBackedExecutionIssue {
+  match issue {
+    Bootstrap(Physical(code)) => Bootstrap(Physical(code))
+    Bootstrap(Resource(code)) => Bootstrap(Resource(code))
+    Bootstrap(code) => Bootstrap(code)
+    Accounting(@resources.Resource(code)) =>
+      Accounting(@resources.Resource(code))
+    Accounting(code) => Accounting(code)
+  }
+}

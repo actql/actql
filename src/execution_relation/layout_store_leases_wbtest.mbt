@@ -77,7 +77,7 @@ test "failed invocation releases retained and uncommitted column owners even wit
           2,
           control,
           invocation.output_budget,
-          { limit: 100000, live: 0, peak: 0, },
+          row_workspace(100000),
           physical,
           logical,
         )
@@ -135,13 +135,14 @@ test "store final consumers release owned columns without invalidating retained 
     storage: finish_layout_columns(builder).unwrap(),
   }
   let control = { remaining: 100000, max_frames: 100, }
-  let wiring = prepare_wiring(owner, ["select_1", "select_2"], control, {
-    limit: 10000,
-    live: 0,
-    peak: 0,
-  }).unwrap()
+  let wiring = prepare_wiring(
+    owner,
+    ["select_1", "select_2"],
+    control,
+    row_workspace(10000),
+  ).unwrap()
   let released : Array[String] = []
-  let store = table_store(wiring, { limit: 10000, live: 0, peak: 0, }, release=fn(
+  let store = table_store(wiring, row_workspace(10000), release=fn(
     table : LayoutRelation,
   ) {
     released.push(table.id)
@@ -162,7 +163,7 @@ test "store final consumers release owned columns without invalidating retained 
           2,
           control,
           row_output(),
-          { limit: 100000, live: 0, peak: 0, },
+          row_workspace(100000),
           physical,
           None,
         ) {
@@ -227,12 +228,8 @@ test "take completion temporary releases its buffer ownership after selection" {
     storage: finish_layout_columns(builder).unwrap(),
   }
   let control = { remaining: 100000, max_frames: 100, }
-  let wiring = prepare_wiring(owner, ["limit_2"], control, {
-    limit: 10000,
-    live: 0,
-    peak: 0,
-  }).unwrap()
-  let store = table_store(wiring, { limit: 10000, live: 0, peak: 0, }, release=fn(
+  let wiring = prepare_wiring(owner, ["limit_2"], control, row_workspace(10000)).unwrap()
+  let store = table_store(wiring, row_workspace(10000), release=fn(
     table : LayoutRelation,
   ) {
     release_layout_columns(table.storage)
@@ -251,7 +248,7 @@ test "take completion temporary releases its buffer ownership after selection" {
           3,
           control,
           row_output(),
-          { limit: 100000, live: 0, peak: 0, },
+          row_workspace(100000),
           physical,
           None,
         ) {

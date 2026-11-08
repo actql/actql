@@ -5,7 +5,7 @@ fn json_pick_scale(count : Int) -> Unit raise {
   )
   let template = row_capture(owner)
   let input = { ..template, rows: Array::makei(count, _ => template.rows[0]), }
-  let workspace = { limit: count * 20 + 100, live: 0, peak: 0, }
+  let workspace = { ..row_workspace(count * 20 + 100), live: 0, peak: 0, }
   let result = evaluate_rows_with_workspace(
     row_kernel(owner, 1),
     input,
@@ -37,7 +37,7 @@ fn assert_rows_scale(count : Int, unique : Bool) -> Unit raise {
     ..template,
     rows: Array::makei(count, i => [Number(i.to_double()), Number(1.0)]),
   }
-  let workspace = { limit: count * 20 + 100, live: 0, peak: 0, }
+  let workspace = { ..row_workspace(count * 20 + 100), live: 0, peak: 0, }
   let result = evaluate_rows_with_workspace(
     row_kernel(owner, 1),
     input,

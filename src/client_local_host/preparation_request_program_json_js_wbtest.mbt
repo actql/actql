@@ -181,20 +181,26 @@ test "request bootstrap independently covers generic JSON entry allocated carrie
   // records and a Result wrapper (5H/7R/10W), plus the retired-scratch scalar (1W).
   // Observed intake adds ParseLimits/Some (2H/1R/3W) and the original
   // key-extent Ref/Some/Request field (2H/2R/1W):4H/3R/4W =120 bytes.
+  // The retained-wire absolute quote tuple/Some and Request field add
+  // 2H/2R/2W =64 bytes before any domain construction or growth.
+  // The same Native intake baseline tuple/Some and Request slot add 2H/2R;
+  // its two Int64 baselines plus monotone byte scalar add 3W =72 bytes.
   // The existing 4096-byte entry group remains separate.
   // This independent tariff expansion includes no domain Source or Check body.
   let (retained, execution) = client_request_preparation_control_capacity(
     client_local_resource_policy(),
   ).unwrap()
-  assert_eq(retained, 14832L)
+  assert_eq(retained, 14968L)
   assert_eq(
-    16L * (225L + 2L + 2L) +
-    8L * (409L + 1L + 2L) +
-    8L * (468L + 3L + 1L) +
+    16L * (225L + 2L + 2L + 2L + 2L) +
+    8L * (409L + 1L + 2L + 2L + 2L) +
+    8L * (468L + 3L + 1L + 2L + 3L) +
     4096L,
-    14832L,
+    14968L,
   )
   assert_eq(16L * 4L + 8L * 3L + 8L * 4L, 120L)
+  assert_eq(16L * 2L + 8L * 2L + 8L * 2L, 64L)
+  assert_eq(16L * 2L + 8L * 2L + 8L * 3L, 72L)
   assert_eq(execution, 0L)
   assert_eq(16L * 10L + 8L * 7L + 8L * 13L, 320L)
 }
@@ -213,7 +219,7 @@ test "original request bootstrap entry carriers are already debited at the sole 
       let usage = @resources.ledger_usage(parent.ledger)
       backed_before_resize.val = parent.phase == Selecting &&
         parent.program_json is None &&
-        usage.reserved_retention_bytes == 14832L &&
+        usage.reserved_retention_bytes == 14968L &&
         usage.reserved_execution_bytes == 0L
     }
     true
@@ -234,11 +240,12 @@ test "original request bootstrap entry carriers are already debited at the sole 
   assert_true(backed_before_resize.val)
   let usage = @resources.ledger_usage(parent.ledger)
   // Domain quote540H155R1153W +driver23H31R39W +stage5H7R4W
-  // +preflight17H35R58W =585H228R1254W=21216, once. It neither
+  // +preflight17H35R58W +observed-geometry/canonical return8H4R20W
+  // =593H232R1274W=21536, once. It neither
   // replaces nor supplies the pre-entry carriers observed by that callback.
-  assert_eq(16L * 585L + 8L * 228L + 8L * 1254L, 21216L)
-  assert_eq(usage.reserved_retention_bytes, 14832L + 21216L)
-  assert_eq(usage.reserved_execution_bytes, 21216L)
+  assert_eq(16L * (585L + 8L) + 8L * (228L + 4L) + 8L * (1254L + 20L), 21536L)
+  assert_eq(usage.reserved_retention_bytes, 14968L + 21536L)
+  assert_eq(usage.reserved_execution_bytes, 21536L)
   assert_true(physical_equal(child.capacity, parent.capacity))
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).reserved_retention_bytes, 0L)

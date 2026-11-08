@@ -192,6 +192,14 @@ test "funded artifact grow retains original module and measurement across both o
     let installed = parent.program_source_free.unwrap()
     let geometry = parent.program_artifact_geometry.unwrap()
     let quote = parent.program_artifact_quote.unwrap()
+    let (artifact_retained, constructor_scratch) = program_artifact_construction_extents(
+      geometry,
+    ).unwrap()
+    // Returned artifact storage stays in R; only the completed constructor's
+    // scratch leaves E. Neither one-byte-short grow boundary is relaxed.
+    assert_eq(quote.0, measurement.0 + artifact_retained)
+    assert_eq(quote.1, measurement.1 + artifact_retained + constructor_scratch)
+    assert_eq(quote.2, constructor_scratch)
     assert_true(quote.0 > measurement.0 && quote.1 > measurement.1)
     assert_true(installed.compilation is None)
     assert_true(borrow_request_program_preparation(parent) is Err(WrongPhase))
@@ -286,7 +294,7 @@ test "funded artifact grow retains original module and measurement across both o
     let body = borrow_request_program_preparation(parent).unwrap()
     assert_eq(
       @resources.preparation_body_borrow_reserved_extents(body),
-      Ok((quote.0 - quote.2, quote.1 - quote.2)),
+      Ok((measurement.0 + artifact_retained, measurement.1 + artifact_retained)),
     )
     // False reports that the ORIGINAL owner remains live; the borrow has
     // still returned. Retirement below proves its separate release boundary.
@@ -1737,7 +1745,10 @@ fn public_array_preparation_host(
     },
   ).unwrap()
   let plan = parent.program_source_free.unwrap()
-  assert_false(installed_effect_limits_fit(plan.limits, limits))
+  // Provider quote refinements may put whole-Run maxima below this parent.
+  // They remain DATA, not prepaid task capacity. Actual execution and cleanup
+  // below use the same unchanged parent; explicit loose-Plan admission has its
+  // own oversized-Plan/foreign-input regression above.
   assert_eq(@resources.ledger_limits(ledger), limits)
   let request = @publication_host.prepare_source_free_client_request_identity(
     prepared,
@@ -1920,16 +1931,23 @@ test "successful Request artifact retires returned compiler scratch before runti
     provider_factory=factory,
   ).unwrap()
   let constructor_peak = parent.program_artifact_quote.unwrap()
+  let measurement = parent.program_measurement_quote.unwrap()
+  let (artifact_retained, constructor_scratch) = program_artifact_construction_extents(
+    parent.program_artifact_geometry.unwrap(),
+  ).unwrap()
+  assert_eq(constructor_peak.0, measurement.0 + artifact_retained)
+  assert_eq(
+    constructor_peak.1,
+    measurement.1 + artifact_retained + constructor_scratch,
+  )
+  assert_eq(constructor_peak.2, constructor_scratch)
   let after = @resources.preparation_capacity_working_extents(
     original_capacity, input,
   ).unwrap()
   assert_true(constructor_peak.2 > 0L)
   assert_eq(
     after,
-    (
-      constructor_peak.0 - constructor_peak.2,
-      constructor_peak.1 - constructor_peak.2,
-    ),
+    (measurement.0 + artifact_retained, measurement.1 + artifact_retained),
   )
   assert_true(physical_equal(parent.program_compilation.unwrap(), artifact))
   assert_true(physical_equal(parent.compiled_program.unwrap(), prepared))
@@ -1953,4 +1971,129 @@ test "successful Request artifact retires returned compiler scratch before runti
   )
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "Request module codec retains the selected checked profile without another current observation" {
+  let standard = @publication_host.client_standard_program_preparation_limits()
+  let limits : @publication_host.ClientProgramPreparationLimits = {
+    ..standard,
+    checking: {
+      ..standard.checking,
+      compilation: {
+        ..standard.checking.compilation,
+        artifacts: { bytes: 54321, nodes: 8765, depth: 23, },
+      },
+    },
+  }
+  let calls = Ref(0)
+  let (parent, _, _, input) = registration_parent_fixture(
+    current=() => {
+      calls.val += 1
+      true
+    },
+    computation_limits=Some(
+      (limits, @publication_host.client_standard_effect_computation_limits()),
+    ),
+  )
+  assert_true(
+    request_program_compilation_limits(parent, input)
+    is Err(Preparation(WrongPhase)),
+  )
+  finish_request_computation_preparation(parent, input).unwrap()
+  let before = calls.val
+  let usage = @resources.ledger_usage(parent.ledger)
+  let selected = request_program_compilation_limits(parent, input).unwrap()
+  assert_eq(selected.max_wire_bytes, 54321)
+  assert_eq(selected.max_nodes, 8765)
+  assert_eq(selected.max_depth, 23)
+  let defaults = @publication_host.client_standard_pure_compilation_limits()
+  assert_eq(selected.max_facts, defaults.max_facts)
+  assert_eq(selected.max_witnesses, defaults.max_witnesses)
+  assert_true(physical_equal(parent.computation_limits.unwrap(), limits))
+  assert_true(
+    request_program_compilation_limits(parent, [1])
+    is Err(Preparation(ForeignOriginal)),
+  )
+  assert_eq(calls.val, before)
+  assert_eq(@resources.ledger_usage(parent.ledger), usage)
+  reserve_request_program_plan(parent, input).unwrap()
+  assert_eq(
+    request_program_compilation_limits(parent, input).unwrap(),
+    selected,
+  )
+  // An explicit stricter typed constructor is not upgraded to the default
+  // selected profile. The existing constructor retains its original factory
+  // ordering and its original codec refusal.
+  let factory_calls = Ref(0)
+  assert_true(
+    prepare_request_program_module_body(
+      parent,
+      input,
+      request_program_module_contracts(),
+      manifests=request_program_module_manifests(),
+      compilation_limits={ ..selected, max_wire_bytes: 1, },
+      retained_output=true,
+      provider_factory=_ => {
+        factory_calls.val += 1
+        []
+      },
+    )
+    is Err(Construction(_)),
+  )
+  assert_eq(factory_calls.val, 1)
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_true(parent.computation_limits is None)
+  assert_true(
+    request_program_compilation_limits(parent, input)
+    is Err(Preparation(ForeignOriginal)),
+  )
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "explicit retained output keeps its original exporter beside the default managed consumer" {
+  let (parent, input, prepared) = request_program_body_fixture()
+  let assets = @publication_host.client_local_product_assets()
+  let contracts = request_program_module_contracts()
+  let factory : (@execution.ExecutionCapacity) -> Array[@local.ManagedProvider] = _ => {
+    []
+  }
+  let managed = prepare_installed_managed_source_free_with_contracts(
+    prepared,
+    contracts,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+    retained_output=false,
+    provider_factory=factory,
+  ).unwrap()
+  let retained = prepare_installed_managed_source_free_with_contracts(
+    prepared,
+    contracts,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+    retained_output=true,
+    provider_factory=factory,
+  ).unwrap()
+  let managed_configuration = managed.configuration.unwrap()
+  let retained_configuration = retained.configuration.unwrap()
+  assert_false(managed_configuration.retained_output)
+  assert_true(retained_configuration.retained_output)
+  let ordinary = @local_driver.local_dispatch_preparation_task_capacity(
+    managed_configuration.dispatch,
+    0,
+  ).unwrap()
+  let explicit = @local_driver.local_dispatch_preparation_task_capacity(
+    retained_configuration.dispatch,
+    0,
+  ).unwrap()
+  // The original row-file exporter coexists only for the explicit caller.
+  // Comparing the actual selected module envelope detects a dropped policy;
+  // output rows alone cannot show that the file-producing route was selected.
+  assert_true(explicit.execution_bytes > ordinary.execution_bytes)
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_true(parent.input is None)
+  ignore(input)
 }

@@ -69,7 +69,7 @@ class LocalStorageNamespaceTests(unittest.TestCase):
         connect = sqlite3.connect
         with TemporaryDirectory() as directory:
             with patch('actql_sdk._local_storage.sqlite3.connect',
-                       side_effect=lambda *a, **k: connect(*a, **k, factory=LostAck)):
+                       side_effect=lambda *a, **k: connect(*a, **(k | {'factory': LostAck}))):
                 with LocalByteStore(Path(directory) / 'core.sqlite', max_records=2,
                                     max_record_bytes=128, max_payload_bytes=256) as store:
                     key = store.namespaced_key('publication_payload_allocation', 'original')
@@ -152,7 +152,7 @@ class LocalStorageNamespaceTests(unittest.TestCase):
         connect = sqlite3.connect
         with TemporaryDirectory() as directory:
             with patch('actql_sdk._local_storage.sqlite3.connect',
-                       side_effect=lambda *a, **k: connect(*a, **k, factory=ChangeAtBegin)):
+                       side_effect=lambda *a, **k: connect(*a, **(k | {'factory': ChangeAtBegin}))):
                 with LocalByteStore(Path(directory) / 'core.sqlite', max_records=2,
                                     max_record_bytes=128, max_payload_bytes=256) as store:
                     self.assertEqual(store.compare_exchange('original', None, b'writing'), 0)

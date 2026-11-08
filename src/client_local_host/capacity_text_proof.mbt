@@ -203,3 +203,120 @@ fn client_local_decimal_text_bound(
   }
   Some(Int::min(original_text_limit, total))
 }
+
+///|
+// Borrow cached admission geometry from the SAME literal Values originals.
+// No second row/payload scan, parse, serialization or value copy occurs.
+// Checked CrossJoin may only copy these fields. Parameters and all other step
+// families retain the independent selected general policy.
+fn client_local_original_values_text_bound(
+  sequences : Array[@execution.GeneratedSequence],
+  demand : ClientLocalValueNodeDemand,
+  max_work? : Int = client_local_schema_proof_work(),
+) -> (Int, Int, Int)? {
+  let mut remaining = max_work
+  let mut text = 0L
+  let mut copied = false
+  let mut text_fields = 0L
+  for sequence in sequences {
+    let original = @execution.generated_prepared_sequence(sequence)
+    let owner = @lower.sequence_owner(original)
+    let prepared = @lower.bound_preparation(owner)
+    if @lower.preparation_input_count(prepared) != 0 {
+      return None
+    }
+    for step in 0..<@lower.sequence_count(original) {
+      if remaining < 1 {
+        return None
+      }
+      remaining -= 1
+      guard @lower.sequence_step(original, step) is Some(operation) &&
+        @lower.node_at(prepared, step) is Some(node) &&
+        @lower.node_relation_schema(node) is Some(schema) &&
+        client_local_json_leaf_schema(schema) else {
+        return None
+      }
+      let fields = @schema.field_count(schema)
+      if fields > remaining {
+        return None
+      }
+      remaining -= fields
+      let mut row_text_fields = 0L
+      for field in 0..<fields {
+        if @schema.field_at(schema, field) is Some(field) &&
+          @schema.field_contract(field).shape is @contract.Text(_) {
+          row_text_fields += 1L
+        }
+      }
+      text_fields = Int64::max(text_fields, row_text_fields)
+      match operation {
+        @lower.ValuesStep(_) => {
+          guard @lower.node_values_literal_text_bytes(node) is Some(bytes) else {
+            return None
+          }
+          text = Int64::max(text, bytes.to_int64())
+        }
+        // The checked CrossJoin projection copies original fields; it does
+        // not evaluate expressions or synthesize Text. Count every repeated
+        // Text field and output row, including duplicate aliases.
+        @lower.CrossJoinStep(_) => copied = true
+        _ => return None
+      }
+    }
+  }
+  let text = if copied {
+    // The existing literal admission charges each payload's UTF-8 at least
+    // three times: whole Values preflight, literal scan and its reservation.
+    // Only this closed flat literal family may recover that bound; Parameters
+    // and expression-produced values were excluded above. Names/schema charges
+    // make integer division conservative, including empty literal Text.
+    let literal_text = text / 3L
+    guard @execution.checked_preparation_add_product(
+        0L,
+        text_fields,
+        demand.rows.to_int64(),
+      )
+      is Some(copies) &&
+      @execution.checked_preparation_add_product(0L, literal_text, copies)
+      is Some(expanded) else {
+      return None
+    }
+    expanded
+  } else {
+    text
+  }
+  guard text > 0L &&
+    @execution.checked_preparation_add_product(
+      text,
+      demand.original.max_name_width,
+      demand.rows.to_int64(),
+    )
+    is Some(total) &&
+    total < 2147483647L &&
+    client_local_json_leaf_wire_byte_bound(
+      demand.original.fields,
+      demand.rows,
+      total,
+    )
+    is Some(wire) else {
+    return None
+  }
+  let row_wire = if copied {
+    // Copy expansion changes cumulative output, not a single row or one
+    // transfer block. Keep the original per-row name occurrence separately.
+    let row_text = text / demand.rows.to_int64() +
+      demand.original.max_name_width
+    guard client_local_json_leaf_wire_byte_bound(
+        demand.original.fields,
+        1,
+        row_text,
+      )
+      is Some(value) else {
+      return None
+    }
+    value
+  } else {
+    wire
+  }
+  Some((total.to_int(), wire, row_wire))
+}

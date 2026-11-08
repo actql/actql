@@ -23,6 +23,7 @@ struct GeneratedSequence {
   nest_attached_byte_ceilings : Array[(Int, Int64)]
   query_time : @publication.QueryEvaluationTime?
   numeric : NumericAggregateExecution?
+  working : WorkspaceGrowth?
 }
 
 ///|
@@ -120,6 +121,7 @@ pub fn prepare_generated_sequence(
         nest_attached_byte_ceilings: [],
         query_time: None,
         numeric: None,
+        working: None,
       })
     Err(issue) => Err(issue)
   }
@@ -699,6 +701,7 @@ pub fn retain_generated_sequence_refinement(
     !physical_equal(original.contexts, candidate.contexts) ||
     !physical_equal(original.query_time, candidate.query_time) ||
     !physical_equal(original.numeric, candidate.numeric) ||
+    !physical_equal(original.working, candidate.working) ||
     original.retained_ids != candidate.retained_ids ||
     generated_sequence_step_count(original) !=
     generated_sequence_step_count(candidate) {

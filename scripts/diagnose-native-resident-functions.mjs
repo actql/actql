@@ -11,7 +11,7 @@ import {runLocalCheck} from './local-checks-guard.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const sourceUrl = new URL('./test-native-resident-site.mjs', import.meta.url).href;
-const sourceSha = '0331ad407c807ead57abed50661d601ad6439eaaabc95b0657e887874eb96912';
+const sourceSha = '04d451edbc6041f6452d7f0ae424ae355a9fee7cda7a6512fa804900ca00d890';
 const conditions = new Set(['debugger-unavailable', 'permission-denied',
   'debugger-platform-unsupported', 'trace-unavailable', 'registers-unavailable',
   'no-stack', 'stage-not-observed', 'report-unavailable']);
@@ -31,6 +31,8 @@ export function functionDiagnosticSummary(result, report) {
     .filter(name => typeof name === 'string' && /^[A-Za-z_][A-Za-z_0-9:.$~]{0,179}$/u.test(name))
     .slice(0, 64) : [];
   return {version: 1, diagnosticOnly: true,
+    sampleTarget: selected.sampleTarget === 'holder-descendant'
+      ? 'holder-descendant' : 'unrecorded',
     caseExit: Number.isInteger(result.status) ? result.status : null,
     caseSignal: ['SIGTERM', 'SIGKILL', 'SIGABRT', 'SIGSEGV', 'SIGINT'].includes(result.signal)
       ? result.signal : null,

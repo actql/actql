@@ -1,7 +1,6 @@
 // Assemble checked Model components into the existing Local task driver.
 // Local owns scheduling; the original Model journal owns each physical send.
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
-import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runCapturedStrategy} from './entry.mjs';
 import {withLocalExecutionPauseHandler} from '../local-node/retained-store.mjs';
@@ -62,12 +61,15 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
   let execution, pendingSetup, issuance, publication, holding, sourceContinuation, restoredSource, preflightCleanup;
   let issuanceComplete = false, closeAttempted = false, released = false, publicationOwner;
   function retainCompleted(child) {
+    if (originalPreparation === undefined) {
+      throw new Error('InstalledComposedInferOriginalObservationUnavailable');
+    }
     // The first actual completed original retains this Run's complete
     // publication envelope. Later captures reuse that same operation/borrow;
     // completion order never changes the compiler's ordered owner inventory.
     if (completeOriginal) publicationOwner ??= child.operation;
     if (!child.capture.retainCompleted(completeOriginal ? publicationOwner : child.operation)) return false;
-    if (originalPreparation === undefined || issuanceComplete) return true;
+    if (issuanceComplete) return true;
     if (!children.includes(child)) {
       throw new Error('InstalledComposedInferOriginalObservationUnavailable');
     }
@@ -497,17 +499,10 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
     throw new Error('InstalledComposedInferComputationFailed');
   }
   for (const child of children) await child.capture.persist();
-  const calls = children.reduce((sum, child) => sum + child.capture.evaluationBundle().count, 0);
-  if (originalPreparation === undefined) {
-    issuance = startCompleteInferObservation({moon, operations: children.map(child => child.operation),
-      ledger: checked(moon.clientProgramInferPublicationLedger(262144n + BigInt(calls * 128 + (children.length - 1) * 256), calls + 2)),
-      maxSlots: calls, maxWireBytes: 16384, maxWork: calls + 2});
-  } else if (issuance === undefined || !issuanceComplete) {
+  // Completion seals the SAME Request-owned observation before Local hands
+  // off output. Missing originals cannot allocate a replacement Ledger here.
+  if (originalPreparation === undefined || issuance === undefined || !issuanceComplete) {
     throw new Error('InstalledComposedInferOriginalObservationUnavailable');
-  }
-  while (!issuanceComplete) {
-    issuanceComplete = runtimeField(checked(moon.clientProgramAdvanceInferObservationIssuance(issuance, 1)), 0);
-    if (!issuanceComplete) await yieldEventLoop();
   }
   publication = inferTaskPublicationPlan({moon, control, preparedProgram, admitted: plan,
     operation: children[0].operation, issuance,

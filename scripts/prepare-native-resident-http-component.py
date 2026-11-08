@@ -6,12 +6,15 @@ installs a supplier, or supplies Host, Read or capacity authority.
 from __future__ import annotations
 
 import argparse
+import errno
 import hashlib
 import importlib.util
 import json
 from pathlib import Path
+import socket
 import subprocess
 import time
+import urllib.error
 import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -27,10 +30,37 @@ def acquire(url: str, expected: dict, destination: Path, original: Path | None,
         HTTP.require({key: item[key] for key in ('bytes', 'sha256')} == expected,
                      'Selected original HTTP preparation input differs')
         return original
-    with urllib.request.urlopen(urllib.request.Request(url, headers={
-            'User-Agent': 'ActQL-native-input-verification'}), timeout=min(seconds, 60)) as response:
-        HTTP.require(response.geturl().startswith('https://'), 'HTTP source redirect requires HTTPS')
-        raw = response.read(expected['bytes'] + 1)
+    deadline = time.monotonic() + seconds
+    request = urllib.request.Request(url, headers={'User-Agent': 'ActQL-native-input-verification'})
+    last_failure = None
+    # Retry only this same immutable GET, inside the caller's original budget.
+    # Integrity, trust and permanent HTTP refusals never become another input.
+    for attempt in range(3):
+        remaining = deadline - time.monotonic()
+        if remaining <= 0 and last_failure is not None:
+            raise last_failure
+        HTTP.require(remaining > 0, 'Original input download budget exhausted')
+        try:
+            with urllib.request.urlopen(request, timeout=min(remaining, 60)) as response:
+                HTTP.require(response.geturl().startswith('https://'), 'HTTP source redirect requires HTTPS')
+                raw = response.read(expected['bytes'] + 1)
+            break
+        except (urllib.error.URLError, OSError) as error:
+            if isinstance(error, urllib.error.HTTPError):
+                transient = error.code in (408, 429, 500, 502, 503, 504)
+            else:
+                reason = error.reason if isinstance(error, urllib.error.URLError) else error
+                transient = isinstance(reason, (socket.gaierror, TimeoutError, ConnectionError)) or (
+                    isinstance(reason, OSError) and reason.errno in (
+                        errno.ECONNRESET, errno.ECONNREFUSED, errno.ENETUNREACH,
+                        errno.EHOSTUNREACH, errno.ETIMEDOUT))
+            delay = 2 ** (attempt + 1)
+            if not transient or attempt == 2 or delay >= deadline - time.monotonic():
+                raise
+            if isinstance(error, urllib.error.HTTPError):
+                error.close()
+            last_failure = error
+            time.sleep(delay)
     HTTP.require(len(raw) == expected['bytes'] and hashlib.sha256(raw).hexdigest() == expected['sha256'],
                  'Pinned original HTTP preparation download differs')
     with destination.open('xb') as stream:

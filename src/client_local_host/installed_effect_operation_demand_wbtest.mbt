@@ -47,7 +47,22 @@ fn effect_plan_fixture_failure(
         CapacityMetadataBudget => "Source.CapacityMetadataBudget"
         UnsupportedBindings(_) => "Source.UnsupportedBindings"
         UnsupportedEffects(_) => "Source.UnsupportedEffects"
-        Requests(_) => "Source.Requests"
+        Requests(issue) =>
+          match issue {
+            InvalidLimits => "Source.Requests.InvalidLimits"
+            BudgetExceeded => "Source.Requests.BudgetExceeded"
+            Declarations(_) => "Source.Requests.Declarations"
+            Slots(_) => "Source.Requests.Slots"
+            Requests(Stage(_, Request(_, issue))) =>
+              "Source.Requests.Request:" + @debug.to_string(issue.kind)
+            Requests(_) => "Source.Requests.Requests"
+            Rows(SourceInput(_, _, issue)) =>
+              "Source.Requests.SourceInput:" + @debug.to_string(issue)
+            Rows(_) => "Source.Requests.Rows"
+            Policy(issue) => "Source.Requests.Policy:" + @debug.to_string(issue)
+            Capacity(_) => "Source.Requests.Capacity"
+            Producers(_) => "Source.Requests.Producers"
+          }
         RequestForm(_) => "Source.RequestForm"
         Checks(_) => "Source.Checks"
         Identity(_) => "Source.Identity"
@@ -242,11 +257,17 @@ test "original implementation control material shares the checked row inventory 
 // generated, and expected identities/rows are not taken from execution output.
 fn effect_operation_source_plan_fixture(
   bounded_output? : Bool = false,
+  controls_per_row? : @execution.ExecutionCapacity? = None,
   source_width? : Int = 1,
   additional_source? : Bool = false,
   second_result? : Bool = false,
   same_unit_results? : Bool = false,
   provider? : @execution.ExecutionCapacity? = None,
+  whole_inputs? : Bool = false,
+  source_request? : String? = None,
+  source_declaration? : @row_source_host.RowDeclaration? = None,
+  whole_policy? : @row_source_host.RowInputLimits? = None,
+  host_listing_items? : Int? = None,
   query_time_for? : ((
     @publication_host.PreparedClientEffectComputation,
     @publication_host.ClientRequestIdentity,
@@ -262,22 +283,33 @@ fn effect_operation_source_plan_fixture(
       nullable: false,
     })
   }
-  let declaration = @row_source_host.generate_row_declaration(
-    "operation-source",
-    "fixture",
-    "fixture/0.1",
-    [{ resource: "r", resource_kind: "record", fields, }],
-    {
-      max_bytes: 1000000,
-      max_nodes: 100000,
-      max_depth: 100,
-      max_views: 1,
-      max_fields: source_width,
-    },
-  ).unwrap()
+  let declaration = match source_declaration {
+    Some(original) => original
+    None =>
+      @row_source_host.generate_row_declaration(
+        "operation-source",
+        "fixture",
+        "fixture/0.1",
+        [{ resource: "r", resource_kind: "record", fields, }],
+        {
+          max_bytes: 1000000,
+          max_nodes: 100000,
+          max_depth: 100,
+          max_views: 1,
+          max_fields: source_width,
+        },
+      ).unwrap()
+  }
   let parsed = @json.parse(source_query_original_environment)
   guard parsed is Object(base) else { fail("fixture Environment object") }
   base.remove("evidence_bundle_cid")
+  if host_listing_items is Some(maximum) {
+    guard base["host_policy_profile"] is Object(profile) &&
+      profile["capacity"] is Object(capacity) else {
+      fail("fixture original Host capacity policy")
+    }
+    capacity["max_file_listing_items"] = Json::number(maximum.to_double())
+  }
   let (schemas, capabilities) = @row_source_host.row_declaration_evidence_members(
     declaration,
   )
@@ -330,7 +362,9 @@ fn effect_operation_source_plan_fixture(
   ).unwrap()
   let document =
     #|{"version":"actql/0.1","id":"source-effect-operation-plan","stages":[{"id":"acquire","inputs":{"remote":{"connector":"operation-source","resource":"r"}},"steps":[{"filter":"id > 0"},{"select":["id"],"as":"captured"}],"results":{"rows":{"from":"captured","fields":["id"]}}},{"id":"apply","inputs":{"input":{"result":{"stage":"acquire","result":"rows"}}},"steps":[{"filter":"id > 2","as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}},"effects":{"save":{"update":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"rows"},"id":"id","set":{"Name":{"field":"id"}}}}}}],"results":{"rows":{"from":{"stage":"apply","result":"rows"}}}}
-  let document = if source_width == 1 {
+  // Whole's two-input join rewrite below retains all declared input fields;
+  // do not first replace its exact one-column Query-pattern anchor.
+  let document = if source_width == 1 || whole_inputs {
     document
   } else {
     let names = fields
@@ -387,6 +421,23 @@ fn effect_operation_source_plan_fixture(
     )
   } else {
     document
+  }
+  let document = if whole_inputs {
+    document.replace(
+      old="\"inputs\":{\"remote\":{\"connector\":\"operation-source\",\"resource\":\"r\"}},\"steps\":[{\"filter\":\"id > 0\"},{\"select\":[\"id\"],\"as\":\"captured\"}]",
+      new="\"inputs\":{\"remote\":{\"connector\":\"operation-source\",\"resource\":\"r\"},\"other\":{\"connector\":\"operation-source\",\"resource\":\"r\"}},\"from\":\"remote\",\"steps\":[{\"join\":{\"with\":\"other\",\"kind\":\"inner\",\"on\":[{\"left\":\"id\",\"right\":\"id\"}],\"select\":{\"id\":\"left.id\"}},\"as\":\"captured\"}]",
+    )
+  } else {
+    document
+  }
+  let document = match source_request {
+    None => document
+    Some(original) =>
+      document
+      .split("\"resource\":\"r\"}")
+      .map(part => part.to_owned())
+      .to_array()
+      .join("\"resource\":\"r\",\"request\":" + original + "}")
   }
   let prepared = match
     @publication_host.prepare_client_effect_computation(
@@ -445,6 +496,22 @@ fn effect_operation_source_plan_fixture(
     [extent],
     [extent],
   ).unwrap()
+  let demand = match controls_per_row {
+    None => demand
+    Some(capacity) =>
+      prepare_installed_effect_operation_demand_with_controls(
+        prepared,
+        if additional_source {
+          2
+        } else {
+          1
+        },
+        "save",
+        demand.member_extents,
+        demand.row_extents,
+        capacity,
+      ).unwrap()
+  }
   let demands = if second_result {
     [
       demand,
@@ -458,6 +525,45 @@ fn effect_operation_source_plan_fixture(
     ]
   } else {
     [demand]
+  }
+  if whole_inputs {
+    let policy = whole_policy.unwrap_or(
+      installed_row_input_policy(3, 2048, 1000, 20, 3),
+    )
+    let whole_plan = prepare_installed_effect_managed_source_plan(
+      prepared,
+      request,
+      [
+        prepare_installed_effect_row_source_input(
+          declaration,
+          provider,
+          input_limits=Some(policy),
+        ).unwrap(),
+        prepare_installed_effect_row_source_input(
+          declaration,
+          provider,
+          input_limits=Some(policy),
+        ).unwrap(),
+      ],
+      original_row_query_contract_fixture,
+      original_row_evidence_contract_fixture,
+      [policy.page.max_bytes.to_int64(), policy.page.max_bytes.to_int64()],
+      [policy.page.max_bytes.to_int64(), policy.page.max_bytes.to_int64()],
+      contracts,
+      source_query_original_values,
+      Some(source_query_original_fragment),
+      None,
+      demands,
+      provider_factory=_ => [],
+    )
+    return match whole_plan {
+      Ok(value) => value
+      Err(ForeignOriginal) => fail("WholeEffectPlan.ForeignOriginal")
+      Err(Unsupported) => fail("WholeEffectPlan.Unsupported")
+      Err(InsufficientCapacity) => fail("WholeEffectPlan.InsufficientCapacity")
+      Err(Sequence(_)) => fail("WholeEffectPlan.Sequence")
+      Err(_) => fail("WholeEffectPlan.Other")
+    }
   }
   prepare_installed_effect_managed_plan(
     prepared,
@@ -1248,13 +1354,13 @@ test "standard capture extent refuses overflow and row-slot reuse without changi
 test "Source Effect operations use their SAME checked Result bound after unknown input" {
   let plan = effect_operation_source_plan_fixture(bounded_output=true)
   assert_eq(plan.rows, 1)
-  // Two distinct original occurrences: one member and one row. The source
-  // still has its independent original acquisition/Compute allowance.
+  // Both original occurrence ceilings remain. Before captured input exists,
+  // only the fixed member is funded; its row is retained on the same Run.
   assert_eq(plan.held_children, 2)
-  assert_eq(plan.limits.attempts - plan._observed_compute_limits.attempts, 2)
+  assert_eq(plan.limits.attempts - plan._observed_compute_limits.attempts, 1)
   assert_eq(
     plan.limits.transfer_bytes - plan._observed_compute_limits.transfer_bytes,
-    14L,
+    7L,
   )
   assert_true(plan.capacity_plan.demand_inventory.unwrap().closed_rows is None)
 }
@@ -1307,10 +1413,12 @@ test "Effect Result bounds keep multiple original member occurrences and endpoin
   )
   assert_eq(plan.rows, 3)
   assert_eq(plan.held_children, 8)
-  assert_eq(plan.limits.attempts - plan._observed_compute_limits.attempts, 8)
+  // The two fixed members are funded first, preserving all eight original
+  // member/row coordinate ceilings for later actual captured input.
+  assert_eq(plan.limits.attempts - plan._observed_compute_limits.attempts, 2)
   assert_eq(
     plan.limits.transfer_bytes - plan._observed_compute_limits.transfer_bytes,
-    56L,
+    14L,
   )
 }
 

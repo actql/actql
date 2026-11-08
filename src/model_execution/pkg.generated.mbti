@@ -115,7 +115,11 @@ pub fn model_call_entry_originals(ModelCallEntry) -> (Int, String, String, Strin
 
 pub fn model_call_entry_persistence(ModelCallEntry, ModelPreparedCallSet, () -> ModelEntryPersistenceObservation) -> ModelCallEntryPersistence?
 
+pub fn model_call_entry_persistence_originals(ModelCallEntry, ModelPreparedCallSet, @run_publication_host.ClientInferDispatchAdmission) -> (Int, Int, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.BoundModelInvocationScope)?
+
 pub fn model_call_settlement(ModelExecution) -> ModelCallSettlement?
+
+pub fn model_call_settlement_export_limits(Int, Int) -> ModelCaptureExportLimits
 
 pub fn model_call_settlement_slot(ModelCallSettlement) -> Int?
 

@@ -150,9 +150,9 @@ function rowRunFixture({accounted = false, effectful = false, task = 0,
   method(matchName, [checkedOwner, source,
     ...(!effectful || task !== 0 ? [task] : [])], true);
   const identifyName = effectful
-    ? 'clientProgramIdentifyCapturedEffectSourceRelation'
-    : 'clientProgramIdentifyCapturedSourceRelation';
-  method(identifyName, [source], ok(identity));
+    ? 'clientProgramIdentifyRowCaptureEffectSourceRelation'
+    : 'clientProgramIdentifyRowCaptureSourceRelation';
+  method(identifyName, [source, capture], ok(identity));
   const logicalName = effectful
     ? task === 0 ? 'clientProgramEffectIssueCapturedSourceLogical'
       : 'clientProgramEffectIssueCapturedSourceLogicalAt'

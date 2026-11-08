@@ -554,3 +554,94 @@ test "physical response projection preserves original current reentry fence befo
   assert_true(retire_installed_effect_operation(child, true).unwrap())
   retire_installed_managed_run(owner).unwrap()
 }
+
+///|
+test "selected constructor input grows through one original preflight without another operation" {
+  let (prepared, request, plan, owner, ledger) = staged_effect_input_fixture()
+  let child = retain_installed_effect_operation_construction(
+    owner, prepared, request, plan, 0, false, 0, 0, "capture",
+  ).unwrap()
+  let input = prepare_installed_effect_capture_extent(
+    "capture",
+    @execution.execution_capacity(20L, 30L).unwrap(),
+    @execution.execution_capacity(3L, 5L).unwrap(),
+  ).unwrap()
+  assert_true(
+    grow_installed_effect_operation_input(child, input) is Err(AlreadyBound),
+  )
+  begin_installed_effect_operation_input(child, input).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  let larger = prepare_installed_effect_capture_extent(
+    "capture",
+    @execution.execution_capacity(30L, 50L).unwrap(),
+    @execution.execution_capacity(3L, 5L).unwrap(),
+  ).unwrap()
+  grow_installed_effect_operation_input(child, larger).unwrap()
+  let grown = @resources.ledger_usage(ledger)
+  assert_eq(
+    grown.reserved_retention_bytes - before.reserved_retention_bytes,
+    10L,
+  )
+  assert_eq(
+    grown.reserved_execution_bytes - before.reserved_execution_bytes,
+    20L,
+  )
+  assert_eq(grown.attempts, before.attempts)
+  assert_eq(grown.reserved_attempts, before.reserved_attempts)
+  assert_eq(grown.transferred_bytes, before.transferred_bytes)
+  assert_eq(grown.reserved_transfer_bytes, before.reserved_transfer_bytes)
+  assert_true(
+    grow_installed_effect_operation_input(child, input)
+    is Err(InsufficientCapacity),
+  )
+  assert_eq(@resources.ledger_usage(ledger), grown)
+  complete_installed_effect_operation_construction(child).unwrap()
+  let completed = @resources.ledger_usage(ledger)
+  assert_true(
+    grow_installed_effect_operation_input(child, larger) is Err(AlreadyBound),
+  )
+  assert_eq(@resources.ledger_usage(ledger), completed)
+  assert_true(retire_installed_effect_operation(child, true).unwrap())
+  retire_installed_managed_run(owner).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+}
+
+///|
+test "nested constructor growth preserves full-budget refusal without spending or losing prior backing" {
+  let (prepared, request, plan, owner, ledger) = staged_effect_input_fixture()
+  let child = retain_installed_effect_operation_construction(
+    owner, prepared, request, plan, 0, false, 0, 0, "capture",
+  ).unwrap()
+  let input = prepare_installed_effect_capture_extent(
+    "capture",
+    @execution.execution_capacity(20L, 30L).unwrap(),
+    @execution.execution_capacity(3L, 5L).unwrap(),
+  ).unwrap()
+  begin_installed_effect_operation_input(child, input).unwrap()
+  let usage = @resources.ledger_usage(ledger)
+  let occupied = @resources.reserve_capacity(
+    ledger,
+    0L,
+    @resources.ledger_limits(ledger).execution_bytes -
+    usage.reserved_execution_bytes,
+  ).unwrap()
+  let full = @resources.ledger_usage(ledger)
+  let larger = prepare_installed_effect_capture_extent(
+    "capture",
+    @execution.execution_capacity(30L, 50L).unwrap(),
+    @execution.execution_capacity(3L, 5L).unwrap(),
+  ).unwrap()
+  assert_true(
+    grow_installed_effect_operation_input(child, larger)
+    is Err(Ledger(@resources.ExecutionLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), full)
+  @resources.settle_capacity(ledger, occupied).unwrap()
+  grow_installed_effect_operation_input(child, larger).unwrap()
+  complete_installed_effect_operation_construction(child).unwrap()
+  assert_true(retire_installed_effect_operation(child, false) is Ok(false))
+  assert_true(retire_installed_managed_run(owner) is Err(CleanupPending))
+  assert_true(retire_installed_effect_operation(child, true).unwrap())
+  retire_installed_managed_run(owner).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+}

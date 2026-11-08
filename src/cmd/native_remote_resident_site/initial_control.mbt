@@ -70,6 +70,10 @@ fn resident_initial_failure_stage(message : String) -> Int {
     "installed command read context refused" => 129
     "original command backing missing" => 130
     "installed command read entry refused" => 131
+    "installed command Read control refused" => 132
+    "installed command control entry refused" => 133
+    "installed command control leave pending" => 134
+    "installed command working supplier refused" => 135
     _ => 1
   }
 }
@@ -115,6 +119,7 @@ struct ResidentInitialControl {
     ResidentEntryOriginal,
     ResidentEntryOriginal,
   ]?
+  mut control_entered : Bool
   mut read_entered : Bool
   mut read_payload_bytes : Int64
   mut sqlite_heap_bytes : Int64
@@ -151,6 +156,7 @@ fn capture_resident_initial_control() -> ResidentInitialControl {
     loan: None,
     view: None,
     domain: None,
+    control_entered: false,
     read_entered: false,
     read_payload_bytes: 0L,
     sqlite_heap_bytes: 0L,
@@ -241,6 +247,15 @@ fn ResidentInitialControl::acquire(
   .enter_borrow_scope(self.original, scope)
   .resident_initial_require("installed command scope refused")
   self.scope_entered = true
+  // The fixed Read/control basis is charged before this same Host selects
+  // its payload. Domain bytes cannot consume bookkeeping still owed later.
+  host
+  .prepare_backed_read_control(self.original, scope)
+  .resident_initial_require("installed command Read control refused")
+  if !host.enter_backed_read_control(self.original, scope) {
+    stop("installed command control entry refused")
+  }
+  self.control_entered = true
   // This is the SAME already-reserved arena's actual remaining capacity,
   // including its charged control layout, not a second numerical grant.
   let available = host
@@ -275,6 +290,10 @@ fn ResidentInitialControl::acquire(
     .issue_backed_region(self.original, allocation)
     .resident_initial_require("installed command region refused")
   self.region = Some(region)
+  // Region/allocation controls retain their original pages. Finish their
+  // actual cohort before constructing the separate loan/view/domain phase;
+  // initial_payload_capacity already kept this next block out of the payload.
+  self.advance_control_phase()
   let child_limits : @resources.LedgerLimits = {
     planning_work: 16,
     attempts: 1,
@@ -320,6 +339,9 @@ fn ResidentInitialControl::acquire(
     }
   }
   guard self.view is Some(view) else { stop("original command view missing") }
+  // Lending/mapping retains a separate original constructor cohort from the
+  // following physical domain carrier. No aliases or child debt are retired.
+  self.advance_control_phase()
   match
     host
     .acquire_backed_domain(self.original, view, self.original)
@@ -336,12 +358,19 @@ fn ResidentInitialControl::acquire(
   host
   .transfer_backed_domain(self.original, domain, self.original)
   .resident_initial_require("installed command transfer refused")
+  host
+  .leave_backed_read_control(self.original, scope)
+  .resident_initial_require("installed command control leave pending")
+  self.control_entered = false
   // The existing provider refuses entry into a different domain while the
   // parent arena is entered. Return only that scope, retaining its same loan.
   host
   .leave_borrow_scope(self.original, scope)
   .resident_initial_require("installed command parent scope leave pending")
   self.scope_entered = false
+  host
+  .prepare_backed_domain_growth(self.original, domain, self.original)
+  .resident_initial_require("installed command working supplier refused")
   // Read construction is attempted once on the same retained domain. A failed
   // physical or accounting step keeps that carrier for child-first cleanup.
   host
@@ -352,6 +381,31 @@ fn ResidentInitialControl::acquire(
     execution_ceiling=self.read_payload_bytes,
   )
   .resident_initial_require("installed command read context refused")
+}
+
+///|
+/// Finish/reconcile this phase before acquiring the same fixed next block.
+/// Every fallible step leaves its exact original cleanup state on this entry.
+fn ResidentInitialControl::advance_control_phase(
+  self : ResidentInitialControl,
+) -> Unit raise CommandStop {
+  self.require_current()
+  guard self.host is Some(host) &&
+    self.scope is Some(scope) &&
+    self.control_entered else {
+    stop("original command backing missing")
+  }
+  host
+  .leave_backed_read_control(self.original, scope)
+  .resident_initial_require("installed command control leave pending")
+  self.control_entered = false
+  host
+  .prepare_backed_read_control(self.original, scope)
+  .resident_initial_require("installed command Read control refused")
+  if !host.enter_backed_read_control(self.original, scope) {
+    stop("installed command control entry refused")
+  }
+  self.control_entered = true
 }
 
 ///|
@@ -386,6 +440,13 @@ fn ResidentInitialControl::close(self : ResidentInitialControl) -> Bool {
     return false
   }
   if self.host is Some(host) {
+    if self.control_entered {
+      guard self.scope is Some(scope) else { return false }
+      if host.leave_backed_read_control(self.original, scope) is Err(_) {
+        return false
+      }
+      self.control_entered = false
+    }
     if self.domain is Some(domain) {
       if self.read_entered {
         if host.leave_backed_read_context(self.original, domain, self.original)

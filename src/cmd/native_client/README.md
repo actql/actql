@@ -70,6 +70,27 @@ still requires its physical project/catalog/Source/Model bindings, original
 Effect authority supplier, and same-Run approval/continuation to be connected.
 The source-free and Remote installed checks do not establish this workflow.
 
+Native Project declaration preparation uses the original connection's connector,
+complete catalogue wire and resolved payload locator for the declared-file scope
+identity. File listing and correlated Content capability facts bind the original
+public schema CIDs and the selected physical reader bounds. Common restores the
+completed declaration; public listing/content view holders are then rebound to
+those final originals while retaining the same physical provider and limits.
+The authored correlation cardinality and exact-stored-byte representation remain
+unchanged. These static identities are distinct from adopted Account authority,
+reference issuance, a physical read, Content custody and runtime availability.
+
+Declared Project writes use Common's full-Relation UPDATE Mapping constructor.
+The command selects write publication after binding its original packaged
+runtime to the adopted Host and before checking the Request. The retained
+runtime manifest and same captured Read's per-connection authority scope feed
+the existing Common installation-identity codec; aliases retain its original
+Mapping target and installation identity. Neither that identity nor the
+catalogue permission strings are an Account decision or an approval. The
+ordinary Effect supplier must separately implement dispatch and recovery under
+the same original current, claim and cleanup protocols. Mock execution remains
+unavailable until that complete connection is installed.
+
 ## Static Local explanation
 
 The source-level `explain` command accepts the same `--program-file`, explicit
@@ -544,3 +565,30 @@ Run acceptance and provider I/O. JSON/YAML Program remains supported machine
 input. Text is never retried as another format, and extensions do not choose
 a language. Removal of the old surface does not claim that every adopted
 Graph, VecA/TEA or Effect surface is implemented.
+
+The Native Project adapter retains the admitted Mock implementation with the
+SAME selected execution contract. It consumes the normalization's original
+prompt and the retry/backoff material already produced during metadata
+preparation, rather than regenerating those dependencies in the Run caller.
+Lookup accepts that exact execution object; equal separately admitted material
+cannot select it. Retirement first removes this metadata alias and then waits
+for the original installation's users before releasing its other originals.
+This is implementation selection, not Account, Model dispatch, Scope funding or
+a physical cleanup acknowledgement. Run executions remain per-Run children.
+
+
+An explicit first Mock adoption derives finite Account subjects from the same
+admitted Project Source declarations, normalized Tasks and selected UPDATE
+Mapping. The existing Common Mock profile owns their policy meaning: reads and
+Model invocation are restricted to those exact subjects, while UPDATE remains
+Delegate until the original Preview/Checkpoint approval. Missing Mock documents
+cannot initialize a source-free Account instead.
+
+The actual Product initialization persists the selected Account and independent
+Result-read originals before Host adoption. The Native adoption entrance accepts
+that named profile only with the same live excluded Product Root, initialization
+intent and Account bytes. The existing acknowledged Journal adoption supplies
+its bootstrap record identity. Restoration reads the original Product/Account;
+it never refreshes subjects or deadlines from current Project files. Profile
+metadata and successful adoption do not supply execution, Model-call entry,
+approval or physical-cleanup acknowledgement.

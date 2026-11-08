@@ -600,3 +600,114 @@ test "shared relation original preserves key and typed failures without acceptin
     assert_eq(@utf8.decode(original.bytes), invalid)
   }
 }
+
+///|
+test "prepared relation metadata reuses original schema while preserving exact target rows" {
+  let declaration = relation_mapping_declaration()
+  let limits = relation_document_test_limits()
+  let prepared = prepare_relation_document_contract(
+    declaration, "records", "id", limits,
+  ).unwrap()
+  let bytes = @utf8.encode(relation_document_test_text())
+  let original = admit_relation_document(bytes, limits, 10000000).unwrap()
+  let projected = project_relation_target_document(
+    original,
+    declaration,
+    "records",
+    ["collection", "records"],
+    None,
+    "id",
+    [],
+    prepared_contract=Some(prepared),
+  ).unwrap()
+  assert_eq(relation_target_row_count(projected), Some(2))
+  let first = observe_relation_target(projected, declaration, "first").unwrap()
+  assert_eq(relation_target_text(first, "label"), Some("before🌱"))
+  assert_eq(@utf8.decode(original.bytes), relation_document_test_text())
+  let legacy_original = admit_relation_document(bytes, limits, 10000000).unwrap()
+  let legacy = project_relation_target_document(
+    legacy_original,
+    declaration,
+    "records",
+    ["collection", "records"],
+    None,
+    "id",
+    [],
+  ).unwrap()
+  assert_eq(relation_target_row_count(legacy), Some(2))
+  assert_eq(
+    relation_target_before(first),
+    relation_target_before(
+      observe_relation_target(legacy, declaration, "first").unwrap(),
+    ),
+  )
+  let reused = relation_document_usage(original).unwrap()
+  let checked_again = relation_document_usage(legacy_original).unwrap()
+  assert_eq(reused.projection_attempts, 1)
+  assert_eq(reused.projections, 1)
+  // Same row/Value/path work, without the old mapping reconstruction debit.
+  // This is work-counter evidence, not elapsed-time or physical backing proof.
+  assert_true(reused.remaining_work > checked_again.remaining_work)
+}
+
+///|
+test "prepared relation metadata rejects foreign originals bounds and invalid actual values" {
+  let declaration = relation_mapping_declaration()
+  let limits = relation_document_test_limits()
+  let prepared = prepare_relation_document_contract(
+    declaration, "records", "id", limits,
+  ).unwrap()
+  let bytes = @utf8.encode(relation_document_test_text())
+  let foreign = relation_mapping_declaration()
+  let original = admit_relation_document(bytes, limits, 10000000).unwrap()
+  assert_true(
+    project_relation_target_document(
+      original,
+      foreign,
+      "records",
+      ["collection", "records"],
+      None,
+      "id",
+      [],
+      prepared_contract=Some(prepared),
+    )
+    is Err(ForeignSource),
+  )
+  let smaller = admit_relation_document(
+    bytes,
+    { ..limits, max_bytes: 65535, },
+    10000000,
+  ).unwrap()
+  assert_true(
+    project_relation_target_document(
+      smaller,
+      declaration,
+      "records",
+      ["collection", "records"],
+      None,
+      "id",
+      [],
+      prepared_contract=Some(prepared),
+    )
+    is Err(ForeignSource),
+  )
+  let invalid = relation_document_test_text().replace(
+    old="\"before🌱\"",
+    new="123",
+  )
+  let invalid = admit_relation_document(@utf8.encode(invalid), limits, 10000000).unwrap()
+  assert_true(
+    project_relation_target_document(
+      invalid,
+      declaration,
+      "records",
+      ["collection", "records"],
+      None,
+      "id",
+      [],
+      prepared_contract=Some(prepared),
+    )
+    is Err(Value("label")),
+  )
+  assert_eq(relation_document_usage(invalid).unwrap().projections, 0)
+}

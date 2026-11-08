@@ -3,6 +3,7 @@ priv enum NativeBackedLiveChildPurpose {
   Worker
   Read
   Initialization
+  Request
 } derive(Eq)
 
 ///|
@@ -29,6 +30,9 @@ struct NativeBackedLiveChild[T, C, R] {
   mut retired : Bool
   // Private initialization controls belong to this same physical owner.
   mut initialization : NativeBackedInitialization[T, C, R]?
+  // A Request retains its original frame before Common starts it. This is
+  // cleanup DATA on this same physical issuer, not another resource owner.
+  mut request_preparation : NativeBackedRequestPreparation[T, C, R]?
 }
 
 ///|
@@ -150,6 +154,7 @@ fn[T, C, R] NativeHostBootstrap::issue_backed_live_child_from_read(
     projection: None,
     retired: false,
     initialization: None,
+    request_preparation: None,
   }
   record.original = Some(record)
   let loan = domain.view.loan
@@ -212,6 +217,7 @@ pub fn[T, C, I] NativeHostBootstrap::prepare_backed_original_initialization_admi
   original : T,
   record : NativeBackedLiveChild[T, C, I],
   input : I,
+  acquire_window? : ((Int64, Int64) -> Result[Unit, @resources.LedgerIssue])? = None,
 ) -> Result[
   @resources.BackedInitializationAdmission[I],
   NativeBackedOriginalReadIssue,
@@ -235,10 +241,11 @@ pub fn[T, C, I] NativeHostBootstrap::prepare_backed_original_initialization_admi
   guard record.projection is Some(projection) else {
     return Err(Domain(Bootstrap(Unavailable)))
   }
-  @resources.prepare_backed_initialization_admission(projection, input).map_err(issue => {
-      Child(issue)
-    },
-  )
+  @resources.prepare_backed_initialization_admission(
+    projection,
+    input,
+    acquire_window~,
+  ).map_err(issue => Child(issue))
 }
 
 ///|
@@ -449,6 +456,9 @@ pub fn[T, C, R] NativeHostBootstrap::retire_backed_live_child_after_owner_ack(
     ) {
     return Err(Bootstrap(ReadersPending))
   }
+  if record.request_preparation is Some(request) && !request.ready_for_owner_ack {
+    return Err(Bootstrap(ReadersPending))
+  }
   if record.access is Some(access) {
     match
       @resources.retire_backed_execution_live_child_after_owner_ack(
@@ -467,4 +477,71 @@ pub fn[T, C, R] NativeHostBootstrap::retire_backed_live_child_after_owner_ack(
   record.original = None
   record.retired = true
   Ok(())
+}
+
+///|
+/// Real original Read caller only: policy is checked before acquisition, then
+/// actual usable backing is acquired/published before the later Read resize.
+/// The two byte dimensions remain independent: raw placement vs pool cover.
+pub fn[T, C, R] NativeHostBootstrap::prepare_backed_original_read_working(
+  self : NativeHostBootstrap[T],
+  original : T,
+  record : NativeBackedLiveChild[T, C, R],
+  runtime : R,
+  retained : Int64,
+  execution : Int64,
+  contiguous_bytes : Int64,
+) -> Result[Unit, NativeBackedExecutionIssue] {
+  match self.original_live_child(original, record, runtime) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if record.purpose != Read || record.retired {
+    return Err(Bootstrap(Unavailable))
+  }
+  guard record.projection is Some(projection) else {
+    return Err(Bootstrap(Unavailable))
+  }
+  let mut minimum_usable_bytes = 0L
+  if record.domain.view.loan.initial_window is Some(_) {
+    match
+      @resources.check_backed_original_child_window_demand(
+        projection, runtime, retained, execution,
+      ) {
+      Err(issue) => return Err(Accounting(issue))
+      Ok(_) => ()
+    }
+    let current = match
+      @resources.read_backed_original_child_window_bytes(projection, runtime) {
+      Err(issue) => return Err(Accounting(issue))
+      Ok(value) => value
+    }
+    if retained < 0L ||
+      execution < 0L ||
+      execution > 9223372036854775807L - retained {
+      return Err(Bootstrap(Unavailable))
+    }
+    minimum_usable_bytes = Int64::max(0L, retained + execution - current)
+  } else {
+    // Legacy fully-backed children keep their original declared-policy refusal
+    // before any physical acquisition, even though they need no window grant.
+    let limits = match
+      @resources.backed_execution_live_limits(projection, runtime) {
+      Err(issue) => return Err(Accounting(issue))
+      Ok(value) => value
+    }
+    if retained < 0L ||
+      execution < 0L ||
+      retained > limits.retained_bytes ||
+      execution > limits.execution_bytes {
+      return Err(Accounting(@resources.Resource(@resources.InvalidLimits)))
+    }
+  }
+  self.prepare_backed_read_working(
+    original,
+    record.domain,
+    record.child,
+    contiguous_bytes,
+    minimum_usable_bytes~,
+  )
 }

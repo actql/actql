@@ -269,7 +269,7 @@ class LocalInventoryTransactionTests(unittest.TestCase):
         self.store.close()
         connect = sqlite3.connect
         with patch('actql_sdk._local_storage.sqlite3.connect',
-                   side_effect=lambda *a, **k: connect(*a, **k, factory=QueryFailure)):
+                   side_effect=lambda *a, **k: connect(*a, **(k | {'factory': QueryFailure}))):
             self.store = self.make_store()
         self.addCleanup(self.store.close)
         self.store._connection.fail = True
@@ -414,7 +414,7 @@ class LocalInventoryTransactionTests(unittest.TestCase):
         self.store.close()
         connect = sqlite3.connect
         with patch('actql_sdk._local_storage.sqlite3.connect',
-                   side_effect=lambda *a, **k: connect(*a, **k, factory=LostAck)):
+                   side_effect=lambda *a, **k: connect(*a, **(k | {'factory': LostAck}))):
             self.store = self.make_store()
         self.addCleanup(self.store.close)
         self.store._connection.lose = True
@@ -463,7 +463,7 @@ class LocalInventoryTransactionTests(unittest.TestCase):
         self.store.close()
         connect = sqlite3.connect
         with patch('actql_sdk._local_storage.sqlite3.connect',
-                   side_effect=lambda *a, **k: connect(*a, **k, factory=PendingCleanup)):
+                   side_effect=lambda *a, **k: connect(*a, **(k | {'factory': PendingCleanup}))):
             self.store = self.make_store()
         self.addCleanup(self.store.close)
         self.store._connection.refuse = True

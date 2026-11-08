@@ -274,11 +274,28 @@ fn client_pure_measurement_storage_owned(
     is Some(items) &&
     @execution.checked_preparation_add_product(items, profile, 1L)
     is Some(items) &&
+    // SAME-emitter construction geometry has nine scalar counts per retained
+    // report plus its collection. Variable reports are bounded by the same
+    // original tuple occurrences above; ten fixed final/Values report slots
+    // cover pipeline/contract and nodes/edges/roots/graph/program/material/
+    // manifest/Plan measurements. No policy maximum or second scan is used.
+    @execution.checked_preparation_add_product(tuples, 10L, 1L)
+    is Some(geometry_reports) &&
+    @execution.checked_preparation_add_product(records, geometry_reports, 3L)
+    is Some(records) &&
+    @execution.checked_preparation_add_product(references, geometry_reports, 4L)
+    is Some(references) &&
+    @execution.checked_preparation_add_product(references, ordinary, 3L)
+    is Some(references) &&
+    @execution.checked_preparation_add_product(words, geometry_reports, 9L)
+    is Some(words) &&
+    @execution.checked_preparation_add_product(items, geometry_reports, 1L)
+    is Some(items) &&
     @shape.collection_construction_extent({
       records,
-      record_references: references,
+      record_references: references + 9L,
       record_words: words,
-      reference_arrays: arrays,
+      reference_arrays: arrays + 5L,
       reference_items: items,
       scalar_arrays: 1L,
       scalar_items: results,

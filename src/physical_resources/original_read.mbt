@@ -51,6 +51,7 @@ priv enum FundedReadPhase[T] {
   Written
   Preparing(FundedReadConsumer[T])
   ConsumerStarted(FundedReadConsumer[T])
+  ConsumerGrowing(FundedReadConsumer[T])
   HandedOff
   ConsumerHandedOff(FundedReadConsumer[T])
   Stopping
@@ -63,8 +64,8 @@ priv enum FundedReadPhase[T] {
 struct FundedReadClaim[T] {
   descriptor : OriginalLedgerDescriptor[T]
   read : CapacityReservation
-  read_state : OriginalReservationSnapshot
-  admitted : OriginalLedgerSnapshot
+  mut read_state : OriginalReservationSnapshot
+  mut admitted : OriginalLedgerSnapshot
   mut phase : FundedReadPhase[T]
   // None preserves the singular snapshot/SpentClaim protocol exactly.
   mut children : OriginalReadChildren[T]?
@@ -445,6 +446,16 @@ pub fn[T] funded_read_available(claim : FundedReadClaim[T], origin : T) -> Bool 
 ///|
 fn[T] funded_read_state_matches(claim : FundedReadClaim[T], origin : T) -> Bool {
   check_original_resources_mutable(claim.descriptor.ledger) is Ok(_) &&
+  funded_read_snapshot_matches(claim, origin)
+}
+
+///|
+// The same original/current boundary uses this callback-free snapshot fence.
+// It does not export an Allow or relax any untouched reservation/token history.
+fn[T] funded_read_snapshot_matches(
+  claim : FundedReadClaim[T],
+  origin : T,
+) -> Bool {
   physical_equal(origin, claim.descriptor.origin) &&
   capacity_reservation_open(claim.read) &&
   capacity_reservation_open(claim.descriptor.bootstrap) &&
@@ -630,6 +641,7 @@ pub fn[T] stop_funded_read(
     Writing(writer) => cancel_original_state_write(writer)
     Preparing(consumer)
     | ConsumerStarted(consumer)
+    | ConsumerGrowing(consumer)
     | ConsumerHandedOff(consumer) => claim.phase = ConsumerStopping(consumer)
     ConsumerParked(_, _) => return Err(Resource(ResourceParked))
     Stopping | ConsumerStopping(_) | Reclaimed => ()
@@ -666,7 +678,8 @@ pub fn[T] settle_funded_read(
   }
   // A live encoding cursor still borrows the census/read graph. Explicit stop
   // or cancellation retires it before physical owning cleanup can settle read.
-  if physical_cleanup_complete && claim.phase is Writing(_) {
+  if physical_cleanup_complete &&
+    (claim.phase is Writing(_) || claim.phase is ConsumerGrowing(_)) {
     return Err(CleanupPending)
   }
   if !physical_cleanup_complete {
@@ -694,6 +707,7 @@ pub fn[T] settle_funded_read(
   match claim.phase {
     Preparing(consumer)
     | ConsumerStarted(consumer)
+    | ConsumerGrowing(consumer)
     | ConsumerHandedOff(consumer)
     | ConsumerStopping(consumer) => consumer.claim = None
     ConsumerParked(_, _) => abort("parked original cleanup was not admitted")
@@ -809,6 +823,7 @@ fn[T] funded_read_claim_has_consumer(
   match claim.phase {
     Preparing(current)
     | ConsumerStarted(current)
+    | ConsumerGrowing(current)
     | ConsumerHandedOff(current)
     | ConsumerStopping(current) => physical_equal(current, consumer)
     ConsumerParked(current, _) => physical_equal(current, consumer)

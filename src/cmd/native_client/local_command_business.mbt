@@ -24,14 +24,42 @@ priv enum LocalRunReceiptObservation {
 }
 
 ///|
+// The actual immutable input producer selection, before file payload exists.
+// DATA in the existing business carrier, not a permission or Resource owner.
+priv struct LocalCommandBusinessInput {
+  root : String
+  operation : String
+  arguments : @argparse.Matches
+  retained_intent : @run_host.ClientSubmittedIntent?
+}
+
+///|
 // Caller retention only. The existing Host/domain/retained-execution Owners
 // keep every partial physical stage and their distinct acknowledgements.
 priv struct LocalCommandBusinessOriginal {
   profile : LocalCommandBusinessProfile
   mut selected_profile : LocalCommandBusinessProfile?
+  mut initial_window_bytes : Int64?
+  mut initial_domain_bytes : Int64?
   mut domain : @initial_arena.InstalledArenaDomain?
   mut execution : @initial_arena.InstalledArenaRetainedExecution?
+  // The SAME original input and preparation survive Journal scope switches.
+  mut request_input : LocalCommandBusinessInput?
+  mut request_intent : @run_host.ClientSubmittedIntent?
+  mut request_intake_units : Int64
+  mut request_read_failure : @files.NativeBoundedTextFailure?
+  mut request_initial : @initial_resources.BackedPreparationAdmission[
+    LocalCommandBusinessInput,
+  ]?
+  mut request_parent : @local_values.ClientRequestPreparation[
+    LocalCommandBusinessInput,
+  ]?
+  mut request_body : @local_host.NativeClientSubmittedRequestBody?
+  mut request_run : @local_values.ClientInstalledManagedRun?
+  mut request_retiring : Bool
   mut operation : @local_host.NativeLocalStoreOperation?
+  model_work : Array[@local_host.NativeClientMockModelWork]
+  mut effect_model : LocalNativeMockEffectPlan?
   mut values_work : @local_host.NativeClientValuesWork?
   mut values_failure : @local_host.NativeClientValuesWorkFailure?
   mut store : @local_store.Store?
@@ -68,27 +96,6 @@ priv struct LocalCommandBusinessOriginal {
   mut result_refusal : Ref[@local_host.NativeLocalReadBindingIssue?]?
   mut result_cleanup_issue : @local_result.NativeResultAccessIssue?
   mut active : Bool
-}
-
-///|
-// A checked demand below the supported facility can select a smaller actual
-// acquisition. A conservative upper bound above it does not invalidate the
-// existing finite facility or promise that every input will fit it.
-fn local_command_selected_business_limits(
-  maximum : @initial_resources.LedgerLimits,
-  required : @initial_resources.LedgerLimits?,
-) -> @initial_resources.LedgerLimits {
-  match required {
-    Some(value) if value.retained_bytes > 0L &&
-      value.execution_bytes > 0L &&
-      value.planning_work <= maximum.planning_work &&
-      value.attempts <= maximum.attempts &&
-      value.holdings <= maximum.holdings &&
-      value.transfer_bytes <= maximum.transfer_bytes &&
-      value.retained_bytes <= maximum.retained_bytes &&
-      value.execution_bytes <= maximum.execution_bytes => value
-    _ => maximum
-  }
 }
 
 ///|
@@ -219,14 +226,31 @@ fn LocalCommandPreparationOriginal::prepare_business_domain(
       Err(CommandUnavailable)
     }
   }
-  guard business.selected_profile is Some(selected) else {
+  guard business.selected_profile is Some(selected) &&
+    business.initial_window_bytes is Some(initial_window) &&
+    business.initial_domain_bytes is Some(initial_domain) &&
+    initial_window > 0L &&
+    initial_window <= selected.payload_facility_bytes &&
+    initial_domain > 0L &&
+    initial_domain <= selected.domain_bytes else {
     return Err(CommandUnavailable)
   }
   if business.domain is Some(_) || self.closing || self.closed {
     return Err(CommandUnavailable)
   }
+  // Back only this first block, not the complete unused business ceiling.
+  // Later original-window acquisition remains on this same Root and domain.
+  match host.grow_backing_for_allocation(scope, initial_domain) {
+    Err(issue) => return Err(CommandHost(issue))
+    Ok(_) => ()
+  }
   let acquired = host
-    .prepare_domain_in_process(scope, selected.domain_bytes, selected.limits)
+    .prepare_domain_in_process(
+      scope,
+      initial_domain,
+      selected.limits,
+      initial_window=Some(initial_window),
+    )
     .map_err(issue => CommandDomain(issue))
   match acquired {
     Err(issue) => Err(issue)
@@ -245,6 +269,7 @@ fn LocalCommandPreparationOriginal::prepare_business_domain(
 fn LocalCommandPreparationOriginal::prepare_business_execution(
   self : LocalCommandPreparationOriginal,
   host : @initial_arena.InstalledArenaHost,
+  input : LocalCommandBusinessInput,
 ) -> Result[Unit, LocalCommandPreparationIssue] {
   guard self.business is Some(business) else { return Ok(()) }
   if business.profile.kind == SavedResultRead {
@@ -273,14 +298,21 @@ fn LocalCommandPreparationOriginal::prepare_business_execution(
     Err(issue) => return Err(CommandDomain(issue))
     Ok(_) => ()
   }
-  match host.prepare_domain_retained_execution(domain) {
+  // Reuse the existing fixed bootstrap allowance on this actual child. It
+  // is charged separately from the growing Request reservation, never slack.
+  match
+    host.prepare_domain_retained_request_execution(domain, input, {
+      bootstrap_retained: self.profile.read_budget.bootstrap_retained,
+      bootstrap_execution: self.profile.read_budget.bootstrap_execution,
+    }) {
     Err(issue) => Err(CommandRetainedExecution(issue))
-    Ok(PendingRetainedExecution(execution, issue)) => {
+    Ok(PendingRequestExecution(execution, issue)) => {
       business.execution = Some(execution)
       Err(CommandRetainedExecution(issue))
     }
-    Ok(ReadyRetainedExecution(execution)) => {
+    Ok(ReadyRequestExecution(execution, initial)) => {
       business.execution = Some(execution)
+      business.request_initial = Some(initial)
       Ok(())
     }
   }
@@ -299,6 +331,10 @@ fn LocalCommandPreparationOriginal::close_business_execution(
     } else {
       Err(CommandUnavailable)
     }
+  }
+  if (business.request_parent is Some(_) || business.request_run is Some(_)) &&
+    !business.request_retiring {
+    return Err(CommandBusinessChildren)
   }
   if business.execution is Some(execution) {
     if business.active {
@@ -334,12 +370,30 @@ fn LocalCommandPreparationOriginal::close_business_execution(
       Ok(_) => business.execution = None
     }
   }
+  if business.request_run is Some(run) {
+    match @local_values.retire_installed_managed_run(run) {
+      Err(_) => return Err(CommandBusinessChildren)
+      Ok(_) => business.request_run = None
+    }
+  }
+  if business.request_parent is Some(parent) {
+    match @local_values.abort_request_preparation_after_cleanup(parent) {
+      Err(_) => return Err(CommandBusinessChildren)
+      Ok(_) => business.request_parent = None
+    }
+  }
+  business.request_initial = None
+  business.request_input = None
+  business.request_intent = None
   if business.domain is Some(domain) {
     match host.close_domain_after_owner_ack(domain) {
       Err(issue) => return Err(CommandDomain(issue))
       Ok(_) => business.domain = None
     }
   }
+  business.initial_window_bytes = None
+  business.initial_domain_bytes = None
+  business.selected_profile = None
   Ok(())
 }
 

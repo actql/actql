@@ -1,6 +1,7 @@
 ///|
-// Only actual CLI outcomes: an accepted original can be observed, or successful
-// preflight still lacks the installed authority supplier and must refuse.
+// Only actual CLI outcomes: a saved original can be observed. The Native
+// Model route can accept/start/capture Sources, but still refuses until its
+// remaining Model/Effect continuation is connected. Neither is approval.
 priv enum LocalEffectPreflightStatus {
   AlreadyAccepted
   AuthoritySupplierUnavailable
@@ -15,6 +16,9 @@ priv struct LocalEffectFirstCompilation {
   allowed : @run_host.ClientEffectAllowedRun
   definition : @publication.PublicationContract
   issued : @run_host.ClientEffectIssuedNormalizationMaterials
+  model_compiled : @run_host.ClientCompiledRun?
+  _retained_sources : Array[LocalProjectMockEffectSourceInput]
+  _retained_models : Array[LocalProjectMockEffectModelInput]
 }
 
 ///|
@@ -44,6 +48,10 @@ fn local_effect_first_compilation(
   request_id : String,
   now : String,
   until : String,
+  infers? : Array[@run_host.ClientInferPlanGraph] = [],
+  models? : Array[LocalProjectMockEffectModelInput] = [],
+  request? : @run_host.ClientRequestIdentity? = None,
+  source_inputs? : Array[LocalProjectMockEffectSourceInput] = [],
 ) -> LocalEffectFirstCompilation raise ClientStop {
   guard @local_host.native_client_submitted_preparation(preparation)
     is EffectComputation(prepared) else {
@@ -61,21 +69,15 @@ fn local_effect_first_compilation(
   let normalization_result = match @syntax.effect_header_kind(header) {
     "create" => @run_host.issue_prepared_client_effect_normalization(prepared)
     "update" =>
-      @run_host.issue_prepared_client_effect_local_update_normalization(
-        prepared,
-      )
+      @run_host.issue_prepared_client_effect_selected_normalization(prepared)
     _ => stop("LocalEffectNormalizationProfileNotInstalled")
   }
   let normalization = normalization_result.unwrap_or_else(() => {
     stop("LocalOriginalNormalizationNotInstalled")
   })
-  let manifests = @run_host.admit_client_compilation_manifests(
-    @compiler_environment.compiler_grammar_manifest_wire(),
-    @compiler_environment.compiler_barrier_contract_manifest_wire(),
-    10000,
-    1000,
-    20,
-  ).unwrap_or_else(() => stop("LocalCompilerManifestUnavailable"))
+  // Reuse the same immutable installed manifests retained by Request Graph
+  // construction. Do not admit identical compiler contracts again here.
+  let manifests = native_request_manifests
   // Supply the genuine profile to the FIRST compiler invocation. Never upgrade
   // a previously compiled/accepted legacy Template during replay or recovery.
   let compilation = @run_host.issue_prepared_client_effect_compilation(
@@ -88,6 +90,8 @@ fn local_effect_first_compilation(
     8192,
     64,
     normalization=Some(normalization),
+    infer=if infers.length() == 1 { Some(infers[0]) } else { None },
+    infers=if infers.length() == 1 { [] } else { infers },
   ).unwrap_or_else(() => stop("LocalEffectCompilationNotReady"))
   let allowed = @run_host.issue_client_effect_allowed_run(
     compilation, scope, configuration_cid, until,
@@ -95,22 +99,51 @@ fn local_effect_first_compilation(
   let definition = @run_host.issue_client_effect_run_definition(
     allowed, namespace_id, request_id, now, until,
   ).unwrap_or_else(() => stop("LocalEffectRunDefinitionNotReady"))
-  let request = local_effect_request_identity(preparation, scope, request_id)
+  let request = match request {
+    Some(original) => {
+      if @run_host.prepared_client_effect_request_scope(prepared, original)
+        is Err(_) {
+        stop("LocalEffectRequestIdentityUnavailable")
+      }
+      original
+    }
+    None => local_effect_request_identity(preparation, scope, request_id)
+  }
   let issued = @run_host.issue_prepared_client_effect_normalization_materials(
     allowed,
     definition,
     normalization,
     request=Some(request),
   ).unwrap_or_else(() => stop("LocalEffectOriginalMaterialsUnavailable"))
-  { request, allowed, definition, issued, }
+  // This returns a new checked component view, not a getter alias. Retain
+  // it ONCE for the original Work, Plan and Model Scope to share later.
+  let model_compiled = if infers.is_empty() {
+    None
+  } else {
+    Some(
+      @run_host.client_effect_allowed_infer_run(allowed).unwrap_or_else(() => {
+        stop("LocalOriginalModelWorkUnavailable")
+      }),
+    )
+  }
+  {
+    request,
+    allowed,
+    definition,
+    issued,
+    model_compiled,
+    _retained_sources: source_inputs,
+    _retained_models: models,
+  }
 }
 
 ///|
 // AlreadyAccepted means only authenticated retained acceptance requiring lookup.
 // AuthoritySupplierUnavailable records completed preflight, never admission or
 // a retry permit; other unsupported/refused conditions still raise.
-// Called by the actual CLI Effect preparation branch. It has no journal accept,
-// physical Source open, approval, grant issuance or Provider side effect.
+// Called by the actual CLI Effect preparation branch. The installed Native
+// Model path accepts the same originals and captures its actual file Sources.
+// Other profiles remain preflight-only. No branch issues approval or a grant.
 fn local_effect_prepare_start(
   host : @local_host.NativeLocalHostConnection,
   settings : LocalHostSettings,
@@ -119,6 +152,7 @@ fn local_effect_prepare_start(
   reference : @local_host.NativeClientSubmissionReference,
   run : LocalRunInstallation,
   scope : String,
+  business? : LocalCommandBusinessPreparation? = None,
 ) -> LocalEffectPreflightStatus raise ClientStop {
   local_effect_prepare_start_with_clocks(
     host,
@@ -130,6 +164,7 @@ fn local_effect_prepare_start(
     scope,
     local_utc_now,
     () => @env.now().to_double(),
+    business~,
   )
 }
 
@@ -146,6 +181,7 @@ fn local_effect_prepare_start_with_clocks(
   scope : String,
   utc_now : () -> String,
   epoch_now : () -> Double,
+  business? : LocalCommandBusinessPreparation? = None,
 ) -> LocalEffectPreflightStatus raise ClientStop {
   if !local_submit_allowed(host, settings, crypto, scope) {
     stop("LocalSubmissionAuthorizationDenied")
@@ -155,18 +191,33 @@ fn local_effect_prepare_start_with_clocks(
   let observed_at = utc_now()
   // The existing Owner looks up this exact request before issuing a Policy.
   // A concurrent accepted request selects its saved original, not this clock.
-  let policy = local_run_policy_binding(host, settings, crypto)
+  let policy = local_run_policy_binding(host, settings, crypto, business~)
   let (run, now) = match policy {
     None => (installed, observed_at)
     Some(binding) =>
       match
-        binding.prepare_submission_policy(
-          reference,
-          preparation,
-          request,
-          observed_at,
-          epoch_now(),
-        ) {
+        (match business {
+          None =>
+            binding.prepare_submission_policy(
+              reference,
+              preparation,
+              request,
+              observed_at,
+              epoch_now(),
+            )
+          Some(original) =>
+            local_business_policy_result(
+              original,
+              original.capture.prepare_run_policy_in_original_read(
+                binding,
+                reference,
+                preparation,
+                request,
+                observed_at,
+                epoch_now(),
+              ),
+            )
+        }) {
         Ok(Accepted(_)) => {
           if !local_submit_allowed(host, settings, crypto, scope) {
             stop("LocalSubmissionAuthorizationDenied")
@@ -186,15 +237,36 @@ fn local_effect_prepare_start_with_clocks(
   let retention = @decode.open_object(
     local_input_cursor(@publication.publication_contract_json(run.retention)),
   ).unwrap_or_else(() => stop("InvalidLocalResultRetentionPolicy"))
-  let original = local_effect_first_compilation(
-    preparation,
-    scope,
-    local_host_result(host.configuration()).configuration_cid(),
-    run.namespace_id,
-    request_id,
-    now,
-    run_text(retention, "available_until"),
-  )
+  let configuration_cid = local_host_result(
+    match business {
+      None => host.configuration()
+      Some(original) => original.capture.configuration_in_original_read()
+    },
+  ).configuration_cid()
+  let original = match business {
+    None =>
+      local_effect_first_compilation(
+        preparation,
+        scope,
+        configuration_cid,
+        run.namespace_id,
+        request_id,
+        now,
+        run_text(retention, "available_until"),
+        request=Some(request),
+      )
+    Some(original) =>
+      original.compile_effect_first(
+        scope,
+        configuration_cid,
+        run.namespace_id,
+        request_id,
+        now,
+        run_text(retention, "available_until"),
+        request,
+        utc_now,
+      )
+  }
   // These same original bindings are consumed by the actual preflight, in
   // material-before-checked-Run order. No future dispatcher carrier is returned.
   let materials = @run_host.bind_prepared_client_effect_original_materials(
@@ -222,15 +294,39 @@ fn local_effect_prepare_start_with_clocks(
       is Some(_)
     None => false
   }
-  if original.request != request ||
-    (
-      !values_supported &&
-      !@source_owner.resident_effect_source_compute_shape_supported(bound)
-    ) {
+  if original.request != request {
+    stop("LocalEffectSourceExecutionProfileNotSupported")
+  }
+  let native_model = match business {
+    Some(selected) if original._retained_models.length() == 1 => {
+      selected.prepare_mock_effect_plan(original)
+      true
+    }
+    _ => false
+  }
+  if !values_supported &&
+    !native_model &&
+    !@source_owner.resident_effect_source_compute_shape_supported(bound) {
     stop("LocalEffectSourceExecutionProfileNotSupported")
   }
   if !local_submit_allowed(host, settings, crypto, scope) {
     stop("LocalSubmissionAuthorizationDenied")
+  }
+  if native_model && business is Some(selected) && policy is Some(binding) {
+    selected.capture_mock_effect_sources(
+      reference,
+      binding,
+      run.retention,
+      now,
+      epoch_now(),
+      run,
+    )
+    selected.capture_mock_effect_content(run)
+    selected.execute_mock_effect_model(run)
+    selected.prepare_mock_effect_observation()
+    selected.retain_mock_effect_host(bound)
+    selected.prepare_mock_effect_proposals()
+    selected.observe_mock_effect_targets()
   }
   AuthoritySupplierUnavailable
 }

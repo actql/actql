@@ -6,9 +6,20 @@ const invalid = () => {throw new TypeError('InvalidInstalledSourceConstructionGe
 export function sourceJsonWireGeometry(wire, payloadOnly = false) {
   if (typeof wire !== 'string' || typeof payloadOnly !== 'boolean') invalid();
   let nodes = 1n, depth = 0n, maximum = 0n, weighted = 0n, units = 0n;
+  let retainedNodes = 1n, retainedText = 0n;
   let quoted = false, escaped = false;
   for (let index = 0; index < wire.length; index++) {
     const code = wire.charCodeAt(index);
+    // The SAME wire observation also bounds the one returned native JSON
+    // tree. Punctuation/escapes inside a String are not retained value nodes.
+    // Raw String payload bytes bound decoded UTF8 (escapes only contract);
+    // treating each surrogate unit separately is conservative, never repair.
+    if (quoted && (code !== 34 || escaped)) {
+      retainedText += code < 128 ? 1n : code < 2048 ? 2n : 3n;
+    } else if (!quoted) {
+      if (code === 123 || code === 91) retainedNodes += 2n;
+      else if (code === 58 || code === 44) retainedNodes++;
+    }
     // Include punctuation inside strings and every escape. This also bounds
     // values hidden in detached JSON strings, without decoding those strings.
     if (code === 123 || code === 91) nodes += 2n;
@@ -32,7 +43,8 @@ export function sourceJsonWireGeometry(wire, payloadOnly = false) {
     } else if (code === 34) quoted = true;
     else if ((code === 125 || code === 93) && depth > 0n) depth--;
   }
-  return {nodes, units: payloadOnly ? units : BigInt(wire.length), weighted, depth: maximum};
+  return {nodes, units: payloadOnly ? units : BigInt(wire.length), weighted, depth: maximum,
+    retained: {nodes: retainedNodes, text: retainedText, wire: 0n}};
 }
 
 // Literal wrapper vocabulary added by rowSourceCheckEnvironment. Include

@@ -57,7 +57,9 @@ export const unpivotRowLabelRefusals = [
   {name: 'consumed-input', text: `SELECT jan FROM ${wide} ${clause}`},
   {name: 'expression-label', text: `SELECT * FROM ${wide} UNPIVOT(amount FOR month IN(jan AS 'a' || 'b'))`},
   {name: 'mixed-types', text: `SELECT * FROM ${wide} UNPIVOT(amount FOR month IN(jan AS 1,feb AS 'b'))`},
-  {name: 'exact-integer-gap', text: `SELECT * FROM ${wide} UNPIVOT(amount FOR month IN(jan AS 9223372036854775807,feb AS 1))`, expectedCode: 'ClientProgramImplementationLimit'},
+  // Above the selected exact Number integer domain: syntax refuses without
+  // rounding. Safe integer labels have a separate unsupported lowering gap.
+  {name: 'exact-integer-gap', text: `SELECT * FROM ${wide} UNPIVOT(amount FOR month IN(jan AS 9223372036854775807,feb AS 1))`, expectedCode: 'ClientProgramInvalidInput'},
 ].map(item => ({...item, name: 'unpivot-row-label-refusal-' + item.name,
   format: 'aql-text', parameterDeclarations: declarations, parameters: {rows},
   expectedCode: item.expectedCode ?? 'ClientProgramInvalidInput'}));

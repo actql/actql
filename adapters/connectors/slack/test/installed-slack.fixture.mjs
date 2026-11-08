@@ -64,7 +64,8 @@ export async function installedSlackFixture(t,{account='allow'}={}){
     const publication=JSON.stringify({environmentCid:env.evidence_bundle_cid,aliases:[{name:'slack.users',
       sourceRef:view.source_ref,sourceViewContractCid:view.source_view_contract_cid,
       schemaContractCid:view.carrier_schema_contract_cid}]});
-    const text=format==='sql'?`SELECT ${selection} FROM slack.users`:`FROM slack.users |> SELECT ${selection}`;
+    // This fixture's explicit component ports require a Query acquisition.
+    const text=format==='sql'?`SELECT ${selection} FROM slack.users WHERE TRUE`:`FROM slack.users |> WHERE TRUE |> SELECT ${selection}`;
     const outcome=common.clientProgramPrepareSourceWithParameters(text,format,check,publication,undefined,undefined);
     const preparedProgram=common.clientProgramPreparationReady(outcome);
     assert.ok(preparedProgram,common.clientProgramPreparationIssueCode(outcome));

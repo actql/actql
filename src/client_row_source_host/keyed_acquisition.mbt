@@ -222,6 +222,7 @@ fn start_keyed_row_acquisition_owned(
     physical: None,
     page_charge: None,
     response_borrowed: false,
+    input_progress: None,
     residual: None,
   })
 }
@@ -314,6 +315,68 @@ fn start_accounted_keyed_row_acquisition_owned(
     })
     attached
   })
+}
+
+///|
+/// Immutable original view metadata only. This avoids reconstructing the
+/// request's response schema merely to select its already retained resource.
+/// It invokes no current callback and supplies no read or completion grant.
+pub fn row_keyed_acquisition_resource(
+  acquisition : RowKeyedAcquisition,
+) -> String {
+  acquisition.view.resource
+}
+
+///|
+/// Borrowed original declaration correspondence. This invokes no current
+/// callback and issues neither a request nor physical Source authority.
+pub fn check_row_keyed_acquisition_original(
+  acquisition : RowKeyedAcquisition,
+  declaration : RowDeclaration,
+) -> Result[Unit, RowHostIssue] {
+  guard @planning.keyed_source_evidence_facts(acquisition.requirement.facts)
+    is Some(facts) &&
+    row_declaration_view(declaration, facts.source_ref) is Some(view) &&
+    physical_equal(view, acquisition.view) else {
+    return Err(ForeignDeclaration)
+  }
+  Ok(())
+}
+
+///|
+/// Debit this SAME keyed attempt before native I/O, including empty or failed
+/// reads. The original physical cleanup observer is already bound by start.
+/// This is not another borrow, request, read grant or successful observation.
+pub fn begin_keyed_row_run_response_attempt(
+  run : RowRun,
+  acquisition : RowKeyedAcquisition,
+) -> Result[Unit, RowHostIssue] {
+  guard !run.closed &&
+    run.configuration
+    is (KeyedConfiguration(original) | OriginalKeyedConfiguration(original)) &&
+    physical_equal(original, acquisition) &&
+    run.attempt.state is Reading(_) &&
+    run.physical is Some(physical) &&
+    row_provider_cleanup_bound(run) else {
+    return Err(InvalidState)
+  }
+  match
+    @resources.consume_reserved_attempt(physical.ledger, physical.reservation) {
+    Err(issue) => return Err(Physical(issue))
+    Ok(_) => ()
+  }
+  // Resource currentness may synchronously close the original. Keep the debit
+  // and fence retained identity/state without another external observation.
+  guard !run.closed &&
+    run.configuration
+    is (KeyedConfiguration(after) | OriginalKeyedConfiguration(after)) &&
+    physical_equal(after, acquisition) &&
+    run.attempt.state is Reading(_) &&
+    run.physical is Some(retained) &&
+    physical_equal(retained, physical) else {
+    return Err(InvalidState)
+  }
+  Ok(())
 }
 
 ///|

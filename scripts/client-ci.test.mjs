@@ -2,6 +2,7 @@
 // acceptance commands, not a replacement acceptance oracle.
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import {mkdtempSync, readFileSync, rmSync} from 'node:fs';
 import {readFile, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
@@ -13,6 +14,10 @@ import {types as nodeTypes} from 'node:util';
 import './two-source-optional-effect.test.mjs';
 import './composition-release-input.test.mjs';
 import './table-ctas-result-controls.test.mjs';
+import './packed-original-submission-callers.test.mjs';
+import './record-approval-workflow.test.mjs';
+import './record-approval-ci-input.test.mjs';
+import './hubspot-oauth-operator.test.mjs';
 import {parse} from 'yaml';
 import {parse as parseJavaScript} from 'acorn';
 import {optionalEffectCases} from './fixtures/two-source-optional-effect.mjs';
@@ -27,13 +32,14 @@ import {composeInstalledCheckEnvironment} from '../adapters/host-node/installed-
 import {contentCid} from '../adapters/host-node/local-account-config.mjs';
 import {inferPreparationFailureData} from './fixtures/packed-infer-preparation-diagnostic.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
+import {machineCid} from './actql-spec-family.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const {jobs} = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
 const normal = "${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}";
-const groups = ['client-packages', 'client-distribution', 'client-distribution-callers', 'client-distribution-mutations', 'client-distribution-packed', 'client-distribution-native', 'client-packed', 'client-salesforce'];
+const groups = ['client-packages', 'client-supported-versions', 'client-distribution', 'client-distribution-callers', 'client-distribution-mutations', 'client-distribution-packed', 'client-distribution-native', 'client-packed', 'client-packed-composition', 'client-salesforce'];
 const consumers = ['client-distribution', 'client-distribution-callers',
-  'client-distribution-mutations', 'client-distribution-packed', 'client-packed'];
+  'client-distribution-mutations', 'client-distribution-packed', 'client-packed', 'client-packed-composition'];
 const runs = name => jobs[name].steps.filter(step => step.run).map(step => step.run.trim());
 const run = (script, env) => spawnSync('bash', ['-eo', 'pipefail', '-c', script], {
   cwd: root, env: {...process.env, ...env}, encoding: 'utf8',
@@ -181,7 +187,7 @@ test('packed INFER keeps at most its first original admission event in existing 
       {event: 'dispatch_failed', code: 'MoonBitHostFailure', issueTag: 7, calls: 0}]);
 });
 
-test('packed composition retains the first original Model admission event in command stderr', () => {
+function packedEffectDriverSource() {
   const source = readFileSync(new URL('./test-packed-salesforce-source.mjs', import.meta.url), 'utf8');
   let template;
   const visit = node => {
@@ -196,7 +202,46 @@ test('packed composition retains the first original Model admission event in com
   };
   visit(parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}));
   assert.equal(template.expressions.length, 0);
-  const driver = template.quasis[0].value.cooked;
+  return template.quasis[0].value.cooked;
+}
+
+test('packed pending composition reports its last original status without hiding the wait failure', async () => {
+  const driver = packedEffectDriverSource();
+  let branch;
+  const visit = node => {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'IfStatement' && node.test.type === 'Identifier' &&
+        node.test.name === 'pendingScratch') {assert.equal(branch, undefined); branch = node;}
+    for (const value of Object.values(node)) if (Array.isArray(value)) value.forEach(visit);
+    else if (value && typeof value === 'object') visit(value);
+  };
+  visit(parseJavaScript(driver, {ecmaVersion: 'latest', sourceType: 'module'}));
+  assert(branch);
+  const run = new Function('execution', 'waitFor', 'console',
+    'return (async()=> ' + driver.slice(branch.consequent.start, branch.consequent.end) + ')();');
+  for (const status of ['running', 'failed', 'needs_reconciliation']) {
+    for (const primary of [new Error('original wait failure'), undefined]) {
+      const lines = []; let reads = 0, rejected = false;
+      try {
+        await run({async status() {reads++; return {status, privateInput: 'never disclose'};}},
+          async check => {assert.equal(await check(), false); throw primary;},
+          {error: line => lines.push(line)});
+      } catch (error) {rejected = true; assert.strictEqual(error, primary);}
+      assert(rejected); assert.equal(reads, 1);
+      assert.equal(lines.length, 1);
+      assert.deepEqual(JSON.parse(lines[0].slice('packed composition wait '.length)), {
+        boundary: 'pending-composition-wait', status, expectedStatus: 'waiting_checkpoint',
+      });
+      assert(!lines[0].includes('never disclose'));
+    }
+  }
+  await run({async status() {return {status: 'waiting_checkpoint'};}},
+    async check => assert.equal(await check(), true),
+    {error() {assert.fail('successful waiting must not report a failure');}});
+});
+
+test('packed composition retains the first original Model admission event in command stderr', () => {
+  const driver = packedEffectDriverSource();
   const tree = parseJavaScript(driver, {ecmaVersion: 'latest', sourceType: 'module'});
   const assignment = tree.body.find(node => node.type === 'ExpressionStatement' &&
     node.expression.type === 'AssignmentExpression' &&
@@ -621,12 +666,101 @@ test('packed Effect target reads keep distinct approval phases and independent p
   assert.ok(script.includes("'effect-target-read-approval.expected.json'"));
 });
 
+test('Client preparation exposes runtime adapters and wire freshness as separate timed steps', () => {
+  const original = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
+    .scripts['check:distribution-client'].split(' && ').slice(0, 4);
+  const ids = ['distribution-runtime', 'distribution-adapters',
+    'distribution-publication-wire-check', 'distribution-preparation'];
+  for (const name of ['client-distribution', 'client-distribution-callers', 'client-distribution-mutations']) {
+    const steps = ids.map(id => jobs[name].steps.find(step => step.id === id));
+    assert(steps.every(Boolean), name);
+    assert.deepEqual(steps.map(step => step.run), original);
+    for (const step of steps) {
+      assert.deepEqual(step.env, {TMPDIR: '${{ github.workspace }}/_build'});
+      assert.equal(step.if, undefined, 'default success prevents a later preparation stage from bypassing failure');
+      assert.equal(step['continue-on-error'], undefined);
+    }
+    assert(steps.slice(2).every(step => /Check .*wire freshness/u.test(step.name)));
+    const positions = steps.map(step => jobs[name].steps.indexOf(step));
+    assert(positions.every((value, index) => index === 0 || value === positions[index - 1] + 1));
+    assert(jobs[name].steps.filter(step => step.name?.startsWith('Test ')).every(step =>
+      step.if === "${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}"));
+  }
+});
+
+test('source-response custody has one same-environment normal Client owner', () => {
+  const file = 'adapters/host-common/source-response-custody.test.mjs';
+  assert(!runs('client-distribution').some(command => command.split(/\s+/u).includes(file)));
+  const owner = jobs['client-distribution-callers'].steps.filter(step => step.run?.split(/\s+/u).includes(file));
+  assert.equal(owner.length, 1);
+  assert.equal(owner[0].run, `node scripts/local-checks.mjs test node -- ${file}`);
+  assert.equal(owner[0].if, "${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}");
+  assert.deepEqual(owner[0].env, {TMPDIR: '${{ github.workspace }}/_build'});
+  const local = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
+    .scripts['check:distribution-client'].split(' && ');
+  assert.equal(local.filter(command => command.split(/\s+/u).includes(file)).length, 1);
+  assert(local.includes(owner[0].run));
+});
+
+test('source-only Client wire and scratch tests do not wait for a producer or runtime', () => {
+  const files = ['packages/client-wire/cancel-identity.test.mjs',
+    'packages/client-wire/submission-check-semantics.test.mjs', 'scripts/owned-scratch.test.mjs'];
+  const step = jobs.lint.steps.find(step => step.name === 'Test source-only Client wire contracts');
+  assert(step);
+  assert.deepEqual(jobs.lint.needs, ['select-targets', 'preflight']);
+  assert.equal(step.if, "${{ needs.select-targets.outputs.profile == 'full' }}");
+  assert.equal(step.run, 'node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- ' + files.slice(0, 2).join(' '));
+  assert(!jobs.lint.needs.includes('client-packages'));
+  assert(jobs.lint.steps.indexOf(step) < jobs.lint.steps.findIndex(step => step.name === 'Type-check public SDK and Client wire declarations'));
+  assert(!jobs.lint.steps.slice(0, jobs.lint.steps.indexOf(step)).some(step =>
+    /build-runtime-packages|build-local-node-adapters|download-client-packages/u.test(step.run ?? step.uses ?? '')));
+  const scratch = jobs.lint.steps.find(step => step.run === 'node --test scripts/owned-scratch.test.mjs');
+  assert(scratch);
+  assert.equal(scratch.if, "${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}");
+  const owners = ['lint', ...groups].flatMap(name => jobs[name].steps.filter(step => step.run)
+    .map(step => ({name, command: step.run})));
+  for (const file of files) {
+    const selected = owners.filter(owner => owner.command.split(/\s+/u).includes(file));
+    assert.equal(selected.length, 1, file);
+    assert.equal(selected[0].name, 'lint', file);
+  }
+  const mutation = runs('client-distribution-mutations');
+  for (const script of ['check-read-row-mutations', 'check-submission-input-mutations',
+    'check-submission-check-observation-mutations', 'check-effect-uncertainty-mutations'])
+    assert(mutation.includes(`node scripts/${script}.mjs`), 'mutation baseline and restoration stay in their original owner');
+});
+
+test('source-only evaluation tests have one early bounded CI owner', () => {
+  const files = ['examples/infer-evaluation/evaluate.test.mjs',
+    'examples/infer-evaluation/compare-source-instructions.test.mjs'];
+  const step = jobs.lint.steps.find(step => step.name === 'Test source-only INFER evaluation contracts');
+  assert(step);
+  assert.deepEqual(jobs.lint.needs, ['select-targets', 'preflight']);
+  assert.equal(step.if, "${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}");
+  assert.equal(step.run, 'node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- ' + files.join(' '));
+  assert(jobs.lint.steps.indexOf(step) < jobs.lint.steps.findIndex(step => step.name === 'Type-check public SDK and Client wire declarations'));
+  const owners = ['lint', ...groups].flatMap(name => jobs[name].steps.filter(step => step.run)
+    .map(step => ({name, command: step.run})));
+  const local = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).scripts['check:distribution-client'];
+  for (const file of files) {
+    const selected = owners.filter(owner => owner.command.split(/\s+/u).includes(file));
+    assert.deepEqual(selected.map(owner => owner.name), ['lint']);
+    assert(local.split(/\s+/u).includes(file));
+  }
+});
+
 test('each Client group retains its acceptance commands exactly once', () => {
   const original = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
     .scripts['check:distribution-client'].split(' && ');
   assert.equal(original.length, 53, 'the existing full local gate remains unchanged');
   const prepared = ['npm ci --prefix packages/provider-ai-sdk --ignore-scripts',
-    original.slice(0, 4).join('\n')];
+    ...original.slice(0, 4)];
+  // The full local command still executes these source-only contracts. Hosted
+  // CI executes them once in lint, without package/runtime preparation.
+  const earlyContracts = new Set(['packages/client-wire/cancel-identity.test.mjs',
+    'packages/client-wire/submission-check-semantics.test.mjs', 'scripts/owned-scratch.test.mjs',
+    'examples/infer-evaluation/evaluate.test.mjs', 'examples/infer-evaluation/compare-source-instructions.test.mjs']);
+  const distributionContracts = original[4].split(' ').filter(argument => !earlyContracts.has(argument)).join(' ');
   const partitions = {
     'client-distribution': [4],
     'client-distribution-callers': Array.from({length: 36}, (_, index) => index + 17),
@@ -637,26 +771,41 @@ test('each Client group retains its acceptance commands exactly once', () => {
   for (const [name, indexes] of Object.entries(partitions)) {
     assert.deepEqual(runs(name), [
       ...(['client-distribution', 'client-distribution-callers', 'client-distribution-mutations'].includes(name) ? prepared : []),
-      ...indexes.map(index => original[index]),
+      ...indexes.map(index => index === 4 ? distributionContracts : original[index]),
     ], name);
   }
   assert.deepEqual(Object.values(partitions).flat().sort((a, b) => a - b),
     Array.from({length: 49}, (_, index) => index + 4),
-    'every original acceptance command remains exactly once; only four source-preparation commands repeat');
+    'every original command keeps its owner; source-only arguments move to lint and only four preparation commands repeat');
   assert(!jobs['client-distribution-packed'].steps.some(step => step.id === 'distribution-preparation'),
     'normal tar acceptance does not rebuild the checkout runtime');
   assert.deepEqual(jobs['client-distribution-native'].needs, ['select-targets', 'preflight']);
   assert.deepEqual(runs('client-packed'), [
     'node scripts/test-packed-local-node-assets.mjs',
     'node scripts/test-packed-sheets.mjs',
+    'node scripts/test-packed-hubspot-source.mjs --ci --approval',
+    'node scripts/test-packed-hubspot-source.mjs --ci --kintone-approval',
+    'node scripts/test-packed-hubspot-source.mjs --ci --mock-salesforce-approval',
+    'node scripts/test-packed-hubspot-source.mjs --ci --mock-hubspot-approval',
+    'node scripts/test-packed-hubspot-source.mjs --ci --mock-kintone-approval',
     'npm run check:packed-embedded-checkpoint',
     'node scripts/test-packed-single-infer.mjs',
     'node scripts/test-packed-infer-evaluation.mjs',
     'node scripts/test-packed-acquired-infer.mjs',
     'node --test scripts/packed-query-evidence.test.mjs\nnode scripts/test-packed-public-query.mjs',
     'node scripts/test-packed-result-description.mjs',
-    'node scripts/test-packed-salesforce-source.mjs',
   ]);
+  const approvalSteps = jobs['client-packed'].steps.filter(step =>
+    step.run?.startsWith('node scripts/test-packed-hubspot-source.mjs --ci '));
+  assert.equal(approvalSteps.length, 5, 'Each connector consumer is independently scheduled');
+  assert.equal(new Set(approvalSteps.map(step => step.name)).size, 5);
+  for (const step of approvalSteps) {
+    assert(step.name.startsWith('Test packed '));
+    assert.deepEqual(step.env, {ACTQL_TEST_PRESERVE_SCRATCH: '1'});
+    assert.equal(step.if, "${{ !cancelled() && steps.client-inputs.outcome == 'success' }}");
+    assert.equal(step['continue-on-error'], undefined);
+  }
+  assert.deepEqual(runs('client-packed-composition'), ['node scripts/test-packed-salesforce-source.mjs']);
   assert.deepEqual(runs('client-salesforce'), [
     'node scripts/build-runtime-packages.mjs local-node',
     'npm run check:salesforce-site',
@@ -671,7 +820,7 @@ done`,
   ]);
   for (const name of Object.keys(partitions)) for (const step of jobs[name].steps.filter(step => step.name?.startsWith('Test ')))
     assert.deepEqual(step.env, {TMPDIR: '${{ github.workspace }}/_build'});
-  for (const name of groups) {
+  for (const name of groups.filter(name => name !== 'client-supported-versions')) {
     assert.equal(jobs[name].if, normal);
     assert.equal(jobs[name]['runs-on'], 'ubuntu-24.04');
     assert.equal(jobs[name]['timeout-minutes'], 30);
@@ -679,7 +828,7 @@ done`,
     for (const step of jobs[name].steps.filter(step => step.run)) {
       let preparation;
       if (step.name?.startsWith('Test ')) {
-        if (['client-packed', 'client-distribution-packed'].includes(name)) preparation = 'client-inputs';
+        if (['client-packed', 'client-packed-composition', 'client-distribution-packed'].includes(name)) preparation = 'client-inputs';
         else if (name === 'client-distribution-native') preparation = 'native-client-preparation';
         else if (Object.hasOwn(partitions, name)) preparation = 'distribution-preparation';
       }
@@ -1065,6 +1214,56 @@ test('synthetic held Salesforce fixture retains distinct Host observation and Ru
   }
 });
 
+test('packed Checkpoint owner reads only the original Program named Results', () => {
+  const source = readFileSync(new URL('./test-packed-client-checkpoint.mjs', import.meta.url), 'utf8');
+  const tree = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  let template;
+  (function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'TemplateLiteral' && node.quasis[0].value.cooked.includes('const installation = {')) {
+      assert.equal(template, undefined); template = node;
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === 'object') visit(value);
+    }
+  })(tree);
+  assert(template);
+  const generated = new Function('hostCapacityPolicy', 'return (' +
+    source.slice(template.start, template.end) + ');')({});
+  const actor = parseJavaScript(generated, {ecmaVersion: 'latest', sourceType: 'module'});
+  const declaration = name => actor.body.filter(node => node.type === 'VariableDeclaration')
+    .flatMap(node => node.declarations).find(node => node.id.name === name)?.init;
+  const configuration = declaration('configuration'), tokens = declaration('tokens');
+  assert(configuration && tokens);
+  const userInfo = () => ({username: 'fixture-owner'});
+  const retainedTokens = new Function('userInfo', 'return (' +
+    generated.slice(tokens.start, tokens.end) + ');')(userInfo);
+  assert.equal(retainedTokens.get('owner-token'), userInfo().username);
+  assert.notEqual(retainedTokens.get('stranger-token'), userInfo().username);
+  const configure = new Function('outcome', 'canonical', 'userInfo', 'process',
+    'return (' + generated.slice(configuration.start, configuration.end) + ');');
+  for (const [acquired, path] of [[false, '../packages/sdk/fixtures/values.json'],
+    [true, '../adapters/connectors/duckdb/node/examples/program.json']]) {
+    const original = JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8'));
+    const resources = [...Object.keys(original.results).map(name => 'result/' + name), 'run'].sort();
+    const actorProcess = {env: {ACQUIRED: acquired ? '1' : '0'}};
+    assert.equal(configure('missing', canonicalText, userInfo, actorProcess), undefined);
+    for (const outcome of ['allow', 'deny', 'delegate']) {
+      const account = JSON.parse(configure(outcome, canonicalText, userInfo, actorProcess));
+      const read = account.entries.find(entry => entry.entry_id === 'owner-run-result-read');
+      assert.deepEqual(read, {entry_id: 'owner-run-result-read', exclusions: [],
+        connection: {any_of: ['actql-remote-host']}, operation: {any_of: ['read']},
+        outcome: 'allow', principal: {any_of: [userInfo().username]},
+        resource: {any_of: resources}});
+      assert(!read.resource.any_of.includes('result/other'));
+      const write = account.entries.find(entry => entry.entry_id === 'run-acceptance');
+      assert.equal(write.outcome, outcome);
+      assert.deepEqual(write.operation, {any_of: ['write']});
+    }
+  }
+});
+
 test('packed Checkpoint Source publication shares its explicit installed Host policy', async () => {
   const source = readFileSync(new URL('./test-packed-client-checkpoint.mjs', import.meta.url), 'utf8');
   const tree = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'});
@@ -1138,3 +1337,326 @@ test('packed Checkpoint Source publication shares its explicit installed Host po
   assert.throws(() => composeInstalledCheckEnvironment(moon, actualHost, actualHost, canonicalText(foreign)),
     error => error.code === 'InstalledCheckEnvironmentConflict' && error.cause === 'EnvironmentBase');
 });
+
+test('historical Checkpoint identities retain the same explicit Host policy', () => {
+  const wrapper = readFileSync(new URL('./test-packed-client-checkpoint.mjs', import.meta.url), 'utf8');
+  assert.match(wrapper, /hostCapacityPolicy: installation\.hostCapacityPolicy,/);
+  const hash = bytes => 'sha256:' + createHash('sha256').update(bytes).digest('hex');
+  const originalRoot = '/original-selected-root', principalId = 'fixture-owner';
+  const raw = JSON.parse(readFileSync(new URL('../spec/local-check-environment.json', import.meta.url), 'utf8'))
+    .host_policy_profile.capacity;
+  const expression = (source, name) => {
+    const found = [];
+    (function visit(node) {
+      if (!node || typeof node !== 'object') return;
+      if (node.type === 'VariableDeclarator' && node.id?.name === name) found.push(node.init);
+      for (const value of Object.values(node)) {
+        if (Array.isArray(value)) value.forEach(visit);
+        else if (value && typeof value === 'object') visit(value);
+      }
+    })(parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}));
+    assert.equal(found.length, 1, name);
+    return source.slice(found[0].start, found[0].end);
+  };
+  for (const name of ['values', 'query']) {
+    const source = readFileSync(new URL(`./fixtures/synthetic-historical-held-${name}.mjs`, import.meta.url), 'utf8');
+    const selected = new Function('hostCapacityPolicy',
+      `return (${expression(source, 'effectiveHostCapacityPolicy')});`);
+    const scope = new Function('root', 'principalId', 'effectiveHostCapacityPolicy', 'hash', 'cid',
+      `return (${expression(source, 'authorityScopeCid')});`);
+    const original = hash(JSON.stringify({version: 'actql-local-owner-scope/0.1', root: originalRoot, principalId}));
+    assert.equal(scope(originalRoot, principalId, selected(undefined), hash, contentCid), original);
+    const expected = {max_graph_construction_edges: 1000, max_graph_construction_input_rows: 1000,
+      max_graph_construction_nodes: 1000, ...raw};
+    assert.deepEqual(selected(raw), expected);
+    const scoped = scope(originalRoot, principalId, selected(raw), hash, contentCid);
+    assert.equal(scoped, hash(JSON.stringify({version: 'actql-local-owner-scope/0.1',
+      root: originalRoot, principalId, hostCapacityPolicyCid: contentCid(expected)})));
+    assert.notEqual(scoped, original);
+    assert.notEqual(scope(originalRoot, principalId,
+      selected({...raw, max_artifact_rows: raw.max_artifact_rows + 1}), hash, contentCid), scoped);
+  }
+  const values = readFileSync(new URL('./fixtures/synthetic-historical-held-values.mjs', import.meta.url), 'utf8');
+  const tree = parseJavaScript(values, {ecmaVersion: 'latest', sourceType: 'module'});
+  const assignments = [];
+  (function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'AssignmentExpression' && node.left.property?.name === 'capacity' &&
+        node.left.object.property?.name === 'host_policy_profile' &&
+        node.left.object.object?.name === 'environmentBody') assignments.push(node.right);
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === 'object') visit(value);
+    }
+  })(tree);
+  assert.equal(assignments.length, 1);
+  const normalized = {max_graph_construction_edges: 1000, max_graph_construction_input_rows: 1000,
+    max_graph_construction_nodes: 1000, ...raw};
+  const bindingCapacity = new Function('environmentBody', 'effectEnvironmentWire', 'effectiveHostCapacityPolicy',
+    `return (${values.slice(assignments[0].start, assignments[0].end)});`)(
+    {host_policy_profile: {capacity: raw}}, undefined, normalized);
+  assert.deepEqual(bindingCapacity, normalized);
+});
+
+test('packed Query Source Hosts and reopens retain the published fixture policy', async () => {
+  const source = readFileSync(new URL('./test-node-client-package.mjs', import.meta.url), 'utf8');
+  const tree = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  function nodes(tree, predicate) {
+    const found = [];
+    (function visit(node) {
+      if (!node || typeof node !== 'object') return;
+      if (predicate(node)) found.push(node);
+      for (const value of Object.values(node)) {
+        if (Array.isArray(value)) value.forEach(visit);
+        else if (value && typeof value === 'object') visit(value);
+      }
+    })(tree);
+    return found;
+  }
+  const baseWire = readFileSync(new URL('../spec/local-check-environment.json', import.meta.url), 'utf8');
+  const start = source.indexOf('const sourceCatalog = await readFile(');
+  const end = source.indexOf('const compileCapturedQuery = ', start);
+  assert(start > 0 && end > start);
+  const AsyncFunction = Object.getPrototypeOf(async function() {}).constructor;
+  const prepare = new AsyncFunction('root', 'repository', 'readFile', 'join', 'assert', 'machineCid',
+    source.slice(start, end) + '\nreturn sourceEnvironment;');
+  const published = await prepare('/app', root, async (path, encoding) => {
+    assert.equal(encoding, 'utf8');
+    if (path === '/app/node_modules/@actql/local-node/spec/local-check-environment.json') return baseWire;
+    assert.equal(path, join(root, 'src/query_integration/query_amount_catalog_wbtest.mbt'));
+    return readFile(path, encoding);
+  }, join, assert, machineCid);
+  const profileBindings = nodes(tree, node => node.type === 'VariableDeclarator' &&
+    node.id.name === 'sourceProfilePath');
+  assert.equal(profileBindings.length, 1);
+  assert.equal(profileBindings[0].init.callee.name, 'join');
+  assert.equal(profileBindings[0].init.arguments[1].value, 'source-profile.json');
+  const profiles = nodes(tree, node => node.type === 'CallExpression' && node.callee.name === 'writeFile' &&
+    node.arguments[0]?.type === 'Identifier' && node.arguments[0].name === 'sourceProfilePath');
+  assert.equal(profiles.length, 1);
+  const profile = profiles[0].arguments[1].arguments[0];
+  const wireNode = profile.properties.find(property => property.key.name === 'checkEnvironmentWire').value;
+  const publishedWire = new Function('canonicalText', 'sourceEnvironment',
+    'return (' + source.slice(wireNode.start, wireNode.end) + ');')(canonicalText, published);
+  const authorization = nodes(tree, node => node.type === 'VariableDeclarator' &&
+    node.id.name === 'remoteAuthorization');
+  assert.equal(authorization.length, 1);
+  const remoteAuthorization = new Function('userInfo',
+    'return (' + source.slice(authorization[0].init.start, authorization[0].init.end) + ');')(
+    () => ({username: 'fixture-operator'}));
+  const originalPolicy = Object.freeze({});
+  const moon = {
+    clientLocalResourcePolicyOriginal: () => originalPolicy,
+    clientLocalResourcePolicyRowCeiling(value) {assert.equal(value, originalPolicy); return 2097152;},
+    clientLocalResourcePolicyModelRequestByteCeiling(value) {assert.equal(value, originalPolicy); return 65536n;},
+    clientProgramCheckEnvironment: () => ({}),
+  };
+  let checked = 0;
+  function checkOptions(text, node, policy, embedded) {
+    const options = new Function('hostCapacityPolicy', 'root', 'join', 'sourceProfilePath', 'process',
+      'remoteAuthorization', 'readFileSync',
+      'return (' + text.slice(node.start, node.end) + ');')(policy, '/app', join, '/app/source-profile.json',
+      {env: {}, cwd: () => '/app'}, remoteAuthorization, (path, encoding) => {
+        assert.equal(path, 'remote-authorization.json'); assert.equal(encoding, 'utf8');
+        return JSON.stringify(remoteAuthorization);
+      });
+    if (!embedded) assert.deepEqual(options.authorization, remoteAuthorization);
+    const selected = embedded ? options.installation?.hostCapacityPolicy : options.hostCapacityPolicy;
+    const effective = selectInstalledLocalMaterializationEnvironment(moon, baseWire.trimEnd(), selected);
+    const composed = composeInstalledCheckEnvironment(moon, effective, effective, publishedWire);
+    assert.deepEqual(JSON.parse(composed).host_policy_profile, published.host_policy_profile);
+    assert.deepEqual(selected, published.host_policy_profile.capacity);
+    checked++;
+  }
+  const remote = nodes(tree, node => node.type === 'CallExpression' &&
+    node.callee.name === 'openInstalledRemoteHttpHost');
+  assert.equal(remote.length, 1);
+  checkOptions(source, remote[0].arguments[0], published.host_policy_profile.capacity, false);
+  for (const file of ['smoke.mjs', 'restart.mjs', 'restart-remote-host.mjs']) {
+    const writers = nodes(tree, node => node.type === 'CallExpression' && node.callee.name === 'writeFile' &&
+      node.arguments[0]?.type === 'CallExpression' && node.arguments[0].arguments.some(
+        arg => arg.type === 'Literal' && arg.value === file));
+    assert.equal(writers.length, 1);
+    const template = writers[0].arguments[1];
+    assert.equal(template.expressions.length, 0);
+    const text = template.quasis[0].value.cooked;
+    const actor = parseJavaScript(text, {ecmaVersion: 'latest', sourceType: 'module'});
+    const bindings = actor.body.filter(node => node.type === 'VariableDeclaration' &&
+      node.declarations[0].id.name === 'hostCapacityPolicy');
+    assert(bindings.length <= 1);
+    const policy = bindings.length === 0 ? undefined : new Function('readFileSync',
+      text.slice(bindings[0].start, bindings[0].end) + '\nreturn hostCapacityPolicy;')((path, encoding) => {
+      assert.equal(path, 'source-profile.json'); assert.equal(encoding, 'utf8');
+      return JSON.stringify({checkEnvironmentWire: publishedWire});
+    });
+    const calls = nodes(actor, node => node.type === 'CallExpression' &&
+      ['connect', 'runApplication', 'runAcquiredApplication', 'openInstalledRemoteHttpHost'].includes(node.callee.name) &&
+      node.arguments[0]?.type === 'ObjectExpression');
+    for (const call of calls) {
+      const properties = call.arguments[0].properties;
+      const value = name => properties.find(property => property.key.name === name)?.value;
+      const embedded = call.callee.name !== 'openInstalledRemoteHttpHost';
+      if (embedded && (value('mode')?.value !== 'local' || value('endpoint') !== undefined)) continue;
+      checkOptions(text, call.arguments[0], policy, embedded);
+    }
+  }
+  assert.equal(checked, 7, 'initial, projection, acquired, variant and both restart Host openings');
+  assert.throws(() => composeInstalledCheckEnvironment(moon,
+    selectInstalledLocalMaterializationEnvironment(moon, baseWire.trimEnd()),
+    selectInstalledLocalMaterializationEnvironment(moon, baseWire.trimEnd()), publishedWire),
+  error => error.code === 'InstalledCheckEnvironmentConflict' && error.cause === 'EnvironmentBase');
+});
+
+// Actual SDK admission with explicit Host wire replies, not installed execution
+// or physical-stop acceptance. The callers are extracted from the packed scripts.
+test('packed terminal cancellation keeps the SDK attempt and original terminal fact separate', async t => {
+  const {connectInProcess} = await import('../packages/sdk/host-port.mjs');
+  const source = readFileSync(new URL('./test-node-client-package.mjs', import.meta.url), 'utf8');
+  const tree = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  const writer = tree.body.map(node => node.expression?.argument).find(node =>
+    node?.callee?.name === 'writeFile' && node.arguments[0]?.arguments?.some(
+      value => value.value === 'smoke.mjs'));
+  assert(writer);
+  assert.equal(writer.arguments[1].expressions.length, 0);
+  const actor = writer.arguments[1].quasis[0].value.cooked;
+  const segments = [
+    ['execution', "assert.deepEqual(rows, [{id: 1}, {id: 2}]);",
+      "await assert.rejects(execution.result('answer').all({maxRows: 1}),"],
+    ['acquiredStarted', "assert.deepEqual(await acquiredStarted.result('b').all(), acquiredLocal.b);",
+      "writeFileSync('acquired-local-ref.json',"],
+  ];
+  for (const [name, before, after] of segments) {
+    const start = actor.indexOf(before), end = actor.indexOf(after, start);
+    assert(start >= 0 && end > start);
+    const check = new Function('assert', name, 'return (async () => {' +
+      actor.slice(start + before.length, end) + '})();');
+    async function fixture({physicalStop = 'confirmed', foreign = false} = {}) {
+      const calls = [], ref = {namespaceId: 'packed-terminal',
+        authorityScopeCid: 'sha256:' + 'a'.repeat(64), runDefinitionCid: 'sha256:' + 'b'.repeat(64)};
+      const client = await connectInProcess({mode: 'local', owner: 'local'}, {perform(operation, body) {
+        if (operation === 'connect') return {version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
+          durability: 'durable', scopeRef: 'packed-terminal', capabilities: [], limits: {
+            maxReadWireBytes: 4096, maxRowWireBytes: 1024, maxRowRetainedValueBytes: 1024,
+            maxRetainedValueBytes: 4096, maxRows: 10, maxBatchRows: 3, maxBatchRetainedValueBytes: 1024}};
+        if (operation === 'close') return;
+        calls.push(operation);
+        if (operation === 'attach') return {ref, durability: 'durable', revision: 1};
+        assert.deepEqual(body.ref, ref);
+        if (operation === 'status') return {version: 'actql-run-state/0.1', run_id: 'terminal', revision: 41,
+          status: 'succeeded', updated_at: '2026-10-09T00:00:00.000Z', next_action: {kind: 'none'},
+          result_available: false, result_availability: {answer: {state: 'unavailable', reason: 'not_published',
+            observed_at: '2026-10-09T00:00:00.000Z'}},
+          control: {revision: 19, cancellation_requested: false, physical_stop: physicalStop}};
+        assert.equal(operation, 'cancel');
+        return {kind: 'already_satisfied', attemptRef: body.attemptRef,
+          cancellation: {kind: 'already_terminal', ref: foreign ? {...ref, runDefinitionCid: 'sha256:' + 'c'.repeat(64)} : ref,
+            cancelRef: {...ref, cancelId: body.cancelId, expectedRevision: body.expectedRevision}, revision: 19}};
+      }});
+      t.after(() => client.close());
+      return {run: await client.attach(ref), calls};
+    }
+    const original = await fixture();
+    await check(assert, original.run);
+    assert.deepEqual(original.calls, ['attach', 'status', 'cancel', ...(name === 'execution' ? ['status'] : [])]);
+    const foreign = await fixture({foreign: true});
+    await assert.rejects(check(assert, foreign.run), {code: 'CancellationUnknown'});
+    assert.equal(foreign.calls.filter(value => value === 'cancel').length, 1);
+    if (name === 'execution') {
+      const pending = await fixture({physicalStop: 'unknown'});
+      await assert.rejects(check(assert, pending.run), {code: 'ERR_ASSERTION'});
+      assert.equal(pending.calls.filter(value => value === 'cancel').length, 1,
+        'a terminal cancellation fact cannot replace the separate physical-stop observation');
+    }
+  }
+});
+
+test('packed expired recovery supplies its original unresolved lookup before SDK submission', async t => {
+  const {connectInProcess} = await import('../packages/sdk/host-port.mjs');
+  const {getSubmissionOutcome} = await import('../packages/sdk/index.mjs');
+  const {submissionEpoch} = await import('../packages/sdk/submission-fixture.mjs');
+  const source = readFileSync(new URL('./test-packed-client-checkpoint.mjs', import.meta.url), 'utf8');
+  const tree = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  const writer = tree.body.map(node => node.expression?.argument).find(node =>
+    node?.callee?.name === 'writeFile' && node.arguments[0]?.arguments?.some(value => value.value === 'client.mjs'));
+  assert(writer);
+  assert.equal(writer.arguments[1].expressions.length, 0);
+  const actor = writer.arguments[1].quasis[0].value.cooked;
+  const body = parseJavaScript(actor, {ecmaVersion: 'latest', sourceType: 'module'});
+  const steps = body.body.flatMap(node => node.declarations ?? []).find(node => node.id.name === 'steps');
+  const method = steps.init.properties.find(node => node.key.name === 'recoveredAgain');
+  const recoveredAgain = new Function('as', 'assert', 'requestId', 'text', 'process',
+    'return ({' + actor.slice(method.start, method.end) + '}).recoveredAgain;');
+  const calls = [], requestId = 'expired-original', text = '{"original":"historical input"}';
+  const ref = {namespaceId: 'packed-recovery', authorityScopeCid: submissionEpoch.authorityScopeCid,
+    runDefinitionCid: 'sha256:' + 'd'.repeat(64)};
+  const client = await connectInProcess({mode: 'local', owner: 'local'}, {perform(operation, packet) {
+    if (operation === 'connect') return {version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
+      durability: 'durable', scopeRef: 'packed-recovery', capabilities: ['aql-document'], submissionEpoch,
+      limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024, maxRowRetainedValueBytes: 1024,
+        maxRetainedValueBytes: 4096, maxRows: 10, maxBatchRows: 3, maxBatchRetainedValueBytes: 1024}};
+    if (operation === 'close') return;
+    calls.push(operation);
+    if (operation === 'lookup-request') return {kind: 'found', requestId, ref,
+      durability: 'durable', lookupExpiresAt: '2099-01-01'};
+    if (operation === 'attach') {assert.deepEqual(packet.ref, ref); return {ref, durability: 'durable', revision: 1};}
+    if (operation === 'wait') return {version: 'actql-run-state/0.1', run_id: 'expired', revision: 1,
+      status: 'failed', updated_at: '2026-10-09T00:00:00.000Z', next_action: {kind: 'none'},
+      result_available: false, result_availability: {answer: {state: 'unavailable', reason: 'not_published',
+        observed_at: '2026-10-09T00:00:00.000Z'}}};
+    assert.equal(operation, 'submit-named-intent');
+    return {kind: 'observed', requestName: packet.requestName, intentCid: packet.intentCid,
+      attemptRef: packet.attemptRef, outcome: {kind: 'preparation_failed', submissionRef: packet.submissionRef,
+        intentCid: packet.intentCid, problem: {code: 'ACTQL_E_DELEGATION_UNAVAILABLE', classification: 'operation_failed'}}};
+  }});
+  t.after(() => client.close());
+  let originalLookup, submittedOptions;
+  const owner = {async lookupRequest(id) {assert.equal(id, requestId); return originalLookup = await client.lookupRequest(id);},
+    attach: reference => client.attach(reference), startSource(value, options) {
+      assert.equal(value, text); submittedOptions = options; return client.startSource(value, options);
+    }};
+  await recoveredAgain(async token => {assert.equal(token, 'owner-token'); return owner;},
+    assert, requestId, text, {env: {EXPECT_STATUS: 'failed'}})();
+  assert.equal(submittedOptions.unresolvedHistory, originalLookup);
+  assert.deepEqual(calls, ['lookup-request', 'attach', 'wait'], 'historical recovery never submits another intent');
+  await assert.rejects(client.startSource(text, {format: 'json', requestId: 'ordinary-new-name'}), error => {
+    assert.equal(error.code, 'SubmissionPreparationFailed');
+    assert.deepEqual(getSubmissionOutcome(error).problem,
+      {code: 'ACTQL_E_DELEGATION_UNAVAILABLE', classification: 'operation_failed'});
+    return true;
+  });
+  assert.equal(calls.filter(value => value === 'submit-named-intent').length, 1,
+    'ordinary requestId-only first binding keeps its separate legitimate Host operation');
+});
+
+test('computation cleanup keeps shared reservations and cumulative use', async () => {
+  const source = await readFile(new URL('./test-packed-salesforce-source.mjs', import.meta.url), 'utf8');
+  const declarations = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}).body;
+  const functions = ['assertReleasedComputationCleanup', 'assertCompletedComputationCleanup']
+    .map(name => declarations.find(node => node.type === 'FunctionDeclaration' && node.id.name === name));
+  assert.ok(functions.every(Boolean));
+  const check = new Function('assert', functions.map(node => source.slice(node.start, node.end)).join('\n') +
+    '; return assertCompletedComputationCleanup;')(assert);
+  const snapshot = (heldBytes, transferredBytes, planningWork) => ({resourceUsage: {
+    reservedExecutionBytes: '100', reservedRetentionBytes: '50', reservedTransferBytes: '10',
+    heldBytes, transferredBytes, planningWork,
+  }});
+  const completed = snapshot('40', '3', '7'), pending = snapshot('20', '4', '8');
+  const released = snapshot('0', '6', '9');
+  check(completed, pending, released);
+  for (const key of ['transferredBytes', 'planningWork']) {
+    const regressedPending = structuredClone(pending);
+    regressedPending.resourceUsage[key] = '0';
+    assert.throws(() => check(completed, regressedPending, released));
+    const regressedRelease = structuredClone(released);
+    regressedRelease.resourceUsage[key] = '0';
+    assert.throws(() => check(completed, pending, regressedRelease));
+  }
+  assert.throws(() => check(completed, pending, snapshot('1', '6', '9')));
+  assert.throws(() => check(completed, pending, undefined));
+});
+import './packed-duckdb-capability-input.test.mjs';
+import './historical-typed-values-binding.test.mjs';
+
+import './packed-remote-observation-policy.test.mjs';
+
+import './packed-browser-source-closure.test.mjs';

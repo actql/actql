@@ -13,6 +13,12 @@ struct NativeClientValuesWork {
   mut requirements : @local.ClientLocalRequirements?
   current : () -> Bool
   original_access : NativeLocalValuesOriginalAccess?
+  managed : @local.ClientInstalledManagedRun?
+  mut publication_invocation : (
+    @publication.RunEvidenceValue,
+    @publication.PublicationContract,
+  )?
+  mut publication : @local.ClientProgramPublication?
 }
 
 ///|
@@ -127,6 +133,7 @@ fn open_native_client_local_values_work(
   ledger? : @resources.Ledger? = None,
   original_access? : NativeLocalValuesOriginalAccess? = None,
   requirements? : @local.ClientLocalRequirements? = None,
+  managed? : @local.ClientInstalledManagedRun? = None,
 ) -> Result[NativeClientValuesWork, NativeClientValuesWorkFailure] {
   if !current() {
     return Err(
@@ -189,30 +196,53 @@ fn open_native_client_local_values_work(
   }
   // A supplied Ledger remains the existing Resource Owner. A refused setup
   // cannot fall back to the legacy constructor and silently obtain a new one.
-  let selected = match ledger {
-    Some(original) =>
-      @local.open_source_free_local_retained_host_on_ledger(
-        prepared,
-        original,
-        installed_contracts,
-        values_body,
-        fragment_body,
-        ordered_body,
-        requirements=Some(requirements),
-      )
+  let selected = match managed {
+    Some(original) => {
+      guard ledger is Some(backing) else {
+        return Err(local_values_work_failure(Configuration))
+      }
+      match
+        @local.open_installed_managed_source_free_host(
+          original,
+          prepared,
+          request,
+          installed_contracts,
+          values_body,
+          fragment_body,
+          ordered_body,
+          false,
+          backing=Some(backing),
+        ) {
+        Err(_) => return Err(local_values_work_failure(Configuration))
+        Ok(value) => value
+      }
+    }
     None =>
-      @local.open_source_free_local_retained_host(
-        prepared,
-        installed_contracts,
-        values_body,
-        1L,
-        0L,
-        0L,
-        0L,
-        fragment_body~,
-        ordered_body~,
-        requirements=Some(requirements),
-      )
+      match ledger {
+        Some(original) =>
+          @local.open_source_free_local_retained_host_on_ledger(
+            prepared,
+            original,
+            installed_contracts,
+            values_body,
+            fragment_body,
+            ordered_body,
+            requirements=Some(requirements),
+          )
+        None =>
+          @local.open_source_free_local_retained_host(
+            prepared,
+            installed_contracts,
+            values_body,
+            1L,
+            0L,
+            0L,
+            0L,
+            fragment_body~,
+            ordered_body~,
+            requirements=Some(requirements),
+          )
+      }
   }
   guard selected is Some(setup) else {
     return Err(local_values_work_failure(Configuration))
@@ -283,6 +313,9 @@ fn open_native_client_local_values_work(
     requirements: Some(requirements),
     current,
     original_access,
+    managed,
+    publication_invocation: None,
+    publication: None,
   })
 }
 
@@ -366,7 +399,12 @@ pub fn NativeClientValuesWork::prepare_result_export(
   }
   let output = match
     self.execution.prepare_result_export(
-      result_index, row_limits, max_entries, max_name_bytes, limits,
+      result_index,
+      row_limits,
+      max_entries,
+      max_name_bytes,
+      limits,
+      publication=self.publication,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Export(issue))
@@ -443,4 +481,14 @@ pub fn NativeClientValuesWork::close(self : NativeClientValuesWork) -> Bool {
   }
   self.requirements = None
   true
+}
+
+///|
+/// Borrow the same Plan's bridge and evidence metadata limits separately from
+/// Result row workspace. This issues no Start, Read or publication authority.
+pub fn NativeClientValuesWork::publication_entry_limits(
+  self : NativeClientValuesWork,
+) -> (Int, Int)? {
+  guard self.requirements is Some(original) else { return None }
+  original.publication_entry_limits(self.prepared)
 }

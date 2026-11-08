@@ -1,10 +1,10 @@
 ///|
 fn table_from_capture(input : CapturedRows) -> Table {
-  table_from_capture_bounded(input, { remaining: 100000, max_frames: 0, }, {
-    limit: 100000,
-    live: 0,
-    peak: 0,
-  }).unwrap()
+  table_from_capture_bounded(
+    input,
+    { remaining: 100000, max_frames: 0, },
+    row_workspace(100000),
+  ).unwrap()
 }
 
 ///|
@@ -24,7 +24,7 @@ fn evaluate_rows(
     max_rows,
     control,
     output,
-    { limit: 100000, live: 0, peak: 0, },
+    row_workspace(100000),
     analytic_envelope~,
   )
 }
@@ -348,7 +348,7 @@ test "unique assertions compare every key domain including owned references" {
         [@schema.Unqualified("key")],
         Map([("key", 0)]),
         { remaining: 100000, max_frames: 100, },
-        { limit: 10000, live: 0, peak: 0, },
+        row_workspace(10000),
       )
       is Err(AssertionDuplicate(0, 1)),
     )
@@ -364,7 +364,7 @@ test "unique assertion work and workspace bounds are exact at scale" {
   let ordinals = Map([("key", 0)])
   let maximum = 1000000
   let control = { remaining: maximum, max_frames: 100, }
-  let workspace = { limit: maximum, live: 0, peak: 0, }
+  let workspace = { ..row_workspace(maximum), live: 0, peak: 0, }
   validate_unique_rows(input, keys, ordinals, control, workspace).unwrap()
   let used = maximum - control.remaining
   let peak = workspace.peak
@@ -379,7 +379,7 @@ test "unique assertion work and workspace bounds are exact at scale" {
       keys,
       ordinals,
       { remaining: work, max_frames: 100, },
-      { limit: space, live: 0, peak: 0, },
+      { ..row_workspace(space), live: 0, peak: 0, },
     )
     if success {
       assert_true(result is Ok(_))
@@ -416,7 +416,7 @@ test "capture conversion admits both layouts before copying and spends shared wo
     max_work: 100,
   }).unwrap()
   // Captured row references/cells: 6; copied row references/cells/names: 8.
-  let workspace = { limit: 14, live: 0, peak: 0, }
+  let workspace = row_workspace(14)
   let control = { remaining: 10, max_frames: 0, }
   let table = table_from_capture_bounded(input, control, workspace).unwrap()
   assert_eq(control.remaining, 0)
@@ -425,23 +425,23 @@ test "capture conversion admits both layouts before copying and spends shared wo
   assert_eq(table.names, ["a", "b"])
   assert_true(table.rows[0][0] is Number(1.0))
   assert_true(
-    table_from_capture_bounded(input, { remaining: 10, max_frames: 0, }, {
-      limit: 13,
-      live: 0,
-      peak: 0,
-    })
+    table_from_capture_bounded(
+      input,
+      { remaining: 10, max_frames: 0, },
+      row_workspace(13),
+    )
     is Err(RowLimit),
   )
   assert_true(
-    table_from_capture_bounded(input, { remaining: 9, max_frames: 0, }, {
-      limit: 14,
-      live: 0,
-      peak: 0,
-    })
+    table_from_capture_bounded(
+      input,
+      { remaining: 9, max_frames: 0, },
+      row_workspace(14),
+    )
     is Err(RowLimit),
   )
   assert_true(
-    table_from_capture_bounded(input, control, { limit: 14, live: 0, peak: 0, })
+    table_from_capture_bounded(input, control, row_workspace(14))
     is Err(RowLimit),
   )
   assert_true(
@@ -456,11 +456,11 @@ test "capture conversion admits both layouts before copying and spends shared wo
   table.rows[0][0] = Number(99.0)
   assert_true(capture(captured_cell(input, 0, 0).unwrap()) is Number(1.0))
   assert_true(
-    table_from_capture_bounded(input, { remaining: 10, max_frames: 0, }, {
-      limit: 14,
-      live: 0,
-      peak: 0,
-    }).unwrap().rows[0][0]
+    table_from_capture_bounded(
+      input,
+      { remaining: 10, max_frames: 0, },
+      row_workspace(14),
+    ).unwrap().rows[0][0]
     is Number(1.0),
   )
 }
@@ -476,11 +476,7 @@ test "conversion work is not reset before row execution" {
   }).unwrap()
   // Conversion consumes 10; select metadata and rows consume 18 more.
   let exact = { remaining: 28, max_frames: 0, }
-  let table = table_from_capture_bounded(input, exact, {
-    limit: 14,
-    live: 0,
-    peak: 0,
-  }).unwrap()
+  let table = table_from_capture_bounded(input, exact, row_workspace(14)).unwrap()
   assert_eq(
     evaluate_rows_with_workspace(
       row_kernel(owner, 1),
@@ -488,17 +484,13 @@ test "conversion work is not reset before row execution" {
       2,
       exact,
       row_output(),
-      { limit: 22, live: 0, peak: 0, },
+      row_workspace(22),
     ).unwrap().rows.length(),
     2,
   )
   assert_eq(exact.remaining, 0)
   let short = { remaining: 27, max_frames: 0, }
-  let table2 = table_from_capture_bounded(input, short, {
-    limit: 14,
-    live: 0,
-    peak: 0,
-  }).unwrap()
+  let table2 = table_from_capture_bounded(input, short, row_workspace(14)).unwrap()
   assert_true(
     evaluate_rows_with_workspace(
       row_kernel(owner, 1),
@@ -506,7 +498,7 @@ test "conversion work is not reset before row execution" {
       2,
       short,
       row_output(),
-      { limit: 22, live: 0, peak: 0, },
+      row_workspace(22),
     )
     is Err(RowLimit),
   )
@@ -519,7 +511,7 @@ test "row workspace exact projection limit and failure isolation" {
   let input = row_capture(owner)
   // Input: 2 names + 2 row references + 4 cells. Kernel view: 2.
   // Ordinals: 2. Projection metadata: 4. Output: 4 cells + 2 rows.
-  let exact = { limit: 22, live: 0, peak: 0, }
+  let exact = row_workspace(22)
   let result = evaluate_rows_with_workspace(
     kernel,
     input,
@@ -532,7 +524,7 @@ test "row workspace exact projection limit and failure isolation" {
   assert_eq(result.rows.length(), 2)
   assert_eq(exact.live, 22)
   assert_eq(exact.peak, 22)
-  let short = { limit: 21, live: 0, peak: 0, }
+  let short = row_workspace(21)
   assert_true(
     evaluate_rows_with_workspace(
       kernel,
@@ -567,7 +559,7 @@ test "row workspace exact projection limit and failure isolation" {
       2,
       { remaining: 1000, max_frames: 10, },
       row_output(),
-      { limit: 22, live: 0, peak: 0, },
+      row_workspace(22),
     ).unwrap().rows.length(),
     2,
   )
@@ -578,7 +570,7 @@ test "row workspace releases discarded filter snapshots and bounds retained rows
   let owner = row_owner(",{\"filter\":\"a > 10\"}")
   // Eight input entries + two ordinals + two output names = twelve.
   // One two-entry snapshot and one binary continuation; no output survives.
-  let workspace = { limit: 15, live: 0, peak: 0, }
+  let workspace = row_workspace(15)
   let result = evaluate_rows_with_workspace(
     row_kernel(owner, 1),
     row_capture(owner),
@@ -597,14 +589,14 @@ test "row workspace releases discarded filter snapshots and bounds retained rows
       2,
       { remaining: 1000, max_frames: 10, },
       row_output(),
-      { limit: 14, live: 0, peak: 0, },
+      row_workspace(14),
     )
     is Err(RowLimit),
   )
   let map_owner = row_owner(",{\"derive\":{}}")
   // Empty map still preserves both rows. Retained output entries accumulate,
   // but each input snapshot is released before constructing the next one.
-  let map_workspace = { limit: 20, live: 0, peak: 0, }
+  let map_workspace = row_workspace(20)
   assert_eq(
     evaluate_rows_with_workspace(
       row_kernel(map_owner, 1),

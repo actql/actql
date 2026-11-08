@@ -176,7 +176,8 @@ test('the original Mock declaration Environment includes its selected finite Loc
   assert.deepEqual(selected.host_policy_profile.lookup_execution,
     {...localFilesLookupExecutionPolicy([LOCAL_FILES_DEFAULT_LIMITS]),max_total_response_bytes:12345});
   assert.deepEqual(selected.host_policy_profile.capacity,{...base.host_policy_profile.capacity,
-    max_relation_output_rows:256,max_artifact_rows:256,max_model_request_bytes_per_item:65536});
+    max_relation_output_rows:256,max_artifact_rows:256,max_file_listing_items:256,
+    max_model_request_bytes_per_item:65536});
   assert.deepEqual(admitted,[selected]);assert.equal(limitReads,1);
   const explicit=snapshotHostLookupExecutionPolicy({...selected.host_policy_profile.lookup_execution,
     max_total_decoded_response_bytes:17});

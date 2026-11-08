@@ -591,9 +591,15 @@ fn request_serialized_model_fixture(
   serialized? : Bool = true,
   nonterminal? : Bool = false,
   authored? : String? = None,
+  source_declaration? : @row_source_host.RowDeclaration? = None,
 ) -> RequestSerializedModelFixture raise {
   let declaration = if single_capture || two_captures {
-    Some(request_model_module_declaration())
+    Some(
+      match source_declaration {
+        Some(original) => original
+        None => request_model_module_declaration()
+      },
+    )
   } else {
     None
   }
@@ -3769,4 +3775,200 @@ test "adopted captured Model reads only its retained original prefix before payl
     is Err(ForeignOriginal),
   )
   assert_eq(@resources.ledger_usage(f.parent.ledger).live_reservations, 0)
+}
+
+///|
+test "Request wide Query shape quote funds its same admitted Source before module construction" {
+  let fields : Array[@row_source_host.RowField] = [
+    { name: "id", value_type: "number", nullable: false, },
+    { name: "amount", value_type: "number", nullable: false, },
+  ]
+  for index in 0..<244 {
+    fields.push({
+      name: "extra_" + index.to_string(),
+      value_type: "number",
+      nullable: false,
+    })
+  }
+  let declaration = @row_source_host.generate_row_declaration(
+    "model/source-fixture",
+    "model_fixture",
+    "model_fixture/0.1",
+    [{ resource: "r", resource_kind: "record", fields, }],
+    {
+      max_bytes: 1000000,
+      max_nodes: 100000,
+      max_depth: 100,
+      max_views: 1,
+      max_fields: 246,
+    },
+  ).unwrap()
+  let f = request_serialized_model_fixture(
+    single_capture=true,
+    serialized=false,
+    source_declaration=Some(declaration),
+  )
+  let direct = request_model_direct_occurrences(f.parent, f.input).unwrap()
+  let (stage, source, task) = @publication_host.client_direct_acquisition_occurrence_at(
+    direct, 0,
+  ).unwrap()
+  assert_eq(task, 0)
+  let query_bytes = request_local_original_query_construction_bytes(
+    f.prepared,
+    stage,
+    source,
+  ).unwrap()
+  assert_true(query_bytes > request_local_query_construction_bytes().unwrap())
+  assert_eq(
+    request_local_original_query_construction_bytes(f.prepared, -1, source),
+    None,
+  )
+  assert_eq(
+    request_local_original_query_construction_bytes(f.prepared, stage, -1),
+    None,
+  )
+  assert_eq(
+    request_local_original_query_construction_bytes(f.prepared, 9999, source),
+    None,
+  )
+  let before = @resources.preparation_capacity_working_extents(
+    f.parent.program_capacity.unwrap(),
+    f.input,
+  ).unwrap()
+  let observed = Ref(false)
+  let original = prepare_request_model_capture_module(
+    f.parent,
+    f.input,
+    f.request,
+    f.compiled,
+    f.definition,
+    f.compilation,
+    [declaration],
+    original_row_query_contract_fixture,
+    original_row_evidence_contract_fixture,
+    [4096L],
+    [2048L],
+    f.contracts,
+    true,
+    0,
+    _ => {
+      let live = @resources.preparation_capacity_working_extents(
+        f.parent.program_capacity.unwrap(),
+        f.input,
+      ).unwrap()
+      observed.val = live.0 >= before.0 + query_bytes &&
+        live.1 >= before.1 + query_bytes
+      []
+    },
+    providers=Some([Some(@execution.execution_capacity(7L, 9L).unwrap())]),
+  ).unwrap()
+  let query = @query.query_sequence_requirement(
+    @planning.query_material_owner(
+      @planning.query_requirement_material(original.captures[0].requirement),
+    ),
+  )
+  assert_eq(
+    installed_local_query_requirement_limits(query).unwrap().max_fields,
+    248,
+  )
+  assert_eq(
+    query_bytes,
+    request_local_query_construction_bytes(max_fields=248).unwrap(),
+  )
+  assert_true(observed.val)
+  assert_true(
+    physical_equal(
+      direct,
+      request_model_direct_occurrences(f.parent, f.input).unwrap(),
+    ),
+  )
+  assert_false(@resources.return_preparation_body_borrow(f.holder).unwrap())
+  abort_request_preparation_after_cleanup(f.parent).unwrap()
+  assert_eq(@resources.ledger_usage(f.parent.ledger).live_reservations, 0)
+}
+
+///|
+test "Effect Graph admits the installed caller material on its same Request before construction" {
+  let storage : @execution.PreparationRepresentationUnits = {
+    record_headers: 3L,
+    reference_slots: 7L,
+    scalar_words: 11L,
+    owned_utf16_units: 13L,
+    owned_wire_bytes: 17L,
+  }
+  let mut unextended = (0L, 0L)
+  for extended in [false, true] {
+    let (parent, input, prepared, holder, occurrence, execution) = request_effect_model_graph_inputs()
+    let capacity = parent.effect_capacity.unwrap()
+    let before = @resources.preparation_capacity_working_extents(
+      capacity, input,
+    ).unwrap()
+    let graph = prepare_request_model_graph(
+      parent,
+      input,
+      occurrence,
+      execution,
+      request_program_module_contracts(),
+      manifests=request_program_module_manifests(),
+      compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+      caller_material=if extended { Some(storage) } else { None },
+    ).unwrap()
+    let after = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
+    if extended {
+      let bytes = @execution.preparation_representation_cost(storage).unwrap()
+      assert_eq(after.0 - before.0, unextended.0 + bytes)
+      assert_eq(after.1 - before.1, unextended.1 + bytes)
+    } else {
+      unextended = (after.0 - before.0, after.1 - before.1)
+    }
+    assert_true(physical_equal(parent.effect_capacity.unwrap(), capacity))
+    assert_true(physical_equal(parent.compiled_effect.unwrap(), prepared))
+    assert_true(
+      parent.program_domain_compilation_inputs
+      is Some(RequestModelGraph(_, _, _, selected)) &&
+      physical_equal(selected, graph),
+    )
+    @resources.return_preparation_body_borrow(holder).unwrap() |> ignore
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+    assert_eq(@resources.ledger_usage(parent.ledger).held_bytes, 0L)
+  }
+}
+
+///|
+test "invalid caller material cannot construct an Effect Model Graph or replace its original cleanup" {
+  let (parent, input, prepared, holder, occurrence, execution) = request_effect_model_graph_inputs()
+  let capacity = parent.effect_capacity.unwrap()
+  let before = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
+  assert_true(
+    prepare_request_model_graph(
+      parent,
+      input,
+      occurrence,
+      execution,
+      request_program_module_contracts(),
+      manifests=request_program_module_manifests(),
+      compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+      caller_material=Some({
+        record_headers: -1L,
+        reference_slots: 0L,
+        scalar_words: 0L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      }),
+    )
+    is Err(Preparation(Policy)),
+  )
+  assert_true(parent.phase == EffectBodyFailed)
+  assert_true(parent.program_domain_compilation_inputs is None)
+  assert_true(physical_equal(parent.effect_capacity.unwrap(), capacity))
+  assert_true(physical_equal(parent.compiled_effect.unwrap(), prepared))
+  assert_eq(
+    @resources.preparation_capacity_working_extents(capacity, input).unwrap(),
+    before,
+  )
+  @resources.return_preparation_body_borrow(holder).unwrap() |> ignore
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  assert_eq(@resources.ledger_usage(parent.ledger).held_bytes, 0L)
 }

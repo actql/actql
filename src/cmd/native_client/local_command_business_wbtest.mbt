@@ -1,4 +1,25 @@
 ///|
+// A checked demand below the supported facility can select a smaller actual
+// acquisition. A conservative upper bound above it does not invalidate the
+// existing finite facility or promise that every input will fit it.
+fn local_command_selected_business_limits(
+  maximum : @initial_resources.LedgerLimits,
+  required : @initial_resources.LedgerLimits?,
+) -> @initial_resources.LedgerLimits {
+  match required {
+    Some(value) if value.retained_bytes > 0L &&
+      value.execution_bytes > 0L &&
+      value.planning_work <= maximum.planning_work &&
+      value.attempts <= maximum.attempts &&
+      value.holdings <= maximum.holdings &&
+      value.transfer_bytes <= maximum.transfer_bytes &&
+      value.retained_bytes <= maximum.retained_bytes &&
+      value.execution_bytes <= maximum.execution_bytes => value
+    _ => maximum
+  }
+}
+
+///|
 test "Business candidate rejects parent control overlap and simultaneous allowance overflow before physical acquisition" {
   // Declaration validation only, not an adopted operational profile. These
   // cases cannot create a Host/domain or issue a business Ledger from DATA.

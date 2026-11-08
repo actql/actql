@@ -159,3 +159,76 @@ test "Salesforce whole Catalog recovery counts cumulative raw metadata not one f
     @execution.execution_capacity_retained_bytes(many_fields),
   )
 }
+
+///|
+test "named cold recovery funds preflight then actual Source geometry under unchanged 512MiB" {
+  let profile = capture_construction_profile_fixture()
+  let list : @catalog.ListLimits = {
+    max_bytes: 4000000,
+    max_nodes: 100000,
+    max_depth: 32,
+    max_resources: 2000,
+    max_selected: 200,
+    max_name_units: 100000,
+  }
+  let describe : @catalog.DescribeLimits = {
+    max_bytes: 4000000,
+    max_nodes: 400000,
+    max_depth: 32,
+    max_fields: 1000,
+    max_name_units: 200000,
+  }
+  let preview : @source.ParseLimits = {
+    max_input_bytes: 3454,
+    max_nodes: 3454,
+    max_depth: 64,
+  }
+  // Public large-text/small-forest shape: the Source owner measures the SAME
+  // actual body, rather than inheriting one parser node per Base64 wire byte.
+  let text = "{\"name\":\"Account\",\"fields\":[],\"description\":\"" +
+    "x".repeat(251000) +
+    "\"}"
+  let body = @utf8.encode(text)
+  let geometry = named_describe_response_geometry(body, describe).unwrap()
+  let select = (preflight, geometry) => {
+    effect_capture_construction_profile(
+      Some(profile),
+      preview,
+      list,
+      describe,
+      8000000,
+      8000000,
+      1000000,
+      1024,
+      1,
+      4,
+      5,
+      7,
+      recovery_input_bytes=336591,
+      recovery_source_nodes=Some(4096),
+      recovery_preflight=preflight,
+      named_source_geometry=geometry,
+    ).unwrap()
+  }
+  let prelude = select(true, None)
+  let actual = select(false, Some(geometry))
+  let old = select(false, None)
+  let retained = @execution.execution_capacity_retained_bytes(actual[0])
+  assert_eq(@execution.execution_capacity_retained_bytes(prelude[0]), retained)
+  assert_eq(@execution.execution_capacity_retained_bytes(old[0]), retained)
+  assert_true(
+    @execution.execution_capacity_execution_bytes(prelude[0]) < 536870912L,
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(actual[0]) < 536870912L,
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(actual[0]) >=
+    @execution.execution_capacity_execution_bytes(prelude[0]),
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(old[0]) > 536870912L,
+  )
+  // Measuring the source is not Catalog validation or an observation proof.
+  assert_true(geometry.node_upper < 32)
+}

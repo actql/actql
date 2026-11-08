@@ -137,9 +137,11 @@ fn snowflake_read_description(
 }
 
 ///|
+// This component exercises QueryMaterial, not the whole-input reader. Its
+// predicate is authored here; ordinary unfiltered Source coverage stays separate.
 fn snowflake_read_preparation(
   fresh_precision? : Int = 38,
-  query_text? : String = "SELECT ACCOUNT_ID, ACTIVE_USERS, TREND FROM snowflake.usage_30d",
+  query_text? : String = "SELECT ACCOUNT_ID, ACTIVE_USERS, TREND FROM snowflake.usage_30d WHERE TRUE",
   temporal? : Bool = false,
   selected_fields? : Array[String] = ["ACCOUNT_ID", "ACTIVE_USERS", "TREND"],
 ) -> Result[@snowflake_read.PreparedRead, @snowflake_read.ReadIssue] raise {
@@ -769,7 +771,7 @@ test "Snowflake overflow is a charged value refusal rather than a schema coercio
 ///|
 test "Snowflake AQL uses the same original Common compiler acquisition and cleanup" {
   let prepared = snowflake_read_preparation(
-    query_text="FROM snowflake.usage_30d |> SELECT ACCOUNT_ID, ACTIVE_USERS, TREND",
+    query_text="FROM snowflake.usage_30d |> WHERE TRUE |> SELECT ACCOUNT_ID, ACTIVE_USERS, TREND",
   ).unwrap()
   let body = snowflake_result_body(snowflake_two_rows())
   let ledger = snowflake_read_ledger(prepared, body.length().to_int64())

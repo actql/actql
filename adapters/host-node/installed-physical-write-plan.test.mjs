@@ -79,7 +79,7 @@ test('pure cold reconstruction selects only its authenticated member wire inside
     foreign = {memberIndex: 1, wire: 'x'.repeat(6000)};
   select(preview, [own, foreign], 0);
   let quote = f.calls.filter(value => value[0] === 'recipe').at(-1);
-  assert.deepEqual(quote.slice(4, 7), [7, 15, 15]);
+  assert.deepEqual(quote.slice(4, 7), [7, 7, 7]);
   assert.equal(quote[8], 15);
   assert.equal(quote.at(-2), f.physical);
   assert.equal(quote.at(-1), 2000);

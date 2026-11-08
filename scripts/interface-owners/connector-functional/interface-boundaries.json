@@ -3639,7 +3639,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
-      "sha256": "818fe1c779963a8c45efb8b93866fc59191e9ebb6fb7d877cb8ce10a9d9f1fed",
+      "sha256": "c3cc6d7d8139b3a0caa5acb9a1a0a48ac96e3be59fc66e5b3ce0850ded3368c4",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing Salesforce request/projection/target-read/capability/response and recovery functions under Common installed Effect",
@@ -3866,7 +3866,8 @@
             "recorded",
             "previewWire",
             "body",
-            "memberIndexes"
+            "memberIndexes",
+            "reserveRecoveryInput"
           ],
           "async": false
         },
@@ -4840,7 +4841,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "f9692317cec85319d68903b9d07c6449542cf2c63cb5315919221dde95274dbb",
+      "sha256": "db576b698fcb9b2fe39fa62ea0ee06262321368fd5411ebfa7d03b66359c48a5",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -5434,6 +5435,7 @@
             "inputs",
             "context",
             "requestScope",
+            "limits",
             "members",
             "rowsOf",
             "capabilities",
@@ -5463,7 +5465,8 @@
             "effects",
             "members",
             "requestScope",
-            "keys"
+            "keys",
+            "limits"
           ],
           "async": false
         },
@@ -5998,6 +6001,7 @@
           "name": "createRowEffectStage/describeMember/describeMember",
           "parameters": [
             "member",
+            "maxRows",
             "physicalOperations",
             "operationPhase",
             "runInvocationCid",
@@ -6037,7 +6041,8 @@
             "runInvocationCid",
             "dispatchRequestCid",
             "assertCurrent",
-            "signal"
+            "signal",
+            "originalTargetAuthorization"
           ],
           "async": false
         },
@@ -6052,9 +6057,7 @@
         {
           "name": "createRowEffectStage/managedReadChild/managedReadChild/managedReadChild",
           "parameters": [
-            "originalAuthorization",
-            "input",
-            "rowIndex"
+            "entry"
           ],
           "async": false
         },
@@ -6065,17 +6068,21 @@
             "credential",
             "callResource"
           ],
-          "async": false
+          "async": true
         },
         {
-          "name": "createRowEffectStage/managedReadChild/managedReadChild/ownedRead/ownedRead",
+          "name": "createRowEffectStage/managedReadChild/managedReadChild/managedReadChild#2",
           "parameters": [
-            "entry"
+            "authorization",
+            "input",
+            "rowIndex",
+            "slot",
+            "project"
           ],
           "async": false
         },
         {
-          "name": "createRowEffectStage/managedReadChild/managedReadChild/selected/selected",
+          "name": "createRowEffectStage/managedReadChild/managedReadChild/ownedRead/ownedRead",
           "parameters": [
             "entry"
           ],
@@ -6135,15 +6142,6 @@
             "dispatchRequestCid"
           ],
           "async": true
-        },
-        {
-          "name": "createRowEffectStage/observeRows/observeRows/observed/observed",
-          "parameters": [
-            "authorization",
-            "input",
-            "rowIndex"
-          ],
-          "async": false
         },
         {
           "name": "createRowEffectStage/observeRows/observeRows/observeRows",
@@ -6426,7 +6424,8 @@
             "assertCurrent",
             "signal",
             "maxResponseBytes",
-            "constructChild"
+            "constructChild",
+            "credentialSlot"
           ],
           "async": true
         },
@@ -6455,13 +6454,6 @@
         {
           "name": "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation#3",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/selected/selected",
-          "parameters": [
-            "entry"
-          ],
           "async": false
         },
         {
@@ -6688,8 +6680,17 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/original/original/original",
+          "parameters": [
+            "metadata"
+          ],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/original/original#2",
-          "parameters": [],
+          "parameters": [
+            "grow"
+          ],
           "async": false
         },
         {
@@ -6744,6 +6745,14 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/reserveRecoveryInput/reserveRecoveryInput",
+          "parameters": [
+            "memberIndex",
+            "metadata"
+          ],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/readDecision/readDecision",
           "parameters": [
             "member",
@@ -6775,11 +6784,13 @@
             "body",
             "durable",
             "recorded",
+            "maxRows",
             "previewWire",
             "runInvocationCid",
             "dispatches",
             "requestTags",
-            "controlConstruction"
+            "controlConstruction",
+            "reserveRecoveryInput"
           ],
           "async": false
         },
@@ -6968,6 +6979,21 @@
           "name": "createRowEffectStage/routeOf/routeOf",
           "parameters": [
             "capability"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/runLimits/runLimits",
+          "parameters": [
+            "managed"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/runLimits/runLimits/maxRows/maxRows",
+          "parameters": [
+            "bound",
+            "owner"
           ],
           "async": false
         },
@@ -7796,7 +7822,6 @@
             "createRowEffectStage/managedReadChild/managedReadChild/managedReadChild",
             "createRowEffectStage/managedReadChild/managedReadChild/managedReadChild/managedReadChild",
             "createRowEffectStage/managedReadChild/managedReadChild/ownedRead/ownedRead",
-            "createRowEffectStage/managedReadChild/managedReadChild/selected/selected",
             "createRowEffectStage/memberDispatch/memberDispatch",
             "createRowEffectStage/membersOf/membersOf",
             "createRowEffectStage/membersOf/membersOf/members/members",
@@ -7804,7 +7829,6 @@
             "createRowEffectStage/membersOf/membersOf/membersOf#2",
             "createRowEffectStage/observeRows/observeRows",
             "createRowEffectStage/observeRows/observeRows/observeRows",
-            "createRowEffectStage/observeRows/observeRows/observed/observed",
             "createRowEffectStage/openLedger/openLedger",
             "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes",
             "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes/orderedSourceIndexes",
@@ -7897,7 +7921,9 @@
             "retainInstalledRowEffectAdapter",
             "sameValue/sameValue",
             "targeted/targeted",
-            "text/text"
+            "text/text",
+            "createRowEffectStage/runLimits/runLimits",
+            "createRowEffectStage/runLimits/runLimits/maxRows/maxRows"
           ],
           "exports": [
             "composeInstalledRowEffectOwners",
@@ -8389,6 +8415,10 @@
               {
                 "path": "adapters/host-node/mock-file-effect-plan.test.mjs",
                 "anchor": "test('owned async file request retains its same child before preparation and joins before completion'"
+              },
+              {
+                "path": "adapters/connectors/hubspot/test/hubspot-mapping-parent.fixture.mjs",
+                "anchor": "test('HubSpot Row constructor retains complete per-kind"
               }
             ]
           }
@@ -8414,7 +8444,6 @@
             "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation",
             "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation#3",
             "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation",
-            "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/selected/selected",
             "createRowEffectStage/prepareManagedPlan/prepareManagedPlan",
             "deriveInstalledRowWrite/init:checkRequest/init:checkRequest"
           ],
@@ -12293,7 +12322,9 @@
             "createRowEffectStage/validateRecoveredEntries/validateRecoveredEntries",
             "createRowEffectStage/validateRecoveredEntries/validateRecoveredEntries/validateRecoveredEntries",
             "createRowEffectStage/validateRecoveredEntries/validateRecoveredEntries/validateRecoveredEntries/claimBySource/claimBySource",
-            "createRowEffectStage/validateRecoveredEntries/validateRecoveredEntries/validateRecoveredEntries/validateRecoveredEntries"
+            "createRowEffectStage/validateRecoveredEntries/validateRecoveredEntries/validateRecoveredEntries/validateRecoveredEntries",
+            "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/original/original/original",
+            "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/reserveRecoveryInput/reserveRecoveryInput"
           ],
           "exports": [],
           "attributes": {
@@ -12366,6 +12397,74 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "createRowEffectStage/managedReadChild/managedReadChild/managedReadChild#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -12404,7 +12503,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-run.mjs",
-      "sha256": "45249d2f5216fdd75c7b707c517c93744677d67be0f7fbd016c1eb58ca1c597e",
+      "sha256": "8f32c823d22d04bce6b6bfd71e628811147296f578d1b44797f24c9d06faabc1",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing RowRun acquisition/capture/release plumbing; physical provider and original current authority stay with the adapter",
@@ -12505,6 +12604,11 @@
           "async": false
         },
         {
+          "name": "startInstalledRowRun/complete/captureAccess/init:originalCapturedInput/init:originalCapturedInput",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "startInstalledRowRun/complete/captureAccess/init:originalRowCapture/init:originalRowCapture",
           "parameters": [],
           "async": false
@@ -12600,6 +12704,13 @@
           "parameters": [
             "capacity",
             "phase"
+          ],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/readProvider/reserveTransferCapacity/reserveTransferCapacity",
+          "parameters": [
+            "bytes"
           ],
           "async": false
         },
@@ -13068,7 +13179,8 @@
         {
           "operations": [
             "startInstalledRowRun/complete/captureAccess/init:originalRowCapture/init:originalRowCapture",
-            "startInstalledRowRun/complete/captureAccess/init:originalWholeInput/init:originalWholeInput"
+            "startInstalledRowRun/complete/captureAccess/init:originalWholeInput/init:originalWholeInput",
+            "startInstalledRowRun/complete/captureAccess/init:originalCapturedInput/init:originalCapturedInput"
           ],
           "exports": [],
           "attributes": {
@@ -13822,6 +13934,74 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "startInstalledRowRun/readProvider/reserveTransferCapacity/reserveTransferCapacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -13839,7 +14019,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "a879c9823e31d76ec86ad3cd0bc5dd712f1132873bb1cb190b4976ec1408393c",
+      "sha256": "b197713798f4448e478790d326b2004333100355e636515532bcf9c3833653b2",
       "operations": [
         {
           "name": "byCid/byCid",
@@ -14179,7 +14359,8 @@
             "occurrence",
             "checkedOwner",
             "wholeInput",
-            "plannedAcquisition"
+            "plannedAcquisition",
+            "effectful"
           ],
           "async": false
         },
@@ -21034,6 +21215,7 @@
       "exports": [
         "captureInstalledEffectPlanRecipe",
         "captureInstalledStandardCreateLimits",
+        "effectRecoveryPreviewBounds",
         "installedEffectRecipeForControlEntryLimit",
         "installedEffectSavedControlEntryLimit",
         "prepareInstalledEffectControlConstruction",
@@ -21042,7 +21224,8 @@
         "prepareInstalledEffectOwnedRequestChild",
         "prepareInstalledEffectRequestChild",
         "prepareInstalledPhysicalWritePlanRecipe",
-        "prepareInstalledStandardCreatePlanRecipe"
+        "prepareInstalledStandardCreatePlanRecipe",
+        "selectInstalledEffectCredentialOperation"
       ],
       "operations": [
         {
@@ -21136,6 +21319,14 @@
           "async": false
         },
         {
+          "name": "effectRecoveryPreviewBounds",
+          "parameters": [
+            "bytes",
+            "limits"
+          ],
+          "async": false
+        },
+        {
           "name": "fail/fail",
           "parameters": [
             "code"
@@ -21189,6 +21380,13 @@
         {
           "name": "prepareInstalledEffectConstructorChild/init:prepare/init:prepare",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectConstructorChild/init:prepare/init:prepare/grow/grow",
+          "parameters": [
+            "extent"
+          ],
           "async": false
         },
         {
@@ -21794,6 +21992,22 @@
           "async": false
         },
         {
+          "name": "selectInstalledEffectCredentialOperation",
+          "parameters": [
+            "recipe",
+            "phase",
+            "slot"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectInstalledEffectCredentialOperation/selectInstalledEffectCredentialOperation",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
           "name": "text/text",
           "parameters": [
             "value"
@@ -21811,7 +22025,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "14d78a854b9632bde6b8e82a02a332d3756e74631ffe4a1e441769c385065eae",
+      "sha256": "128292cf07a9dd6a5f1891c83be92d233ee9d43b5170e2a249d319aff3e40d99",
       "contracts": [
         {
           "operations": [
@@ -21879,7 +22093,8 @@
             "prepareInstalledStandardCreatePlanRecipe/originalMethod/originalMethod/originalMethod",
             "prepareInstalledStandardCreatePlanRecipe/physical/physical",
             "prepareInstalledStandardCreatePlanRecipe/prepareInstalledStandardCreatePlanRecipe",
-            "text/text"
+            "text/text",
+            "prepareInstalledEffectConstructorChild/init:prepare/init:prepare/grow/grow"
           ],
           "exports": [
             "captureInstalledEffectPlanRecipe",
@@ -22112,12 +22327,14 @@
             "prepareInstalledPhysicalWritePlanRecipe/quote/quote",
             "prepareInstalledPhysicalWritePlanRecipe/recoveryInputExtent/recoveryInputExtent",
             "prepareInstalledPhysicalWritePlanRecipe/selected/selected",
-            "prepareInstalledPhysicalWritePlanRecipe/selected/selected/selected"
+            "prepareInstalledPhysicalWritePlanRecipe/selected/selected/selected",
+            "effectRecoveryPreviewBounds"
           ],
           "exports": [
             "installedEffectRecipeForControlEntryLimit",
             "installedEffectSavedControlEntryLimit",
-            "prepareInstalledPhysicalWritePlanRecipe"
+            "prepareInstalledPhysicalWritePlanRecipe",
+            "effectRecoveryPreviewBounds"
           ],
           "attributes": {
             "responsibility": [
@@ -22235,6 +22452,10 @@
               {
                 "path": "adapters/host-node/mock-file-effect-plan.test.mjs",
                 "anchor": "test('owned async file request retains its same child before preparation and joins before completion'"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/effect-target-read-inventory.test.mjs",
+                "anchor": "Salesforce recovered Preview allocation uses its own wire"
               }
             ]
           }
@@ -22495,6 +22716,77 @@
               {
                 "path": "adapters/host-node/installed-effect-plan.test.mjs",
                 "anchor": "test('saved Ledger codec grows the same active frame before each original wire and returns only its local workspace'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "selectInstalledEffectCredentialOperation",
+            "selectInstalledEffectCredentialOperation/selectInstalledEffectCredentialOperation"
+          ],
+          "exports": [
+            "selectInstalledEffectCredentialOperation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Verification:"
               }
             ]
           }
@@ -23169,7 +23461,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/host/salesforce-effect-plan.mjs",
-      "sha256": "26e3257f944a253613f3f48ffc4ee21a611e4b891d4000f903d382be569fa0df",
+      "sha256": "d2bf1a81c76f1a9afacc5211030da497f7468966fafb74a71af35a1440c74651",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing Salesforce Catalog/driver, run_publication identity and shared Core constructor/Plan Owners; no authority transfer",
@@ -23200,7 +23492,23 @@
           "name": "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/inputExtent/inputExtent",
           "parameters": [
             "previewWire",
-            "recovery"
+            "recovery",
+            "memberIndex",
+            "metadata"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/inputExtent/inputExtent/entry/entry",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/inputExtent/inputExtent/inputExtent",
+          "parameters": [
+            "key"
           ],
           "async": false
         },
@@ -23318,7 +23626,9 @@
             "fail/fail",
             "integer/integer",
             "originalMethod",
-            "originalMethod/originalMethod"
+            "originalMethod/originalMethod",
+            "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/inputExtent/inputExtent/entry/entry",
+            "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/inputExtent/inputExtent/inputExtent"
           ],
           "exports": [
             "captureSalesforceEffectPlanRecipeBuilder"
@@ -23387,6 +23697,10 @@
               {
                 "path": "src/connectors/salesforce/host_node/effect_recipe_wbtest.mbt",
                 "anchor": "test \"current Effect metadata uses original Source geometry within the unchanged normal parent\""
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/effect-target-read-inventory.test.mjs",
+                "anchor": "Salesforce recovered Preview allocation uses its own wire"
               }
             ]
           }
@@ -23396,6 +23710,7 @@
         "../../../host-common/runtime-result.mjs",
         "../../../host-node/effect-ledger-implementation-bounds.mjs",
         "../../../host-node/installed-effect-plan.mjs",
+        "../../../host-node/installed-source-construction-geometry.mjs",
         "../../../host-node/local-values-plan.mjs",
         "../../../site-node/https-credential-resource.mjs",
         "../site/salesforce-named-describe.mjs",

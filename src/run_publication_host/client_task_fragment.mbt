@@ -408,6 +408,9 @@ fn measure_client_task_fragment_construction(
       ) {
       Ok(_) =>
         Ok({
+          pipeline_geometry: None,
+          fragment_geometry: None,
+          output_contract_geometry: None,
           initial_pipeline: initial,
           pipeline,
           fragment: @encode.finish_measurement_usage(writer),

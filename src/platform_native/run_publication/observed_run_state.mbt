@@ -5,6 +5,7 @@
 struct NativeRunStateCandidate {
   definition : @publication.PublicationContract
   validation : @publication.PublicationCommitPreparation
+  preparation : @local.ClientProgramValidation?
   view : @publication.PublicationCommitReadView
   observed_at : String
   mut released : Bool
@@ -49,7 +50,8 @@ pub fn NativeRunStateCandidate::projection_materials(
   ),
   NativeRunStateCandidateIssue,
 ] {
-  if self.released {
+  if self.released ||
+    !native_state_validation_loan_current(self.validation, self.preparation) {
     return Err(Unavailable)
   }
   Ok(
@@ -75,7 +77,7 @@ pub fn NativeRunStateCandidate::release(
   self.released = true
   let child = self.validation.release_observed_commit(self.view)
   let view = self.validation.release_view(self.view)
-  self.validation.cancel()
+  cancel_native_state_validation(self.validation, self.preparation)
   match child {
     Ok(_) => ()
     Err(issue) => return Err(Publication(Commit(issue)))
@@ -121,7 +123,9 @@ pub fn NativeRunStateCandidate::require_original_store_current(
   self : NativeRunStateCandidate,
 ) -> Result[Unit, NativeRunStateCandidateIssue] {
   let pending = self.pending
-  if self.released || pending.cancelled {
+  if self.released ||
+    pending.cancelled ||
+    !native_state_validation_loan_current(self.validation, self.preparation) {
     return Err(Unavailable)
   }
   match
@@ -200,12 +204,25 @@ fn advance_native_state_validation(
   preparation : @publication.PublicationCommitPreparation,
   quantum : Int,
   max_rounds : Int,
+  owner? : @local.ClientProgramValidation? = None,
 ) -> Result[Unit, NativeRunStateCandidateIssue] {
   for _ in 0..<max_rounds {
-    match preparation.advance(quantum) {
+    let progress = match owner {
+      Some(original) =>
+        @local.advance_program_validation(original, quantum).map_err(issue => {
+          NativeRunStateCandidateIssue::Publication(Preparation(issue))
+        })
+      None =>
+        preparation
+        .advance(quantum)
+        .map_err(issue => {
+          NativeRunStateCandidateIssue::Publication(Commit(issue))
+        })
+    }
+    match progress {
       Ok((true, _)) => return Ok(())
       Ok((false, _)) => ()
-      Err(issue) => return Err(Publication(Commit(issue)))
+      Err(issue) => return Err(issue)
     }
   }
   Err(ValidationLimit)
@@ -217,8 +234,12 @@ fn advance_native_observed_state_validation(
   view : @publication.PublicationCommitReadView,
   quantum : Int,
   max_rounds : Int,
+  owner? : @local.ClientProgramValidation? = None,
 ) -> Result[Unit, NativeRunStateCandidateIssue] {
   for _ in 0..<max_rounds {
+    if !native_state_validation_loan_current(preparation, owner) {
+      return Err(Unavailable)
+    }
     match preparation.advance_observed_commit(view, quantum) {
       Ok((true, _)) => return Ok(())
       Ok((false, _)) => ()
@@ -302,37 +323,86 @@ pub fn NativePreparedCapturedRunPublication::prepare_run_state_candidate(
     @publication.publication_contract_identity(self.preparation.request) {
     return Err(Publication(CommitConflict))
   }
-  let validation = @publication.start_effect_free_publication_commit_check(
-    evidence.run_definition,
-    evidence.invocation,
-    evidence.definitions,
-    evidence.artifacts,
-    evidence.derivations,
-    evidence.orderings,
-    evidence.retentions,
-    evidence.bindings,
-    evidence.manifest,
-    evidence.receipt,
-    evidence.captured_run,
-    stored_request,
-    stored_attempt,
-    index,
-    service.max_wire_bytes,
-    service.max_nodes,
-    service.max_depth,
-    max_workspace,
-  )
-  match advance_native_state_validation(validation, quantum, max_rounds) {
+  let owner = match self.capture {
+    None => None
+    Some(capture) => {
+      let value = match
+        @local.prepare_program_commit_validation(
+          capture,
+          evidence.run_definition,
+          evidence.invocation,
+          evidence.definitions,
+          evidence.artifacts,
+          evidence.derivations,
+          evidence.orderings,
+          evidence.retentions,
+          evidence.bindings,
+          evidence.manifest,
+          evidence.receipt,
+          evidence.captured_run,
+          stored_request,
+          stored_attempt,
+          index,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Publication(Preparation(issue)))
+      }
+      match
+        @local.start_program_validation(
+          value,
+          max_workspace=Some(max_workspace),
+        ) {
+        Ok(_) => Some(value)
+        Err(issue) => {
+          @local.cancel_program_validation(value)
+          return Err(Publication(Preparation(issue)))
+        }
+      }
+    }
+  }
+  let validation = match owner {
+    Some(value) =>
+      match @local.borrow_program_commit_validation(value) {
+        Some(checker) => checker
+        None => {
+          @local.cancel_program_validation(value)
+          return Err(Unavailable)
+        }
+      }
+    None =>
+      @publication.start_effect_free_publication_commit_check(
+        evidence.run_definition,
+        evidence.invocation,
+        evidence.definitions,
+        evidence.artifacts,
+        evidence.derivations,
+        evidence.orderings,
+        evidence.retentions,
+        evidence.bindings,
+        evidence.manifest,
+        evidence.receipt,
+        evidence.captured_run,
+        stored_request,
+        stored_attempt,
+        index,
+        service.max_wire_bytes,
+        service.max_nodes,
+        service.max_depth,
+        max_workspace,
+      )
+  }
+  match
+    advance_native_state_validation(validation, quantum, max_rounds, owner~) {
     Ok(_) => ()
     Err(issue) => {
-      validation.cancel()
+      cancel_native_state_validation(validation, owner)
       return Err(issue)
     }
   }
   let view = match validation.finish_view() {
     Ok(value) => value
     Err(issue) => {
-      validation.cancel()
+      cancel_native_state_validation(validation, owner)
       return Err(Publication(Commit(issue)))
     }
   }
@@ -343,18 +413,28 @@ pub fn NativePreparedCapturedRunPublication::prepare_run_state_candidate(
     Ok(_) => ()
     Err(issue) => {
       validation.release_view(view) |> ignore
-      validation.cancel()
+      cancel_native_state_validation(validation, owner)
       return Err(Publication(Commit(issue)))
     }
   }
   let outcome = match
     advance_native_observed_state_validation(
-      validation, view, quantum, max_rounds,
+      validation,
+      view,
+      quantum,
+      max_rounds,
+      owner~,
     ) {
     Err(issue) => Err(issue)
     Ok(_) =>
       self.finish_observed_run_state(
-        validation, view, stored_request, stored_attempt, index, observed_at,
+        validation,
+        view,
+        stored_request,
+        stored_attempt,
+        index,
+        observed_at,
+        owner~,
       )
   }
   // On success transfer only the same bounded Core loan to the candidate;
@@ -365,7 +445,7 @@ pub fn NativePreparedCapturedRunPublication::prepare_run_state_candidate(
     Err(issue) => {
       let child_release = validation.release_observed_commit(view)
       let view_release = validation.release_view(view)
-      validation.cancel()
+      cancel_native_state_validation(validation, owner)
       match child_release {
         Ok(_) => ()
         Err(issue) => return Err(Publication(Commit(issue)))
@@ -388,6 +468,7 @@ fn NativePreparedCapturedRunPublication::finish_observed_run_state(
   stored_attempt : @publication.PublicationContract,
   index : @publication.PublicationContract,
   observed_at : String,
+  owner? : @local.ClientProgramValidation? = None,
 ) -> Result[NativeRunStateCandidate, NativeRunStateCandidateIssue] {
   match validation.finish_observed_commit(view) {
     Ok(_) => ()
@@ -405,7 +486,7 @@ fn NativePreparedCapturedRunPublication::finish_observed_run_state(
     Ok(_) => ()
     Err(issue) => return Err(Publication(issue))
   }
-  if self.cancelled {
+  if self.cancelled || !native_state_validation_loan_current(validation, owner) {
     return Err(Publication(AccessDenied))
   }
   // After all user callbacks, use the actual non-callback Store generation/
@@ -459,6 +540,7 @@ fn NativePreparedCapturedRunPublication::finish_observed_run_state(
   Ok({
     definition: self.evidence.run_definition,
     validation,
+    preparation: owner,
     view,
     observed_at,
     released: false,
@@ -467,4 +549,28 @@ fn NativePreparedCapturedRunPublication::finish_observed_run_state(
     attempt: stored_attempt,
     index,
   })
+}
+
+///|
+fn native_state_validation_loan_current(
+  checker : @publication.PublicationCommitPreparation,
+  owner : @local.ClientProgramValidation?,
+) -> Bool {
+  match owner {
+    None => true
+    Some(value) =>
+      @local.borrow_program_commit_validation(value) is Some(original) &&
+      physical_equal(original, checker)
+  }
+}
+
+///|
+fn cancel_native_state_validation(
+  checker : @publication.PublicationCommitPreparation,
+  owner : @local.ClientProgramValidation?,
+) -> Unit {
+  match owner {
+    None => checker.cancel()
+    Some(value) => @local.cancel_program_validation(value)
+  }
 }

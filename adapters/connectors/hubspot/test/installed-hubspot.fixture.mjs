@@ -20,7 +20,8 @@ export const expected = {id: '9007199254740993', amount: '9007199254740993.01000
 export const objectBody = JSON.stringify({results: [{id: expected.id, archived: false,
   properties: {amount: '9007199254740993.01', tags: 'a;b'}}]});
 
-export async function installedHubSpotFixture(t, {account = 'allow', propertyRead = 'allow'} = {}) {
+export async function installedHubSpotFixture(t, {account = 'allow', propertyRead = 'allow',
+  propertyDefinitions = properties, sourceLimits = {}, objectResponseBody = objectBody} = {}) {
   const captures = [], dependentCleanup = [];
   let loaderParent;
   // Capture originals before any fallible child opens. Teardown retires
@@ -48,7 +49,7 @@ export async function installedHubSpotFixture(t, {account = 'allow', propertyRea
     portalId: '7', apiOrigin: site.apiOrigin,
     accountBody: Buffer.from('{"portalId":7,"accountType":"STANDARD"}').toString('base64'),
     objects: [{resource: 'companies', objectType: 'companies',
-      propertiesBody: Buffer.from(JSON.stringify(properties)).toString('base64')}]};
+      propertiesBody: Buffer.from(JSON.stringify(propertyDefinitions)).toString('base64')}]};
   const metadataPath = join(f.root, 'installed-metadata.json');
   await writeFile(metadataPath, JSON.stringify(metadata));
   const policy = canonicalJson({version: 'actql-execution-account-config/0.1', account_id: 'installed',
@@ -64,7 +65,8 @@ export async function installedHubSpotFixture(t, {account = 'allow', propertyRea
       maxNameUnits: 100, maxPages: 2, maxRows: 2, maxRequests: 5, perPage: 1,
       maxColumns: 3, maxCursorUnits: 64, maxValueNodes: 100, maxValueTextBytes: 4096,
       maxRowsWireBytes: 4096, maxRowsWireNodes: 100, maxRowsWireDepth: 10,
-      maxObjects: 2, maxDeclarationBytes: 4096, maxDeclarationNodes: 1000, maxSecretBytes: 128}};
+      maxObjects: 2, maxDeclarationBytes: 4096, maxDeclarationNodes: 1000, maxSecretBytes: 128,
+      ...sourceLimits}};
   const path = join(f.root, 'installed-source.json');
   await writeFile(path, JSON.stringify(profile));
   loaderParent = createInstalledLoaderParent({root: f.root, principalId: 'operator', moon: common});
@@ -72,7 +74,7 @@ export async function installedHubSpotFixture(t, {account = 'allow', propertyRea
   const load = () => loaderParent.load(loadInstalledSource, path, {root: f.root, principalId: 'operator',
     moon: common, runtimeUrl, baseEnvironmentWire: base,
     resolveSecret: f.options.credential.resolveSecret});
-  const identity = () => installedSourceIdentity(path, {
+  const identity = () => installedSourceIdentity(path, {moon: common,
     configurationReader: installedSourceConfigurationReader(loaderParent.services)});
   const prepare = async source => {
     const env = JSON.parse(source.environmentWire);
@@ -86,7 +88,7 @@ export async function installedHubSpotFixture(t, {account = 'allow', propertyRea
         sourceViewContractCid: view.source_view_contract_cid,
         schemaContractCid: view.carrier_schema_contract_cid}]});
     const outcome = common.clientProgramPrepareSourceWithParameters(
-      'SELECT id, amount, tags FROM hubspot.companies', 'sql', environment,
+      'SELECT id, amount, tags FROM hubspot.companies WHERE TRUE', 'sql', environment,
       publication, undefined, undefined);
     const program = common.clientProgramPreparationReady(outcome);
     assert.ok(program, inspect(common.clientProgramPreparationIssue(outcome), {depth: 8, maxStringLength: 2000}));
@@ -109,8 +111,8 @@ export async function installedHubSpotFixture(t, {account = 'allow', propertyRea
   const requestBodies = [];
   f.state.onRequest = async (request, response) => {
     if (request.url === '/account-info/v3/details') return false;
-    const body = request.url === '/crm/v3/properties/companies' ? JSON.stringify(properties)
-      : request.url.startsWith('/crm/v3/objects/companies?') ? objectBody
+    const body = request.url === '/crm/v3/properties/companies' ? JSON.stringify(propertyDefinitions)
+      : request.url.startsWith('/crm/v3/objects/companies?') ? objectResponseBody
       : assert.fail(`Unexpected request ${request.url}`);
     requestBodies.push(Buffer.from(body));
     response.writeHead(200, {'content-type': 'application/json'}); response.end(body); return true;

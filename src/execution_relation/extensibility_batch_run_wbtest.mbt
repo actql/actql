@@ -58,7 +58,7 @@ fn ext_run_choice(
       // entire ceiling alongside the already retained producer/builder storage;
       // do not reset or reuse the enclosing live-allocation counter.
       let available = physical.slots.limit - physical.slots.live
-      let scratch = { limit: available, live: 0, peak: 0, }
+      let scratch = { ..row_workspace(available), live: 0, peak: 0, }
       if !reserve_slots(physical.slots, available) {
         abort_layout_columns(builder)
         return Err(RowLimit)

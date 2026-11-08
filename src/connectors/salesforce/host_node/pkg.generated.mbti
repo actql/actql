@@ -104,6 +104,8 @@ pub fn salesforce_effect_metadata_construction_capacity(Int, Int, Int, Int, Int,
 
 pub fn salesforce_effect_metadata_input_construction_profile(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?
 
+pub fn salesforce_effect_recovery_input_construction_profile(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Bytes) -> Array[@execution_relation.ExecutionCapacity]?
+
 pub fn salesforce_effect_recovery_preview_construction_capacity(Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn salesforce_effect_request_construction_capacity(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?

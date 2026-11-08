@@ -114,7 +114,15 @@ pub fn[E] prepare_client_submitted_journal_append(
     E,
   ],
   custody_lost : E,
+  before_decode_construction? : ((ClientSubmittedJournalConstruction) -> Result[
+    Unit,
+    ClientJournalDecodingIssue,
+  ])? = None,
   usage? : (() -> Result[ClientJournalPhysicalRow?, E])? = None,
+  before_construction? : ((Int, Int, Int) -> Result[
+    Unit,
+    ClientJournalEncodingIssue,
+  ])? = None,
 ) -> Result[
   ClientSubmittedJournalAppendPlan,
   ClientSubmittedJournalAppendIssue[E],
@@ -127,7 +135,13 @@ pub fn[E] prepare_client_submitted_journal_append(
     Err(issue) => return Err(Observation(issue))
   }
   match
-    read_client_saved_submission(reference, read, validate_run, custody_lost) {
+    read_client_saved_submission(
+      reference,
+      read,
+      validate_run,
+      custody_lost,
+      before_construction=before_decode_construction,
+    ) {
     Ok(Some(snapshot)) => {
       if client_submitted_intent_cid(snapshot.record.intent) !=
         client_submitted_intent_cid(intent) {
@@ -168,9 +182,7 @@ pub fn[E] prepare_client_submitted_journal_append(
   if validity != @request_scope.Admissible {
     return Err(EpochRejected(validity))
   }
-  let bytes = @utf8.encode(client_submitted_intent_wire(intent))
-    .length()
-    .to_int64()
+  let bytes = intent.wire_bytes.to_int64()
   if count == max_records || bytes > 67108864L - retained_bytes {
     return Err(CapacityExceeded)
   }
@@ -178,6 +190,7 @@ pub fn[E] prepare_client_submitted_journal_append(
     client_submitted_intent_journal_row_body(
       client_submission_reference_record_wire(reference),
       intent,
+      before_construction~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Encoding(issue))

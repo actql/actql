@@ -312,9 +312,16 @@ test('full corpus pins every authored occurrence independently of worker selecti
   // Retain the accepted 4,221-case corpus, including its five cases missing
   // from the previous pin, then register eleven whole-ARRAY successes, seven
   // refusals and one demanded failure through the active membership selection.
+  // SQL signed-zero grouping, membership and ABS follow the canonical-zero rule:
+  // each original occurrence moves from refusal to an independent success.
+  // All other complete payloads and their relative order remain unchanged.
+  // Seven negated-predicate, six membership and four CONCAT DISTINCT scope
+  // refusals retain InvalidInput; no refusal predicate or bound is widened.
+  // The two invalid statistical forms retain their authored SQL and refusal;
+  // their reviewed InvalidInput projection updates only those corpus preimages.
   assert.equal(pin.totalCases, 4240);
-  assert.deepEqual(pin.counts, {"successes":2650,"executionFailures":54,"refusals":1536});
-  assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [["standard",{"successes":2596,"executionFailures":52,"refusals":1497}],["analytic-offset",{"successes":6,"executionFailures":0,"refusals":13}],["analytic-property",{"successes":13,"executionFailures":0,"refusals":7}],["analytic-order",{"successes":35,"executionFailures":2,"refusals":19}]]);
+  assert.deepEqual(pin.counts, {"successes":2655,"executionFailures":54,"refusals":1531});
+  assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [["standard",{"successes":2601,"executionFailures":52,"refusals":1492}],["analytic-offset",{"successes":6,"executionFailures":0,"refusals":13}],["analytic-property",{"successes":13,"executionFailures":0,"refusals":7}],["analytic-order",{"successes":35,"executionFailures":2,"refusals":19}]]);
   assert.deepEqual(pin.repeatedFailures, [
     {name: 'graph-subtraction-null-is-not-zero', positions: [29, 50]},
     {name: 'graph-subtraction-conflict-needs-policy', positions: [30, 51]},

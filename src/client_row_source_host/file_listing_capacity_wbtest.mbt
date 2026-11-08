@@ -2,10 +2,11 @@
 test "listing supplementary declaration checks each overlap addition without granting capacity" {
   // Independent accounting fixture units, not a selected Node layout or a
   // production physical profile. Construction changes no Ledger usage.
+  // Original binding H1/R2/W1 is 16 + 2*8 + 8 = 40 tariff bytes.
   let declared = @execution.execution_capacity(7L, 9L).unwrap()
   assert_eq(
     row_listing_capacity_sum(11L, 13L, 5L, Some(declared)).unwrap(),
-    (18L, 27L),
+    (58L, 67L),
   )
   assert_true(
     row_listing_capacity_sum(11L, 13L, 5L, None) is Err(Physical(InvalidLimits)),
@@ -69,11 +70,11 @@ test "listing overlap exact fit and either one short use the same Source reserva
     5L,
     Some(declaration),
   ).unwrap()
-  assert_eq((retained, execution), (18L, 27L))
+  assert_eq((retained, execution), (58L, 67L))
   for shortage in 0..<3 {
     let ledger = listing_capacity_ledger(
-      18L - (if shortage == 1 { 1L } else { 0L }),
-      27L - (if shortage == 2 { 1L } else { 0L }),
+      58L - (if shortage == 1 { 1L } else { 0L }),
+      67L - (if shortage == 2 { 1L } else { 0L }),
     )
     let before = @resources.ledger_usage(ledger)
     let reserved = @resources.reserve_attempt(ledger, 0L, retained, execution)
@@ -82,8 +83,8 @@ test "listing overlap exact fit and either one short use the same Source reserva
       let usage = @resources.ledger_usage(ledger)
       assert_eq(usage.attempts, 0)
       assert_eq(usage.reserved_attempts, 1)
-      assert_eq(usage.reserved_retention_bytes, 18L)
-      assert_eq(usage.reserved_execution_bytes, 27L)
+      assert_eq(usage.reserved_retention_bytes, 58L)
+      assert_eq(usage.reserved_execution_bytes, 67L)
       @resources.settle_reservation(ledger, reservation).unwrap()
       assert_eq(@resources.ledger_usage(ledger).attempts, 0)
       assert_eq(@resources.ledger_usage(ledger).reserved_attempts, 0)

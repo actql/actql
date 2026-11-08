@@ -124,9 +124,10 @@ pub fn[I] finish_request_computation_preparation(
         Ok(_) => ()
       }
     }
-    continue_request_effect_preparation(owner, input)
-    .map(_ => ())
-    .map_err(issue => Preparation(issue))
+    match continue_request_effect_preparation(owner, input) {
+      Err(issue) => return Err(Preparation(issue))
+      Ok(_) => ()
+    }
   } else {
     if child.phase != CompilationComplete {
       match compile_program_check_preparation(child, limits) {
@@ -134,8 +135,57 @@ pub fn[I] finish_request_computation_preparation(
         Ok(_) => ()
       }
     }
-    continue_request_program_preparation(owner, input)
-    .map(_ => ())
-    .map_err(issue => Preparation(issue))
+    match continue_request_program_preparation(owner, input) {
+      Err(issue) => return Err(Preparation(issue))
+      Ok(_) => ()
+    }
   }
+  if owner.source_input is Some(_) {
+    // Finish the SAME retained Source's existing checked profile/association
+    // under its original handoff quote. Keep the cached original, not a second
+    // check/compiler or a syntax-based ARRAY classifier in this caller.
+    let original = match borrow_request_source_preparation(owner, input) {
+      Err(issue) => return Err(Preparation(issue))
+      Ok(value) => value
+    }
+    match @resources.return_preparation_body_borrow(original) {
+      Err(issue) => return Err(Preparation(Capacity(issue)))
+      Ok(_) => ()
+    }
+  } else if owner.query_syntax is Some(_) {
+    // Native's existing typed Query entrance retains its parser on this same
+    // Request, rather than the submitted Source envelope. JSON/YAML Program
+    // inputs have neither Source original and keep recursive ARRAY support.
+    let profile = if owner.compiled_effect is Some(prepared) &&
+      owner.effect_capacity is Some(capacity) {
+      match reserve_request_query_profile_scratch(owner, input, capacity) {
+        Err(issue) => return Err(Preparation(issue))
+        Ok(_) => ()
+      }
+      @publication_host.check_client_source_array_profile(
+        @checked.effect_program_static_checked_computation(
+          @publication_host.prepared_client_effect_computation_candidate(
+            prepared,
+          ),
+        ),
+      )
+    } else if owner.compiled_program is Some(prepared) &&
+      owner.program_capacity is Some(capacity) {
+      match reserve_request_query_profile_scratch(owner, input, capacity) {
+        Err(issue) => return Err(Preparation(issue))
+        Ok(_) => ()
+      }
+      @publication_host.check_client_source_array_profile(
+        @strategy.graph_program(
+          @publication_host.prepared_client_graph(prepared),
+        ),
+      )
+    } else {
+      return Err(Preparation(WrongPhase))
+    }
+    if profile is Err(issue) {
+      return Err(Preparation(SourceInput(Source(issue))))
+    }
+  }
+  Ok(())
 }

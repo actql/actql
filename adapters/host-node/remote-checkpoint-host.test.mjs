@@ -1395,7 +1395,21 @@ test('installed Effect allow publishes without a commit Checkpoint',
       [{id: 1}, {id: 2}]);
     assert.deepEqual((await (await first.as('reviewer-token'))
       .checkpoints()).items, []);
-    await first.close();
+    try { await first.close(); }
+    catch (error) {
+      try {
+        const label = value => typeof value === 'string' &&
+          /^[A-Za-z][A-Za-z0-9_]{0,100}$/u.test(value) ? value : undefined;
+        t.diagnostic(JSON.stringify({phase: 'first_effect_host_close', code: label(error?.code),
+          owners: Array.isArray(error?.cleanupErrors) ? error.cleanupErrors.slice(0, 12)
+            .map(item => ({owner: label(item.owner), code: label(item.error?.code),
+              name: label(item.error?.name), cleanupPending: item.error?.cleanupPending === true,
+              storeCleanupPending: item.error?.storeCleanupPending === true})) : undefined}));
+      } catch {
+        // Diagnostics must not replace the original cleanup failure.
+      }
+      throw error;
+    }
     const restarted = await remoteHost(t, account(), options);
     const restoredClient = await restarted.as('owner-token');
     const original = await restoredClient.lookupSubmission(submissionRef);

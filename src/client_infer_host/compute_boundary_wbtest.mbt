@@ -195,12 +195,30 @@ test "original Result selection refuses raw Model output and accepts its same ch
     let calls = Ref(0)
     let active = fixture_start(prepared, () => calls.val += 1)
     if selected_suffix {
-      let suffix = @input.prepare_client_infer_suffix(
-        prepared,
-        2,
-        infer_fixture_installed_contracts(),
-        infer_fixture_values,
+      let full = @input.prepare_client_local_sequences(
+          prepared,
+          infer_fixture_installed_contracts(),
+          infer_fixture_values,
+          None,
+          None,
+        ).unwrap()[0]
+      let (_, _, step) = @publication_host.client_infer_occurrence_coordinates(
+        active.occurrence,
+      )
+      let last = @publication_host.client_infer_occurrence_output_step(
+        active.occurrence,
       ).unwrap()
+      let suffix = @relation.select_generated_sequence_range(
+        full,
+        step + 1,
+        last,
+      ).unwrap()
+      assert_true(
+        physical_equal(
+          @relation.generated_sequence_owner(full),
+          @relation.generated_sequence_owner(suffix),
+        ),
+      )
       bind_compute_suffix(active, suffix).unwrap()
     }
     guard fixture_finish(active) is Complete(output, ..) else {

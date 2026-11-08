@@ -100,3 +100,24 @@ test('ordinary legacy descriptors are unchanged when neither adapter issues a bo
   for (const item of expected) delete item.installationBinding;
   assert.deepEqual(ordinarySourceDescriptors(sources), expected);
 });
+
+test('ordinary Whole inventory keeps original Input coordinates without Query identity fields', () => {
+  const value = boundSourceInventoryFixture();
+  for (const [index, item] of value.acquisitions.entries()) {
+    const {requirementCid: _requirement, inputContractCid: program, outputContractCid: parameters, ...source} = item.checkedSource;
+    item.checkedSource = {...source, sourceInput: [program, parameters]};
+    item.stage = 3;
+    item.input = index;
+    item.computeTask = 7;
+  }
+  assert.equal(validateSourceInventory(wire(value)), wire(value));
+  for (const change of [
+    v => {v.acquisitions[1].input = 0;},
+    v => {v.acquisitions[0].checkedSource.requirementCid = 'sha256:' + 'a'.repeat(64);},
+    v => {v.acquisitions[0].checkedSource.sourceInput.pop();},
+    v => {v.acquisitions[0].computeTask = -1;},
+  ]) {
+    const changed = structuredClone(value); change(changed);
+    assert.throws(() => validateSourceInventory(wire(changed)), {code: 'InvalidClientSourceInventory'});
+  }
+});

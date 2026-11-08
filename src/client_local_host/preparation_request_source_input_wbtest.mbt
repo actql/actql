@@ -351,3 +351,89 @@ test "funded Source Request failed parser retains original prefix and child unti
   assert_true(@publication_host.client_source_input_parts(source) is Err(Input))
   assert_true(parent.source_input is None)
 }
+
+///|
+// SAME ordinary funded Source Request and typed terminal used by the installed
+// caller. No Provider, Run or durable state is entered by this regression.
+test "funded Source terminal refuses resolved nested ARRAY before body consumer" {
+  for format in ["sql", "aql-text"] {
+    let wire = "{\"kind\":\"aql\",\"input\":{\"format\":\"" +
+      format +
+      "\",\"text\":\"SELECT [[1,2]] AS value\"},\"parameters\":null}"
+    let (_, access, initial, parent, input) = funded_request_source_parent(wire)
+    let (environment, publication, selected) = funded_request_source_environment()
+    prepare_request_source_input(parent, input, environment, publication).unwrap()
+    let (text, actual_format, declarations, _) = request_source_input_parts(
+      parent, input,
+    ).unwrap()
+    parse_request_query_syntax(parent, input, text, actual_format).unwrap()
+    |> ignore
+    lower_request_published_query(
+      parent,
+      input,
+      selected,
+      environment,
+      declarations,
+      public_primary=true,
+    ).unwrap()
+    |> ignore
+    prepare_request_original_computation_check(
+      parent,
+      input,
+      environment,
+      selected,
+      [],
+      @publication_host.client_standard_program_preparation_limits(),
+      @publication_host.client_standard_effect_computation_limits(),
+    ).unwrap()
+    let original = parent.held_program.unwrap()
+    guard finish_request_checked_computation(
+        parent, input, environment, selected,
+      )
+      is Err(
+        Preparation(SourceInput(Source(@publication_host.ArrayProfile(_))))
+      ) else {
+      fail("funded Source terminal skipped checked ARRAY profile: " + format)
+    }
+    assert_true(
+      parent.compiled_program is Some(prepared) &&
+      physical_equal(
+        @checked.checked_source_program(
+          @strategy.graph_program(
+            @publication_host.prepared_client_graph(prepared),
+          ),
+        ),
+        original,
+      ),
+    )
+    close_funded_request_source(access, initial, parent, input)
+  }
+}
+
+///|
+test "funded Source terminal preserves flat ARRAY and same cached original after profile" {
+  let wire = "{\"kind\":\"aql\",\"input\":{\"format\":\"sql\",\"text\":\"SELECT [1,2] AS value\"},\"parameters\":null}"
+  let (_, access, initial, parent, input) = funded_request_source_parent(wire)
+  let (environment, publication, selected) = funded_request_source_environment()
+  compile_funded_request_source(
+    parent, input, environment, publication, selected,
+  )
+  let prepared = parent.compiled_program.unwrap()
+  let first = borrow_request_source_preparation(parent, input).unwrap()
+  let original = @resources.preparation_body_borrow_value(first).unwrap()
+  assert_true(
+    @publication_host.client_source_computation_preparation(original)
+    is Pure(actual) &&
+    physical_equal(actual, prepared),
+  )
+  @resources.return_preparation_body_borrow(first).unwrap() |> ignore
+  let second = borrow_request_source_preparation(parent, input).unwrap()
+  assert_true(
+    physical_equal(
+      @resources.preparation_body_borrow_value(second).unwrap(),
+      original,
+    ),
+  )
+  @resources.return_preparation_body_borrow(second).unwrap() |> ignore
+  close_funded_request_source(access, initial, parent, input)
+}

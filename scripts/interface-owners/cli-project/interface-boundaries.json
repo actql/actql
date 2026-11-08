@@ -120,7 +120,7 @@
           }
         }
       ],
-      "sha256": "92be6a49aa62aa23308fba36ddcab5d9d9d7d4344035bc54cbd0c1ff2754ded5"
+      "sha256": "45fe04c49488473b71b84e822985b8ad24e2b4f576ff1b95c8847ba0ca3fa0b2"
     },
     {
       "module": "packages/native-cli/lib/project-scaffold.mjs",

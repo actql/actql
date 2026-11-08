@@ -26,7 +26,7 @@ pub fn issue_prepared_client_effect_run_materials(
     Some(original) =>
       match prepared_client_effect_normalization_evidence(prepared, original) {
         Ok(value) => {
-          if original.inventory is LocalUpdate(_) &&
+          if !(original.inventory is MappedCreate(_)) &&
             !same_client_effect_normalization_profile(
               Some(original.inventory),
               allowed.compilation.normalization_profile,

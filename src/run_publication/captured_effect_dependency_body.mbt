@@ -348,6 +348,19 @@ pub fn admit_local_effect_dependency_body(
         [],
         ["table_input_name"],
       )
+    "local_model_observation" =>
+      (
+        "actql-local-model-observation/0.1",
+        [
+          ("unit_definition_cid", "local_dependencies"),
+          ("input_logical_relation_cid", "relation_value"),
+          ("input_relation_schema_cid", "relation_schema"),
+          ("outcome_logical_relation_cid", "relation_value"),
+          ("outcome_relation_schema_cid", "relation_schema"),
+        ],
+        [],
+        ["source_ordinal"],
+      )
     "local_computation" =>
       (
         "actql-local-computation-semantics/0.1",
@@ -464,7 +477,14 @@ pub fn admit_local_effect_dependency_body(
     }
   }
   for field in extra {
-    if kind == "gate_requirement" &&
+    if kind == "local_model_observation" && field == "source_ordinal" {
+      guard @json.object_field(value, field) is Some(@json.Number(raw)) &&
+        @scalar.read_safe_integer(raw) is Some(ordinal) &&
+        ordinal >= 0L &&
+        ordinal < 2147483647L else {
+        return Err(InvalidBody)
+      }
+    } else if kind == "gate_requirement" &&
       [
         "completion_contracts", "completion_nodes", "effect_contracts", "effect_nodes",
       ].contains(field) {
@@ -565,7 +585,10 @@ pub fn validate_captured_effect_dependency_bodies(
     for reference in body.node.references {
       let allowed = match reference.kind {
         "relation_producer" => ["local_result_definition", "source_contract"]
-        "local_observation" => ["source_evidence", "result_import_observation"]
+        "local_observation" =>
+          [
+            "source_evidence", "result_import_observation", "local_model_observation",
+          ]
         _ => []
       }
       if allowed.is_empty() {

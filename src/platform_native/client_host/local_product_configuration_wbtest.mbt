@@ -392,3 +392,163 @@ test "HOME-like restore refuses missing intent without recreating original custo
   )
   assert_eq(child.inspect_generation("config.json").unwrap(), generation)
 }
+
+///|
+test "Native Mock Account adoption requires the same live Product original and restores its acknowledged identity" {
+  let path = product_test_parent("product-mock-bootstrap")
+  let crypto = epoch_test_crypto()
+  let subjects : @authorization.LocalMockAccountSubjects = {
+    account_id: "local-cli",
+    principal: "local-cli",
+    control_connection: "local",
+    sources: [
+      ("salesforce", "Opportunity"),
+      ("drive", "files"),
+      ("drive", "contents"),
+    ],
+    model_tasks: ["sha256:" + "a".repeat(64)],
+    request_target: None,
+    update_target: Some(("salesforce", "Opportunity")),
+    signing_key_resource: None,
+  }
+  let originals = @host.client_local_product_finite_originals(
+    path + "/product",
+    "/product/lib/sqlite.dylib",
+    "/product/lib/crypto.dylib",
+    "2026-10-12T00:00:00.000Z",
+    @host.client_local_product_assets(),
+    mock=Some(subjects),
+  ).unwrap()
+  let product = begin_native_local_product_configuration(
+    path, "product", originals, crypto,
+  ).unwrap()
+  product.stage_configuration().unwrap()
+  let generation = product.root.inspect_generation("account.json").unwrap()
+  let account_body = originals
+    .iter()
+    .find_first(entry => entry.0 == "account.json")
+    .unwrap().1
+  let profile = @authorization.local_mock_profile_identity()
+  assert_true(
+    product.require_mock_bootstrap_original(
+      product.root_ownership,
+      "account.json",
+      b"different",
+      profile,
+    )
+    is Err(UninstalledBootstrapProfile),
+  )
+  assert_true(
+    product.require_mock_bootstrap_original(
+      product.root_ownership,
+      "account.json",
+      account_body,
+      { ..profile, profile_cid: "sha256:" + "f".repeat(64), },
+    )
+    is Err(UninstalledBootstrapProfile),
+  )
+  // The ordinary entrance cannot adopt a profile from a name or equal DATA.
+  let refused = new_local_adoption_open_failure()
+  assert_true(
+    begin_native_local_host_adoption_original(
+      path + "/product",
+      "host",
+      path + "/product",
+      "account.json",
+      "local-cli",
+      crypto,
+      custody=Some(refused),
+    )
+    is Err(UninstalledBootstrapProfile),
+  )
+  refused.retry_cleanup().unwrap()
+  assert_eq(product.root.inspect_directory("host").unwrap(), None)
+  let session = begin_native_local_host_adoption_original(
+    path + "/product",
+    "host",
+    path + "/product",
+    "account.json",
+    "local-cli",
+    crypto,
+    product_original=Some(product),
+  ).unwrap()
+  let host = session
+    .open_journal(local_journal_test_library(), crypto, 100.0, 8, 8388608L)
+    .unwrap()
+  let adoption = host.adoption_cid()
+  let account = host.configuration().unwrap()
+  let configuration = account.configuration_cid()
+  assert_eq(account.bootstrap_profile(), Some(profile))
+  assert_true(
+    host
+    .authorize({
+      principal: "local-cli",
+      connection: "mock",
+      resource: subjects.model_tasks[0],
+      operation: "infer",
+    })
+    .unwrap()
+    is @authorization.Allow(_),
+  )
+  assert_true(
+    host
+    .authorize({
+      principal: "local-cli",
+      connection: "salesforce",
+      resource: "Opportunity",
+      operation: "effect",
+    })
+    .unwrap()
+    is @authorization.Delegate(_),
+  )
+  assert_true(
+    host
+    .authorize({
+      principal: "local-cli",
+      connection: "salesforce",
+      resource: "unselected",
+      operation: "read",
+    })
+    .unwrap()
+    is @authorization.Deny(_),
+  )
+  host.close().unwrap()
+  assert_true(product.close())
+  assert_true(
+    product.require_mock_bootstrap_original(
+      product.root_ownership,
+      "account.json",
+      account_body,
+      profile,
+    )
+    is Err(Closed),
+  )
+  let restored = restore_native_local_product_configuration(
+    path, "product", crypto,
+  ).unwrap()
+  restored.stage_configuration().unwrap()
+  assert_eq(
+    restored.root.inspect_generation("account.json").unwrap(),
+    generation,
+  )
+  let session = begin_native_local_host_adoption_original(
+    path + "/product",
+    "host",
+    path + "/product",
+    "account.json",
+    "local-cli",
+    crypto,
+    product_original=Some(restored),
+    existing_only=true,
+  ).unwrap()
+  let reopened = session
+    .open_journal(local_journal_test_library(), crypto, 100.0, 8, 8388608L)
+    .unwrap()
+  assert_eq(reopened.adoption_cid(), adoption)
+  assert_eq(
+    reopened.configuration().unwrap().configuration_cid(),
+    configuration,
+  )
+  reopened.close().unwrap()
+  assert_true(restored.close())
+}

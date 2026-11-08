@@ -638,13 +638,54 @@ for (const [name, sql] of [
   assert.notEqual(query, '', name);
   await writeFile(join(root, `join-${name}.json`), query);
 }
-const capturedQuery = queryFrontend.compileCapturedQueryJson(
+const sourceCatalog = await readFile(join(repository,
+  'src/query_integration/query_amount_catalog_wbtest.mbt'), 'utf8');
+const catalog = sourceCatalog.slice(sourceCatalog.indexOf(
+  'fn query_amount_nullable_catalog')).match(
+  /query_catalog_from_wire\(\s*("(?:[^"\\]|\\.)*")\s*,\s*expected="([^"]+)"/u);
+assert.ok(catalog);
+const sourceEnvironment = JSON.parse(JSON.parse(catalog[1]));
+const sourceSelector = {source_ref: 'connector://crm/main/r#v',
+  source_contract_cid:
+    'sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3',
+  source_view_contract_cid:
+    'sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3',
+  read_mode: 'snapshot'};
+sourceEnvironment.schema_snapshots = [{...sourceSelector,
+  output_carrier: 'relation',
+  carrier_schema_contract_cid:
+    'sha256:2fe8005dbfa26b68a2e50a3fc86a54b14f4d845275acfd3770b09ba7d4316bc4',
+  source_data_policy_cid:
+    'sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf',
+  data_classification: 'unknown'}];
+sourceEnvironment.connector_capabilities = [{...sourceSelector,
+  capability_contract_cids: [
+    'sha256:dcf4b1e2c8a078d96f9160a75a9f8279047e7448ea39b3b882588e18b9ab0929'],
+}];
+Object.assign(sourceEnvironment.host_policy_profile.capacity, {
+  max_analytic_frame_memberships: 10000,
+  max_analytic_input_wire_bytes: 10000,
+  max_analytic_output_wire_bytes: 10000,
+  max_analytic_partition_wire_bytes: 10000,
+});
+// The fixture's existing capacity is an explicit operator selection. Preserve
+// the remaining policy fields from this same installed Host base publication.
+const sourceBaseEnvironment = JSON.parse(await readFile(join(root, 'node_modules',
+  '@actql', 'local-node', 'spec', 'local-check-environment.json'), 'utf8'));
+const hostCapacityPolicy = sourceEnvironment.host_policy_profile.capacity;
+sourceEnvironment.host_policy_profile = {...sourceBaseEnvironment.host_policy_profile,
+  capacity: hostCapacityPolicy};
+delete sourceEnvironment.evidence_bundle_cid;
+sourceEnvironment.evidence_bundle_cid = machineCid(sourceEnvironment);
+const compileCapturedQuery = (...args) => queryFrontend.compileCapturedQueryJson(
+  ...args, canonicalText(sourceEnvironment), sourceEnvironment.evidence_bundle_cid);
+const capturedQuery = compileCapturedQuery(
   'SELECT id FROM records WHERE id > 1', 'records', 'remote',
   JSON.stringify({connector: 'crm/main', resource: 'r'}),
   JSON.stringify(['id', 'amount']), 'fixture.captured_query');
 assert.notEqual(capturedQuery, '');
 await writeFile(join(root, 'captured-query.json'), capturedQuery);
-const capturedCteQuery = queryFrontend.compileCapturedQueryJson(
+const capturedCteQuery = compileCapturedQuery(
   'WITH chosen AS (SELECT id, amount FROM records WHERE id > 1) '
     + 'SELECT id FROM chosen',
   'records', 'remote',
@@ -652,7 +693,7 @@ const capturedCteQuery = queryFrontend.compileCapturedQueryJson(
   JSON.stringify(['id', 'amount']), 'fixture.captured_cte');
 assert.notEqual(capturedCteQuery, '');
 await writeFile(join(root, 'captured-cte-query.json'), capturedCteQuery);
-const capturedSubquery = queryFrontend.compileCapturedQueryJson(
+const capturedSubquery = compileCapturedQuery(
   'SELECT outer_rows.id FROM '
     + '(SELECT DISTINCT inner_rows.id FROM '
     + '(SELECT id FROM records WHERE id > 1) AS inner_rows '
@@ -662,7 +703,7 @@ const capturedSubquery = queryFrontend.compileCapturedQueryJson(
   JSON.stringify(['id', 'amount']), 'fixture.captured_subquery');
 assert.notEqual(capturedSubquery, '');
 await writeFile(join(root, 'captured-subquery.json'), capturedSubquery);
-const reusedCteQuery = queryFrontend.compileCapturedQueryJson(
+const reusedCteQuery = compileCapturedQuery(
   'WITH chosen AS (SELECT id, amount FROM records WHERE id > 1) '
     + 'SELECT l.id AS left_id, r.id AS right_id '
     + 'FROM chosen AS l JOIN chosen AS r ON l.id = r.id',
@@ -671,7 +712,7 @@ const reusedCteQuery = queryFrontend.compileCapturedQueryJson(
   JSON.stringify(['id', 'amount']), 'fixture.reused_cte');
 assert.notEqual(reusedCteQuery, '');
 await writeFile(join(root, 'reused-cte-query.json'), reusedCteQuery);
-const usingCteQuery = queryFrontend.compileCapturedQueryJson(
+const usingCteQuery = compileCapturedQuery(
   'WITH chosen AS (SELECT id, amount FROM records WHERE id > 1) '
     + 'SELECT id FROM chosen AS l JOIN chosen AS r USING (id)',
   'records', 'remote',
@@ -679,7 +720,7 @@ const usingCteQuery = queryFrontend.compileCapturedQueryJson(
   JSON.stringify(['id', 'amount']), 'fixture.using_cte');
 assert.notEqual(usingCteQuery, '');
 await writeFile(join(root, 'using-cte-query.json'), usingCteQuery);
-const fullUsingCteQuery = queryFrontend.compileCapturedQueryJson(
+const fullUsingCteQuery = compileCapturedQuery(
   'WITH acquired AS (SELECT id FROM records WHERE id > 1), '
     + 'chosen AS (SELECT DISTINCT id FROM acquired), '
     + 'left_part AS (SELECT id FROM chosen WHERE id = 2), '
@@ -691,7 +732,7 @@ const fullUsingCteQuery = queryFrontend.compileCapturedQueryJson(
   JSON.stringify(['id', 'amount']), 'fixture.full_using_cte');
 assert.notEqual(fullUsingCteQuery, '');
 await writeFile(join(root, 'full-using-cte-query.json'), fullUsingCteQuery);
-const chainedCteQuery = queryFrontend.compileCapturedQueryJson(
+const chainedCteQuery = compileCapturedQuery(
   'WITH first AS (SELECT id, amount FROM records WHERE id > 1), '
     + 'second AS (SELECT id FROM first WHERE amount >= 20) '
     + 'SELECT id FROM second',
@@ -700,7 +741,7 @@ const chainedCteQuery = queryFrontend.compileCapturedQueryJson(
   JSON.stringify(['id', 'amount']), 'fixture.chained_cte');
 assert.notEqual(chainedCteQuery, '');
 await writeFile(join(root, 'chained-cte-query.json'), chainedCteQuery);
-const capturedCteJoinBody = queryFrontend.compileCapturedQueryJson(
+const capturedCteJoinBody = compileCapturedQuery(
   'WITH acquired AS (SELECT id, amount FROM records WHERE id > 1), '
     + 'chosen AS (SELECT id FROM acquired WHERE id = 3), '
     + 'matched AS (SELECT l.id AS id, l.amount AS amount '
@@ -712,7 +753,7 @@ const capturedCteJoinBody = queryFrontend.compileCapturedQueryJson(
 assert.notEqual(capturedCteJoinBody, '');
 await writeFile(join(root, 'captured-cte-join-body.json'),
   capturedCteJoinBody);
-const capturedComputedCteJoinBody = queryFrontend.compileCapturedQueryJson(
+const capturedComputedCteJoinBody = compileCapturedQuery(
   'WITH acquired AS (SELECT id FROM records WHERE id > 1), '
     + 'copy AS (SELECT id FROM acquired), '
     + 'matched AS (SELECT l.id + r.id AS total FROM acquired AS l '
@@ -724,7 +765,7 @@ const capturedComputedCteJoinBody = queryFrontend.compileCapturedQueryJson(
 assert.notEqual(capturedComputedCteJoinBody, '');
 await writeFile(join(root, 'captured-computed-cte-join-body.json'),
   capturedComputedCteJoinBody);
-const capturedSetQuery = queryFrontend.compileCapturedQueryJson(
+const capturedSetQuery = compileCapturedQuery(
   'SELECT id FROM records WHERE id > 1 UNION ALL '
     + 'SELECT id FROM records WHERE id > 1',
   'records', 'remote',
@@ -732,7 +773,7 @@ const capturedSetQuery = queryFrontend.compileCapturedQueryJson(
   JSON.stringify(['id', 'amount']), 'fixture.captured_set_query');
 assert.notEqual(capturedSetQuery, '');
 await writeFile(join(root, 'captured-set-query.json'), capturedSetQuery);
-const capturedPipeSetQuery = queryFrontend.compileCapturedQueryJson(
+const capturedPipeSetQuery = compileCapturedQuery(
   'FROM records |> WHERE id > 1 |> SELECT id |> UNION ALL '
     + '(SELECT id FROM records WHERE id > 1)',
   'records', 'remote',
@@ -754,21 +795,21 @@ for (const [name, sql] of [
     'SELECT id FROM records WHERE id > 1 EXCEPT DISTINCT '
       + 'SELECT id FROM records WHERE id > 1'],
 ]) {
-  const program = queryFrontend.compileCapturedQueryJson(sql,
+  const program = compileCapturedQuery(sql,
     'records', 'remote',
     JSON.stringify({connector: 'crm/main', resource: 'r'}),
     JSON.stringify(['id', 'amount']), 'fixture.' + name);
   assert.notEqual(program, '', name);
   await writeFile(join(root, name + '.json'), program);
 }
-const distinctQuery = queryFrontend.compileCapturedQueryJson(
+const distinctQuery = compileCapturedQuery(
   'SELECT DISTINCT id FROM records WHERE id > 1 ORDER BY id',
   'records', 'remote',
   JSON.stringify({connector: 'crm/main', resource: 'r'}),
   JSON.stringify(['id', 'amount']), 'fixture.distinct_query');
 assert.notEqual(distinctQuery, '');
 await writeFile(join(root, 'distinct-query.json'), distinctQuery);
-const distinctExpressionQuery = queryFrontend.compileCapturedQueryJson(
+const distinctExpressionQuery = compileCapturedQuery(
   'SELECT DISTINCT id + 1 AS next FROM records WHERE id > 0 '
     + 'ORDER BY id + 1',
   'records', 'remote',
@@ -777,13 +818,13 @@ const distinctExpressionQuery = queryFrontend.compileCapturedQueryJson(
 assert.notEqual(distinctExpressionQuery, '');
 await writeFile(join(root, 'distinct-expression-query.json'),
   distinctExpressionQuery);
-const groupedQuery = queryFrontend.compileCapturedQueryJson(
+const groupedQuery = compileCapturedQuery(
   'SELECT id, COUNT(*) AS n FROM records WHERE id > 0 GROUP BY id HAVING n > 1 ORDER BY id',
   'records', 'remote',
   JSON.stringify({connector: 'crm/main', resource: 'r'}),
   JSON.stringify(['id', 'amount']), 'fixture.grouped_query');
 assert.notEqual(groupedQuery, '');
-const pipeGroupedQuery = queryFrontend.compileCapturedQueryJson(
+const pipeGroupedQuery = compileCapturedQuery(
   'FROM records |> WHERE id > 0 |> AGGREGATE COUNT(*) AS n GROUP BY id |> WHERE n > 1 |> SELECT id, n |> ORDER BY id',
   'records', 'remote',
   JSON.stringify({connector: 'crm/main', resource: 'r'}),
@@ -791,7 +832,7 @@ const pipeGroupedQuery = queryFrontend.compileCapturedQueryJson(
 assert.deepEqual(JSON.parse(groupedQuery), groupedQueryCases[0].expected);
 assert.deepEqual(JSON.parse(pipeGroupedQuery), groupedQueryCases[1].expected);
 await writeFile(join(root, 'grouped-query.json'), groupedQuery);
-const aliasGroupedQuery = queryFrontend.compileCapturedQueryJson(
+const aliasGroupedQuery = compileCapturedQuery(
   'SELECT amount AS id, COUNT(*) AS n FROM records WHERE id > 0 '
     + 'GROUP BY id HAVING n > 1',
   'records', 'remote',
@@ -799,7 +840,7 @@ const aliasGroupedQuery = queryFrontend.compileCapturedQueryJson(
   JSON.stringify(['id', 'amount']), 'fixture.alias_grouped_query');
 assert.notEqual(aliasGroupedQuery, '');
 await writeFile(join(root, 'alias-grouped-query.json'), aliasGroupedQuery);
-const computedGroupedQuery = queryFrontend.compileCapturedQueryJson(
+const computedGroupedQuery = compileCapturedQuery(
   'SELECT amount + 1 AS bucket, COUNT(*) AS n '
     + 'FROM records WHERE id > 0 GROUP BY bucket',
   'records', 'remote',
@@ -808,7 +849,7 @@ const computedGroupedQuery = queryFrontend.compileCapturedQueryJson(
 assert.notEqual(computedGroupedQuery, '');
 await writeFile(join(root, 'computed-grouped-query.json'),
   computedGroupedQuery);
-const analyticQuery = queryFrontend.compileCapturedQueryJson(
+const analyticQuery = compileCapturedQuery(
   'SELECT id, RANK() OVER (ORDER BY id) AS ranking FROM records WHERE id > 0',
   'records', 'remote',
   JSON.stringify({connector: 'crm/main', resource: 'r'}),
@@ -829,7 +870,7 @@ const analyticCases = [
       + 'FROM records WHERE id < 3',
     [{id: 1, ranking: 1}, {id: 2, ranking: 2}]],
   ['lead',
-    'SELECT id, LEAD(id) OVER (ORDER BY id) AS following '
+    'SELECT id, LEAD(id) OVER (ORDER BY id) AS `following` '
       + 'FROM records WHERE id < 3',
     [{id: 1, following: 2}, {id: 2, following: null}]],
   ['first-value',
@@ -873,14 +914,14 @@ const analyticCases = [
       {old_id: 2, id: 20, pos: 2}]],
 ];
 for (const [name, sql] of analyticCases) {
-  const query = queryFrontend.compileCapturedQueryJson(sql,
+  const query = compileCapturedQuery(sql,
     'records', 'remote',
     JSON.stringify({connector: 'crm/main', resource: 'r'}),
     JSON.stringify(['id', 'amount']), `fixture.analytic_${name}`);
   assert.notEqual(query, '', name);
   await writeFile(join(root, `analytic-${name}.json`), query);
 }
-const pipeRowNumber = queryFrontend.compileCapturedQueryJson(
+const pipeRowNumber = compileCapturedQuery(
   'FROM records |> WHERE id < 3 '
     + '|> SELECT id, ROW_NUMBER() OVER (ORDER BY id) AS pos',
   'records', 'remote',
@@ -892,14 +933,14 @@ await writeFile(join(root, 'analytic-pipe-row-number.json'), pipeRowNumber);
 analyticCases.push(['pipe-row-number', '', [{id: 1, pos: 1}, {id: 2, pos: 2}]]);
 await writeFile(join(root, 'analytic-cases.json'),
   JSON.stringify(analyticCases.map(([name, , expected]) => [name, expected])));
-const extendedQuery = queryFrontend.compileCapturedQueryJson(
+const extendedQuery = compileCapturedQuery(
   'FROM records |> WHERE id > 0 |> EXTEND amount + 1 AS adjusted |> SELECT id, adjusted',
   'records', 'remote',
   JSON.stringify({connector: 'crm/main', resource: 'r'}),
   JSON.stringify(['id', 'amount']), 'fixture.extended_query');
 assert.notEqual(extendedQuery, '');
 await writeFile(join(root, 'extended-query.json'), extendedQuery);
-const pipeSetQuery = queryFrontend.compileCapturedQueryJson(
+const pipeSetQuery = compileCapturedQuery(
   'FROM records AS before |> WHERE id > 0 '
     + '|> SET id = amount, amount = id '
     + '|> SELECT before.id AS old_id, before.amount AS old_amount, id, amount',
@@ -908,7 +949,7 @@ const pipeSetQuery = queryFrontend.compileCapturedQueryJson(
   JSON.stringify(['id', 'amount']), 'fixture.pipe_set_query');
 assert.notEqual(pipeSetQuery, '');
 await writeFile(join(root, 'pipe-set-query.json'), pipeSetQuery);
-const pipeSetGroupedQuery = queryFrontend.compileCapturedQueryJson(
+const pipeSetGroupedQuery = compileCapturedQuery(
   'FROM records |> WHERE amount > 0 |> SET id = amount '
     + '|> AGGREGATE COUNT(*) AS n GROUP BY id |> SELECT id, n '
     + '|> ORDER BY id',
@@ -922,38 +963,6 @@ await writeFile(join(root, 'segmented-join-program.json'), await readFile(
   join(repository, 'adapters/host-node/fixtures/segmented-join-program.json')));
 await writeFile(join(root, 'segmented-results-program.json'), await readFile(
   join(repository, 'adapters/host-node/fixtures/segmented-results-program.json')));
-const sourceCatalog = await readFile(join(repository,
-  'src/query_integration/query_amount_catalog_wbtest.mbt'), 'utf8');
-const catalog = sourceCatalog.slice(sourceCatalog.indexOf(
-  'fn query_amount_nullable_catalog')).match(
-  /query_catalog_from_wire\(\s*("(?:[^"\\]|\\.)*")\s*,\s*expected="([^"]+)"/u);
-assert.ok(catalog);
-const sourceEnvironment = JSON.parse(JSON.parse(catalog[1]));
-const sourceSelector = {source_ref: 'connector://crm/main/r#v',
-  source_contract_cid:
-    'sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3',
-  source_view_contract_cid:
-    'sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3',
-  read_mode: 'snapshot'};
-sourceEnvironment.schema_snapshots = [{...sourceSelector,
-  output_carrier: 'relation',
-  carrier_schema_contract_cid:
-    'sha256:2fe8005dbfa26b68a2e50a3fc86a54b14f4d845275acfd3770b09ba7d4316bc4',
-  source_data_policy_cid:
-    'sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf',
-  data_classification: 'unknown'}];
-sourceEnvironment.connector_capabilities = [{...sourceSelector,
-  capability_contract_cids: [
-    'sha256:db7ce19477afd82a8488a9f64fd75697c850eaaccdc738995483cc138a06361a'],
-}];
-Object.assign(sourceEnvironment.host_policy_profile.capacity, {
-  max_analytic_frame_memberships: 10000,
-  max_analytic_input_wire_bytes: 10000,
-  max_analytic_output_wire_bytes: 10000,
-  max_analytic_partition_wire_bytes: 10000,
-});
-delete sourceEnvironment.evidence_bundle_cid;
-sourceEnvironment.evidence_bundle_cid = machineCid(sourceEnvironment);
 const databasePath = join(root, 'records.duckdb');
 const {DuckDBInstance} = createRequire(join(root, 'node_modules', '@actql',
   'local-node', 'package.json'))('@duckdb/node-api');
@@ -991,6 +1000,10 @@ import {readFileSync, writeFileSync} from 'node:fs';
 import {createRequire} from 'node:module';
 import {connect, ClientError} from '@actql/node';
 import {connectInProcess} from '@actql/sdk/host-port';
+import {getSubmissionAttempt, getSubmissionInput, getSubmissionOutcome} from '@actql/sdk';
+
+const hostCapacityPolicy = JSON.parse(JSON.parse(
+  readFileSync('source-profile.json', 'utf8')).checkEnvironmentWire).host_policy_profile.capacity;
 
 // Count actual prepared statements against the physical source. Both the
 // single-use and reused-CTE Programs use the same checked acquisition.
@@ -1589,20 +1602,33 @@ async function runAcquiredApplication(options, requestId) {
   assert.equal(reader.state(), 'complete');
   assert.equal((await resultB.deliveryAttempt(reader.attemptId)).kind,
     'found');
-  assert.deepEqual((await client.lookupRequest(requestId)).ref,
-    execution.ref);
-  assert.deepEqual((await client.startSource(acquiredDocument, {format: 'json',
-    requestId, parameters: {minimum: 1}})).ref, execution.ref);
+  const originalSubmission = getSubmissionOutcome(execution);
+  assert.equal(originalSubmission.kind, 'ready');
+  const originalLookup = await client.lookupSubmission(originalSubmission.submissionRef);
+  assert.equal(originalLookup.kind, 'ready');
+  assert.deepEqual(originalLookup.admission.ref, execution.ref);
+  const replayed = await client.startSource(acquiredDocument, {format: 'json',
+    requestId, parameters: {minimum: 1}});
+  assert.deepEqual(replayed.ref, execution.ref);
+  assert.deepEqual(getSubmissionOutcome(replayed).submissionRef, originalSubmission.submissionRef);
   await assert.rejects(client.startSource(acquiredDocument, {format: 'json',
     requestId, parameters: {minimum: 2}}),
-  {code: 'ClientRequestIntentConflict'});
+  error => {
+    assert.equal(error.code, 'RequestConflict');
+    const attempt = getSubmissionAttempt(error);
+    assert.equal(attempt.kind, 'conflict');
+    assert.equal(attempt.reason, 'intent');
+    assert.equal(attempt.requestName, requestId);
+    assert.equal(getSubmissionOutcome(error), undefined);
+    return true;
+  });
   return {client, execution, b, c};
 }
 // Focused review acceptance still uses packed artifacts and both real Hosts.
 // The default CI invocation continues to execute the full matrix.
 if (process.env.ACTQL_PROJECTION_ONLY === '1') {
   const local = await connect({mode: 'local', owner: 'local',
-    durability: 'durable'});
+    durability: 'durable', installation: {hostCapacityPolicy}});
   await checkCurrentGraph(local, 'projection-local');
   await checkOrderScopes(local, 'projection-local');
   local.close();
@@ -1619,12 +1645,15 @@ if (process.env.ACTQL_PROJECTION_ONLY === '1') {
   process.exit(0);
 }
 const {client: installedLocal, execution, rows} = await runApplication(
-  {mode: 'local', owner: 'local', durability: 'durable'},
+  {mode: 'local', owner: 'local', durability: 'durable', installation: {hostCapacityPolicy}},
   'packed-standard-values');
 assert.equal(execution.profile.durability, 'durable');
 assert.equal((await execution.status()).status, 'succeeded');
 assert.deepEqual(rows, [{id: 1}, {id: 2}]);
-assert.equal((await execution.cancel()).kind, 'already_terminal');
+const terminalCancellation = await execution.cancel();
+assert.equal(terminalCancellation.kind, 'already_satisfied');
+assert.equal(terminalCancellation.cancellation.kind, 'already_terminal');
+assert.deepEqual(terminalCancellation.cancellation.ref, execution.ref);
 assert.equal((await execution.status()).control.physical_stop, 'confirmed');
 await assert.rejects(execution.result('answer').all({maxRows: 1}),
   {code: 'ResultRetainedLimit'});
@@ -1633,8 +1662,11 @@ assert.deepEqual(await Array.fromAsync(reader), [{id: 1}, {id: 2}]);
 assert.equal(reader.state(), 'complete');
 assert.equal((await execution.result('answer')
   .deliveryAttempt(reader.attemptId)).kind, 'found');
-assert.deepEqual((await installedLocal.lookupRequest(
-  'packed-standard-values')).ref, execution.ref);
+const valuesSubmission = getSubmissionOutcome(execution);
+assert.equal(valuesSubmission.kind, 'ready');
+const valuesLookup = await installedLocal.lookupSubmission(valuesSubmission.submissionRef);
+assert.equal(valuesLookup.kind, 'ready');
+assert.deepEqual(valuesLookup.admission.ref, execution.ref);
 assert.deepEqual((await installedLocal.attach(execution.ref)).ref,
   execution.ref);
 const valuesQueryLocal = await installedLocal.startSource(valuesQueryDocument,
@@ -1684,7 +1716,7 @@ const pipeUnionLocal = await installedLocal.startSource(pipeUnionQueryDocument,
 assert.equal((await pipeUnionLocal.wait()).status, 'succeeded');
 assert.deepEqual(await pipeUnionLocal.result('answer').all(), expectedUnionRows);
 const acquiredLocal = await runAcquiredApplication(
-  {mode: 'local', owner: 'local', durability: 'durable'},
+  {mode: 'local', owner: 'local', durability: 'durable', installation: {hostCapacityPolicy}},
   'packed-acquired-local');
 const capturedQueryLocal = await acquiredLocal.client.startSource(capturedQueryDocument,
   {format: 'json', requestId: 'packed-captured-query-local'});
@@ -1741,11 +1773,18 @@ const acquiredStarted = await acquiredLocal.client.start(
     parameters: {minimum: 1}});
 assert.equal((await acquiredStarted.wait()).status, 'succeeded');
 assert.deepEqual(await acquiredStarted.result('b').all(), acquiredLocal.b);
-assert.equal((await acquiredStarted.cancel()).kind, 'already_terminal');
+const acquiredTerminalCancellation = await acquiredStarted.cancel();
+assert.equal(acquiredTerminalCancellation.kind, 'already_satisfied');
+assert.equal(acquiredTerminalCancellation.cancellation.kind, 'already_terminal');
+assert.deepEqual(acquiredTerminalCancellation.cancellation.ref, acquiredStarted.ref);
 writeFileSync('acquired-local-ref.json',
   JSON.stringify(acquiredLocal.execution.ref));
+writeFileSync('acquired-local-submission-ref.json',
+  JSON.stringify(getSubmissionOutcome(acquiredLocal.execution).submissionRef), {mode: 0o600});
 acquiredLocal.client.close();
 writeFileSync('run-ref.json', JSON.stringify(execution.ref));
+writeFileSync('run-submission-ref.json',
+  JSON.stringify(getSubmissionOutcome(execution).submissionRef), {mode: 0o600});
 const nullable = JSON.parse(document);
 nullable.id = 'client-nullable-values';
 nullable.stages[0].steps[0].values.schema.id.nullable = true;
@@ -1775,14 +1814,24 @@ assert.equal(computedLocalState.status, 'succeeded',
 assert.deepEqual(await computedLocal.result('answer').all(), [{id: 2}]);
 await checkSegmentedProgram(installedLocal, 'local');
 await checkSegmentedResults(installedLocal, 'local');
-assert.deepEqual((await installedLocal.startSource(document, {format: 'json',
-  requestId: 'packed-standard-values'})).ref, execution.ref);
+const replayedValues = await installedLocal.startSource(document, {format: 'json',
+  requestId: 'packed-standard-values'});
+assert.deepEqual(replayedValues.ref, execution.ref);
+assert.deepEqual(getSubmissionOutcome(replayedValues).submissionRef, valuesSubmission.submissionRef);
 const conflictingProgram = JSON.parse(document);
 assert.equal(conflictingProgram.stages[0].steps[0].values.rows[1].id, 2);
 conflictingProgram.stages[0].steps[0].values.rows[1].id = 3;
 await assert.rejects(installedLocal.startSource(JSON.stringify(conflictingProgram),
   {format: 'json', requestId: 'packed-standard-values'}),
-  {code: 'ClientRequestIntentConflict'});
+  error => {
+    assert.equal(error.code, 'RequestConflict');
+    const attempt = getSubmissionAttempt(error);
+    assert.equal(attempt.kind, 'conflict');
+    assert.equal(attempt.reason, 'intent');
+    assert.equal(attempt.requestName, 'packed-standard-values');
+    assert.equal(getSubmissionOutcome(error), undefined);
+    return true;
+  });
 installedLocal.close();
 assert.equal(calls.length, connected.length);
 globalThis.fetch = originalFetch;
@@ -1815,7 +1864,10 @@ const cancelledState = await cancelledRun.status();
 assert.equal(cancelledState.status, 'cancelled');
 assert.equal(cancelledState.control.cancellation_requested, true);
 assert.equal(cancelledState.control.physical_stop, 'confirmed');
-assert.equal((await cancelledRun.cancel()).kind, 'already_requested');
+const repeatedCancellation = await cancelledRun.cancel();
+assert.equal(repeatedCancellation.kind, 'already_satisfied');
+assert.equal(repeatedCancellation.cancellation.kind, 'already_requested');
+assert.deepEqual(repeatedCancellation.cancellation.ref, cancelledRun.ref);
 assert.equal((await cancelledRun.wait()).status, 'cancelled');
 const cancelledAcquired = await timingClient.startSource(acquiredDocument,
   {format: 'json', requestId: 'packed-acquired-cancel-before-dispatch',
@@ -1898,6 +1950,9 @@ await checkSegmentedProgram(installedRemote, 'remote');
 await checkSegmentedResults(installedRemote, 'remote');
 const acquiredRemote = await runAcquiredApplication(remoteOptions,
   'packed-acquired-remote');
+writeFileSync('acquired-remote-original.json', JSON.stringify({
+  submissionRef: getSubmissionOutcome(acquiredRemote.execution).submissionRef,
+  ref: acquiredRemote.execution.ref}), {mode: 0o600});
 const capturedQueryRemote = await acquiredRemote.client.startSource(
   capturedQueryDocument,
   {format: 'json', requestId: 'packed-captured-query-remote'});
@@ -1970,7 +2025,7 @@ orderedAcquired.stages[2].steps.push({from: 'out',
 orderedAcquired.stages[2].results.r.from = 'sorted';
 const orderedDocument = JSON.stringify(orderedAcquired);
 const variantLocal = await connect({mode: 'local', owner: 'local',
-  durability: 'durable'});
+  durability: 'durable', installation: {hostCapacityPolicy}});
 const orderedLocal = await variantLocal.startSource(orderedDocument,
   {format: 'json', requestId: 'packed-acquired-ordered-local',
     parameters: {minimum: 1}});
@@ -2022,14 +2077,18 @@ assert.deepEqual(await computedRemote.result('answer').all(), [{id: 2}]);
 assert.equal((await remoteExecution.status()).status, 'succeeded');
 assert.deepEqual((await installedRemote.attach(remoteExecution.ref)).ref,
   remoteExecution.ref);
-assert.deepEqual((await installedRemote.lookupRequest(
-  'packed-remote-values')).ref, remoteExecution.ref);
+const remoteSubmission = getSubmissionOutcome(remoteExecution);
+assert.equal(remoteSubmission.kind, 'ready');
+const remoteLookup = await installedRemote.lookupSubmission(remoteSubmission.submissionRef);
+assert.equal(remoteLookup.kind, 'ready');
+assert.deepEqual(remoteLookup.admission.ref, remoteExecution.ref);
 await assert.rejects(remoteExecution.result('answer').all({maxRows: 1}),
   {code: 'ResultRetainedLimit'});
 let remoteReplyLost = false;
+let remoteLostSubmissionRef;
 globalThis.fetch = async (url, options) => {
   const reply = await originalFetch(url, options);
-  if (!remoteReplyLost && new URL(url).pathname.endsWith('/submit')) {
+  if (!remoteReplyLost && new URL(url).pathname === '/actql/client/0.1/submit-named-intent') {
     remoteReplyLost = true;
     await reply.arrayBuffer();
     throw new Error('RemoteAcceptanceReplyLost');
@@ -2038,23 +2097,27 @@ globalThis.fetch = async (url, options) => {
 };
 try {
   await assert.rejects(installedRemote.startSource(document, {format: 'json',
-    requestId: 'packed-remote-lost-ack'}), error =>
-    error.code === 'SubmissionUnknown' &&
-    error.requestId === 'packed-remote-lost-ack');
+    requestId: 'packed-remote-lost-ack'}), error => {
+    assert.equal(error.code, 'SubmissionUnknown');
+    assert.equal(error.requestId, 'packed-remote-lost-ack');
+    remoteLostSubmissionRef = getSubmissionInput(error).submissionRef;
+    assert(remoteLostSubmissionRef);
+    return true;
+  });
 } finally { globalThis.fetch = originalFetch; }
 assert.equal(remoteReplyLost, true);
-const recoveredRemote = await installedRemote.lookupRequest(
-  'packed-remote-lost-ack');
-assert.equal(recoveredRemote.kind, 'found');
-const resumedRemote = await installedRemote.startSource(document, {format: 'json',
-  requestId: 'packed-remote-lost-ack'});
-assert.deepEqual(resumedRemote.ref, recoveredRemote.ref);
+const recoveredRemote = await installedRemote.lookupSubmission(remoteLostSubmissionRef);
+assert.equal(recoveredRemote.kind, 'ready');
+assert.deepEqual(recoveredRemote.submissionRef, remoteLostSubmissionRef);
+const resumedRemote = await installedRemote.attach(recoveredRemote.admission.ref);
+assert.deepEqual(resumedRemote.ref, recoveredRemote.admission.ref);
 assert.equal((await resumedRemote.wait()).status, 'succeeded');
 assert.deepEqual(await resumedRemote.result('answer').all(), rows);
 let acquiredReplyLost = false;
+let acquiredLostSubmissionRef;
 globalThis.fetch = async (url, options) => {
   const reply = await originalFetch(url, options);
-  if (!acquiredReplyLost && new URL(url).pathname.endsWith('/submit')) {
+  if (!acquiredReplyLost && new URL(url).pathname === '/actql/client/0.1/submit-named-intent') {
     acquiredReplyLost = true;
     await reply.arrayBuffer();
     throw new Error('AcquiredAcceptanceReplyLost');
@@ -2064,18 +2127,20 @@ globalThis.fetch = async (url, options) => {
 try {
   await assert.rejects(installedRemote.startSource(acquiredDocument,
     {format: 'json', requestId: 'packed-acquired-lost-ack',
-      parameters: {minimum: 1}}), error =>
-    error.code === 'SubmissionUnknown' &&
-    error.requestId === 'packed-acquired-lost-ack');
+      parameters: {minimum: 1}}), error => {
+    assert.equal(error.code, 'SubmissionUnknown');
+    assert.equal(error.requestId, 'packed-acquired-lost-ack');
+    acquiredLostSubmissionRef = getSubmissionInput(error).submissionRef;
+    assert(acquiredLostSubmissionRef);
+    return true;
+  });
 } finally { globalThis.fetch = originalFetch; }
 assert.equal(acquiredReplyLost, true);
-const foundAcquired = await installedRemote.lookupRequest(
-  'packed-acquired-lost-ack');
-assert.equal(foundAcquired.kind, 'found');
-const recoveredAcquired = await installedRemote.startSource(acquiredDocument,
-  {format: 'json', requestId: 'packed-acquired-lost-ack',
-    parameters: {minimum: 1}});
-assert.deepEqual(recoveredAcquired.ref, foundAcquired.ref);
+const foundAcquired = await installedRemote.lookupSubmission(acquiredLostSubmissionRef);
+assert.equal(foundAcquired.kind, 'ready');
+assert.deepEqual(foundAcquired.submissionRef, acquiredLostSubmissionRef);
+const recoveredAcquired = await installedRemote.attach(foundAcquired.admission.ref);
+assert.deepEqual(recoveredAcquired.ref, foundAcquired.admission.ref);
 assert.equal((await recoveredAcquired.wait()).status, 'succeeded');
 assert.deepEqual(await recoveredAcquired.result('b').all(),
   acquiredLocal.b);
@@ -2127,12 +2192,31 @@ run('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
 const remoteModule = pathToFileURL(join(root, 'node_modules', '@actql',
   'local-node', 'adapters', 'host-node', 'embedded-local.mjs')).href;
 const {openInstalledRemoteHttpHost} = await import(remoteModule);
+const installedControl = await import(pathToFileURL(join(root, 'node_modules', '@actql',
+  'local-node', '_build', 'js', 'release', 'build', 'connectors_builtin_node', 'connectors_builtin_node.js')));
 let releaseDispatch;
 const heldDispatch = new Promise(resolve => { releaseDispatch = resolve; });
 let failNextDispatch = false;
+// The Remote operator explicitly selects request admission and the exact
+// Run/Named Result reads used below; Source reads keep their own Account.
+const remoteAuthorization = {accountConfiguration: JSON.stringify({
+  version: 'actql-execution-account-config/0.1', account_id: 'packed-remote-account',
+  entries: [{entry_id: 'packed-observation', outcome: 'allow',
+    principal: {any_of: [userInfo().username]},
+    connection: {any_of: ['actql-remote-host']},
+    resource: {any_of: ['result/answer', 'result/b', 'result/c', 'result/last', 'run']},
+    operation: {any_of: ['read']}, exclusions: []},
+  {entry_id: 'packed-request', outcome: 'allow',
+    principal: {any_of: [userInfo().username]},
+    connection: {any_of: ['actql-remote-host']},
+    resource: {any_of: ['duckdb-acquired', 'source-free-values']},
+    operation: {any_of: ['write']}, exclusions: []}],
+})};
+await writeFile(join(root, 'remote-authorization.json'), JSON.stringify(remoteAuthorization));
 const remoteHost = await openInstalledRemoteHttpHost({
+  authorization: remoteAuthorization,
   directory: join(root, 'remote-state'),
-  sourceProfilePath,
+  sourceProfilePath, hostCapacityPolicy,
   authenticate: header => header === 'Bearer packed-test-token'
     ? userInfo().username : undefined,
   beforeDispatch: async () => {
@@ -2185,11 +2269,21 @@ if (graphOnly || projectionOnly) {
   scratch.passed();
   process.exit(0);
 }
-const acquiredRecoveryRequest = {requestId: 'packed-acquired-remote',
+const acquiredOriginal = JSON.parse(await readFile(join(root,
+  'acquired-remote-original.json'), 'utf8'));
+const acquiredOriginalEpoch = acquiredOriginal.submissionRef.epoch;
+// Decode the same stored identity with the installed Host's existing Core;
+// this neither renews its epoch nor admits or submits another request.
+const acquiredRecoveryRequest = {requestId: installedControl.clientSubmissionRequestId(
+  installedControl.clientSubmissionEpoch(acquiredOriginalEpoch.authorityScopeCid,
+    acquiredOriginalEpoch.epochNonce, acquiredOriginalEpoch.notBefore, acquiredOriginalEpoch.expiresAt),
+  acquiredOriginal.submissionRef.nonce),
   principalId: userInfo().username,
   connection: {mode: 'remote', owner: 'remote'}};
-assert.equal((await remoteHost.inspectAcquisition(
-  acquiredRecoveryRequest)).state, 'completed_retained');
+assert.equal(typeof acquiredRecoveryRequest.requestId, 'string');
+const acquiredInspection = await remoteHost.inspectAcquisition(acquiredRecoveryRequest);
+assert.equal(acquiredInspection.state, 'completed_retained');
+assert.deepEqual(acquiredInspection.ref, acquiredOriginal.ref);
 assert.equal((await remoteHost.inspectAcquisition({
   ...acquiredRecoveryRequest, requestId: 'never-submitted'})).state,
   'not_started');
@@ -2198,25 +2292,42 @@ await assert.rejects(remoteHost.inspectAcquisition({
 {message: 'AcquisitionInspectionDenied'});
 await remoteHost.close();
 await writeFile(join(root, 'restart-remote-host.mjs'), `
-import {readFileSync} from 'node:fs';
+import assert from 'node:assert/strict';
+import {existsSync, readFileSync} from 'node:fs';
 import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
 import {join} from 'node:path';
+import {pathToFileURL} from 'node:url';
 import {openInstalledRemoteHttpHost} from
   '@actql/local-node/http-host';
+const hostCapacityPolicy = JSON.parse(JSON.parse(
+  readFileSync('source-profile.json', 'utf8')).checkEnvironmentWire).host_policy_profile.capacity;
 const host = await openInstalledRemoteHttpHost({
+  authorization: JSON.parse(readFileSync('remote-authorization.json', 'utf8')),
   directory: join(process.cwd(), 'restart-remote-state'),
+  hostCapacityPolicy, sourceProfilePath: join(process.cwd(), 'source-profile.json'),
   authenticate: header => header === 'Bearer packed-test-token'
     ? userInfo().username : undefined,
   beforeDispatch: process.env.ACTQL_HOLD_DISPATCH === '1'
     ? async () => new Promise(() => {}) : undefined,
 });
-const recovery = await host.inspectAcquisition({
-  requestId: 'packed-acquired-restart-before-start',
-  principalId: userInfo().username,
-  connection: {mode: 'remote', owner: 'remote'},
-});
-console.log('RECOVERY:' + recovery.state);
+let recoveryState = 'not_observed';
+if (existsSync('restart-acquired-submission-ref.json')) {
+  const original = JSON.parse(readFileSync('restart-acquired-submission-ref.json', 'utf8'));
+  const originalRef = JSON.parse(readFileSync('restart-acquired-ref.json', 'utf8'));
+  const epoch = original.epoch;
+  const installedControl = await import(pathToFileURL(join(process.cwd(), 'node_modules', '@actql',
+    'local-node', '_build', 'js', 'release', 'build', 'connectors_builtin_node', 'connectors_builtin_node.js')));
+  const requestId = installedControl.clientSubmissionRequestId(
+    installedControl.clientSubmissionEpoch(epoch.authorityScopeCid, epoch.epochNonce, epoch.notBefore, epoch.expiresAt),
+    original.nonce);
+  assert.equal(typeof requestId, 'string');
+  const recovery = await host.inspectAcquisition({requestId,
+    principalId: userInfo().username, connection: {mode: 'remote', owner: 'remote'}});
+  if (recovery.ref !== undefined) assert.deepEqual(recovery.ref, originalRef);
+  recoveryState = recovery.state;
+}
+console.log('RECOVERY:' + recoveryState);
 const server = createServer({key: readFileSync('remote.key'),
   cert: readFileSync('remote.crt')}, host.handler);
 server.listen(0, '127.0.0.1', () => {
@@ -2227,6 +2338,7 @@ await writeFile(join(root, 'reserve-remote.mjs'), `
 import assert from 'node:assert/strict';
 import {readFileSync, writeFileSync} from 'node:fs';
 import {connect} from '@actql/node';
+import {getSubmissionOutcome} from '@actql/sdk';
 const client = await connect({mode: 'remote',
   endpoint: process.env.ACTQL_TEST_REMOTE_ENDPOINT,
   token: 'packed-test-token', durability: 'durable'});
@@ -2240,11 +2352,15 @@ for (let attempt = 0; attempt < 100; attempt++) {
 }
 assert.equal((await execution.status()).status, 'running');
 writeFileSync('restart-remote-ref.json', JSON.stringify(execution.ref));
+writeFileSync('restart-remote-submission-ref.json',
+  JSON.stringify(getSubmissionOutcome(execution).submissionRef), {mode: 0o600});
 const acquired = await client.startSource(acquiredDocument, {format: 'json',
   requestId: 'packed-acquired-restart-before-start',
   parameters: {minimum: 1}});
 assert.equal((await acquired.status()).status, 'running');
 writeFileSync('restart-acquired-ref.json', JSON.stringify(acquired.ref));
+writeFileSync('restart-acquired-submission-ref.json',
+  JSON.stringify(getSubmissionOutcome(acquired).submissionRef), {mode: 0o600});
 const cancelled = await client.startSource(document, {format: 'json',
   requestId: 'packed-cancel-before-restart'});
 assert.equal((await cancelled.cancel()).kind, 'accepted');
@@ -2255,12 +2371,14 @@ await writeFile(join(root, 'resume-remote.mjs'), `
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {connect} from '@actql/node';
+import {getSubmissionOutcome} from '@actql/sdk';
 const client = await connect({mode: 'remote',
   endpoint: process.env.ACTQL_TEST_REMOTE_ENDPOINT,
   token: 'packed-test-token', durability: 'durable'});
 const document = readFileSync('values.json', 'utf8');
 const acquiredDocument = readFileSync('source-program.json', 'utf8');
 const ref = JSON.parse(readFileSync('restart-remote-ref.json', 'utf8'));
+const submissionRef = JSON.parse(readFileSync('restart-remote-submission-ref.json', 'utf8'));
 const attached = await client.attach(ref);
 assert.equal((await attached.status()).status, 'running');
 const cancelledRef = JSON.parse(readFileSync('cancelled-remote-ref.json', 'utf8'));
@@ -2273,7 +2391,7 @@ assert.equal((await cancelledResend.wait()).status, 'cancelled');
 assert.equal((await cancelledResend.status()).control.physical_stop, 'confirmed');
 await assert.rejects(cancelledResend.result('answer').all());
 const execution = await client.startSource(document, {format: 'json',
-  requestId: 'packed-restart-before-physical-start'});
+  submissionRef});
 assert.deepEqual(execution.ref, ref);
 assert.equal((await execution.wait()).status, 'succeeded');
 assert.deepEqual(await execution.result('answer').all(),
@@ -2282,21 +2400,26 @@ const repeated = await client.startSource(document, {format: 'json',
   requestId: 'packed-restart-before-physical-start'});
 assert.deepEqual(repeated.ref, ref);
 assert.equal((await repeated.status()).status, 'succeeded');
-assert.deepEqual((await client.lookupRequest(
-  'packed-restart-before-physical-start')).ref, ref);
+assert.deepEqual(getSubmissionOutcome(repeated).submissionRef, submissionRef);
+const originalLookup = await client.lookupSubmission(submissionRef);
+assert.equal(originalLookup.kind, 'ready');
+assert.deepEqual(originalLookup.admission.ref, ref);
 const acquiredRef = JSON.parse(readFileSync('restart-acquired-ref.json',
   'utf8'));
+const acquiredSubmissionRef = JSON.parse(readFileSync('restart-acquired-submission-ref.json', 'utf8'));
 const acquiredAttached = await client.attach(acquiredRef);
 assert.equal((await acquiredAttached.status()).status, 'running');
 const acquiredResumed = await client.startSource(acquiredDocument,
-  {format: 'json', requestId: 'packed-acquired-restart-before-start',
+  {format: 'json', submissionRef: acquiredSubmissionRef,
     parameters: {minimum: 1}});
 assert.deepEqual(acquiredResumed.ref, acquiredRef);
 assert.equal((await acquiredResumed.wait()).status, 'succeeded');
 assert.deepEqual((await acquiredResumed.result('b').all())
   .map(row => row.id).sort(), [2, 3, 3]);
-assert.deepEqual((await client.lookupRequest(
-  'packed-acquired-restart-before-start')).ref, acquiredRef);
+assert.deepEqual(getSubmissionOutcome(acquiredResumed).submissionRef, acquiredSubmissionRef);
+const acquiredLookup = await client.lookupSubmission(acquiredSubmissionRef);
+assert.equal(acquiredLookup.kind, 'ready');
+assert.deepEqual(acquiredLookup.admission.ref, acquiredRef);
 client.close();
 `);
 async function startRestartHost(hold) {
@@ -2324,7 +2447,7 @@ async function stopRestartHost(host) {
   await stopped;
 }
 const heldHost = await startRestartHost(true);
-assert.equal(heldHost.recovery, 'not_started');
+assert.equal(heldHost.recovery, 'not_observed', 'No original submission exists at first Host startup');
 try {
   await runAsync(process.execPath, ['reserve-remote.mjs'], root, {
     ACTQL_TEST_REMOTE_ENDPOINT: `https://127.0.0.1:${heldHost.port}/`,
@@ -2346,27 +2469,35 @@ await writeFile(join(root, 'restart.mjs'), `
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {connect} from '@actql/node';
+import {getSubmissionOutcome} from '@actql/sdk';
+const hostCapacityPolicy = JSON.parse(JSON.parse(
+  readFileSync('source-profile.json', 'utf8')).checkEnvironmentWire).host_policy_profile.capacity;
 globalThis.fetch = () => { throw new Error('NetworkOnLocalRestart'); };
 const client = await connect({mode: 'local', owner: 'local',
-  durability: 'durable'});
+  durability: 'durable', installation: {hostCapacityPolicy}});
 const ref = JSON.parse(readFileSync('run-ref.json', 'utf8'));
+const submissionRef = JSON.parse(readFileSync('run-submission-ref.json', 'utf8'));
 const attached = await client.attach(ref);
 assert.equal((await attached.status()).status, 'succeeded');
 assert.deepEqual(await attached.result('answer').all(),
   [{id: 1}, {id: 2}]);
-assert.deepEqual((await client.lookupRequest('packed-standard-values')).ref,
-  ref);
+const originalLookup = await client.lookupSubmission(submissionRef);
+assert.equal(originalLookup.kind, 'ready');
+assert.deepEqual(originalLookup.admission.ref, ref);
 const repeated = await client.startSource(readFileSync('values.json', 'utf8'),
   {format: 'json', requestId: 'packed-standard-values'});
 assert.deepEqual(repeated.ref, ref);
+assert.deepEqual(getSubmissionOutcome(repeated).submissionRef, submissionRef);
 const acquiredRef = JSON.parse(readFileSync('acquired-local-ref.json',
   'utf8'));
+const acquiredSubmissionRef = JSON.parse(readFileSync('acquired-local-submission-ref.json', 'utf8'));
 const acquiredAttached = await client.attach(acquiredRef);
 assert.equal((await acquiredAttached.status()).status, 'succeeded');
 assert.deepEqual((await acquiredAttached.result('b').all())
   .map(row => row.id).sort(), [2, 3, 3]);
-assert.deepEqual((await client.lookupRequest('packed-acquired-local')).ref,
-  acquiredRef);
+const acquiredLookup = await client.lookupSubmission(acquiredSubmissionRef);
+assert.equal(acquiredLookup.kind, 'ready');
+assert.deepEqual(acquiredLookup.admission.ref, acquiredRef);
 client.close();
 `);
 run(process.execPath, ['restart.mjs'], root);
@@ -2381,13 +2512,35 @@ const metadata = JSON.parse(await readFile(browserMetadata, 'utf8'));
 assert.deepEqual(Object.keys(metadata.inputs).sort(), [
   'node_modules/@actql/client-wire/client-host.generated.js',
   'node_modules/@actql/client-wire/index.mjs',
+  'node_modules/@actql/client-wire/interactive-control.generated.js',
   'node_modules/@actql/client-wire/publication.generated.js',
   'node_modules/@actql/sdk/check-presentation.mjs',
+  'node_modules/@actql/sdk/check-reason-catalog.generated.js',
   'node_modules/@actql/sdk/checkpoints.mjs',
+  'node_modules/@actql/sdk/connection-string.mjs',
   'node_modules/@actql/sdk/index.mjs',
+  'node_modules/@actql/sdk/internal/check-observation.mjs',
+  'node_modules/@actql/sdk/internal/checkpoint-answer-contract.generated.mjs',
+  'node_modules/@actql/sdk/internal/checkpoint-operations.mjs',
+  'node_modules/@actql/sdk/internal/client-lifecycle.mjs',
+  'node_modules/@actql/sdk/internal/client.mjs',
+  'node_modules/@actql/sdk/internal/connection-options.mjs',
+  'node_modules/@actql/sdk/internal/data.mjs',
+  'node_modules/@actql/sdk/internal/errors.mjs',
+  'node_modules/@actql/sdk/internal/plan.mjs',
+  'node_modules/@actql/sdk/internal/private-source-preparation.mjs',
+  'node_modules/@actql/sdk/internal/resources.mjs',
+  'node_modules/@actql/sdk/internal/result-read.mjs',
+  'node_modules/@actql/sdk/internal/run-observation.mjs',
+  'node_modules/@actql/sdk/internal/submission-observation.mjs',
+  'node_modules/@actql/sdk/internal/transport-response.mjs',
+  'node_modules/@actql/sdk/internal/transport.mjs',
   'node_modules/@actql/sdk/json-value-wire.generated.mjs',
+  'node_modules/@actql/sdk/loopback-http-unavailable.mjs',
   'node_modules/@actql/sdk/operation-formats.mjs',
   'node_modules/@actql/sdk/operation-presentation.mjs',
+  'node_modules/@actql/sdk/result-schema.mjs',
+  'node_modules/@actql/sdk/source-query.mjs',
 ]);
 assert(Object.values(metadata.outputs).every(output =>
   output.imports.length === 0));

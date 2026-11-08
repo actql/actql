@@ -146,12 +146,29 @@ fn NativeLocalAdoptionCapture::reply(
 /// reply allocation. An interruption cannot authorize another physical attempt.
 pub fn NativeLocalAdoptionCapture::open(
   self : NativeLocalAdoptionCapture,
+  product? : NativeLocalProductConfigurationCapture? = None,
 ) -> NativeLocalAdoptionCaptureReply {
   if self.closing {
     return self.reply(OpenCapturedAdoption, Some(AdoptionCaptureClosed))
   }
   if self.opening is AdoptionNotAttempted {
     self.opening = AdoptionOpenUnconfirmed
+    // The caller already retains this actual Product before this synchronous
+    // borrow. It is not reopened, copied or replaced by a profile descriptor.
+    let product_original = match product {
+      Some(capture) if !capture.closing &&
+        !capture.operation_failed &&
+        capture.opening is ProductAcquired(original) => Some(original)
+      None => None
+      _ => {
+        self.original.original_issue = UninstalledBootstrapProfile
+        self.opening = AdoptionRefused
+        return self.reply(
+          OpenCapturedAdoption,
+          Some(AdoptionOriginal(UninstalledBootstrapProfile)),
+        )
+      }
+    }
     self.opening = match
       begin_native_local_host_adoption_original(
         self.input.parent_path,
@@ -165,6 +182,7 @@ pub fn NativeLocalAdoptionCapture::open(
         existing_only=self.existing_only,
         custody=Some(self.original),
         root_opening=self.root_opening,
+        product_original~,
       ) {
       Ok(session) => AdoptionAcquired(session)
       Err(issue) => {

@@ -30,6 +30,7 @@ async function fixture(t, mode) {
   let store;
   try { store = await openLocalPublicationStore(configuration, control); }
   finally { Buffer.from = from; }
+  const qualified = JSON.parse(await fs.readFile(record)).leaseAnchor !== undefined;
   const originalOpen = fs.open, originalRmdir = fs.rmdir;
   const primary = Object.freeze(Object.assign(new Error('original directory retirement failed'), {code: 'EIO'}));
   let armed = true, newStore, rootSyncs = 0, directoryCloses = 0;
@@ -64,7 +65,7 @@ async function fixture(t, mode) {
       catch { t.diagnostic(`Original failed retirement retained without reconstructing owner: ${directory}`); }
     }
   });
-  return {scratch, directory, owner, record, store, primary, ownedKey, key,
+  return {scratch, directory, owner, record, store, primary, ownedKey, key, qualified,
     counts: () => ({rootSyncs, directoryCloses}),
     async successor() { newStore = await openLocalPublicationStore(configuration, control); return newStore; }};
 }
@@ -98,6 +99,10 @@ test('retiring old ownership never unlinks a healthy successor after original di
   const f = await fixture(t, 'sync');
   await assert.rejects(f.store.close(), error => error === f.primary);
   await assert.rejects(fs.lstat(f.owner), {code: 'ENOENT'});
+  if (f.qualified) {
+    await assert.rejects(f.successor(), {code: 'PublicationStoreBusy'});
+    assert.equal(await f.store.close(), true, 'the original lease drains before handing ownership to a successor');
+  }
   const next = await f.successor();
   const bytes = await fs.readFile(f.record), before = await fs.lstat(f.record);
   assert.equal(await f.store.close(), true);

@@ -12,6 +12,15 @@ const nativePromiseThen = Promise.prototype.then;
 const fail = code => {throw Object.assign(new Error(code), {code});};
 const text = value => typeof value === 'string' && value.length > 0;
 
+// Allocation bounds for the SAME already-owned Preview. A larger Catalog or
+// request-recovery wire does not enlarge this independent parser input. The
+// original decoder still receives its complete configured limits unchanged.
+export function effectRecoveryPreviewBounds(bytes, limits) {
+  const extent = Math.max(1, bytes);
+  return Object.freeze([Math.min(extent, limits.maxWireBytes),
+    Math.min(extent, limits.maxNodes), Math.min(extent, limits.maxDepth)]);
+}
+
 // Fixed installed implementation metadata, not caller tuning or a Resource
 // allowance. Capture the native method/receiver once; no fallback numeric table
 // can silently disagree with the mapper/projector's original implementation.
@@ -227,10 +236,8 @@ export function prepareInstalledPhysicalWritePlanRecipe({moon, operation, inputL
     // Every JSON node/nesting level occupies an original UTF-8 byte. The
     // saved decoder's existing node/depth limits remain additional bounds;
     // no second parse or serialization is needed to quantify this constructor.
-    const bytes = Math.max(previewBytes, recoveryBytes);
     return checked(moon.clientProgramInstalledEffectCaptureRecipeExtentPrepare(captureOperation,
-      quote(controlEntryBytes, previewBytes, Math.min(bytes, inputLimits.preview.maxNodes),
-        Math.min(bytes, inputLimits.preview.maxDepth), recoveryBytes)));
+      quote(controlEntryBytes, ...effectRecoveryPreviewBounds(previewBytes, inputLimits.preview), recoveryBytes)));
   };
 
   const extent = (name, capacity, transfer, physical) => checked(
@@ -360,10 +367,13 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
   let credentialOperations;
   if (fields.credentialOperations !== undefined) {
     const values = fields.credentialOperations.value;
-    // Five existing row phases plus three Describe/three target phases.
-    if (!Array.isArray(values) || values.length < 1 || values.length > 11) fail('InvalidInstalledEffectPlanRecipe');
+    // Several independently authorized physical reads can belong to one
+    // existing phase. Every named slot still selects a DISTINCT original
+    // member/row operation below; the existing total-operation bound remains.
+    if (!Array.isArray(values) || values.length < 1 || values.length > maxOperations ||
+        values.length > memberOperations.length + rowOperations.length) fail('InvalidInstalledEffectPlanRecipe');
     const entries = own(values, ['length', ...Array.from({length: values.length}, (_, index) => String(index))]);
-    const phases = new Set(), indexes = new Set([
+    const phases = new Map(), slots = new Set(), indexes = new Set([
       ...(requestConstruction === undefined ? [] : [`row:${requestConstruction.operationIndex}`]),
       ...(requestFinalization === undefined ? [] : [`row:${requestFinalization.operationIndex}`]),
       ...(captureConstruction === undefined ? [] : [`member:${captureConstruction.operationIndex}`]),
@@ -374,16 +384,28 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
       if (original === null || typeof original !== 'object' || nodeTypes.isProxy(original)) fail('InvalidInstalledEffectPlanRecipe');
       const entry = own(original, ['phase', 'operationIndex', 'maxRequestBytes', 'maxResponseBytes',
         ...(Object.hasOwn(original, 'perRow') ? ['perRow'] : []),
+        ...(Object.hasOwn(original, 'slot') ? ['slot'] : []),
+        ...(Object.hasOwn(original, 'resource') ? ['resource'] : []),
         ...(Object.hasOwn(original, 'responseExtent') ? ['responseExtent'] : [])]);
       const phase = entry.phase.value, operationIndex = entry.operationIndex.value,
         perRow = entry.perRow === undefined ? true : entry.perRow.value,
         maxRequestBytes = entry.maxRequestBytes.value, maxResponseBytes = entry.maxResponseBytes.value;
+      if (typeof phase !== 'string') fail('InvalidInstalledEffectPlanRecipe');
       const describe = ['capture-describe', 'apply-describe', 'resume-describe'].includes(phase);
+      const target = ['capture-target', 'apply-target', 'resume-target'].includes(phase);
+      const slot = entry.slot?.value, resource = entry.resource?.value;
+      const named = slot !== undefined;
+      if (named && (!describe && !target || !text(slot) || !slot.isWellFormed() ||
+          /[\u0000-\u001f\u007f]/u.test(slot)) ||
+          resource !== undefined && (!named || !text(resource) || !resource.isWellFormed() ||
+            /[\u0000-\u001f\u007f]/u.test(resource))) fail('InvalidInstalledEffectPlanRecipe');
       const row = ['capture-check', 'apply-check', 'resume-check', 'write-check', 'write', 'apply-confirm', 'resume-confirm',
         'capture-target', 'apply-target', 'resume-target'].includes(phase);
       const selected = perRow ? rowOperations : memberOperations;
       const key = `${perRow ? 'row' : 'member'}:${operationIndex}`;
-      if (typeof perRow !== 'boolean' || (!describe && !row) || describe === perRow || phases.has(phase) ||
+      const phaseSlot = phase + '\0' + (slot ?? '');
+      if (typeof perRow !== 'boolean' || (!describe && !row) || describe === perRow ||
+          phases.has(phase) && (!named || phases.get(phase) !== 'named') || slots.has(phaseSlot) ||
           !Number.isSafeInteger(operationIndex) || operationIndex < 0 || operationIndex >= selected.length ||
           indexes.has(key) || ![maxRequestBytes,maxResponseBytes].every(value =>
             Number.isSafeInteger(value) && value > 0)) {
@@ -392,9 +414,11 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
       const responseExtent = entry.responseExtent?.value;
       if (responseExtent !== undefined && (typeof responseExtent !== 'function' || nodeTypes.isProxy(responseExtent) ||
           nodeTypes.isAsyncFunction(responseExtent))) fail('InvalidInstalledEffectPlanRecipe');
-      phases.add(phase); indexes.add(key);
+      phases.set(phase, named ? 'named' : 'single'); slots.add(phaseSlot); indexes.add(key);
       return Object.freeze({phase, operationIndex, maxRequestBytes, maxResponseBytes,
         ...(entry.perRow === undefined ? {} : {perRow}),
+        ...(slot === undefined ? {} : {slot}),
+        ...(resource === undefined ? {} : {resource}),
         ...(responseExtent === undefined ? {} : {responseExtent})});
     }));
     if (!phases.has('write')) fail('InvalidInstalledEffectPlanRecipe');
@@ -436,6 +460,12 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
     ...(recoveryConstruction === undefined ? {} : {recoveryConstruction}),
     ...(credentialOperations === undefined ? {} : {credentialOperations}),
     ...(physicalWrite === undefined ? {} : {physicalWrite})});
+}
+
+// Select immutable recipe DATA only. A slot cannot issue a grant, make an
+// observation current, share another slot's token or enlarge its bounds.
+export function selectInstalledEffectCredentialOperation(recipe, phase, slot) {
+  return recipe?.credentialOperations?.find(entry => entry.phase === phase && entry.slot === slot);
 }
 
 export function prepareInstalledEffectManagedPlan({moon, facts, inputs, unit, members, recipeFor}) {
@@ -639,6 +669,7 @@ function prepareInstalledEffectConstructorChild({run, memberIndex, rowIndex,
   const complete = runtime?.clientProgramInstalledEffectOperationConstructionComplete;
   const completeOutput = runtime?.clientProgramInstalledEffectOperationConstructionCompleteOutput;
   const beginInput = runtime?.clientProgramInstalledEffectOperationInputBegin;
+  const growInput = runtime?.clientProgramInstalledEffectOperationInputGrow;
   if (originalInputExtent !== undefined && (typeof originalInputExtent !== 'function' || typeof beginInput !== 'function')) {
     fail('InstalledEffectOperationRuntimeUnavailable');
   }
@@ -690,7 +721,20 @@ function prepareInstalledEffectConstructorChild({run, memberIndex, rowIndex,
           checked(Reflect.apply(beginInput, runtime, [token, extent]));
         }
         originalRecord();
-        const value = construct();
+        // The constructor may observe its actual nested input under this
+        // first funded prelude. Only its SAME synchronous flight may grow the
+        // original selected token before entering the complete nested codec.
+        let constructing = true;
+        const grow = extent => {
+          if (!constructing || !preparing || state !== 'preparing' || typeof growInput !== 'function') {
+            fail('InstalledEffectOperationRuntimeUnavailable');
+          }
+          originalRecord();
+          checked(Reflect.apply(growInput, runtime, [token, extent]));
+          originalRecord();
+        };
+        let value;
+        try {value = construct(grow);} finally {constructing = false;}
         if (nodeTypes.isPromise(value)) {
           pendingConstructor = value;
           if (ownedChild) {

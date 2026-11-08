@@ -4,8 +4,8 @@ import test from 'node:test';
 import {hexIntegerProgram, hexIntegerSuccesses, hexIntegerRefusals} from './fixtures/hex-integer-source-input.mjs';
 
 test('hex integer public expectations distinguish value positions limits and duplicates', () => {
-  assert.equal(hexIntegerSuccesses.length, 7);
-  assert.equal(hexIntegerRefusals.length, 7);
+  assert.equal(hexIntegerSuccesses.length, 8);
+  assert.equal(hexIntegerRefusals.length, 6);
   assert.deepEqual(hexIntegerProgram.stages[0].steps[1].derive, {value: {literal: 16}});
   assert.deepEqual(hexIntegerSuccesses.find(item => item.name.endsWith('scalars')).expected,
     [{zero: 0, positive: 16, negative: -31, maximum: 9007199254740991}]);
@@ -15,6 +15,13 @@ test('hex integer public expectations distinguish value positions limits and dup
     [{id: 1}, {id: 2}]);
   assert.deepEqual(hexIntegerSuccesses.find(item => item.name.endsWith('empty-typed')).columns,
     [{name: 'value', contract: {type: 'number', nullable: false}}]);
+  const signedZero = hexIntegerSuccesses.find(item => item.name === 'hex-integer-signed-zero');
+  assert.equal(signedZero.text, 'SELECT -0X0 AS value');
+  assert.deepEqual(signedZero.expected, [{value: 0}]);
+  assert.equal(Object.is(signedZero.expected[0].value, -0), false);
+  assert.deepEqual(signedZero.columns, [{name: 'value', contract: {type: 'number', nullable: false}}]);
+  assert.deepEqual(hexIntegerRefusals.map(item => item.name),
+    [0, 1, 2, 3, 5, 6].map(index => 'hex-integer-refuse-' + index));
   const items = [...hexIntegerSuccesses, ...hexIntegerRefusals];
   assert.equal(new Set(items.map(item => item.name)).size, items.length);
 });

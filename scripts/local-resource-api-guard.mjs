@@ -73,6 +73,23 @@ function tokens(source) {
   return result;
 }
 
+// Reuse lexical work only for the exact immutable captured text value. A weak
+// key follows that snapshot's lifetime; mutable/accessor inputs are always read
+// afresh. Validation, alias Sets and error collections still run on every call.
+const capturedTokens = new WeakMap();
+function capturedSourceTokens(source, snapshot) {
+  const field = snapshot && typeof snapshot === 'object'
+    ? Object.getOwnPropertyDescriptor(snapshot, 'text') : undefined;
+  if (!field || typeof field.value !== 'string' || field.value !== source ||
+      !Object.isFrozen(snapshot)) return tokens(source);
+  let items = capturedTokens.get(snapshot);
+  if (items === undefined) {
+    items = tokens(source);
+    capturedTokens.set(snapshot, items);
+  }
+  return items;
+}
+
 function is(token, value) {
   return token?.kind === 'code' && token.value === value;
 }
@@ -87,9 +104,9 @@ function closingBrace(items, start) {
   return end;
 }
 
-export function boundedSorterAliases(packageSource) {
+export function boundedSorterAliases(packageSource, snapshot) {
   const aliases = new Set();
-  const items = tokens(packageSource);
+  const items = capturedSourceTokens(packageSource, snapshot);
   for (let index = 0; index < items.length; index++) {
     if (!is(items[index], 'import') || !is(items[index + 1], '{')) continue;
     const end = closingBrace(items, index + 1);
@@ -111,8 +128,8 @@ export function isProductionMoonSource(file) {
   return file.endsWith('.mbt') && !/_(?:wb|bb)?test\.mbt$/u.test(file);
 }
 
-function productionTokens(source) {
-  const items = tokens(source);
+function productionTokens(source, snapshot) {
+  const items = capturedSourceTokens(source, snapshot);
   const result = [];
   let depth = 0;
   for (let index = 0; index < items.length; index++) {
@@ -130,8 +147,8 @@ function productionTokens(source) {
   return result;
 }
 
-function hasRequiredWorkspace(source, name) {
-  const items = productionTokens(source);
+function hasRequiredWorkspace(source, name, snapshot) {
+  const items = productionTokens(source, snapshot);
   const start = items.findIndex((item, index) => is(item, 'pub') &&
     is(items[index + 1], 'fn') && is(items[index + 2], name) && is(items[index + 3], '('));
   if (start < 0) return false;
@@ -163,20 +180,21 @@ export function localResourceApiIssues({root, sources}) {
     ['src/managed_record_storage/append_steps.mbt', 'start_append'],
     ['src/managed_record_runtime/output.mbt', 'start_record_append'],
   ]) {
-    if (!hasRequiredWorkspace(sources[path.resolve(root, relative)]?.text ?? '', name)) {
+    const source = sources[path.resolve(root, relative)];
+    if (!hasRequiredWorkspace(source?.text ?? '', name, source)) {
       issues.push(`${relative}: ${name} must require external_workspace_slots~ : Int without a default`);
     }
   }
   const packages = new Map();
   for (const [file, source] of Object.entries(sources)) {
     if (path.basename(file) !== 'moon.pkg' || !source.exists || !source.text) continue;
-    const aliases = boundedSorterAliases(source.text);
+    const aliases = boundedSorterAliases(source.text, source);
     if (aliases.size) packages.set(path.dirname(file), aliases);
   }
   for (const [file, source] of Object.entries(sources)) {
     const aliases = packages.get(path.dirname(file));
     if (!aliases || !source.exists || !isProductionMoonSource(file)) continue;
-    const items = productionTokens(source.text);
+    const items = productionTokens(source.text, source);
     for (let index = 0; index < items.length - 3; index++) {
       if (is(items[index], '@') && aliases.has(items[index + 1]?.value) &&
           is(items[index + 2], '.') && is(items[index + 3], 'prepare')) {

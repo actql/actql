@@ -55,7 +55,10 @@ pub fn borrow_row_run_responses(
     run.configuration is DirectConfiguration(configuration) else {
     return Err(InvalidState)
   }
-  if !physical_equal(configuration, acquisition.configuration) {
+  if !row_response_configuration_matches(
+      configuration,
+      acquisition.configuration,
+    ) {
     return Err(ForeignDeclaration)
   }
   run.response_borrowed = true
@@ -91,7 +94,7 @@ pub fn check_row_run_response_borrow_current(
   let run = value.run
   let selected = match (run.configuration, value.selection) {
     (DirectConfiguration(original), QueryResponse(acquisition)) =>
-      physical_equal(original, acquisition.configuration)
+      row_response_configuration_matches(original, acquisition.configuration)
     (InputConfiguration(original), InputResponse(acquisition)) =>
       physical_equal(original, acquisition)
     _ => false
@@ -213,12 +216,21 @@ fn grow_row_run_response_capacity_at_phase(
   let (retained, execution) = match value.selection {
     QueryResponse(acquisition) =>
       match
-        row_provider_capacity_sum(
-          row_acquisition_retained_capacity(acquisition),
-          row_acquisition_execution_capacity(acquisition),
-          physical.execution_scratch,
-          Some(capacity),
-        ) {
+        (if row_acquisition_is_listing(acquisition) {
+          row_listing_capacity_sum(
+            row_acquisition_retained_capacity(acquisition),
+            row_acquisition_execution_capacity(acquisition),
+            physical.execution_scratch,
+            Some(capacity),
+          )
+        } else {
+          row_provider_capacity_sum(
+            row_acquisition_retained_capacity(acquisition),
+            row_acquisition_execution_capacity(acquisition),
+            physical.execution_scratch,
+            Some(capacity),
+          )
+        }) {
         Err(issue) => return Err(issue)
         Ok(value) => value
       }
@@ -269,7 +281,7 @@ fn row_response_workspace_capture_current(value : RowRunResponseBorrow) -> Bool 
   run.attempt.state is Captured(_) &&
   value.selection is QueryResponse(acquisition) &&
   run.configuration is DirectConfiguration(configuration) &&
-  physical_equal(configuration, acquisition.configuration) &&
+  row_response_configuration_matches(configuration, acquisition.configuration) &&
   !row_acquisition_is_listing(acquisition)
 }
 
@@ -334,4 +346,19 @@ pub fn retire_row_run_response_workspace(
       }
     }
   }
+}
+
+///|
+// Only the actual reserved listing constructor retains this original. A
+// foreign/equal configuration, report wire or cursor cannot substitute it.
+fn row_response_configuration_matches(
+  actual : RowHostConfiguration,
+  original : RowHostConfiguration,
+) -> Bool {
+  physical_equal(actual, original) ||
+  (
+    actual.listing_rows is Some(ReportListingRows(_, reports)) &&
+    reports.original_configuration is Some(retained) &&
+    physical_equal(retained, original)
+  )
 }

@@ -82,3 +82,22 @@ pub fn check_original_composed_preparation(
   }
   Ok(())
 }
+
+///|
+/// Independently allocated records of the existing prepared-bounds selection.
+/// Standard Limits constructs fifteen records (sixteen references and fifty-
+/// eight scalar fields). The Host clamp creates two outer/Model pairs and
+/// one Ledger: five headers, sixteen references and twenty scalar fields.
+/// Nested immutable values remain aliases; this inventories no payload copy,
+/// Scope, authorization, provider, or engine/GC heap policy.
+/// The installing caller admits these units on its SAME Request before calling
+/// prepared_composed_bounds; fixed VM/getter frames retain their Host baseline.
+pub fn prepared_composed_bounds_construction() -> @relation.PreparationRepresentationUnits {
+  {
+    record_headers: 20L,
+    reference_slots: 32L,
+    scalar_words: 78L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
+}

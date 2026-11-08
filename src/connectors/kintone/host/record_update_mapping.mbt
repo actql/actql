@@ -2,6 +2,7 @@
 /// Static Mapping DATA held beside the same original Form/Relation. Current,
 /// Preview, claim, response holding and actual cleanup remain separate duties.
 pub struct RecordUpdateMapping {
+  priv mut self : RecordUpdateMapping?
   priv original : RecordDeclaration
   priv mapping : @rows.RowMapping
   priv before_fields : Array[String]
@@ -50,16 +51,26 @@ pub fn prepare_record_update_mapping(
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
-      Ok({
+      let result : RecordUpdateMapping = {
+        self: None,
         original,
         mapping,
         before_fields: names.filter(name => name != "$id"),
         written_fields: mapping.write_fields.copy(),
         omitted_fields: mapping.omittable.copy(),
-      })
+      }
+      result.self = Some(result)
+      Ok(result)
     }
     Err(issue) => Err(issue)
   }
+}
+
+///|
+/// Same constructor result, not a copy of its retained Catalog and fields.
+/// This checks DATA provenance only; it is not current authority or a claim.
+pub fn record_update_mapping_is_original(value : RecordUpdateMapping) -> Bool {
+  value.self is Some(original) && physical_equal(original, value)
 }
 
 ///|
@@ -72,6 +83,7 @@ pub fn record_update_mapping_matches_declaration(
   value : RecordUpdateMapping,
   original : RecordDeclaration,
 ) -> Bool {
+  record_update_mapping_is_original(value) &&
   physical_equal(value.original, original)
 }
 
@@ -83,6 +95,8 @@ pub fn record_update_mapping_matches_request(
   request : @catalog.RecordUpdateRequest,
 ) -> Bool {
   let expected = value.before_fields
+  record_update_mapping_is_original(value) &&
+  @catalog.record_update_request_is_original(request) &&
   @catalog.record_update_request_values(request).all(pair => {
     let (target, write) = pair
     let page = @catalog.original_record_target_page(target)

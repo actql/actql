@@ -38,6 +38,7 @@ fn command_preparation_cleanup_kind(
   match issue {
     CommandInvalidProfile => "profile"
     CommandUnavailable => "original-unavailable"
+    CommandRequestPreparation(_) => "request-preparation"
     CommandNativeStorage(_) => "native-storage"
     CommandHost(_) => "host"
     CommandDomain(_) => "domain"
@@ -45,6 +46,10 @@ fn command_preparation_cleanup_kind(
     CommandRetainedExecution(_) => "business-execution"
     CommandStoreOperation(_) => "business-operation"
     CommandBusinessChildren => "business-children"
+    CommandBusinessSource(_) => "business-source"
+    CommandBusinessModel(_) => "business-model"
+    CommandBusinessEffectProposals(_) => "business-effect-proposals"
+    CommandBusinessEffectAcceptance(_) => "business-effect-acceptance"
     CommandBusinessPublication => "business-publication"
     CommandBusinessStore(_) => "business-store"
     CommandRunObservationPending => "run-observation-pending"
@@ -67,6 +72,7 @@ fn command_preparation_cleanup_kind(
     CommandAdoption(_) => "adoption"
     CommandCapture(_) => "adoption-capture"
     CommandApplication(_) => "application"
+    CommandProjectMock(_) => "project-mock"
     CommandFilesystem(_) => "filesystem"
     CommandFilesystemCleanup(_) => "filesystem-cleanup"
   }
@@ -88,6 +94,57 @@ fn command_preparation_read_cleanup_kind(
     Read(@initial_resources.CleanupPending) => "read-ledger-pending"
     Read(_) => "read-ledger"
     Buffer(_) => "workspace"
+  }
+}
+
+///|
+// Disclose only closed constructor labels from the already retained failure.
+// This does not inspect a path, retry acquisition, or replace cleanup custody.
+fn command_adoption_capture_cause(
+  issue : @local_host.NativeLocalAdoptionCaptureIssue,
+) -> String {
+  match issue {
+    AdoptionOriginal(Filesystem(cause)) => {
+      let tag = match cause {
+        UnsupportedTarget => "UnsupportedTarget"
+        InvalidName => "InvalidName"
+        InvalidLimit => "InvalidLimit"
+        RootOpen(_) => "RootOpen"
+        Lock(_) => "Lock"
+        WriterCreate(_) => "WriterCreate"
+        CapacityExceeded => "CapacityExceeded"
+        WriterClosed => "WriterClosed"
+        Write(_) => "Write"
+        Conflict => "Conflict"
+        GenerationMismatch => "GenerationMismatch"
+        InvalidReadSize => "InvalidReadSize"
+        IncompleteRead => "IncompleteRead"
+        ReaderClosed => "ReaderClosed"
+        Read(_) => "Read"
+        Seal(_) => "Seal"
+        Cleanup(_) => "Cleanup"
+      }
+      "AdoptionOriginal:Filesystem:" + tag
+    }
+    AdoptionOriginal(Crypto(cause)) => {
+      let tag = match cause {
+        UnsupportedTarget => "UnsupportedTarget"
+        InvalidInput => "InvalidInput"
+        LibraryLoad(_) => "LibraryLoad"
+        InvalidPublicKey(_) => "InvalidPublicKey"
+        InvalidPrivateKey(_) => "InvalidPrivateKey"
+        UnsupportedKey(_) => "UnsupportedKey"
+        Verification(_) => "Verification"
+        Signing(_) => "Signing"
+        CleanupPending => "CleanupPending"
+        CloseUnconfirmed(_) => "CloseUnconfirmed"
+      }
+      "AdoptionOriginal:Crypto:" + tag
+    }
+    AdoptionOriginal(cause) =>
+      "AdoptionOriginal:" +
+      command_preparation_cleanup_cause(CommandAdoption(cause))
+    other => command_preparation_cleanup_cause(CommandCapture(other))
   }
 }
 
@@ -115,6 +172,8 @@ fn[T] command_preparation_result(
           command_preparation_cleanup_kind(issue)
       }
       let disclosed = match issue {
+        CommandCapture(original) =>
+          message + ":" + command_adoption_capture_cause(original)
         CommandFilesystem(original) =>
           local_bounded_file_diagnostic_message(message, original)
         _ => message
@@ -240,6 +299,16 @@ fn LocalCommandPreparationOriginal::execute_product_command(
         local_utc_now(),
         runtime.assets,
         runtime.manifest,
+        mock=match self.project {
+          Some(project) if operation == "adopt" &&
+            project.mock_declarations is Some(mock) =>
+            Some(
+              mock
+              .account_subjects()
+              .unwrap_or_else(() => stop("LocalProjectBindingsUnavailable")),
+            )
+          _ => None
+        },
       ).unwrap_or_else(() => stop("LocalProductDefaultsNotAdmitted"))
       if !(parent.bootstrap_parent_ownership() is Ok(current) &&
         current == ownership) {
@@ -292,6 +361,33 @@ fn LocalCommandPreparationOriginal::execute_product_command(
     preparation=Some(self),
     preparation_runtime=Some(runtime),
     configuration_original=Some((configuration, settings)),
+  )
+}
+
+///|
+// Explicit operator DATA selects no executable or Library. Reuse the SAME
+// packaged Runtime and command carrier before opening its configuration Root;
+// the adoption Owner still captures every original/current generation.
+fn LocalCommandPreparationOriginal::execute_operator_command(
+  self : LocalCommandPreparationOriginal,
+  matches : @argparse.Matches,
+  operation : String,
+  child : @argparse.Matches,
+) -> String raise ClientStop {
+  guard matches.sources.get("config-file") is Some(@argparse.Argv) &&
+    self.runtime is Some(physical) else {
+    stop("ExplicitLocalConfigurationRequiresOriginalSupplier")
+  }
+  command_preparation_result(self.leave(), stage=Some("runtime-return"))
+  let runtime = local_packaged_runtime_from_physical(physical)
+  command_preparation_result(self.enter(), stage=Some("runtime-reenter"))
+  execute_native_local_adoption(
+    matches,
+    operation,
+    child,
+    packaged_runtime=Some(physical),
+    preparation=Some(self),
+    preparation_runtime=Some(runtime),
   )
 }
 
@@ -397,14 +493,20 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
           stop("LocalConfigurationChanged")
         }
         let body = if operation == "check" {
-          local_check_for_host(
+          let context = local_check_context(
             host,
             crypto,
             name,
-            input_root,
-            child,
             capture=Some(capture),
             configuration=Some(configuration),
+          )
+          let input = self.prepare_static_request(capture, input_root, child)
+          let wire = context.project_request(self, capture, input, false)
+          command_check_invalid_exit.val = local_check_invalid_exit(wire)
+          local_check_reply(
+            wire,
+            child.flags.get("json").unwrap_or(false),
+            input.document,
           )
         } else if operation == "new-submission" {
           local_new_submission_reference(settings, capture, child)
@@ -465,13 +567,15 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
               capture=Some(capture),
             )
           } else {
-            local_check_context(
+            let context = local_check_context(
               host,
               crypto,
               name,
               capture=Some(capture),
               configuration=Some(configuration),
-            ).explain(input_root, child)
+            )
+            let input = self.prepare_static_request(capture, input_root, child)
+            context.project_request(self, capture, input, true)
           }
         } else if operation == "approve" || operation == "reject" {
           local_checkpoint_answer_by_id(

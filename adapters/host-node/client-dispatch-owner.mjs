@@ -374,6 +374,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100})}};
     }
     const plan = acquiredKeyedTaskPublicationPlan({moon, control, acquired,
+      publicationOriginal: managedRun === undefined ? undefined
+        : {kind: 'installed_run', value: managedRun},
       preparedProgram, captured, sourceEvidence, keyedObservation,
       authorityScopeCid, effectiveDataPolicyCid, captureStartedAt, captureCompletedAt: now(),
       namespaceId, storeAuthorityCid, now});
@@ -796,12 +798,22 @@ export function installNodeClientDispatchOwner({moon, control, journal,
             ledger = runInfer.prepareAcquiredLedger({preparedProgram, plan: held.plan, sourceCapacities: capacities});
             entry.borrowedSources = true;
           } else {
+          if (capacities.some(value => value.wholeInput === true)) {
+            if (capacities.some(value => value.wholeInput !== true) ||
+                typeof moon.clientProgramInstalledManagedWholeSourcesLedger !== 'function') {
+              throw new Error('InstalledMultiSourceOriginalRunUnavailable');
+            }
+            ledger = checked(moon.clientProgramInstalledManagedWholeSourcesLedger(
+              managedRun, preparedProgram, requested, capacities.map(value => value.capacity),
+              capacities.map(value => value.transferBytes), capacities.map(value => value.executionBytes)));
+          } else {
           ledger = checked(moon.clientProgramInstalledManagedRunPrepareLedger(
             managedRun, preparedProgram, requested,
             capacities.map(value => value.capacity),
             capacities.map(value => value.transferBytes),
             capacities.map(value => value.executionBytes),
             registry, values, fragment, ordered));
+          }
           }
         } else {
           ledger = moon.clientProgramPrepareMultiCapturedLocalInstalledLedger(preparedProgram,
@@ -1033,6 +1045,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
             sourceEvidence: sources.map(source => source.sourceEvidence)};
         } else {
         held.plan = acquiredMultiTaskPublicationPlan({moon, control, acquired: held.plan,
+          publicationOriginal: held.managedRun === undefined ? undefined
+            : {kind: 'installed_run', value: held.managedRun},
           preparedProgram, sources, authorityScopeCid, effectiveDataPolicyCid,
           captureStartedAt, captureCompletedAt, namespaceId, storeAuthorityCid, now});
         if (held.managedRun !== undefined) {
@@ -1052,7 +1066,10 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         if (setup === undefined) throw new Error('InstalledMultiSourceHostUnavailable');
         entry.pendingSetup = setup;
         const dag = moon.strategyHostRun(setup);
-        for (const [task, captured] of captures.entries()) captured.capture.retainTask(dag, task);
+        for (const [slot, captured] of captures.entries()) {
+          const occurrence = selectedSources[slot].occurrence;
+          captured.capture.retainTask(dag, occurrence.computeTask ?? occurrence.task);
+        }
         }
       } else if (acquiring) {
         if (held.preparedSourceAccess !== sourceAccess) {
@@ -1082,6 +1099,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         } else {
           held.plan = acquiredTaskPublicationPlan({moon, control,
           acquired: held.plan, preparedProgram,
+          publicationOriginal: held.managedRun === undefined ? undefined
+            : {kind: 'installed_run', value: held.managedRun},
           captured: entry.sourceCapture, sourceEvidence,
           authorityScopeCid,
           effectiveDataPolicyCid: moon.clientProgramPublicationDataPolicyCid(preparedProgram),

@@ -4,19 +4,311 @@
 import assert from 'node:assert/strict';
 import {execFile} from 'node:child_process';
 import {createHash, randomUUID} from 'node:crypto';
+import {createReadStream} from 'node:fs';
 import {lstat, mkdir, readFile, readdir, writeFile, unlink} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {isAbsolute, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {promisify} from 'node:util';
+import {createInterface} from 'node:readline';
 import {platformKey} from '../packages/native-cli/bin/actql.mjs';
 import {checkoutState} from './packed-client-packages.mjs';
 import {verifyNativeCliRelease} from './native-cli-release.mjs';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {openReleaseTestRegistry} from './release-test-registry.mjs';
 import {admitInstalledLocalRuntime} from '../packages/native-cli/lib/local-runtime.mjs';
+import {canonicalText} from './check-canonical-json.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
+
+// Read the actual delivered file, including its last row. A count, preview or
+// aggregate alone cannot establish the contents of the original stored Result.
+export async function verifyNativeNumericRows(path, count = 100000) {
+  const input = createReadStream(path), lines = createInterface({input, crlfDelay: Infinity});
+  const closed = new Promise(resolve => input.once('close', resolve));
+  let rows = 0, sum = 0n, squares = 0n;
+  try {
+    for await (const line of lines) {
+      const row = JSON.parse(line);
+      assert(rows < count, 'Unexpected extra numeric Result row');
+      assert.deepEqual(Object.keys(row), ['v0']);
+      assert.equal(row.v0, rows, `Numeric Result row ${rows}`);
+      const value = BigInt(row.v0);
+      sum += value; squares += value * value; rows++;
+    }
+  } finally {lines.close(); input.destroy(); await closed;}
+  const n = BigInt(count);
+  assert.equal(rows, count, 'Complete numeric Result required');
+  assert.equal(sum, n * (n - 1n) / 2n);
+  assert.equal(squares, n * (n - 1n) * (2n * n - 1n) / 6n);
+  return {rows, sum: String(sum), squares: String(squares)};
+}
+
+// Each cli call below launches the same installed Native entry in a new
+// process. Its successful reply/exit is gated by the entry's real command
+// cleanup; it is not independent FD inspection or a whole-Host stop claim.
+export async function observeNativeNumericScale({project, cli, outputDirectory = project}) {
+  const count = 100000, input = join(project, 'numeric-scale.json');
+  const first = join(outputDirectory, 'numeric-first.jsonl'), saved = join(outputDirectory, 'numeric-saved.jsonl');
+  const program = {version: 'actql/0.1', id: 'numeric-scale',
+    stages: [{id: 'main', inputs: {}, steps: [{as: 'v', values: {
+      schema: {v0: {type: 'number', nullable: false}},
+      rows: Array.from({length: count}, (_, v0) => ({v0})),
+    }}], results: {rows: {from: 'v', fields: ['v0']}}}],
+    results: {answer0: {from: {stage: 'main', result: 'rows'}}}};
+  const wire = JSON.stringify(program), inputWireBytes = Buffer.byteLength(wire);
+  assert(inputWireBytes > 1048576, 'The public JSON Source must exceed one MiB');
+  await writeFile(input, wire, {flag: 'wx', mode: 0o600});
+  const command = async args => {
+    const reply = await cli(args, project);
+    assert.equal(reply.code, 0); assert.equal(reply.signal, null);
+    return reply;
+  };
+  const original = JSON.parse((await command(['run', 'numeric-scale.json', '--format', 'json', '--json'])).stdout);
+  assert.equal(original.version, 'actql-run-state/0.1');
+  assert.equal(original.status, 'succeeded');
+  assert.equal(typeof original.run_id, 'string'); assert(original.run_id.length > 0);
+  await command(['result', original.run_id, '--result', 'answer0', '--format', 'jsonl', '--output', first]);
+  const firstRows = await verifyNativeNumericRows(first, count);
+  // No second submission or source-file fallback is available to Saved.
+  await unlink(input);
+  const restored = JSON.parse((await command(['status', original.run_id, '--json'])).stdout);
+  assert.equal(restored.version, original.version);
+  assert.equal(restored.run_id, original.run_id); assert.equal(restored.status, 'succeeded');
+  await command(['result', original.run_id, '--result', 'answer0', '--format', 'jsonl', '--output', saved]);
+  const savedRows = await verifyNativeNumericRows(saved, count);
+  assert.deepEqual(savedRows, firstRows);
+  return {scope: 'installed-native-json-source-values', inputWireBytes, runId: original.run_id,
+    inputRemovedBeforeSaved: true, first: firstRows, saved: savedRows,
+    cleanup: 'successful Native command cleanup before reply and process exit',
+    independentFdInspection: false};
+}
+
+// Explicit operator configuration through the existing Native adopt path. The
+// same installed assets/libraries remain originals; no product default changes
+// and no accepted Host is reconfigured. The actual Owners still decide admission.
+export async function prepareNativeNumericOperator({project, assets, libraries, runtimeWire, maxRows}) {
+  assert(Number.isSafeInteger(maxRows) && maxRows > 0 && maxRows <= 100000);
+  assert(isAbsolute(project) && isAbsolute(libraries.sqlite) && isAbsolute(libraries.crypto));
+  assert.equal(typeof runtimeWire, 'string'); JSON.parse(runtimeWire);
+  const cid = value => 'sha256:' + createHash('sha256').update(canonicalText(value)).digest('hex');
+  const environment = JSON.parse(assets.environment);
+  delete environment.evidence_bundle_cid;
+  Object.assign(environment.host_policy_profile.capacity, {
+    max_relation_output_rows: maxRows, max_artifact_rows: maxRows, max_artifact_bytes: 16777216,
+  });
+  environment.evidence_bundle_cid = cid(environment);
+  const policy = JSON.parse(assets['result-policy']), policyCid = cid(policy);
+  const dependencies = [['retention_contract', 'local-result-retention'],
+    ['metadata_retention_policy', 'local-result-metadata'], ['clock_contract', 'local-clock']]
+    .map(([kind, name]) => {
+      const body = {name, version: 'actql-installed-local-policy/0.1'};
+      return {kind, cid: cid(body), wire: canonicalText(body)};
+    });
+  const retention = {version: 'actql-result-retention-policy/0.1',
+    retention_contract_cid: dependencies[0].cid, effective_data_policy_cid: policyCid,
+    available_until: '2099-01-01T00:00:00.000Z', delete_by: '2099-01-02T00:00:00.000Z',
+    extension_ceiling_at: '2099-01-02T00:00:00.000Z',
+    metadata_retention_policy_cid: dependencies[1].cid, metadata_delete_by: '2099-01-03T00:00:00.000Z',
+    clock_contract_cid: dependencies[2].cid};
+  retention.effective_retention_policy_cid = cid(retention);
+  // Select the existing finite profile from these same dependency originals.
+  // The Native Owner admits it and binds first acceptance; this DATA assembly
+  // does not issue a Run policy or reinterpret the absolute retention original.
+  const profile = {version: 'actql-local-run-policy-profile/0.1',
+    available_for_ms: 86400000, delete_after_ms: 172800000,
+    metadata_after_ms: 604800000, read_for_ms: 86400000,
+    effective_data_policy_cid: policyCid, retention_contract_cid: dependencies[0].cid,
+    metadata_retention_policy_cid: dependencies[1].cid, clock_contract_cid: dependencies[2].cid};
+  const principal = 'numeric-operator', connection = 'cli';
+  const permission = (entry_id, resource, operations) => ({entry_id, outcome: 'allow',
+    principal: {any_of: [principal]}, connection: {any_of: [connection]},
+    resource: {any_of: [resource]}, operation: {any_of: operations}, exclusions: []});
+  // This existing Store owner uses its declared original property order.
+  const storeWire = JSON.stringify({version: 'actql-local-store-owner/0.1',
+    root: join(project, 'results'), principalId: principal});
+  const storeCid = 'sha256:' + createHash('sha256').update(storeWire).digest('hex');
+  const files = {
+    'account.json': {version: 'actql-execution-account-config/0.1', account_id: principal,
+      entries: [permission('numeric-result', 'result/answer0', ['read']),
+        permission('numeric-run', 'run', ['cancel', 'publish', 'read', 'submit'])]},
+    'environment.json': environment,
+    'run.json': {version: 'actql-config/0.1', native: {run: {
+      namespace_id: 'numeric', store_name: 'results', store_authority_cid: storeCid,
+      store_capacity_bytes: 33554432, store_objects: 32, store_record_bytes: 16777216,
+      result_payload_bytes: 16777216, retention_policy_wire: canonicalText(retention),
+      source_free: {registry: assets.registry, values: assets.values, fragment: assets.fragment,
+        ordered: assets.ordered, result_policy_cid: policyCid, result_policy_wire: assets['result-policy']},
+    }}},
+    'read.json': {version: 'actql-config/0.1', native: {result_read: {
+      enabled: true, principal, connection, result_names: ['answer0'], formats: ['jsonl'],
+      purpose: 'cli-read', sink: 'stdout', data_policy_cids: [policyCid], max_bytes: 16777216,
+      max_uses: 1, run_policy_profile_cid: cid(profile),
+      run_file: 'run.json', retention_file: 'retention.json', store_file: 'store.json',
+    }}},
+    'retention.json': dependencies,
+    'profile.json': profile,
+    'operator.json': {version: 'actql-config/0.1', account_config: 'account.json', native: {
+      check_environment: {file: 'environment.json', evidence_bundle_cid: environment.evidence_bundle_cid},
+      local: {account_id: principal, principal, connection, state_parent: project, state_name: 'host',
+        managed_root: project, sqlite_library: libraries.sqlite, signature_library: libraries.crypto,
+        submission_ttl_ms: 86400000, journal_record_limit: 8, journal_snapshot_bytes: 8388608,
+        installation_files: ['run.json', 'read.json', 'retention.json', 'store.json', 'runtime.json', 'profile.json', 'file-read.json'],
+        run_file: 'run.json', read_file: 'read.json', run_policy_profile_file: 'profile.json'},
+    }},
+  };
+  // File output has its own adopted selection; a later --output destination
+  // cannot manufacture it from the stdout read original.
+  files['file-read.json'] = structuredClone(files['read.json']);
+  Object.assign(files['file-read.json'].native.result_read, {sink: 'file', purpose: 'cli-file'});
+  await mkdir(project, {mode: 0o700});
+  for (const [name, value] of Object.entries(files)) {
+    await writeFile(join(project, name), canonicalText(value), {flag: 'wx', mode: 0o600});
+  }
+  await writeFile(join(project, 'store.json'), storeWire, {flag: 'wx', mode: 0o600});
+  await writeFile(join(project, 'runtime.json'), runtimeWire, {flag: 'wx', mode: 0o600});
+  return {configuration: ['--mode', 'local', '--config-root', project, '--config-file', 'operator.json'],
+    environmentCid: environment.evidence_bundle_cid, maxRows};
+}
+
+export async function observeNativeNumericOperatorScale({project, cli, assets, libraries, runtimeWire}) {
+  const selected = await prepareNativeNumericOperator({project, assets, libraries, runtimeWire, maxRows: 100000});
+  const operator = (args, cwd = project, code = 0) => cli([...selected.configuration, ...args], cwd, code);
+  const adopted = await operator(['adopt', '--initialize-signing', '--json']);
+  assert.equal(JSON.parse(adopted.stdout).kind, 'local_host_adopted');
+  // Presentation output must be outside the adopted managed namespace. Keep
+  // its original protected boundary; select a distinct owned directory instead.
+  const outputDirectory = project + '-output';
+  await mkdir(outputDirectory, {mode: 0o700});
+  const result = await observeNativeNumericScale({project, cli: operator, outputDirectory});
+  // A distinct fresh operator deliberately selects a lower finite row policy.
+  // Its original refusal is neither retried nor a reason to weaken enforcement.
+  const lowProject = project + '-low-policy';
+  const low = await prepareNativeNumericOperator({project: lowProject, assets, libraries, runtimeWire, maxRows: 1});
+  const lowCli = (args, code = 0) => cli([...low.configuration, ...args], lowProject, code);
+  await lowCli(['adopt', '--initialize-signing', '--json']);
+  const small = {version: 'actql/0.1', id: 'numeric-low-policy', stages: [{id: 'main', inputs: {},
+    steps: [{as: 'v', values: {schema: {v0: {type: 'number', nullable: false}}, rows: [{v0: 0}, {v0: 1}]}}],
+    results: {rows: {from: 'v', fields: ['v0']}}}],
+    results: {answer0: {from: {stage: 'main', result: 'rows'}}}};
+  await writeFile(join(lowProject, 'low.json'), JSON.stringify(small), {flag: 'wx', mode: 0o600});
+  const refused = await lowCli(['run', 'low.json', '--format', 'json', '--json'], 1);
+  assert.equal(refused.stdout, ''); assert.equal(refused.signal, null);
+  // Statically excessive Values rows are RowsExceeded/InvalidInput in the
+  // existing checker; this is distinct from an unclassified preparation failure.
+  assert.equal(JSON.parse(refused.stderr).code, 'ACTQL_E_PROGRAM_INVALID');
+  return {...result, operator: {environmentCid: selected.environmentCid, maxRows: selected.maxRows,
+    lowPolicyRows: low.maxRows, lowPolicyRefused: true}};
+}
+
+export function nativeResourceShapeFixtures() {
+  const values = (schema, rows) => ({schema, rows: rows.map(row => Object.fromEntries(
+    Object.entries(row).map(([key, value]) => [key, typeof value === 'string' ? {literal: value} : value])))});
+  const program = (id, steps, fields) => ({version: 'actql/0.1', id,
+    stages: [{id: 'main', inputs: {}, steps, results: {rows: {from: 'output', fields}}}],
+    results: {answer0: {from: {stage: 'main', result: 'rows'}}}});
+  const textSchema = {id: {type: 'number', nullable: false}, text: {type: 'string', nullable: false}};
+  const longRows = [{id: 0, text: 'a'.repeat(524288)}, {id: 1, text: 'b'.repeat(524288)}];
+  const unicodeRows = ['日本語😀', 'e\u0301', 'é', '"\\\b\f\n\r\t\u0000\u001f', '\u2028\u2029']
+    .map((text, id) => ({id, text: text.repeat(128)}));
+  const payload = 'expand:'.repeat(585), copies = Array.from({length: 512}, (_, copy) => ({copy}));
+  return [
+    {id: 'few-long-strings', key: 'id', expectedRows: longRows,
+      program: program('few-long-strings', [{as: 'output', values: values(textSchema, longRows)}], ['id', 'text'])},
+    {id: 'unicode-escapes', key: 'id', expectedRows: unicodeRows,
+      program: program('unicode-escapes', [{as: 'output', values: values(textSchema, unicodeRows)}], ['id', 'text'])},
+    {id: 'small-input-large-output', key: 'copy', expectedRows: copies.map(({copy}) => ({text: payload, copy})),
+      program: program('small-input-large-output', [
+        {as: 'left_rows', values: values({text: {type: 'string', nullable: false}}, [{text: payload}])},
+        {as: 'right_rows', values: values({copy: {type: 'number', nullable: false}}, copies)},
+        {as: 'output', from: 'left_rows', cross_join: {
+          with: 'right_rows', select: {text: 'left.text', copy: 'right.copy'}}},
+      ], ['text', 'copy'])},
+  ];
+}
+
+// Compare every actual delivered scalar, including Unicode normalization and
+// escaped controls. Neither a preview nor a digest alone is this oracle.
+export async function verifyNativeResourceRows(path, expectedRows, keyField = 'id') {
+  const expected = new Map(), seen = new Set();
+  for (const row of expectedRows) {
+    const key = row[keyField];
+    assert(Number.isSafeInteger(key)); assert(!expected.has(key), 'Unique expected resource key required');
+    expected.set(key, row);
+  }
+  const input = createReadStream(path), lines = createInterface({input, crlfDelay: Infinity});
+  const closed = new Promise(resolve => input.once('close', resolve));
+  let rows = 0;
+  try {
+    for await (const line of lines) {
+      assert(rows < expectedRows.length, 'Unexpected extra resource Result row');
+      const row = JSON.parse(line);
+      assert(row !== null && typeof row === 'object' && !Array.isArray(row), 'Resource Result object required');
+      const key = row[keyField];
+      assert(expected.has(key), 'Unexpected resource Result key');
+      assert(!seen.has(key), 'Duplicate resource Result key');
+      assert.deepEqual(row, expected.get(key), `Resource Result key ${key}`);
+      seen.add(key); rows++;
+    }
+  } finally {lines.close(); input.destroy(); await closed;}
+  assert.equal(rows, expectedRows.length, 'Complete resource Result required');
+  // Every keyed row above has now been compared in full. Hash that verified
+  // content in key order, not unspecified product traversal or delivery order.
+  const content = createHash('sha256');
+  for (const key of [...expected.keys()].sort((a, b) => a - b)) {
+    content.update(canonicalText(expected.get(key)) + '\n');
+  }
+  return {rows, contentSha256: content.digest('hex'), wireBytes: (await lstat(path)).size};
+}
+
+export async function observeNativeResourceOperatorShapes({project, cli, assets, libraries, runtimeWire}) {
+  const selected = await prepareNativeNumericOperator({project, assets, libraries, runtimeWire, maxRows: 1024});
+  const command = async args => {
+    const reply = await cli([...selected.configuration, ...args], project);
+    assert.equal(reply.code, 0); assert.equal(reply.signal, null);
+    return reply;
+  };
+  assert.equal(JSON.parse((await command(['adopt', '--initialize-signing', '--json'])).stdout).kind,
+    'local_host_adopted');
+  const outputDirectory = project + '-output';
+  await mkdir(outputDirectory, {mode: 0o700});
+  const observations = [];
+  for (const fixture of nativeResourceShapeFixtures()) {
+    const inputName = fixture.id + '.json', input = join(project, inputName);
+    const wire = JSON.stringify(fixture.program), inputWireBytes = Buffer.byteLength(wire);
+    if (fixture.id === 'few-long-strings') assert(inputWireBytes > 1048576);
+    const first = join(outputDirectory, fixture.id + '-first.jsonl');
+    const saved = join(outputDirectory, fixture.id + '-saved.jsonl');
+    await writeFile(input, wire, {flag: 'wx', mode: 0o600});
+    const original = JSON.parse((await command(['run', inputName, '--format', 'json', '--json'])).stdout);
+    assert.equal(original.version, 'actql-run-state/0.1');
+    assert.equal(original.status, 'succeeded');
+    assert.equal(typeof original.run_id, 'string'); assert(original.run_id.length > 0);
+    await command(['result', original.run_id, '--result', 'answer0', '--format', 'jsonl', '--output', first]);
+    const firstRows = await verifyNativeResourceRows(first, fixture.expectedRows, fixture.key);
+    if (fixture.id === 'few-long-strings') {
+      assert.equal(firstRows.rows, 2); assert(firstRows.wireBytes > 1048576);
+    }
+    await unlink(input);
+    const restored = JSON.parse((await command(['status', original.run_id, '--json'])).stdout);
+    assert.deepEqual([restored.version, restored.run_id, restored.status],
+      [original.version, original.run_id, original.status]);
+    await command(['result', original.run_id, '--result', 'answer0', '--format', 'jsonl', '--output', saved]);
+    const savedRows = await verifyNativeResourceRows(saved, fixture.expectedRows, fixture.key);
+    assert.equal(savedRows.contentSha256, firstRows.contentSha256);
+    if (fixture.id === 'small-input-large-output') {
+      assert(inputWireBytes < 16384); assert(firstRows.wireBytes > 1048576);
+      assert(firstRows.wireBytes > 100 * inputWireBytes);
+    }
+    observations.push({id: fixture.id, runId: original.run_id, inputWireBytes,
+      first: firstRows, saved: savedRows, inputRemovedBeforeSaved: true});
+  }
+  return {scope: 'installed-native-json-source-resource-shapes', observations,
+    operator: {environmentCid: selected.environmentCid, maxRows: selected.maxRows},
+    cleanup: 'successful Native command cleanup before reply and process exit',
+    independentFdInspection: false};
+}
+
 // Registry close permits provisional observations only. The consumer must still
 // exit and complete owned-scratch cleanup before the parent can publish success.
 export async function finishSourceFreeObservations(receipt, primaryFailure,
@@ -146,6 +438,38 @@ export async function observeTimingEnabledPlainInitialization({root, cli, enviro
   return {scope: 'plain-initialization-with-diagnostics', diagnostics};
 }
 
+// A failed ordinary request is never retried. This independent actor uses the
+// same verified installation with fresh project/home/state and one new request.
+export async function observeFreshSubmissionFailureDiagnostic({root, cli, environment}) {
+  await mkdir(root, {mode: 0o700});
+  const saved = Object.fromEntries(['HOME', 'TMPDIR', 'ACTQL_NATIVE_TIMINGS']
+    .map(key => [key, environment[key]]));
+  try {
+    for (const name of ['home', 'tmp']) await mkdir(join(root, name), {mode: 0o700});
+    environment.HOME = join(root, 'home'); environment.TMPDIR = join(root, 'tmp');
+    environment.ACTQL_NATIVE_TIMINGS = '1';
+    await cli(['init', 'project'], root);
+    const result = await cli(['sql', 'SELECT 2 AS id', '--format', 'jsonl'], root);
+    assert.deepEqual(result.stdout.trim().split('\n').map(line => JSON.parse(line)), [{id: 2}]);
+    return {scope: 'fresh-submission-failure-diagnostic-only', newRequests: 1,
+      commandSucceeded: true, ordinaryAcceptance: false};
+  } finally {
+    for (const [key, value] of Object.entries(saved)) {
+      if (value === undefined) delete environment[key]; else environment[key] = value;
+    }
+  }
+}
+
+export async function preserveOrdinaryFailureWithDiagnostic(primary, diagnose) {
+  try {
+    return {failure: primary, diagnostic: {status: 'observed', ...await diagnose()}};
+  } catch (error) {
+    return {failure: new AggregateError([primary, error],
+      'Ordinary Local failure and independent diagnostic failure'),
+    diagnostic: {status: 'failed', error: error.message}};
+  }
+}
+
 async function observeInstalledSourceFree(input, observationPath) {
   const directory = resolve(input), manifest = await verifyNativeCliRelease(directory);
   const source = checkoutState(repository);
@@ -185,7 +509,7 @@ async function observeInstalledSourceFree(input, observationPath) {
     return record;
   }
   const rows = text => text.trim().split('\n').map(line => JSON.parse(line));
-  let receipt, failure, runIngress, verifyInstalledOriginals;
+  let receipt, failure, failureDiagnostic, diagnoseFailure, runIngress, verifyInstalledOriginals;
   try {
     for (const path of [prefix, env.HOME, env.TMPDIR, join(root, 'empty-path')]) await mkdir(path);
     await writeFile(join(root, 'npmrc'), `registry=${registry.url}\n@actql:registry=${registry.url}\n`);
@@ -225,6 +549,8 @@ async function observeInstalledSourceFree(input, observationPath) {
     // can discover a compiler, a repository executable, a provider or a Node Host.
     env.PATH = join(root, 'empty-path');
     const cli = (args, cwd = project, code = 0) => run(process.execPath, [launcher, ...args], cwd, code);
+    diagnoseFailure = () => observeFreshSubmissionFailureDiagnostic({
+      root: join(root, 'submission-failure-diagnostic'), cli, environment: env});
     assert.equal((await cli(['--version'], root)).stdout, `${manifest.cohort.packageVersion}\n`);
     const mockInitialization = await observeUnsupportedMockInitialization({root, cli});
     const catalogOnlyMockRefusal = await observeCatalogOnlyMockRefusal({root, cli});
@@ -286,15 +612,33 @@ async function observeInstalledSourceFree(input, observationPath) {
     }
     await cli(['result', state.run_id, '--format', 'jsonl', '--output', 'saved.jsonl']);
     assert.deepEqual(rows(await readFile(join(project, 'saved.jsonl'), 'utf8')), [{id: 1}]);
+    const numericAssets = {};
+    for (const asset of localRuntime.assets) {
+      numericAssets[asset.role] = await readFile(join(platformRoot, asset.path), 'utf8');
+    }
+    const numericLibraries = Object.fromEntries(localRuntime.libraries.map(item =>
+      [item.role, join(platformRoot, item.path)]));
+    const numericScale = await observeNativeNumericOperatorScale({project: join(root, 'numeric-operator'),
+      cli, assets: numericAssets, libraries: numericLibraries,
+      runtimeWire: await readFile(join(platformRoot, artifact.localRuntime.path), 'utf8')});
+    const resourceShapes = await observeNativeResourceOperatorShapes({project: join(root, 'resource-operator'),
+      cli, assets: numericAssets, libraries: numericLibraries,
+      runtimeWire: await readFile(join(platformRoot, artifact.localRuntime.path), 'utf8')});
     receipt = {version: 'actql-native-cli-install-acceptance/0.1', scope: 'source-free-local',
       cliSourceSha: manifest.sourceSha, platform, node: process.version, glibc: glibc ?? null,
       artifact, scriptSha256: createHash('sha256').update(await readFile(fileURLToPath(import.meta.url))).digest('hex'),
       cliPackages: manifest.packages.map(({name, version, sha256}) => ({name, version, sha256})),
       registry: 'private-loopback-fixed-RC', registryRequests: registry.requested,
-      mockInitialization, catalogOnlyMockRefusal, plainInitialization,
+      mockInitialization, catalogOnlyMockRefusal, plainInitialization, numericScale, resourceShapes,
       publicRegistryPublication: 'not-tested', records,
       unverified: ['Mock or live Connector bindings', 'Model inference', 'Effect approval', 'other platforms']};
-  } catch (error) { failure = error; }
+  } catch (error) {
+    failure = error;
+    if (diagnoseFailure && /LocalSubmissionAcceptanceUnknown/u.test(error.message)) {
+      const observed = await preserveOrdinaryFailureWithDiagnostic(error, diagnoseFailure);
+      failure = observed.failure; failureDiagnostic = observed.diagnostic;
+    }
+  }
   // Independent Local controls share only the verified installed cohort. A
   // business-case failure cannot hide their result, and either failure rejects
   // the consumer before its existing registry/physical cleanup certification.
@@ -318,7 +662,7 @@ async function observeInstalledSourceFree(input, observationPath) {
       `${JSON.stringify({version: 'actql-native-cli-install-acceptance/0.1', scope: 'source-free-local',
         cliSourceSha: manifest.sourceSha, platform, status: 'failed', error: error.message,
         failures: (error instanceof AggregateError ? error.errors : [error]).map(value => value.message),
-        consumer: root, records}, null, 2)}\n`, {flag: 'wx'}),
+        consumer: root, records, failureDiagnostic}, null, 2)}\n`, {flag: 'wx'}),
   });
   scratch.passed();
 }

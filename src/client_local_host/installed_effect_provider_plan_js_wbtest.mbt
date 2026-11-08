@@ -679,3 +679,71 @@ test "installed Query backs two full individually bounded schema inventories" {
   assert_eq(limits.max_nodes, original.max_nodes)
   assert_eq(limits.max_depth, original.max_depth)
 }
+
+///|
+test "installed Query uses the same admitted 246-field Source schemas beyond the private default" {
+  let plan = effect_operation_source_plan_fixture(source_width=246)
+  let (_, requirement, _, _) = prepared_installed_effect_managed_source(plan, 0).unwrap()
+  let query = @query.query_sequence_requirement(
+    @planning.query_material_owner(
+      @planning.query_requirement_material(requirement),
+    ),
+  )
+  let pipeline = @sourceviews.query_acquisition_pipeline(query)
+  assert_eq(
+    @schema.field_count(
+      @pipeline.schema_at(pipeline, @sourceviews.query_acquisition_input(query)).unwrap(),
+    ),
+    246,
+  )
+  let limits = installed_local_query_requirement_limits(query).unwrap()
+  assert_eq(limits.max_fields, 492)
+  let original = installed_local_query_material_limits()
+  assert_eq(limits.max_work, original.max_work)
+  assert_eq(limits.max_parameters, original.max_parameters)
+  assert_eq(limits.max_bytes, original.max_bytes)
+  assert_eq(limits.max_nodes, original.max_nodes)
+  assert_eq(limits.max_depth, original.max_depth)
+}
+
+///|
+test "installed Query shape quote follows its same original schemas and keeps explicit lower policy refusal" {
+  let plan = effect_operation_source_plan_fixture(source_width=246)
+  let (_, requirement, _, _) = prepared_installed_effect_managed_source(plan, 0).unwrap()
+  let query = @query.query_sequence_requirement(
+    @planning.query_material_owner(
+      @planning.query_requirement_material(requirement),
+    ),
+  )
+  let limits = installed_local_query_requirement_limits(query).unwrap()
+  let actual = request_local_query_construction_bytes(
+    max_fields=limits.max_fields,
+  ).unwrap()
+  let baseline = request_local_query_construction_bytes().unwrap()
+  assert_true(actual > baseline)
+  assert_true(
+    @planning.prepare_query_requirement(
+      @planning.query_requirement_material(requirement),
+      @planning.query_requirement_program(requirement),
+      @planning.query_requirement_guards(requirement),
+      installed_local_query_material_limits(),
+    )
+    is Err(FieldLimit),
+  )
+}
+
+///|
+test "installed Query shape geometry refuses negative and overflowing totals without changing unrelated bounds" {
+  assert_eq(installed_local_query_field_bound(246, 3, 0), Some(249))
+  assert_eq(installed_local_query_field_bound(1, 1, 300), Some(300))
+  assert_eq(installed_local_query_field_bound(1, 1, 0), Some(100))
+  assert_eq(installed_local_query_field_bound(-1, 1, 0), None)
+  assert_eq(installed_local_query_field_bound(1, -1, 0), None)
+  assert_eq(installed_local_query_field_bound(1, 1, -1), None)
+  assert_eq(installed_local_query_field_bound(2147483647, 1, 0), None)
+  assert_eq(
+    installed_local_query_field_bound(2147483646, 1, 0),
+    Some(2147483647),
+  )
+  assert_eq(request_local_query_construction_bytes(max_fields=-1), None)
+}

@@ -418,6 +418,15 @@ pub fn client_infer_call_scope_unit_id(value : ClientInferCallScope) -> String? 
 }
 
 ///|
+/// Pure semantic coordinate of the same checked INFER. No Run, physical
+/// capture or replacement task/step is selected by this DATA projection.
+pub fn client_infer_call_scope_local_coordinate(
+  value : ClientInferCallScope,
+) -> (String, Int) {
+  (value.unit_definition_cid, value.source_ordinal)
+}
+
+///|
 /// Exact private originals for a completed fixed input. This record is not
 /// a public artifact or permission; authenticated Store custody is required
 /// before it can be used by the saved-scope reader below.
@@ -532,6 +541,12 @@ fn infer_scope_expected_sources(
 ] {
   let owner = occurrence.owner
   let graph = owner.graph
+  match infer_scope_expected_whole_sources(occurrence) {
+    Ok(Some(expected)) => return Ok(expected)
+    Ok(None) => ()
+    Err(issue) => return Err(issue)
+  }
+
   if plan is Some(selected) && selected.serialization is Some(component) {
     if @strategy.graph_source_free_inputs_complete(graph) {
       return Ok([])
@@ -697,6 +712,98 @@ fn infer_scope_expected_sources(
     Err(_) => return Err(ForeignInput)
   }
   Ok(expected)
+}
+
+///|
+// Current checked Source selections for the same saved provenance reader.
+// This is immutable original metadata, never a query, capture or fresh read.
+fn infer_scope_expected_whole_sources(
+  occurrence : ClientInferOccurrence,
+) -> Result[
+  Array[(String, @planning.QuerySourceEvidenceFacts)]?,
+  ClientInferCallScopeIssue,
+] {
+  let owner = occurrence.owner
+  guard select_client_direct_acquisition_occurrences(owner, 1000000)
+    is Ok(direct) else {
+    return Ok(None)
+  }
+  let expected : Array[(String, @planning.QuerySourceEvidenceFacts)] = []
+  let mut whole = 0
+  for slot in 0..<client_direct_acquisition_occurrence_count(direct) {
+    guard client_direct_acquisition_occurrence_at(direct, slot)
+      is Some((stage, input, _)) &&
+      @context.program_identity_stage_requests(
+        @checked.source_identity(@strategy.graph_program(owner.graph)),
+        stage,
+      )
+      is Some(requests) else {
+      return Err(ForeignInput)
+    }
+    match
+      @acquisition.select_source_acquisition_route(requests, input, 1000000) {
+      Ok(@acquisition.QueryRoute(_)) => ()
+      Ok(@acquisition.WholeInputRoute(original)) => {
+        guard @planning.source_acquisition_evidence_facts(original)
+          is Some(facts) else {
+          return Err(ForeignInput)
+        }
+        let name = @acquisition.declaration(
+            @acquisition.mode_input(
+              @acquisition.source_acquisition_mode(original),
+            ),
+          ).input_name
+        if expected.any(entry => entry.0 == name) {
+          return Err(ForeignInput)
+        }
+        expected.push((name, facts))
+        whole += 1
+      }
+      Err(_) => return Err(ForeignInput)
+    }
+  }
+  if whole == 0 {
+    return Ok(None)
+  }
+  if whole != client_direct_acquisition_occurrence_count(direct) {
+    return Err(UnsupportedBindings)
+  }
+  guard client_infer_composed_source_origin(occurrence) is Some(original) else {
+    return Err(ForeignInput)
+  }
+  if client_infer_occurrence_coordinates(original) !=
+    client_infer_occurrence_coordinates(occurrence) {
+    return infer_scope_expected_whole_sources(original)
+  }
+  match client_composed_keyed_source_coordinates(owner) {
+    Ok(None) => ()
+    Ok(Some((stage, input, join))) => {
+      guard stage == occurrence.stage &&
+        join < occurrence.step &&
+        prepare_client_keyed_acquisition(
+          owner,
+          stage,
+          input,
+          1000000,
+          join_step=Some(join),
+        )
+        is Ok(keyed) &&
+        client_keyed_acquisition_coordinates(keyed) is Some((_, task, _)) &&
+        task == occurrence.task &&
+        @planning.keyed_source_evidence_facts(keyed.facts) is Some(facts) else {
+        return Err(ForeignInput)
+      }
+      let name = @acquisition.declaration(
+          @checked.source_execution_subject(keyed.check).source,
+        ).input_name
+      if expected.any(entry => entry.0 == name) {
+        return Err(ForeignInput)
+      }
+      expected.push((name, facts))
+    }
+    Err(_) => return Err(ForeignInput)
+  }
+  Ok(Some(expected))
 }
 
 ///|

@@ -1684,6 +1684,90 @@ wire, CID, schema, pool allowance, fuel or Run/Read law. The block-size bound is
 a transfer bound and is not a claim about whole Python/SQLite memory or normal
 latency.
 
+### Original finite-policy metadata
+
+The existing admitted finite-policy Owner retains its checked request and
+dependency identities alongside a fixed digest of its constructor-owned body.
+The live SDK read binding projects Run correspondence and dependency metadata
+together. It does not readmit the same unchanged canonical policy for each
+current-read boundary. The retention Owner supplies its already-admitted read
+endpoint directly. Current Account, selection, availability, Store, grant and
+publication-view checks remain separate and execute at their existing stages.
+
+The exposed body may alias mutable Host/FFI bytes. Each typed projection bounds
+and hashes the actual current body against the original private digest. Changed
+bytes use the unchanged raw structural validator and dependency decoder; the
+baseline is never refreshed. Independently admitted equivalent request and Run
+identities preserve value-based correspondence. No second policy body or parsed
+tree is retained. The fixed digest, record references and hash scratch remain
+within the existing backed guest VM and unchanged linear-memory maximum; this
+is not a new operation reservation or a larger transfer allowance.
+
+### Closed original reconciliation preparation
+
+The nonsaved `OriginalStoreReconciliation.prepare` path has one fixed read-only
+Store driver. It accepts the original reconciliation Owner, not an arbitrary
+consumer or work callback. Its fresh transaction preserves the existing four
+row reads, their order and cumulative query/copy limits. All payload-binding,
+completed-reader and publisher authorization stages still run. Saved readers,
+generic inspectors, projected writes, COMMIT and subsequent reconciliation
+stages keep their separate observation boundaries.
+
+Only the standard original Host, genuine Wasmtime exports, original publisher
+port and completed payload readers can enter this driver. Definition-time
+method and helper provenance and the finite export inventory are checked before
+entry. Unsupported customization selects the legacy route before admission;
+a changed or failed admitted phase cannot fall back, requery or replay.
+
+The phase borrows only physical DATA observations from the same installation,
+Store transaction and completed-reader originals. Full checks surround entry,
+every callback or unknown import, and return. Those checks include metadata
+fences, capacity originals, the installed file graph and completed-reader
+identity. Interior checks retain exact object, operation, thread, connection,
+transaction and statement identities and sticky failure. Literal bounded SQL
+prevents parameter adapters from becoming an unobserved callback. No original
+snapshot is rebased, and no successful observation becomes later authority.
+
+The original current Owner funds the fixed receipt, definition records,
+reader pins and construction overlap before admission. The phase retains at
+most eight completed-reader facts, seven metadata inputs and one current
+projection output. Issued callbacks remain pinned until actual Core retirement;
+cleanup callback success is not its acknowledgement. The existing QueryFailed
+reporting continuation retains its original inputs and error, without resuming
+successful preparation. Finally-based retirement removes the phase before the
+original read transaction closes, including on refusal or interruption.
+
+### Bounded Journal row exchange
+
+Private ABI87 replaces the small-step Journal row transport with two bounded
+imports. `journal_query_header` receives the original ticket, mode and bounded
+namespace/key ranges, executes the existing physical query once, and writes a
+16-byte little-endian header: unsigned 32-bit key length, unsigned 32-bit body
+length and the exact nonnegative signed-64-bit revision. A confirmed miss is a
+distinct result and retires only its successful transient query state. Malformed
+or failed observations never become absence.
+
+Core then allocates its original exact-sized key/body destinations and calls
+`journal_copy_row` for that same retained row. The Host checks the same physical
+input, reader, ticket, row and fixed memory, copies in pieces of at most 16384
+bytes, and checks each complete write and original identity before proceeding.
+Only a complete successful copy releases the transient query. Header readiness
+and one-shot copy state prevent reentry or replay after partial copying. Failure
+keeps the original transfer record and parent loans available for their existing
+explicit cleanup; cleanup does not acknowledge a query or durable write.
+
+The physical helper keeps its current observations before the query and after
+the completed exchange. Actual Store queries, complete row/EOF observations,
+query/copy budgets, Account decisions and cumulative work/fuel remain unchanged.
+The header, bounded block and transfer controls are charged by the existing
+Journal/current reservations before use. No maximum-sized row preallocation,
+new execution Owner, authority cache or fallback to an older artifact is added.
+The source-level foreign declarations borrow each request, header and output
+buffer for the entire import. Their compiled ABI remains bounded wasm32 offsets
+and lengths. Extracting a pointer in a shorter borrowed helper would not keep
+its backing array alive until the later import; generated bindings therefore
+recognize only the explicitly declared, bounded borrowed-buffer parameters.
+
 ## Physical publication metadata transactions
 
 The separately selected raw diagnostic ABI retains the ABI81 transport of up to
@@ -2010,14 +2094,25 @@ reader without the direct port keeps the original outer before/after checks.
 Neither shape returns bytes after a latched failure, changes query/copy bounds
 or turns a physical miss into a semantic absence fact.
 
-The installed Host's own adoption/settings inventories use that same direct
-row port for their fixed raw membership comparisons. Their local list-append
-consumers are removed; no arbitrary caller runs between the query and those
-comparisons. Both full inventories still run before and after protected Core
-work, including each trailing absence query and every original byte/revision.
-The exact Local Store always supplies this port; an incomplete Local reader
-refuses rather than selecting a compatibility path. Independent physical
-adapters retain their complete metadata checks through the same Store reader.
+The installed Host's own adoption/settings inventories use a closed bounded
+comparison in that same reader. At most nine sorted original key/body pairs,
+revision zero and the trailing absence query must match. No row escapes and no
+caller-supplied consumer runs between queries. The exact stdlib SQLite adapter
+with the same required current observer groups physical file observations before
+and after that entire comparison; every row still checks the original transaction,
+main/TEMP schema, metadata, failure latch and cumulative query/copy bounds.
+Current callbacks remain non-reentrant, and even a swallowed callback failure
+refuses before the comparison returns. Both complete inventories still run
+before and after protected Core work. A reader without the closed port retains
+the direct per-row port; absence of both ports refuses. Independent physical
+adapters and distinct current observers retain per-query physical fences.
+
+The synchronous publication-observation caller advances its original Owner in
+finite 256-unit quanta instead of reopening the complete inspection every 16
+units. Each advance keeps a fresh before/after current frame and the same original
+response, publisher and file facts. Core caps the quantum at the remaining
+cumulative work budget and retains failure/cancellation and cleanup state; the
+caller neither refreshes fuel nor finishes before Core reports readiness.
 
 Within that same live reader, the exact stdlib SQLite adapter can retain a
 completed immutable metadata-fence observation. Reuse requires the same
@@ -3212,12 +3307,44 @@ still surround every advance, and the original cumulative work, workspace and
 instruction ceilings remain in force. Batching reduces repeated transport and
 current-check overhead; it neither refreshes fuel nor retries a failed phase.
 
+### Bounded write-free reader groups
+
+Write-free task preparation, task execution, Result preparation and publication
+capture may drive their finite loops inside one original SQL reader. Each Python
+Core method still checks physical current before and after its work. Task/Result
+selection, chunk reservation and cleanup, publication retirement, File I/O and
+Store writes remain separate boundaries; every returned loan is retained before
+its enclosing reader can fail. The existing cumulative Owner work and instruction
+budgets bound these loops. A task advance uses at most 256 original work units;
+this changes no total allowance, waiting outcome or retry decision.
+
+The standard owned SQLite connection records each executed transaction-control
+statement, including cached statements and direct connection calls. Diagnostic
+trace callbacks retain their normal behavior but cannot replace this internal
+hook through the connection's trace setter. A write-free reader compares its
+original connection, transaction epoch, schema and mutation count before and
+after each step. Any change latches a refusal before the next step. Complete
+adoption/settings membership established on entry is therefore reused only in
+that same unchanged reader. Other physical adapters repeat their complete
+inventory checks. No current permission or SQL row escapes as a reusable grant.
+Longer DELETE-journal read locks last only for the existing bounded group; lock
+contention never authorizes restarting or replaying an operation.
+
 Once original installation files and the four metadata outputs are validated
 through the same Host binding, the consumed bootstrap output and its input are
 closed through their original Core loans before later Run transfers begin.
 This returns only their transfer allowance. Saved files, metadata originals,
 the Store, current fences and actual physical owners remain retained. A refused
 close keeps the same partial installation and cannot trigger another bootstrap.
+
+Once the original retained submission body has been copied into the submitted-row
+input, its consumed output transport retires before another full row-output
+reservation. The original submission record and input borrow remain live; Core
+reobserves that same original against the current Store when producing and
+validating the rows. A refused or exceptional retirement preserves the original
+cleanup custody and prevents the later reservation. No capacity is increased,
+no retained input is discarded, and no Store write or admission is acknowledged
+by this transport retirement.
 
 After a publication has been attempted, its Host-wide pending-write routing
 pair blocks another write until the same original observation admits and
@@ -3228,6 +3355,83 @@ remain retained, so the original publication cannot be replayed. Unknown,
 missing or refused index exports preserve the pending pair. The observation
 action alone is neither acknowledgement nor a public RunState observation.
 
+### Closed physical observation in one Core invocation
+
+An ordinary installed Host may group physical observations within one synchronous
+Wasm export using the same original binding and an explicitly write-free SQLite
+reader phase. Admission is lazy at the first current observation. Pure exports that do
+not inspect current state introduce no filesystem observation. Nothing survives
+export return, trap, reader exit, another Host operation or an async suspension.
+The inspected CAS and capacity-reservation phases also qualify because their
+reader retires before the Store begins its intended writes. A private admission
+probe checks the original connection, outer transaction and schema. Prior legal
+unrelated writes or savepoints select the complete legacy path without rebasing
+the reader; actual snapshot errors refuse. Projected multi-write and other write
+readers, custom physical suppliers, native resource observers and cleanup retain
+the complete individual observation path. Once admitted, later mutation is a
+sticky failure, not fallback. Old fences, successor readback, COMMIT uncertainty
+and cleanup custody keep their existing independent boundaries.
+
+This is a closed computation validated before effects or result escape, not a
+cached authority decision. The full original file/root/Store graph is checked on
+admission, before and after each effect import, and before the scalar result can
+return. Exact thread, binding, reader, input/current loan, operation, lifetime and
+SQL transaction identities remain checked inside the invocation. Each actual
+Journal query retains its schema, mutation, metadata and cumulative query/copy
+fences; Core continues to inspect every requested row, final EOF and Account
+decision. No authorization import or original work/fuel boundary is removed.
+
+Every Host import passes through one classifier. Only the audited immutable
+input and same-reader Journal transports, plus the exact standard Wasmtime
+Store/Caller/Memory observation, remain inside the closed computation. The exact
+installed physical publisher may also remain inside: its original current and
+authorize callbacks still run on every invocation, including the namespace
+comparison, while Common separately rechecks Account, Policy and all publication
+stages. This is not a cached authorization result. One charged nominal publisher
+pin retains the issued output, callback and collector identities; copying also
+requires the unchanged standard Wasmtime memory methods. Replacement, malformed
+transport, swallowed callback failures and refused reentry poison the invocation;
+a normal namespace denial remains denial. Other publishers, unknown imports,
+child resources and cleanup suspend it before calling out. Current checks within
+those callbacks use full physical observations.
+A refused observation, escaping callback exception or refused reentry is sticky
+even when caught by an inner callback. No refused invocation resumes through a legacy fallback; original
+loans remain reachable for their existing explicit cleanup.
+
+The owned SQLite connection must have no custom trace, progress, authorizer,
+function, collation, extension, conversion or row/text factory callbacks. Prior
+customization permanently selects the ordinary path. Customization attempted
+while an invocation is admitted is refused before installation and poisons that
+invocation. Closed read queries use only audited constant SQL fragments and
+bounded typed literals, with no bound-parameter adaptation. This prevents a late
+global Python adapter registration from introducing an unguarded callback. Text
+literals preserve the exact UTF-8 bytes through a hexadecimal BLOB-to-TEXT cast;
+no caller-supplied SQL fragment is accepted. The owned connection disables its
+statement cache so changing literal values cannot accumulate retained plans.
+Within an exact audited import of a genuine standard Wasmtime export, the
+same original SQL snapshot may supply schema and metadata baselines between
+full entry, effect and return checks. A constructor-installed receipt is funded
+by an ordinary bounded workspace before allocation; the workspace retains its
+cleanup duty through failed construction or retirement. The selected function
+must match the same retained native instance, and the runtime methods used by
+copying must remain original. Scalar or customized exports keep complete SQL
+observations. The receipt grants no operation or authority.
+
+A retained SQLite trace advances a separate sticky statement epoch for mutation,
+control and unrecognized statements, including raw cursor/base-class execution
+and DDL whose schema version is later restored. Only exact short read-only
+PRAGMA templates and SELECT avoid that marker. The admitted computation also
+checks connection, reader, transaction, total changes, thread and lifetime at
+each reduced observation. A changed marker refuses; it cannot refresh a baseline
+or clear an earlier failure. Before admission, prior legal unrelated mutations
+may select the legacy route without changing the reader's original snapshot.
+The ordinary reader contract is not replaced by this optional optimization.
+
+Temporary SQL encoding, the bounded reader admission closures and invocation
+metadata are included in the original current transfer allowance. The original
+publisher port and its bound callbacks are included in its own allowance. SQLite
+and other workspace reservations remain separate.
+
 ### Original observation data within one Host operation
 
 The ordinary Host records a private monotone operation generation only after
@@ -3235,6 +3439,14 @@ entering its existing serialized operation. It is DATA, not a Run, continuation,
 request identity, grant, instruction refill or authority decision. The generation
 is cleared on exit. Raw diagnostic calls and every cleanup phase use the full
 observation path. Nested cleanup neither mints a generation nor refreshes fuel.
+
+The installed source/state file pair carries explicit provenance from its
+original installation. One physical-current call may observe that closed pair
+with one installation-root/raw-reader walk and both original pin/Store checks.
+Every descriptor, filename and retained original is checked again on each call.
+Custom root observers retain the sequential source/state path and original
+callback order, even when the two callbacks are identical. This grouping neither
+retires descriptors nor retains physical observations for another invocation.
 
 The original binding may avoid rebinding the same input/current loans within
 that operation only after a prior reader completed successfully. Each actual SQL
@@ -3628,6 +3840,82 @@ that suballocation. Returning a Buffer borrow does not itself retire the tree.
 Parser capacity refusal, input error and physical cleanup pending keep their
 existing distinct Host codes. Neither successful sealing nor cleanup grants
 Source checking, Run execution or physical Store retirement.
+
+#### Original child policy and acquired byte window
+
+An in-process exclusive child may retain a declared policy larger than its
+initial physical payload. `initial_window` selects only this closed, single
+child purpose. The existing default mapped-extent route and VM working route
+keep their original rules. The ticket and imported child origin retain the
+same current byte window separately from `Ledger.limits`; these two additional
+reference slots and the shared Ref byte-counter/Option constructor need backing in
+the original entry envelope before delegation. They are not another Resource
+or a physical receipt.
+
+`check_backed_original_child_window_demand` checks the same live projection,
+runtime, current state and declared policy only. It reserves nothing and
+returns no reusable current proof or permission to construct. Every canonical
+child byte reserve/resize still checks retained plus execution against its current acquired pooled window in the
+existing closed Resource cut, before usage or serial mutation. Reporting also
+cannot claim bytes outside that window. No external current callback or I/O
+is added merely to read the window.
+
+The same physical issuer can pass `acquire_window` through
+`prepare_backed_initialization_admission` to
+`prepare_backed_original_child_ledger`. This optional callback is retained only
+on that original growable-window origin, including its later initialized
+Request continuation. The original entry envelope must cover its additional
+optional reference, acquisition-busy scalar and actual closure/captures before
+frame construction. Fixed-window and VM callers omit it and keep their existing
+behavior. It cannot issue an owner, Ledger, reservation, authority or receipt.
+
+Only a canonical child reserve/resize whose simultaneous retained-plus-execution
+demand exceeds that acquired pool invokes the callback. Common supplies the
+actual total vector after its policy checks; Native does not duplicate the
+preparation tariff. The callback acquires only pool backing, independently of
+raw contiguous constructor geometry. An `Ok` return alone grants no bytes:
+the same original/current/window and policy must still cover the demand before
+the existing reservation mutation. A child-mutation fence spans acquisition and
+its final current callback, rejecting reentrant reserve/resize/report. Original
+window observation and actual acquisition completion remain usable inside that
+boundary. Stop cuts the retained callback reference and prevents the pending
+debit. Failure leaves the old reservation unchanged and the physical issuer
+retains its original pending acquisition and cleanup; no refund or ACK follows.
+
+`read_backed_original_child_window_bytes` observes that same acquired pool
+through the original projection/runtime and the shared current/closing fence.
+It does not return a reusable current proof, grant a reservation or describe a
+contiguous Native allocation. The physical owner keeps raw constructor geometry
+separate from the pool needed by all simultaneously held/reserved bytes; the
+later canonical Read resize still admits actual demand against both policy and
+the acquired pool. A pending parent reservation does not change this value.
+
+The physical owner next reserves the complete addition on the same parent,
+retains that original `SharedCapacityGrowth`, and acquires its actual payload
+and receipt. Only then may it call
+`complete_backed_original_child_window_after_acquisition` with the same
+projection/runtime/growth, receipt-derived usable bytes excluding controls,
+from that receipt. The Resource owner checks same-parent membership, positive
+usable growth, overflow and the charged addition,
+then completes that pending growth and adds those usable bytes to the same
+child window in one
+synchronous current cut. The caller must not complete the growth a second
+time. Only the subsequent same-Read resize admits payload construction. The lower
+`complete_backed_execution_window_after_acquisition` accepts the existing
+region/provider/child/ticket before any live projection or imported Ledger
+exists; both entrances use one private closed current cut and the same byte
+counter. Neither constructs a substitute runtime or Root.
+
+Native additions may be discontiguous. Their complete original mappings and
+controls stay charged to the parent's control allocation; the original mapped
+extent, address, loan and exclusion range never expand by arithmetic. Unknown,
+partial acquisition, a lost completion or current/closing refusal keeps the
+pending growth and physical cleanup duties. Neither window publication nor
+Read settlement is a physical stop or cleanup ACK. Existing attempt, work,
+transfer and consumed history remain unchanged. The portable window controls
+exercise these logical identities and refusal paths with explicit physical
+owner stand-ins; actual Native receipt/backing and ordinary acceptance require
+their separate installed consumer connection.
 
 #### Original Request admission and demand growth
 

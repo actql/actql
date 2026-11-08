@@ -212,6 +212,8 @@ pub fn effect_computation_stage_results(EffectComputationCandidate) -> @stage_re
 
 pub fn effect_computation_supplied(EffectComputationCandidate) -> @decode_core.Cursor?
 
+pub fn effect_program_common_update_completion_free_inventory(EffectProgramStaticCandidate) -> Result[LocalCommonUpdateCompletionFreeInventory, CompletionFreeInventoryIssue]
+
 pub fn effect_program_completion_free_inventory(EffectProgramStaticCandidate) -> Result[CompletionFreeInventory, CompletionFreeInventoryIssue]
 
 pub fn effect_program_local_update_completion_free_inventory(EffectProgramStaticCandidate) -> Result[LocalUpdateCompletionFreeInventory, CompletionFreeInventoryIssue]
@@ -392,6 +394,8 @@ pub fn local_common_normalization_inventory_requirements(LocalCommonNormalizatio
 
 pub fn local_common_normalization_inventory_work(LocalCommonNormalizationInventory) -> Int
 
+pub fn local_common_update_completion_free_inventory_matches(LocalCommonUpdateCompletionFreeInventory, EffectProgramStaticCandidate) -> Bool
+
 pub fn local_completion_free_inventory_matches(LocalCompletionFreeInventory, CheckedProgram) -> Bool
 
 pub fn local_completion_free_inventory_parameters_defaulted(LocalCompletionFreeInventory) -> Bool
@@ -515,6 +519,8 @@ pub fn observe_prepare_effect_computation_input(@stage_syntax.Program, CheckEnvi
 pub fn observe_supplement_checked_request_value_policies(CheckedProgram, Array[HostRequestValuePolicyEvidence], CompileLimits) -> (Result[CheckOutcome, LocalConstructionFailure], Int, Bool)
 
 pub fn observe_supplement_effect_request_value_policies(EffectComputationCandidate, Array[HostRequestValuePolicyEvidence], CompileLimits) -> (Result[EffectComputationCandidate, EffectComputationIssue], Int, Bool)
+
+pub fn original_check_diagnostic_outcome(CheckDiagnostic) -> CheckOutcome
 
 pub fn parsed_carriers_construction_extent(ParsedCarriersInput) -> @check_environment.RegistryConstructionExtent
 
@@ -1451,6 +1457,8 @@ pub(all) enum LocalCommonNormalizationIssue {
   CompletionObserved
   UnsupportedRequirement
 } derive(Eq, @debug.Debug)
+
+type LocalCommonUpdateCompletionFreeInventory
 
 type LocalCompletionFreeInventory
 

@@ -44,7 +44,7 @@ class LocalPhysicalObservationTests(unittest.TestCase):
         connect = sqlite3.connect
         with TemporaryDirectory(prefix='actql-local-cas-loss-') as directory:
             with patch('actql_sdk._local_storage.sqlite3.connect',
-                       side_effect=lambda *a, **k: connect(*a, **k, factory=LostCommit)):
+                       side_effect=lambda *a, **k: connect(*a, **(k | {'factory': LostCommit}))):
                 with self.store(Path(directory) / 'core.sqlite') as store:
                     write = ByteWrite('original', None, b'original-core-bytes')
                     store._connection.lose = True

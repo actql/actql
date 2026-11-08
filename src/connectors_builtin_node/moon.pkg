@@ -70,6 +70,8 @@ import {
   "actql/actql/calendar_profile",
   "actql/actql/connectors/gcs/catalog" @gcs_catalog,
   "actql/actql/connectors/hubspot/catalog" @hubspot_catalog,
+  "actql/actql/relation_schema" @schema,
+  "actql/actql/connectors/duckdb/adapter" @duckdb_input,
   "actql/actql/local_sga_provider",
   "actql/actql/managed_graph_storage" @graph_storage,
   "actql/actql/local_tea_provider",

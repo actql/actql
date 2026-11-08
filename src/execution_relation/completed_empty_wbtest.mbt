@@ -112,7 +112,7 @@ test "zero-column typed input crosses product completion and producer no-ops" {
         limits.max_rows,
         control,
         invocation.output_budget,
-        { limit: limits.operation_entries, live: 0, peak: 0, },
+        { ..row_workspace(limits.operation_entries), live: 0, peak: 0, },
         logical,
       )
     },

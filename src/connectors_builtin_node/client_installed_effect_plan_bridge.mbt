@@ -933,12 +933,15 @@ pub fn client_program_installed_physical_write_recipe_capacities(
 pub fn client_program_installed_effect_row_source_input_prepare(
   declaration : @client_row_source_host.RowDeclaration,
   provider : @execution.ExecutionCapacity?,
+  input_limits : @client_row_source_host.RowInputLimits?,
 ) -> Result[
   @client_local_host.ClientInstalledEffectSourceInput,
   @client_local_host.ClientInstalledManagedRunIssue,
 ] {
   @client_local_host.prepare_installed_effect_row_source_input(
-    declaration, provider,
+    declaration,
+    provider,
+    input_limits~,
   )
 }
 

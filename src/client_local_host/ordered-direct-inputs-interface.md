@@ -58,3 +58,37 @@ Focused Effect native/Row tests additionally cover both mixed orders, original
 Ledger/capacity identity, foreign and absent inputs, exhaustion without attempts,
 and synchronous current reentry. These are Core/source checks, not an installed
 DuckDB/Model/Effect execution or physical cleanup acknowledgement.
+
+Managed Source frame correspondence retains the same current read, Ledger and
+physical issuer frame without issuing capacity. The issuer performs its physical
+current observation before the callback-free final retained fence checks local
+stop, park and read lifetime. A nonmanaged read must retain that exact child,
+not merely a present child with a stale Ledger reference. Existing Source
+currentness paths inline their post-callback identity guards and keep their
+original Result construction shape; they do not call another Result-returning
+helper. The new opaque observation and its control/error wrappers require
+already funded enclosing capacity and do not certify installed Source funding.
+
+The whole-input Native consumer uses this same Plan-held read and provider.
+`installed_whole_source_read_capacity_matches` is a callback-free original-tuple
+predicate, not an admission. The optional expected Ledger on the existing start
+entry is compared after original currentness and before spending its start slot.
+Existing callers retain the default signature. A stopped DAG removes its own
+reciprocal supplied-Read cache; the original active child and Source keep their
+actual cleanup duties. Closed read markers and cached array slots are cut only
+after that read's cleanup, while the enclosing Run still awaits physical ACK.
+If currentness synchronously retires the read, both its marker and Ledger are
+cut. Post-callback checks preserve the existing Retired outcome before testing
+nominal correspondence; initial foreign-original checks remain unchanged.
+
+`prepared_installed_effect_model_sequence` borrows the immutable sequence already
+selected by the same Effect Plan for an original Model Graph. It neither selects
+a range nor prepares a sequence again, observes currentness, grants execution or
+revives a retired Run. The caller keeps the actual managed Run and funds any
+subsequent view. An installed keyed Model input may omit a duplicate producer
+vector: the existing nominal lookup supplies its retained original left/right
+inputs through the checked join handoff. That entry accepts the same retained
+full sequence and selects the checked JOIN-to-Model range once, excluding the
+Model marker and every later occurrence; other entries keep the exact-prefix
+requirement. Explicit vectors still require all
+original bindings; no caller-authored rows or new Source reads are substituted.

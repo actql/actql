@@ -448,3 +448,53 @@ test "Local Mock profile refuses malformed repeated unselected and excessive sub
     )
   }
 }
+
+///|
+test "Mock Source Account uses its original connection and resource apart from Run control" {
+  let account = admit_account_configuration_json(
+    local_mock_account_configuration(mock_profile_subjects()).unwrap(),
+  ).unwrap()
+  assert_true(
+    evaluate_account(account, mock_profile_at("local-host", "run", "submit"))
+    is Allow(_),
+  )
+  assert_true(
+    evaluate_account(account, mock_profile_at("salesforce", "Account", "read"))
+    is Allow(_),
+  )
+  // A SourceRef identifies a compiler port, not the actual configured Account
+  // resource. Neither the control connection nor an Effect delegate grants it.
+  assert_true(
+    evaluate_account(
+      account,
+      mock_profile_at(
+        "local-host", "connector://salesforce/Account#records", "read",
+      ),
+    )
+    is Deny(NoMatch),
+  )
+  assert_true(
+    evaluate_account(
+      account,
+      mock_profile_at(
+        "salesforce", "connector://salesforce/Account#records", "read",
+      ),
+    )
+    is Deny(NoMatch),
+  )
+  assert_true(
+    evaluate_account(account, mock_profile_at("local-host", "Account", "read"))
+    is Deny(NoMatch),
+  )
+  assert_true(
+    evaluate_account(
+      account,
+      mock_profile_at("salesforce", "Account", "effect"),
+    )
+    is Delegate(_),
+  )
+  assert_true(
+    evaluate_account(account, mock_profile_at("salesforce", "Account", "write"))
+    is Deny(NoMatch),
+  )
+}

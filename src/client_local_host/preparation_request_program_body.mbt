@@ -51,10 +51,46 @@ pub fn[I] continue_request_program_preparation(
   transfer_program_check_input(child)
   child.busy = false
   owner.program_check = None
-  owner.computation_limits = None
+  // Keep the SAME immutable checked compiler profile until Request retirement.
+  // Default installed module construction consumes it; explicit typed limits
+  // still enter through their existing separate constructor arguments.
   owner.program_json = None
   owner.phase = ProgramCompiled
   Ok(prepared)
+}
+
+///|
+/// Codec dimensions selected by this SAME Request's original checker. This is
+/// immutable DATA, not a semantic recheck, capacity grant or current callback.
+/// Explicit module limits remain independent arguments on the typed entry.
+pub fn[I] request_program_compilation_limits(
+  owner : ClientRequestPreparation[I],
+  input : I,
+) -> Result[
+  @publication_host.ClientPureCompilationLimits,
+  ClientRequestProgramPlanIssue,
+] {
+  guard owner.input is Some(original) && physical_equal(original, input) else {
+    return Err(Preparation(ForeignOriginal))
+  }
+  guard (
+      owner.phase == ProgramCompiled ||
+      owner.phase == ProgramPlanQuoted ||
+      owner.phase == ProgramPlanReserved
+    ) &&
+    owner.compiled_program is Some(_) &&
+    owner.program_capacity is Some(_) &&
+    owner.computation_limits is Some(selected) else {
+    return Err(Preparation(WrongPhase))
+  }
+  let standard = @publication_host.client_standard_pure_compilation_limits()
+  let codec = selected.checking.compilation.artifacts
+  Ok({
+    ..standard,
+    max_wire_bytes: codec.bytes,
+    max_nodes: codec.nodes,
+    max_depth: codec.depth,
+  })
 }
 
 ///|
@@ -984,7 +1020,10 @@ fn[I] prepare_request_compilation_owned(
         Err(issue) => return Err(Preparation(Capacity(issue)))
         Ok(value) => value
       }
-      guard @execution.checked_preparation_add_product(r, bytes, 1L) is Some(r) &&
+      // Only the returned artifact escapes this constructor. Nonescaping
+      // parser/writer scratch is simultaneous execution, not retained output.
+      guard @execution.checked_preparation_add_product(r, retained, 1L)
+        is Some(r) &&
         @execution.checked_preparation_add_product(e, bytes, 1L) is Some(e) else {
         return Err(Preparation(Policy))
       }
@@ -1116,14 +1155,14 @@ fn[I] prepare_request_compilation_owned(
       Err(issue) => return Err(Preparation(Capacity(issue)))
       Ok(value) => value
     }
-    if artifact_scratch >= r || artifact_scratch > e {
+    if artifact_scratch > e {
       return Err(Preparation(Policy))
     }
     match
       @resources.reconcile_working_preparation_phase(
         capacity,
         input,
-        r - artifact_scratch,
+        r,
         e - artifact_scratch,
       ) {
       Err(issue) => return Err(Preparation(Capacity(issue)))
@@ -1312,6 +1351,9 @@ pub fn[I] begin_request_program_managed_run(
       clear_request_source_input(owner)
       owner.submitted_intent = None
       owner.intent_base = None
+      owner.intent_source_quote = None
+      owner.native_intake_base = None
+      owner.native_intake_wire_bytes = 0
       owner.intent_peak_live = false
       owner.input = None
       owner.query_syntax = None

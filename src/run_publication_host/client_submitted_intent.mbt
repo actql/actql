@@ -3,6 +3,9 @@
 /// authorization or verified conclusion is manufactured by this admission.
 struct ClientSubmittedIntent {
   wire : String
+  // Exact byte count from the SAME canonical text emission. Journal
+  // inventory must not allocate another complete UTF8 body just to count it.
+  wire_bytes : Int
   cid : String
   stop_before_commit : Bool
   read_only : Bool
@@ -260,7 +263,9 @@ fn prepare_client_submitted_intent_value(
     @canonical.object_field_count(parameters) is None {
     return Err(InvalidEnvelope)
   }
-  let wire = @canonical.stringify_value(value, max_bytes, max_nodes, max_depth) catch {
+  let (wire, bytes, _, _) = @canonical.stringify_value_with_usage(
+    value, max_bytes, max_nodes, max_depth,
+  ) catch {
     _ => return Err(Limit)
   }
   let writer = @encode.hashing_writer(
@@ -279,6 +284,7 @@ fn prepare_client_submitted_intent_value(
     @encode.end_object(writer)
     Ok({
       wire,
+      wire_bytes: bytes,
       cid: "sha256:" + @encode.finish_hash(writer),
       stop_before_commit,
       read_only,

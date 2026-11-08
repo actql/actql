@@ -8,6 +8,7 @@ pub struct ClientInstalledEffectOperationBorrow {
   priv mut extent : ClientInstalledEffectOperationExtent?
   // One original extent selection: owned input or detached successful output.
   priv mut input_selected : Bool
+  priv mut construction_completed : Bool
   priv mut backing : @resources.NodeManagedRunOperationBacking?
   // The SAME immutable extent's execution upper; never Host-supplied DATA.
   priv mut execution_limit : Int64
@@ -33,15 +34,15 @@ fn installed_effect_operation_control_capacity(
   // The original child vector has ONE entry per actual installed member,
   // independent of rows, future operation count or Host policy ceilings.
   guard @shape.collection_construction_extent({
-      records: 9L,
-      record_references: 34L,
+      records: 11L,
+      record_references: 36L,
       record_words: 5L,
       reference_arrays: 1L,
       reference_items: recovery_members.to_int64(),
       scalar_arrays: 0L,
       scalar_items: 0L,
-      maps: 0L,
-      map_entries: 0L,
+      maps: 1L,
+      map_entries: recovery_members.to_int64(),
     })
     is Some(recovery) else {
     return None
@@ -75,11 +76,12 @@ fn installed_effect_operation_control_capacity(
       // The selected extent Some adds1H2R1W; member/input-selected are2W.
       // Optional owned output retains one wire callback frame and its
       // original method/output references; the wire DATA has its own extent.
-      records: 27L * calls,
+      // Same-token staged input retains one grow method/context pair.
+      records: (27L + 2L) * calls,
       // One original response-projection completion method is retained by
       // the physical child; its existing preparation latch owns the flight.
-      record_references: (64L + 3L + 2L + 4L + 1L) * calls,
-      record_words: (12L + 2L + 3L) * calls,
+      record_references: (64L + 3L + 2L + 4L + 1L + 8L) * calls,
+      record_words: (12L + 2L + 3L + 2L) * calls,
       // Deferred member construction retains one original preparation-method
       // vector. Its length is bounded by these same checked child slots.
       reference_arrays: 3L * calls + 1L,
@@ -413,6 +415,7 @@ fn borrow_installed_effect_operation_original(
     member_index,
     extent: Some(extent),
     input_selected: false,
+    construction_completed: false,
     backing: Some(backing),
     execution_limit: execution,
     started: !extent.physical_attempt && !defer_construction,
@@ -808,6 +811,26 @@ pub fn begin_installed_effect_operation_input(
   value : ClientInstalledEffectOperationBorrow,
   input : ClientInstalledEffectOperationExtent,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  resize_installed_effect_operation_input(value, input, false)
+}
+
+///|
+/// Continue the SAME synchronous constructor after its funded input preflight.
+/// This can only grow its original selected backing inside its immutable Plan
+/// maximum. It grants no operation, physical attempt, transfer or authority.
+pub fn grow_installed_effect_operation_input(
+  value : ClientInstalledEffectOperationBorrow,
+  input : ClientInstalledEffectOperationExtent,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  resize_installed_effect_operation_input(value, input, true)
+}
+
+///|
+fn resize_installed_effect_operation_input(
+  value : ClientInstalledEffectOperationBorrow,
+  input : ClientInstalledEffectOperationExtent,
+  growing : Bool,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
   guard value.original is Some(original) && physical_equal(original, value) else {
     return Err(ForeignOriginal)
   }
@@ -821,16 +844,25 @@ pub fn begin_installed_effect_operation_input(
   guard extent.maximum is Some(maximum) && input.maximum is None else {
     return Err(Unsupported)
   }
-  if value.input_selected ||
+  if value.input_selected != growing ||
     owner.effect_operation_opening ||
     owner.effect_operation_closing {
     return Err(AlreadyBound)
+  }
+  if growing {
+    if value.construction_completed {
+      return Err(AlreadyBound)
+    }
+    guard value.started &&
+      backing is @resources.NodeManagedRunOperationBacking::Construction(_) else {
+      return Err(Unsupported)
+    }
   }
   if input.operation != extent.operation ||
     input.physical_attempt != extent.physical_attempt ||
     input.transfer_bytes != extent.transfer_bytes ||
     (extent.physical_attempt && !value.started) ||
-    (!extent.physical_attempt && value.started) {
+    (!extent.physical_attempt && value.started && !growing) {
     return Err(ForeignOriginal)
   }
   guard owner.preparation is Some(preparation) &&
@@ -852,7 +884,12 @@ pub fn begin_installed_effect_operation_input(
     (match backing {
       @resources.NodeManagedRunOperationBacking::Construction(_) =>
         @execution.execution_capacity_retained_bytes(extent.capacity) <=
-        @execution.execution_capacity_retained_bytes(input.capacity)
+        @execution.execution_capacity_retained_bytes(input.capacity) &&
+        (
+          !growing ||
+          value.execution_limit <=
+          @execution.execution_capacity_execution_bytes(input.capacity)
+        )
       @resources.NodeManagedRunOperationBacking::Physical(_) =>
         installed_effect_capacity_within(extent.capacity, input.capacity)
     }) &&
@@ -1083,8 +1120,11 @@ fn complete_installed_effect_operation_construction_owned(
   }
   let result = result.map_err(installed_effect_operation_reservation_issue)
   owner.effect_operation_opening = false
-  if result is Ok(_) && output_retained is Some(_) {
-    value.input_selected = true
+  if result is Ok(_) {
+    value.construction_completed = true
+    if output_retained is Some(_) {
+      value.input_selected = true
+    }
   }
   result
 }

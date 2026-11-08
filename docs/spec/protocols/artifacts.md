@@ -269,6 +269,30 @@ admission. Canonical relation-value CIDs terminate at validated typed values,
 not arbitrary purported artifacts. The entire bundle, not just root field names,
 is checked for locality and cycles.
 
+<!-- requirement-block: result-artifacts.local-model-observation -->
+A local Model dependency MUST use `actql-local-model-observation/0.1` with
+the closed body `{version, unit_definition_cid, source_ordinal,
+input_logical_relation_cid, input_relation_schema_cid,
+outcome_logical_relation_cid, outcome_relation_schema_cid, self_cid}`. Its
+semantic preimage is the complete canonical body except `self_cid`. The same
+checked Unit and zero-based logical source-step ordinal select the original
+INFER and its task from that Unit's contract closure. The two Relations are
+the complete original pre-INFER input and complete adopted Model outcomes
+before any later filter, projection or Result selection, including every
+adopted non-success outcome. Their logical identities preserve typed values
+and genuine Ref identity rather than physical encoding or row placement.
+
+<!-- requirement-block: result-artifacts.local-model-observation-originals -->
+Projection MUST retain and authenticate the original Model execution, complete
+observation issuer, effective inputs and selected execution contract as its
+projection context. Only matching complete export receipts from those same
+input/outcome owners can issue the local observation. Run/attempt/provider
+audit references are not semantic members or opaque leaf exemptions; missing,
+foreign, retired or unresolved originals refuse projection. This observation
+does not grant another Model call, publication, Effect application or Saved
+restoration. Existing local computation and Result identities are unchanged
+when no Model observation is present.
+
 <!-- requirement-block: result-artifacts.result-import-observation-binding result-artifacts.result-import-observation-manifest result-artifacts.result-import-observation-recovery -->
 A Stage Result import contributes an
 `actql-result-import-observation/0.1` to the consumer's local Invocation
@@ -1289,8 +1313,9 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-stage-contracts.json#/schemas/local_effect_outcome sha256:8a56e3e7d5139fef571da480831e0df45c95beb96c228e737efdb12a1ef0b98d
 ../../../spec/contracts/actql-stage-contracts.json#/schemas/local_result_artifact sha256:16f69bbc38782a3ea42fafcfbbd992f9d1356a68c70dd1182cb102e269db04f1
 ../../../spec/contracts/actql-stage-contracts.json#/schemas/projection_attestation sha256:27c8c8a1215b705b6553f4db128f73c905b1c6a5f0c7d72c398e02541e7dc805
-../../../spec/contracts/actql-stage-contracts.json#/reference_roles sha256:4e2d119f5db52ca112124cfab1e59a1579ce408d704c4fb1d04c2dd093390c2a
-../../../spec/contracts/actql-stage-contracts.json#/reference_graph sha256:f09e6cde8b7140db7534cd1a1730234f37b208b4ba17268b89a32eccfd9b56cb
+../../../spec/contracts/actql-stage-contracts.json#/reference_roles sha256:7b888e2691b7d48a3f525f2de0da7b09ce594fea6d3319bf5e75512c63217687
+../../../spec/contracts/actql-stage-contracts.json#/reference_graph sha256:332f29e96a606665706639e1ab1dfcc6ae5d0374b77b7dd5cb3f399955ad58cd
+../../../spec/contracts/actql-stage-contracts.json#/schemas/local_model_observation sha256:00c4c147c9f572366acaa670d0929ea2adbb9c9f4819c53a5f5ff8cf37706afc
 ```
 <!-- stage-contract-pins:end -->
 

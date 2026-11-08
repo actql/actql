@@ -96,7 +96,9 @@ pub fn prepared_client_values_sequence_limits(
   value : PreparedClientProgram,
 ) -> @lower.SequenceLimits {
   {
-    ..client_standard_values_sequence_limits(),
+    ..client_sequence_limits_with_projection_demand(
+      value.sequence_preparation_demand,
+    ),
     max_rows: value.local_values_max_rows,
     max_cells: Int::max(
       client_standard_values_sequence_limits().max_cells,
@@ -1604,6 +1606,41 @@ fn measure_client_values_pipeline_graph(
     Ok(_) => ()
   }
   Ok(@encode.finish_measurement_usage(writer)) catch {
+    _ => Err(Encoding)
+  }
+}
+
+///|
+// Same original pipeline emitter, retaining construction DATA during its
+// existing visits. No second pipeline traversal or wire is constructed.
+fn measure_prepared_client_values_pipeline_construction(
+  value : PreparedClientProgram,
+  task : Int,
+  limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@encode.EncodingConstructionGeometry, ClientValuesPipelineIssue] {
+  let writer = @encode.construction_measuring_writer(
+    max_wire_bytes, max_nodes, max_depth,
+  ) catch {
+    _ => return Err(Encoding)
+  }
+  match
+    emit_client_values_pipeline_into(
+      value.graph,
+      task,
+      limits,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      writer,
+      preparation=Some(value),
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  Ok(@encode.finish_construction_measurement(writer)) catch {
     _ => Err(Encoding)
   }
 }

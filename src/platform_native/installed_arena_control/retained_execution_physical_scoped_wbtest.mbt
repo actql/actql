@@ -231,6 +231,8 @@ fn retained_execution_physical_case(failed_entry? : Bool = false) -> Unit raise 
       fail("retained stage 18: physical cleanup code \{code}")
     Err(Domain(_)) => fail("retained stage 18: domain cleanup issue")
     Err(Child(_)) => fail("retained stage 18: original child cleanup issue")
+    Err(Initialization(_)) =>
+      fail("retained stage 18: unexpected initialization cleanup")
   }
   assert_true(
     execution.closed && execution.physical_retired && execution.reported,

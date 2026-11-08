@@ -138,6 +138,8 @@ pub fn prepare_retained_task_projection(CheckedDAG, Int) -> Result[RetainedTaskP
 
 pub fn prepare_source_input_dag(CheckedDAG, @sourceview_resolution.SourceAcquisition) -> Result[CheckedDAG, GraphIssue]
 
+pub fn prepare_source_inputs_dag(CheckedDAG, Array[@sourceview_resolution.SourceAcquisition]) -> Result[CheckedDAG, GraphIssue]
+
 pub fn retained_task_projection_consumer(RetainedTaskProjection) -> Int
 
 pub fn retained_task_projection_graph(RetainedTaskProjection) -> CheckedDAG
@@ -149,6 +151,8 @@ pub fn retained_task_projection_producer(RetainedTaskProjection) -> Int
 pub fn retained_task_projection_reference(RetainedTaskProjection, Int, Int) -> Result[CheckedTaskReference, CheckedTaskReferenceIssue]
 
 pub fn retained_task_projection_target(RetainedTaskProjection) -> @pipeline_typing.Target
+
+pub fn source_inputs_dag_matches_original(CheckedDAG, CheckedDAG) -> Bool
 
 pub fn task_numeric_observation_family(TaskNumericObservation) -> NumericObservationFamily
 

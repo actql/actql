@@ -14,14 +14,14 @@ test "sealed mixed columns compose selections without row materialization" {
     "first",
     [2, 0],
     { remaining: 2, max_frames: 0, },
-    { limit: 2, live: 0, peak: 0, },
+    row_workspace(2),
   ).unwrap()
   let second = completed_selection(
     first,
     "second",
     [1],
     { remaining: 1, max_frames: 0, },
-    { limit: 1, live: 0, peak: 0, },
+    row_workspace(1),
   ).unwrap()
   guard second is ColumnTable(table) else { fail("column table") }
   assert_eq(table.count, 1)
@@ -42,12 +42,12 @@ test "mixed column storage reserves every retained buffer and selection" {
     selection: Some([2]),
   })
   let exact_work = { remaining: 2, max_frames: 0, }
-  let exact_slots = { limit: 9, live: 0, peak: 0, }
+  let exact_slots = row_workspace(9)
   assert_true(reserve_completed_storage(table, exact_slots, exact_work))
   assert_eq(exact_work.remaining, 0)
   assert_eq(exact_slots.live, 9)
   assert_false(
-    reserve_completed_storage(table, { limit: 8, live: 0, peak: 0, }, {
+    reserve_completed_storage(table, row_workspace(8), {
       remaining: 2,
       max_frames: 0,
     }),

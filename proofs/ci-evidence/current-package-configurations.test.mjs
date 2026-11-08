@@ -43,6 +43,113 @@ for (const [path, entry] of Object.entries(currentPackageConfigurations)) {
   test(`current configuration refuses changed meaning, unknown options and foreign scope: ${path}`, () => {
     const selectedTree = gitTree(root, entry.revision ?? currentConfigurationReviewRevision);
     const body = selectedTree.read(path).toString();
+    if (path === 'src/platform_native/sqlite/moon.pkg') {
+      assert.equal(entry.revision, 'bddee734fca915cfca815562d1407ceb73d0e087');
+      const prior = tree.read(path).toString();
+      const selectors = ['    "owned_body_extent_native.mbt": [ "native" ],\n',
+        '    "owned_body_extent_unsupported.mbt": [ "not", "native" ],\n'];
+      let reconstructed = body;
+      for (const selector of selectors) {
+        assert.equal(body.split(selector).length, 2);
+        reconstructed = reconstructed.replace(selector, '');
+      }
+      assert.equal(reconstructed, prior, 'only the paired Native/unsupported body-extent selectors changed');
+      assert.deepEqual(packageImports(body).imports, packageImports(prior).imports);
+      assert.equal(currentTree.read(path).toString(), body);
+      assert.equal(currentPackageConfigurationReviewFor(request(path, hash(prior))), null);
+      const selected = packageSourceInputs({tree: currentTree, packages: ['src/platform_native/sqlite'], target: 'js'});
+      for (const member of ['owned_body_extent_native.mbt', 'owned_body_extent_unsupported.mbt', 'sqlite_stub.c']) {
+        const source = `src/platform_native/sqlite/${member}`;
+        assert(selected.paths.includes(source));
+        assert.equal(currentTree.entries.get(source)?.kind, 'blob');
+        assert.equal(currentTree.entries.get(source)?.mode, '100644');
+      }
+    }
+    if (path === 'src/platform_native/publication_store/moon.pkg') {
+      assert.equal(entry.revision, 'f86f409e62d39511380497cb0fe5639d5259f191');
+      const successor = selectedTree.read(path).toString();
+      const body = gitTree(root, 'f7dfa3c3b3e61b71e63986342636039d20eaece2').read(path).toString();
+      const modelSelectors = ['    "model_evidence_custody_native.mbt": [ "native" ],\n',
+        '    "model_evidence_custody_native_wbtest.mbt": [ "native" ],\n',
+        '    "model_evidence_custody_unsupported.mbt": [ "not", "native" ],\n'];
+      let beforeModel = successor;
+      for (const selector of modelSelectors) {
+        assert.equal(beforeModel.split(selector).length, 2);
+        beforeModel = beforeModel.replace(selector, '');
+        const changed = successor.replace(selector, selector.replace('"native"', '"js"'));
+        assert.equal(currentPackageConfigurationReviewFor(request(path, hash(changed))), null);
+      }
+      assert.equal(beforeModel, body, 'only the three original Model evidence selectors extend the reviewed Store');
+      assert.deepEqual(packageImports(successor).imports, packageImports(body).imports);
+      assert.equal(currentPackageConfigurationReviewFor(request(path, hash(body))), null);
+      const precursor = gitTree(root, 'f519f34b2d45d5365c1af3b1d42ad92524514716').read(path).toString();
+      const capacityInputs = ['  "actql/actql/decode_shape" @shape,\n',
+        '  "actql/actql/execution_relation" @execution,\n',
+        '    "captured_content_capacity_native.mbt": [ "native" ],\n'];
+      let beforeCapacity = body;
+      for (const input of capacityInputs) {
+        assert.equal(body.split(input).length, 2);
+        beforeCapacity = beforeCapacity.replace(input, '');
+      }
+      assert.equal(beforeCapacity, precursor,
+        'only two common inventory imports and the Native inventory selector changed');
+      assert.deepEqual(packageImports(body).imports, [...packageImports(precursor).imports,
+        'actql/actql/decode_shape', 'actql/actql/execution_relation'].sort());
+      assert.equal(currentPackageConfigurationReviewFor(request(path, hash(precursor))), null,
+        'the previous configuration cannot qualify the new custody inventory inputs');
+      const introduced = gitTree(root, '5f2e0ecdeeaea9fb011c514806ef4dee80b03dad').read(path).toString();
+      const local = '  "actql/actql/client_local_host" @local,\n';
+      assert.equal(precursor.split(local).length, 2);
+      assert.equal(precursor.replace(local, ''), introduced,
+        'the genuine reviewed union adds only the same-parent Local capture-validation dependency');
+      assert.deepEqual(packageImports(precursor).imports,
+        ['actql/actql/client_local_host', ...packageImports(introduced).imports].sort());
+      assert.equal(currentPackageConfigurationReviewFor(request(path, hash(introduced))), null,
+        'the prior Store configuration cannot qualify the current literal import');
+      const prior = tree.read(path).toString();
+      const selectors = ['    "captured_content_custody_native.mbt": [ "native" ],\n',
+        '    "captured_content_custody_native_wbtest.mbt": [ "native" ],\n',
+        '    "captured_content_custody_unsupported.mbt": [ "not", "native" ],\n'];
+      let reconstructed = introduced;
+      for (const selector of selectors) {
+        assert.equal(introduced.split(selector).length, 2);
+        reconstructed = reconstructed.replace(selector, '');
+      }
+      assert.equal(reconstructed, prior, 'only the three reviewed Native custody selectors changed');
+      assert.deepEqual(packageImports(introduced).imports, packageImports(prior).imports);
+      assert.equal(currentTree.read(path).toString(), successor);
+      assert.equal(currentPackageConfigurationReviewFor(request(path, hash(prior))), null);
+      const selected = packageSourceInputs({tree: currentTree, packages: ['src/platform_native/publication_store'], target: 'js'});
+      for (const member of ['captured_content_custody_native.mbt', 'captured_content_custody_native_wbtest.mbt',
+        'captured_content_custody_unsupported.mbt', 'captured_content_capacity.mbt',
+        'captured_content_capacity_native.mbt', 'store_format_stub.c',
+        'model_evidence_custody_native.mbt', 'model_evidence_custody_native_wbtest.mbt',
+        'model_evidence_custody_unsupported.mbt']) {
+        const source = `src/platform_native/publication_store/${member}`;
+        assert(selected.paths.includes(source));
+        assert.equal(currentTree.entries.get(source)?.kind, 'blob');
+        assert.equal(currentTree.entries.get(source)?.mode, '100644');
+      }
+    }
+    if (path === 'src/platform_native/signature/moon.pkg') {
+      assert.equal(entry.revision, 'f86f409e62d39511380497cb0fe5639d5259f191');
+      const prior = gitTree(root, '523ada3259bf9e8147f746727fbfd56065036fd5').read(path).toString();
+      assert.equal(hash(prior), 'c9f579ed2e7db177e27ae45e694788e76332cbc058594eca03e120539c138a7e');
+      const selector = '    "model_private_evidence_native_wbtest.mbt": [ "native" ],\n';
+      assert.equal(body.split(selector).length, 2);
+      assert.equal(body.replace(selector, ''), prior,
+        'only the existing Native Model evidence test selector extends the reviewed signature package');
+      assert.deepEqual(packageImports(body).imports, packageImports(prior).imports);
+      assert.equal(currentTree.read(path).toString(), body);
+      assert.equal(currentPackageConfigurationReviewFor(request(path, hash(prior))), null);
+      const changed = body.replace(selector, selector.replace('"native"', '"js"'));
+      assert.equal(currentPackageConfigurationReviewFor(request(path, hash(changed))), null);
+      const selected = packageSourceInputs({tree: currentTree, packages: ['src/platform_native/signature'], target:'js'});
+      const member = 'src/platform_native/signature/model_private_evidence_native_wbtest.mbt';
+      assert(selected.paths.includes(member));
+      assert.equal(currentTree.entries.get(member)?.kind, 'blob');
+      assert.equal(currentTree.entries.get(member)?.mode, '100644');
+    }
     const changes = [body + '\noptions(pre_build: {command: "unreviewed"})\n',
       body.replace(/"(?:actql\/actql|moonbitlang\/core)\/[^"\n]+"/, '"actql/actql/unreviewed_resource_owner"'),
       body.replace(/"js"|"native"|"wasm"/, '"unreviewed-target"')];
@@ -126,11 +233,84 @@ test('current Source JSON review binds only its checked normalization count depe
   }
 });
 
-test('current Local Host review binds the original carrier, Source builder and Model completion imports with existing JS selectors', () => {
+test('current Local Host successor preserves its capacity import and binds six JS callback selectors', () => {
   const path = 'src/client_local_host/moon.pkg';
-  const entry = currentPackageConfigurations[path];
-  assert.equal(entry.revision, '65dd1da4c260610e9a88e430665fdc8f6106bc94');
-  assert.equal(entry.digest, '8596c0cb5e158a33b98214e9d09a6185dbce3925b3d947def6036ec75bb7dfda');
+  const revision = 'e99acee7bc3ea3a5b0ae3e71ce64aa7c958f2bf4';
+  const digest = '0974fff42f958477654738b726f07d929aeccd274463404fc86206545fff2f00';
+  const rule = 'literal-target-selectors-with-bound-source-membership';
+  assert.deepEqual(currentPackageConfigurations[path], {revision, digest, rule});
+  execFileSync('git', ['merge-base', '--is-ancestor', revision, 'HEAD'], {cwd: root});
+  const reviewed = gitTree(root, revision), body = reviewed.read(path).toString();
+  const valuesSelector = '    "original_values_text_working_js_wbtest.mbt": [ "js" ],\n';
+  const callbackBody = gitTree(root, 'd3aed5e30374353163fe2beb3f7a8b4f784b2ea9').read(path).toString();
+  assert.equal(hash(callbackBody), '508773432a6b071bb057fc41d51008054462a6f8006f862ce6638e91e448d00e');
+  assert.equal(body.split(valuesSelector).length, 2);
+  assert.equal(body.replace(valuesSelector, ''), callbackBody,
+    'only the existing JS Values callback selector extends the reviewed descriptor');
+  assert.deepEqual(packageImports(body).imports, packageImports(callbackBody).imports);
+  const previous = gitTree(root, '65dd1da4c260610e9a88e430665fdc8f6106bc94').read(path).toString();
+  assert.equal(hash(body), digest);
+  assert.equal(hash(previous), '8596c0cb5e158a33b98214e9d09a6185dbce3925b3d947def6036ec75bb7dfda');
+  const introduced = gitTree(root, 'ff880c0fee559efd6d6f2d4fe86a6c229ad86979').read(path).toString();
+  assert.equal(hash(introduced), '73b0cddc426eb97a56302dc76c8e9438fb113508302532dd29e34157c8186969');
+  const dependency = '  "actql/actql/capacity_policy" @capacity,\n';
+  const selectors = ['preparation_request_native_document_js_wbtest.mbt',
+    'preparation_request_native_intake_js_wbtest.mbt'].map(name => `    "${name}": [ "js" ],\n`);
+  let reconstructed = introduced;
+  for (const addition of [dependency, ...selectors]) {
+    assert.equal(introduced.split(addition).length, 2);
+    reconstructed = reconstructed.replace(addition, '');
+  }
+  assert.equal(reconstructed, previous, 'all other imports, targets and options retain their original bytes');
+  const successorSelectors = ['preparation_request_native_intake_retirement_js_wbtest.mbt',
+    'preparation_request_artifact_retention_js_wbtest.mbt', 'native_publication_workspace_js_wbtest.mbt'].map(name => `    "${name}": [ "js" ],\n`);
+  let reconstructedIntroduction = callbackBody;
+  for (const selector of successorSelectors) {
+    assert.equal(callbackBody.split(selector).length, 2);
+    reconstructedIntroduction = reconstructedIntroduction.replace(selector, '');
+  }
+  assert.equal(reconstructedIntroduction, introduced, 'the successor adds only its three reviewed JS fixtures');
+  const intakeRevision = gitTree(root, '131b446df837e49f6277c8582460e521dd97c153').read(path).toString();
+  assert.equal(hash(intakeRevision), '2d1cea3783b4e932e2dd107b4159e8b32dad4f1f57470ee8d3cbd1d30e319802');
+  assert.equal(callbackBody.replace(successorSelectors[2], ''), intakeRevision,
+    'the new publication fixture preserves the two original intake/artifact selectors');
+  assert.equal(currentPackageConfigurationReviewFor(request(path, hash(intakeRevision))), null);
+  assert.deepEqual(packageImports(body).imports,
+    [...packageImports(previous).imports, 'actql/actql/capacity_policy'].sort());
+  assert.equal(currentTree.read(path).toString(), body);
+  assert.equal(hash(currentTree.read('toolchain.json')), toolchainDigest);
+  assert.equal(currentPackageConfigurationReviewFor(request(path, digest))?.revision, revision);
+  assert.equal(currentPackageConfigurationReviewFor(request(path, hash(previous))), null);
+  assert.equal(currentPackageConfigurationReviewFor(request(path, hash(introduced))), null);
+  const selected = packageSourceInputs({tree: currentTree, packages: ['src/client_local_host'], target: 'js'});
+  assert.deepEqual(selected.unresolved, []);
+  const members = [...currentTree.entries.keys()].filter(member => member.startsWith('src/capacity_policy/') &&
+    !member.slice('src/capacity_policy/'.length).includes('/')).sort();
+  assert(members.includes('src/capacity_policy/moon.pkg'));
+  assert.deepEqual(selected.directories.find(entry => entry.path === 'src/capacity_policy/*')?.members, members);
+  for (const member of [...members, ...[valuesSelector, ...selectors, ...successorSelectors].map(selector =>
+    'src/client_local_host/' + JSON.parse(selector.trim().split(':')[0]))]) {
+    assert(selected.paths.includes(member), member);
+    assert.equal(currentTree.entries.get(member)?.kind, 'blob');
+    assert.equal(currentTree.entries.get(member)?.mode, '100644');
+  }
+  for (const changed of [previous, callbackBody, body.replace(dependency, ''), body.replace('@capacity,', '@permission,'),
+    ...[valuesSelector, ...selectors, ...successorSelectors].map(selector => body.replace(selector, selector.replace('"js"', '"native"'))),
+    body + '\noptions(pre_build: {command: "unreviewed"})\n']) {
+    assert.equal(currentPackageConfigurationReviewFor(request(path, hash(changed))), null);
+    const altered = {...currentTree, read: member => member === path ? Buffer.from(changed) : currentTree.read(member)};
+    assert(packageSourceInputs({tree: altered, packages: ['src/client_local_host'], target: 'js'})
+      .unresolved.includes('Unreviewed package configuration: ' + path));
+  }
+  for (const delta of [{target: 'native'}, {target: 'wasm'}, {toolchainDigest: '0'.repeat(64)}])
+    assert.equal(currentPackageConfigurationReviewFor({...request(path, digest), ...delta}), null);
+});
+
+test('historical Local Host review preserves the original carrier, Source builder and Model completion preimages', () => {
+  const path = 'src/client_local_host/moon.pkg';
+  const entry = {revision: '65dd1da4c260610e9a88e430665fdc8f6106bc94',
+    digest: '8596c0cb5e158a33b98214e9d09a6185dbce3925b3d947def6036ec75bb7dfda',
+    rule: 'literal-target-selectors-with-bound-source-membership'};
   const selectedTree = gitTree(root, entry.revision);
   const currentBody = selectedTree.read(path).toString();
   assert.equal(hash(currentBody), entry.digest);
@@ -144,8 +324,8 @@ test('current Local Host review binds the original carrier, Source builder and M
   assert.equal(currentBody.replace(modelDependency, ''), body);
   assert.equal(packageImports(currentBody).unknown, 'Unreviewed package configuration',
     'existing literal selectors still require the exact finite configuration review');
-  assert.equal(currentPackageConfigurationReviewFor(request(path, hash(currentBody)))?.revision,
-    entry.revision);
+  assert.equal(currentPackageConfigurationReviewFor(request(path, hash(currentBody))), null,
+    'the historical preimage cannot qualify the current successor');
   assert.deepEqual(packageImports(currentBody).imports,
     [...packageImports(body).imports, 'actql/actql/model_execution'].sort());
   assert.equal(currentPackageConfigurationReviewFor(request(path, hash(body))), null,
@@ -187,7 +367,6 @@ test('current Local Host review binds the original carrier, Source builder and M
   assert.equal(entry.rule, 'literal-target-selectors-with-bound-source-membership');
   assert(packageImports(body).imports.includes('actql/actql/relation_typing'));
   assert(body.includes('"installed_kintone_whole_source_js_wbtest.mbt": [ "js" ],'));
-  assert.equal(currentTree.read(path).toString(), currentBody);
   const selected = packageSourceInputs({tree: currentTree, packages: ['src/client_local_host'], target: 'js'});
   assert.deepEqual(selected.unresolved, []);
   assert(selected.paths.includes('src/relation_typing/moon.pkg'));
@@ -301,7 +480,7 @@ test('current query configuration binds both JS-only files without changing impo
 
 test('single current map binds exact per-entry reviews and full literal import closure', () => {
   assert.equal(Object.keys(currentPackageConfigurations).length, 19);
-  assert.equal(Object.values(currentPackageConfigurations).filter(entry => entry.revision !== undefined).length, 11);
+  assert.equal(Object.values(currentPackageConfigurations).filter(entry => entry.revision !== undefined).length, 13);
   const head = gitTree(root, execFileSync('git', ['rev-parse', 'HEAD'], {cwd: root, encoding: 'utf8'}).trim());
   for (const [path, entry] of Object.entries(currentPackageConfigurations)) {
     const revision = entry.revision ?? currentConfigurationReviewRevision;

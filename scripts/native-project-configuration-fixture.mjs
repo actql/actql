@@ -1,7 +1,10 @@
 // Only populate the invocation's existing owned namespace. These files are
 // reader test inputs, never installed project configuration or Run authority.
-import {mkdirSync, symlinkSync, writeFileSync} from 'node:fs';
-import {join} from 'node:path';
+import assert from 'node:assert/strict';
+import {mkdirSync, readFileSync, symlinkSync, writeFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+import {dirname, join} from 'node:path';
+import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
 
 export function nativeProjectConfigurationFixture(namespace) {
   const root = join(namespace, 'project-configuration');
@@ -59,5 +62,67 @@ export function nativeProjectConfigurationFixture(namespace) {
     else write(path, 'connectors.json', name === 'oversize-bindings'
       ? Buffer.alloc(65537, 0x20) : Buffer.from([0xc3, 0x28]));
   }
-  return {ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT: root};
+  // Exact public authored inputs, not an old business-state fixture.
+  for (const name of ['deal-review', 'deal-review-missing', 'deal-review-wrong-task', 'deal-review-nested-registry', 'deal-review-wrong-answer', 'deal-review-missing-task']) {
+    const path = directory(name);
+    for (const [originalPath, original] of Object.entries(projectTemplateFiles('deal-review-mock'))) {
+      if (name === 'deal-review-missing' && originalPath === 'mock/data.json') continue;
+      if (name === 'deal-review-missing-task' && originalPath === 'model-tasks/deal-review.v1.yaml') {
+        // Reach the actual missing-file Reader boundary, with its owned Root
+        // present. An absent parent instead tests Root construction refusal.
+        mkdirSync(dirname(join(path, originalPath)), {recursive: true, mode: 0o700});
+        continue;
+      }
+      let relative = originalPath;
+      let body = name === 'deal-review-wrong-task' && relative === 'model-tasks/deal-review.v1.yaml'
+        ? original.replace('task: model-task:deal-review.v1', 'task: model-task:foreign.v1') : original;
+      if (name === 'deal-review-wrong-answer' && relative === 'mock/deal-review.v1.answers.yaml') {
+        body = original.replace('changed: true', 'changed: "not-a-boolean"');
+      }
+      if (name === 'deal-review-nested-registry') {
+        // A distinct locator-only case, never retagged as the exact template.
+        if (relative === 'actql.config.json') body = original.replace('./model-tasks.json', './registry/model-tasks.json');
+        if (relative === 'model-tasks.json') {
+          relative = 'registry/model-tasks.json';
+          body = original.replace('./model-tasks/deal-review.v1.yaml', '../model-tasks/deal-review.v1.yaml');
+        }
+      }
+      mkdirSync(dirname(join(path, relative)), {recursive: true, mode: 0o700});
+      write(path, relative, body);
+    }
+  }
+  // Independent oracle for the SAME public File-facts consumer. The missing
+  // payload case still supplies only its original locator/catalogue metadata.
+  const missing = join(root, 'deal-review-missing');
+  const scope = JSON.stringify({catalog: readFileSync(join(missing, 'mock/catalog.json'), 'utf8'),
+    connection: 'drive', connector: 'drive', dataPath: join(missing, 'mock/data.json')});
+  const scopeCid = 'sha256:' + createHash('sha256').update(scope).digest('hex');
+  // The issuer case projects this public document in memory. Keep the missing
+  // payload locator absent, and derive its oracle from the independent ASCII
+  // canonical identity preimage rather than the Native issuer's output.
+  const resource = JSON.stringify({collection: 'files', identity: 'file-acme-notes', scope: scopeCid});
+  const data = JSON.parse(projectTemplateFiles('deal-review-mock')['mock/data.json']);
+  const contentDigests = Object.fromEntries(data.drive.files.rows.map(row => [row.id,
+    'sha256:' + createHash('sha256').update(Buffer.from(row.content_utf8, 'utf8')).digest('hex')]));
+  return {ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT: root,
+    ACTQL_TEST_NATIVE_CONTENT_DIGESTS: JSON.stringify(contentDigests),
+    ACTQL_TEST_NATIVE_QUERY_CONTRACT: readFileSync(new URL('../spec/contracts/actql-query-acquisition.json', import.meta.url), 'utf8'),
+    ACTQL_TEST_NATIVE_EVIDENCE_CONTRACT: readFileSync(new URL('../spec/contracts/actql-query-process-evidence.json', import.meta.url), 'utf8'),
+    ACTQL_TEST_NATIVE_MOCK_DRIVE_SCOPE_CID: scopeCid,
+    ACTQL_TEST_NATIVE_MOCK_FILE_DATA: projectTemplateFiles('deal-review-mock')['mock/data.json'],
+    ACTQL_TEST_NATIVE_MOCK_FIRST_RESOURCE_CID: 'sha256:' + createHash('sha256').update(resource).digest('hex')};
+}
+
+// All four authored cases retain distinct fresh Stores. The first three keep
+// their original lookup/Source-closure selections; only the fourth selects the
+// original file Effect Plan. Ambient flags cannot retarget another case.
+export function nativeProjectContentCaseFixture(namespace, index) {
+  assert(Number.isInteger(index) && index >= 0 && index <= 3,
+    'An exact original Native Content case index is required');
+  const store = join(namespace, 'content-store');
+  mkdirSync(store, {mode: 0o700});
+  return {ACTQL_TEST_NATIVE_CONTENT_LOOKUPS: index === 0 ? '1' : '2',
+    ACTQL_TEST_NATIVE_MODEL_SOURCE_CLOSURE: index === 2 ? '1' : undefined,
+    ACTQL_TEST_NATIVE_EFFECT_PLAN_ONLY: index === 3 ? '1' : undefined,
+    ACTQL_TEST_NATIVE_STORE_ROOT: store};
 }

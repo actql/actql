@@ -228,11 +228,18 @@ pub fn effect_capture_construction_profile(
   api_units : Int,
   resource_units : Int,
   recovery_input_bytes? : Int = -1,
+  recovery_source_nodes? : Int? = None,
+  recovery_preflight? : Bool = false,
+  named_source_geometry? : @source.JsonSourceGeometry? = None,
 ) -> Array[@execution.ExecutionCapacity]? {
   if recovery_input_bytes < -1 {
     return None
   }
   let warm = recovery_input_bytes == 0
+  if recovery_source_nodes is Some(nodes) &&
+    (nodes < 1 || recovery_input_bytes < 1) {
+    return None
+  }
   // This is the original already-owned wire extent, not a replacement codec
   // limit. Every nested JSON spelling and retained base64 body fits inside it.
   let actual = if recovery_input_bytes > 0 {
@@ -296,7 +303,9 @@ pub fn effect_capture_construction_profile(
       Some(zero)
     } else {
       @source.json_literal_construction_extent(
-        recovery_bytes, recovery_bytes, recovery_bytes,
+        recovery_bytes,
+        recovery_source_nodes.unwrap_or(recovery_bytes),
+        recovery_source_nodes.unwrap_or(recovery_bytes),
       )
     })
     is Some(recovery_json) &&
@@ -329,8 +338,42 @@ pub fn effect_capture_construction_profile(
     (if warm {
       @execution.execution_capacity(0L, 0L)
     } else {
-      sf_effect_catalog_recovery_capacity(
-        list, describe, raw_bytes, observation_bytes, binding_units,
+      guard sf_effect_catalog_recovery_capacity(
+          list, describe, raw_bytes, observation_bytes, binding_units,
+        )
+        is Some(complete) else {
+        return None
+      }
+      // Keep the original full retained allowance on this SAME member. Only
+      // private scratch is staged: first the funded outer JSON/binary/Source
+      // preflight, then this exact body's complete native Catalog constructor.
+      let selected = if recovery_preflight {
+        sf_read_describe_preflight_capacity(raw_bytes)
+      } else if named_source_geometry is Some(geometry) {
+        if geometry.input_bytes > raw_bytes {
+          return None
+        }
+        named_describe_construction_capacity(
+          {
+            ..describe,
+            max_bytes: geometry.input_bytes,
+            max_nodes: Int::min(describe.max_nodes, geometry.input_bytes),
+          },
+          observation_bytes,
+          binding_units,
+          resource_units,
+          source_geometry=Some(geometry),
+        )
+      } else {
+        Some(complete)
+      }
+      guard selected is Some(selected) else { return None }
+      let retained = @execution.execution_capacity_retained_bytes(complete)
+      @execution.execution_capacity(
+        retained,
+        retained +
+        @execution.execution_capacity_execution_bytes(selected) -
+        @execution.execution_capacity_retained_bytes(selected),
       )
     })
     is Some(catalog_capacity) &&

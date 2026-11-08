@@ -1,4 +1,98 @@
 ///|
+test "Native original Effect admission forwards the same epoch and acceptance operations" {
+  let (host, reference, preparation, request, allowed, definition, issued) = effect_material_original_host_fixture(
+    "effect-original-operation-route",
+  )
+  let calls : Array[String] = []
+  let operations = journal_test_operation_access(host.database, calls)
+  let accepted = host
+    .accept_submitted_effect_material_with_policy(
+      epoch_test_crypto(),
+      "operator",
+      "cli",
+      reference,
+      preparation,
+      request,
+      allowed,
+      definition,
+      issued,
+      1002.0,
+      None,
+      None,
+      operations=Some(operations),
+    )
+    .unwrap()
+  assert_true(accepted.run_admission is Some(_))
+  assert_true(calls.contains("begin"))
+  assert_true(calls.contains("commit"))
+  assert_true(
+    calls.any(value => value.has_prefix("read:client_submission_epoch:")),
+  )
+  assert_true(
+    calls.contains(
+      "insert:client_runs:" + @host.client_request_scope_cid(request),
+    ),
+  )
+  let record = host.journal.retained(request).unwrap().unwrap()
+  let packet = read_effect_material_original_packet(
+    record.effect_material_originals.unwrap(),
+  ).unwrap()
+  assert_eq(packet.submission_reference, reference.wire)
+  assert_eq(
+    packet.materials_wire,
+    @host.client_effect_issued_normalization_materials_wire(issued),
+  )
+  assert_false(record.physical_start_claimed)
+  host.close().unwrap()
+}
+
+///|
+test "Native original Effect admission preserves routed write failure without accepting a Run" {
+  let (host, reference, preparation, request, allowed, definition, issued) = effect_material_original_host_fixture(
+    "effect-original-operation-refusal",
+  )
+  let before = host.journal.retained_submission(reference).unwrap().unwrap()
+  let calls : Array[String] = []
+  let original = journal_test_operation_access(host.database, calls)
+  let operations = {
+    ..original,
+    insert: (table, key, body) => {
+      if table == "client_runs" {
+        calls.push("original Run insert refused")
+        Err(@sqlite.Busy)
+      } else {
+        (original.insert)(table, key, body)
+      }
+    },
+  }
+  assert_true(
+    host.accept_submitted_effect_material_with_policy(
+      epoch_test_crypto(),
+      "operator",
+      "cli",
+      reference,
+      preparation,
+      request,
+      allowed,
+      definition,
+      issued,
+      1002.0,
+      None,
+      None,
+      operations=Some(operations),
+    )
+    is Err(Journal(Physical(@sqlite.Busy))),
+  )
+  assert_true(calls.contains("original Run insert refused"))
+  assert_true(calls.contains("rollback"))
+  assert_true(host.journal.retained(request).unwrap() is None)
+  let after = host.journal.retained_submission(reference).unwrap().unwrap()
+  assert_eq(after.revision, before.revision)
+  assert_true(after.run_admission is None)
+  host.close().unwrap()
+}
+
+///|
 // Exact original setup remains preparing until the new Host entry atomically
 // accepts its Run and packet. No Source, Provider or physical work is installed.
 // These Native test definitions do not establish execution by compilation.

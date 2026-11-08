@@ -20,8 +20,8 @@ pub fn admit_captured_effect_dependency_body(
 ) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue] {
   let result = if [
       "local_result_definition", "local_table_input_definition", "local_computation",
-      "local_manifest", "result_import_observation", "local_dependencies", "result_import_interface",
-      "gate_requirement",
+      "local_manifest", "result_import_observation", "local_model_observation", "local_dependencies",
+      "result_import_interface", "gate_requirement",
     ].contains(kind) {
     admit_local_effect_dependency_body(
       kind, wire, max_bytes, max_nodes, max_depth,
