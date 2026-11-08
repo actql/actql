@@ -184,3 +184,33 @@ test "generic output funding failure never retries a smaller request" {
   assert_true(output.buffer.rows.is_empty())
   assert_eq((growth.used, growth.funded), (0L, 0L))
 }
+
+///|
+test "retained pages grow both original resource dimensions together" {
+  let requests : Array[(Int64, Int64)] = []
+  let unexpected = Ref(0)
+  let growth = {
+    ..working_growth_fixture(_ => {
+      unexpected.val += 1
+      Err(WorkspaceUnavailable)
+    }),
+    live_ceiling: 1048576L,
+    retained_outputs: Some(0L),
+    reserve_retained: Some((execution, retained) => {
+      requests.push((execution, retained))
+      Ok(())
+    }),
+  }
+  let output = funded_row_output(growth, rows=500)
+  for _ in 0..<500 {
+    append_admitted_output(output, [funded_row_number(output, 1.0)]).unwrap()
+  }
+  assert_eq(growth.used, 264000L)
+  assert_eq(growth.retained_outputs, Some(264000L))
+  assert_eq((growth.funded, growth.retained_funded), (278528L, 278528L))
+  assert_eq(requests.length(), 17)
+  assert_eq(unexpected.val, 0)
+  for (execution, retained) in requests {
+    assert_eq(execution, retained)
+  }
+}

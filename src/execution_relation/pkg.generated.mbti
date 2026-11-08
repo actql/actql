@@ -242,7 +242,7 @@ pub fn bind_generated_numeric_execution(GeneratedSequence, NumericAggregateExecu
 
 pub fn bind_generated_sequence_query_time(GeneratedSequence, @run_publication.QueryEvaluationTime, Int, Int) -> Result[GeneratedSequence, SequenceRunIssue]
 
-pub fn bind_generated_workspace_growth(GeneratedSequence, SequenceExecutionLimits, Int64, (Int64) -> Result[Unit, WorkspaceGrowthIssue], meter_retained_outputs? : Bool) -> Result[GeneratedSequence, SequenceRunIssue]
+pub fn bind_generated_workspace_growth(GeneratedSequence, SequenceExecutionLimits, Int64, (Int64) -> Result[Unit, WorkspaceGrowthIssue], meter_retained_outputs? : Bool, reserve_retained? : ((Int64, Int64) -> Result[Unit, WorkspaceGrowthIssue])?) -> Result[GeneratedSequence, SequenceRunIssue]
 
 pub fn bind_infer_captured_input(@lowering_relation.PreparedInferInputs, @lowering_relation.BoundPrepared, @pipeline_typing.Target, CapturedRows) -> Result[InferRowInput, InferPreparationIssue]
 
@@ -1134,7 +1134,7 @@ pub fn[T] prepare_managed_operation_read(@lowering_relation.BoundPrepared, Int, 
 
 pub fn[P, T] prepare_managed_output_retention_port(ManagedOutputValues, (P) -> (ManagedOutputValueReceipt, T, Int64, () -> Bool)?) -> Result[ManagedOutputRetentionPort[P, T], ManagedOutputRetentionIssue]
 
-pub fn prepare_managed_output_values(@lowering_relation.BoundPrepared, @pipeline_typing.Target, Int, ValueLimits, Int, FixedInputGuardMeasureLimits) -> Result[ManagedOutputValues, ManagedOutputValueIssue]
+pub fn prepare_managed_output_values(@lowering_relation.BoundPrepared, @pipeline_typing.Target, Int, ValueLimits, Int, FixedInputGuardMeasureLimits, working? : GeneratedSequence?) -> Result[ManagedOutputValues, ManagedOutputValueIssue]
 
 pub fn[T] prepare_managed_producer_bridge(ManagedProducerRead[T], Int, ValueLimits, Int, Int, deferred_reclamation? : Bool) -> Result[ManagedProducerBridge[T], ManagedProducerBridgeIssue]
 

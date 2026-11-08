@@ -53,6 +53,7 @@ struct LocalManagedDispatchConfiguration[T] {
   metadata : LocalManagedMetadataLimits
   capacity : @connector.ExecutionCapacity
   metered_output_retention : Bool
+  metered_retention : Bool
   join_output_ceilings : Array[(Int, Int64)]
   interval_search_ceilings : Array[(Int, Int64)]
   asof_search_ceilings : Array[(Int, Int64)]
@@ -237,6 +238,8 @@ pub struct LocalManagedDispatchOperations[T] {
     LocalManagedRelationSnapshot?,
     LocalDispatchIssue,
   ]
+  // Original startup-storage quote passed back to this same operation. An
+  // actual-retention task issues its final holding from checked final usage.
   storage_bytes : Int64
   close : () -> Unit
   cleanup_refresh : () -> Bool
@@ -665,6 +668,14 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
       installation: installed,
       metadata,
       metered_output_retention: metered_start is Some(_),
+      metered_retention: metered_start is Some(start) &&
+      @local.local_module_capacity_for_sequence(
+        installed.implementation,
+        local_task_slot(installed, task),
+        sequence,
+      )
+      .map(full => start.retained_bytes < full.retained_bytes)
+      .unwrap_or(false),
       capacity: {
         transfer_bytes: count * imports.wire.max_bytes.to_int64(),
         retained_bytes: retained_with_metadata,
@@ -741,6 +752,7 @@ pub fn[T] start_local_managed_dispatch(
     None,
   )
   let provider_execution : Ref[@local.ManagedProviderExecution?] = Ref(None)
+  let working_sequence : Ref[@execution.GeneratedSequence?] = Ref(None)
   let final_provider_work : Ref[Result[Int64, @local.ManagedProviderWorkIssue]] = Ref(
     Ok(0L),
   )
@@ -794,6 +806,7 @@ pub fn[T] start_local_managed_dispatch(
   let finalization_receipt : Ref[@execution.ManagedOutputValueReceipt?] = Ref(
     None,
   )
+  let finalization_storage : Ref[Int64?] = Ref(None)
   let finalization_retention : Ref[
     @execution.ManagedOutputRetentionPort[
       (@execution.ManagedOutputValueReceipt, T, Int64, () -> Bool),
@@ -1089,16 +1102,20 @@ pub fn[T] start_local_managed_dispatch(
   // scratch extent. Keep their independent actual additions; neither may
   // replace the other's reservation with the smaller initial quote.
   let working_extra = Ref(0L)
+  let retained_extra = Ref(0L)
   let metadata_extra = Ref(0L)
   let transport_extra = Ref(0L)
   let output_row_extent : Ref[Int?] = Ref(None)
   let working_failure : Ref[LocalDispatchIssue?] = Ref(None)
-  let reserve_working = fn(
+  let reserve_capacity = fn(
     extra : Int64,
+    retained_data : Int64,
   ) -> Result[Unit, @execution.WorkspaceGrowthIssue] {
     if !live.val ||
       disposed.val ||
       extra < working_extra.val ||
+      retained_data < retained_extra.val ||
+      retained_data > 9223372036854775807L - setup.capacity.retained_bytes ||
       extra > 9223372036854775807L - setup.capacity.scratch_bytes ||
       metadata_extra.val >
       9223372036854775807L - setup.capacity.scratch_bytes - extra ||
@@ -1121,13 +1138,29 @@ pub fn[T] start_local_managed_dispatch(
     let ledger = @strategy.captured_dag_ledger(setup.run)
     let limits = @resources.ledger_admission_limits(ledger)
     let usage = @resources.ledger_usage(ledger)
-    if extra - working_extra.val >
+    let r_refused = retained_data - retained_extra.val >
+      limits.retained_bytes - usage.held_bytes - usage.reserved_retention_bytes
+    if r_refused ||
+      extra - working_extra.val >
       limits.execution_bytes - usage.reserved_execution_bytes {
-      working_failure.val = Some(Execution(Physical(ExecutionLimit)))
+      working_failure.val = Some(
+        Execution(
+          Physical(if r_refused { RetentionLimit } else { ExecutionLimit }),
+        ),
+      )
       return Err(WorkspaceBudgetUnavailable)
     }
     match
-      @strategy.grow_task_execution_workspace(setup.run, execution, scratch) {
+      @strategy.grow_task_execution_workspace(
+        setup.run,
+        execution,
+        scratch,
+        retained=if setup.metered_retention {
+          Some(setup.capacity.retained_bytes + retained_data)
+        } else {
+          None
+        },
+      ) {
       Err(issue) => {
         working_failure.val = Some(Execution(Physical(issue)))
         return Err(WorkspaceUnavailable)
@@ -1139,8 +1172,12 @@ pub fn[T] start_local_managed_dispatch(
       return Err(WorkspaceUnavailable)
     }
     working_extra.val = extra
+    retained_extra.val = retained_data
     working_failure.val = None
     Ok(())
+  }
+  let reserve_working = fn(extra) {
+    reserve_capacity(extra, retained_extra.val)
   }
   let export_frame_extent = fn(
     receipt : @execution.ManagedOutputValueReceipt,
@@ -1415,8 +1452,16 @@ pub fn[T] start_local_managed_dispatch(
                 ).execution_bytes,
                 reserve_working,
                 meter_retained_outputs=setup.metered_output_retention,
+                reserve_retained=if setup.metered_retention {
+                  Some(reserve_capacity)
+                } else {
+                  None
+                },
               ) {
-              Ok(value) => value
+              Ok(value) => {
+                working_sequence.val = Some(value)
+                value
+              }
               Err(issue) => return Err(Configuration(Execution(issue)))
             }
             let started = match
@@ -1662,6 +1707,11 @@ pub fn[T] start_local_managed_dispatch(
           setup.execution.rows.output_values,
           @connector.managed_fixed_compute_request_capacity(request).max_value_bytes,
           setup.measurement,
+          working=if setup.metered_retention {
+            working_sequence.val
+          } else {
+            None
+          },
         ) {
         Ok(value) => value
         Err(issue) => return Err(ManagedValues(issue))
@@ -1673,7 +1723,7 @@ pub fn[T] start_local_managed_dispatch(
           let (receipt, proof_payload, bytes, proof_available) = proof
           if finalization_receipt.val is Some(expected) &&
             physical_equal(receipt, expected) &&
-            bytes == storage_bytes &&
+            finalization_storage.val == Some(bytes) &&
             proof_available() &&
             available() {
             Some((receipt, proof_payload, bytes, proof_available))
@@ -1782,6 +1832,37 @@ pub fn[T] start_local_managed_dispatch(
           Int::max(setup.imports.row.max_bytes, extent),
         )
       }
+      if finalization_storage.val is None {
+        guard finalization_receipt.val is Some(receipt) else {
+          return Err(Configuration(InvalidLimits))
+        }
+        let data = if setup.metered_retention {
+          let usage = @execution.managed_output_value_usage(receipt)
+          guard @execution.execution_capacity_inventory_bytes([
+              {
+                unit: ValueNodeSlots,
+                count: usage.nodes.to_int64(),
+                copies: 1,
+              },
+              {
+                unit: DecodedTextBytes,
+                count: usage.text_bytes.to_int64(),
+                copies: 1,
+              },
+            ])
+            is Some(data) &&
+            data <= retained_extra.val else {
+            return Err(Configuration(InvalidLimits))
+          }
+          data
+        } else {
+          0L
+        }
+        guard data <= 9223372036854775807L - setup.capacity.retained_bytes else {
+          return Err(Configuration(InvalidLimits))
+        }
+        finalization_storage.val = Some(setup.capacity.retained_bytes + data)
+      }
       if finalization_material.val is None {
         if finalization_work_remaining.val < 1 {
           return Err(Configuration(InvalidLimits))
@@ -1798,7 +1879,7 @@ pub fn[T] start_local_managed_dispatch(
         let material = match
           @execution.retain_managed_output(
             retention,
-            (receipt, payload, setup.capacity.retained_bytes, available),
+            (receipt, payload, finalization_storage.val.unwrap(), available),
           ) {
           Ok(value) => value
           Err(issue) => return Err(ManagedRetention(issue))
@@ -2250,7 +2331,7 @@ pub fn[T] start_local_managed_dispatch(
         @strategy.retain_task_execution_allocation(
           setup.run,
           execution,
-          storage_bytes,
+          finalization_storage.val.unwrap(),
         ) {
         Ok(value) => value
         Err(issue) => return Err(Execution(Physical(issue)))
