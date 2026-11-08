@@ -417,7 +417,7 @@ test('Native partition caller passes the complete compiler inventory before sele
     let discoveries = 0;
     const args = ['--release', '--strip'], env = {original: true};
     const selected = runInNewContext(source.slice(start, end) + '\nselection;', {
-      full: true, root: '/original', args, compilerEnvironment: env, partition,
+      full: true, root: '/original', args, compilerEnvironment: env, partition, executionPackages: undefined,
       nativeCorePartitionProfiles,
       nativeCoreTestSelection(root, originalArgs, options) {
         discoveries++;
@@ -425,6 +425,7 @@ test('Native partition caller passes the complete compiler inventory before sele
         assert.equal(options.env, env); assert.equal(options.partitionProfiles, true);
         assert.equal(options.ordinaryPartitions, true);
         assert.equal(options.timeoutMs, 300_000);
+        assert.equal(options.executionPackages, undefined, 'Unscoped local fixture retains the complete inventory');
         return {profiles};
       }, console: {log() {}},
     });
@@ -808,7 +809,8 @@ test('common Core stack prerequisite is confined to Linux Native children', t =>
     });
     assert.equal(hardLimit.status, 0, hardLimit.stderr);
     const script = 'ulimit -S -s 8192\n' +
-      coreStep.run.replaceAll('${{ matrix.target }}', target);
+      coreStep.run.replaceAll('${{ matrix.target }}', target)
+        .replaceAll('${{ needs.select-targets.outputs.moon_test_selection }}', 'false');
     const result = spawnSync('bash', ['-eo', 'pipefail', '-c', script], {
       cwd: root, encoding: 'utf8', timeout: 5000,
       env: {...process.env, PATH: bin + ':' + process.env.PATH},
