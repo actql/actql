@@ -229,14 +229,14 @@ export async function loadInstalledHubSpotSource(profile, {moon, providerMoon: p
     maxValueNodes: limits.maxValueNodes, maxValueTextBytes: limits.maxValueTextBytes,
     maxRowsWireBytes: limits.maxRowsWireBytes, maxRowsWireNodes: limits.maxRowsWireNodes,
     maxRowsWireDepth: limits.maxRowsWireDepth, maxSecretBytes: limits.maxSecretBytes});
-  const quote = Object.getOwnPropertyDescriptor(moon, 'clientProgramHubSpotSourceReaderCapacity');
+  const quote = Object.getOwnPropertyDescriptor(moon, 'clientProgramHubSpotSourceReaderObservedCapacity');
   if (!quote || !Object.hasOwn(quote, 'value') || typeof quote.value !== 'function') fail('HubSpotManagedCapacityUnavailable');
   const readerBounds = Object.freeze(installedJsonSourceReaderLimitNames.map(name => readerLimits[name]));
   const protocolBounds = Object.freeze(limitKeys.slice(0, 16).map(name => limits[name]));
   const columnCount = Math.max(...declared.views.map(view => view.fields.length));
-  const capacityFor = bodies => {
+  const capacityFor = (bodies, _received, propertyGeometry = Object.freeze([])) => {
     const capacity = Reflect.apply(quote.value, moon,
-      [readerBounds, columnCount, limits.maxSecretBytes, protocolBounds, targetUnits, bodies]);
+      [readerBounds, columnCount, limits.maxSecretBytes, protocolBounds, targetUnits, bodies, propertyGeometry]);
     if (capacity === undefined || capacity === null) fail('HubSpotManagedCapacityUnavailable');
     return capacity;
   };

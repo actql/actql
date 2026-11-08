@@ -44,3 +44,14 @@ arrays grow from observed elements rather than preallocating every allowed
 slot, but this byte-length-only quote has no current-body geometry. A Catalog's
 property count cannot bound raw unknown fields or a later replacement body.
 No count-only reduction, second parse/fetch or transport API is introduced.
+
+## Same-reader observed Source input
+
+The installed caller now stages its first fixed Properties response through the
+existing `JsonSourcePreflight` and transfers that same parser after reservation.
+The normalizing mode, full byte input/unknown fields, decoder and final Catalog
+hash remain intact. See [same-response staging](property-response-source.md).
+The old byte-only API retains its full envelope. The observed API adds named
+finite staging/digest controls before receiving a body and uses geometry only as
+sizing DATA. It does not retire an earlier prefix, infer currentness or narrow
+the final Properties/row superset from an unknown response role.

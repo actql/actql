@@ -12,6 +12,8 @@ import {
 // Values
 pub fn account_initialization_construction_capacity(Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
+pub fn consume_property_response_source(Result[PropertyResponseSource, PropertyIssue], String, Bytes) -> Result[PropertyCatalog, PropertyIssue]
+
 pub fn effect_account_construction_capacity(Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn effect_finalization_construction_capacity(WriteBodyLimits, RecordRequestLimits, RecordReadLimits, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
@@ -52,6 +54,8 @@ pub fn prepare_execution_write_body(ExecutionMapping, PropertyCatalog, Bytes, In
 
 pub fn prepare_marked_record_batch_request(PropertyCatalog, RecordWriteOperation, Array[RecordWriteInput], RecordRequestMarker, RecordRequestLimits) -> Result[RecordBatchRequest, RecordRequestIssue]
 
+pub fn prepare_property_response_source(Bytes, String, String, PropertyLimits) -> Result[PropertyResponseSource, PropertyIssue]
+
 pub fn prepare_record_batch_request(PropertyCatalog, RecordWriteOperation, Array[RecordWriteInput], RecordRequestLimits) -> Result[RecordBatchRequest, RecordRequestIssue]
 
 pub fn prepare_record_read_request(PropertyCatalog, Array[RecordTarget], Array[String], RecordReadLimits) -> Result[RecordReadRequest, RecordReadIssue]
@@ -79,6 +83,10 @@ pub fn property_named(PropertyCatalog, String) -> PropertyMetadata?
 pub fn property_names(PropertyCatalog) -> Array[String]
 
 pub fn property_option_values(PropertyMetadata) -> Array[String]
+
+pub fn property_response_source_geometry(Result[PropertyResponseSource, PropertyIssue]) -> @source_value.JsonSourceGeometry?
+
+pub fn property_response_source_geometry_data(Result[PropertyResponseSource, PropertyIssue]) -> Array[Int]
 
 pub fn recheck_account_identity(AccountIdentity, String) -> Result[Unit, AccountIdentityIssue]
 
@@ -120,7 +128,11 @@ pub fn require_property_write(PropertyCatalog, String) -> Result[Unit, PropertyI
 
 pub fn require_unique_property(PropertyCatalog, String) -> Result[Unit, PropertyIssue]
 
+pub fn retire_property_response_source(Result[PropertyResponseSource, PropertyIssue]) -> Unit
+
 pub fn source_read_construction_capacity(Array[Int], Int, Array[Int]) -> @execution_relation.ExecutionCapacity?
+
+pub fn source_read_observed_construction_capacity(Array[Int], Int, Array[Int], Array[Int]) -> @execution_relation.ExecutionCapacity?
 
 pub fn write_body_properties_json(WriteBody) -> String
 
@@ -250,6 +262,10 @@ pub struct PropertyMetadata {
   writable : Bool?
   // private fields
 } derive(Eq)
+
+pub struct PropertyResponseSource {
+  // private fields
+}
 
 pub struct RecordBatchRequest {
   operation : RecordWriteOperation

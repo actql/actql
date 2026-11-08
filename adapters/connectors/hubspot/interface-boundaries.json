@@ -593,7 +593,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/installed-hubspot-source.mjs",
-      "sha256": "94af5c4ecbf70575eac5f2bb4aec9ff0971e8b7cbe982bae8667586f782db30d",
+      "sha256": "8da0e88238c2c3169ea050a7924fb4edd61faa16a7485eaeb81dac588a6bcdc6",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Source, Common declaration, Account/Credential and original RowRun owners",
@@ -772,7 +772,9 @@
         {
           "name": "loadInstalledHubSpotSource/capacityFor/capacityFor",
           "parameters": [
-            "bodies"
+            "bodies",
+            "_received",
+            "propertyGeometry"
           ],
           "async": false
         },
@@ -991,11 +993,19 @@
               {
                 "path": "adapters/connectors/hubspot/host/README.md",
                 "anchor": "- Responsibility:"
+              },
+              {
+                "path": "src/connectors/hubspot/catalog/property-response-source.md",
+                "anchor": "- Responsibility:"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/connectors/hubspot/host/README.md",
+                "anchor": "- Inputs and outputs:"
+              },
+              {
+                "path": "src/connectors/hubspot/catalog/property-response-source.md",
                 "anchor": "- Inputs and outputs:"
               }
             ],
@@ -1003,11 +1013,19 @@
               {
                 "path": "adapters/connectors/hubspot/host/README.md",
                 "anchor": "- Identity:"
+              },
+              {
+                "path": "src/connectors/hubspot/catalog/property-response-source.md",
+                "anchor": "- Identity:"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/connectors/hubspot/host/README.md",
+                "anchor": "- Ownership:"
+              },
+              {
+                "path": "src/connectors/hubspot/catalog/property-response-source.md",
                 "anchor": "- Ownership:"
               }
             ],
@@ -1015,17 +1033,29 @@
               {
                 "path": "adapters/connectors/hubspot/host/README.md",
                 "anchor": "- Synchronization:"
+              },
+              {
+                "path": "src/connectors/hubspot/catalog/property-response-source.md",
+                "anchor": "- Synchronization:"
               }
             ],
             "failure": [
               {
                 "path": "adapters/connectors/hubspot/host/README.md",
                 "anchor": "- Failure:"
+              },
+              {
+                "path": "src/connectors/hubspot/catalog/property-response-source.md",
+                "anchor": "- Failure:"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/connectors/hubspot/host/README.md",
+                "anchor": "- Cancellation:"
+              },
+              {
+                "path": "src/connectors/hubspot/catalog/property-response-source.md",
                 "anchor": "- Cancellation:"
               }
             ],
@@ -1037,11 +1067,19 @@
               {
                 "path": "adapters/host-common/http-body-lifetime.md",
                 "anchor": "## Funded query construction"
+              },
+              {
+                "path": "src/connectors/hubspot/catalog/property-response-source.md",
+                "anchor": "- Resources:"
               }
             ],
             "extension": [
               {
                 "path": "adapters/connectors/hubspot/host/README.md",
+                "anchor": "- Extension:"
+              },
+              {
+                "path": "src/connectors/hubspot/catalog/property-response-source.md",
                 "anchor": "- Extension:"
               }
             ],
@@ -1053,6 +1091,10 @@
               {
                 "path": "adapters/connectors/hubspot/test/installed-hubspot-effect.test.mjs",
                 "anchor": "test('HubSpot authored Source and Effect binding callers agree"
+              },
+              {
+                "path": "src/connectors/hubspot/catalog/property-response-source.md",
+                "anchor": "- Verification:"
               }
             ]
           }
@@ -3682,7 +3724,7 @@
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing HubSpot typed protocol under the same generic Reader/RowRun and original Account/Credential owners",
-      "sha256": "e7fc0b3917dac9c984fc8ea0589aed39cb9e21fda1b402e48fea72c14d808b11",
+      "sha256": "834a7a33558ad6286c07882e8056a474d873c3a9ffd01f68ef155579fcdf0de6",
       "exports": [
         "prepareHubSpotManagedSequence"
       ],
@@ -3885,11 +3927,19 @@
               {
                 "path": "adapters/connectors/hubspot/host/README.md",
                 "anchor": "- Responsibility:"
+              },
+              {
+                "path": "src/connectors/hubspot/catalog/property-response-source.md",
+                "anchor": "- Responsibility:"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/connectors/hubspot/host/README.md",
+                "anchor": "- Inputs and outputs:"
+              },
+              {
+                "path": "src/connectors/hubspot/catalog/property-response-source.md",
                 "anchor": "- Inputs and outputs:"
               }
             ],
@@ -3897,11 +3947,19 @@
               {
                 "path": "adapters/connectors/hubspot/host/README.md",
                 "anchor": "- Identity:"
+              },
+              {
+                "path": "src/connectors/hubspot/catalog/property-response-source.md",
+                "anchor": "- Identity:"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/connectors/hubspot/host/README.md",
+                "anchor": "- Ownership:"
+              },
+              {
+                "path": "src/connectors/hubspot/catalog/property-response-source.md",
                 "anchor": "- Ownership:"
               }
             ],
@@ -3909,11 +3967,19 @@
               {
                 "path": "adapters/connectors/hubspot/host/README.md",
                 "anchor": "- Synchronization:"
+              },
+              {
+                "path": "src/connectors/hubspot/catalog/property-response-source.md",
+                "anchor": "- Synchronization:"
               }
             ],
             "failure": [
               {
                 "path": "adapters/connectors/hubspot/host/README.md",
+                "anchor": "- Failure:"
+              },
+              {
+                "path": "src/connectors/hubspot/catalog/property-response-source.md",
                 "anchor": "- Failure:"
               }
             ],
@@ -3921,11 +3987,19 @@
               {
                 "path": "adapters/connectors/hubspot/host/README.md",
                 "anchor": "- Cancellation:"
+              },
+              {
+                "path": "src/connectors/hubspot/catalog/property-response-source.md",
+                "anchor": "- Cancellation:"
               }
             ],
             "resources": [
               {
                 "path": "adapters/connectors/hubspot/host/README.md",
+                "anchor": "- Resources:"
+              },
+              {
+                "path": "src/connectors/hubspot/catalog/property-response-source.md",
                 "anchor": "- Resources:"
               }
             ],
@@ -3933,11 +4007,19 @@
               {
                 "path": "adapters/connectors/hubspot/host/README.md",
                 "anchor": "- Extension:"
+              },
+              {
+                "path": "src/connectors/hubspot/catalog/property-response-source.md",
+                "anchor": "- Extension:"
               }
             ],
             "verification": [
               {
                 "path": "adapters/connectors/hubspot/host/README.md",
+                "anchor": "- Verification:"
+              },
+              {
+                "path": "src/connectors/hubspot/catalog/property-response-source.md",
                 "anchor": "- Verification:"
               }
             ]

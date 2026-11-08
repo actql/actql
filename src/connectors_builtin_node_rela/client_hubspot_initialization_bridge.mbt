@@ -91,6 +91,39 @@ pub fn client_program_hubspot_source_reader_capacity(
   let native = @hubspot_catalog.source_read_construction_capacity(
     protocol, target_units, received,
   )
+  hubspot_reader_common_capacity(
+    reader, columns, secret_bytes, native, received, target_units,
+  )
+}
+
+///|
+#export_name("clientProgramHubSpotSourceReaderObservedCapacity")
+pub fn client_program_hubspot_source_reader_observed_capacity(
+  reader : Array[Int],
+  columns : Int,
+  secret_bytes : Int,
+  protocol : Array[Int],
+  target_units : Int,
+  received : Array[Int],
+  property_geometry : Array[Int],
+) -> @execution.ExecutionCapacity? {
+  let native = @hubspot_catalog.source_read_observed_construction_capacity(
+    protocol, target_units, received, property_geometry,
+  )
+  hubspot_reader_common_capacity(
+    reader, columns, secret_bytes, native, received, target_units,
+  )
+}
+
+///|
+fn hubspot_reader_common_capacity(
+  reader : Array[Int],
+  columns : Int,
+  secret_bytes : Int,
+  native : @execution.ExecutionCapacity?,
+  received : Array[Int],
+  target_units : Int,
+) -> @execution.ExecutionCapacity? {
   let mut total = 0L
   for bytes in received {
     total = total + bytes.to_int64()

@@ -976,6 +976,8 @@ pub fn client_program_hubspot_object_construction_capacity(Int, Int, Int, Int, I
 
 pub fn client_program_hubspot_source_reader_capacity(Array[Int], Int, Int, Array[Int], Int, Array[Int]) -> @execution_relation.ExecutionCapacity?
 
+pub fn client_program_hubspot_source_reader_observed_capacity(Array[Int], Int, Int, Array[Int], Int, Array[Int], Array[Int]) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_program_identify_captured_effect_source_relation(@execution_query.CapturedInputSource) -> Result[@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedSourceIssue]
 
 pub fn client_program_identify_captured_source_relation(@execution_query.CapturedInputSource) -> Result[@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedSourceIssue]

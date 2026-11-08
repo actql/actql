@@ -7,6 +7,103 @@ pub fn source_read_construction_capacity(
   target_units : Int,
   received : Array[Int],
 ) -> @execution.ExecutionCapacity? {
+  source_read_capacity_with_geometry(limits, target_units, received, None)
+}
+
+///|
+/// Sizing DATA emitted by the SAME provider preflight. Opaque parser/capacity
+/// values never cross provider/Common runtimes. Empty means original full
+/// fallback, including a deferred preparation failure, not permission.
+pub fn source_read_observed_construction_capacity(
+  limits : Array[Int],
+  target_units : Int,
+  received : Array[Int],
+  data : Array[Int],
+) -> @execution.ExecutionCapacity? {
+  let geometry = if data.is_empty() {
+    None
+  } else {
+    if data.length() != 12 || received.length() < 2 || data[0] != received[1] {
+      return None
+    }
+    for v in data {
+      if v < 0 || v > data[0] {
+        return None
+      }
+    }
+    if data[7] > data[6] || data[6] > data[1] {
+      return None
+    }
+    Some(
+      (
+        {
+          input_bytes: data[0],
+          input_utf16_units: data[1],
+          objects: data[2],
+          arrays: data[3],
+          fields: data[4],
+          quoted_tokens: data[5],
+          quoted_raw_utf16_units: data[6],
+          longest_quoted_raw_utf16: data[7],
+          atoms: data[8],
+          longest_atom_utf16: data[9],
+          depth_upper: data[10],
+          node_upper: data[11],
+        } : @source.JsonSourceGeometry),
+    )
+  }
+  guard source_read_capacity_with_geometry(
+      limits, target_units, received, geometry,
+    )
+    is Some(native) &&
+    property_response_staging_capacity() is Some(staging) else {
+    return None
+  }
+  @execution.add_execution_capacity(native, staging)
+}
+
+///|
+fn property_response_staging_capacity() -> @execution.ExecutionCapacity? {
+  guard @encode.hash_writer_live_key_inventory(0, 0) is Some(hash) &&
+    @shape.collection_construction_extent({
+      // Original view7R/2W; Result/Option and captured pending/geometry cells,
+      // bound method references and Common's twelve-word geometry DATA record.
+      records: 10L,
+      record_references: 20L,
+      record_words: 24L,
+      reference_arrays: 0L,
+      reference_items: 0L,
+      // Provider exported scalar vector and SAME frozen Host DATA snapshot.
+      scalar_arrays: 2L,
+      scalar_items: 24L,
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(controls) else {
+    return None
+  }
+  // Source text/parser/preflight is already funded by the generic Reader.
+  // The complete digest scratch/view bound is retained before the first body,
+  // including later failed growth, and is never silently charged to spare room.
+  initialization_capacity([
+    initialization_collection_units(controls),
+    {
+      record_headers: hash.record_headers + 1L,
+      reference_slots: hash.reference_slots,
+      scalar_words: hash.scalar_words,
+      owned_utf16_units: hash.owned_utf16_units + 64L,
+      owned_wire_bytes: hash.owned_wire_bytes,
+    },
+  ])
+}
+
+///|
+fn source_read_capacity_with_geometry(
+  limits : Array[Int],
+  target_units : Int,
+  received : Array[Int],
+  geometry : @source.JsonSourceGeometry?,
+) -> @execution.ExecutionCapacity? {
   // response/nodes/depth/properties/name/pages/rows/requests/pageRows/columns/
   // cursor/valueNodes/valueText/rowsWire/rowsNodes/rowsDepth.
   if limits.length() != 16 || target_units < 1 {
@@ -87,7 +184,13 @@ pub fn source_read_construction_capacity(
           limits[2],
         )
       } else {
-        source_property_recheck_construction_capacity(limits, bytes)
+        match geometry {
+          None => source_property_recheck_construction_capacity(limits, bytes)
+          Some(_) =>
+            source_property_recheck_capacity_with_geometry(
+              limits, bytes, geometry,
+            )
+        }
       }
       guard current is Some(current) &&
         @execution.add_execution_capacity(metadata_capacity, current)
@@ -166,11 +269,33 @@ fn source_property_recheck_construction_capacity(
   limits : Array[Int],
   bytes : Int,
 ) -> @execution.ExecutionCapacity? {
+  source_property_recheck_capacity_with_geometry(limits, bytes, None)
+}
+
+///|
+fn source_property_recheck_capacity_with_geometry(
+  limits : Array[Int],
+  bytes : Int,
+  geometry : @source.JsonSourceGeometry?,
+) -> @execution.ExecutionCapacity? {
   let b = Int::max(1, bytes)
-  let n = Int::min(b, limits[1])
+  let n = Int::min(
+    geometry.map(g => Int::max(1, g.node_upper)).unwrap_or(b),
+    limits[1],
+  )
+  let depth = Int::max(
+    1,
+    Int::min(
+      geometry.map(g => g.depth_upper).unwrap_or(n),
+      Int::min(n, limits[2]),
+    ),
+  )
   let f = Int::min(n, limits[3])
-  guard initialization_decoded_construction(b, n, Int::min(n, limits[2]), true)
-    is Some(parsed) &&
+  let parsed = match geometry {
+    None => initialization_decoded_construction(b, n, depth, true)
+    Some(g) => property_response_observed_construction(g, n, depth)
+  }
+  guard parsed is Some(parsed) &&
     property_projection_construction_extent(n, f) is Some(metadata) &&
     @shape.collection_construction_extent({
       // recheck_property_catalog indexes the original only after confirming
@@ -194,7 +319,9 @@ fn source_property_recheck_construction_capacity(
   // PropertyMetadata projection. Keep the complete parser peak as one phase,
   // and every returned tree/key/index/output dependency in the later phase.
   // This is a pre-construction peak quote, not a refund or physical GC claim.
-  guard @canonical.nfc_lf_construction_scratch_extent(b) is Some(scratch) &&
+  let key_units = geometry.map(g => g.longest_quoted_raw_utf16).unwrap_or(b)
+  guard @canonical.nfc_lf_construction_scratch_extent(key_units)
+    is Some(scratch) &&
     parsed.record_headers >= scratch.record_headers &&
     parsed.reference_slots >= scratch.reference_slots &&
     parsed.scalar_words >= scratch.scalar_words &&
@@ -246,4 +373,43 @@ fn source_property_recheck_construction_capacity(
       @execution.execution_capacity_execution_bytes(metadata_phase),
     ),
   )
+}
+
+///|
+fn property_response_observed_construction(
+  geometry : @source.JsonSourceGeometry,
+  n : Int,
+  depth : Int,
+) -> @execution.PreparationRepresentationUnits? {
+  guard @source.json_source_geometry_construction_extent(geometry, n, depth)
+    is Some(parsed) &&
+    @decode.admission_construction_inventory(
+      n,
+      Int::min(geometry.fields, n),
+      Int::min(geometry.objects, n),
+      Int::min(geometry.arrays, n),
+      depth,
+    )
+    is Some(index) else {
+    return None
+  }
+  Some({
+    record_headers: parsed.record_headers +
+    index.indexed.record_headers +
+    index.keys.record_headers +
+    index.ancestry.record_headers +
+    index.controls.record_headers,
+    reference_slots: parsed.reference_slots +
+    index.indexed.reference_slots +
+    index.keys.reference_slots +
+    index.ancestry.reference_slots +
+    index.controls.reference_slots,
+    scalar_words: parsed.scalar_words +
+    index.indexed.scalar_words +
+    index.keys.scalar_words +
+    index.ancestry.scalar_words +
+    index.controls.scalar_words,
+    owned_utf16_units: parsed.owned_utf16_units,
+    owned_wire_bytes: 0L,
+  })
 }

@@ -6,6 +6,8 @@ import {
 }
 
 // Values
+pub fn hubspot_consume_property_response_source(Result[@catalog.PropertyResponseSource, @catalog.PropertyIssue], String, Bytes) -> Result[@catalog.PropertyCatalog, @catalog.PropertyIssue]
+
 pub fn hubspot_create_record_write_input(@catalog.WriteBody, String) -> @catalog.RecordWriteInput
 
 pub fn hubspot_execution_mapping_body(@catalog.ExecutionMapping) -> String
@@ -32,6 +34,8 @@ pub fn hubspot_prepare_execution_write_body(@catalog.ExecutionMapping, @catalog.
 
 pub fn hubspot_prepare_marked_record_batch(@catalog.PropertyCatalog, Int, String, Array[@catalog.RecordWriteInput], @catalog.RecordRequestMarker, Int, Int, Int, Int, Int, Int) -> Result[@catalog.RecordBatchRequest, @catalog.RecordRequestIssue]
 
+pub fn hubspot_prepare_property_response_source(Bytes, String, String, Int, Int, Int, Int, Int) -> Result[@catalog.PropertyResponseSource, @catalog.PropertyIssue]
+
 pub fn hubspot_prepare_record_batch(@catalog.PropertyCatalog, Int, String, Array[@catalog.RecordWriteInput], Int, Int, Int, Int, Int, Int) -> Result[@catalog.RecordBatchRequest, @catalog.RecordRequestIssue]
 
 pub fn hubspot_prepare_record_read(@catalog.PropertyCatalog, Array[@catalog.RecordTarget], Array[String], Int, Int, Int, Int, Int, Int) -> Result[@catalog.RecordReadRequest, @catalog.RecordReadIssue]
@@ -53,6 +57,8 @@ pub fn hubspot_project_record_write_success(@catalog.RecordBatchRequest, Int, By
 pub fn hubspot_property_catalog_names(@catalog.PropertyCatalog) -> Array[String]
 
 pub fn hubspot_property_catalog_object_type(@catalog.PropertyCatalog) -> String
+
+pub fn hubspot_property_response_source_geometry_data(Result[@catalog.PropertyResponseSource, @catalog.PropertyIssue]) -> Array[Int]
 
 pub fn hubspot_recheck_account_identity_json(Bytes, String, Int, Int, Int) -> String
 
@@ -91,6 +97,8 @@ pub fn hubspot_record_read_wire(@catalog.RecordReadObservation) -> String
 pub fn hubspot_record_write_response_rows(@catalog.RecordWriteResponse) -> Array[Array[String]]
 
 pub fn hubspot_record_write_response_sha256(@catalog.RecordWriteResponse) -> String
+
+pub fn hubspot_retire_property_response_source(Result[@catalog.PropertyResponseSource, @catalog.PropertyIssue]) -> Unit
 
 pub fn hubspot_targeted_record_write_input(@catalog.WriteBody, @catalog.RecordTarget, String) -> @catalog.RecordWriteInput
 

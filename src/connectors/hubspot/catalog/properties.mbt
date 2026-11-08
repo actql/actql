@@ -146,18 +146,8 @@ pub fn project_properties(
   object_type : String,
   limits : PropertyLimits,
 ) -> Result[PropertyCatalog, PropertyIssue] {
-  if limits.max_bytes <= 0 ||
-    limits.max_nodes <= 0 ||
-    limits.max_depth <= 0 ||
-    limits.max_properties <= 0 ||
-    limits.max_name_units <= 0 {
-    return Err(InvalidLimits)
-  }
-  if object_type.is_empty() || object_type.length() > limits.max_name_units {
-    return Err(InvalidResponse)
-  }
-  if bytes.length() > limits.max_bytes {
-    return Err(BudgetExceeded)
+  if property_input_issue(bytes, object_type, limits) is Some(issue) {
+    return Err(issue)
   }
   let parsed = match
     @source.parse_json_bytes(bytes, {
@@ -166,14 +156,49 @@ pub fn project_properties(
       max_depth: limits.max_depth,
     }) {
     Ok(value) => value
-    Err(issue) =>
-      return Err(
-        match issue.issue {
-          InputLimit | NodeLimit | DepthLimit => BudgetExceeded
-          _ => InvalidResponse
-        },
-      )
+    Err(issue) => return Err(property_source_issue(issue))
   }
+  project_property_node(parsed, bytes, object_type, limits)
+}
+
+///|
+fn property_input_issue(
+  bytes : Bytes,
+  object_type : String,
+  limits : PropertyLimits,
+) -> PropertyIssue? {
+  if limits.max_bytes <= 0 ||
+    limits.max_nodes <= 0 ||
+    limits.max_depth <= 0 ||
+    limits.max_properties <= 0 ||
+    limits.max_name_units <= 0 {
+    return Some(InvalidLimits)
+  }
+  if object_type.is_empty() || object_type.length() > limits.max_name_units {
+    return Some(InvalidResponse)
+  }
+  if bytes.length() > limits.max_bytes {
+    return Some(BudgetExceeded)
+  }
+  None
+}
+
+///|
+fn property_source_issue(issue : @source.ParseError) -> PropertyIssue {
+  match issue.issue {
+    InputLimit | NodeLimit | DepthLimit => BudgetExceeded
+    _ => InvalidResponse
+  }
+}
+
+///|
+// Both complete byte parsing and SAME-cursor continuation use this one decoder.
+fn project_property_node(
+  parsed : @source.Node,
+  bytes : Bytes,
+  object_type : String,
+  limits : PropertyLimits,
+) -> Result[PropertyCatalog, PropertyIssue] {
   let root = match
     @decode.admit(parsed, {
       max_nodes: limits.max_nodes,
