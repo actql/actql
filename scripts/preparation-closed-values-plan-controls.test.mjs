@@ -32,7 +32,7 @@ test('generated Values sequence retains exactly its original lower owner and con
     'join_ceilings','expansion_ceilings','session_output_ceilings','calendar_output_ceilings',
     'traversal_ceilings','interval_search_ceilings','asof_search_ceilings','sequence_match_ceilings',
     'aggregate_outputs','analytic_envelopes','nest_item_ceilings','nest_grouped_byte_ceilings',
-    'nest_attached_byte_ceilings','query_time','numeric']);
+    'nest_attached_byte_ceilings','query_time','numeric','working']);
   assert.deepEqual(await fields('lowering_relation/sequence.mbt','PreparedSequence'),['owner','steps']);
   assert.deepEqual(await fields('lowering_relation/values_encode.mbt','PreparedValues'),['owner','node','values']);
 });
