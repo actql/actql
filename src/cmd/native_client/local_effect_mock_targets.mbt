@@ -212,6 +212,12 @@ fn LocalCommandBusinessPreparation::observe_mock_effect_targets(
         authorize()
         complete = self.original.with_business_request(self.capture, () => {
           let result = held.child.unwrap().advance()
+          // Preserve the SAME physical first cause before accounting invokes
+          // another fallible boundary. Its byte debt remains independently
+          // retained even when that later boundary also refuses.
+          if result is Err(issue) {
+            self.original.retain_primary(CommandBusinessSource(issue))
+          }
           // Actual receive bytes are charged even when the next projection
           // refuses. TargetIO projects only on a subsequent advance.
           held
@@ -219,10 +225,7 @@ fn LocalCommandBusinessPreparation::observe_mock_effect_targets(
           .map_err(issue => LocalNativeMockEffectProposalIssue::Managed(issue))
           .native_effect_proposal(self.original)
           match result {
-            Err(issue) => {
-              self.original.retain_primary(CommandBusinessSource(issue))
-              stop("LocalOriginalEffectTargetUnavailable")
-            }
+            Err(_) => stop("LocalOriginalEffectTargetUnavailable")
             Ok(value) => {
               if value {
                 held.observed = Some(
