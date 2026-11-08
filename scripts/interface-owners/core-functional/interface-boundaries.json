@@ -52131,7 +52131,7 @@
     },
     {
       "module": "src/connectors/local/driver/managed_dispatch.mbt",
-      "sha256": "d02e47209e52da88f1b41291548a4ae8277851f7f9a67abf480c99558724d55c",
+      "sha256": "9c103bc52a7160daa40d4bec7f770c474e064d05f19becd39ed82d6ec003ed35",
       "role": "common-semantics",
       "owner": "Existing Local managed task/Source/resource owners; native supplied lifetime and imported producer custody remain distinct",
       "responsibilityFacet": "primary",

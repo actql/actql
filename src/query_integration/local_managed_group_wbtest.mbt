@@ -1,4 +1,35 @@
 ///|
+// Import framing and output schema identity are independent selections. Keep
+// the existing non-schema metadata defaults while explicitly selecting this
+// fixture's authored Task transport bounds for its completed schema.
+fn configure_local_managed_test_inputs(
+  installed : @local_driver.LocalDispatchModule,
+  imports : @local_connector.LocalImportLimits,
+  limits : @dbhost.TaskDispatchLimits,
+  schema? : @execution.RelationSchemaIdentityLimits,
+) -> Unit {
+  @local_driver.configure_local_retained_inputs(
+    installed,
+    imports,
+    None,
+    metadata=Some({
+      name_bytes: imports.wire.max_bytes,
+      bridge_entries: imports.wire.max_nodes,
+      completion_entries: imports.wire.max_nodes,
+      schema: schema.unwrap_or({
+        max_fields: limits.transport.max_columns,
+        max_bytes: limits.transport.max_bytes,
+        max_nodes: limits.transport.max_nodes,
+        max_depth: limits.guards.max_depth,
+      }),
+      result_workspace_entries: imports.max_rows,
+      result_rows_reserved: None,
+      retained_bytes: 0L,
+    }),
+  ).unwrap()
+}
+
+///|
 // The existing Task dispatch transport describes output rows independently
 // of each fixture's smaller import frame/column window.
 fn configure_local_managed_test_output(
@@ -706,7 +737,7 @@ fn run_local_managed_group_case(
     variant == "numeric_regroup"
   let large_payload = variant == "global_counts_payload" ||
     variant == "long_text_key"
-  @local_driver.configure_local_retained_inputs(
+  configure_local_managed_test_inputs(
     installed,
     {
       max_rows: 100,
@@ -774,8 +805,8 @@ fn run_local_managed_group_case(
         64
       },
     },
-    None,
-  ).unwrap()
+    limits,
+  )
   configure_local_managed_test_output(installed, limits)
 
   if activation {

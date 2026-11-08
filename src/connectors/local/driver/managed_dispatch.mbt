@@ -1887,16 +1887,7 @@ pub fn[T] start_local_managed_dispatch(
                     output_values,
                     output_wire,
                     output_wire,
-                    match exports {
-                      Some(_) =>
-                        {
-                          max_fields: output_wire.max_columns,
-                          max_bytes: output_wire.max_bytes,
-                          max_nodes: output_wire.max_nodes,
-                          max_depth: output_wire.max_depth,
-                        }
-                      None => setup.metadata.schema
-                    },
+                    setup.metadata.schema,
                     frame,
                   ) {
                   Ok(value) => value
