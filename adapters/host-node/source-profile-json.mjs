@@ -52,13 +52,24 @@ export function captureConfigurationReaders(reader, readJson, unavailable) {
 }
 
 export async function readSourceProfileJson(path,
-  {maxBytes = profileByteLimit, openFile = open, beforeDecode, io} = {}) {
+  {maxBytes = profileByteLimit, openFile = open, beforeDecode, beforeParse, io} = {}) {
   if (!Number.isSafeInteger(maxBytes) || maxBytes < 0 ||
       maxBytes > profileByteLimit) {
     throw new TypeError('InvalidInstalledSourceProfileByteLimit');
   }
+  if (beforeParse !== undefined && typeof beforeParse !== 'function') {
+    throw new TypeError('InvalidInstalledConfigurationConstruction');
+  }
   return readConfiguration(path, maxBytes, openFile,
-    bytes => JSON.parse(bytes.toString('utf8')), beforeDecode, io);
+    bytes => {
+      const wire = bytes.toString('utf8');
+      // The SAME decoded original supplies construction geometry before the
+      // native parser allocates a value tree. This callback is no validator.
+      if (beforeParse !== undefined && beforeParse(wire) !== undefined) {
+        throw new TypeError('InvalidInstalledConfigurationConstruction');
+      }
+      return JSON.parse(wire);
+    }, beforeDecode, io);
 }
 
 // Publications may have a different declared ceiling and hash their original
@@ -132,9 +143,9 @@ async function readConfigurationBody(original, maxBytes, project, beforeDecode) 
           buffer.length - used, null);
         if (bytesRead === 0) {
           chunks.push(buffer.subarray(0, used));
-          // The fixed initializer reserves the complete received native decode
-          // before concatenation/text/JSON construction. The old absent port
-          // keeps this reader's exact buffering and parsing semantics.
+          // The fixed initializer funds the received buffer/text overlap here;
+          // JSON construction separately observes that SAME decoded String.
+          // An absent port keeps the exact buffering/parsing semantics.
           if (beforeDecode !== undefined && beforeDecode(bytes) !== undefined) {
             throw new TypeError('InvalidInstalledConfigurationConstruction');
           }

@@ -2,10 +2,11 @@
 // No scope, declaration, RowSource, registration or cleanup owner is replaced.
 import assert from 'node:assert/strict';
 import {generateKeyPairSync} from 'node:crypto';
-import {existsSync, readdirSync, readlinkSync} from 'node:fs';
+import {existsSync, readdirSync, readlinkSync, realpathSync} from 'node:fs';
 import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {pathToFileURL} from 'node:url';
 import {checked} from '../../host-common/runtime-result.mjs';
 import {runtimeField} from '../../host-common/compiler-binding.generated.mjs';
 import {loadInstalledEffect, publishInstalledEffectProfile} from '../installed-effect.mjs';
@@ -13,8 +14,6 @@ import {withFixtureConnector} from '../../host-common/connector-manifest.fixture
 import {canonicalJson, contentCid, sourceReadAccountConfiguration} from '../local-account-config.mjs';
 import {loadInstalledTableEffect} from '../../connectors/local/host/installed-local-table.mjs';
 import {fixtureCertificates, openHttpsExchangeFixture} from '../../site-node/https-exchange-fixture.mjs';
-import {openHostInitializationPreparation, closeHostInitializationPreparation}
-  from '../../local-node/request-preparation-adapter.mjs';
 import {createInstalledHostServices, retireInstalledSourceInitialization}
   from '../installed-host-services.mjs';
 import {loadInstalledSource, publishInstalledSourceProfile, installedSourcePublicationFacts} from '../installed-source.mjs';
@@ -25,6 +24,12 @@ import {loadInstalledBigQuerySource} from '../../connectors/bigquery/host/instal
 
 const runtimeUrl = new URL('../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
 const originalMoon = await import(runtimeUrl.href);
+// A normal bundled runtime retains its own physical Resource registry. Use
+// its original initialization module, including for an immutable component
+// loan; a source checkout's equal bytes are not the same module instance.
+const {openHostInitializationPreparation, closeHostInitializationPreparation} =
+  await import(new URL('../../../../../adapters/local-node/request-preparation-adapter.mjs',
+    pathToFileURL(realpathSync(runtimeUrl))).href);
 const environment = (await readFile(new URL('../../../spec/local-check-environment.json', import.meta.url), 'utf8')).trimEnd();
 const limits = Object.freeze({maxBytes: 8192, maxNodes: 2000, maxDepth: 24,
   maxFields: 16, maxNameBytes: 512, maxSchemaBytes: 4096, maxRows: 2,
