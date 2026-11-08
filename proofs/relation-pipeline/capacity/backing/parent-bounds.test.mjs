@@ -25,6 +25,11 @@ test('current census binds state, metadata preparation and all provider construc
     .fields.find(field=>field.name==='working'),{name:'working',type:'WorkspaceGrowth?'});
   const p='src/connectors/local/selected_relation_provider.mbt',source=read(p).toString();
   assert.throws(()=>checkParentCensus(path=>path===p?source.replace('Array::make(count, None)','Array::make(count - 1, None)'):read(path)));
+  const joined='Some(@lower.JoinStep(_)) | Some(@lower.CrossJoinStep(_)) => ()';
+  assert.equal(source.split(joined).length,2,'Reach the reviewed CrossJoin scratch branch');
+  assert.throws(()=>checkParentCensus(path=>path===p?
+    source.replace(joined,'Some(@lower.JoinStep(_)) => ()'):read(path)),
+    /Changed reviewed reclaimed-prefix source body or arity/);
   const generated='src/execution_relation/generated_sequence.mbt';
   assert.throws(()=>checkParentCensus(path=>path===generated?read(path).toString().replace('traversal_ceilings : Array[(Int, Int64, Int64)]','traversal_ceilings : Array[(Int, String, Int64)]'):read(path)));
 });
