@@ -317,6 +317,8 @@ test('full corpus pins every authored occurrence independently of worker selecti
   // All other complete payloads and their relative order remain unchanged.
   // Seven negated-predicate, six membership and four CONCAT DISTINCT scope
   // refusals retain InvalidInput; no refusal predicate or bound is widened.
+  // The two invalid statistical forms retain their authored SQL and refusal;
+  // their reviewed InvalidInput projection updates only those corpus preimages.
   assert.equal(pin.totalCases, 4240);
   assert.deepEqual(pin.counts, {"successes":2655,"executionFailures":54,"refusals":1531});
   assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [["standard",{"successes":2601,"executionFailures":52,"refusals":1492}],["analytic-offset",{"successes":6,"executionFailures":0,"refusals":13}],["analytic-property",{"successes":13,"executionFailures":0,"refusals":7}],["analytic-order",{"successes":35,"executionFailures":2,"refusals":19}]]);
