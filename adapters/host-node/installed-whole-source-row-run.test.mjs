@@ -168,6 +168,9 @@ async function failedPreparationFixture({pendingRetirement = false, validFacts =
   const read = {}, managedRun = {}, preparedProgram = {}, declaration = {};
   let retireCalls = 0, siteCloses = 0;
   const moon = {
+    clientProgramDirectSourceCoordinates(actual) {
+      assert.equal(actual, preparedProgram); return ok([[0, 0, 0, 0]]);
+    },
     clientProgramEffectDirectSourceCoordinates(actual) {
       assert.equal(actual, preparedProgram);return ok([[0, 0, 0, 0], [0, 1, 1, 0]]);
     },
@@ -186,8 +189,9 @@ async function failedPreparationFixture({pendingRetirement = false, validFacts =
       assert.equal(actual, managedRun); assert.equal(owner, preparedProgram); return ok('whole-input');
     },
     clientProgramInstalledManagedCaptureSourceRead() {assert.fail('whole Source must retain its own acquisition');},
-    clientProgramInstalledManagedWholeSourceRead(actual, owner, request, declared) {
+    clientProgramInstalledManagedWholeSourceReadAt(actual, owner, request, declared, slot) {
       assert.equal(actual, managedRun); assert.equal(owner, preparedProgram); assert.equal(declared, declaration);
+      assert.equal(slot, 0);
       return ok({_0: read, _1: {}, _2: {}, _3: {}});
     },
     // This deliberately malformed DATA observation fails AFTER the same
