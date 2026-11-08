@@ -214,7 +214,7 @@ pub fn borrow_client_original_keyed_child(
     lookup.selected_request is Some(selected) &&
     physical_equal(selected, request) &&
     lookup.selected_index == Some(-1) &&
-    request.row == lookup.accepted &&
+    request.row == keyed_lookup_next_original_row(lookup) &&
     request.attempts == 0L &&
     !request.io_complete &&
     @resources.original_keyed_child_preparation_available(

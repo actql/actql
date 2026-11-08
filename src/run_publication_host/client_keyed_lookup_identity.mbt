@@ -213,7 +213,19 @@ pub fn finish_client_keyed_lookup_publication_input(
         lookup.planned_order is Some(order) else {
         return Err(Assembly("unavailable_planned_publication"))
       }
-      let rows = match @execution.finish_ordered_admitted_input(input, order) {
+      let completed = if lookup.native_batch_plan is Some(_) {
+        // Physical singleton responses were already admitted in this frozen
+        // canonical key order. Applying the original-slot permutation again
+        // would reorder them twice. Left occurrence order remains upstream.
+        if lookup.planned_dispatch_order is None ||
+          lookup.completed_responses != order.length() {
+          return Err(Assembly("incomplete_native_batch_responses"))
+        }
+        @execution.finish_admitted_input(input)
+      } else {
+        @execution.finish_ordered_admitted_input(input, order)
+      }
+      let rows = match completed {
         Ok(rows) => rows
         Err(issue) => return Err(InputCapture(issue))
       }

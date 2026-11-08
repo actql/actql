@@ -212,7 +212,7 @@ pub fn client_keyed_lookup_planned_request(
     state.copying is None &&
     state.preparation is None &&
     state.completed is None &&
-    row == state.accepted &&
+    row == keyed_lookup_next_original_row(state) &&
     client_keyed_left_available(state.left) &&
     !state.closed &&
     state.planned_requests is Some(requests) &&
@@ -254,9 +254,144 @@ fn keyed_lookup_request_dispatch_available(
             state.selected_index == Some(-1) &&
             state.selected_request is Some(selected) &&
             physical_equal(selected, request) &&
-            requests.get(state.accepted) is Some((original, _)) &&
+            requests.get(keyed_lookup_next_original_row(state))
+            is Some((original, _)) &&
             physical_equal(original, request)
         }
       }
   }
+}
+
+///|
+// Without the Native batch purpose the old occurrence order is unchanged.
+// With it, accepted counts processed occurrences; Request.row still names its
+// original left row, never a rewritten value or an index into the key set.
+fn keyed_lookup_next_original_row(state : ClientKeyedLookupInput) -> Int {
+  match state.planned_dispatch_order {
+    None => state.accepted
+    Some(order) => order.get(state.accepted).unwrap_or(-1)
+  }
+}
+
+///|
+/// Next original left occurrence under the frozen physical batch schedule.
+/// Pure control projection only; current Source permission precedes dispatch.
+pub fn client_keyed_lookup_next_planned_row(
+  state : ClientKeyedLookupInput,
+) -> Int? {
+  if state.closed ||
+    state.left.lookup_issue is Some(_) ||
+    state.planned_order is None ||
+    state.accepted >= state.rows {
+    return None
+  }
+  let row = keyed_lookup_next_original_row(state)
+  if row < 0 {
+    None
+  } else {
+    Some(row)
+  }
+}
+
+///|
+/// Freeze the actual canonical singleton dispatch order on the SAME lookup.
+/// Repeated left occurrences keep their original Requests and multiplicity,
+/// but reuse the one physical response for their canonical key. The original
+/// prefix/left rows are never reordered. This DATA still needs durable
+/// activation before its first physical call; it is not an attempt receipt.
+pub fn prepare_client_keyed_native_batch_plan(
+  state : ClientKeyedLookupInput,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@publication.PublicationContract, ClientKeyedRequestIssue] {
+  if max_bytes < 1 || max_nodes < 1 || max_depth < 1 {
+    return Err(Assembly("native_batch_plan_limits"))
+  }
+  guard !state.closed &&
+    !state.growing &&
+    !state.identifying &&
+    state.accepted == 0 &&
+    state.selected_request is None &&
+    state.planned_requests is Some(requests) &&
+    state.planned_order is Some(keys) &&
+    state.native_transport is Some(transport) &&
+    state.publication_identity is Some(identity) &&
+    state.planned_dispatch_order is None &&
+    state.native_batch_plan is None &&
+    state.left.lookup_issue is None &&
+    state.left.composed is Some(original) &&
+    original.plan.keyed is Some(component) &&
+    physical_equal(original.keyed, state.left.acquisition) &&
+    physical_equal(component.original.fragments.acquisition, original.keyed) else {
+    return Err(Assembly("unavailable_native_batch_plan"))
+  }
+  // One scalar schedule array (including grow/old-new backing) and its Some,
+  // in addition to the existing bounded publication writer/tree/hash overlap.
+  guard @shape.collection_construction_extent({
+      records: 1L,
+      record_references: 1L,
+      record_words: 1L,
+      reference_arrays: 0L,
+      reference_items: 0L,
+      scalar_arrays: 1L,
+      scalar_items: requests.length().to_int64(),
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(layout) &&
+    @execution.preparation_representation_cost({
+      record_headers: layout.record_headers,
+      reference_slots: layout.reference_slots,
+      scalar_words: layout.scalar_words,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(controls) else {
+    return Err(Assembly("native_batch_plan_capacity"))
+  }
+  match
+    grow_keyed_lookup_protocol_metadata(
+      state,
+      max_bytes,
+      keys.length().to_int64(),
+      extra_controls=controls,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  // This measured nested walk visits actual key/occurrence controls, not
+  // provider Values or a policy quota. Spend work before constructing output.
+  let work = keys.length().to_int64() * requests.length().to_int64()
+  if work > 2147483647L || !charge_keyed_lookup_input_work(state, work.to_int()) {
+    return Err(LookupLimit("work"))
+  }
+  let plan = match
+    @publication.issue_native_file_lookup_batch_plan(
+      component.barrier.logical_cid,
+      identity.keys,
+      transport,
+      max_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Identity(@publication.Contract(issue)))
+  }
+  let order = []
+  for slot in keys {
+    for row, (_, original_slot) in requests {
+      if original_slot == slot {
+        order.push(row)
+      }
+    }
+  }
+  if state.closed ||
+    state.left.lookup_issue is Some(_) ||
+    order.length() != requests.length() {
+    return Err(Assembly("retired_or_incomplete_native_batch_plan"))
+  }
+  state.native_batch_plan = Some(plan)
+  state.planned_dispatch_order = Some(order)
+  Ok(plan)
 }

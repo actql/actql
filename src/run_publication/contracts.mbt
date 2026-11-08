@@ -130,6 +130,13 @@ fn common_grant_fields() -> Array[FieldSpec] {
 ///|
 fn contract_spec(name : String) -> ContractSpec? {
   match name {
+    "native_file_lookup_batch_plan" =>
+      Some({
+        name,
+        version: "actql-lookup-batch-plan/0.1",
+        identity: "self_cid",
+        fields: [],
+      })
     "lookup_barrier" =>
       Some({
         name,
@@ -1101,6 +1108,10 @@ fn validate_bounded_contract(
         !lookup_key_set_order_valid(value, max_wire_bytes, max_nodes, max_depth) {
         return Err(InvalidField("typed_key_order"))
       }
+      if spec.name == "native_file_lookup_batch_plan" &&
+        !native_file_lookup_batch_order_valid(value) {
+        return Err(InvalidField("canonical_single_key_batches"))
+      }
       if spec.name == "effect_apply_receipt" &&
         !effect_apply_receipt_consistent(value) {
         return Err(ConditionalField("status"))
@@ -1323,9 +1334,9 @@ pub fn admit_publication_contract(
   } catch {
     _ => return Err(Encoding)
   }
-  if ["acquisition_relation", "acquisition_scope", "request_key_set"].contains(
-      name,
-    ) &&
+  if [
+      "acquisition_relation", "acquisition_scope", "request_key_set", "native_file_lookup_batch_plan",
+    ].contains(name) &&
     wire != complete_wire {
     return Err(InvalidWire)
   }

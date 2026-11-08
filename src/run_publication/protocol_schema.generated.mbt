@@ -3,7 +3,7 @@
 
 ///|
 fn generated_protocol_schema_nodes() -> Array[ProtocolSchemaRule] {
-  let nodes : Array[ProtocolSchemaRule] = Array(capacity=8367)
+  let nodes : Array[ProtocolSchemaRule] = Array(capacity=8388)
   generated_protocol_schema_nodes_0(nodes)
   generated_protocol_schema_nodes_1(nodes)
   generated_protocol_schema_nodes_2(nodes)
@@ -23010,6 +23010,79 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(protocol_one_of_rule([8295, 8365]))
+  nodes.push(
+    protocol_string_rule(Some("actql-lookup-batch-plan/0.1"), [], 0, 0),
+  )
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[4])
+  nodes.push(nodes[4])
+  nodes.push(protocol_array_rule(8372, 1, true, -1))
+  nodes.push(
+    protocol_object_rule(
+      [("batch_index", 8371), ("key_indices", 8373)],
+      ["batch_index", "key_indices"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_array_rule(8374, 0, false, -1))
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("version", 8367),
+        ("barrier_cid", 8368),
+        ("request_key_set_cid", 8369),
+        ("transport_plan_cid", 8370),
+        ("batches", 8375),
+      ],
+      [
+        "version", "barrier_cid", "request_key_set_cid", "transport_plan_cid", "batches",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[8367])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[4])
+  nodes.push(nodes[4])
+  nodes.push(protocol_array_rule(8382, 1, true, -1))
+  nodes.push(
+    protocol_object_rule(
+      [("batch_index", 8381), ("key_indices", 8383)],
+      ["batch_index", "key_indices"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_array_rule(8384, 0, false, -1))
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("version", 8377),
+        ("barrier_cid", 8378),
+        ("request_key_set_cid", 8379),
+        ("transport_plan_cid", 8380),
+        ("batches", 8385),
+        ("self_cid", 8386),
+      ],
+      [
+        "version", "barrier_cid", "request_key_set_cid", "transport_plan_cid", "batches",
+        "self_cid",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
 }
 
 ///|
@@ -23170,6 +23243,8 @@ fn generated_protocol_schema_root(name : String, complete : Bool) -> Int? {
     ("native_file_lookup_transport", true) => Some(8058)
     ("lookup_barrier", false) => Some(8211)
     ("lookup_barrier", true) => Some(8366)
+    ("native_file_lookup_batch_plan", false) => Some(8376)
+    ("native_file_lookup_batch_plan", true) => Some(8387)
     _ => None
   }
 }

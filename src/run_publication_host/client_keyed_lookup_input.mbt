@@ -36,8 +36,10 @@ struct ClientKeyedLookupInput {
   mut native_read_profile : @publication.PublicationContract?
   mut native_static_request : @encode.EncodedDocument?
   mut native_transport : @publication.PublicationContract?
+  mut native_batch_plan : @publication.PublicationContract?
   mut planned_requests : Array[(ClientKeyedRequest, Int)]?
   mut planned_order : Array[Int]?
+  mut planned_dispatch_order : Array[Int]?
   mut pending_slot : Int
   mut accepted : Int
   mut completed_responses : Int
@@ -215,8 +217,10 @@ fn start_client_keyed_lookup_input_owned(
     native_read_profile: None,
     native_static_request: None,
     native_transport: None,
+    native_batch_plan: None,
     planned_requests: None,
     planned_order: None,
+    planned_dispatch_order: None,
     pending_slot: -1,
     accepted: 0,
     completed_responses: 0,
@@ -482,7 +486,7 @@ fn keyed_lookup_input_request(
       (state.planned_order is None || state.selected_request is None)
     ) ||
     !physical_equal(request.left, state.left) ||
-    request.row != state.accepted ||
+    request.row != keyed_lookup_next_original_row(state) ||
     state.accepted >= state.rows ||
     state.left.lookup_issue is Some(_) ||
     !client_keyed_request_matches_acquisition(request, state.left.acquisition) {
@@ -598,7 +602,7 @@ pub fn begin_client_keyed_lookup_response(
   let planned_slot = match state.planned_requests {
     None => -1
     Some(requests) => {
-      guard requests.get(state.accepted) is Some((original, slot)) &&
+      guard requests.get(request.row) is Some((original, slot)) &&
         physical_equal(original, request) &&
         state.known.get(slot) is Some((_, None, Some(history))) &&
         physical_equal(history.request, request) else {
@@ -1186,6 +1190,8 @@ pub fn cleanup_client_keyed_lookup_input(
     }
     state.planned_requests = None
   }
+  state.planned_dispatch_order = None
+  state.native_batch_plan = None
   for _ in 0..<quantum {
     if state.known.is_empty() {
       break
