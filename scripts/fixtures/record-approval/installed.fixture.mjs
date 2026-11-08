@@ -149,7 +149,7 @@ export async function runInstalledRecordApprovalFixture(t, fixture) {
     if (tls) try {await tls.close();} catch (error) {cleanup.push(error);}
     const snapshot = provider.snapshot();
     const summary = {qualification: 'Owned TLS functional consumer of the selected installed cohort; no real provider authentication, performance or physical cleanup ACK claim',
-      passed: !failed && cleanup.length === 0, phases, provider: snapshot,
+      passed: !failed && cleanup.length === 0 && snapshot.failures.length === 0, phases, provider: snapshot,
       publicFailure: failed ? safe(primary) : null, cleanup: cleanup.map(safe), bootstrapClosed: parentClosed};
     await writeFile(join(root, 'summary.json'), JSON.stringify(summary, null, 2) + '\n', privateFile);
   }
@@ -157,4 +157,5 @@ export async function runInstalledRecordApprovalFixture(t, fixture) {
     'RecordApprovalFixtureCleanupUnconfirmed', {cause: primary});
   if (failed) throw primary;
   assert.deepEqual(cleanup, [], 'Original fixture cleanup remains owned');
+  assert.deepEqual(provider.snapshot().failures, [], 'No rejected provider route may be hidden by later success');
 }
