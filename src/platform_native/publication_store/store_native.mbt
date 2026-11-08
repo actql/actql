@@ -3422,6 +3422,12 @@ pub fn PayloadDelivery::next(
 }
 
 ///|
+#borrow(original)
+extern "C" fn delivery_constructor_ffi(
+  original : @sqlite.NativeStoreOperationOriginal,
+) -> Int = "actql_native_sqlite_store_operation_delivery_constructor"
+
+///|
 fn PayloadDelivery::next_in_scope(
   self : PayloadDelivery,
   max_bytes : Int,
@@ -3432,10 +3438,22 @@ fn PayloadDelivery::next_in_scope(
   if max_bytes < 1 || max_bytes > 16777216 {
     return Err(InvalidConfiguration)
   }
-  // Unmanaged Stores keep their original one-row/slice behavior. Absence of
-  // the actual Read constructor is never permission for a new accumulator.
-  if self.reader.store.operation_original is None &&
-    self.chunk_construction is None {
+  // Both unmanaged and legacy routed Stores retain their one-row/slice path.
+  // Installed constructor custody remains mandatory and cannot fall back on
+  // refusal. The discriminator observes only this same normal Read flight.
+  let aggregate = match self.reader.store.operation_original {
+    Some(original) =>
+      match delivery_constructor_ffi(original) {
+        0 => false
+        1 => true
+        _ =>
+          return Err(
+            Database(@sqlite.Physical("original Store delivery unavailable")),
+          )
+      }
+    None => self.chunk_construction is Some(_)
+  }
+  if !aggregate {
     return self.next_row_in_scope(max_bytes)
   }
   let target = Int::min(max_bytes, self.input_chunk_bytes)

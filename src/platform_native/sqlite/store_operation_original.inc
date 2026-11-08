@@ -98,6 +98,17 @@ MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_store_operation_prepare_delivery_
   if (value->callback_failed) return value->callback_code;
   return 0;
 }
+/* Constructor custody is immutable after preparation. Legacy routing retains
+ * its one-row path only inside the same valid normal Read flight; an invalid
+ * or failed funded original cannot select that compatibility path. */
+MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_store_operation_delivery_constructor(
+    actql_native_store_operation *value) {
+  if (!actql_store_operation_thread(value) || value->closed ||
+      !value->activated || value->failed || value->cleanup_only ||
+      !value->flight || value->sql || value->cleanup || value->calling ||
+      value->receiver == NULL || value->route == NULL) return -1;
+  return value->delivery_construction == NULL ? 0 : 1;
+}
 /* Separate generated test signature: the compiler emits one typed C
  * declaration per imported symbol. Both finite callers use the SAME original
  * bridge; no callback/layout cast or alternate acquisition is introduced. */
