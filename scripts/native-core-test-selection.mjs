@@ -221,16 +221,31 @@ function partitionProfiles(args, records, ordinaryPartitions, compilerDirectorie
 
 export function nativeCoreTestSelection(repository, args, {
   env = process.env, execute = execFileSync, partitionProfiles: splitProfiles = false,
-  ordinaryPartitions = false,
+  ordinaryPartitions = false, timeoutMs = 60_000, now = Date.now,
 } = {}) {
   assert(!ordinaryPartitions || splitProfiles, 'Native partitions require original profile discovery');
+  assert(Number.isSafeInteger(timeoutMs) && timeoutMs > 0 && timeoutMs <= 2147483647,
+    'Native metadata timeout must be a finite positive timer duration');
+  assert.equal(typeof now, 'function');
   repository = realpathSync(repository);
-  const deadline = Date.now() + 60000;
-  const run = values => {
-    const timeout = deadline - Date.now();
+  let observed = now();
+  assert(Number.isSafeInteger(observed) && observed >= 0);
+  const deadline = observed + timeoutMs;
+  assert(Number.isSafeInteger(deadline));
+  const remaining = () => {
+    const current = now();
+    assert(Number.isSafeInteger(current) && current >= observed,
+      'Native metadata clock cannot move backwards');
+    observed = current;
+    const timeout = deadline - current;
     assert(timeout > 0, 'Native test metadata discovery deadline exhausted');
-    return execute('moon', values, {cwd: repository, env, encoding: 'utf8',
-      timeout, maxBuffer: 16 * 1024 ** 2});
+    return timeout;
+  };
+  const run = values => {
+    const result = execute('moon', values, {cwd: repository, env, encoding: 'utf8',
+      timeout: remaining(), maxBuffer: 16 * 1024 ** 2});
+    remaining();
+    return result;
   };
   const discover = paths => {
     const plan = run(['test', '--target', 'native', ...args, ...paths, '--dry-run']);
@@ -351,6 +366,7 @@ export function nativeCoreTestSelection(repository, args, {
         partition.drivers = [...drivers.keys()];
       }
     }
+    remaining();
     complete = true;
     return result;
   } finally {

@@ -424,6 +424,7 @@ test('Native partition caller passes the complete compiler inventory before sele
         assert.equal(root, '/original'); assert.equal(originalArgs, args);
         assert.equal(options.env, env); assert.equal(options.partitionProfiles, true);
         assert.equal(options.ordinaryPartitions, true);
+        assert.equal(options.timeoutMs, 300_000);
         return {profiles};
       }, console: {log() {}},
     });
