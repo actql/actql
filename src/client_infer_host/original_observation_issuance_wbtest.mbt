@@ -7,6 +7,8 @@ fn original_observation_test_start(
   provider? : @model.ModelProvider = original_funded_start_provider(Ref(0)),
   run_id? : String = "run",
   spare_publication_slot? : Bool = false,
+  input_body? : Bool = false,
+  input_read_ceiling? : Int64? = None,
 ) -> (Execution, @resources.Ledger, @publication_host.ClientModelReadConsumer) {
   let prepared = fixture_prepared(source~)
   let plan = call_identity_plan(prepared)
@@ -28,6 +30,9 @@ fn original_observation_test_start(
   ).unwrap()
   let ledger = @resources.create_ledger({
     ..limits.model.ledger,
+    retained_bytes: input_read_ceiling.unwrap_or(
+      limits.model.ledger.retained_bytes,
+    ),
     attempts: Int::min(limits.model.ledger.attempts, 4),
     transfer_bytes: Int64::min(limits.model.ledger.transfer_bytes, 133072L),
   }).unwrap()
@@ -54,22 +59,42 @@ fn original_observation_test_start(
   let consumer = @publication_host.claim_client_model_read_preparation(
     read, compiled, definition, plan, 7L, 5L,
   ).unwrap()
-  let active = start_original_model_preparation(
-    prepared,
-    2,
-    infer_fixture_installed_contracts(),
-    infer_fixture_values,
-    provider,
-    limits,
-    compiled,
-    definition,
-    plan,
-    consumer,
-    7L,
-    5L,
-    100L,
-    5L,
-  ).unwrap()
+  let active = if input_body {
+    let (occurrence, prefix) = original_composed_test_input(prepared)
+    start_original_composed(
+      occurrence,
+      plan,
+      prefix,
+      [],
+      provider,
+      limits,
+      compiled,
+      definition,
+      consumer,
+      7L,
+      5L,
+      100L,
+      5L,
+      input_body_read=Some(read),
+    ).unwrap()
+  } else {
+    start_original_model_preparation(
+      prepared,
+      2,
+      infer_fixture_installed_contracts(),
+      infer_fixture_values,
+      provider,
+      limits,
+      compiled,
+      definition,
+      plan,
+      consumer,
+      7L,
+      5L,
+      100L,
+      5L,
+    ).unwrap()
+  }
   let configuration = evidence_account(@authorization.Allow)
   let permit = @publication_host.issue_client_infer_dispatch_admission(
     compiled,

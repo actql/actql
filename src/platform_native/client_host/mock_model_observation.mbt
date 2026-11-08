@@ -354,18 +354,20 @@ pub fn NativeClientMockModelWork::local_observation_dependency_bodies(
   defer {
     self.advancing = false
   }
-  guard @infer.original_local_model_observation_body(observation) is Some(_) &&
+  guard @infer.original_local_model_observation_input_bodies(observation)
+    is Some(bodies) &&
     @execution.completed_relation_identity_scan_body(scan, receipt)
     is Some(body) else {
     return None
   }
-  Some([
-    ("relation_value", body),
+  bodies.push(("relation_value", body))
+  bodies.push(
     (
       "relation_schema",
       @execution.relation_schema_wire(
         @execution.completed_relation_export_schema_identity(receipt),
       ),
     ),
-  ])
+  )
+  Some(bodies)
 }

@@ -116,8 +116,16 @@ pub fn start_completed_relation_identity_scan(
     advancing: false,
     closed: false,
     fragment_peak: 0,
-    retained_body: if retain_body { Some(["{\"sort\":\"relation\",\"value\":"]) } else { None },
-    retained_body_units: if retain_body { 27L } else { 0L },
+    retained_body: if retain_body {
+      Some(["{\"sort\":\"relation\",\"value\":"])
+    } else {
+      None
+    },
+    retained_body_units: if retain_body {
+      27L
+    } else {
+      0L
+    },
     completed_body: None,
     body_receipt: None,
   })
@@ -172,13 +180,19 @@ fn cancel_identity_wire(cursor : IdentityWireCursor) -> Unit {
 pub fn cancel_completed_relation_identity_scan(
   value : CompletedRelationIdentityScan,
 ) -> Bool {
-  if value.advancing { return false }
-  if value.retained_body is Some(parts) { parts.clear() }
+  if value.advancing {
+    return false
+  }
+  if value.retained_body is Some(parts) {
+    parts.clear()
+  }
   value.retained_body = None
   value.completed_body = None
   value.body_receipt = None
   value.retained_body_units = 0L
-  if value.closed { return false }
+  if value.closed {
+    return false
+  }
   match value.phase {
     MeasureName(cursor) | MeasureCell(cursor) => clear_stepped_measure(cursor)
     MeasureWire(cursor, _) | EmitPayload(cursor) | EmitLogical(cursor) =>
@@ -543,10 +557,14 @@ pub fn completed_relation_identity_scan_body(
   value : CompletedRelationIdentityScan,
   receipt : CompletedRelationExportReceipt,
 ) -> String? {
-  if value.closed && value.phase is Done &&
-    value.body_receipt is Some(original) && physical_equal(original, receipt) {
+  if value.closed &&
+    value.phase is Done &&
+    value.body_receipt is Some(original) &&
+    physical_equal(original, receipt) {
     value.completed_body
-  } else { None }
+  } else {
+    None
+  }
 }
 
 ///|
@@ -556,4 +574,17 @@ pub fn completed_relation_identity_scan_work(
   value : CompletedRelationIdentityScan,
 ) -> Int64 {
   value.work.to_int64()
+}
+
+///|
+/// Immutable receipt selected by this scan's optional completed body. The
+/// typed original, not an equal export or a caller-provided CID, is returned.
+pub fn completed_relation_identity_scan_body_receipt(
+  value : CompletedRelationIdentityScan,
+) -> CompletedRelationExportReceipt? {
+  if value.closed && value.phase is Done && value.completed_body is Some(_) {
+    value.body_receipt
+  } else {
+    None
+  }
 }

@@ -154,8 +154,14 @@ fn LocalCommandBusinessPreparation::execute_mock_effect_model(
   self.original.with_business_request(self.capture, () => {
     require_model(
       work.open(
-        sequence, sources, consumer, read_retained, read_execution, read_retained,
+        sequence,
+        sources,
+        consumer,
+        read_retained,
         read_execution,
+        read_retained,
+        read_execution,
+        input_body_read=state.model_read,
       ),
     )
   })
@@ -372,7 +378,9 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_local_observation(
               }),
             )
             state._retained_local_model_dependencies = Some(
-              work.local_observation_dependency_bodies().unwrap_or_else(() => {
+              work
+              .local_observation_dependency_bodies()
+              .unwrap_or_else(() => {
                 stop("LocalOriginalModelLocalObservationUnavailable")
               }),
             )
