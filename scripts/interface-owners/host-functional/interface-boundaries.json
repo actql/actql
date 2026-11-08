@@ -23827,7 +23827,7 @@
     {
       "module": "adapters/host-node/client-effect-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9fbc68693a741d9085585698123555e740f05f36078af5072908f9fba285216c",
+      "sha256": "a14ca970633ef5631cc48888cce3d4410ecb35a884017737927c45b88f486980",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -23938,7 +23938,8 @@
         {
           "name": "installNodeClientEffectRun/init:capturePreparedOriginal/init:capturePreparedOriginal",
           "parameters": [
-            "prepared"
+            "prepared",
+            "original"
           ],
           "async": false
         },
@@ -24122,7 +24123,7 @@
               },
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "capturePreparedOriginal(prepared) {"
+                "anchor": "capturePreparedOriginal(prepared, original) {"
               },
               {
                 "path": "docs/design/client-submission-identity.md",
@@ -24139,6 +24140,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "Selection and installation metadata retains its 64 KiB bound."
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "A held-submission caller supplies its complete saved prepared original"
               }
             ],
             "inputsOutputs": [
@@ -24156,7 +24161,7 @@
               },
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "capturePreparedOriginal(prepared) {"
+                "anchor": "capturePreparedOriginal(prepared, original) {"
               },
               {
                 "path": "spec/contracts/actql-client-host.json",
@@ -24173,6 +24178,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "Selection and installation metadata retains its 64 KiB bound."
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "A held-submission caller supplies its complete saved prepared original"
               }
             ],
             "identity": [
@@ -24190,7 +24199,7 @@
               },
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "capturePreparedOriginal(prepared) {"
+                "anchor": "capturePreparedOriginal(prepared, original) {"
               },
               {
                 "path": "src/run_publication_host/client_requested_effect_stop.mbt",
@@ -24207,6 +24216,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "Selection and installation metadata retains its 64 KiB bound."
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "A held-submission caller supplies its complete saved prepared original"
               }
             ],
             "ownership": [
@@ -24224,7 +24237,7 @@
               },
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "capturePreparedOriginal(prepared) {"
+                "anchor": "capturePreparedOriginal(prepared, original) {"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -24241,6 +24254,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "Selection and installation metadata retains its 64 KiB bound."
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "A held-submission caller supplies its complete saved prepared original"
               }
             ],
             "synchronization": [
@@ -24258,7 +24275,7 @@
               },
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "capturePreparedOriginal(prepared) {"
+                "anchor": "capturePreparedOriginal(prepared, original) {"
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
@@ -24275,6 +24292,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "Selection and installation metadata retains its 64 KiB bound."
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "A held-submission caller supplies its complete saved prepared original"
               }
             ],
             "failure": [
@@ -24292,7 +24313,7 @@
               },
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "capturePreparedOriginal(prepared) {"
+                "anchor": "capturePreparedOriginal(prepared, original) {"
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
@@ -24309,6 +24330,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "Selection and installation metadata retains its 64 KiB bound."
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "A held-submission caller supplies its complete saved prepared original"
               }
             ],
             "cancellation": [
@@ -24339,6 +24364,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "Selection and installation metadata retains its 64 KiB bound."
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "A held-submission caller supplies its complete saved prepared original"
               }
             ],
             "resources": [
@@ -24373,6 +24402,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "Selection and installation metadata retains its 64 KiB bound."
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "A held-submission caller supplies its complete saved prepared original"
               }
             ],
             "extension": [
@@ -24390,7 +24423,7 @@
               },
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "capturePreparedOriginal(prepared) {"
+                "anchor": "capturePreparedOriginal(prepared, original) {"
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
@@ -24403,6 +24436,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "Selection and installation metadata retains its 64 KiB bound."
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "A held-submission caller supplies its complete saved prepared original"
               }
             ],
             "verification": [
@@ -24437,6 +24474,14 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "Selection and installation metadata retains its 64 KiB bound."
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "A held-submission caller supplies its complete saved prepared original"
+              },
+              {
+                "path": "adapters/host-node/installed-update-originals.test.mjs",
+                "anchor": "held caller reuses its complete original only after existing nominal current and full-byte validation"
               }
             ]
           }
@@ -24648,7 +24693,7 @@
               },
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "capturePreparedOriginal(prepared) {"
+                "anchor": "capturePreparedOriginal(prepared, original) {"
               },
               {
                 "path": "docs/design/client-submission-identity.md",
@@ -24678,7 +24723,7 @@
               },
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "capturePreparedOriginal(prepared) {"
+                "anchor": "capturePreparedOriginal(prepared, original) {"
               },
               {
                 "path": "spec/contracts/actql-client-host.json",
@@ -24708,7 +24753,7 @@
               },
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "capturePreparedOriginal(prepared) {"
+                "anchor": "capturePreparedOriginal(prepared, original) {"
               },
               {
                 "path": "src/run_publication_host/client_requested_effect_stop.mbt",
@@ -24738,7 +24783,7 @@
               },
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "capturePreparedOriginal(prepared) {"
+                "anchor": "capturePreparedOriginal(prepared, original) {"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -24768,7 +24813,7 @@
               },
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "capturePreparedOriginal(prepared) {"
+                "anchor": "capturePreparedOriginal(prepared, original) {"
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
@@ -24798,7 +24843,7 @@
               },
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "capturePreparedOriginal(prepared) {"
+                "anchor": "capturePreparedOriginal(prepared, original) {"
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
@@ -24884,7 +24929,7 @@
               },
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "capturePreparedOriginal(prepared) {"
+                "anchor": "capturePreparedOriginal(prepared, original) {"
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
