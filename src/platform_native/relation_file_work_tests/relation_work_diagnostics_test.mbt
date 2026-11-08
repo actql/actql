@@ -128,6 +128,9 @@ fn relation_work_source_issue(
     Document(reason) => "Document: " + @debug.to_string(reason)
     Mapping(reason) => "Mapping: " + @debug.to_string(reason)
     ManagedRead(_) => "ManagedRead (original retained)"
+    Content(_) => "Content (original retained)"
+    Store(_) => "Store (original retained)"
+    Lookup(_) => "Lookup (original retained)"
   }
 }
 
@@ -309,6 +312,9 @@ fn relation_return_work_label(
     RelationFile(Document(_)) => "Work.RelationFile.Document"
     RelationFile(Mapping(_)) => "Work.RelationFile.Mapping"
     RelationFile(ManagedRead(_)) => "Work.RelationFile.ManagedRead"
+    RelationFile(Content(_)) => "Work.RelationFile.Content"
+    RelationFile(Store(_)) => "Work.RelationFile.Store"
+    RelationFile(Lookup(_)) => "Work.RelationFile.Lookup"
     LocalExecution(_) => "Work.LocalExecution; original custody retained"
     LocalExport(_) => "Work.LocalExport; original custody retained"
     CaptureIdentity(_) => "Work.CaptureIdentity; original custody retained"
