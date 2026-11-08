@@ -11,13 +11,44 @@ pub fn[T] grow_funded_read_consumer_capacity(
   retained_bytes : Int64,
   execution_bytes : Int64,
 ) -> Result[Unit, OriginalReadIssue] {
+  grow_original_read_capacity(
+    consumer, origin, retained_bytes, execution_bytes, false,
+  )
+}
+
+///|
+/// The same singular claimed Read may grow during its original preparation,
+/// before the one consuming Execution enters. It remains Preparing after a
+/// successful grow; no Enter/handoff or new reservation is issued here.
+pub fn[T] grow_funded_read_preparing_capacity(
+  consumer : FundedReadConsumer[T],
+  origin : T,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[Unit, OriginalReadIssue] {
+  grow_original_read_capacity(
+    consumer, origin, retained_bytes, execution_bytes, true,
+  )
+}
+
+///|
+fn[T] grow_original_read_capacity(
+  consumer : FundedReadConsumer[T],
+  origin : T,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+  preparing : Bool,
+) -> Result[Unit, OriginalReadIssue] {
   guard consumer.claim is Some(claim) else { return Err(SpentClaim) }
   if !physical_equal(origin, claim.descriptor.origin) {
     return Err(ForeignOrigin)
   }
-  if claim.children is Some(_) ||
-    !(claim.phase is ConsumerStarted(current) &&
-    physical_equal(current, consumer)) {
+  let phase_matches = if preparing {
+    claim.phase is Preparing(current) && physical_equal(current, consumer)
+  } else {
+    claim.phase is ConsumerStarted(current) && physical_equal(current, consumer)
+  }
+  if claim.children is Some(_) || !phase_matches {
     return Err(SpentClaim)
   }
   let token = claim.read.reservation
@@ -37,11 +68,19 @@ pub fn[T] grow_funded_read_consumer_capacity(
     return Err(CleanupPending)
   }
   if current_result is Err(issue) {
-    claim.phase = ConsumerStarted(consumer)
+    claim.phase = if preparing {
+      Preparing(consumer)
+    } else {
+      ConsumerStarted(consumer)
+    }
     return Err(Resource(issue))
   }
   if !funded_read_snapshot_matches(claim, origin) {
-    claim.phase = ConsumerStarted(consumer)
+    claim.phase = if preparing {
+      Preparing(consumer)
+    } else {
+      ConsumerStarted(consumer)
+    }
     return Err(ChangedOriginalState)
   }
   // No external callback separates the final original fence and mutation.
@@ -56,7 +95,11 @@ pub fn[T] grow_funded_read_consumer_capacity(
     claim.read_state = original_reservation_snapshot(token)
     claim.admitted = original_ledger_snapshot(ledger)
   }
-  claim.phase = ConsumerStarted(consumer)
+  claim.phase = if preparing {
+    Preparing(consumer)
+  } else {
+    ConsumerStarted(consumer)
+  }
   result.map_err(issue => Resource(issue))
 }
 

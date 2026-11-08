@@ -250,6 +250,19 @@ fn LocalCommandPreparationOriginal::close_business_children(
     // partial Model/Store/Journal duties keep the same originals for cleanup.
     business.model_work.clear()
     if business.effect_model is Some(state) {
+      if state.source_identity_scan is Some(scan) {
+        if !@query.cancel_captured_source_cell_identity(scan) {
+          return Err(CommandBusinessChildren)
+        }
+        state.source_identity_scan = None
+      }
+      // Work/Store consumers above have retired. Cut the actual Source body
+      // aliases before returning the SAME Read allocation below.
+      for identity in state.source_identities {
+        @query.clear_captured_source_relation_dependency_bodies(identity)
+      }
+      state.source_identities.clear()
+      state.source_identities.shrink_to_fit()
       for failure in state.source_failures {
         match failure.retry_cleanup() {
           Err(issue) => return Err(CommandBusinessSource(issue))
