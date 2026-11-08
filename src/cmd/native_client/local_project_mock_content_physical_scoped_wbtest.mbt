@@ -25,6 +25,22 @@ test "Native original README retains both keyed Content originals for its Model 
 }
 
 ///|
+test "Native README Source originals retain the keyed Model closure" {
+  assert_eq(
+    @env.get_env_var("ACTQL_TEST_NATIVE_MODEL_SOURCE_CLOSURE"),
+    Some("1"),
+  )
+  assert_eq(@env.get_env_var("ACTQL_TEST_NATIVE_CONTENT_LOOKUPS"), Some("2"))
+  native_project_mock_model_backed_read(
+    false,
+    readme_request=true,
+    effect_compilation=true,
+    effect_source_inputs=true,
+    content_join=true,
+  )
+}
+
+///|
 fn[T, E] Result::native_content_join_stage(
   self : Result[T, E],
   label : String,
@@ -165,6 +181,16 @@ fn native_mock_readme_content_join_adopt(
   facility.run = Some(owner)
   let native_children : Array[@row_file.NativeRelationFileCapture] = []
   let captures : Array[@row_host.RowCapturedInput] = []
+  let source_requirements : Array[@test_planning.QueryRequirement] = []
+  let source_identities = []
+  let source_logicals = []
+  let source_observations = []
+  let source_authority = "sha256:" + "8".repeat(64)
+  let source_completed = "2026-10-12T00:00:01.000Z"
+  let collect_closure = @env.get_env_var(
+      "ACTQL_TEST_NATIVE_MODEL_SOURCE_CLOSURE",
+    ) ==
+    Some("1")
   for index, input in first._retained_sources {
     let declaration = input._retained_source._retained_declaration
     let kind = @local_values.installed_effect_managed_source_input_kind(
@@ -173,14 +199,16 @@ fn native_mock_readme_content_join_adopt(
       first.request,
       index,
     ).unwrap()
+    let mut evidence_original : NativeMockSourceEvidenceOriginal? = None
     let capture = if kind == "whole-input" {
-      let (read, _, _, capacity) = @local_values.begin_installed_effect_managed_whole_source_read(
+      let (read, original, acquisition, capacity) = @local_values.begin_installed_effect_managed_whole_source_read(
         owner,
         prepared,
         first.request,
         declaration,
         index,
       ).native_content_join_stage("original whole Source read")
+      evidence_original = Some(Whole(original, acquisition))
       match input._retained_reader {
         Rows(binding) =>
           @row_file.prepare_native_managed_relation_file_input_capture(
@@ -210,6 +238,7 @@ fn native_mock_readme_content_join_adopt(
       let (read, _, acquisition, _) = @local_values.begin_installed_effect_managed_source_read(
         owner, declaration, index,
       ).native_content_join_stage("original Query Source read")
+      evidence_original = Some(Query(acquisition))
       match input._retained_reader {
         Rows(binding) =>
           @row_file.prepare_native_managed_relation_file_query_capture(
@@ -249,9 +278,123 @@ fn native_mock_readme_content_join_adopt(
       }
     }
     assert_true(done)
-    captures.push(
-      @row_host.row_capture_input(capture.capture().unwrap()).unwrap(),
-    )
+    let captured = capture.capture().unwrap()
+    captures.push(@row_host.row_capture_input(captured).unwrap())
+    if collect_closure {
+      let source = @row_host.row_capture_source(captured).unwrap()
+      let identity = @test_query.identify_captured_source_relation(
+        source,
+        limits.identity.rows,
+        limits.output_values,
+        limits.identity.wire,
+        limits.identity.logical_wire,
+        limits.identity.schema,
+        limits.identity.wire.max_bytes,
+      ).native_content_join_stage("actual captured Source identity")
+      let dag = @strategy.checked_effect_computation_graph(
+        @run_host.prepared_client_effect_computation_graph(prepared),
+      )
+      let (selected, logical, observation) = match evidence_original.unwrap() {
+        Whole(original, acquisition) => {
+          let logical = @run_host.issue_captured_whole_source_input_logical(
+            dag,
+            source,
+            identity,
+            original,
+            task=input._retained_coordinates.2,
+          ).native_content_join_stage("actual whole Source logical")
+          let facts = @row_host.row_input_acquisition_facts(acquisition)
+          let observation = @row_host.issue_row_input_source_evidence(
+            acquisition,
+            captured,
+            identity,
+            logical,
+            source_authority,
+            facts.source_data_policy_cid,
+            source_completed,
+          ).native_content_join_stage("actual whole Source observation")
+          (None, logical, observation)
+        }
+        Query(acquisition) => {
+          let requirement = @row_host.row_acquisition_requirement(acquisition)
+          let sequence = @test_planning.query_material_owner(
+            @test_planning.query_requirement_material(requirement),
+          )
+          let coordinates = input._retained_coordinates
+          assert_true(
+            @run_host.client_query_requirement_matches_effect_program(
+              prepared,
+              coordinates.0,
+              coordinates.1,
+              requirement,
+            ),
+          )
+          assert_true(
+            @test_query.captured_source_matches_query(source, sequence),
+          )
+          let program = @checked.source_identity(@strategy.graph_program(dag))
+          assert_true(
+            physical_equal(
+              @test_planning.query_requirement_program(requirement),
+              program,
+            ),
+          )
+          assert_true(
+            @test_query.captured_source_matches(
+              source,
+              program,
+              @test_query.query_sequence_owner(sequence),
+            ),
+          )
+          let full_task = @strategy.graph_task_owner(dag, coordinates.2).unwrap()
+          assert_true(
+            @test_query.captured_source_matches(source, program, full_task),
+          )
+          let logical = @run_host.issue_captured_source_input_logical(
+            dag,
+            source,
+            identity,
+            requirement,
+            task=input._retained_coordinates.2,
+          ).native_source_logical_stage("actual Query Source logical")
+          let facts = @test_planning.query_requirement_source_evidence_facts(
+            requirement,
+          ).unwrap()
+          let observation = (if @row_host.row_acquisition_is_listing(
+              acquisition,
+            ) {
+            @row_host.issue_row_listing_source_evidence(
+              acquisition,
+              captured,
+              identity,
+              logical,
+              source_authority,
+              facts.source_data_policy_cid,
+              source_completed,
+            )
+          } else {
+            @row_host.issue_row_source_evidence(
+              acquisition,
+              captured,
+              identity,
+              logical,
+              source_authority,
+              facts.source_data_policy_cid,
+              source_completed,
+            )
+          }).native_content_join_stage("actual Query Source observation")
+          (Some(requirement), logical, observation)
+        }
+      }
+      source_requirements.push(
+        selected.unwrap_or_else(() => {
+          fail("this selected README fixture uses two original Query captures")
+        }),
+      )
+      source_identities.push(identity)
+      source_logicals.push(logical)
+      source_observations.push(observation)
+    }
   }
   let keyed = @run_host.select_client_effect_composed_model_keyed_acquisition(
       prepared, graph,
@@ -602,6 +745,68 @@ fn native_mock_readme_content_join_adopt(
         @local_values.prepared_installed_effect_model_sequence(selected, graph).unwrap(),
       ),
     )
+    let model_lookup = if collect_closure {
+      let selected_sources = captures.map(value => {
+        @row_host.row_captured_input_source(value).unwrap()
+      })
+      let keyed_observation = @run_host.issue_client_keyed_lookup_observation(
+        lookup, source_authority, source_completed,
+      ).native_content_join_stage("actual keyed Source observation")
+      let admit = (selected, originals, keyed) => {
+        @run_host.admit_client_infer_composed_sources(
+          graph.occurrence,
+          selected,
+          source_identities,
+          originals,
+          source_logicals,
+          source_observations,
+          source_authority,
+          "2026-10-12T00:00:00.000Z",
+          source_completed,
+          keyed~,
+        )
+      }
+      assert_true(admit(selected_sources, source_requirements, None) is Err(_))
+      assert_true(
+        admit(
+          [selected_sources[1], selected_sources[0]],
+          source_requirements,
+          Some(keyed_observation),
+        )
+        is Err(_),
+      )
+      assert_true(
+        admit(
+          selected_sources,
+          [source_requirements[1], source_requirements[0]],
+          Some(keyed_observation),
+        )
+        is Err(_),
+      )
+      let closure = admit(
+        selected_sources,
+        source_requirements,
+        Some(keyed_observation),
+      ).native_content_join_stage("actual Source Model closure")
+      assert_true(
+        @run_host.client_infer_composed_sources_matches(
+          closure,
+          graph.occurrence,
+        ),
+      )
+      assert_eq(
+        @run_host.client_infer_composed_source_observations(closure).length(),
+        3,
+      )
+      let original = @run_host.client_infer_composed_keyed_lookup(
+        closure,
+        graph.occurrence,
+      ).unwrap()
+      assert_true(physical_equal(original, lookup))
+      original
+    } else {
+      lookup
+    }
     let model_input = @local_values.start_client_composed_infer_input(
       graph.occurrence,
       sequence,
@@ -609,7 +814,7 @@ fn native_mock_readme_content_join_adopt(
       limits.input,
       limits.measurement,
       limits.mapping,
-      keyed=Some(lookup),
+      keyed=Some(model_lookup),
     ).native_content_join_stage("same original keyed Model input")
     let mut mapped = None
     for _ in 0..<100000 {
@@ -884,6 +1089,36 @@ fn[T] Result::native_content_lookup_stage(
           "InputCapture: " + @debug.to_string(value)
       }
       fail(stage + ": " + label)
+    }
+  }
+}
+
+///|
+priv enum NativeMockSourceEvidenceOriginal {
+  Query(@row_host.RowAcquisition)
+  Whole(@sourceviews.SourceAcquisition, @row_host.RowInputAcquisition)
+}
+
+///|
+fn Result::native_source_logical_stage(
+  self : Result[
+    @publication.RunEvidenceValue,
+    @run_host.ClientCapturedSourceLogicalIssue,
+  ],
+  label : String,
+) -> @publication.RunEvidenceValue raise {
+  match self {
+    Ok(value) => value
+    Err(issue) => {
+      let cause = match issue {
+        ForeignPrepared => "ForeignPrepared"
+        ForeignIdentity => "ForeignIdentity"
+        ForeignRequirement => "ForeignRequirement"
+        Encoding(_) => "Encoding"
+        Evidence(_) => "Evidence"
+        Admission(_) => "Admission"
+      }
+      fail(label + ": " + cause)
     }
   }
 }

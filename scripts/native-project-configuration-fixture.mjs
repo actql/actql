@@ -113,13 +113,15 @@ export function nativeProjectConfigurationFixture(namespace) {
     ACTQL_TEST_NATIVE_MOCK_FIRST_RESOURCE_CID: 'sha256:' + createHash('sha256').update(resource).digest('hex')};
 }
 
-// These two authored cases retain distinct fresh Stores and their original
-// one/two lookup selections. No ambient lookup count can retarget either case.
+// All three authored cases retain distinct fresh Stores. The first two keep
+// their original one/two lookups; only the third selects Source-closure proof.
+// Neither an ambient count nor a closure flag can retarget another case.
 export function nativeProjectContentCaseFixture(namespace, index) {
-  assert(Number.isInteger(index) && (index === 0 || index === 1),
+  assert(Number.isInteger(index) && index >= 0 && index <= 2,
     'An exact original Native Content case index is required');
   const store = join(namespace, 'content-store');
   mkdirSync(store, {mode: 0o700});
-  return {ACTQL_TEST_NATIVE_CONTENT_LOOKUPS: String(index + 1),
+  return {ACTQL_TEST_NATIVE_CONTENT_LOOKUPS: index === 0 ? '1' : '2',
+    ACTQL_TEST_NATIVE_MODEL_SOURCE_CLOSURE: index === 2 ? '1' : undefined,
     ACTQL_TEST_NATIVE_STORE_ROOT: store};
 }

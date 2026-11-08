@@ -26,21 +26,26 @@ test('Native project Content ports retain original contracts and independent aut
   }
 });
 
-test('Native Content case indices retain one and two lookups in distinct fresh Stores', t => {
+test('Native Content case indices retain original lookups and Source closure in distinct fresh Stores', t => {
   const root = mkdtempSync(join(tmpdir(), 'native-content-cases-'));
   t.after(() => rmSync(root, {recursive: true, force: true}));
-  const namespaces = [0, 1].map(index => {
+  const namespaces = [0, 1, 2].map(index => {
     const path = join(root, String(index)); mkdirSync(path); return path;
   });
   const cases = namespaces.map((path, index) => nativeProjectContentCaseFixture(path, index));
-  assert.deepEqual(cases.map(value => value.ACTQL_TEST_NATIVE_CONTENT_LOOKUPS), ['1', '2']);
-  assert.notEqual(cases[0].ACTQL_TEST_NATIVE_STORE_ROOT, cases[1].ACTQL_TEST_NATIVE_STORE_ROOT);
+  assert.deepEqual(cases.map(value => value.ACTQL_TEST_NATIVE_CONTENT_LOOKUPS), ['1', '2', '2']);
+  assert.equal(new Set(cases.map(value => value.ACTQL_TEST_NATIVE_STORE_ROOT)).size, 3);
+  assert.deepEqual(cases.map(value => value.ACTQL_TEST_NATIVE_MODEL_SOURCE_CLOSURE), [undefined, undefined, '1']);
+  for (const value of cases) {
+    const forwarded = {ACTQL_TEST_NATIVE_MODEL_SOURCE_CLOSURE: 'ambient', ...value};
+    assert.equal(forwarded.ACTQL_TEST_NATIVE_MODEL_SOURCE_CLOSURE, value.ACTQL_TEST_NATIVE_MODEL_SOURCE_CLOSURE);
+  }
   for (const value of cases) {
     assert.equal(statSync(value.ACTQL_TEST_NATIVE_STORE_ROOT).mode & 0o777, 0o700);
     assert.deepEqual(readdirSync(value.ACTQL_TEST_NATIVE_STORE_ROOT), []);
   }
   assert.throws(() => nativeProjectContentCaseFixture(namespaces[0], 0), {code: 'EEXIST'});
-  for (const index of [-1, 2, 0.5, '1', undefined]) {
+  for (const index of [-1, 3, 0.5, '1', undefined]) {
     assert.throws(() => nativeProjectContentCaseFixture(root, index), /exact original/u);
   }
 });

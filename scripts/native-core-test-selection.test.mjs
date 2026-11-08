@@ -465,7 +465,7 @@ test('Native physical consumers retain scoped file/index identities and exclude 
     ['src/platform_native/installed_arena_control', 'request_source_frame_physical_scoped_wbtest.mbt', 2, 'scoped-review-values'],
     ['src/platform_native/installed_arena_control', 'owned_body_extent_physical_scoped_wbtest.mbt', 3, 'scoped-review-values'],
     ['src/cmd/native_client', 'local_project_mock_request_physical_scoped_wbtest.mbt', 2, 'runtime-values'],
-    ['src/cmd/native_client', 'local_project_mock_content_physical_scoped_wbtest.mbt', 2, 'runtime-values'],
+    ['src/cmd/native_client', 'local_project_mock_content_physical_scoped_wbtest.mbt', 3, 'runtime-values'],
   ]) {
     const root = fixture(t);
     const indexes = Array.from({length: cases}, (_, index) => index);
