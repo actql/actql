@@ -197,14 +197,21 @@ test('current Source JSON review binds only its checked normalization count depe
   }
 });
 
-test('current Local Host successor preserves its capacity import and binds five JS callback selectors', () => {
+test('current Local Host successor preserves its capacity import and binds six JS callback selectors', () => {
   const path = 'src/client_local_host/moon.pkg';
-  const revision = 'd3aed5e30374353163fe2beb3f7a8b4f784b2ea9';
-  const digest = '508773432a6b071bb057fc41d51008054462a6f8006f862ce6638e91e448d00e';
+  const revision = 'e99acee7bc3ea3a5b0ae3e71ce64aa7c958f2bf4';
+  const digest = '0974fff42f958477654738b726f07d929aeccd274463404fc86206545fff2f00';
   const rule = 'literal-target-selectors-with-bound-source-membership';
   assert.deepEqual(currentPackageConfigurations[path], {revision, digest, rule});
   execFileSync('git', ['merge-base', '--is-ancestor', revision, 'HEAD'], {cwd: root});
   const reviewed = gitTree(root, revision), body = reviewed.read(path).toString();
+  const valuesSelector = '    "original_values_text_working_js_wbtest.mbt": [ "js" ],\n';
+  const callbackBody = gitTree(root, 'd3aed5e30374353163fe2beb3f7a8b4f784b2ea9').read(path).toString();
+  assert.equal(hash(callbackBody), '508773432a6b071bb057fc41d51008054462a6f8006f862ce6638e91e448d00e');
+  assert.equal(body.split(valuesSelector).length, 2);
+  assert.equal(body.replace(valuesSelector, ''), callbackBody,
+    'only the existing JS Values callback selector extends the reviewed descriptor');
+  assert.deepEqual(packageImports(body).imports, packageImports(callbackBody).imports);
   const previous = gitTree(root, '65dd1da4c260610e9a88e430665fdc8f6106bc94').read(path).toString();
   assert.equal(hash(body), digest);
   assert.equal(hash(previous), '8596c0cb5e158a33b98214e9d09a6185dbce3925b3d947def6036ec75bb7dfda');
@@ -221,15 +228,15 @@ test('current Local Host successor preserves its capacity import and binds five 
   assert.equal(reconstructed, previous, 'all other imports, targets and options retain their original bytes');
   const successorSelectors = ['preparation_request_native_intake_retirement_js_wbtest.mbt',
     'preparation_request_artifact_retention_js_wbtest.mbt', 'native_publication_workspace_js_wbtest.mbt'].map(name => `    "${name}": [ "js" ],\n`);
-  let reconstructedIntroduction = body;
+  let reconstructedIntroduction = callbackBody;
   for (const selector of successorSelectors) {
-    assert.equal(body.split(selector).length, 2);
+    assert.equal(callbackBody.split(selector).length, 2);
     reconstructedIntroduction = reconstructedIntroduction.replace(selector, '');
   }
   assert.equal(reconstructedIntroduction, introduced, 'the successor adds only its three reviewed JS fixtures');
   const intakeRevision = gitTree(root, '131b446df837e49f6277c8582460e521dd97c153').read(path).toString();
   assert.equal(hash(intakeRevision), '2d1cea3783b4e932e2dd107b4159e8b32dad4f1f57470ee8d3cbd1d30e319802');
-  assert.equal(body.replace(successorSelectors[2], ''), intakeRevision,
+  assert.equal(callbackBody.replace(successorSelectors[2], ''), intakeRevision,
     'the new publication fixture preserves the two original intake/artifact selectors');
   assert.equal(currentPackageConfigurationReviewFor(request(path, hash(intakeRevision))), null);
   assert.deepEqual(packageImports(body).imports,
@@ -245,14 +252,14 @@ test('current Local Host successor preserves its capacity import and binds five 
     !member.slice('src/capacity_policy/'.length).includes('/')).sort();
   assert(members.includes('src/capacity_policy/moon.pkg'));
   assert.deepEqual(selected.directories.find(entry => entry.path === 'src/capacity_policy/*')?.members, members);
-  for (const member of [...members, ...[...selectors, ...successorSelectors].map(selector =>
+  for (const member of [...members, ...[valuesSelector, ...selectors, ...successorSelectors].map(selector =>
     'src/client_local_host/' + JSON.parse(selector.trim().split(':')[0]))]) {
     assert(selected.paths.includes(member), member);
     assert.equal(currentTree.entries.get(member)?.kind, 'blob');
     assert.equal(currentTree.entries.get(member)?.mode, '100644');
   }
-  for (const changed of [previous, body.replace(dependency, ''), body.replace('@capacity,', '@permission,'),
-    ...[...selectors, ...successorSelectors].map(selector => body.replace(selector, selector.replace('"js"', '"native"'))),
+  for (const changed of [previous, callbackBody, body.replace(dependency, ''), body.replace('@capacity,', '@permission,'),
+    ...[valuesSelector, ...selectors, ...successorSelectors].map(selector => body.replace(selector, selector.replace('"js"', '"native"'))),
     body + '\noptions(pre_build: {command: "unreviewed"})\n']) {
     assert.equal(currentPackageConfigurationReviewFor(request(path, hash(changed))), null);
     const altered = {...currentTree, read: member => member === path ? Buffer.from(changed) : currentTree.read(member)};
