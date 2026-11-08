@@ -203,8 +203,21 @@ export async function observePackedSubmissionCause({sourceURL, boundary = 'origi
   process.stderr.write(`Packed submission original cause: ${JSON.stringify(value)}\n`);
 }}) {
   const observations = [];
-  let worker, exited, closing, ready, unavailableReason, loaded = false, observationFailed = false;
+  let worker, exited, closing, stopping, ready, unavailableReason, loaded = false, observationFailed = false;
   const emit = value => {try {report(value);} catch { /* Preserve the original test outcome. */ }};
+  const stopObserver = () => stopping ??= (async () => {
+    let stopped = false;
+    try {
+      worker.postMessage({kind: 'close'});
+      await Promise.race([exited, new Promise((_, reject) => {
+        const timer = setTimeout(() => reject(new Error('DiagnosticCleanupUnavailable')), 3000);
+        exited.then(() => clearTimeout(timer));
+      })]);
+      stopped = true;
+    } catch { /* Terminate only this observer, never the original Host. */ }
+    if (!stopped) await worker.terminate().catch(() => {});
+    return stopped;
+  })();
   const unavailable = () => Object.freeze({close: async () => {
     if (!closing) closing = Promise.resolve().then(() => emit({available: false}));
     await closing;
@@ -255,16 +268,7 @@ export async function observePackedSubmissionCause({sourceURL, boundary = 'origi
     await ready;
     return Object.freeze({close() {
       closing ??= (async () => {
-        let stopped = false;
-        try {
-          worker.postMessage({kind: 'close'});
-          await Promise.race([exited, new Promise((_, reject) => {
-            const timer = setTimeout(() => reject(new Error('DiagnosticCleanupUnavailable')), 3000);
-            exited.then(() => clearTimeout(timer));
-          })]);
-          stopped = true;
-        } catch { /* Terminate only this observer, never the original Host. */ }
-        finally {await worker.terminate().catch(() => {});}
+        const stopped = await stopObserver();
         emit({available: loaded && stopped && !observationFailed, sourceSha256: sha256,
           boundary, zeroBasedLine: lineNumber, originalCauseTypes: observations,
           ...(unavailableReason === undefined ? {} : {unavailableReason})});
@@ -272,21 +276,29 @@ export async function observePackedSubmissionCause({sourceURL, boundary = 'origi
       return closing;
     }});
   } catch {
-    await worker?.terminate().catch(() => {});
+    if (worker !== undefined) await stopObserver();
     return unavailable();
   }
 }
 
-async function runSubmissionCauseObserver() {
-  const {Session} = await import('node:inspector');
-  const session = new Session();
+export async function runSubmissionCauseObserver({session, parentPort, workerData}) {
   session.connectToMainThread();
   const post = (method, params = {}) => new Promise((resolve, reject) =>
     session.post(method, params, (error, value) => error ? reject(error) : resolve(value)));
   // Inspector callbacks alone do not keep a Worker alive during startup.
   const alive = setInterval(() => {}, 1000);
   const originals = new Set();
-  let breakpoint, captured = false;
+  const pending = new Set();
+  const flight = action => {
+    const task = Promise.resolve().then(action);
+    pending.add(task);
+    task.then(() => pending.delete(task), () => pending.delete(task));
+    return task;
+  };
+  const drain = async () => {
+    while (pending.size > 0) await Promise.allSettled([...pending]);
+  };
+  let breakpoint, closing, captured = false, retiring = false;
   // Emit only fixed categories and explicitly listed codes. Even a plausible
   // private code prefix or forged compiled constructor name is not evidence.
   // Keep reflection failures inside this expression. Sending their Error to
@@ -305,75 +317,97 @@ const type=['Object','Array','Error','TypeError','RangeError','SyntaxError','Cli
 const safeCodes=${JSON.stringify(originalFailureCodes)};
 const row={edge,type},code=Object.getOwnPropertyDescriptor(value,'code');if(code){if('value'in code&&safeCodes.includes(code.value))row.code=code.value;else{row.codeOmitted=true;row.codeType=!('value'in code)?'Accessor':code.value===undefined?'Undefined':typeof code.value==='string'?'String':typeof code.value==='number'?'Number':'Other';}}
 out.push(row);if(depth<16)for(const key of ['cause','primaryFailure','_0','_1','_2']){const d=Object.getOwnPropertyDescriptor(value,key);if(d)queue.push([key,'value'in d?d.value:undefined,depth+1,!('value'in d)]);}}return out;}catch{return null;}})()`;
-  session.on('Debugger.scriptParsed', async ({params}) => {
-    if (params.url !== workerData.url) return;
-    try {
-      const {scriptSource} = await post('Debugger.getScriptSource', {scriptId: params.scriptId});
-      assert.equal(createHash('sha256').update(scriptSource).digest('hex'), workerData.sha256);
-      originals.add(params.scriptId);
-      parentPort.postMessage({kind: 'loaded'});
-    } catch {parentPort.postMessage({kind: 'unavailable'});}
+  session.on('Debugger.scriptParsed', ({params}) => {
+    if (retiring || params.url !== workerData.url) return;
+    void flight(async () => {
+      try {
+        const {scriptSource} = await post('Debugger.getScriptSource', {scriptId: params.scriptId});
+        assert.equal(createHash('sha256').update(scriptSource).digest('hex'), workerData.sha256);
+        originals.add(params.scriptId);
+        parentPort.postMessage({kind: 'loaded'});
+      } catch {parentPort.postMessage({kind: 'unavailable'});}
+    });
   });
-  session.on('Debugger.paused', async ({params}) => {
-    let retireBreakpoint = false;
-    try {
-      assert.ok(!captured && originals.has(params.callFrames[0].location.scriptId));
-      const frame = params.callFrames[workerData.frame];
-      if (!frame || !originals.has(frame.location.scriptId) ||
-          workerData.caller !== undefined && frame.functionName !== workerData.caller) {
-        retireBreakpoint = true;
-        parentPort.postMessage({kind: 'unavailable', reason: 'original-caller-unavailable'});
-        return;
-      }
-      if (workerData.operationFrame !== undefined) {
-        const operationFrame = params.callFrames[workerData.operationFrame];
-        if (!operationFrame || !originals.has(operationFrame.location.scriptId) ||
-            operationFrame.functionName !== workerData.operationCaller) {
+  session.on('Debugger.paused', ({params}) => {
+    void flight(async () => {
+      let retireBreakpoint = false;
+      try {
+        if (retiring) return;
+        assert.ok(!captured && originals.has(params.callFrames[0].location.scriptId));
+        const frame = params.callFrames[workerData.frame];
+        if (!frame || !originals.has(frame.location.scriptId) ||
+            workerData.caller !== undefined && frame.functionName !== workerData.caller) {
           retireBreakpoint = true;
           parentPort.postMessage({kind: 'unavailable', reason: 'original-caller-unavailable'});
           return;
         }
-        // Read only the original lexical operation's closed boolean category.
-        // Do not reclassify the error or inspect request data. Earlier Result
-        // or status failures must not consume the submission's diagnostic slot.
-        const selected = await post('Debugger.evaluateOnCallFrame', {
-          callFrameId: operationFrame.callFrameId,
-          expression: "operation === 'submit' || operation === 'submit-intent' || operation === 'submit-named-intent' || operation === 'restart-intent'",
+        if (workerData.operationFrame !== undefined) {
+          const operationFrame = params.callFrames[workerData.operationFrame];
+          if (!operationFrame || !originals.has(operationFrame.location.scriptId) ||
+              operationFrame.functionName !== workerData.operationCaller) {
+            retireBreakpoint = true;
+            parentPort.postMessage({kind: 'unavailable', reason: 'original-caller-unavailable'});
+            return;
+          }
+          // Read only the original lexical operation's closed boolean category.
+          // Do not reclassify the error or inspect request data. Earlier Result
+          // or status failures must not consume the submission's diagnostic slot.
+          const selected = await post('Debugger.evaluateOnCallFrame', {
+            callFrameId: operationFrame.callFrameId,
+            expression: "operation === 'submit' || operation === 'submit-intent' || operation === 'submit-named-intent' || operation === 'restart-intent'",
+            returnByValue: true, silent: true});
+          assert.equal(selected.exceptionDetails, undefined);
+          assert.equal(selected.result.type, 'boolean');
+          if (!selected.result.value) return;
+        }
+        captured = true;
+        retireBreakpoint = true;
+        const {result, exceptionDetails} = await post('Debugger.evaluateOnCallFrame', {
+          callFrameId: frame.callFrameId, expression,
           returnByValue: true, silent: true});
-        assert.equal(selected.exceptionDetails, undefined);
-        assert.equal(selected.result.type, 'boolean');
-        if (!selected.result.value) return;
+        assert.equal(exceptionDetails, undefined);
+        assert(Array.isArray(result.value), 'Original failure inspection unavailable');
+        parentPort.postMessage({kind: 'primary', types: result.value});
+      } catch {retireBreakpoint = true; parentPort.postMessage({kind: 'unavailable'});}
+      finally {
+        if (retireBreakpoint) await post('Debugger.removeBreakpoint', {breakpointId: breakpoint}).catch(() => {});
+        await post('Debugger.resume').catch(() => parentPort.postMessage({kind: 'unavailable'}));
       }
-      captured = true;
-      retireBreakpoint = true;
-      const {result, exceptionDetails} = await post('Debugger.evaluateOnCallFrame', {
-        callFrameId: frame.callFrameId, expression,
-        returnByValue: true, silent: true});
-      assert.equal(exceptionDetails, undefined);
-      assert(Array.isArray(result.value), 'Original failure inspection unavailable');
-      parentPort.postMessage({kind: 'primary', types: result.value});
-    } catch {retireBreakpoint = true; parentPort.postMessage({kind: 'unavailable'});}
-    finally {
-      if (retireBreakpoint) await post('Debugger.removeBreakpoint', {breakpointId: breakpoint}).catch(() => {});
-      await post('Debugger.resume').catch(() => session.disconnect());
-    }
+    });
   });
-  parentPort.on('message', async value => {
+  parentPort.on('message', value => {
     if (value.kind !== 'close') return;
-    try {await post('Debugger.disable');}
-    finally {session.disconnect(); clearInterval(alive); parentPort.close();}
+    closing ??= (async () => {
+      retiring = true;
+      try {
+        // The main thread can request close before the resume callback arrives.
+        // Keep this same Session until all its original command flights settle,
+        // including notifications delivered while disabling the debugger.
+        await drain();
+        await post('Debugger.disable');
+      } catch {parentPort.postMessage({kind: 'unavailable'});}
+      finally {
+        await drain();
+        try {session.disconnect();}
+        finally {clearInterval(alive); parentPort.close();}
+      }
+    })();
   });
-  try {
-    await post('Debugger.enable');
-    ({breakpointId: breakpoint} = await post('Debugger.setBreakpointByUrl', {
-      url: workerData.url, lineNumber: workerData.lineNumber, columnNumber: 0,
-      ...(workerData.condition === undefined ? {} : {condition: workerData.condition})}));
-    parentPort.postMessage({kind: 'ready'});
-  } catch {parentPort.postMessage({kind: 'unavailable'});}
+  await flight(async () => {
+    try {
+      await post('Debugger.enable');
+      if (retiring) return;
+      ({breakpointId: breakpoint} = await post('Debugger.setBreakpointByUrl', {
+        url: workerData.url, lineNumber: workerData.lineNumber, columnNumber: 0,
+        ...(workerData.condition === undefined ? {} : {condition: workerData.condition})}));
+      if (!retiring) parentPort.postMessage({kind: 'ready'});
+    } catch {parentPort.postMessage({kind: 'unavailable'});}
+  });
 }
 
 if (!isMainThread && workerData?.kind === 'packed-submission-cause') {
-  await runSubmissionCauseObserver();
+  const {Session} = await import('node:inspector');
+  await runSubmissionCauseObserver({session: new Session(), parentPort, workerData});
 }
 
 // Parent death must not leave a live fixture Host behind. Cancellation otherwise
