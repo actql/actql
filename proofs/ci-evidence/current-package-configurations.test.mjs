@@ -66,7 +66,22 @@ for (const [path, entry] of Object.entries(currentPackageConfigurations)) {
       }
     }
     if (path === 'src/platform_native/publication_store/moon.pkg') {
-      assert.equal(entry.revision, 'f7dfa3c3b3e61b71e63986342636039d20eaece2');
+      assert.equal(entry.revision, 'f86f409e62d39511380497cb0fe5639d5259f191');
+      const successor = selectedTree.read(path).toString();
+      const body = gitTree(root, 'f7dfa3c3b3e61b71e63986342636039d20eaece2').read(path).toString();
+      const modelSelectors = ['    "model_evidence_custody_native.mbt": [ "native" ],\n',
+        '    "model_evidence_custody_native_wbtest.mbt": [ "native" ],\n',
+        '    "model_evidence_custody_unsupported.mbt": [ "not", "native" ],\n'];
+      let beforeModel = successor;
+      for (const selector of modelSelectors) {
+        assert.equal(beforeModel.split(selector).length, 2);
+        beforeModel = beforeModel.replace(selector, '');
+        const changed = successor.replace(selector, selector.replace('"native"', '"js"'));
+        assert.equal(currentPackageConfigurationReviewFor(request(path, hash(changed))), null);
+      }
+      assert.equal(beforeModel, body, 'only the three original Model evidence selectors extend the reviewed Store');
+      assert.deepEqual(packageImports(successor).imports, packageImports(body).imports);
+      assert.equal(currentPackageConfigurationReviewFor(request(path, hash(body))), null);
       const precursor = gitTree(root, 'f519f34b2d45d5365c1af3b1d42ad92524514716').read(path).toString();
       const capacityInputs = ['  "actql/actql/decode_shape" @shape,\n',
         '  "actql/actql/execution_relation" @execution,\n',
@@ -102,17 +117,38 @@ for (const [path, entry] of Object.entries(currentPackageConfigurations)) {
       }
       assert.equal(reconstructed, prior, 'only the three reviewed Native custody selectors changed');
       assert.deepEqual(packageImports(introduced).imports, packageImports(prior).imports);
-      assert.equal(currentTree.read(path).toString(), body);
+      assert.equal(currentTree.read(path).toString(), successor);
       assert.equal(currentPackageConfigurationReviewFor(request(path, hash(prior))), null);
       const selected = packageSourceInputs({tree: currentTree, packages: ['src/platform_native/publication_store'], target: 'js'});
       for (const member of ['captured_content_custody_native.mbt', 'captured_content_custody_native_wbtest.mbt',
         'captured_content_custody_unsupported.mbt', 'captured_content_capacity.mbt',
-        'captured_content_capacity_native.mbt', 'store_format_stub.c']) {
+        'captured_content_capacity_native.mbt', 'store_format_stub.c',
+        'model_evidence_custody_native.mbt', 'model_evidence_custody_native_wbtest.mbt',
+        'model_evidence_custody_unsupported.mbt']) {
         const source = `src/platform_native/publication_store/${member}`;
         assert(selected.paths.includes(source));
         assert.equal(currentTree.entries.get(source)?.kind, 'blob');
         assert.equal(currentTree.entries.get(source)?.mode, '100644');
       }
+    }
+    if (path === 'src/platform_native/signature/moon.pkg') {
+      assert.equal(entry.revision, 'f86f409e62d39511380497cb0fe5639d5259f191');
+      const prior = gitTree(root, '523ada3259bf9e8147f746727fbfd56065036fd5').read(path).toString();
+      assert.equal(hash(prior), 'c9f579ed2e7db177e27ae45e694788e76332cbc058594eca03e120539c138a7e');
+      const selector = '    "model_private_evidence_native_wbtest.mbt": [ "native" ],\n';
+      assert.equal(body.split(selector).length, 2);
+      assert.equal(body.replace(selector, ''), prior,
+        'only the existing Native Model evidence test selector extends the reviewed signature package');
+      assert.deepEqual(packageImports(body).imports, packageImports(prior).imports);
+      assert.equal(currentTree.read(path).toString(), body);
+      assert.equal(currentPackageConfigurationReviewFor(request(path, hash(prior))), null);
+      const changed = body.replace(selector, selector.replace('"native"', '"js"'));
+      assert.equal(currentPackageConfigurationReviewFor(request(path, hash(changed))), null);
+      const selected = packageSourceInputs({tree: currentTree, packages: ['src/platform_native/signature'], target:'js'});
+      const member = 'src/platform_native/signature/model_private_evidence_native_wbtest.mbt';
+      assert(selected.paths.includes(member));
+      assert.equal(currentTree.entries.get(member)?.kind, 'blob');
+      assert.equal(currentTree.entries.get(member)?.mode, '100644');
     }
     const changes = [body + '\noptions(pre_build: {command: "unreviewed"})\n',
       body.replace(/"(?:actql\/actql|moonbitlang\/core)\/[^"\n]+"/, '"actql/actql/unreviewed_resource_owner"'),
