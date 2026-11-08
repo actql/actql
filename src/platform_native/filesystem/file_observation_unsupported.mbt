@@ -2,6 +2,15 @@
 type NativeFileObservation
 
 ///|
+pub fn Writer::replace_observed_file(
+  _self : Writer,
+  _original : NativeFileObservation,
+  _lock : Lock,
+) -> Result[NativeFileGeneration, NativeFilesystemIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Root::observe_file(
   _self : Root,
   _name : String,
