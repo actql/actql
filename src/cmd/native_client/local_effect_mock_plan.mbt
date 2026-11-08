@@ -16,6 +16,7 @@ priv struct LocalNativeMockEffectPlan {
   mut model_use : @infer.OutputUse?
   mut effect_host : @builtin.ConfiguredComputeHost[@strategy.RunIssue]?
   mut effect_capture : @strategy.CapturedEffectRunDAG?
+  mut proposals : LocalNativeMockEffectProposals?
   keyed_reads : Array[@local_values.ClientInstalledKeyedSourceRead]
   sources : Array[@row_file.NativeRelationFileCapture]
   source_failures : Array[@row_file.NativeRelationFileFailure]
@@ -265,6 +266,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_plan(
       model_use: None,
       effect_host: None,
       effect_capture: None,
+      proposals: None,
       keyed_reads: [],
       sources: [],
       source_failures: [],

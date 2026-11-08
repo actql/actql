@@ -197,6 +197,12 @@ fn LocalCommandPreparationOriginal::close_business_children(
     if business.effect_model is Some(state) {
       // Sever this caller's output alias before the original Model releases it.
       // This is no physical ACK and does not clear any child obligation.
+      if state.proposals is Some(proposals) {
+        if !proposals.close() {
+          return Err(CommandBusinessChildren)
+        }
+        state.proposals = None
+      }
       if business.request_run is Some(run) {
         match @local_values.retire_installed_effect_captured_consumers(run) {
           Err(_) => return Err(CommandBusinessChildren)

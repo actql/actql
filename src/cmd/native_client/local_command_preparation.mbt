@@ -35,6 +35,7 @@ priv enum LocalCommandPreparationIssue {
   CommandBusinessChildren
   CommandBusinessSource(@row_file.NativeRelationFileIssue)
   CommandBusinessModel(@local_host.NativeClientMockModelIssue)
+  CommandBusinessEffectProposals(LocalNativeMockEffectProposalIssue)
   CommandBusinessEffectAcceptance(
     @local_host.NativeClientSubmittedEffectMaterialsIssue
   )
