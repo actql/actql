@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync, existsSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
+import {tokens, readPackageTargetOptions} from '../../../scripts/portable-core.mjs';
 const rows = 'src/execution_relation/bounded_binding_rows.mbt';
 const sort = 'src/execution_relation/bounded_index_sort.mbt';
 const reads = 'src/execution_relation/producer_read_preparation.mbt';
@@ -31,16 +32,100 @@ export function restoreGeneratedObservers(root) {
     unlinkSync(full); ownedObservers.delete(full);
   }
 }
-export const replacements = {
-  [packagePath]: [['supported_targets = "+js+wasm+native"', `supported_targets = "+js+wasm+native"
+const observerTargets = [
+  ['capacity_map_probe_native.mbt', ['native']],
+  ['capacity_map_probe_portable.mbt', ['not', 'native']],
+];
+const observerStub = 'capacity_map_probe_stub.c';
 
-options(
-  "native-stub": [ "capacity_map_probe_stub.c" ],
-  targets: {
-    "capacity_map_probe_native.mbt": [ "native" ],
-    "capacity_map_probe_portable.mbt": [ "not", "native" ],
-  },
-)`]],
+// Preserve the compiler's existing options and literal target DATA. This
+// overlay adds only its own filenames; it does not reinterpret target rules
+// or rewrite unrelated linker/compiler options.
+function instrumentPackage(original) {
+  const list = tokens(original, false, true);
+  const symbol = (token, value) => token?.kind === 'symbol' && token.value === value;
+  const matching = start => {
+    const pairs = {'(': ')', '[': ']', '{': '}'};
+    assert(pairs[list[start]?.value], 'Expected package option container');
+    const stack = [];
+    for (let index = start; index < list.length; index++) {
+      const token = list[index];
+      if (token.kind !== 'symbol') continue;
+      if (pairs[token.value]) stack.push(pairs[token.value]);
+      else if ([')', ']', '}'].includes(token.value)) {
+        assert.equal(token.value, stack.pop(), 'Unbalanced package options');
+        if (!stack.length) return index;
+      }
+    }
+    assert.fail('Unclosed package options');
+  };
+  let opening, ending;
+  for (let index = 0; index < list.length; index++) {
+    const token = list[index];
+    if (token.kind === 'word' && token.value === 'options') {
+      assert.equal(opening, undefined, 'Duplicate package options');
+      assert(symbol(list[index + 1], '('), 'Malformed package options');
+      opening = index + 1;ending = matching(opening);index = ending;
+    } else if (token.kind === 'symbol' && ['(', '[', '{'].includes(token.value)) index = matching(index);
+  }
+  const targetEntries = observerTargets.map(([file, targets]) => `    ${JSON.stringify(file)}: ${JSON.stringify(targets)},`).join('\n');
+  if (opening === undefined) return original + `\noptions(\n  "native-stub": [${JSON.stringify(observerStub)}],\n  targets: {\n${targetEntries}\n  },\n)\n`;
+  const options = new Map();
+  for (let index = opening + 1; index < ending;) {
+    const key = list[index];
+    assert(key?.kind === 'word' || key?.kind === 'string', 'Malformed package option name');
+    assert(!options.has(key.value), 'Duplicate package option');
+    assert(symbol(list[index + 1], ':'), 'Malformed package option value');
+    const start = index + 2;
+    let end = start;
+    while (end < ending && !symbol(list[end], ',')) {
+      if (list[end].kind === 'symbol' && ['(', '[', '{'].includes(list[end].value)) end = matching(end);
+      end++;
+    }
+    assert(end > start, 'Missing package option value');
+    options.set(key.value, {key: index, start, end});
+    index = end + 1;
+  }
+  const edits = [], additions = [];
+  const targets = options.get('targets');
+  if (targets === undefined) additions.push(`targets: {\n${targetEntries}\n  }`);
+  else {
+    const input = [{kind: 'symbol', value: '('}, ...list.slice(targets.key, targets.end), {kind: 'symbol', value: ')'}];
+    let index = 0;
+    const entries = readPackageTargetOptions({
+      take(kind, value) {
+        const next = input[index++];
+        assert(next?.kind === kind && (value === undefined || next.value === value), 'Malformed literal package targets');
+        return next.value;
+      },
+      peek: value => input[index]?.value === value,
+    });
+    assert.equal(index, input.length, 'Trailing package target DATA');
+    for (const [file] of observerTargets) assert(!entries.some(([existing]) => existing === file), 'Observer target already present');
+    const close = list[targets.end - 1];
+    assert(symbol(close, '}'), 'Malformed literal package targets');
+    const comma = entries.length && !symbol(list[targets.end - 2], ',') ? ',' : '';
+    edits.push({begin: close.begin, end: close.begin, text: `${comma}\n${targetEntries}\n  `});
+  }
+  const stubs = options.get('native-stub');
+  if (stubs === undefined) additions.push(`"native-stub": [${JSON.stringify(observerStub)}]`);
+  else {
+    const values = list.slice(stubs.start, stubs.end);
+    assert(symbol(values[0], '[') && symbol(values.at(-1), ']'), 'Malformed native stub array');
+    const existing = [];
+    for (let index = 1; index < values.length - 1; index += 2) {
+      assert.equal(values[index]?.kind, 'string', 'Nonliteral native stub');existing.push(values[index].value);
+      assert(index + 1 === values.length - 1 || symbol(values[index + 1], ','), 'Malformed native stub separator');
+    }
+    assert(!existing.includes(observerStub), 'Observer native stub already present');
+    edits.push({begin: values[0].begin, end: values.at(-1).end, text: JSON.stringify([...existing, observerStub])});
+  }
+  if (additions.length) edits.push({begin: list[opening].end, end: list[opening].end, text: '\n  ' + additions.join(',\n  ') + (options.size ? ',' : '') + '\n'});
+  return edits.sort((a, b) => b.begin - a.begin).reduce((text, edit) => text.slice(0, edit.begin) + edit.text + text.slice(edit.end), original);
+}
+
+export const replacements = {
+  [packagePath]: [['supported_targets = "+js+wasm+native"', 'supported_targets = "+js+wasm+native"']],
   [providers]: [
     ['  (provider.start)(\n    sequence,\n    inputs.map(input => RelationInput(input)),',
       `  let declared = managed_provider_capacity(provider, sequence).unwrap()
@@ -103,6 +188,7 @@ export function instrument(path, original) {
     assert.equal(changed.split(before).length, 2, `Ambiguous observation site ${path}`);
     changed = changed.replace(before, after);
   }
+  if (path === packagePath) changed = instrumentPackage(changed);
   if (path === rows) changed += '\n' + readFileSync(new URL('./observer.mbt.txt', import.meta.url), 'utf8');
   return changed;
 }
