@@ -93,6 +93,47 @@ test "actual Task output growth refusal preserves Source and returns only failed
 }
 
 ///|
+test "actual Task accepts exact output backing when a spare page cannot fit" {
+  let value = captured_tasks_fixture()
+  let before = @resources.ledger_usage(value.ledger)
+  let (run, dispatch) = metered_tail_dispatch(value)
+  let (_, startup) = @local_driver.local_managed_dispatch_site_capacity(
+    dispatch,
+  ).unwrap()
+  // The original first compute task has two rows in each of its filter and
+  // projection buffers: four row roots, four numbers and four id names.
+  let exact = 2112L
+  let block = @resources.reserve_capacity(
+    value.ledger,
+    0L,
+    @resources.ledger_limits(value.ledger).execution_bytes -
+    @resources.ledger_usage(value.ledger).reserved_execution_bytes -
+    startup -
+    exact,
+  ).unwrap()
+  let operations = @local_driver.start_local_managed_dispatch_node(dispatch).unwrap()
+  let tasks : Array[LocalValuesTaskExecution?] = Array::make(3, None)
+  tasks[1] = Some({ operations, settled: false, completed: None, })
+  (operations.execute)().unwrap()
+  assert_eq((operations.output_rows)(), 2)
+  assert_eq((operations.output_row)(0).unwrap(), "{\"id\":3}")
+  assert_eq((operations.output_row)(1).unwrap(), "{\"id\":2}")
+  assert_true((operations.execution_stopped)())
+  assert_eq(
+    @resources.ledger_usage(value.ledger).reserved_execution_bytes,
+    @resources.ledger_limits(value.ledger).execution_bytes,
+  )
+  assert_true(close_local_values_tasks(run, tasks))
+  @resources.settle_capacity(value.ledger, block).unwrap()
+  let after = @resources.ledger_usage(value.ledger)
+  assert_eq(after.attempts, before.attempts + 1)
+  assert_eq(after.held_bytes, before.held_bytes)
+  assert_eq(after.reserved_execution_bytes, before.reserved_execution_bytes)
+  assert_true(@row_source_host.row_capture_source(value.capture) is Ok(_))
+  captured_tasks_close_source(value)
+}
+
+///|
 test "cancelling an actual growing Task retains Source until its own cleanup" {
   let value = captured_tasks_fixture()
   let before = @resources.ledger_usage(value.ledger)

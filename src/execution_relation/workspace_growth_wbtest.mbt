@@ -14,6 +14,7 @@ fn working_growth_fixture(
     slot_peak: 0,
     logical_peak: 0L,
     funded: 0L,
+    used: 0L,
     retained_outputs: None,
     busy: false,
     failed: false,
