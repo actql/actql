@@ -1,7 +1,9 @@
 ///|
 // Same SQL and checked fixture publication; no installed physical grant or Run
 // evidence is supplied by this bounded component diagnostic.
-fn set_output_expression_prepared() -> @publication_host.PreparedClientProgram raise {
+fn set_output_expression_prepared(
+  text? : String = "WITH chosen AS (SELECT id FROM records WHERE amount >= 20 UNION ALL SELECT id FROM records WHERE amount IS NULL ORDER BY 0 - id LIMIT 2) SELECT id FROM chosen ORDER BY id",
+) -> @publication_host.PreparedClientProgram raise {
   let environment = @publication_host.admit_client_check_environment(
     source_query_original_environment,
     "sha256:05ee9059ef5f173069a3f3f1896e16ee62d34d0c842d81e9b0f8421db62e67a8",
@@ -32,7 +34,7 @@ fn set_output_expression_prepared() -> @publication_host.PreparedClientProgram r
   let (lowered, catalog) = @source_publication.lower_prepared_published_query(
     selected,
     environment,
-    "WITH chosen AS (SELECT id FROM records WHERE amount >= 20 UNION ALL SELECT id FROM records WHERE amount IS NULL ORDER BY 0 - id LIMIT 2) SELECT id FROM chosen ORDER BY id",
+    text,
     @frontend.Sql,
     None,
     public_primary=true,

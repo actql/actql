@@ -326,6 +326,10 @@ fn relation_chain_reclaimed_prefix(
       // original output generation, including duplicate expansion rows.
       Some(@lower.ValuesStep(_)) => ()
       Some(@lower.AppendStep(_)) => ()
+      Some(@lower.SetStep(_)) if @execution.generated_sequence_step_count(
+          sequence,
+        ) ==
+        1 => ()
       Some(@lower.RowStep(kernel)) =>
         if !selected_binding_rows_supported(kernel) &&
           !(@lower.kernel_body(kernel) is @lower.Groups(_)) &&

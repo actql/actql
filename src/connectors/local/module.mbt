@@ -294,7 +294,7 @@ pub fn local_module_capacity_for_sequence(
 }
 
 ///|
-/// Startup DATA for an exact built-in row/Append or row/CROSS JOIN chain. Its unchanged
+/// Startup DATA for an exact built-in row/Append, primitive Set or row/CROSS JOIN chain. Its unchanged
 /// full capacity remains the fallback and semantic bound. Persistent output
 /// DATA is charged by the same task before each buffer commit; all fixed
 /// child metadata, input/measurement/traversal and one live child scratch
@@ -307,17 +307,49 @@ pub fn local_module_metered_output_start_capacity(
   let count = @execution.generated_sequence_step_count(sequence)
   guard installed.selected_default.get(slot) == Some(true) &&
     count > 0 &&
-    // Only the existing bounded row and Append singletons attach their
+    // Only the existing bounded row, Append and primitive Set singletons attach their
     // output budget to this same sequence's before-commit growth owner.
     // Other single-step families keep their original full envelope.
     (
       count > 1 ||
       @execution.generated_sequence_step_at(sequence, 0)
-      is Some(@lower.RowStep(_) | @lower.AppendStep(_))
+      is Some(@lower.RowStep(_) | @lower.AppendStep(_) | @lower.SetStep(_))
     ) &&
     relation_chain_reclaimed_prefix(sequence) == count &&
     local_module_capacity_for_sequence(installed, slot, sequence) is Some(full) else {
     return None
+  }
+  if count == 1 &&
+    @execution.generated_sequence_step_at(sequence, 0)
+    is Some(@lower.SetStep(_)) {
+    let prepared = @lower.bound_preparation(
+      @execution.generated_sequence_owner(sequence),
+    )
+    guard @execution.generated_sequence_step_index_at(sequence, 0) is Some(step) &&
+      @lower.node_at(prepared, step) is Some(node) &&
+      @lower.node_input_count(node) == 2 else {
+      return None
+    }
+    // Only borrowed immediate cells can defer output DATA here. Recursive,
+    // text and absent-field shapes keep the existing full prepaid path.
+    for index in -1..<2 {
+      let target = if index < 0 {
+        Some(@pipeline.Step(step))
+      } else {
+        @lower.node_input_target(node, index)
+      }
+      guard target.bind(target => @lower.preparation_schema_at(prepared, target))
+        is Some(schema) &&
+        @schema.all_fields_required(schema) else {
+        return None
+      }
+      for field in 0..<@schema.field_count(schema) {
+        match @schema.field_at(schema, field).unwrap().contract.shape {
+          @contract.Number | @contract.Boolean => ()
+          _ => return None
+        }
+      }
+    }
   }
   // These selected singleton constructors use their bounded operation
   // workspace, not the generic sequence's retained table and metadata arrays.
@@ -346,6 +378,7 @@ pub fn local_module_metered_output_start_capacity(
     match @execution.generated_sequence_step_at(sequence, index) {
       Some(@lower.CrossJoinStep(_)) => ()
       Some(@lower.AppendStep(_)) if count == 1 => ()
+      Some(@lower.SetStep(_)) if count == 1 => ()
       Some(@lower.RowStep(kernel)) if selected_binding_rows_supported(kernel) =>
         match @lower.kernel_body(kernel) {
           @lower.Filter(_)

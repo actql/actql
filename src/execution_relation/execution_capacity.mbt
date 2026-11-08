@@ -88,7 +88,7 @@ fn bounded_immediate_binding_schema(schema : @schema.Schema) -> Bool {
 }
 
 ///|
-/// Constructor-specific recipe for bounded Values, Append and binding-row
+/// Constructor-specific recipe for bounded Values, Append, primitive Set and binding-row
 /// providers; not a claim about arbitrary executors of the same kernel.
 /// The bounded single-operation constructors use an operation workspace, not
 /// the legacy sequence wiring/table store. Their completed port retains exact
@@ -109,7 +109,10 @@ pub fn generated_bounded_sequence_capacity(
     return generated_sequence_capacity(generated, limits, measurement)
   }
   match operation {
-    @lower.ValuesStep(_) | @lower.AppendStep(_) | @lower.RowStep(_) => ()
+    @lower.ValuesStep(_)
+    | @lower.AppendStep(_)
+    | @lower.SetStep(_)
+    | @lower.RowStep(_) => ()
     _ => return generated_sequence_capacity(generated, limits, measurement)
   }
   let prepared = @lower.bound_preparation(
@@ -145,6 +148,26 @@ pub fn generated_bounded_sequence_capacity(
     }
     _ => false
   }
+  let mut borrowed_set = operation is @lower.SetStep(_) &&
+    @lower.node_input_count(node) == 2 &&
+    bounded_immediate_binding_schema(schema)
+  if borrowed_set {
+    for index in 0..<2 {
+      if @lower.node_input_target(node, index)
+        .bind(target => @lower.preparation_schema_at(prepared, target))
+        .map(bounded_immediate_binding_schema)
+        .unwrap_or(false) ==
+        false {
+        borrowed_set = false
+      }
+    }
+  }
+  // Recursive/text cells keep the full existing envelope. The selected
+  // primitive constructor's binary scan borrows admitted cells and charges
+  // every logical occurrence using its already bounded cursor workspace.
+  if operation is @lower.SetStep(_) && !borrowed_set {
+    return generated_sequence_capacity(generated, limits, measurement)
+  }
   let roots = @schema.field_count(schema).to_int64() +
     @lower.node_input_count(node).to_int64()
   let ordinary = generated_sequence_capacity_with_roots(
@@ -154,7 +177,9 @@ pub fn generated_bounded_sequence_capacity(
     roots,
     roots,
     true,
-    borrowed_input_values=operation is @lower.AppendStep(_) || borrowed_row,
+    borrowed_input_values=operation is @lower.AppendStep(_) ||
+      borrowed_row ||
+      borrowed_set,
   )
   guard ordinary is Some(ordinary) else { return None }
   // The Values provider does not pass FixedInputGuardMeasureLimits to its
