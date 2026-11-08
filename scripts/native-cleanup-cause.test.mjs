@@ -148,7 +148,7 @@ test('cleanup category never serializes payloads and keeps public error code', {
           }
       }`);
   const identityStart = functionSource.indexOf('    CommandBusinessSourceIdentity(cause) =>');
-  const identityEnd = functionSource.indexOf('\n    CommandBusinessModel(cause) =>', identityStart);
+  const identityEnd = functionSource.indexOf('\n    CommandBusinessModelGraph(cause) =>', identityStart);
   assert(identityStart > 0 && identityEnd > identityStart);
   const sourceIdentity = functionSource.slice(identityStart, identityEnd);
   assert.equal(sourceIdentity, `    CommandBusinessSourceIdentity(cause) =>
@@ -171,7 +171,28 @@ test('cleanup category never serializes payloads and keeps public error code', {
         Capacity => "SourceIdentityCapacity"
         ForeignOriginal => "SourceIdentityForeignOriginal"
       }`);
-  let covered = functionSource.replace(projectMock, '').replace(effectProposals, '').replace(sourceIdentity, '');
+  const graphStart = functionSource.indexOf('    CommandBusinessModelGraph(cause) =>');
+  const graphEnd = functionSource.indexOf('\n    CommandBusinessModel(cause) =>', graphStart);
+  assert(graphStart > 0 && graphEnd > graphStart);
+  const modelGraph = functionSource.slice(graphStart, graphEnd);
+  assert.equal(modelGraph, `    CommandBusinessModelGraph(cause) =>
+      match cause {
+        Preparation(Policy) => "ModelGraphPreparationPolicy"
+        Preparation(ForeignOriginal) => "ModelGraphPreparationForeignOriginal"
+        Preparation(Capacity(_)) => "ModelGraphPreparationCapacity"
+        Preparation(_) => "ModelGraphPreparation"
+        ModelGraph(UnsupportedProgram) => "ModelGraphUnsupportedProgram"
+        ModelGraph(ForeignExecution) => "ModelGraphForeignExecution"
+        ModelGraph(Input(UnrepresentableContract)) => "ModelGraphInputContract"
+        ModelGraph(Input(UnsupportedCarrier)) => "ModelGraphInputCarrier"
+        ModelGraph(Input(Pipeline(_))) => "ModelGraphInputPipeline"
+        ModelGraph(Input(_)) => "ModelGraphInput"
+        ModelGraph(Encoding) => "ModelGraphEncoding"
+        ModelGraph(_) => "ModelGraphConstruction"
+        _ => "ModelGraphRequest"
+      }`);
+  let covered = functionSource.replace(projectMock, '').replace(effectProposals, '')
+    .replace(sourceIdentity, '').replace(modelGraph, '');
   const nested = [...covered.matchAll(/    (Command\w+)\(cause\) =>\s+match cause \{([\s\S]*?)\n      \}/g)];
   assert.ok(nested.length >= 20);
   for (const [block, variant, body] of nested) {
@@ -199,9 +220,10 @@ test('cleanup category never serializes payloads and keeps public error code', {
   // Enumerate the current Owner's closed issue variants, not just one fallback.
   // Payload types are deliberately synthetic Strings: no capability is issued.
   const privateValue = '"PRIVATE-PAYLOAD-NOT-A-CAPABILITY"';
-  function enumCases(path, name) {
+  function enumCases(path, name, kind = 'enum') {
+    assert(kind === 'enum' || kind === 'suberror');
     const text = readFileSync(new URL('../' + path, import.meta.url), 'utf8');
-    const start = text.indexOf('enum ' + name + ' {');
+    const start = text.indexOf(kind + ' ' + name + ' {');
     assert(start >= 0, name);
     const body = text.slice(start).split('\n}')[0].split('\n').slice(1).join('\n');
     // Enum payloads may wrap onto multiple lines, but remain closed type lists.
@@ -345,6 +367,52 @@ test('cleanup category never serializes payloads and keeps public error code', {
     assertions.push(`  assert_eq(command_preparation_cleanup_cause(CommandBusinessSourceIdentity(${name})), "${tag}")`);
   declare('ProbeCommandBusinessSourceIdentity', identityIssues, identityTypes);
   outer.push('  CommandBusinessSourceIdentity(ProbeCommandBusinessSourceIdentity)');
+  // Match only this reviewed nested family, then execute every actual Owner
+  // variant with PRIVATE synthetic payloads, including each fallback branch.
+  const graphRequests = enumCases('src/client_local_host/preparation_request_program_body.mbt',
+    'ClientRequestProgramPlanIssue', 'suberror');
+  assert.deepEqual(graphRequests, ['CapacityExceeded', 'Preparation', 'Installed', 'Construction',
+    'ValuesCompilation', 'TaskCompilation', 'QueryTime', 'SerializationGraph', 'ModelGraph',
+    'ModelBinding', 'ModelQuery', 'ModelSource', 'ContentQuery', 'ContentSource']
+    .map(name => ({name, arity: 1})));
+  const graphPreparations = enumCases('src/client_local_host/preparation_request_parent.mbt',
+    'ClientRequestPreparationIssue');
+  const graphIssues = enumCases('src/run_publication_host/client_infer_plan_graph.mbt',
+    'ClientInferPlanGraphIssue');
+  const graphInputs = enumCases('src/run_publication_host/client_task_fragment.mbt',
+    'ClientTaskFragmentIssue');
+  const preparationTags = {Policy: 'ModelGraphPreparationPolicy',
+    ForeignOriginal: 'ModelGraphPreparationForeignOriginal', Capacity: 'ModelGraphPreparationCapacity'};
+  const graphTags = {UnsupportedProgram: 'ModelGraphUnsupportedProgram',
+    ForeignExecution: 'ModelGraphForeignExecution', Encoding: 'ModelGraphEncoding'};
+  const inputTags = {UnrepresentableContract: 'ModelGraphInputContract',
+    UnsupportedCarrier: 'ModelGraphInputCarrier', Pipeline: 'ModelGraphInputPipeline'};
+  for (const [cases, tags] of [[graphPreparations, preparationTags], [graphIssues, graphTags],
+    [graphInputs, inputTags]]) assert(Object.keys(tags).every(name => cases.some(item => item.name === name)));
+  assert(graphIssues.some(item => item.name === 'Input' && item.arity === 1));
+  declare('ProbeModelGraphPreparation', graphPreparations);
+  declare('ProbeModelGraphInput', graphInputs);
+  declare('ProbeModelGraphIssue', graphIssues, {Input: ['ProbeModelGraphInput']});
+  declare('ProbeCommandBusinessModelGraph', graphRequests, {
+    Preparation: ['ProbeModelGraphPreparation'], ModelGraph: ['ProbeModelGraphIssue'],
+  });
+  outer.push('  CommandBusinessModelGraph(ProbeCommandBusinessModelGraph)');
+  const graphProject = (expression, tag) => assertions.push(
+    `  assert_eq(command_preparation_cleanup_cause(CommandBusinessModelGraph(${expression})), "${tag}")`);
+  for (const item of graphRequests) {
+    if (item.name === 'Preparation') {
+      for (const preparation of graphPreparations) graphProject('Preparation(' + value(preparation) + ')',
+        preparationTags[preparation.name] ?? 'ModelGraphPreparation');
+    } else if (item.name === 'ModelGraph') {
+      for (const graph of graphIssues) {
+        if (graph.name === 'Input') {
+          for (const input of graphInputs) graphProject('ModelGraph(Input(' + value(input) + '))',
+            inputTags[input.name] ?? 'ModelGraphInput');
+        } else graphProject('ModelGraph(' + value(graph) + ')',
+          graphTags[graph.name] ?? 'ModelGraphConstruction');
+      }
+    } else graphProject(value(item), 'ModelGraphRequest');
+  }
   const commands = enumCases('src/cmd/native_client/local_command_preparation.mbt', 'LocalCommandPreparationIssue');
   assert.deepEqual(new Set(outer.map(line => /Command\w+/u.exec(line)[0])), new Set(commands.map(entry => entry.name)));
   for (const [name, tag] of [['ForeignOriginal', 'ProjectMockForeignOriginal'],
