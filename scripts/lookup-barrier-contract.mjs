@@ -29,6 +29,10 @@ export function lookupBarrierSchema(original) {
   // Completeness and admission are different axes. No hard-limit-only result
   // is substituted for the checked complete-per-requested-key acquisition.
   runtime.properties.capacity_guarantee = {const: 'complete'};
+  for (const field of ['effective_request_classification',
+    'effective_response_classification', 'effective_output_classification']) {
+    runtime.properties[field].enum.push('unknown');
+  }
   return {$schema, $id, oneOf: [staticBody, runtime]};
 }
 

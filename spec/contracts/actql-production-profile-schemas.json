@@ -5,7 +5,7 @@
   "run_graph_manifest_cid": "sha256:1377084eb6a8136ba4f3f1bb48d2ae384196fb453b016ef1f045764025a58f2b",
   "schema_cids": {
     "lookup_source": "sha256:6730fdb00f7b0f21ae796bd55f686fb984cddac5b8da5325cec2114b82a37e1c",
-    "lookup_barrier": "sha256:c76fc9ca77e78c8b3db96df748e3b2c6e6055dc3477d19473cc6548842567941",
+    "lookup_barrier": "sha256:866b8e34f31933d310c208b8423e7a0e9a467e078b0b73114046865873a310c9",
     "lookup_evidence": "sha256:4e50bf4d62354e45aca753d9f436e1002721c78604bcf2a7bfcf6365f8200dc5",
     "content_source": "sha256:18591195eb1c2484081052246944a32f9231dfe77b73decbdf61b558230e0e68",
     "content_barrier": "sha256:4b7fea87dfbed0e1f11e9421cd077793cd3bccfc3e981617fa2a1547960acee5",
@@ -816,7 +816,8 @@
                 "public",
                 "internal",
                 "confidential",
-                "restricted"
+                "restricted",
+                "unknown"
               ]
             },
             "effective_request_data_policy_cid": {
@@ -832,7 +833,8 @@
                 "public",
                 "internal",
                 "confidential",
-                "restricted"
+                "restricted",
+                "unknown"
               ]
             },
             "effective_response_data_policy_cid": {
@@ -871,7 +873,8 @@
                 "public",
                 "internal",
                 "confidential",
-                "restricted"
+                "restricted",
+                "unknown"
               ]
             },
             "effective_output_data_policy_cid": {
@@ -7475,5 +7478,5 @@
       }
     }
   },
-  "registry_cid": "sha256:102f146f422fa27fdaef68a24dd2c176f996f49b2f60652b945613e62ab45d36"
+  "registry_cid": "sha256:8214d513814201d771b8a9f945f0eef3ab40e8d2190f5ce7cdb4757911209674"
 }

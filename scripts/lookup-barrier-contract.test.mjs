@@ -16,7 +16,10 @@ test('runtime barrier retains the exact static schema and all non-capacity oblig
   }
   for (const key of old.required.filter(key => !['bounds','capacity_proof_cid'].includes(key))) {
     assert.ok(runtime.required.includes(key), key);
-    if (key !== 'capacity_guarantee') assert.deepEqual(runtime.properties[key],old.properties[key],key);
+    if (['effective_request_classification','effective_response_classification',
+      'effective_output_classification'].includes(key)) {
+      assert.deepEqual(runtime.properties[key], {enum:[...old.properties[key].enum,'unknown']});
+    } else if (key !== 'capacity_guarantee') assert.deepEqual(runtime.properties[key],old.properties[key],key);
   }
 });
 

@@ -84,3 +84,40 @@ test "runtime lookup barrier refuses mixed proof maxima missing policy and incom
     seal_publication_contract("lookup_barrier", runtime, 1, 2048, 32) is Err(_),
   )
 }
+
+///|
+test "runtime lookup barrier preserves unknown policy DATA without changing static or Model admission" {
+  let mut runtime = lookup_barrier_fixture(true)
+  let mut original_static = lookup_barrier_fixture(false)
+  for
+    field in [
+      "effective_request_classification", "effective_response_classification", "effective_output_classification",
+    ] {
+    let old = "\"" + field + "\":\"internal\""
+    let replacement = "\"" + field + "\":\"unknown\""
+    runtime = runtime.replace(old~, new=replacement)
+    original_static = original_static.replace(old~, new=replacement)
+  }
+  let data = seal_publication_contract(
+    "lookup_barrier", runtime, 16384, 2048, 32,
+  ).unwrap()
+  // Independent standard-library SHA256 of the authored whole preimage.
+  assert_eq(
+    data.identity,
+    "sha256:69317ca2211933e0acd501d64039b7965feef2e18b63b70a8eaa625f0258f9fb",
+  )
+  assert_eq(
+    admit_publication_contract("lookup_barrier", data.wire, 16384, 2048, 32).unwrap().identity,
+    data.identity,
+  )
+  assert_true(
+    data.wire.contains("\"effective_request_classification\":\"unknown\""),
+  )
+  // Unknown is preserved, not replaced by a default or a static count proof.
+  assert_true(
+    seal_publication_contract(
+      "lookup_barrier", original_static, 16384, 2048, 32,
+    )
+    is Err(_),
+  )
+}
