@@ -47,7 +47,9 @@ member before and after, including a failed functional attempt; it builds and
 installs nothing. The default selection still runs the two existing Source
 cases; `--approval` selects only this one distinct three-process case.
 
-The fixture uses the selected installed runtime's original initialization
+The shared `record-approval/installed.fixture.mjs` and `installed-child.mjs`
+serve both HubSpot and kintone; this sibling supplies only its independent
+provider protocol and profile DATA. The fixture uses the selected installed runtime's original initialization
 owner to obtain the declared alias, then closes that preparation before the
 public workflow. Each child keeps its original 30-second whole-process limit.
 Capture, approval and recovery use separate processes and fresh explicit HOME,

@@ -84,6 +84,13 @@ against its actual configuration. For owned loopback tests,
 named test principal's Host submit/read rules and returns one wire to share.
 It does not validate policy or issue any decision or grant.
 
+The maintained HubSpot and kintone installed fixtures share
+`installed.fixture.mjs` and `installed-child.mjs` for bootstrap, fresh state,
+three-process command execution and live descriptor observation. Each sibling
+supplies its original provider protocol, metadata, numerical fixture limits
+and Source/Effect profile DATA. They use the same full Account wire on both
+sides; Form/revision checks and HubSpot dispatch markers remain distinct.
+
 See the [kintone preparation checklist](../kintone-approval/README.md) for the
 original record/field contract and the inputs still needed from a real account.
 

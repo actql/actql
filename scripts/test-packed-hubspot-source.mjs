@@ -2,7 +2,7 @@
 // runner never produces a package, installs dependencies or overlays a product.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {copyFile, mkdir, readFile, readdir, symlink, writeFile} from 'node:fs/promises';
+import {copyFile, mkdir, readFile, readdir, readlink, symlink, unlink, writeFile} from 'node:fs/promises';
 import {isAbsolute, join, dirname, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {createOwnedScratch} from './owned-scratch.mjs';
@@ -12,9 +12,12 @@ assert.equal(process.env.ACTQL_TEST_PRESERVE_SCRATCH, '1',
   'Preserve original Run/DB/keys/raw on success and failure');
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const [source, release, consumer, selection] = process.argv.slice(2);
-assert((process.argv.length === 5 || process.argv.length === 6 && selection === '--approval'),
-  'usage: test-packed-hubspot-source.mjs <original-normal-source> <RC-directory> <closed-installed-consumer> [--approval]');
-const approval = selection === '--approval';
+assert((process.argv.length === 5 || process.argv.length === 6 &&
+  ['--approval', '--kintone-approval'].includes(selection)),
+  'usage: test-packed-hubspot-source.mjs <original-normal-source> <RC-directory> <closed-installed-consumer> [--approval|--kintone-approval]');
+const approvalConnector = selection === '--approval' ? 'hubspot'
+  : selection === '--kintone-approval' ? 'kintone' : undefined;
+const approval = approvalConnector !== undefined;
 for (const path of [source, release, consumer]) assert(isAbsolute(path), 'Require absolute original input paths');
 assert(!process.env.NODE_PATH && !process.env.NODE_OPTIONS,
   'Ordinary installed acceptance refuses ambient module/loader overlays');
@@ -31,19 +34,21 @@ async function verifyInstalled() {
 await verifyInstalled();
 const scratch = await createOwnedScratch({parent: join(repository, '_build'),
   prefix: 'packed-hubspot-original-', label: approval
-    ? 'ordinary installed HubSpot approval and original Saved restoration'
+    ? `ordinary installed ${approvalConnector} approval and original Saved restoration`
     : 'ordinary installed HubSpot Source and original Run restoration'});
 const application = join(scratch.path, 'application');
 await mkdir(application);
 await writeFile(join(application, 'package.json'), '{"private":true,"type":"module"}\n');
 // Read-only borrow of the independently installed exact artifact closure;
 // fresh Host/Run/credential/TLS/SQLite roots below never mutate that donor.
-await symlink(join(consumer, 'node_modules'), join(application, 'node_modules'), 'dir');
-const fixtureFiles = approval ? ['scripts/fixtures/packed-hubspot-approval.mjs',
-  ...['provider.mjs', 'installed-child.mjs', 'workflow.mjs', 'update.aql', 'read.aql']
-    .map(name => 'scripts/fixtures/hubspot-approval/' + name),
-  ...['command.mjs', 'workflow.mjs', 'cases.mjs', 'host-account.fixture.mjs', 'scoped-fds.fixture.mjs']
+const software = join(consumer, 'node_modules'), softwareAlias = join(application, 'node_modules');
+const fixtureFiles = approval ? [`scripts/fixtures/packed-${approvalConnector}-approval.mjs`,
+  ...['provider.mjs', 'installed.fixture.mjs', 'update.aql', 'read.aql']
+    .map(name => `scripts/fixtures/${approvalConnector}-approval/` + name),
+  ...['command.mjs', 'workflow.mjs', 'cases.mjs', 'host-account.fixture.mjs', 'scoped-fds.fixture.mjs',
+    'installed.fixture.mjs', 'installed-child.mjs']
     .map(name => 'scripts/fixtures/record-approval/' + name),
+  ...(approvalConnector === 'kintone' ? ['adapters/connectors/kintone/test/kintone-update-form.fixture.mjs'] : []),
   'adapters/site-node/https-exchange-fixture.mjs'] : ['scripts/fixtures/packed-hubspot-public.mjs',
   'scripts/fixtures/packed-hubspot-public.fixture.mjs',
   'scripts/fixtures/packed-hubspot-restart.mjs',
@@ -58,11 +63,18 @@ for (const path of fixtureFiles) {
     sha256: createHash('sha256').update(bytes).digest('hex')});
 }
 const expectedTests = approval ? 1 : 2;
-const code = runFocusedTests('node', [approval
-  ? 'scripts/fixtures/packed-hubspot-approval.mjs' : 'scripts/fixtures/packed-hubspot-public.mjs'],
-  {cwd: application, expectedTests, timeout: approval ? 110000 : 50000, killSignal: 'SIGTERM'});
-// Verify immutable inputs even when the original functional case fails.
-await original.verifyUnchanged(); await verifyInstalled();
+let code;
+await symlink(software, softwareAlias, 'dir');
+try {
+  code = runFocusedTests('node', [approval
+    ? `scripts/fixtures/packed-${approvalConnector}-approval.mjs` : 'scripts/fixtures/packed-hubspot-public.mjs'],
+    {cwd: application, expectedTests, timeout: approval ? 110000 : 50000, killSignal: 'SIGTERM'});
+} finally {
+  // Return only this fresh link, never its original installed software target.
+  assert.equal(await readlink(softwareAlias), software);
+  await unlink(softwareAlias);
+  await original.verifyUnchanged(); await verifyInstalled();
+}
 // No false pass from startup failure, zero discovery, timeout or failed cleanup.
 assert.equal(code, 0, `Ordinary installed HubSpot runtime refused; original evidence: ${scratch.path}`);
 const focusedRoot = join(application, '_build', 'focused-evidence');

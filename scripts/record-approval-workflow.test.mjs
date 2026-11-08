@@ -11,6 +11,7 @@ import {salesforceUpdateCase, hubspotUpdateCase, kintoneUpdateCase} from './fixt
 import {runRecordUpdateApprovalPhase} from './fixtures/record-approval/workflow.mjs';
 import {runRecordApprovalCommand} from './fixtures/record-approval/command.mjs';
 import {hubspotApprovalProvider} from './fixtures/hubspot-approval/provider.mjs';
+import {kintoneApprovalProvider} from './fixtures/kintone-approval/provider.mjs';
 import {recordApprovalHostAccountConfiguration} from './fixtures/record-approval/host-account.fixture.mjs';
 import {observeRecordApprovalDescriptors, recordApprovalScopedPaths} from './fixtures/record-approval/scoped-fds.fixture.mjs';
 import {mockProjectFiles as salesforceMock} from './fixtures/salesforce-approval/mock-project.mjs';
@@ -508,4 +509,63 @@ test('shared record approval Account fixture never overwrites an existing Host r
       JSON.stringify({entries: [{entry_id, outcome: 'deny'}]}), 'principal', 'row-source-acquired'),
     /InvalidRecordApprovalAccountFixture/u);
   }
+});
+
+function kintoneProviderFixture() {
+  const selected = {...selection, recordId: '9007199254740993', controlId: '9007199254740994'};
+  const value = kintoneApprovalProvider(selected);
+  const exchange = (method, pathname, body, headers = {}, authorized = true) =>
+    ({method, pathname, headers, authorized, body: JSON.stringify(body)});
+  const body = {app: '12', records: [{id: selected.recordId, revision: '9007199254740994',
+    record: {Subject: {value: selected.nextName}}}], upsert: false};
+  const update = value.routes.find(route => route.method === 'PUT');
+  return {value, selected, body, exchange,
+    apply: (body, authorized = true) => update.handle(exchange('PUT', update.pathname, body, {}, authorized))};
+}
+
+test('kintone approval provider keeps string identity and original revision for one UPDATE', () => {
+  const f = kintoneProviderFixture(), before = f.value.snapshot();
+  assert.deepEqual(f.apply(f.body).body.records,
+    [{id: f.selected.recordId, revision: '9007199254740995'}]);
+  const after = f.value.snapshot();
+  assert.equal(after.target.name, selection.nextName);
+  assert.equal(after.target.revision, '9007199254740995');
+  assert.equal(after.writes, 1);
+  assert.deepEqual(after.control, before.control);
+  assert.throws(() => f.apply(f.body));
+  assert.equal(f.value.snapshot().writes, 1);
+});
+
+test('kintone approval provider refuses changed identity, revision, fields and UPSERT before mutation', () => {
+  for (const mutate of [body => {body.records[0].id = '123';},
+    body => {body.records[0].revision = '7';}, body => {delete body.records[0].revision;},
+    body => {body.records[0].record.Subject.value = 'wrong';},
+    body => {body.records[0].record.Computed = {value: 'unapproved'};},
+    body => {body.upsert = true;}]) {
+    const f = kintoneProviderFixture(), before = f.value.snapshot();
+    mutate(f.body); assert.throws(() => f.apply(f.body));
+    assert.equal(f.value.snapshot().writes, 0);
+    assert.deepEqual(f.value.snapshot().target, before.target);
+    assert.deepEqual(f.value.snapshot().control, before.control);
+  }
+  const f = kintoneProviderFixture();
+  assert.throws(() => f.apply(f.body, false));
+  assert.equal(f.value.snapshot().writes, 0);
+});
+
+test('kintone approval provider requires credential-bearing Form and exact selected-record reads', () => {
+  const f = kintoneProviderFixture();
+  const form = f.value.routes.find(route => route.pathname.endsWith('/app/form/fields.json'));
+  const read = f.value.routes.find(route => route.pathname === '/k/v1/records.json' && route.method === 'POST');
+  const headers = {'x-http-method-override': 'GET'};
+  assert.throws(() => form.handle(f.exchange('POST', form.pathname, {app: '12'}, headers, false)));
+  assert.equal(form.handle(f.exchange('POST', form.pathname, {app: '12'}, headers)).body.revision, '7');
+  const body = {app: '12', fields: ['$id', '$revision', 'Computed', 'Subject', 'Tags'],
+    query: `$id in (${f.selected.recordId}) order by $id asc limit 1`};
+  const response = read.handle(f.exchange('POST', read.pathname, body, headers));
+  assert.equal(response.body.records.length, 1);
+  assert.equal(response.body.records[0].$id.value, f.selected.recordId);
+  assert.equal(response.body.records[0].Subject.value, selection.previousName);
+  assert.throws(() => read.handle(f.exchange('POST', read.pathname, {...body, query: 'all'}, headers)));
+  assert.equal(f.value.snapshot().writes, 0);
 });

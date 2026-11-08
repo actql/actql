@@ -104,3 +104,27 @@ Run. Observe the external control record, installed payload and live process
 FDs separately. A returned public close is not a physical provider ACK, and
 process exit is not an alive-FD observation. Configuration readiness, mock and
 TLS passes remain distinct from real-account acceptance.
+
+## Reproduce the owned TLS provider case
+
+The maintained `packed-kintone-approval.mjs` uses this same Program pair and
+the same shared installed fixture/command/workflow as HubSpot. It checks the
+original string `$id` and `$revision`, exact `Subject` payload and explicit
+`upsert: false`; a different control record remains unchanged. Its fixture
+Form comes from the existing kintone UPDATE Form fixture, including writable,
+option-valued and computed fields. A credential header's presence is observed,
+not the validity or permissions of a real API token.
+
+Use the existing bounded local-check wrapper to invoke
+`scripts/test-packed-hubspot-source.mjs ORIGINAL_SOURCE NORMAL_RELEASE_DIRECTORY CLOSED_APPLICATION --kintone-approval`
+with absolute paths. This preserves the original normal release admission,
+archive digests and installed-member checks, and selects only the one kintone
+three-process case. Set `ACTQL_TEST_PRESERVE_SCRATCH=1`; clear ambient loader
+overlays and local Source/Effect profile environment variables. No build or npm
+install is performed. Keep the original printed root on every outcome.
+
+Each phase has a 30-second whole-child limit. After the existing public close
+returns, two still-live snapshots include exact canonical Host/Credential root
+directories and all descendants. The observer does not acknowledge physical
+cleanup. The setup closes its real installed Source bootstrap before the
+public phases; Saved-first recovery must make no provider request or UPDATE.
