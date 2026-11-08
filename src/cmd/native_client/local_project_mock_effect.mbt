@@ -20,7 +20,10 @@ fn[I] LocalProjectMockDeclarations::prepare_effect_models(
   occurrences : Array[@run_host.ClientInferOccurrence],
   environment : @checked.CheckEnvironment,
   contracts : @local_values.ClientInstalledSequenceContracts,
-) -> Array[LocalProjectMockEffectModelInput] raise ClientStop {
+) -> Result[
+  Array[LocalProjectMockEffectModelInput],
+  @local_values.ClientRequestProgramPlanIssue,
+] raise ClientStop {
   guard !self.closing &&
     !self.retired &&
     self.model_environment is Some((_, original_environment)) &&
@@ -83,25 +86,29 @@ fn[I] LocalProjectMockDeclarations::prepare_effect_models(
         Some(profile)
       }
     }
-    let graph = @local_values.prepare_request_model_graph(
-      parent,
-      input,
-      occurrence,
-      execution,
-      contracts,
-      manifests=native_request_manifests,
-      compilation_limits=@run_host.client_standard_pure_compilation_limits(),
-      keyed_native_profile~,
-      caller_material=Some(
-        native_mock_effect_model_selection_storage(
-          if index == 0 {
-            occurrences.length()
-          } else {
-            0
-          },
+    let graph = match
+      @local_values.prepare_request_model_graph(
+        parent,
+        input,
+        occurrence,
+        execution,
+        contracts,
+        manifests=native_request_manifests,
+        compilation_limits=@run_host.client_standard_pure_compilation_limits(),
+        keyed_native_profile~,
+        caller_material=Some(
+          native_mock_effect_model_selection_storage(
+            if index == 0 {
+              occurrences.length()
+            } else {
+              0
+            },
+          ),
         ),
-      ),
-    ).unwrap_or_else(() => stop("LocalOriginalModelGraphUnavailable"))
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
     let limits = @infer.prepared_composed_bounds(occurrence, graph).unwrap_or_else(() => {
         stop("LocalOriginalModelBoundsUnavailable")
       },
@@ -113,7 +120,7 @@ fn[I] LocalProjectMockDeclarations::prepare_effect_models(
       _retained_limits: limits,
     })
   }
-  models
+  Ok(models)
 }
 
 ///|

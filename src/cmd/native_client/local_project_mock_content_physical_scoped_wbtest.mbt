@@ -25,6 +25,18 @@ test "Native original README retains both keyed Content originals for its Model 
 }
 
 ///|
+test "Native README keyed capture preserves original raw snapshot after ContentRef projection" {
+  assert_eq(@env.get_env_var("ACTQL_TEST_NATIVE_RAW_SNAPSHOT"), Some("1"))
+  native_project_mock_model_backed_read(
+    false,
+    readme_request=true,
+    effect_compilation=true,
+    effect_source_inputs=true,
+    content_join=true,
+  )
+}
+
+///|
 test "Native README Source originals retain the keyed Model closure" {
   assert_eq(
     @env.get_env_var("ACTQL_TEST_NATIVE_MODEL_SOURCE_CLOSURE"),
@@ -357,6 +369,10 @@ fn native_mock_readme_content_join_adopt(
     assert_true(done)
     let captured = capture.capture().unwrap()
     captures.push(@row_host.row_capture_input(captured).unwrap())
+    // Cleanup checks the original kind even when this case does not collect
+    // the optional publication closure. Retain the same original for both.
+    let same_original = evidence_original.unwrap()
+    source_originals.push(same_original)
     if collect_closure {
       let source = @row_host.row_capture_source(captured).unwrap()
       let identity = @query.identify_captured_source_relation(
@@ -371,7 +387,6 @@ fn native_mock_readme_content_join_adopt(
       let dag = @strategy.checked_effect_computation_graph(
         @run_host.prepared_client_effect_computation_graph(prepared),
       )
-      let same_original = evidence_original.unwrap()
       let (logical, observation) = match same_original {
         Whole(original, acquisition) => {
           let logical = @run_host.issue_captured_whole_source_input_logical(
@@ -462,7 +477,6 @@ fn native_mock_readme_content_join_adopt(
           (logical, observation)
         }
       }
-      source_originals.push(same_original)
       source_identities.push(identity)
       source_logicals.push(logical)
       source_observations.push(observation)
@@ -689,6 +703,11 @@ fn native_mock_readme_content_join_adopt(
     ).native_content_physical_stage(
       "original keyed Native child row " + row.to_string(),
     )
+    if @env.get_env_var("ACTQL_TEST_NATIVE_RAW_SNAPSHOT") == Some("1") {
+      assert_true(
+        content.keyed_raw_snapshot_identity() is Err(@row_file.Unavailable),
+      )
+    }
     let mut done = false
     for _ in 0..<100000 {
       let before = @initial_resources.ledger_usage(ledger)
@@ -720,6 +739,21 @@ fn native_mock_readme_content_join_adopt(
       }
     }
     assert_true(done)
+    if @env.get_env_var("ACTQL_TEST_NATIVE_RAW_SNAPSHOT") == Some("1") {
+      let expected_cid = @env.get_env_var("ACTQL_TEST_NATIVE_RAW_SNAPSHOT_CID").unwrap()
+      let expected_bytes = @env.get_env_var(
+        "ACTQL_TEST_NATIVE_RAW_SNAPSHOT_BYTES",
+      ).unwrap()
+      let (cid, size) = content
+        .keyed_raw_snapshot_identity()
+        .native_content_join_stage("original raw snapshot identity")
+      assert_eq(cid, expected_cid)
+      assert_eq(size.to_string(), expected_bytes)
+      // This is the original physical document, not the single projected
+      // ContentRef row or the selected business field's logical digest.
+      assert_true(size > 0)
+      assert_eq(content.keyed_raw_snapshot_identity().unwrap(), (cid, size))
+    }
     let captured = content
       .keyed_capture()
       .native_content_join_stage("original keyed capture")
@@ -1001,6 +1035,11 @@ fn native_mock_readme_content_join_adopt(
     assert_true(
       content.close().native_content_join_stage("Content first physical close"),
     )
+    if @env.get_env_var("ACTQL_TEST_NATIVE_RAW_SNAPSHOT") == Some("1") {
+      assert_true(
+        content.keyed_raw_snapshot_identity() is Err(@row_file.Unavailable),
+      )
+    }
   }
   assert_true(
     store.close().native_content_join_stage("Content Store first close"),

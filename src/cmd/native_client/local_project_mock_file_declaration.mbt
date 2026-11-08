@@ -156,9 +156,32 @@ fn local_project_mock_file_declaration(
       is Some(content) else {
       return Err(InvalidSpecification)
     }
-    // Rebind only public contract originals after Common's final admission.
+    // The facts above change the SourceView identity. Bind the implementation
+    // descriptor to that final admitted declaration as well; retaining the
+    // initial descriptor would name a different view in the first Model Plan.
     // The physical provider/selection/limits are the SAME retained originals.
-    rebound.push({ ..file, listing, content, })
+    let read_profile = match
+      @row_file.prepare_native_relation_file_keyed_read_profile(
+        declaration,
+        content.source_ref,
+        file._retained_provider,
+        {
+          name: file._retained_name,
+          version: file._retained_version,
+          media_type: file._retained_media_type,
+          path: file._retained_path,
+        },
+        file._retained_content_utf8,
+      ) {
+      Ok(value) => value
+      Err(_) => return Err(InvalidSpecification)
+    }
+    rebound.push({
+      ..file,
+      listing,
+      content,
+      _retained_read_profile: read_profile,
+    })
   }
   Ok((declaration, rebound, scope))
 }

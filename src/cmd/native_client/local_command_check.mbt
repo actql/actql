@@ -48,6 +48,7 @@ fn command_preparation_cleanup_kind(
     CommandBusinessChildren => "business-children"
     CommandBusinessSource(_) => "business-source"
     CommandBusinessModel(_) => "business-model"
+    CommandBusinessModelGraph(_) => "business-model-graph"
     CommandBusinessSourceIdentity(_) => "business-source-identity"
     CommandBusinessEffectProposals(_) => "business-effect-proposals"
     CommandBusinessEffectAcceptance(_) => "business-effect-acceptance"

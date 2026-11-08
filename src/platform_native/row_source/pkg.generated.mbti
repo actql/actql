@@ -46,9 +46,11 @@ pub fn prepare_native_managed_relation_file_query_listing_capture(@installed_are
 
 pub fn prepare_native_relation_file_capture(@installed_arena_control.InstalledArenaHost, @installed_arena_control.InstalledArenaRetainedExecution, @client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, @client_row_source_host.RowAcquisition, String, NativeRelationFileSelection, NativeRelationFileLimits) -> Result[NativeRelationFileCapture, NativeRelationFileFailure]
 
-pub fn prepare_native_relation_file_content_input(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientKeyedAcquisition, @run_publication_host.ClientKeyedRequest, @publication_store.Store, NativeRelationFileListingFields, String, String, @value_admission.ReferenceLimits, Int, () -> Int64, () -> String, (@value_admission.ReferenceValue) -> String?) -> Result[NativeRelationFileContentInput, NativeRelationFileIssue]
+pub fn prepare_native_relation_file_content_input(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientKeyedAcquisition, @run_publication_host.ClientKeyedRequest, @publication_store.Store, NativeRelationFileListingFields, String, String, @value_admission.ReferenceLimits, Int, () -> Int64, () -> String, (@value_admission.ReferenceValue) -> String?, read_profile? : NativeRelationFileKeyedReadProfile?) -> Result[NativeRelationFileContentInput, NativeRelationFileIssue]
 
 pub fn prepare_native_relation_file_input_capture(@installed_arena_control.InstalledArenaHost, @installed_arena_control.InstalledArenaRetainedExecution, @client_row_source_host.RowDeclaration, @client_row_source_host.RowInputAcquisition, String, NativeRelationFileSelection, NativeRelationFileLimits) -> Result[NativeRelationFileCapture, NativeRelationFileFailure]
+
+pub fn prepare_native_relation_file_keyed_read_profile(@client_row_source_host.RowDeclaration, String, NativeRelationFilePreparedProvider, NativeRelationFileListingFields, String) -> Result[NativeRelationFileKeyedReadProfile, NativeRelationFileIssue]
 
 pub fn prepare_native_relation_file_listing_provider(@client_row_source_host.RowDeclaration, String, NativeRelationFilePreparedProvider, NativeRelationFileListingFields, @value_admission.ReferenceIssuer, (String) -> Result[@value_admission.CheckedValue, NativeRelationFileIssue], now_ms? : (() -> Int64)?) -> Result[NativeRelationFileListingProvider, NativeRelationFileIssue]
 
@@ -71,6 +73,7 @@ pub fn NativeRelationFileCapture::close(Self) -> Result[Bool, NativeRelationFile
 pub fn NativeRelationFileCapture::complete_keyed_content_page(Self, @client_row_source_host.RelationDocument, Bytes) -> Result[Unit, NativeRelationFileFailure]
 pub fn NativeRelationFileCapture::keyed_capture(Self) -> Result[@client_row_source_host.RowKeyedSourceCapture, NativeRelationFileIssue]
 pub fn NativeRelationFileCapture::keyed_content_document(Self) -> Result[@client_row_source_host.RelationDocument, NativeRelationFileIssue]
+pub fn NativeRelationFileCapture::keyed_raw_snapshot_identity(Self) -> Result[(String, Int), NativeRelationFileIssue]
 
 type NativeRelationFileContentInput
 
@@ -95,6 +98,9 @@ pub(all) enum NativeRelationFileIssue {
   Store(@publication_store.NativePublicationStoreIssue)
   Lookup(@run_publication_host.ClientKeyedRequestIssue)
 }
+
+type NativeRelationFileKeyedReadProfile
+pub fn NativeRelationFileKeyedReadProfile::contract(Self) -> @run_publication.PublicationContract
 
 pub(all) struct NativeRelationFileLimits {
   page : @client_row_source_host.RowPageLimits

@@ -291,13 +291,20 @@ fn LocalCommandBusinessPreparation::compile_effect_first(
         project.mock_declarations is Some(mock) else {
         stop("LocalOriginalModelUnavailable")
       }
-      mock.prepare_effect_models(
-        parent,
-        input,
-        occurrences,
-        self.environment,
-        self.installed_contracts,
-      )
+      match
+        mock.prepare_effect_models(
+          parent,
+          input,
+          occurrences,
+          self.environment,
+          self.installed_contracts,
+        ) {
+        Ok(value) => value
+        Err(issue) => {
+          self.original.retain_primary(CommandBusinessModelGraph(issue))
+          stop("LocalOriginalModelGraphUnavailable")
+        }
+      }
     }
     let direct = @run_host.select_client_effect_direct_acquisition_occurrences(
       prepared, 1000000,
