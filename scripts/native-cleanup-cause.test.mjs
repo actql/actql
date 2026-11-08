@@ -99,11 +99,17 @@ test('cleanup category never serializes payloads and keeps public error code', {
           }
       }`);
   const proposalStart = functionSource.indexOf('    CommandBusinessEffectProposals(cause) =>');
-  const proposalEnd = functionSource.indexOf('\n    CommandBusinessModel(cause) =>', proposalStart);
+  const proposalEnd = functionSource.indexOf('\n    CommandBusinessSourceIdentity(cause) =>', proposalStart);
   assert(proposalStart > 0 && proposalEnd > proposalStart);
   const effectProposals = functionSource.slice(proposalStart, proposalEnd);
   assert.equal(effectProposals, `    CommandBusinessEffectProposals(cause) =>
       match cause {
+        Keyed(original) =>
+          match original {
+            Identity(_) => "EffectProposalsKeyedContract"
+            Wire(_) => "EffectProposalsKeyedWire"
+            _ => "EffectProposalsKeyedIdentity"
+          }
         Managed(original) =>
           match original {
             InsufficientCapacity => "EffectProposalsInsufficientCapacity"
@@ -135,7 +141,31 @@ test('cleanup category never serializes payloads and keeps public error code', {
             _ => "EffectProposalsCompleted"
           }
       }`);
-  let covered = functionSource.replace(projectMock, '').replace(effectProposals, '');
+  const identityStart = functionSource.indexOf('    CommandBusinessSourceIdentity(cause) =>');
+  const identityEnd = functionSource.indexOf('\n    CommandBusinessModel(cause) =>', identityStart);
+  assert(identityStart > 0 && identityEnd > identityStart);
+  const sourceIdentity = functionSource.slice(identityStart, identityEnd);
+  assert.equal(sourceIdentity, `    CommandBusinessSourceIdentity(cause) =>
+      match cause {
+        Read(issue) =>
+          match issue {
+            ForeignRun => "ReadForeignRun"
+            InvalidBootstrap => "ReadInvalidBootstrap"
+            Resource(_) => "ReadResource"
+          }
+        Source(issue) =>
+          match issue {
+            Unavailable => "SourceUnavailable"
+            Binding(_) => "SourceBinding"
+            Completion(_) => "SourceCompletion"
+            Storage(_) => "SourceStorage"
+            Export(_) => "SourceExport"
+            DependencyBodyLimit => "SourceDependencyBodyLimit"
+          }
+        Capacity => "SourceIdentityCapacity"
+        ForeignOriginal => "SourceIdentityForeignOriginal"
+      }`);
+  let covered = functionSource.replace(projectMock, '').replace(effectProposals, '').replace(sourceIdentity, '');
   const nested = [...covered.matchAll(/    (Command\w+)\(cause\) =>\s+match cause \{([\s\S]*?)\n      \}/g)];
   assert.ok(nested.length >= 20);
   for (const [block, variant, body] of nested) {
@@ -255,6 +285,11 @@ test('cleanup category never serializes payloads and keeps public error code', {
       tags: {ForeignMaterial: 'EffectProposalsForeignMaterial', Closed: 'EffectProposalsClosed'},
       fallback: 'EffectProposalsCompleted',
     },
+    Keyed: {
+      path: 'src/run_publication_host/client_keyed_acquisition.mbt', name: 'ClientKeyedRequestIssue',
+      tags: {Identity: 'EffectProposalsKeyedContract', Wire: 'EffectProposalsKeyedWire'},
+      fallback: 'EffectProposalsKeyedIdentity',
+    },
   };
   assert.deepEqual(proposalIssues, Object.keys(proposalFamilies).map(name => ({name, arity: 1})));
   const proposalTypes = {};
@@ -269,6 +304,35 @@ test('cleanup category never serializes payloads and keeps public error code', {
   }
   declare('ProbeCommandBusinessEffectProposals', proposalIssues, proposalTypes);
   outer.push('  CommandBusinessEffectProposals(ProbeCommandBusinessEffectProposals)');
+  const identityIssues = enumCases('src/cmd/native_client/local_effect_mock_source_identity.mbt',
+    'LocalNativeMockSourceIdentityIssue');
+  assert.deepEqual(identityIssues, [{name: 'Read', arity: 1}, {name: 'Source', arity: 1},
+    {name: 'Capacity', arity: 0}, {name: 'ForeignOriginal', arity: 0}]);
+  const identityFamilies = {
+    Read: {
+      path: 'src/run_publication_host/client_model_read_preparation.mbt', name: 'ClientModelReadPreparationIssue',
+      tags: {ForeignRun: 'ReadForeignRun', InvalidBootstrap: 'ReadInvalidBootstrap', Resource: 'ReadResource'},
+    },
+    Source: {
+      path: 'src/execution_query/captured_source.mbt', name: 'CapturedSourceIssue',
+      tags: {Unavailable: 'SourceUnavailable', Binding: 'SourceBinding', Completion: 'SourceCompletion',
+        Storage: 'SourceStorage', Export: 'SourceExport', DependencyBodyLimit: 'SourceDependencyBodyLimit'},
+    },
+  };
+  const identityTypes = {};
+  for (const [family, owner] of Object.entries(identityFamilies)) {
+    const cases = enumCases(owner.path, owner.name);
+    assert.deepEqual(Object.keys(owner.tags), cases.map(item => item.name));
+    const type = 'ProbeSourceIdentity' + family;
+    declare(type, cases);
+    identityTypes[family] = [type];
+    for (const item of cases) assertions.push(
+      `  assert_eq(command_preparation_cleanup_cause(CommandBusinessSourceIdentity(${family}(${value(item)}))), "${owner.tags[item.name]}")`);
+  }
+  for (const [name, tag] of [['Capacity', 'SourceIdentityCapacity'], ['ForeignOriginal', 'SourceIdentityForeignOriginal']])
+    assertions.push(`  assert_eq(command_preparation_cleanup_cause(CommandBusinessSourceIdentity(${name})), "${tag}")`);
+  declare('ProbeCommandBusinessSourceIdentity', identityIssues, identityTypes);
+  outer.push('  CommandBusinessSourceIdentity(ProbeCommandBusinessSourceIdentity)');
   const commands = enumCases('src/cmd/native_client/local_command_preparation.mbt', 'LocalCommandPreparationIssue');
   assert.deepEqual(new Set(outer.map(line => /Command\w+/u.exec(line)[0])), new Set(commands.map(entry => entry.name)));
   for (const [name, tag] of [['ForeignOriginal', 'ProjectMockForeignOriginal'],
