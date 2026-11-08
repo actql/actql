@@ -16,6 +16,7 @@ import './composition-release-input.test.mjs';
 import './table-ctas-result-controls.test.mjs';
 import './packed-original-submission-callers.test.mjs';
 import './record-approval-workflow.test.mjs';
+import './record-approval-ci-input.test.mjs';
 import {parse} from 'yaml';
 import {parse as parseJavaScript} from 'acorn';
 import {optionalEffectCases} from './fixtures/two-source-optional-effect.mjs';
@@ -781,6 +782,9 @@ test('each Client group retains its acceptance commands exactly once', () => {
   assert.deepEqual(runs('client-packed'), [
     'node scripts/test-packed-local-node-assets.mjs',
     'node scripts/test-packed-sheets.mjs',
+    `for selection in --approval --kintone-approval --mock-salesforce-approval --mock-hubspot-approval --mock-kintone-approval; do
+  node scripts/test-packed-hubspot-source.mjs --ci "$selection"
+done`,
     'npm run check:packed-embedded-checkpoint',
     'node scripts/test-packed-single-infer.mjs',
     'node scripts/test-packed-infer-evaluation.mjs',

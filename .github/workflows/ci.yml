@@ -1538,6 +1538,14 @@ jobs:
       - name: Test packed Sheets
         if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
         run: node scripts/test-packed-sheets.mjs
+      - name: Test packed connector record approval and original Saved
+        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        env:
+          ACTQL_TEST_PRESERVE_SCRATCH: '1'
+        run: |
+          for selection in --approval --kintone-approval --mock-salesforce-approval --mock-hubspot-approval --mock-kintone-approval; do
+            node scripts/test-packed-hubspot-source.mjs --ci "$selection"
+          done
       - name: Test packed Embedded Local Checkpoint and Named Result
         if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
         run: npm run check:packed-embedded-checkpoint
