@@ -75,9 +75,13 @@ async function authorizationCode(url, redirectUri, state, authorize, timeoutMill
 
 export async function loginHubSpotOAuth(configuration, installUrl, {fetchToken = fetch,
   authorize = url => execute('open', [url], {timeout: 10000}), timeoutMilliseconds = 180000} = {}) {
-  const {clientId, clientSecretFile, redirectUri, tokensFile} = configuration;
+  const {clientId, clientSecretFile, redirectUri, tokensFile, expectedHubId} = configuration;
   for (const path of [clientSecretFile, tokensFile]) assert(isAbsolute(path));
   assert.equal(typeof clientId, 'string');
+  if (expectedHubId !== undefined && (typeof expectedHubId !== 'string' ||
+      !/^[1-9][0-9]*$/u.test(expectedHubId) || !Number.isSafeInteger(Number(expectedHubId)))) {
+    fail('InvalidHubSpotOAuthAccountSelection');
+  }
   const state = randomBytes(32).toString('hex');
   const url = hubspotAuthorizationUrl(installUrl, {clientId, redirectUri}, state);
   const handle = await open(clientSecretFile, constants.O_RDONLY | constants.O_NOFOLLOW);
@@ -114,6 +118,7 @@ export async function loginHubSpotOAuth(configuration, installUrl, {fetchToken =
       !Number.isSafeInteger(token.expires_in) || token.expires_in <= 0 ||
       !(Number.isSafeInteger(token.hub_id) && token.hub_id > 0) ||
       !Array.isArray(token.scopes) || !token.scopes.every(value => typeof value === 'string')) fail('InvalidHubSpotOAuthTokenResponse');
+  if (expectedHubId !== undefined && String(token.hub_id) !== expectedHubId) fail('HubSpotOAuthAccountMismatch');
   const expiresAt = new Date(Date.now() + token.expires_in * 1000).toISOString();
   await writeFile(tokensFile, JSON.stringify({access_token: token.access_token, refresh_token: token.refresh_token,
     token_type: token.token_type, hub_id: token.hub_id, scopes: token.scopes, expiresAt}) + '\n', {mode: 0o600, flag: 'wx'});

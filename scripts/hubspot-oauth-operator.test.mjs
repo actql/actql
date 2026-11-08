@@ -47,6 +47,7 @@ test('HubSpot OAuth operator preserves selected scopes and refuses foreign or se
 
 test('HubSpot OAuth operator accepts one original-state callback, stores private tokens and closes its listener', async t => {
   const f = await fixture(t); let calls = 0, callback;
+  f.configuration.expectedHubId = '7';
   const result = await loginHubSpotOAuth(f.configuration, f.install, {
     async authorize(url) {
       callback = f.callback(url);
@@ -68,6 +69,25 @@ test('HubSpot OAuth operator accepts one original-state callback, stores private
   assert.equal(saved.access_token, 'synthetic-access'); assert.equal(saved.refresh_token, 'synthetic-refresh');
   assert.equal((await stat(result.tokensFile)).mode & 0o777, 0o600);
   await assert.rejects(fetch(callback));
+});
+
+test('HubSpot OAuth operator rejects another account without saving tokens and validates selection before browser use', async t => {
+  const f = await fixture(t); let calls = 0, browsers = 0, callback;
+  const options = {async authorize(url) {
+    browsers++; callback = f.callback(url); const response = await fetch(callback); await response.text();
+  }, async fetchToken() {
+    calls++;
+    return new Response(JSON.stringify({access_token: 'foreign-synthetic-access', refresh_token: 'foreign-synthetic-refresh',
+      token_type: 'bearer', expires_in: 1800, hub_id: 8, scopes: ['oauth']}));
+  }};
+  await assert.rejects(loginHubSpotOAuth({...f.configuration, expectedHubId: '7'}, f.install, options),
+    error => error.code === 'HubSpotOAuthAccountMismatch' && !error.message.includes('foreign-synthetic'));
+  assert.equal(calls, 1); assert.equal(browsers, 1);
+  await assert.rejects(stat(f.configuration.tokensFile), {code: 'ENOENT'});
+  await assert.rejects(fetch(callback));
+  await assert.rejects(loginHubSpotOAuth({...f.configuration, expectedHubId: 7}, f.install, options),
+    {code: 'InvalidHubSpotOAuthAccountSelection'});
+  assert.equal(calls, 1); assert.equal(browsers, 1);
 });
 
 test('HubSpot OAuth operator preserves token refusal without leaking provider body or writing a token file', async t => {
