@@ -203,3 +203,60 @@ fn client_local_decimal_text_bound(
   }
   Some(Int::min(original_text_limit, total))
 }
+
+///|
+// Borrow cached admission geometry from the SAME literal Values originals.
+// No second row/payload scan, parse, serialization or value copy occurs.
+// Parameters and other step families retain the original general policy.
+fn client_local_original_values_text_bound(
+  sequences : Array[@execution.GeneratedSequence],
+  demand : ClientLocalValueNodeDemand,
+  max_work? : Int = client_local_schema_proof_work(),
+) -> (Int, Int)? {
+  let mut remaining = max_work
+  let mut text = 0L
+  for sequence in sequences {
+    let original = @execution.generated_prepared_sequence(sequence)
+    let owner = @lower.sequence_owner(original)
+    let prepared = @lower.bound_preparation(owner)
+    if @lower.preparation_input_count(prepared) != 0 {
+      return None
+    }
+    for step in 0..<@lower.sequence_count(original) {
+      if remaining < 1 {
+        return None
+      }
+      remaining -= 1
+      guard @lower.sequence_step(original, step) is Some(@lower.ValuesStep(_)) &&
+        @lower.node_at(prepared, step) is Some(node) &&
+        @lower.node_relation_schema(node) is Some(schema) &&
+        client_local_json_leaf_schema(schema) &&
+        @lower.node_values_literal_text_bytes(node) is Some(bytes) else {
+        return None
+      }
+      let fields = @schema.field_count(schema)
+      if fields > remaining {
+        return None
+      }
+      remaining -= fields
+      text = Int64::max(text, bytes.to_int64())
+    }
+  }
+  guard text > 0L &&
+    @execution.checked_preparation_add_product(
+      text,
+      demand.original.max_name_width,
+      demand.rows.to_int64(),
+    )
+    is Some(total) &&
+    total < 2147483647L &&
+    client_local_json_leaf_wire_byte_bound(
+      demand.original.fields,
+      demand.rows,
+      total,
+    )
+    is Some(wire) else {
+    return None
+  }
+  Some((total.to_int(), wire))
+}

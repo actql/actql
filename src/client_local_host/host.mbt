@@ -604,7 +604,7 @@ fn prepare_client_local_configuration(
   let capacity : @connector.FixedComputeCapacity = {
     contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
     max_rows,
-    max_value_bytes: 10000,
+    max_value_bytes: capacity_plan.max_value_bytes,
     common_fragment: None,
   }
   let providers = match

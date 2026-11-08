@@ -253,6 +253,7 @@ fn decode_envelope(
     possible_growth: 0,
     projected_fields: 0,
     max_label_utf16: id.length(),
+    may_contain_expression_syntax: false,
   }
   let stages : Array[Stage] = []
   let seen : Map[String, Stage] = Map([])
@@ -424,6 +425,7 @@ fn decode_envelope(
       possible_growth: preparation.possible_growth,
       projected_fields: preparation.projected_fields,
       max_label_utf16: preparation.max_label_utf16,
+      may_contain_expression_syntax: preparation.may_contain_expression_syntax,
     },
   }
 }
