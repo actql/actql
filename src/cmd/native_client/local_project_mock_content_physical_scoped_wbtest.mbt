@@ -37,6 +37,7 @@ test "Native README Source originals retain the keyed Model closure" {
     effect_compilation=true,
     effect_source_inputs=true,
     content_join=true,
+    static_policy=true,
   )
 }
 
@@ -181,7 +182,7 @@ fn native_mock_readme_content_join_adopt(
   facility.run = Some(owner)
   let native_children : Array[@row_file.NativeRelationFileCapture] = []
   let captures : Array[@row_host.RowCapturedInput] = []
-  let source_requirements : Array[@test_planning.QueryRequirement] = []
+  let source_originals : Array[NativeMockSourceEvidenceOriginal] = []
   let source_identities = []
   let source_logicals = []
   let source_observations = []
@@ -294,7 +295,8 @@ fn native_mock_readme_content_join_adopt(
       let dag = @strategy.checked_effect_computation_graph(
         @run_host.prepared_client_effect_computation_graph(prepared),
       )
-      let (selected, logical, observation) = match evidence_original.unwrap() {
+      let same_original = evidence_original.unwrap()
+      let (logical, observation) = match same_original {
         Whole(original, acquisition) => {
           let logical = @run_host.issue_captured_whole_source_input_logical(
             dag,
@@ -313,7 +315,7 @@ fn native_mock_readme_content_join_adopt(
             facts.source_data_policy_cid,
             source_completed,
           ).native_content_join_stage("actual whole Source observation")
-          (None, logical, observation)
+          (logical, observation)
         }
         Query(acquisition) => {
           let requirement = @row_host.row_acquisition_requirement(acquisition)
@@ -383,14 +385,10 @@ fn native_mock_readme_content_join_adopt(
               source_completed,
             )
           }).native_content_join_stage("actual Query Source observation")
-          (Some(requirement), logical, observation)
+          (logical, observation)
         }
       }
-      source_requirements.push(
-        selected.unwrap_or_else(() => {
-          fail("this selected README fixture uses two original Query captures")
-        }),
-      )
+      source_originals.push(same_original)
       source_identities.push(identity)
       source_logicals.push(logical)
       source_observations.push(observation)
@@ -401,7 +399,7 @@ fn native_mock_readme_content_join_adopt(
     )
     .unwrap()
     .unwrap()
-  let prefix = @local_values.start_installed_original_composed_keyed_input_prefix(
+  let prefix_result = @local_values.start_installed_original_composed_keyed_input_prefix(
     owner,
     scope,
     compiled,
@@ -411,7 +409,30 @@ fn native_mock_readme_content_join_adopt(
     captures,
     limits.input,
     limits.measurement,
-  ).native_content_join_stage("same two Source prefix")
+  )
+  let prefix = match prefix_result {
+    Ok(value) => value
+    Err(issue) => {
+      let label = match issue {
+        @local_values.Unavailable => "Unavailable"
+        @local_values.Original(value) => "Original: " + @debug.to_string(value)
+        @local_values.Physical(value) => "Physical: " + @debug.to_string(value)
+        @local_values.Provider(_) => "Provider"
+        @local_values.Capture(
+          @test_query.Binding(@execution.ProducerBindingMismatch)
+        ) => "Capture: ProducerBindingMismatch"
+        @local_values.Capture(
+          @test_query.Binding(@execution.ProducerOwnerMismatch)
+        ) => "Capture: ProducerOwnerMismatch"
+        @local_values.Capture(
+          @test_query.Binding(@execution.ProducerTargetMismatch)
+        ) => "Capture: ProducerTargetMismatch"
+        @local_values.Capture(_) => "Capture"
+        @local_values.ProducerRead(_) => "ProducerRead"
+      }
+      fail("same two Source prefix: " + label)
+    }
+  }
   let mut done = false
   for _ in 0..<100000 {
     match
@@ -752,25 +773,59 @@ fn native_mock_readme_content_join_adopt(
       let keyed_observation = @run_host.issue_client_keyed_lookup_observation(
         lookup, source_authority, source_completed,
       ).native_content_join_stage("actual keyed Source observation")
-      let admit = (selected, originals, keyed) => {
-        @run_host.admit_client_infer_composed_sources(
-          graph.occurrence,
-          selected,
-          source_identities,
-          originals,
-          source_logicals,
-          source_observations,
-          source_authority,
-          "2026-10-12T00:00:00.000Z",
-          source_completed,
-          keyed~,
-        )
+      let admit = (
+        selected,
+        originals : Array[NativeMockSourceEvidenceOriginal],
+        keyed,
+      ) => {
+        // Consume the actual preselected acquisition originals, never try a
+        // Query refusal and then substitute a whole-input fallback. The old
+        // generated TRUE filter selected Query; an absent predicate now keeps
+        // its existing unfiltered whole-input path and its own evidence API.
+        if originals.all(original => original is Query(_)) {
+          @run_host.admit_client_infer_composed_sources(
+            graph.occurrence,
+            selected,
+            source_identities,
+            originals.map(original => {
+              guard original is Query(acquisition) else {
+                fail("selected original Query acquisition")
+              }
+              @row_host.row_acquisition_requirement(acquisition)
+            }),
+            source_logicals,
+            source_observations,
+            source_authority,
+            "2026-10-12T00:00:00.000Z",
+            source_completed,
+            keyed~,
+          )
+        } else {
+          assert_true(originals.all(original => original is Whole(_, _)))
+          @run_host.admit_client_infer_composed_whole_sources(
+            graph.occurrence,
+            selected,
+            source_identities,
+            originals.map(original => {
+              guard original is Whole(value, _) else {
+                fail("selected original whole-input acquisition")
+              }
+              value
+            }),
+            source_logicals,
+            source_observations,
+            source_authority,
+            "2026-10-12T00:00:00.000Z",
+            source_completed,
+            keyed~,
+          )
+        }
       }
-      assert_true(admit(selected_sources, source_requirements, None) is Err(_))
+      assert_true(admit(selected_sources, source_originals, None) is Err(_))
       assert_true(
         admit(
           [selected_sources[1], selected_sources[0]],
-          source_requirements,
+          source_originals,
           Some(keyed_observation),
         )
         is Err(_),
@@ -778,14 +833,14 @@ fn native_mock_readme_content_join_adopt(
       assert_true(
         admit(
           selected_sources,
-          [source_requirements[1], source_requirements[0]],
+          [source_originals[1], source_originals[0]],
           Some(keyed_observation),
         )
         is Err(_),
       )
       let closure = admit(
         selected_sources,
-        source_requirements,
+        source_originals,
         Some(keyed_observation),
       ).native_content_join_stage("actual Source Model closure")
       assert_true(
@@ -908,7 +963,9 @@ fn native_mock_readme_content_join_adopt(
       }
     }
     assert_true(closed)
-    if index == 1 {
+    if index == 1 && source_originals[index] is Query(_) {
+      // This original Query listing reclaims one retained report per close.
+      // Whole input uses its own close protocol and need not invent Pending.
       assert_true(pending)
     }
   }

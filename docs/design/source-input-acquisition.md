@@ -81,7 +81,21 @@ The original Source/Compute Plan retains a complete-input variant. Its checked
 physical graph view supplies the exact input to the original root computation;
 the authored root remains pending and executes its actual Select, Sort and
 other supported operations. Program, Parameters, task coordinates, Result ports
-and downstream wiring remain original. Whole-input native file listings require their different Resource custody and
+and downstream wiring remain original.
+
+An independent whole-input Root feeding a composed keyed Model prefix executes
+its retained Plan sequence before the prefix imports that Root's Result. The
+existing bounded Local provider runs on the same Run Ledger. Its actual output,
+exact operation input reads and original reservation form the retained producer
+provenance; raw input custody cannot substitute for this completion. Source
+logical identity and observation still describe the original complete input.
+The Model Source closure verifies the same lookup's executed producers at its
+existing final live boundary. The consumer's cleanup precedes upstream provider
+cleanup, and consumed work remains available across the same child transitions.
+Per-poll work remains a delta; the original diagnostic getter sums retained
+child totals without refunding completed or failed work.
+
+Whole-input native file listings require their different Resource custody and
 retained-material recipe. Complete-input file listings retain their original `FileListProfile` and
 resolve the same Catalog/Host item ceiling. They use the existing RowRun
 listing protocol, Resource issuer, paths/glob selection, duplicate metadata

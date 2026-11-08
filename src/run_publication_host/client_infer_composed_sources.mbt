@@ -163,7 +163,17 @@ fn admit_client_infer_composed_sources_owned(
   let inputs : Array[ClientInferSourceInput] = []
   let names : Array[String] = []
   for task in 0..<count {
-    let ports = incoming.filter(edge => edge.0 == task)
+    let source_task = match originals[task] {
+      Query(_) => task
+      Whole(_) => {
+        guard direct is Some(direct) &&
+          client_direct_acquisition_occurrence_at(direct, task) is Some((_, _, producer)) else {
+          return Err(ForeignInput)
+        }
+        producer
+      }
+    }
+    let ports = incoming.filter(edge => edge.0 == source_task)
     let (name, facts) = match originals[task] {
       Query(requirement) => {
         let name = if same_unit {
@@ -182,8 +192,7 @@ fn admit_client_infer_composed_sources_owned(
         (name, facts)
       }
       Whole(original) => {
-        guard whole_unit &&
-          direct is Some(direct) &&
+        guard direct is Some(direct) &&
           client_direct_acquisition_occurrence_at(direct, task)
           is Some((stage, input, _)) &&
           client_source_acquisition_matches_program(
@@ -192,14 +201,25 @@ fn admit_client_infer_composed_sources_owned(
           @planning.source_acquisition_evidence_facts(original) is Some(facts) else {
           return Err(ForeignInput)
         }
-        (
+        let name = if whole_unit {
           @acquisition.declaration(
             @acquisition.mode_input(
               @acquisition.source_acquisition_mode(original),
             ),
-          ).input_name,
-          facts,
-        )
+          ).input_name
+        } else {
+          guard source_task != occurrence.task &&
+            ports.length() == 1 &&
+            keyed is Some(observed) &&
+            client_composed_keyed_lookup_has_source_producer(
+              observed.lookup, occurrence, captures, task,
+            ) &&
+            @pipeline.input_at(pipeline, ports[0].1) is Some((name, _)) else {
+            return Err(ForeignInput)
+          }
+          name
+        }
+        (name, facts)
       }
     }
     if names.contains(name) ||

@@ -1108,6 +1108,26 @@ fn prepare_installed_effect_managed_plan_owned(
   // their original Compute/capture components, not decoded/copied here.
   // Each staged maximum retains its resolved extent/capacity and Some pair
   // beside the initial extent (4H8R8W). Immutable installation inputs are borrowed.
+  let composed_roots = []
+  if model is Some(selected) {
+    let model_owner = @execution.generated_sequence_owner(sequences[
+      @publication_host.client_infer_occurrence_coordinates(selected._occurrence).0
+    ])
+    for sequence in sequences {
+      let owner = @execution.generated_sequence_owner(sequence)
+      if !physical_equal(owner, model_owner) && whole_sources.any(value => {
+        value is Some((_, capacity)) &&
+        physical_equal(@sourceviews.source_acquisition_pipeline(capacity.original),
+          @lower.pipeline(@lower.bound_preparation(owner)))
+      }) {
+        composed_roots.push(sequence)
+      }
+    }
+  }
+  let composed_controls = match composed_keyed_root_control_bytes(composed_roots) {
+    Some(value) => value
+    None => return Err(InsufficientCapacity)
+  }
   let controls = @execution.preparation_representation_cost({
     record_headers: 19L +
     (if closed_rows is Some(_) { 1L } else { 0L }) +
@@ -1145,6 +1165,8 @@ fn prepare_installed_effect_managed_plan_owned(
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }).unwrap()
+  guard @execution.checked_preparation_add_product(controls, composed_controls, 1L)
+    is Some(controls) else { return Err(InsufficientCapacity) }
   // Scratch controls: workspace/Some, proof inventory/Some/closed-row Some,
   // three Array wrappers/backings, two multiplicity tuples/their Array, three
   // live checked-add Options, two layouts and the final Result (21H,12R,40W).

@@ -1901,6 +1901,8 @@ pub fn prepare_client_captured_content(ClientKeyedAcquisition, ClientKeyedReques
 
 pub fn prepare_client_compiled_result_transformation(ClientCompiledRun, Int, Int, Int, Int) -> Result[ClientResultTransformation, ClientResultTransformationIssue]
 
+pub fn prepare_client_composed_keyed_producer_inputs(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientKeyedAcquisition, Array[@execution_query.CapturedInputSource], @client_row_source_host.RowCapturedInputs, Int, @execution_relation.GeneratedSequence, Int, Int) -> Result[Array[(Int, Int, @execution_relation.ProducerRead)], ClientKeyedRequestIssue]
+
 pub fn prepare_client_coordinator_retained_input_producer(ClientRetainedInputEdge, @remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteManagedOutputMeasurement, () -> @remote_site_protocol.CoordinatorDispatchIntentRecord?) -> Result[ClientRetainedInputProducer, ClientRetainedInputIssue]
 
 pub fn prepare_client_effect_captured_run(ClientEffectRunMaterials, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectPreviewInputs, Array[@physical_strategy_host.CapturedEffectPlanProof], @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], Array[@run_publication.CapturedEffectSourceArtifact], Array[@run_publication.CapturedLocalEffectSourceEvidence], @run_publication.CapturedEffectDependencyInventory, @run_publication.RunEvidenceValue, Int, Int, Int, Int, Int, Int) -> Result[@run_publication.CapturedRunIssuancePreparation, ClientEffectCapturedRunIssue]
@@ -1961,9 +1963,9 @@ pub fn prepare_client_node_model_read_layout(ClientModelReadScope, ClientCompile
 
 pub fn prepare_client_node_model_read_state(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?, Int, Int, Int) -> Result[ClientNodeModelStateWriter, ClientNodeModelStateIssue]
 
-pub fn prepare_client_original_composed_keyed_inputs(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientKeyedAcquisition, Array[@execution_query.CapturedInputSource], @client_row_source_host.RowCapturedInputs, @execution_relation.GeneratedSequence, Int, Int) -> Result[Array[(Int, Int, @execution_relation.ProducerRead)], ClientKeyedRequestIssue]
+pub fn prepare_client_original_composed_keyed_inputs(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientKeyedAcquisition, Array[@execution_query.CapturedInputSource], @client_row_source_host.RowCapturedInputs, @execution_relation.GeneratedSequence, Int, Int, producers? : Array[ClientComposedKeyedProducer]) -> Result[Array[(Int, Int, @execution_relation.ProducerRead)], ClientKeyedRequestIssue]
 
-pub fn prepare_client_original_composed_keyed_left(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientKeyedAcquisition, Array[@execution_query.CapturedInputSource], @client_row_source_host.RowCapturedInputs, @execution_relation.GeneratedSequence, Array[(Int, Int, @execution_relation.ProducerRead)], @execution_relation.CompletedOutput, @physical_resources.Reservation, Int64, Int, Int) -> Result[ClientKeyedLeftRead, ClientKeyedRequestIssue]
+pub fn prepare_client_original_composed_keyed_left(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientKeyedAcquisition, Array[@execution_query.CapturedInputSource], @client_row_source_host.RowCapturedInputs, @execution_relation.GeneratedSequence, Array[(Int, Int, @execution_relation.ProducerRead)], @execution_relation.CompletedOutput, @physical_resources.Reservation, Int64, Int, Int, producers? : Array[ClientComposedKeyedProducer]) -> Result[ClientKeyedLeftRead, ClientKeyedRequestIssue]
 
 pub fn prepare_client_query_acquisition(PreparedClientProgram, Int, Int) -> Result[@sourceview_resolution.QueryAcquisition, ClientAcquisitionIssue]
 
@@ -2291,6 +2293,8 @@ pub fn restore_prepared_client_effect_normalization(PreparedClientEffectComputat
 
 pub fn restore_prepared_client_local_normalization(PreparedClientProgram, ClientLocalNormalization, String, String) -> Result[@run_publication.RunEvidenceValue, ClientLocalNormalizationIssue]
 
+pub fn retain_client_composed_keyed_producer(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientKeyedAcquisition, Array[@execution_query.CapturedInputSource], @client_row_source_host.RowCapturedInputs, Int, @execution_relation.GeneratedSequence, Array[(Int, Int, @execution_relation.ProducerRead)], @execution_relation.CompletedOutput, @physical_resources.Reservation, Int) -> Result[ClientComposedKeyedProducer, ClientKeyedRequestIssue]
+
 pub fn retain_client_original_composed_keyed_captures(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientKeyedAcquisition, Array[@client_row_source_host.RowSourceCapture]) -> Result[(@physical_resources.Ledger, @client_row_source_host.RowCapturedInputs, Array[@execution_query.CapturedInputSource]), ClientModelReadPreparationIssue]
 
 pub fn retain_compiled_client_source_effect_input(ClientSourceInput, PreparedClientEffectComputation) -> Result[ClientSourcePreparation, ClientSourcePreparationIssue]
@@ -2569,6 +2573,8 @@ pub(all) enum ClientCompiledRunPlanIssue {
   UnsupportedCompilation
   Projection(ClientInteractivePlanIssue)
 } derive(Eq, @debug.Debug)
+
+type ClientComposedKeyedProducer
 
 pub(all) enum ClientDirectAcquisitionOccurrenceIssue {
   InvalidLimits
