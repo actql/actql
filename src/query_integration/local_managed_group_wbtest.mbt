@@ -1,4 +1,29 @@
 ///|
+// The existing Task dispatch transport describes output rows independently
+// of each fixture's smaller import frame/column window.
+fn configure_local_managed_test_output(
+  installed : @local_driver.LocalDispatchModule,
+  limits : @dbhost.TaskDispatchLimits,
+) -> Unit {
+  @local_driver.configure_local_retained_output(
+    installed,
+    {
+      max_rows: limits.capacity.max_rows,
+      values: limits.local_execution.rows.output_values,
+      wire: {
+        max_bytes: limits.transport.max_bytes,
+        max_nodes: limits.transport.max_nodes,
+        max_depth: limits.guards.max_depth,
+        max_columns: limits.transport.max_columns,
+        max_order_work: limits.guards.max_work,
+      },
+      max_batch_bytes: 64,
+    },
+    None,
+  ).unwrap()
+}
+
+///|
 fn start_local_managed_test_task_operations(
   installed : @local_driver.LocalDispatchModule,
   run : @strategy.CapturedDAG,
@@ -13,6 +38,7 @@ fn start_local_managed_test_task_operations(
   ] = [],
   ordered_outputs? : Array[@local_driver.LocalManagedAvailableOutput[Int]]? = None,
   grant? : @strategy.TaskActivationGrant,
+  before_start? : () -> Unit,
 ) -> @local_driver.LocalManagedDispatchOperations[Int] raise {
   let owner = @strategy.graph_task_owner(
     @strategy.captured_dag_graph(run),
@@ -71,6 +97,9 @@ fn start_local_managed_test_task_operations(
   }
   if require_provider {
     assert_true(@local_driver.local_managed_dispatch_uses_provider(setup))
+  }
+  if before_start is Some(configure) {
+    configure()
   }
   let operations = match
     @local_driver.start_local_managed_dispatch_node(setup) {
@@ -190,6 +219,7 @@ fn run_local_managed_test_task(
   ordered_outputs? : Array[@local_driver.LocalManagedAvailableOutput[Int]]? = None,
   grant? : @strategy.TaskActivationGrant,
   finalization_failure? : Ref[@local_driver.LocalDispatchIssue?],
+  before_start? : () -> Unit,
 ) -> (
   @local_driver.LocalManagedDispatchOperations[Int],
   @execution.ManagedCompletedOutput[Int],
@@ -205,6 +235,7 @@ fn run_local_managed_test_task(
     carrier_inputs~,
     ordered_outputs~,
     grant?,
+    before_start?,
   )
   fn execute_with_quantum() -> Result[Unit, @local_driver.LocalDispatchIssue] raise {
     if execution_quantum == 0 {
@@ -745,6 +776,7 @@ fn run_local_managed_group_case(
     },
     None,
   ).unwrap()
+  configure_local_managed_test_output(installed, limits)
 
   if activation {
     let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))

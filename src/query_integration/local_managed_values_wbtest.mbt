@@ -318,6 +318,7 @@ fn run_standard_host_values_relation_step(
     },
     None,
   ).unwrap()
+  configure_local_managed_test_output(installed, limits)
   let values_live = Ref(true)
   let values_advances = Ref(0)
   let (values_ops, values) = run_local_managed_test_task(
@@ -1492,6 +1493,7 @@ test "Local managed nested values preserve typed rows for two consumers" {
     [],
     1,
     producer_live,
+    before_start=() => configure_local_managed_test_output(installed, limits),
   )
   let rows = local_managed_test_rows(producer_ops)
   assert_eq(rows, [

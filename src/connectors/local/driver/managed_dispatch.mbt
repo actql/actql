@@ -49,6 +49,7 @@ struct LocalManagedDispatchConfiguration[T] {
   execution : @execution.SequenceExecutionLimits
   measurement : @execution.FixedInputGuardMeasureLimits
   imports : @local.LocalImportLimits
+  installation : LocalDispatchModule
   metadata : LocalManagedMetadataLimits
   capacity : @connector.ExecutionCapacity
   join_output_ceilings : Array[(Int, Int64)]
@@ -651,6 +652,7 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
         installed.implementation,
       ),
       imports,
+      installation: installed,
       metadata,
       capacity: {
         transfer_bytes: count * imports.wire.max_bytes.to_int64(),
@@ -1054,6 +1056,24 @@ pub fn[T] start_local_managed_dispatch(
     is Some(numeric_count) else {
     return Err(Execution(ForeignCandidate))
   }
+  // Configuration may select output after managed setup. Start has now
+  // recorded history, so the existing owner rejects further policy changes.
+  let exports = setup.installation.output_policy.map(value => value.0)
+  // Output framing belongs to the independently selected output policy.
+  // An input batch or its column ceiling does not constrain a checked output.
+  // Keep the established fallback for callers without an output profile.
+  let output_wire = match exports {
+    Some(limits) => limits.wire
+    None => setup.imports.wire
+  }
+  let output_values = match exports {
+    Some(limits) => limits.values
+    None => setup.imports.values
+  }
+  let output_max_rows = match exports {
+    Some(limits) => limits.max_rows
+    None => setup.imports.max_rows
+  }
   // Both evaluator growth and later Result metadata extend the same original
   // scratch extent. Keep their independent actual additions; neither may
   // replace the other's reservation with the smaller initial quote.
@@ -1105,8 +1125,8 @@ pub fn[T] start_local_managed_dispatch(
     guard @execution.managed_output_value_row_wire_bound(
         receipt,
         result,
-        setup.imports.wire.max_columns,
-        setup.imports.wire.max_bytes,
+        output_wire.max_columns,
+        output_wire.max_bytes,
       )
       is Some(bytes) else {
       return Err(Configuration(InvalidLimits))
@@ -1788,11 +1808,7 @@ pub fn[T] start_local_managed_dispatch(
               }
               let stream = match
                 @execution.prepare_completed_output_export(
-                  output,
-                  setup.imports.max_rows,
-                  setup.imports.values,
-                  setup.imports.wire,
-                  frame,
+                  output, output_max_rows, output_values, output_wire, frame,
                 ) {
                 Ok(value) => value
                 Err(issue) => return Err(IdentityExport(issue))
@@ -1806,7 +1822,7 @@ pub fn[T] start_local_managed_dispatch(
                 if !finalization_metadata_grown.val {
                   if setup.metadata.result_rows_reserved is Some(initial) {
                     let rows = @execution.completed_row_count(output)
-                    if rows < 0 || rows > setup.imports.max_rows {
+                    if rows < 0 || rows > output_max_rows {
                       return Err(Configuration(InvalidLimits))
                     }
                     let extra_rows = Int::max(0, rows - initial)
@@ -1862,16 +1878,25 @@ pub fn[T] start_local_managed_dispatch(
                     output,
                     result,
                     {
-                      max_fields: setup.imports.wire.max_columns,
-                      max_mapping_work: setup.imports.wire.max_order_work,
+                      max_fields: output_wire.max_columns,
+                      max_mapping_work: output_wire.max_order_work,
                       max_order_work: setup.execution.max_work,
                       max_workspace_entries: setup.metadata.result_workspace_entries,
                     },
-                    setup.imports.max_rows,
-                    setup.imports.values,
-                    setup.imports.wire,
-                    setup.imports.wire,
-                    setup.metadata.schema,
+                    output_max_rows,
+                    output_values,
+                    output_wire,
+                    output_wire,
+                    match exports {
+                      Some(_) =>
+                        {
+                          max_fields: output_wire.max_columns,
+                          max_bytes: output_wire.max_bytes,
+                          max_nodes: output_wire.max_nodes,
+                          max_depth: output_wire.max_depth,
+                        }
+                      None => setup.metadata.schema
+                    },
                     frame,
                   ) {
                   Ok(value) => value
