@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFile, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
+import {Hash} from 'node:crypto';
 import {boundConstructionActualFixture} from './fixtures/bound-construction-actual.fixture.mjs';
 import {installedSourceConfigurationReader} from './installed-host-services.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -28,8 +29,8 @@ const quote = moon => {
 };
 const latestReserve = events => events.findLast(event => event.operation === 'clientProgramReserveInstalledSourceConstruction');
 
-async function wideEffectFixture(t, {maxProperties = 256, readOnly = false, propertyNameUnits, propertyKinds} = {}) {
-  const events = [], f = await boundConstructionActualFixture(t, {capacityEvents: events});
+async function wideEffectFixture(t, {maxProperties = 256, readOnly = false, propertyNameUnits, propertyKinds, nativeCompletions} = {}) {
+  const events = [], f = await boundConstructionActualFixture(t, {capacityEvents: events, nativeCompletions});
   const source = await f.metadataSourceProfile('hubspot');
   const metadata = JSON.parse(await readFile(source.value.metadataPath, 'utf8'));
   const variableUnits = propertyNameUnits === undefined ? undefined : propertyNameUnits - 15;
@@ -57,6 +58,34 @@ async function wideEffectFixture(t, {maxProperties = 256, readOnly = false, prop
   await writeFile(path, JSON.stringify(value));
   return {f, events, source, selection: {path, value, role: 'effect', registration: 'hubspot'}};
 }
+
+test('HubSpot metadata identity peak is admitted before its one loader hash and removed on the same real Ledger', async t => {
+  const completions = [], {f, events, source} = await wideEffectFixture(t, {nativeCompletions: completions});
+  const observed = [], update = Hash.prototype.update;
+  t.mock.method(Hash.prototype, 'update', function(value, ...args) {
+    if (typeof value === 'string' && value.includes('actql-hubspot-read-metadata/0.1') &&
+        /at Object\.project \([^\n]*installed-hubspot-source\.mjs:/u.test(new Error().stack)) {
+      observed.push({index: events.length, before: latestReserve(events)});
+    }
+    return Reflect.apply(update, this, [value, ...args]);
+  });
+  const loaded = await f.load(source);
+  assert.equal(observed.length, 1, 'one loader metadata hash, not another full hash for Site binding');
+  const observation = observed[0];
+  assert.equal(observation.before.accepted, true);
+  const completed = completions.find(value => value.eventIndex >= observation.index);
+  assert(completed);
+  assert.strictEqual(completed.lastProviderQuantity, completed.retained);
+  const after = events.slice(completed.eventIndex).find(event =>
+    event.operation === 'clientProgramReconcileInstalledSourceConstruction');
+  assert(after?.accepted);
+  assert(observation.before.retained > after.retained + 1000000n,
+    'the metadata-wide completed identity workspace must leave the same retained prefix');
+  assert(loaded.environmentWire.length > 0); assert.equal(f.secretReads(), 0);
+  t.diagnostic(JSON.stringify({identityPeakRetention: String(observation.before.retained),
+    afterIdentityRetention: String(after.retained), completedLoaderHashes: observed.length}));
+  await f.close(); assert.equal(f.pending(), false); assert.equal(f.retire(), true);
+});
 
 test('wide HubSpot Source and Effect compose on the same original default preparation parent', async t => {
   const {f, events, source, selection} = await wideEffectFixture(t);
