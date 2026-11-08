@@ -23,3 +23,24 @@ The shared Ledger equations, tariffs and configured retention/execution limits
 are unchanged. Metadata still uses its complete byte/node/depth/property bounds.
 Refining those bounds from actual structural geometry is a separate question;
 removing a wrong-role row term alone does not establish that a full workflow fits.
+
+## Sequential key-normalization scratch
+
+The Properties recheck completes the original normalizing byte parser before
+indexed admission and native `PropertyMetadata` projection. The canonical
+normalizer returns only its String; its private scalar arrays, ordering/builder
+backing and text scratch do not escape that synchronous call. The existing
+`nfc_lf_construction_scratch_extent` excludes the returned String.
+
+Quote the maximum of the complete parser phase and the later metadata phase,
+removing only that named scratch from the latter. Conservatively keep the full
+Source tree, normalized-key output, indexed admission, Catalog, recheck and hash
+envelopes in both phases. Both malformed-prefix and metadata-failure envelopes
+remain funded. Earlier response maxima still accumulate until the same Reader
+retires; this change performs no successful-return refund or physical cleanup.
+
+The configured node/depth ceilings remain rejection bounds. Parser and decoder
+arrays grow from observed elements rather than preallocating every allowed
+slot, but this byte-length-only quote has no current-body geometry. A Catalog's
+property count cannot bound raw unknown fields or a later replacement body.
+No count-only reduction, second parse/fetch or transport API is introduced.
