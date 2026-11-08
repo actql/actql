@@ -49,6 +49,8 @@ pub fn document_bytes(EncodedDocument) -> Int
 
 pub fn document_text(EncodedDocument) -> String
 
+pub fn document_usage(EncodedDocument) -> (Int, Int, Int)
+
 pub fn drain_buffered_output(Writer) -> String raise EncodeFailure
 
 pub fn drain_hash_output(Writer) -> String raise EncodeFailure

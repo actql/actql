@@ -825,6 +825,8 @@ pub fn client_keyed_lookup_input_identity(ClientKeyedLookupInput) -> String?
 
 pub fn client_keyed_lookup_input_work(ClientKeyedLookupInput) -> Int64
 
+pub fn client_keyed_lookup_native_transport(ClientKeyedLookupInput) -> @run_publication.PublicationContract?
+
 pub fn client_keyed_lookup_observation_dependency_bodies(ClientKeyedLookupObservation) -> (String, String)?
 
 pub fn client_keyed_lookup_observation_originals(ClientKeyedLookupObservation) -> (@run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String)?
@@ -2389,7 +2391,7 @@ pub fn start_client_keyed_lookup_input(ClientKeyedLeftRead, @physical_resources.
 
 pub fn start_client_keyed_lookup_request(ClientKeyedLookupInput, Int) -> Result[ClientKeyedRequestPreparation, ClientKeyedRequestIssue]
 
-pub fn start_client_keyed_lookup_request_plan(ClientKeyedLookupInput) -> Result[Unit, ClientKeyedRequestIssue]
+pub fn start_client_keyed_lookup_request_plan(ClientKeyedLookupInput, native_read_profile? : @run_publication.PublicationContract?) -> Result[Unit, ClientKeyedRequestIssue]
 
 pub fn start_client_keyed_row_request(ClientKeyedLeftRead, Int, @sourceview_resolution.RequestLimits) -> Result[ClientKeyedRequestPreparation, ClientKeyedRequestIssue]
 

@@ -3122,3 +3122,29 @@ The later protocol issuer must bind their real execution, raw capture,
 accounting and durable lifecycle history under the actual checked read profile.
 Legacy read-only callers may omit the capture; absence remains absence and
 cannot be substituted with an invented transport or successful receipt.
+
+
+### Original Native keyed transport before dispatch
+
+The selected file reader's original `native_file_content_read` profile is retained
+by the same checked Source declaration and its live provider binding. Predispatch
+planning requires that exact profile CID in the selected Source capability and
+checks its SourceView, request and response schema CIDs. A separately valid profile
+with equal schema identities does not become the selected implementation.
+
+The existing static-request writer returns its original measured document. The
+same lookup retains it after the original current fence and embeds it in the
+`actql-lookup-transport-plan/0.1` body without reading reference fields again.
+Business DATA keys retain their original Unicode spelling. The Native descriptor
+specializes the existing transport schema to the actual single-key reader: one
+key, one page, no pagination token, one network attempt and no retryable codes.
+The generic transport schema and HTTP profile remain unchanged.
+
+The same lookup reservation grows before construction using the existing bounded
+protocol-metadata recipe, the actual static subtree nodes, sixteen envelope values,
+sixteen field names and the final CID pair. The retained document/optional holder
+also counts in this original reservation. No second ledger or authority is issued.
+Only a completed predispatch plan exposes its original transport contract; cleanup
+severs all three profile/document/transport aliases before returning that capacity.
+This DATA is not a completed batch, attempt receipt, response, access decision or
+physical-cleanup acknowledgement.

@@ -116,13 +116,14 @@ fn build_client_keyed_lookup_request_identity(
   if retain_order && (lookup.closed || lookup.left.lookup_issue is Some(_)) {
     return Err(Assembly("retired_publication_input"))
   }
-  let static_request = match
-    @acquisition.parameterized_keyed_static_request_wire(
+  let static_document = match
+    @acquisition.parameterized_keyed_static_request_document(
       template, max_bytes, max_nodes, max_depth,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Wire(issue))
   }
+  let static_request = @encode.document_text(static_document)
   // Static reference emission can invoke original current too. This is the
   // original post-emission boundary, before pure hash/scope construction.
   if retain_order {
@@ -133,6 +134,9 @@ fn build_client_keyed_lookup_request_identity(
     }
   } else if client_keyed_lookup_input_identity(lookup) is None {
     return Err(Assembly("retired_request_identity"))
+  }
+  if lookup.native_read_profile is Some(_) {
+    lookup.native_static_request = Some(static_document)
   }
   let static_request_cid = match @sha.text_hex(static_request) {
     Ok(hash) => "sha256:" + hash
@@ -297,36 +301,20 @@ fn prepare_keyed_lookup_request_metadata(
   let slots = role_count.to_int64() * lookup.known.length().to_int64() +
     role_count.to_int64() +
     lookup.known.length().to_int64()
-  let metadata = 16L * max_bytes.to_int64() + 128L * slots
-  if metadata > 9223372036854775807L - lookup.retained_bytes {
-    return Err(Assembly("capacity_overflow"))
-  }
-  let retained = lookup.retained_bytes + metadata
-  lookup.growing = true
-  let grown = @resources.grow_execution_reservation_capacity(
-    lookup.ledger,
-    lookup.reservation,
-    retained,
-    Int64::max(lookup.execution_bytes, metadata),
-  )
-  lookup.growing = false
-  match grown {
-    Err(issue) => {
-      keyed_lookup_fail(lookup.left, Physical(issue)) |> ignore
-      return Err(Physical(issue))
-    }
-    Ok(_) => {
-      lookup.retained_bytes = retained
-      lookup.execution_bytes = Int64::max(lookup.execution_bytes, metadata)
-    }
-  }
-  if lookup.closed ||
-    lookup.left.lookup_issue is Some(_) ||
-    !client_keyed_left_available(lookup.left) ||
-    lookup.closed {
-    let issue = Assembly("retired_publication_input")
-    keyed_lookup_fail(lookup.left, issue) |> ignore
-    return Err(issue)
+  match
+    grow_keyed_lookup_protocol_metadata(
+      lookup,
+      max_bytes,
+      slots,
+      // Retained EncodedDocument1H1R3W + Some1H1R1W. Text stays borrowed.
+      extra_controls=if lookup.native_read_profile is Some(_) {
+        80L
+      } else {
+        0L
+      },
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
   // Reference key projection can invoke its original current observer. Keep
   // the original input/response holders until that synchronous borrow ends.
@@ -395,6 +383,18 @@ pub fn finish_client_keyed_lookup_request_plan(
     keyed_lookup_fail(lookup.left, issue) |> ignore
     return Err(issue)
   }
+  if lookup.native_read_profile is Some(_) {
+    match
+      prepare_client_keyed_native_transport(
+        lookup, max_bytes, max_nodes, max_depth,
+      ) {
+      Err(issue) => {
+        keyed_lookup_fail(lookup.left, issue) |> ignore
+        return Err(issue)
+      }
+      Ok(_) => ()
+    }
+  }
   lookup.publication_identity = Some(identity)
   lookup.planned_order = Some(order)
   Ok(identity)
@@ -413,4 +413,44 @@ pub fn client_keyed_lookup_planned_request_identity(
   } else {
     lookup.publication_identity
   }
+}
+
+///|
+fn grow_keyed_lookup_protocol_metadata(
+  lookup : ClientKeyedLookupInput,
+  max_bytes : Int,
+  slots : Int64,
+  extra_controls? : Int64 = 0L,
+) -> Result[Unit, ClientKeyedRequestIssue] {
+  let metadata = 16L * max_bytes.to_int64() + 128L * slots + extra_controls
+  if metadata > 9223372036854775807L - lookup.retained_bytes {
+    return Err(Assembly("capacity_overflow"))
+  }
+  let retained = lookup.retained_bytes + metadata
+  lookup.growing = true
+  let grown = @resources.grow_execution_reservation_capacity(
+    lookup.ledger,
+    lookup.reservation,
+    retained,
+    Int64::max(lookup.execution_bytes, metadata),
+  )
+  lookup.growing = false
+  match grown {
+    Err(issue) => {
+      keyed_lookup_fail(lookup.left, Physical(issue)) |> ignore
+      return Err(Physical(issue))
+    }
+    Ok(_) => {
+      lookup.retained_bytes = retained
+      lookup.execution_bytes = Int64::max(lookup.execution_bytes, metadata)
+    }
+  }
+  if lookup.closed ||
+    lookup.left.lookup_issue is Some(_) ||
+    !client_keyed_left_available(lookup.left) {
+    let issue = Assembly("retired_publication_input")
+    keyed_lookup_fail(lookup.left, issue) |> ignore
+    return Err(issue)
+  }
+  Ok(())
 }

@@ -577,6 +577,8 @@ pub fn issue_model_raw_response(BoundModelRawCapturePolicy, BoundModelInvocation
 
 pub fn issue_model_run_invocation(RunEvidenceValue, RunEvidenceValue, Array[BoundModelSlotCapture], Int, Int, Int) -> Result[PublicationContract, RunEvidenceValueIssue]
 
+pub fn issue_native_file_lookup_transport(PublicationContract, @encode_core.EncodedDocument, Int, Int, Int) -> Result[PublicationContract, PublicationContractIssue]
+
 pub fn issue_pre_checkpoint_unpublished_run_state_wire(String, String, Array[String], Bool, Bool, Int, Int, Int, cancelled_before_start? : Bool, observed_terminal_outcome? : RunOutcomeStatus?, execution_unknown? : Bool) -> Result[String, RunStateIssue]
 
 pub fn issue_public_index_entry(PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, Array[PublicationContract], PublicationContract, PublicationContract, String, Int, Int, Int) -> Result[PublicationContract, PublicationCommitIssuanceIssue]
@@ -706,6 +708,8 @@ pub fn model_source_observation_matches_input(ModelSourceObservation, RunEvidenc
 pub fn model_source_observation_originals(ModelSourceObservation) -> (RunEvidenceValue, RunEvidenceValue, String, String)
 
 pub fn native_effect_source_custody_record_json(PublicationContract, CapturedEffectSourceArtifact, String, String, String, Int64, Bool, Int) -> Result[String, PublicationContractIssue]
+
+pub fn native_file_read_profile_contract_bindings(PublicationContract) -> (String, String, String)?
 
 pub fn next_result_delivery_row(ResultDeliverySerializer, String) -> Result[String, DeliverySerializationIssue]
 

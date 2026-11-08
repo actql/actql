@@ -1,3 +1,4 @@
+import {nativeFileLookupTransportSchema} from './native-file-lookup-contract.mjs';
 import {verifyNativeFileReadProfile} from './native-file-read-profile-contract.mjs';
 import {execFileSync} from 'node:child_process';
 import {readFileSync, writeFileSync} from 'node:fs';
@@ -529,7 +530,11 @@ function registerArtifactSchema(name, selection) {
   if (complete === undefined) {
     throw new Error(`Missing publication schema: ${selection.schema}`);
   }
-  if (selection.registry === 'lookup') {
+  if (name === 'native_file_lookup_transport' &&
+      selection.registry === 'lookup' && selection.schema === 'transport_plan') {
+    complete = nativeFileLookupTransportSchema(lookup);
+  }
+  if (selection.registry === 'lookup' && selection.schema === 'key_set') {
     // Preserve the pinned scalar/reference contract branches verbatim. The
     // recursive object/array branches cannot be KeyComparable and are rejected
     // by the shared typed reader/order admission as well. Do not introduce a
@@ -663,6 +668,9 @@ export function shareProtocolRuleConstructors(constructors) {
 registerArtifactSchema('native_file_content_read', {
   schema: 'native_file_content_read', identity: 'transport_cid', registry: 'profiles',
 });
+registerArtifactSchema('native_file_lookup_transport', {
+  schema: 'transport_plan', identity: 'self_cid', registry: 'lookup',
+});
 const sharedNodes = shareProtocolRuleConstructors(nodes);
 
 const nodeChunks = [];
@@ -723,6 +731,6 @@ const localVectors = join(root,
 if (readFileSync(localVectors, 'utf8') !== generateEffectLocalOperationVectors()) {
   throw new Error(`Independent local-operation vectors are stale: ${localVectors}`);
 }
-// EffectOutcome, response profile and Native file profile are outside selected.
-console.log(`${Object.keys(selected).length + 3} Run and Effect schemas and ` +
+// EffectOutcome, response profile and two Native file descriptors are outside selected.
+console.log(`${Object.keys(selected).length + 4} Run and Effect schemas and ` +
   `${Object.keys(control.schemas).length} interactive schemas verified.`);

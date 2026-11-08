@@ -30,6 +30,12 @@ pub fn document_bytes(value : EncodedDocument) -> Int {
 }
 
 ///|
+/// Original completed writer facts, without scanning, encoding or parsing.
+pub fn document_usage(value : EncodedDocument) -> (Int, Int, Int) {
+  (value.bytes, value.nodes, value.depth)
+}
+
+///|
 /// Embed only complete writer-owned JSON, preserving exact bytes. This is not
 /// canonical normalization. Parent punctuation and all subtree budgets count.
 pub fn emit_document(

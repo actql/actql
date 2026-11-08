@@ -42,13 +42,25 @@ pub fn parameterized_keyed_static_request_wire(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[String, RequestWireIssue] {
+  parameterized_keyed_static_request_document(
+    request, max_bytes, max_nodes, max_depth,
+  ).map(@encode.document_text)
+}
+
+///|
+/// The same original static Request writer, retaining measured document facts
+/// so a transport can embed it without a second field/Ref traversal.
+pub fn parameterized_keyed_static_request_document(
+  request : ParameterizedKeyedRequest,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@encode.EncodedDocument, RequestWireIssue] {
   let fields = request.fields.copy()
   fields.sort_by((a, b) => {
     @unicode.compare_utf16(a.field.slot.field_name, b.field.slot.field_name)
   })
-  bound_request_fields_document(fields, max_bytes, max_nodes, max_depth).map(
-    @encode.document_text,
-  )
+  bound_request_fields_document(fields, max_bytes, max_nodes, max_depth)
 }
 
 ///|

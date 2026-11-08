@@ -62,6 +62,7 @@ fn keyed_lookup_plan_grow(
 /// are constructed only after their same-lookup backing is admitted.
 pub fn start_client_keyed_lookup_request_plan(
   state : ClientKeyedLookupInput,
+  native_read_profile? : @publication.PublicationContract? = None,
 ) -> Result[Unit, ClientKeyedRequestIssue] {
   guard !state.closed &&
     !state.growing &&
@@ -76,12 +77,19 @@ pub fn start_client_keyed_lookup_request_plan(
     state.left.lookup_issue is None else {
     return Err(Assembly("unavailable_request_plan"))
   }
+  if native_read_profile is Some(profile) {
+    match check_client_keyed_native_read_profile(state, profile) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+  }
   // One additional empty grow-only reference Array (3H13R2W) and its
   // original Some (1H1R1W). The existing known array is already backed.
   let initial = @execution.preparation_representation_cost({
-    record_headers: 4L,
-    reference_slots: 14L,
-    scalar_words: 3L,
+    record_headers: 4L + (if native_read_profile is Some(_) { 1L } else { 0L }),
+    reference_slots: 14L +
+    (if native_read_profile is Some(_) { 1L } else { 0L }),
+    scalar_words: 3L + (if native_read_profile is Some(_) { 1L } else { 0L }),
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }).unwrap()
@@ -89,6 +97,7 @@ pub fn start_client_keyed_lookup_request_plan(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  state.native_read_profile = native_read_profile
   state.planned_requests = Some([])
   Ok(())
 }
@@ -238,6 +247,10 @@ fn keyed_lookup_request_dispatch_available(
           Some(requests) =>
             !state.closed &&
             state.planned_order is Some(_) &&
+            (
+              state.native_read_profile is None ||
+              state.native_transport is Some(_)
+            ) &&
             state.selected_index == Some(-1) &&
             state.selected_request is Some(selected) &&
             physical_equal(selected, request) &&

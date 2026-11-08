@@ -2,9 +2,9 @@
 test "generated protocol table shares identical immutable rules without merging constraints" {
   let first = generated_protocol_schema_nodes()
   let second = generated_protocol_schema_nodes()
-  // Original7442 +541 lookup key-set +39 Native profile descriptors;
+  // Original7442 +541 key-set +39 Native profile +37 Native transport rules;
   // all historical rule/root slots stay unchanged.
-  assert_eq(first.length(), 8022)
+  assert_eq(first.length(), 8059)
   assert_eq(second.length(), first.length())
   // Slots 1 and 3 describe the same nonempty String rule. The CID
   // pattern at slot 2 is distinct, and another construction owns its own data.

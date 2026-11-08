@@ -130,6 +130,13 @@ fn common_grant_fields() -> Array[FieldSpec] {
 ///|
 fn contract_spec(name : String) -> ContractSpec? {
   match name {
+    "native_file_lookup_transport" =>
+      Some({
+        name,
+        version: "actql-lookup-transport-plan/0.1",
+        identity: "self_cid",
+        fields: [],
+      })
     "native_file_content_read" =>
       Some({
         name,
@@ -1177,6 +1184,7 @@ pub fn seal_publication_contract(
       max_nodes - 1,
       max_depth,
       data_keys=name == "captured_run" ||
+        name == "native_file_lookup_transport" ||
         name == "effect_row_outcome_receipt" ||
         name == "effect_local_operation_receipt",
     ) {
@@ -1272,6 +1280,7 @@ pub fn admit_publication_contract(
       max_nodes,
       max_depth,
       data_keys=name == "captured_run" ||
+        name == "native_file_lookup_transport" ||
         name == "effect_row_outcome_receipt" ||
         name == "effect_local_operation_receipt",
     ) {
