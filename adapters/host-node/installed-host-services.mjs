@@ -2251,7 +2251,7 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
             nodeTypes.isProxy(field.value) || !Object.isFrozen(field.value)) fail('InvalidInstalledSourceSequenceConstruction');
         const original = Object.getOwnPropertyDescriptors(field.value);
         const names = Reflect.ownKeys(original);
-        if (names.some(name => !['capacity', 'originalLimits', 'sequence', 'sequences', 'maxRequestBytes'].includes(name)) ||
+        if (names.some(name => !['capacity', 'originalLimits', 'sequence', 'sequences', 'maxRequestBytes', 'maxQueryBytes'].includes(name)) ||
             names.some(name => !Object.hasOwn(original[name], 'value')) ||
             !Object.hasOwn(original, 'capacity') || !Object.hasOwn(original, 'originalLimits') ||
             Object.hasOwn(original, 'sequence') === Object.hasOwn(original, 'sequences') ||
@@ -2264,7 +2264,9 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
         if (occurrences === null || typeof occurrences !== 'object' || nodeTypes.isProxy(occurrences) ||
             !Object.isFrozen(occurrences) || original.maxRequestBytes !== undefined &&
             (!Number.isSafeInteger(original.maxRequestBytes.value) || original.maxRequestBytes.value < 1 ||
-              original.maxRequestBytes.value > 2147483647)) fail('InvalidInstalledSourceSequenceConstruction');
+              original.maxRequestBytes.value > 2147483647) || original.maxQueryBytes !== undefined &&
+            (!Number.isSafeInteger(original.maxQueryBytes.value) || original.maxQueryBytes.value < 1 ||
+              original.maxQueryBytes.value > 2147483647)) fail('InvalidInstalledSourceSequenceConstruction');
         readSequenceConstruction = field.value;
       }
       const profile = sourceProfiles.get(selection);
@@ -2273,7 +2275,7 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       // constructor or a complete selected sequence. The retired query/property
       // projection never admitted its 21-field quote through the real 16-field
       // JSON constructor, and its managed-read entry was refused as unfunded.
-      if (Object.hasOwn(supplied, 'maxRequestBytes')) fail('InstalledSourceReaderRequestCapacityUnavailable');
+      if (Object.hasOwn(supplied, 'maxRequestBytes') || Object.hasOwn(supplied, 'maxQueryBytes')) fail('InstalledSourceReaderRequestCapacityUnavailable');
       if (requestConstruction !== undefined && readSequenceConstruction !== undefined) {
         fail('InstalledSourceReaderRequestConstructionChanged');
       }
@@ -2343,6 +2345,8 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       if (implementation.readSequenceConstruction !== undefined && !managedSequence) fail('InstalledSourceReaderSequenceSelectionRequired');
       const originalSite = installedRowCredentialOperationSite(fields.site.value.credential);
       const limits = implementation.value.limits, sequence = implementation.readSequenceConstruction;
+      const maxQueryBytes = sequence !== undefined && Object.hasOwn(sequence, 'maxQueryBytes')
+        ? sequence.maxQueryBytes : undefined;
       const constructor = sourceContexts.get(selection);
       if (constructor?.scope.reader !== undefined) fail('InstalledSourceReaderAlreadyConstructed');
       // Optional separately bound Resources are declared by this SAME complete
@@ -2372,6 +2376,7 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
           maxResponseBytes: limits.maxResponseBytes, maxTotalResponseBytes: limits.maxTotalResponseBytes,
           maxSecretBytes: limits.maxSecretBytes} : {}),
         ...(managedSequence ? {maxResponseBytes: limits.maxResponseBytes,
+          ...(maxQueryBytes === undefined ? {} : {maxQueryBytes}),
           ...(sequence?.maxRequestBytes !== undefined ? {maxRequestBytes:sequence.maxRequestBytes}
             : {}),
           maxTotalResponseBytes: limits.maxTotalResponseBytes} : {})});

@@ -6329,7 +6329,7 @@
     {
       "module": "adapters/host-common/http-exchange.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "bbeee8665db66a336ebdb8aec60d93a3e90f770fb865f0bead7355d27822f9c8",
+      "sha256": "9bafc3a2dafd66a446cc6bf9f1f5e77dfc80160ea869208c4e215df90e96c6e3",
       "role": "physical-io",
       "owner": "Existing Connector HTTP request projection and credential transport boundary",
       "exports": [
@@ -6367,6 +6367,14 @@
             "method",
             "body",
             "requireBody"
+          ],
+          "async": false
+        },
+        {
+          "name": "componentBytes",
+          "parameters": [
+            "value",
+            "remaining"
           ],
           "async": false
         },
@@ -6420,7 +6428,8 @@
             "path",
             "query",
             "headers",
-            "body"
+            "body",
+            "queryConstruction"
           ],
           "async": false
         },
@@ -6456,7 +6465,8 @@
           "name": "requestTarget",
           "parameters": [
             "path",
-            "query"
+            "query",
+            "maxQueryBytes"
           ],
           "async": false
         },
@@ -6493,7 +6503,8 @@
             "ownResponseHeaderNames/ownResponseHeaderNames",
             "requestTarget",
             "requestTarget/encoded/encoded",
-            "reservedHttpHeader"
+            "reservedHttpHeader",
+            "componentBytes"
           ],
           "exports": [
             "checkHttpRequestMethodBody",
@@ -6618,6 +6629,10 @@
               {
                 "path": "adapters/host-common/http-body-lifetime.md",
                 "anchor": "Lost responses retain the same nominal Unknown use."
+              },
+              {
+                "path": "adapters/host-common/http-exchange.test.mjs",
+                "anchor": "test('funded query construction keeps the exact encoded demand and all default refusals'"
               }
             ],
             "cancellation": [
@@ -6654,6 +6669,10 @@
               {
                 "path": "adapters/host-common/http-body-lifetime.md",
                 "anchor": "two distinct dedicated N-byte backings"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "## Funded query construction"
               }
             ],
             "extension": [
@@ -125991,7 +126010,7 @@
     },
     {
       "module": "adapters/host-node/installed-credential-source-reader.mjs",
-      "sha256": "bef7f94a57eaca3d498f61f91cea9b4157e2a896953992292fe512c88af9bc61",
+      "sha256": "0f21a15f4e54ee8d1535938be8ea3e9518bfe52745f976d2aa29cc6d366bcf8c",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -128296,7 +128315,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "33324bf6c54620aaaac321f859ee708d6788f241affaa12fed8b8be2fccc6e24",
+      "sha256": "c1acdbea2f3e351174b436ef0e91fcce41fb8ded7b341aebdb63639232695290",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",

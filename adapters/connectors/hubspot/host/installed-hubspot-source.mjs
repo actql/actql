@@ -242,6 +242,7 @@ export async function loadInstalledHubSpotSource(profile, {moon, providerMoon: p
   };
   const implementation = construction.sourceReaderImplementation({limits: readerLimits, columnCount,
     readSequenceConstruction: Object.freeze({capacity: capacityFor([]), originalLimits: limits,
+      maxQueryBytes: targetUnits,
       sequence: Object.freeze({operation: HUBSPOT_OBJECT_LIST_OPERATION, maxUses: limits.maxPages,
         children: Object.freeze([
           Object.freeze({operation: HUBSPOT_ACCOUNT_DETAILS_OPERATION,

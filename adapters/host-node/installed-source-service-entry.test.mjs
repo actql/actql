@@ -355,3 +355,63 @@ test('Source preserving selection refuses missing native constructor instead of 
     {code:'InstalledSourceReaderRuntimeUnavailable'});
   assert.deepEqual(f.counts(),[1,0]);
 });
+
+test('actual managed Source factory forwards only the same selected query construction bound', async () => {
+  const {parse}=await import('acorn');const source=await readFile(new URL('./installed-host-services.mjs',import.meta.url),'utf8');
+  const found=[];const walk=node=>{if(!node||typeof node!=='object')return;
+    if(node.type==='Property'&&node.method&&node.key.name==='createSourceReader')found.push(node);
+    for(const value of Object.values(node))if(Array.isArray(value))value.forEach(walk);else if(value&&typeof value==='object')walk(value);};
+  const tree=parse(source,{ecmaVersion:'latest',sourceType:'module'});
+  const owner=tree.body.find(node=>node.type==='ExportNamedDeclaration'&&node.declaration?.id?.name==='createInstalledHostServices');
+  assert.ok(owner);walk(owner.declaration);assert.equal(found.length,1);
+  const installation={},selection={},site={},originalSite={},capacity={},cid='sha256:'+'a'.repeat(64),calls=[];
+  const limits=Object.fromEntries(installedJsonSourceReaderProfileLimitNames.map((name,i)=>[name,values[i]]));
+  const implementation={capacity,limits};const record={runtimeBundleCid:cid,value:implementation,
+    readSequenceConstruction:Object.freeze({capacity,maxQueryBytes:7000,sequence:Object.freeze({children:[]})})};
+  const sourceImplementations=new WeakMap([[selection,record]]),selected=new WeakMap([[installation,cid]]),
+    siteInstallations=new WeakMap([[site,selection]]),sourceContexts=new WeakMap([[selection,{scope:{}}]]);
+  const {types:nodeTypes}=await import('node:util');const factory={capacity};let captured;
+  const ports={nodeTypes,publicationOnly:false,current(){calls.push('current');},
+    fail:code=>{throw Object.assign(new Error(code),{code});},requireSourceConstructor(){return selection;},
+    services:{},sourceImplementations,selected,siteInstallations,sourceContexts,
+    installedRowCredentialOperationSite(){return originalSite;},
+    createInstalledCredentialSourceReader(options){captured=options;return factory;}};
+  const method=Function(...Object.keys(ports),`return ({${source.slice(found[0].start,found[0].end)}}).createSourceReader;`)(...Object.values(ports));
+  const prepareReadSequence=()=>assert.fail('No page callback before original acquisition prepare');
+  assert.equal(method({installation,implementation,site,prepareReadSequence}),factory);
+  assert.equal(captured.maxRequestBytes,undefined);assert.equal(captured.maxQueryBytes,7000);assert.equal(captured.originalSite,originalSite);
+  assert.equal(captured.capacity,capacity);assert.equal(captured.prepareReadSequence,prepareReadSequence);
+  assert.equal(captured.operation,undefined);assert.deepEqual(calls,['current']);
+  assert.throws(()=>method({installation,implementation,site,prepareReadSequence}),
+    {code:'InstalledSourceReaderAlreadyConstructed'});
+  // A frozen sequence may legally have a prototype. Only the separately
+  // validated own data field may reach the actual shared Reader factory.
+  let inheritedReads=0;
+  const prototype={get maxQueryBytes(){inheritedReads++;return Infinity;}};
+  record.readSequenceConstruction=Object.freeze(Object.create(prototype,{
+    capacity:{value:capacity},sequence:{value:Object.freeze({children:[]})},
+  }));
+  sourceContexts.set(selection,{scope:{}});
+  assert.equal(method({installation,implementation,site,prepareReadSequence}),factory);
+  assert.equal(inheritedReads,0);
+  assert.equal(Object.hasOwn(captured,'maxQueryBytes'),false);
+
+});
+
+
+test('query construction is finite original sequence DATA and never a scalar reader policy override', () => {
+  const f=fixture();retainInstalledHostServiceInstallation(f.services,f.installation,'sha256:'+'a'.repeat(64));
+  const limits=f.services.sourceReaderImplementationProfile({installation:f.installation,metadataResponses:3,originUnits:20});
+  const sequence=Object.freeze({operation:'read',maxUses:1});
+  const construction=Object.freeze({capacity:f.capacity,originalLimits:Object.freeze({}),sequence,maxQueryBytes:7000});
+  const input={installation:f.installation,limits,columnCount:3,readSequenceConstruction:construction};
+  for(const maxQueryBytes of [0,-1,Infinity,2147483648]){
+    assert.throws(()=>f.services.sourceReaderImplementation({...input,
+      readSequenceConstruction:Object.freeze({...construction,maxQueryBytes})}),{code:'InvalidInstalledSourceSequenceConstruction'});
+  }
+  assert.throws(()=>f.services.sourceReaderImplementation({...input,limits:{...limits,maxQueryBytes:7000}}),
+    {code:'InstalledSourceReaderRequestCapacityUnavailable'});
+  const selected=f.services.sourceReaderImplementation(input);assert.equal(selected.capacity,f.capacity);
+  assert.throws(()=>f.services.sourceReaderImplementation({...input,
+    readSequenceConstruction:Object.freeze({...construction})}),{code:'InstalledSourceReaderSelectionChanged'});
+});

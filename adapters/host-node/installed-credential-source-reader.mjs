@@ -45,6 +45,11 @@ export function createInstalledCredentialSourceReader(options) {
     fail('InvalidInstalledCredentialSourceReader');
   }
   const maxRequestBytes = requestBound?.value;
+  const queryBound = Object.getOwnPropertyDescriptor(options, 'maxQueryBytes');
+  if (queryBound !== undefined && (!managedSequence || !Object.hasOwn(queryBound, 'value') ||
+      !positive(queryBound.value))) fail('InvalidInstalledCredentialSourceReader');
+  const queryConstruction = queryBound === undefined ? undefined
+    : Object.freeze({maxQueryBytes: queryBound.value});
   const totalBound = Object.getOwnPropertyDescriptor(options, 'maxTotalResponseBytes');
   if (totalBound !== undefined && (!Object.hasOwn(totalBound, 'value') || !positive(totalBound.value))) {
     fail('InvalidInstalledCredentialSourceReader');
@@ -437,7 +442,7 @@ export function createInstalledCredentialSourceReader(options) {
               const project = ownMethod(prepared, 'project');
               const described = prepared.request;
               if (described === null || typeof described !== 'object' || types.isProxy(described)) fail('InvalidInstalledSourcePageRequest');
-              const request = ownHttpRequest(described);
+              const request = ownHttpRequest(described, queryConstruction);
               const responseHeaders = ownResponseHeaderNames(described.responseHeaders ?? []);
               const post = request.method === 'POST' && maxRequestBytes !== undefined &&
                 typeof request.body === 'string' && Buffer.byteLength(request.body) <= maxRequestBytes;
