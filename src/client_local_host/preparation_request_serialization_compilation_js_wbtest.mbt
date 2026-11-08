@@ -433,6 +433,10 @@ test "source-free Content refuses changed originals and retains an unreturned or
     cleanup_busy: false,
     child_cleaned: false,
     released: false,
+    dependencies: [],
+    pending_start: false,
+    parent_busy: false,
+    composed: None,
   }
   run.serialization_prefix = Some(prefix)
   assert_false(

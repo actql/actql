@@ -39,7 +39,7 @@ test "CTE JOIN-right consumers retain the complete shared capture" {
       construction_limits(),
     ).unwrap()
     let body = semantic(actual)
-    assert_true(body.contains("\"filter\":{\"literal\":true}"), msg=text)
+    assert_false(body.contains("\"filter\":{\"literal\":true}"), msg=text)
     assert_eq(body.split("\"carrier\":\"relation\"").length(), 2)
     assert_eq(body.split("\"eq\":").length(), 2)
     assert_true(
@@ -50,6 +50,34 @@ test "CTE JOIN-right consumers retain the complete shared capture" {
       Checked(_) => ()
       Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
       _ => fail("one captured input must supply both consumers")
+    }
+  }
+}
+
+///|
+test "captured Source keeps absent predicates distinct from authored TRUE" {
+  for
+    (query, explicit) in [
+      ("WITH chosen AS (SELECT id FROM records) SELECT id FROM chosen", false),
+      (
+        "WITH chosen AS (SELECT id FROM records WHERE TRUE) SELECT id FROM chosen",
+        true,
+      ),
+    ] {
+    let actual = compile(
+      @query.parse_query(query, syntax_limits()).unwrap(),
+      cte_capture_context(),
+      construction_limits(),
+    ).unwrap()
+    let body = semantic(actual)
+    assert_eq(body.contains("\"filter\":{\"literal\":true}"), explicit)
+    assert_eq(body.split("\"carrier\":\"relation\"").length(), 2)
+    assert_true(body.contains("\"results\":{\"source\":"))
+    match
+      @check.check_parsed(actual, check_environment(), None, check_limits()) {
+      Checked(_) => ()
+      Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+      _ => fail("same captured Source must retain its complete result")
     }
   }
 }

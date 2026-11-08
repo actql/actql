@@ -35,6 +35,108 @@ fn local_project_mock_json(wire : String) -> Json raise ClientStop {
 }
 
 ///|
+// Trusted local Mock Host decision over the complete original static Request.
+// No values, or literal null optional listing selectors, contain no user
+// payload. Verify their actual origins and SAME installed view before selecting
+// its admitted policy. Parameter values, paths, other fields, unknown policies
+// and retired/foreign environments remain declined. This is not Source access,
+// Model egress approval, or a classification default for authored literals.
+fn LocalProjectMockDeclarations::verify_static_request_policy(
+  self : Self,
+  environment : @checked.CheckEnvironment,
+  wire : String,
+) -> String? {
+  if self.closing || self.retired || !self.sources_started {
+    return None
+  }
+  let same_environment = match self.model_environment {
+    Some((_, original)) if physical_equal(original, environment) => true
+    _ =>
+      match self.source_environment {
+        Some((_, original)) => physical_equal(original, environment)
+        None => false
+      }
+  }
+  if !same_environment || wire.length() > 2147483519 / 3 {
+    return None
+  }
+  let bytes = wire.length() * 3 + 128
+  // These are the closed verifier's nine header fields and at most two null
+  // selectors/origins. Core's subject preparation already funds the original
+  // descriptor parse. Unknown/deeper shapes decline instead of being trusted.
+  let source = match
+    @source.parse_json_bytes_preserving(@utf8.encode(wire), {
+      max_input_bytes: bytes,
+      max_nodes: 32,
+      max_depth: 3,
+    }) {
+    Ok(value) => value
+    Err(_) => return None
+  }
+  let cursor = match
+    @decode.admit(source, {
+      max_nodes: 32,
+      max_depth: 3,
+      max_string_bytes: bytes,
+      max_total_string_bytes: bytes,
+    }) {
+    Ok(value) => value
+    Err(_) => return None
+  }
+  guard @decode.closed_object(cursor, [
+      "input", "origins", "parameters_cid", "program_cid", "request", "request_cid",
+      "source_ref", "source_view_contract_cid", "stage",
+    ])
+    is Ok(fields) &&
+    @decode.lookup(fields, "source_ref") is Some(ref_cursor) &&
+    @decode.text(ref_cursor) is Ok(source_ref) &&
+    @decode.lookup(fields, "source_view_contract_cid") is Some(view_cursor) &&
+    @decode.text(view_cursor) is Ok(view_cid) &&
+    @decode.lookup(fields, "request") is Some(request) &&
+    @decode.lookup(fields, "origins") is Some(origins) &&
+    @decode.object_length(request) is Some(count) &&
+    @decode.object_length(origins) == Some(count) else {
+    return None
+  }
+  let listing_selectors = if count == 0 {
+    false
+  } else {
+    if count != 2 {
+      return None
+    }
+    guard @decode.closed_object(request, ["paths", "glob"]) is Ok(values) &&
+      @decode.closed_object(origins, ["paths", "glob"]) is Ok(provenance) else {
+      return None
+    }
+    for name in ["paths", "glob"] {
+      guard @decode.lookup(values, name) is Some(value) &&
+        @decode.is_null(value) &&
+        @decode.lookup(provenance, name) is Some(origin) &&
+        @decode.text(origin) == Ok("literal") else {
+        return None
+      }
+    }
+    true
+  }
+  for source in self.sources {
+    for view in source._retained_declaration.views {
+      if view.view_cid == view_cid &&
+        view.source_ref == source_ref &&
+        view.classification != "unknown" &&
+        (
+          !listing_selectors ||
+          source._retained_files.any(binding => {
+            binding.listing.resource == view.resource
+          })
+        ) {
+        return Some(view.data_policy_cid)
+      }
+    }
+  }
+  None
+}
+
+///|
 fn local_project_mock_array(
   value : Json,
   key : String,

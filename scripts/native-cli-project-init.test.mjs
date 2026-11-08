@@ -8,6 +8,18 @@ import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
 import {projectInitArguments, projectInitialAdoptionArguments, requireProjectInitSupport, scaffoldProject} from '../packages/native-cli/lib/project-scaffold.mjs';
 import {nativeCliPackageInputs} from './native-cli-package-inputs.mjs';
+import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
+
+test('deal-review fixture declares its three internal Source policies without a global Mock default', () => {
+  const files = projectTemplateFiles('deal-review-mock');
+  const catalogue = JSON.parse(files['mock/catalog.json']);
+  const views = Object.values(catalogue.connections).flatMap(connection => connection.views);
+  assert.deepEqual(views.map(view => [view.resource, view.data_classification]),
+    [['Opportunity', 'internal'], ['files', 'internal'], ['contents', 'internal']]);
+  const old = JSON.parse(projectTemplateFiles('churn-risk-mock')['mock/catalog.json']);
+  assert(Object.values(old.connections).flatMap(connection => connection.views)
+    .every(view => view.data_classification === undefined));
+});
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const launcher = fileURLToPath(new URL('../packages/native-cli/bin/actql.mjs', import.meta.url));
