@@ -5,7 +5,9 @@ type CapturedContentCustody
 pub fn Store::captured_content_custody_construction_inventory(
   _self : Store,
   _chunk_bytes : Int,
+  candidate? : @publication.CapturedContentReference? = None,
 ) -> @execution.PreparationRepresentationUnits? {
+  ignore(candidate)
   None
 }
 

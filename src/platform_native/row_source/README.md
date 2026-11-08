@@ -51,9 +51,12 @@ simultaneous constructor extent. A failed grow refuses admission; received work
 is not refunded and prior Source outputs remain retained. The response length
 is measured from the original charged Bytes, never an announced length.
 
-Raw parser backing uses that measured length. Typed projection keeps its full
+Raw parser backing uses that measured length. Parser/index arrays grow from
+observed tokens, so received bytes also bound their node/container count. Typed projection keeps its full
 declared envelope except for closed Text-only rows, whose cumulative text bound
-uses the canonical NFC output inventory and JSON escaping bound. Listing output
+uses the canonical NFC output inventory and JSON escaping bound, plus the
+received-node bound and the whole declared field frontier. Original policy
+guards remain at parsing and projection. Listing output
 writers retain their full original allowance. Numeric, reference and nested
 Contracts do not acquire a byte-length projection shortcut. The successful grown
 peak remains held through the same final cleanup.
@@ -101,9 +104,12 @@ checks the same request and cumulative charged ticket. This path supplies no
 Account, provider permission, Model result or Effect write authority.
 
 The original metadata reservation covers simultaneous file parsing, content
-projection, Store construction, confirmation and reference/page output. Its
-received-byte continuation grows that same byte-only token before materializing
-the next phase; it creates no send attempt or transfer allowance. Failure and
+projection, Store construction, confirmation and reference/page output. Before
+the Store child exists, its constructor is not pre-reserved as a retained child.
+After the original candidate exists, the Source grows that SAME byte-only token
+to cover the actual Store record and all simultaneous Source/Content backing,
+then prepares and retains the child before any I/O. This creates no send attempt
+or transfer allowance, and returns no earlier backing as phase credit. Failure and
 reentrant close retain the actual Store/reader children. Close returns their
 original duties before settling the token; logical completion is not physical
 cleanup. The installing caller remains responsible for retiring escaped aliases,

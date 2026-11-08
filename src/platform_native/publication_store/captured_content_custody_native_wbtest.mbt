@@ -430,3 +430,52 @@ test "Native captured Content empty bytes retain one real object through Store r
   // This stock Library is not a selected-component cleanup ACK.
   assert_true(library.close_checked() is Err(@sqlite.Physical(_)))
 }
+
+///|
+test "Native Content canonical record geometry preserves extreme originals and malformed refusal" {
+  let holding = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  assert_eq(captured_content_record_bound("x", 65536), Some(207))
+  let bodies = [
+    (
+      "x", "[\"actql-native-captured-content-custody/0.1\",\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"x\",\"sealed\",\"18446744073709551615\",\"18446744073709551615\",\"9223372036854775807\"]",
+    ),
+    (
+      "\u{0001}", "[\"actql-native-captured-content-custody/0.1\",\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"\\u0001\",\"sealed\",\"18446744073709551615\",\"18446744073709551615\",\"9223372036854775807\"]",
+    ),
+    (
+      "😀", "[\"actql-native-captured-content-custody/0.1\",\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"😀\",\"sealed\",\"18446744073709551615\",\"18446744073709551615\",\"9223372036854775807\"]",
+    ),
+  ]
+  for (wire, original) in bodies {
+    let body = @utf8.encode(original)
+    assert_true(
+      body.length() <= captured_content_record_bound(wire, 65536).unwrap(),
+    )
+    let generation = captured_content_generation(body, holding, wire, 65536).unwrap()
+    assert_eq(generation.device.to_string(), "18446744073709551615")
+    assert_eq(generation.inode.to_string(), "18446744073709551615")
+    assert_eq(generation.size, 9223372036854775807L)
+    // This noncanonical body is below the geometry bound: the original
+    // canonical equality guard, rather than just the preparse size, refuses.
+    assert_true(
+      captured_content_generation(
+        @utf8.encode(" " + original),
+        holding,
+        wire,
+        65536,
+      )
+      is Err(StateCollision),
+    )
+    // The raw readback remains within the old Store bound, but cannot be
+    // the canonical original. It refuses before parser/index construction.
+    assert_true(
+      captured_content_generation(
+        @utf8.encode(" ".repeat(512) + original),
+        holding,
+        wire,
+        65536,
+      )
+      is Err(StateCollision),
+    )
+  }
+}

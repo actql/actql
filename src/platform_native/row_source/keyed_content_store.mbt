@@ -117,7 +117,28 @@ fn native_relation_file_content_capacity(
   input : NativeRelationFileContentInput,
   physical : NativeRelationFilePreparedProvider?,
   response_bytes? : Int? = None,
+  storage_candidate? : @publication.CapturedContentReference? = None,
 ) -> (Int64, Int64)? {
+  // The Store child does not exist until its original candidate has been
+  // built. Its exact constructor is grown on this SAME reservation below,
+  // before the child is prepared or can perform any I/O.
+  let storage : @execution.PreparationRepresentationUnits? = match
+    (storage_candidate, physical) {
+    (None, _) =>
+      Some({
+        record_headers: 0L,
+        reference_slots: 0L,
+        scalar_words: 0L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      })
+    (Some(original), Some(provider)) =>
+      input.store.captured_content_custody_construction_inventory(
+        provider.limits.chunk_bytes,
+        candidate=Some(original),
+      )
+    _ => None
+  }
   guard physical is Some(provider) &&
     file_listing_fields_valid(provider, input.fields) &&
     file_content_construction_inventory(
@@ -128,10 +149,7 @@ fn native_relation_file_content_capacity(
       response_bytes,
     )
     is Some(projection) &&
-    input.store.captured_content_custody_construction_inventory(
-      provider.limits.chunk_bytes,
-    )
-    is Some(storage) &&
+    storage is Some(storage) &&
     @publication_host.client_captured_content_workspace_capacity(
       input.reference_limits.max_bytes,
     )
@@ -321,6 +339,36 @@ fn NativeRelationFileCapture::advance_content(
     }
     PrepareContentStore => {
       let candidate = content.candidate.unwrap()
+      guard self.ledger is Some(ledger) && self.metadata is Some(metadata) else {
+        return Err(Unavailable)
+      }
+      let (retained, execution) = match
+        file_capture_construction_capacity(
+          self.selection.unwrap(),
+          self.limits,
+          self.acquisition.unwrap(),
+          self.response_provider,
+          Some(input),
+          Some(self.offset),
+          storage_candidate=Some(
+            @publication_host.client_captured_content_candidate(candidate),
+          ),
+        ) {
+        Some(value) => value
+        None => return Err(Capacity)
+      }
+      match
+        @resources.grow_capacity_reservation(
+          ledger, metadata, retained, execution,
+        ) {
+        Err(issue) => return Err(Resource(issue))
+        Ok(_) => ()
+      }
+      // A successful debit remains with the same owner after reentrant close;
+      // it never permits a stale Store constructor or another candidate.
+      if !self.retained_keyed_original() {
+        return Err(Unavailable)
+      }
       let holding = match
         @publication_host.client_captured_content_holding_cid(candidate) {
         Some(value) => value
