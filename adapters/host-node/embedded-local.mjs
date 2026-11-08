@@ -2416,6 +2416,16 @@ async function openInstalledHost(originalInstallation, preparation) {
         ref.authorityScopeCid === authorityScopeCid);
     const authorizedScope = ({principalId: actual}) =>
       actual === principalId ? {namespaceId, authorityScopeCid} : undefined;
+    // One installed read policy supplies negotiation and the authorized
+    // delivery grant. Publication output bounds are a separate purpose.
+    const resultReadLimits = Object.freeze({
+      maxReadWireBytes: 10 * 1024 * 1024,
+      maxRowWireBytes: 1024 * 1024,
+      maxRowRetainedValueBytes: 1024 * 1024,
+      maxRetainedValueBytes: 10 * 1024 * 1024,
+      maxRows: 10000, maxBatchRows: 1000,
+      maxBatchRetainedValueBytes: 10 * 1024 * 1024,
+    });
     const negotiate = async value => ({version: 'actql-client-host/0.1',
       mode, owner: mode, durability: 'durable',
       ...(value.connection.workspaceId === undefined ? {} : {workspaceId}),
@@ -2423,14 +2433,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       ...(hostConnection(value) ? {submissionEpoch: await issueNodeClientSubmissionEpoch({
         journal,moon,authorizedScope: request => hostConnection(request)
           ? authorizedScope(request) : undefined},value)} : {}),
-      capabilities: ['result-jsonl'], limits: {
-        maxReadWireBytes: 10 * 1024 * 1024,
-        maxRowWireBytes: 1024 * 1024,
-        maxRowRetainedValueBytes: 1024 * 1024,
-        maxRetainedValueBytes: 10 * 1024 * 1024,
-        maxRows: 10000, maxBatchRows: 1000,
-        maxBatchRetainedValueBytes: 10 * 1024 * 1024,
-      }});
+      capabilities: ['result-jsonl'], limits: resultReadLimits});
     const initializePublicationServices = async () => {
     try {
     if (preparation !== undefined) {
@@ -2514,7 +2517,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       dataCeilingCid: cid({version: 'actql-local-read-ceiling/0.1'}),
       egressAdmissionCid: cid({version: 'actql-local-egress/0.1'}),
       expiresAt: plus(now(), 60 * 60 * 1000),
-      maxBytes: localOutputLimits.maxWireBytes, maxUses: 1,
+      maxBytes: resultReadLimits.maxReadWireBytes, maxUses: 1,
       };
     },
     authorizeResultRead: authorizeLocalResult,
