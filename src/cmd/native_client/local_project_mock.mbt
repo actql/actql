@@ -670,3 +670,63 @@ fn LocalProjectMockDeclarations::model_provider(
   }
   Err(ForeignOriginal)
 }
+
+///|
+// First-install subjects from the SAME admitted Project declarations. These
+// bytes select no live backend, approval or grant. Only the existing excluded
+// fresh Product initializer may persist the Common finite Account original.
+fn LocalProjectMockDeclarations::account_subjects(
+  self : Self,
+) -> Result[@authorization.LocalMockAccountSubjects, LocalProjectMockModelIssue] {
+  guard !self.closing &&
+    !self.retired &&
+    self.model_failure is None &&
+    self.sources_started &&
+    self.model_started &&
+    @run_host.client_project_profile_matches(
+      self.profile,
+      Some(self._retained_project.metadata),
+      self._retained_project.profile,
+    ) else {
+    return Err(ForeignOriginal)
+  }
+  let sources : Array[(String, String)] = []
+  let tasks : Array[String] = []
+  let mut update : (String, String)? = None
+  for source in self.sources {
+    for view in source._retained_declaration.views {
+      let subject = (source._retained_connection, view.resource)
+      if !sources.contains(subject) {
+        sources.push(subject)
+      }
+    }
+    for write in source._retained_writes {
+      let subject = (source._retained_connection, write.mapping.resource)
+      if update is Some(previous) && previous != subject {
+        return Err(ForeignOriginal)
+      }
+      update = Some(subject)
+    }
+  }
+  for model in self.models {
+    guard model.normalized is Some(normalized) && model.installation is Some(_) else {
+      return Err(ForeignOriginal)
+    }
+    let task = @compiler_environment.normalized_public_model_task_materials(
+        normalized,
+      ).1
+    if !tasks.contains(task) {
+      tasks.push(task)
+    }
+  }
+  Ok({
+    account_id: "local-cli",
+    principal: "local-cli",
+    control_connection: "local",
+    sources,
+    model_tasks: tasks,
+    request_target: None,
+    update_target: update,
+    signing_key_resource: None,
+  })
+}

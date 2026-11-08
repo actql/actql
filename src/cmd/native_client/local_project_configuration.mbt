@@ -336,7 +336,7 @@ fn local_project_read_execution_bindings(
   operation : String,
 ) -> Result[LocalProjectConfiguration?, @files.NativeBoundedTextFailure] raise ClientStop {
   guard selected is Some(project) &&
-    local_project_execution_operation(operation) else {
+    (local_project_execution_operation(operation) || operation == "adopt") else {
     return Ok(selected)
   }
   // Intake the exact public Mock documents independently of installation.
@@ -359,6 +359,14 @@ fn local_project_read_execution_bindings(
         Ok(Some({ ..project, mock_declarations: Some(original), }))
       Err(original) => Err(original)
     }
+  }
+  // Ordinary adoption does not intake execution declarations. Only the
+  // explicitly selected closed Mock branch above needs first-install subjects.
+  if operation == "adopt" {
+    if project.profile == Some("mock") {
+      stop("LocalProjectBindingsUnavailable")
+    }
+    return Ok(selected)
   }
   // Other unsupported profiles still refuse before declaration IO.
   local_project_require_supported_profile(project, operation)

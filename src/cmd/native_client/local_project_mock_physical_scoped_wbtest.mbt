@@ -121,6 +121,7 @@ fn native_project_mock_model_backed_read(
   effect_compilation? : Bool = false,
   effect_source_inputs? : Bool = false,
   content_join? : Bool = false,
+  account_initialization? : Bool = false,
 ) -> Unit raise {
   // Reuse the existing real Native facility entry, as in Request/Effect's
   // physical component. This supplies no Command platform/Journal/Account.
@@ -193,6 +194,8 @@ fn native_project_mock_model_backed_read(
       effect_source_inputs~,
       content_join~,
     )
+  } else if account_initialization {
+    native_project_mock_account_in_original_read()
   } else if lookup_policy {
     native_mock_lookup_policy_in_original_read()
   } else if file_references {
@@ -876,4 +879,90 @@ test "Native Project Mock original file listing issuer resolves only its observe
 ///|
 test "Native Project Mock retains its original admitted implementation before Graph compilation" {
   native_project_mock_model_backed_read(false, environment=true)
+}
+
+///|
+fn native_project_mock_account_in_original_read() -> Unit raise {
+  // Exercise the actual adoption declaration selection under the same physical
+  // metadata Read. This does not open a Host or authenticate Account custody.
+  let original = native_project_mock_model_fixture(
+    "deal-review",
+    operation="adopt",
+  )
+  defer original.retire()
+  assert_true(original.account_subjects() is Err(ForeignOriginal))
+  original.prepare_source_declarations().unwrap()
+  original
+  .prepare_models(
+    local_project_mock_task_limits(),
+    local_project_mock_answer_limits(),
+    local_utc_now,
+  )
+  .unwrap()
+  let subjects = original.account_subjects().unwrap()
+  assert_eq(subjects.sources.length(), 3)
+  for
+    subject in [
+      ("salesforce", "Opportunity"),
+      ("drive", "files"),
+      ("drive", "contents"),
+    ] {
+    assert_true(subjects.sources.contains(subject))
+  }
+  assert_eq(subjects.model_tasks.length(), 1)
+  assert_eq(
+    subjects.model_tasks[0],
+    @compiler_environment.normalized_public_model_task_materials(
+      original.models[0].normalized.unwrap(),
+    ).1,
+  )
+  assert_eq(subjects.update_target, Some(("salesforce", "Opportunity")))
+  let account = @authorization.admit_account_configuration_json(
+    @authorization.local_mock_account_configuration(subjects).unwrap(),
+  ).unwrap()
+  for subject in subjects.sources {
+    assert_true(
+      @authorization.evaluate_account(account, {
+        principal: "local-cli",
+        connection: subject.0,
+        resource: subject.1,
+        operation: "read",
+      })
+      is @authorization.Allow(_),
+    )
+  }
+  assert_true(
+    @authorization.evaluate_account(account, {
+      principal: "local-cli",
+      connection: "mock",
+      resource: subjects.model_tasks[0],
+      operation: "infer",
+    })
+    is @authorization.Allow(_),
+  )
+  assert_true(
+    @authorization.evaluate_account(account, {
+      principal: "local-cli",
+      connection: "salesforce",
+      resource: "Opportunity",
+      operation: "effect",
+    })
+    is @authorization.Delegate(_),
+  )
+  assert_true(
+    @authorization.evaluate_account(account, {
+      principal: "local-cli",
+      connection: "drive",
+      resource: "other",
+      operation: "read",
+    })
+    is @authorization.Deny(_),
+  )
+  original.retire()
+  assert_true(original.account_subjects() is Err(ForeignOriginal))
+}
+
+///|
+test "Native Mock first adoption retains only the original Project Account subjects" {
+  native_project_mock_model_backed_read(false, account_initialization=true)
 }

@@ -295,6 +295,16 @@ fn LocalCommandPreparationOriginal::execute_product_command(
         local_utc_now(),
         runtime.assets,
         runtime.manifest,
+        mock=match self.project {
+          Some(project) if operation == "adopt" &&
+            project.mock_declarations is Some(mock) =>
+            Some(
+              mock
+              .account_subjects()
+              .unwrap_or_else(() => stop("LocalProjectBindingsUnavailable")),
+            )
+          _ => None
+        },
       ).unwrap_or_else(() => stop("LocalProductDefaultsNotAdmitted"))
       if !(parent.bootstrap_parent_ownership() is Ok(current) &&
         current == ownership) {

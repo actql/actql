@@ -877,7 +877,7 @@ pub fn client_local_product_bootstrap_originals(String, String) -> Result[Client
 
 pub fn client_local_product_common_originals(String, String, ClientLocalProductAssets) -> Result[ClientLocalProductCommonOriginals, ClientLocalProductConfigurationIssue]
 
-pub fn client_local_product_finite_originals(String, String, String, String, ClientLocalProductAssets) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue]
+pub fn client_local_product_finite_originals(String, String, String, String, ClientLocalProductAssets, mock? : @execution_authorization.LocalMockAccountSubjects?) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue]
 
 pub fn client_local_product_originals(String, String, String, String, ClientLocalProductAssets) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue]
 
@@ -973,7 +973,7 @@ pub fn client_model_resource_invalidation_current(@physical_resources.OriginalRe
 
 pub fn client_model_resource_park_current(@physical_resources.OriginalResourcePark[ClientModelReadOrigin], ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> @physical_resources.OriginalResourcePark[ClientModelReadOrigin]?
 
-pub fn client_native_local_finite_product_originals(String, String, String, String, ClientLocalProductAssets, ClientNativeLocalRuntime) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue]
+pub fn client_native_local_finite_product_originals(String, String, String, String, ClientLocalProductAssets, ClientNativeLocalRuntime, mock? : @execution_authorization.LocalMockAccountSubjects?) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue]
 
 pub fn client_native_local_product_originals(String, String, String, String, ClientLocalProductAssets, ClientNativeLocalRuntime) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue]
 
