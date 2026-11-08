@@ -136,19 +136,12 @@ fn client_local_capacity_plan(
   } else {
     None
   }
-  // The selected literal profile's canonical value ceiling comes from its
-  // same admitted text envelope. The independent row/batch ceiling remains;
-  // unknown and Parameter-bearing profiles keep the existing default.
-  let max_value_bytes = match original_values_text {
-    Some((_, wire)) => Int::max(10000, Int::min(wire, 16777216))
-    None => 10000
-  }
   let value_node_demand = if scalar_demand is None &&
     value_node_demand is Some(original) {
     Some({
       ..original,
       text_bound: match original_values_text {
-        Some((bytes, _)) => Some(bytes)
+        Some((bytes, _, _)) => Some(bytes)
         None =>
           match content {
             Some(selected) =>
@@ -220,7 +213,7 @@ fn client_local_capacity_plan(
     execution
   }
   let measurement = match original_values_text {
-    Some((_, wire)) =>
+    Some((_, wire, _)) =>
       { ..measurement, max_bytes: Int::max(measurement.max_bytes, wire), }
     None => measurement
   }
@@ -272,7 +265,7 @@ fn client_local_capacity_plan(
   // policy or capacity. Quote and provider construction consume them together;
   // the original Ledger and operator facility still admit the resulting cost.
   let imports = match original_values_text {
-    Some((text, wire)) =>
+    Some((text, wire, row_wire)) =>
       {
         ..imports,
         wire: {
@@ -281,18 +274,24 @@ fn client_local_capacity_plan(
         },
         row: {
           ..imports.row,
-          max_bytes: Int::max(imports.row.max_bytes, Int::min(wire, 16777216)),
-          max_text_bytes: Int::max(imports.row.max_text_bytes, text),
+          max_bytes: Int::max(
+            imports.row.max_bytes,
+            Int::min(row_wire, 16777216),
+          ),
+          max_text_bytes: Int::max(
+            imports.row.max_text_bytes,
+            Int::min(text, row_wire),
+          ),
         },
         max_batch_bytes: Int::max(
           imports.max_batch_bytes,
-          Int::min(wire, 16777216),
+          Int::min(row_wire, 16777216),
         ),
       }
     None => imports
   }
   let exports = match original_values_text {
-    Some((_, wire)) =>
+    Some((_, wire, row_wire)) =>
       {
         ..exports,
         wire: {
@@ -303,7 +302,7 @@ fn client_local_capacity_plan(
         // wire demand is distinct; oversized actual rows still refuse there.
         max_batch_bytes: Int::max(
           exports.max_batch_bytes,
-          Int::min(wire, 16777216),
+          Int::min(row_wire, 16777216),
         ),
       }
     None => exports
@@ -339,6 +338,41 @@ fn client_local_capacity_plan(
         },
       }
     None => exports
+  }
+  // A top-level value must fit the SAME selected row and measurement policy.
+  // The old independent10000-byte default cannot narrow already admitted Text
+  // or Parameters. Scalar-only profiles retain it; this grows no row, batch,
+  // text, work or physical allowance and supplies no resource backing.
+  let max_value_bytes = if scalar_demand is Some(_) {
+    10000
+  } else {
+    Int::max(10000, Int::min(imports.row.max_bytes, measurement.max_bytes))
+  }
+  // Text kernels reserve their exact UTF-16 builder before construction, in
+  // addition to already live operation controls. Back that selected finite
+  // row envelope on the same quoted/actual execution workspace. Values-only
+  // and scalar-only profiles need no such builder allocation.
+  let text_kernel = scalar_demand is None &&
+    sequences.any(sequence => {
+      let original = @execution.generated_prepared_sequence(sequence)
+      for step in 0..<@lower.sequence_count(original) {
+        if @lower.sequence_step(original, step) is Some(@lower.RowStep(_)) {
+          return true
+        }
+      }
+      false
+    })
+  let execution = if text_kernel {
+    {
+      ..execution,
+      rows: {
+        ..execution.rows,
+        operation_entries: execution.rows.operation_entries +
+        Int::min(values.max_text_bytes, max_value_bytes),
+      },
+    }
+  } else {
+    execution
   }
   let result_envelope = match graph {
     Some(original) => client_local_result_envelope(original, max_rows)
