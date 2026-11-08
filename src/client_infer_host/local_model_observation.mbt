@@ -277,3 +277,41 @@ pub fn issue_original_local_model_effect_invocation(
     None
   }
 }
+
+///|
+/// Original Model input body retained during its FIRST pre-dispatch identity
+/// scan. Read only the same input Scope/receipt, with the existing live Model
+/// use and complete issuer. No rows, input identity or schema are regenerated.
+pub fn original_local_model_observation_input_bodies(
+  value : LocalModelObservation,
+) -> Array[(String, String)]? {
+  guard original_local_model_observation_current(value.held, value.issued) &&
+    value.held.owner.identity is Some(scan) &&
+    value.held.owner.call_scope is Some(scope) &&
+    @relation.completed_relation_identity_scan_body_receipt(scan)
+    is Some(receipt) &&
+    @relation.completed_relation_identity_scan_body(scan, receipt) is Some(body) &&
+    @publication.model_input_artifact_relation_identities(
+      @publication_host.client_infer_call_scope_artifact(scope),
+    )
+    is Some((logical, schema)) &&
+    logical ==
+    @relation.logical_relation_cid(
+      @relation.completed_relation_export_identity(receipt),
+    ) &&
+    schema ==
+    @relation.relation_schema_cid(
+      @relation.completed_relation_export_schema_identity(receipt),
+    ) else {
+    return None
+  }
+  Some([
+    ("relation_value", body),
+    (
+      "relation_schema",
+      @relation.relation_schema_wire(
+        @relation.completed_relation_export_schema_identity(receipt),
+      ),
+    ),
+  ])
+}

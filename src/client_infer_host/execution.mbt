@@ -80,6 +80,7 @@ pub struct Execution {
   limits : Limits
   mut rows : @relation.PreparedInferRows?
   mut identity : @relation.CompletedRelationIdentityScan?
+  mut identity_body : OriginalInferIdentityBody?
   mut call_scope : @publication_host.ClientInferCallScope?
   mut saved_call_scope : @publication_host.ClientInferSavedCallScope?
   mut model : @model.ModelExecution?
@@ -738,6 +739,7 @@ fn start_occurrence(
     limits,
     rows: None,
     identity: None,
+    identity_body: None,
     call_scope: None,
     saved_call_scope: None,
     model: None,
@@ -1133,6 +1135,16 @@ fn advance_child(active : Execution, quantum : Int) -> Poll {
               return fail(active, InvalidAdvance)
             }
             let limits = active.limits.identity
+            if active.identity_body is Some(_) {
+              guard @relation.completed_relation_identity_body_start_construction_capacity()
+                is Some(start) else {
+                return fail(active, InvalidAdvance)
+              }
+              match grow_original_infer_identity_body_capacity(active, start) {
+                Err(issue) => return fail(active, issue)
+                Ok(_) => ()
+              }
+            }
             active.identity = match
               @relation.start_completed_relation_identity_scan(
                 completed,
@@ -1143,6 +1155,8 @@ fn advance_child(active : Execution, quantum : Int) -> Poll {
                 limits.schema,
                 limits.work,
                 limits.workspace,
+                incremental_metadata=active.identity_body is Some(_),
+                retain_body=active.identity_body is Some(_),
               ) {
               Ok(value) => Some(value)
               Err(issue) => return fail(active, IdentityExport(issue))
@@ -1169,8 +1183,34 @@ fn advance_child(active : Execution, quantum : Int) -> Poll {
       guard active.identity is Some(identity) else {
         return fail(active, InvalidAdvance)
       }
+      let construction = if active.identity_body is Some(_) {
+        guard @relation.completed_relation_identity_scan_next_construction_capacity(
+            identity,
+          )
+          is Some(next) else {
+          return fail(active, InvalidAdvance)
+        }
+        guard @relation.completed_relation_identity_scan_body_next_construction_capacity(
+            identity,
+          )
+          is Some(body_demand) else {
+          return fail(active, InvalidAdvance)
+        }
+        match grow_original_infer_identity_body_capacity(active, body_demand) {
+          // The original Read still funds its legacy scan envelope. The new
+          // extension above covers only body retention beside that envelope.
+          Ok(_) => Some(next)
+          Err(issue) => return fail(active, issue)
+        }
+      } else {
+        None
+      }
       let (done, _) = match
-        @relation.advance_completed_relation_identity_scan(identity, quantum) {
+        @relation.advance_completed_relation_identity_scan(
+          identity,
+          quantum,
+          construction_capacity=construction,
+        ) {
         Ok(value) => value
         Err(issue) => {
           if !account(
@@ -1792,6 +1832,7 @@ pub fn cleanup(active : Execution) -> Result[Bool, Issue] {
     @relation.cancel_completed_relation_identity_scan(identity) |> ignore
     active.identity = None
   }
+  active.identity_body = None
   match @input.cleanup_client_infer_input(active.input) {
     Ok(true) => {
       if active.original_preparation is Some(original) &&

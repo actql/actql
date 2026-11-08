@@ -575,3 +575,16 @@ pub fn completed_relation_identity_scan_work(
 ) -> Int64 {
   value.work.to_int64()
 }
+
+///|
+/// Immutable receipt selected by this scan's optional completed body. The
+/// typed original, not an equal export or a caller-provided CID, is returned.
+pub fn completed_relation_identity_scan_body_receipt(
+  value : CompletedRelationIdentityScan,
+) -> CompletedRelationExportReceipt? {
+  if value.closed && value.phase is Done && value.completed_body is Some(_) {
+    value.body_receipt
+  } else {
+    None
+  }
+}

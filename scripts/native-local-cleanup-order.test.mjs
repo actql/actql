@@ -83,6 +83,9 @@ pub fn issue_original_local_model_observation_from_scope(_ : OutputUse, _ : Obse
   if receipt.output.mode == 3 { None } else { Some({marker: 9}) }
 }
 pub fn original_local_model_observation_body(value : LocalModelObservation) -> @publication.CapturedEffectDependencyBody? { Some({marker: value.marker}) }
+pub fn original_local_model_observation_input_bodies(_ : LocalModelObservation) -> Array[(String, String)]? {
+  Some([("relation_value", "original-input"), ("relation_schema", "original-input-schema")])
+}
 pub fn grow_original_infer_publication_capacity(owner : Execution, value : OriginalModelPublicationCapacity, retained : Int64, _ : Int64) -> Result[Unit, Issue] {
   if owner.output.mode == 6 || (owner.output.mode == 7 && retained > 30L) ||
     (owner.output.mode == 8 && retained > 70L) {
@@ -146,6 +149,7 @@ test "same production partial constructor and retirement matrix" {
     }
     if mode == 0 || mode == 5 || mode == 8 {
       assert_eq(work.local_observation_dependency_bodies(), Some([
+        ("relation_value", "original-input"), ("relation_schema", "original-input-schema"),
         ("relation_value", "original-body"), ("relation_schema", "original-schema"),
       ]))
       work.advancing = true

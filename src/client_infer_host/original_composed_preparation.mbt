@@ -17,6 +17,7 @@ pub fn start_original_composed(
   model_retained_bytes : Int64,
   model_execution_bytes : Int64,
   sources? : @publication_host.ClientInferComposedSources? = None,
+  input_body_read? : @publication_host.ClientModelReadPreparation? = None,
 ) -> Result[Execution, Issue] {
   if (
       sources is Some(value) &&
@@ -50,6 +51,17 @@ pub fn start_original_composed(
         model_execution_bytes,
         shared_mock=true,
       )
+      if input_body_read is Some(read) {
+        // DATA continuation only. The same entered consumer authenticates this
+        // exact original Read again at its first actual construction boundary.
+        active.identity_body = Some({
+          read,
+          base_retained: read_retained_bytes,
+          base_execution: read_execution_bytes,
+          retained: read_retained_bytes,
+          execution: read_execution_bytes,
+        })
+      }
       active
     },
   )

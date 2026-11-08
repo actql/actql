@@ -127,3 +127,30 @@ publication reservation. These immutable bodies are dependencies, not Store
 custody or permission to publish or apply an Effect. Complete input/source
 bodies, Artifact admission and durable Preview/approval remain independent
 parts of the same publication path.
+
+
+## First input body on the original Read
+
+The Native local Effect caller forwards its same prepared Read into the
+original composed Model entrance before input progress. The existing singular
+Read consumer grows only for the additional body storage of the first input
+identity scan. Its already admitted complete legacy input/identity allowance
+remains the base; that scan envelope is not charged a second time. Each next
+body-fragment demand is admitted before allocation, and covered steps reuse
+the retained peak without another Resource current callback.
+
+The Host projects the prepared Read's retained origin into the existing
+Resource grow operation. The original compiler/definition/Plan binding and
+Resource consumer-origin identity remain checked; a new descriptor, duplicate
+current getter or replacement read is not issued. A refused grow retains the
+same consumer for cleanup and cannot dispatch the Model. Reentrant cancellation
+after a successful grow keeps that peak but prevents the next constructor.
+
+The accepted local Model observation reads the original input scan's receipt
+and matches its logical/schema identities to the same CallScope. It borrows the
+already retained canonical input and schema without admission, encoding or
+hashing. The Native dependency reader combines these with the same raw outcome
+body and schema. Input backing remains on the original Read, outcome backing
+on its original publication reservation; aliases retire before those respective
+owners return capacity. Native physical domain backing and durable Store
+admission remain obligations of their actual Host and publication owners.

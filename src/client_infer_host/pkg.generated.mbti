@@ -161,6 +161,8 @@ pub fn observation_issuance_value(ObservationIssuance) -> (@run_publication.RunE
 
 pub fn original_local_model_observation_body(LocalModelObservation) -> @run_publication.CapturedEffectDependencyBody?
 
+pub fn original_local_model_observation_input_bodies(LocalModelObservation) -> Array[(String, String)]?
+
 pub fn original_model_current_state_match_current(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalCurrentStateMatch[@run_publication_host.ClientModelReadOrigin]) -> @physical_resources.OriginalCurrentStateMatch[@run_publication_host.ClientModelReadOrigin]?
 
 pub fn original_model_parked_read_capacity_available(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], Int64, Int64) -> Bool
@@ -243,7 +245,7 @@ pub fn start_keyed(@run_publication_host.ClientInferOccurrence, @run_publication
 
 pub fn start_observation_issuance(Execution, @physical_resources.Ledger, ObservationIssuanceLimits, generations? : Array[@run_publication_host.ClientSerializationGeneration]) -> Result[ObservationIssuance, Issue]
 
-pub fn start_original_composed(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @execution_relation.GeneratedSequence, Array[@local.ManagedProviderInput], @model_execution.ModelProvider, Limits, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientModelReadConsumer, Int64, Int64, Int64, Int64, sources? : @run_publication_host.ClientInferComposedSources?) -> Result[Execution, Issue]
+pub fn start_original_composed(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @execution_relation.GeneratedSequence, Array[@local.ManagedProviderInput], @model_execution.ModelProvider, Limits, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientModelReadConsumer, Int64, Int64, Int64, Int64, sources? : @run_publication_host.ClientInferComposedSources?, input_body_read? : @run_publication_host.ClientModelReadPreparation?) -> Result[Execution, Issue]
 
 pub fn start_original_generated(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientInferPlanGraph, @model_execution.ModelProvider, Limits, @run_publication.PublicationContract, @run_publication_host.ClientModelReadConsumer, Int64, Int64, Int64, Int64) -> Result[Execution, Issue]
 
@@ -299,6 +301,7 @@ pub struct Execution {
   limits : Limits
   mut rows : @execution_relation.PreparedInferRows?
   mut identity : @execution_relation.CompletedRelationIdentityScan?
+  mut identity_body : OriginalInferIdentityBody?
   mut call_scope : @run_publication_host.ClientInferCallScope?
   mut saved_call_scope : @run_publication_host.ClientInferSavedCallScope?
   mut model : @model_execution.ModelExecution?
@@ -401,6 +404,8 @@ pub(all) struct ObservationIssuanceLimits {
 }
 
 type ObservationIssuanceState
+
+type OriginalInferIdentityBody
 
 type OriginalModelCurrentStateDecode
 

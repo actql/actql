@@ -318,6 +318,7 @@ pub fn NativeClientMockModelWork::open(
   read_execution_bytes : Int64,
   model_retained_bytes : Int64,
   model_execution_bytes : Int64,
+  input_body_read? : @host.ClientModelReadPreparation? = None,
 ) -> Result[Unit, NativeClientMockModelIssue] {
   try {
     if self.open_attempted ||
@@ -345,6 +346,7 @@ pub fn NativeClientMockModelWork::open(
         model_retained_bytes,
         model_execution_bytes,
         sources=Some(sources),
+        input_body_read~,
       ).map_err(issue => NativeClientMockModelIssue::Model(issue)),
     )
     self.active = Some(active)

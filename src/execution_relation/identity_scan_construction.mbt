@@ -304,12 +304,25 @@ fn identity_scan_add_retained_body_capacity(
   guard value.retained_body is Some(parts) else {
     return identity_scan_capacity(base)
   }
+  identity_scan_body_capacity(
+    base,
+    parts.capacity().to_int64(),
+    value.retained_body_units,
+  )
+}
+
+///|
+fn identity_scan_body_capacity(
+  base : PreparationRepresentationUnits,
+  parts_capacity : Int64,
+  retained_units : Int64,
+) -> ExecutionCapacity? {
   guard @shape.collection_construction_extent({
       records: 4L,
       record_references: 8L,
       record_words: 4L,
       reference_arrays: 1L,
-      reference_items: parts.capacity().to_int64() + 3L,
+      reference_items: parts_capacity + 3L,
       scalar_arrays: 0L,
       scalar_items: 0L,
       maps: 0L,
@@ -318,7 +331,7 @@ fn identity_scan_add_retained_body_capacity(
     is Some(storage) else {
     return None
   }
-  let text = value.retained_body_units +
+  let text = retained_units +
     @admitted.wire_emit_fragment_byte_bound().to_int64() +
     3L
   identity_scan_capacity({
@@ -327,5 +340,40 @@ fn identity_scan_add_retained_body_capacity(
     scalar_words: base.scalar_words + storage.scalar_words,
     owned_utf16_units: base.owned_utf16_units + 4L * text,
     owned_wire_bytes: base.owned_wire_bytes,
+  })
+}
+
+///|
+/// Only the additional optional body storage, beside a caller's already
+/// funded legacy input/identity envelope. This avoids charging that existing
+/// scan envelope twice when extending the SAME original Read.
+pub fn completed_relation_identity_body_start_construction_capacity() -> ExecutionCapacity? {
+  identity_scan_body_capacity(
+    {
+      record_headers: 0L,
+      reference_slots: 0L,
+      scalar_words: 0L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    },
+    1L,
+    27L,
+  )
+}
+
+///|
+/// Additional retained body demand for this original scan's next step only.
+pub fn completed_relation_identity_scan_body_next_construction_capacity(
+  value : CompletedRelationIdentityScan,
+) -> ExecutionCapacity? {
+  if value.closed || value.advancing || value.retained_body is None {
+    return None
+  }
+  identity_scan_add_retained_body_capacity(value, {
+    record_headers: 0L,
+    reference_slots: 0L,
+    scalar_words: 0L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
   })
 }

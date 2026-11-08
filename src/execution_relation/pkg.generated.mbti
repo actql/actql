@@ -572,7 +572,13 @@ pub fn completed_relation_export_snapshot(CompletedOutputExport, CompletedRelati
 
 pub fn completed_relation_export_snapshot_extent(CompletedOutputExport, CompletedRelationExportReceipt) -> Result[(Int, Int, Int, Int), CompletedExportIssue]
 
+pub fn completed_relation_identity_body_start_construction_capacity() -> ExecutionCapacity?
+
 pub fn completed_relation_identity_scan_body(CompletedRelationIdentityScan, CompletedRelationExportReceipt) -> String?
+
+pub fn completed_relation_identity_scan_body_next_construction_capacity(CompletedRelationIdentityScan) -> ExecutionCapacity?
+
+pub fn completed_relation_identity_scan_body_receipt(CompletedRelationIdentityScan) -> CompletedRelationExportReceipt?
 
 pub fn completed_relation_identity_scan_next_construction_capacity(CompletedRelationIdentityScan) -> ExecutionCapacity?
 
