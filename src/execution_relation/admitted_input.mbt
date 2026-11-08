@@ -214,6 +214,9 @@ fn append_admitted_buffer_values(
     }
     row.push(value)
   }
+  if !input.open {
+    return Err(ClosedCapture)
+  }
   if !fund_output_retention(budget, budget.nodes, budget.text) || !input.open {
     return Err(CaptureLimit)
   }

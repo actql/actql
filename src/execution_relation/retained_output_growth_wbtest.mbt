@@ -259,3 +259,78 @@ test "reference revocation before row commit cannot request output funding" {
   assert_true(output.buffer.rows.is_empty())
   assert_true(finish_admitted_output(output) is Err(ClosedCapture))
 }
+
+///|
+test "completed value projection revocation cannot request output funding" {
+  let owner = managed_reference_owner()
+  let limits = {
+    max_nodes: 100,
+    max_text_bytes: 1000,
+    max_depth: 10,
+    max_work: 1000,
+  }
+  let stream = prepare_managed_output_values(
+    owner,
+    Step(0),
+    1,
+    limits,
+    1000,
+    managed_test_measure_limits(),
+  ).unwrap()
+  let calls = Ref(0)
+  let growth = {
+    ..working_growth_fixture(_ => {
+      calls.val += 1
+      Ok(())
+    }),
+    live_ceiling: 1048576L,
+    retained_outputs: Some(0L),
+  }
+  stream.buffer.budget.retention = Some(growth)
+  let armed = Ref(false)
+  let observed = Ref(false)
+  let released_during_callback = Ref(true)
+  let wire = managed_reference_wire()
+  let checked = @admitted.issue_reference(
+    @admitted.bind_reference_issuer((_, candidate) => candidate == wire, _ => {
+      if armed.val {
+        observed.val = true
+        dispose_managed_output_values_scratch(stream)
+        released_during_callback.val = managed_output_values_scratch_released(
+          stream,
+        )
+      }
+      true
+    }),
+    @schema.field_at(stream.buffer.schema, 0).unwrap().contract,
+    wire,
+    { max_bytes: 1000, max_nodes: 100, max_depth: 10, max_text_units: 1000, },
+  ).unwrap()
+  let admitted = prepare_admitted_output(owner, Step(0), 1, limits).unwrap()
+  append_admitted_output(admitted, [checked]).unwrap()
+  let rows = finish_admitted_output(admitted).unwrap()
+  let preparation = prepare_completion(
+    registered_relation_contracts(),
+    prepared_sequence(owner),
+    ["select_0"],
+    10000,
+    1000,
+  ).unwrap()
+  let output = complete_trusted_output(
+    prepare_trusted_output_port(preparation, Step(0), 1000, 10000, (_ : Unit) => {
+      Some(rows)
+    }).unwrap(),
+    (),
+  ).unwrap()
+  armed.val = true
+  let result = append_completed_projection_managed_values(stream, output, 0)
+  assert_true(observed.val)
+  assert_false(released_during_callback.val)
+  assert_eq(calls.val, 0)
+  assert_true(result is Err(Closed))
+  assert_eq((growth.used, growth.funded), (0L, 0L))
+  assert_eq(growth.retained_outputs, Some(0L))
+  assert_true(managed_output_values_scratch_released(stream))
+  assert_true(finish_managed_output_values(stream) is Err(Closed))
+  assert_true(completed_output_available(output))
+}
