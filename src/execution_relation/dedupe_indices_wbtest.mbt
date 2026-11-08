@@ -5,11 +5,13 @@ test "dedupe groups use typed key order independent of tuple identities" {
   let order = [{ column: 1, descending: true, nulls_first: false, }]
   // The independent CIDs below order [2] before [1], unlike typed key order.
   assert_eq(
-    dedupe_indices(table, by, order, { remaining: 100000, max_frames: 0, }, {
-      limit: 1000,
-      live: 0,
-      peak: 0,
-    }).unwrap(),
+    dedupe_indices(
+      table,
+      by,
+      order,
+      { remaining: 100000, max_frames: 0, },
+      row_workspace(1000),
+    ).unwrap(),
     [3, 2],
   )
   assert_eq(
@@ -47,7 +49,7 @@ test "dedupe orders nullable compound text keys without changing survivors" {
     ],
     [{ column: 2, descending: true, nulls_first: false, }],
     { remaining: 100000, max_frames: 0, },
-    { limit: 1000, live: 0, peak: 0, },
+    row_workspace(1000),
   ).unwrap()
   assert_eq(indices, [1, 2, 3, 4, 5])
 }
@@ -57,11 +59,13 @@ test "dedupe global partition empty input and lower-ranked ties" {
   let table = order_table([Number(2), Number(1), Number(1)])
   let order = [{ column: 0, descending: true, nulls_first: false, }]
   assert_eq(
-    dedupe_indices(table, [], order, { remaining: 10000, max_frames: 0, }, {
-      limit: 1000,
-      live: 0,
-      peak: 0,
-    }).unwrap(),
+    dedupe_indices(
+      table,
+      [],
+      order,
+      { remaining: 10000, max_frames: 0, },
+      row_workspace(1000),
+    ).unwrap(),
     [0],
   )
   assert_eq(
@@ -70,16 +74,18 @@ test "dedupe global partition empty input and lower-ranked ties" {
       [],
       order,
       { remaining: 10000, max_frames: 0, },
-      { limit: 1000, live: 0, peak: 0, },
+      row_workspace(1000),
     ).unwrap(),
     [],
   )
   assert_true(
-    dedupe_indices(table, [], [], { remaining: 10000, max_frames: 0, }, {
-      limit: 1000,
-      live: 0,
-      peak: 0,
-    })
+    dedupe_indices(
+      table,
+      [],
+      [],
+      { remaining: 10000, max_frames: 0, },
+      row_workspace(1000),
+    )
     is Err(Ordering(InvalidInput)),
   )
 }
@@ -89,7 +95,7 @@ test "dedupe top tie fails before any survivor escapes and resets only local scr
   let table = order_table([Number(1), Number(1), Number(2), Number(2)])
   let by = [{ column: 0, descending: false, nulls_first: false, }]
   // Authored order ties in both groups. Typed key 1 fails first.
-  let workspace = { limit: 1000, live: 7, peak: 7, }
+  let workspace = { ..row_workspace(1000), live: 7, peak: 7, }
   assert_true(
     dedupe_indices(
       table,
@@ -120,7 +126,7 @@ test "dedupe budget exactness includes typed grouping and identity checks" {
   let by = [{ column: 0, descending: false, nulls_first: false, }]
   let order = [{ column: 1, descending: true, nulls_first: false, }]
   let control = { remaining: 100000, max_frames: 0, }
-  let workspace = { limit: 1000, live: 5, peak: 5, }
+  let workspace = { ..row_workspace(1000), live: 5, peak: 5, }
   assert_eq(dedupe_indices(table, by, order, control, workspace).unwrap(), [
     2, 3,
   ])
@@ -132,7 +138,7 @@ test "dedupe budget exactness includes typed grouping and identity checks" {
       (used - 1, peak, false),
       (used, peak - 1, false),
     ] {
-    let workspace = { limit: entries, live: 5, peak: 5, }
+    let workspace = { ..row_workspace(entries), live: 5, peak: 5, }
     let result = dedupe_indices(
       table,
       by,
@@ -158,7 +164,7 @@ test "dedupe grouping remains bounded for equal and different keys at scale" {
         Array::makei(count, i => Number(if same { 1.0 } else { i.to_double() })),
       )
       let control = { remaining: 100000000, max_frames: 0, }
-      let workspace = { limit: count * 80 + 10, live: 0, peak: 0, }
+      let workspace = { ..row_workspace(count * 80 + 10), live: 0, peak: 0, }
       let result = dedupe_indices(
         table,
         [{ column: 0, descending: false, nulls_first: false, }],
@@ -195,7 +201,7 @@ test "dedupe large indexed budgets are exact and fail atomically" {
   let order = [{ column: 1, descending: true, nulls_first: false, }]
   let maximum = 10000000
   let control = { remaining: maximum, max_frames: 0, }
-  let workspace = { limit: maximum, live: 7, peak: 7, }
+  let workspace = { ..row_workspace(maximum), live: 7, peak: 7, }
   let expected = dedupe_indices(table, by, order, control, workspace).unwrap()
   assert_eq(expected.length(), 100)
   let used = maximum - control.remaining
@@ -206,7 +212,7 @@ test "dedupe large indexed budgets are exact and fail atomically" {
       (used - 1, peak, false),
       (used, peak - 1, false),
     ] {
-    let attempt = { limit: entries, live: 7, peak: 7, }
+    let attempt = { ..row_workspace(entries), live: 7, peak: 7, }
     let result = dedupe_indices(
       table,
       by,

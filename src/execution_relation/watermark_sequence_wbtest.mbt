@@ -147,7 +147,7 @@ test "watermark shares exact execution work and rejects invalid physical time" {
     names: ["id", "time"],
     rows: [[Number(1.0), Number(100.0)], [Number(2.0), Null]],
   }
-  let workspace = { limit: 100, live: 0, peak: 0, }
+  let workspace = row_workspace(100)
   assert_true(
     evaluate_watermark_rows(
       row_kernel(owner, 1),

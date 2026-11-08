@@ -23,7 +23,7 @@ fn check_sort_scale(count : Int) -> Unit raise {
   let levels = sort_scale_levels(count)
   let allowance = count * (levels * 10 + 100) + 1000
   let control = { remaining: allowance, max_frames: 100, }
-  let workspace = { limit: count * 30 + 100, live: 0, peak: 0, }
+  let workspace = { ..row_workspace(count * 30 + 100), live: 0, peak: 0, }
   let indices = evaluate_sort_selection(
     row_kernel(owner, 1),
     input,

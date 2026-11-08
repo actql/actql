@@ -149,7 +149,7 @@ test "cross join preserves every relation value domain and NULL" {
       1,
       { remaining: 100000, max_frames: 100, },
       value_budget(run_limits().output_values).unwrap(),
-      { limit: 10000, live: 0, peak: 0, },
+      row_workspace(10000),
     ).unwrap()
     assert_eq(result.names, ["left_value", "right_value"])
     assert_eq(result.rows.length(), 1)
@@ -244,7 +244,7 @@ test "cross join releases unpublished workspace after a bounded failure" {
   let right = table_from_capture(
     capture_values(owner, 1, max_rows=2, run_limits().input_values).unwrap(),
   )
-  let workspace = { limit: 8, live: 0, peak: 0, }
+  let workspace = row_workspace(8)
   let output = value_budget(run_limits().output_values).unwrap()
   assert_true(
     evaluate_cross_join_rows(
@@ -300,7 +300,7 @@ test "cross join exact and one-short work and workspace boundaries" {
       (31, 17, false),
     ] {
     let control = { remaining: work_limit, max_frames: 100, }
-    let workspace = { limit: workspace_limit, live: 0, peak: 0, }
+    let workspace = { ..row_workspace(workspace_limit), live: 0, peak: 0, }
     let result = evaluate_cross_join_rows(
       kernel,
       left,
@@ -343,7 +343,7 @@ test "cross join accepts every pair of retained input layouts" {
         4,
         { remaining: 100000, max_frames: 100, },
         value_budget(run_limits().output_values).unwrap(),
-        { limit: 10000, live: 0, peak: 0, },
+        row_workspace(10000),
       ).unwrap()
       assert_eq(result.rows.length(), 4)
       assert_true(result.rows[0][0] is Number(1))

@@ -82,7 +82,7 @@ fn asof_evaluate(
     12L,
     { remaining: 100000, max_frames: 100, },
     value_budget(run_limits().output_values).unwrap(),
-    { limit: 10000, live: 0, peak: 0, },
+    row_workspace(10000),
   )
 }
 
@@ -193,7 +193,7 @@ test "as-of join keeps search and output ceilings independent" {
       search,
       { remaining: 100000, max_frames: 100, },
       value_budget(run_limits().output_values).unwrap(),
-      { limit: 10000, live: 0, peak: 0, },
+      row_workspace(10000),
       selected_ceiling=Some(output),
     )
   }
@@ -220,7 +220,7 @@ test "as-of join validates all clocks and rejects unresolved top ties" {
       3L,
       { remaining: 100000, max_frames: 100, },
       value_budget(run_limits().output_values).unwrap(),
-      { limit: 10000, live: 0, peak: 0, },
+      row_workspace(10000),
     )
     is Err(InvalidRows),
   )
@@ -242,7 +242,7 @@ test "as-of join validates all clocks and rejects unresolved top ties" {
       6L,
       { remaining: 100000, max_frames: 100, },
       value_budget(run_limits().output_values).unwrap(),
-      { limit: 10000, live: 0, peak: 0, },
+      row_workspace(10000),
     )
     is Err(AsOfTopTie(1, 0, 1)),
   )
@@ -323,7 +323,7 @@ fn asof_permutation_evaluate(
     3L,
     { remaining: 100000, max_frames: 100, },
     value_budget(run_limits().output_values).unwrap(),
-    { limit: 10000, live: 0, peak: 0, },
+    row_workspace(10000),
   )
 }
 

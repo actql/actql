@@ -96,7 +96,7 @@ test "stable ordering reuses exact decimal and UTF16 scalar comparisons" {
         table,
         [{ column: 0, descending: false, nulls_first: false, }],
         { remaining: 10000, max_frames: 0, },
-        { limit: 100, live: 0, peak: 0, },
+        row_workspace(100),
       ).unwrap(),
       expected,
     )
@@ -105,7 +105,7 @@ test "stable ordering reuses exact decimal and UTF16 scalar comparisons" {
 
 ///|
 test "invalid ordinal is rejected on empty input and comparison failures release scratch" {
-  let workspace = { limit: 100, live: 7, peak: 7, }
+  let workspace = { ..row_workspace(100), live: 7, peak: 7, }
   assert_true(
     stable_order_indices(
       order_table([]),
@@ -142,7 +142,7 @@ test "stable index ordering keeps equal inputs and separates direction from null
       (false, true, [1, 4, 2, 0, 3]),
       (true, true, [1, 4, 0, 3, 2]),
     ] {
-    let workspace = { limit: 11, live: 0, peak: 0, }
+    let workspace = row_workspace(11)
     let indices = stable_order_indices(
       table,
       [{ column: 0, descending, nulls_first: first, }],
@@ -155,11 +155,12 @@ test "stable index ordering keeps equal inputs and separates direction from null
     assert_true(table.rows[0][0] is Number(2))
   }
   assert_eq(
-    stable_order_indices(table, [], { remaining: 100, max_frames: 0, }, {
-      limit: 5,
-      live: 0,
-      peak: 0,
-    }).unwrap(),
+    stable_order_indices(
+      table,
+      [],
+      { remaining: 100, max_frames: 0, },
+      row_workspace(5),
+    ).unwrap(),
     [0, 1, 2, 3, 4],
   )
 }
@@ -170,7 +171,7 @@ test "ordering budgets have exact boundaries and release only owned workspace on
   let order = [{ column: 0, descending: false, nulls_first: false, }]
   let budget = { remaining: 10000, max_frames: 0, }
   let result = stable_order_indices(table, order, budget, {
-    limit: 12,
+    ..row_workspace(12),
     live: 5,
     peak: 5,
   }).unwrap()
@@ -178,13 +179,13 @@ test "ordering budgets have exact boundaries and release only owned workspace on
   let used = 10000 - budget.remaining
   assert_true(
     stable_order_indices(table, order, { remaining: used, max_frames: 0, }, {
-      limit: 12,
+      ..row_workspace(12),
       live: 5,
       peak: 5,
     })
     is Ok(_),
   )
-  let workspace = { limit: 12, live: 5, peak: 5, }
+  let workspace = { ..row_workspace(12), live: 5, peak: 5, }
   let short = { remaining: used - 1, max_frames: 0, }
   assert_true(
     stable_order_indices(table, order, short, workspace) is Err(Limit),
@@ -193,7 +194,7 @@ test "ordering budgets have exact boundaries and release only owned workspace on
   assert_true(short.remaining < used - 1)
   assert_true(
     stable_order_indices(table, order, { remaining: 10000, max_frames: 0, }, {
-      limit: 11,
+      ..row_workspace(11),
       live: 5,
       peak: 5,
     })
@@ -211,7 +212,7 @@ test "stable merge work grows logarithmically rather than quadratically" {
         }),
       )
       let budget = { remaining: 10000000, max_frames: 0, }
-      let workspace = { limit: count * 2 + 1, live: 0, peak: 0, }
+      let workspace = { ..row_workspace(count * 2 + 1), live: 0, peak: 0, }
       let result = stable_order_indices(
         table,
         [{ column: 0, descending: false, nulls_first: false, }],
@@ -237,7 +238,7 @@ test "stable ordering work and workspace bounds are exact at scale" {
   let order = [{ column: 0, descending: false, nulls_first: false, }]
   let maximum = 1000000
   let control = { remaining: maximum, max_frames: 100, }
-  let workspace = { limit: maximum, live: 0, peak: 0, }
+  let workspace = { ..row_workspace(maximum), live: 0, peak: 0, }
   assert_eq(
     stable_order_indices(table, order, control, workspace).unwrap().length(),
     count,
@@ -254,7 +255,7 @@ test "stable ordering work and workspace bounds are exact at scale" {
       table,
       order,
       { remaining: work, max_frames: 100, },
-      { limit: space, live: 0, peak: 0, },
+      { ..row_workspace(space), live: 0, peak: 0, },
     )
     if success {
       assert_eq(result.unwrap().length(), count)
@@ -270,7 +271,7 @@ test "stable merge preparation charges at most one unit per advance" {
     Array::makei(64, index => Number((64 - index).to_double())),
   )
   let control : ControlBudget = { remaining: 10000, max_frames: 0, }
-  let workspace = { limit: 129, live: 0, peak: 0, }
+  let workspace = row_workspace(129)
   let state = start_stable_order(
     table,
     [{ column: 0, descending: false, nulls_first: false, }],
@@ -299,7 +300,7 @@ test "stable merge charges supplementary text one byte per advance" {
     Text("𠮷a"),
   ])
   let control : ControlBudget = { remaining: 10000, max_frames: 0, }
-  let workspace = { limit: 9, live: 0, peak: 0, }
+  let workspace = row_workspace(9)
   let state = start_stable_order(
     table,
     [{ column: 0, descending: false, nulls_first: false, }],
@@ -325,7 +326,7 @@ test "stable merge charges decimal coefficients one byte per advance" {
     decimal_value("99999999999999999999999999999999999998", 0),
   ])
   let control : ControlBudget = { remaining: 1000, max_frames: 0, }
-  let workspace = { limit: 5, live: 0, peak: 0, }
+  let workspace = row_workspace(5)
   let state = start_stable_order(
     table,
     [{ column: 0, descending: false, nulls_first: false, }],

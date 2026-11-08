@@ -6,13 +6,14 @@ test "layout sequences use the common routing and final consumer release loop" {
   let sequence = prepared_sequence(owner)
   for candidate in [RowLayout, ValueColumns, TypedColumns] {
     let control = { remaining: 100000, max_frames: 100, }
-    let wiring = prepare_wiring(owner, ["select_3"], control, {
-      limit: 1000,
-      live: 0,
-      peak: 0,
-    }).unwrap()
+    let wiring = prepare_wiring(
+      owner,
+      ["select_3"],
+      control,
+      row_workspace(1000),
+    ).unwrap()
     // Legacy retained-entry ceiling, not a claim of actual buffer bytes.
-    let workspace = { limit: 23, live: 0, peak: 0, }
+    let workspace = row_workspace(23)
     let store = table_store(wiring, workspace).unwrap()
     let physical = layout_allocation(100000, 100000, 100000)
     let output = row_output()
@@ -44,7 +45,7 @@ test "layout sequences use the common routing and final consumer release loop" {
             input,
             control,
             output,
-            { limit: 100000, live: 0, peak: 0, },
+            row_workspace(100000),
             physical,
             None,
           ) {
@@ -74,12 +75,13 @@ test "common layout loop stops at an unused failure and rejects owner substituti
   let sequence = prepared_sequence(owner)
   for candidate in [RowLayout, ValueColumns, TypedColumns] {
     let control = { remaining: 100000, max_frames: 100, }
-    let wiring = prepare_wiring(owner, ["select_2"], control, {
-      limit: 1000,
-      live: 0,
-      peak: 0,
-    }).unwrap()
-    let store = table_store(wiring, { limit: 1000, live: 0, peak: 0, }).unwrap()
+    let wiring = prepare_wiring(
+      owner,
+      ["select_2"],
+      control,
+      row_workspace(1000),
+    ).unwrap()
+    let store = table_store(wiring, row_workspace(1000)).unwrap()
     let visited : Array[Int] = []
     let result = run_sequence_steps(
       sequence,
@@ -102,7 +104,7 @@ test "common layout loop stops at an unused failure and rejects owner substituti
             input,
             control,
             row_output(),
-            { limit: 100000, live: 0, peak: 0, },
+            row_workspace(100000),
             layout_allocation(100000, 100000, 100000),
             None,
           ) {

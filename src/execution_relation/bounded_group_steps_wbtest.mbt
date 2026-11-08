@@ -56,7 +56,7 @@ test "bounded group pays at most one unit per advance and matches the sequence" 
     1000,
     control,
     row_output(),
-    { limit: 100000, live: 0, peak: 0, },
+    row_workspace(100000),
     None,
     (row, _representative, _names, _sources) => {
       rows.push(row.map(group_step_cell))

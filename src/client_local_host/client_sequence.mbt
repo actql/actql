@@ -945,8 +945,26 @@ fn prepare_client_local_sequences_owned(
             @lower.prepare_fragment_request(
               fragment,
               fragment_rows,
-              value_bytes.to_int64(),
-              row_limits=if ordered { Some(logical) } else { None },
+              if acquiring {
+                value_bytes.to_int64()
+              } else {
+                local_materialization_policy.relation_wire_bytes.to_int64()
+              },
+              row_limits=if ordered {
+                Some(
+                  if acquiring {
+                    logical
+                  } else {
+                    {
+                      ..logical,
+                      max_value_bytes: local_materialization_policy.relation_wire_bytes.to_int64(),
+                      max_live_value_bytes: local_materialization_policy.execution_bytes,
+                    }
+                  },
+                )
+              } else {
+                None
+              },
             ) {
             Ok(value) => value
             Err(_) => return Err(Unsupported)

@@ -250,19 +250,23 @@ test "original few long Values retain their complete text working demand" {
 // Same normal Request source/check/module/Run chain, with a supplied Parameter
 // or an evaluated Text expression. No installed package or Native FFI is used.
 fn original_bound_text_working_case(mode : Int) -> Unit raise {
-  let parameter = mode == 0
+  let parameter = mode == 0 || mode == 7
   let (environment, publication) = request_query_publication_fixture()
   let document = if parameter {
     "{\"version\":\"actql/0.1\",\"id\":\"bound-text\",\"params\":{\"p\":{\"type\":\"string\"}},\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"as\":\"v\",\"values\":{\"schema\":{\"text\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"text\":{\"$param\":\"p\"}}]}}],\"results\":{\"rows\":{\"from\":\"v\",\"fields\":[\"text\"]}}}],\"results\":{\"rows\":{\"from\":{\"stage\":\"main\",\"result\":\"rows\"}}}}"
   } else if mode == 2 {
     original_cross_text_working_program()
+  } else if mode >= 4 {
+    "SELECT REPEAT('x', 150000) AS text"
   } else if mode == 3 {
     "SELECT REPEAT('x', 65537) AS text"
   } else {
     "SELECT REPEAT('x', 20000) AS text"
   }
   let supplied = if parameter {
-    Some("{\"p\":\"" + "x".repeat(20000) + "\"}")
+    Some(
+      "{\"p\":\"" + "x".repeat(if mode == 7 { 150000 } else { 20000 }) + "\"}",
+    )
   } else {
     None
   }
@@ -333,8 +337,20 @@ fn original_bound_text_working_case(mode : Int) -> Unit raise {
     assert_true(configuration.capacity_plan.imports.max_batch_bytes <= 16777216)
   } else {
     assert_eq(configuration.capacity_plan.values.max_text_bytes, 500000)
-    assert_eq(configuration.capacity_plan.imports.row.max_bytes, 65536)
-    assert_eq(configuration.capacity_plan.imports.max_batch_bytes, 65536)
+    assert_true(
+      configuration.capacity_plan.imports.row.max_bytes <=
+      local_materialization_policy.relation_wire_bytes,
+    )
+    assert_true(
+      configuration.capacity_plan.imports.max_batch_bytes <=
+      local_materialization_policy.relation_wire_bytes,
+    )
+    if !parameter {
+      assert_eq(
+        configuration.capacity_plan.execution.rows.operation_entries,
+        10000,
+      )
+    }
   }
   let request = @publication_host.prepare_source_free_client_request_identity(
     prepared,
@@ -364,8 +380,56 @@ fn original_bound_text_working_case(mode : Int) -> Unit raise {
     )
     .unwrap()
     .unwrap()
+  let captured = @host_driver.dispatch_driver_run(
+    @builtin.configured_host_driver(setup),
+  )
+  let ledger = @strategy.captured_dag_ledger(captured)
+  let tasks = @strategy.graph_task_count(@strategy.captured_dag_graph(captured))
+  let blocker : Ref[@resources.CapacityReservation?] = Ref(None)
+  let blocker_issue : Ref[@resources.LedgerIssue?] = Ref(None)
+  let lost_current = Ref(false)
+  let last_task_reserved = Ref(false)
+  let last_task_pending = Ref(false)
+  defer (if blocker.val is Some(token) {
+    @resources.settle_capacity(parent.ledger, token).unwrap()
+  })
+  let current = fn() {
+    let usage = @resources.ledger_usage(ledger)
+    let next = @strategy.next_captured_task(captured)
+    if next == Some(tasks - 1) {
+      last_task_pending.val = true
+    }
+    // Starting consumes the original pending activation: it is no longer
+    // returned by next_captured_task, while its exact reservation is live.
+    if last_task_pending.val && next is None && usage.reserved_attempts > 0 {
+      last_task_reserved.val = true
+      if (mode == 5 || mode == 8) && blocker.val is None {
+        let parent_usage = @resources.ledger_usage(parent.ledger)
+        let available = @resources.ledger_limits(parent.ledger).execution_bytes -
+          parent_usage.reserved_execution_bytes
+        let headroom = if mode == 8 { 33554432L } else { 0L }
+        if available < headroom {
+          blocker_issue.val = Some(@resources.ExecutionLimit)
+          return false
+        }
+        match
+          @resources.reserve_capacity(parent.ledger, 0L, available - headroom) {
+          Ok(token) => blocker.val = Some(token)
+          Err(issue) => {
+            blocker_issue.val = Some(issue)
+            return false
+          }
+        }
+      }
+      if mode == 6 {
+        lost_current.val = true
+        return false
+      }
+    }
+    true
+  }
   let output = match
-    execute_source_free_local_tasks_guarded(setup, 64, 100000, () => true) {
+    execute_source_free_local_tasks_guarded(setup, 64, 100000, current) {
     Ok(value) => value
     Err(failure) => {
       let issue = local_values_execution_failure_issue(failure)
@@ -378,19 +442,27 @@ fn original_bound_text_working_case(mode : Int) -> Unit raise {
         }
       }
       println("BOUND_TEXT_FAILURE mode=\{mode} cleanup=\{cleaned}")
-      if mode == 3 {
-        guard issue
-          is Driver(Configuration(Execution(Rows(_, Evaluation(_, _, cause))))) else {
-          fail(
-            "selected row ceiling must remain an actual typed expression refusal",
-          )
+      if mode == 5 {
+        if blocker_issue.val is Some(cause) {
+          fail("competitor fixture: " + @debug.to_string(cause))
         }
-        assert_eq(
-          cause.kind,
-          @execution.LogicalValue(
-            @execution.ValueMeasure(@execution.WireMeasureFailure),
-          ),
+        if blocker.val is Some(token) {
+          @resources.settle_capacity(parent.ledger, token).unwrap()
+          blocker.val = None
+        }
+        assert_true(
+          last_task_reserved.val,
+          msg="the actual final task must be registered before growth refusal",
         )
+        guard issue is Driver(Execution(Physical(@resources.ExecutionLimit))) else {
+          fail("expected original physical ExecutionLimit")
+        }
+        assert_true(cleaned)
+        primary_failed.val = false
+        return ()
+      }
+      if mode == 6 {
+        assert_true(lost_current.val)
         assert_true(cleaned)
         primary_failed.val = false
         return ()
@@ -403,14 +475,40 @@ fn original_bound_text_working_case(mode : Int) -> Unit raise {
             "BoundTextCapture:\{step}:" + @debug.to_string(cause)
           Driver(Execution(Physical(cause))) =>
             "BoundTextPhysical:" + @debug.to_string(cause)
+          Driver(Configuration(Execution(Rows(_, Evaluation(_, _, cause))))) =>
+            "BoundTextEvaluation:" + @debug.to_string(cause.kind)
+          Driver(Configuration(Execution(InputSet))) => "BoundTextInputSet"
+          Driver(Configuration(InvalidLimits)) => "BoundTextInvalidLimits"
+          Driver(IdentityExport(_)) => "BoundTextExport"
+          Driver(ManagedValues(_)) => "BoundTextManagedValues"
+          Driver(ManagedCompletion(_)) => "BoundTextCompletion"
+          Driver(Configuration(InputUnavailable)) => "BoundTextInputUnavailable"
+          Driver(Configuration(ForeignPreparation)) =>
+            "BoundTextForeignPreparation"
+          Driver(Configuration(Guard(@execution.ValueBytes(_, _, _)))) =>
+            "BoundTextGuardValueBytes"
+          Driver(Configuration(Guard(_))) => "BoundTextGuard"
+          Driver(Configuration(Execution(Rows(_, @execution.RowLimit)))) =>
+            "BoundTextRowLimit"
+          Driver(
+            Configuration(Execution(Rows(_, @execution.LogicalRows(cause))))
+          ) => "BoundTextLogical:" + @debug.to_string(cause)
+          Driver(Configuration(Execution(_))) => "BoundTextSequence"
+          Driver(Configuration(_)) => "BoundTextConfiguration"
+          Driver(_) => "BoundTextOtherDriver"
+          FinalizationLimit => "BoundTextFinalizationLimit"
+          Fenced => "BoundTextFenced"
           _ => "BoundTextExecutionFailed"
         },
       )
     }
   }
-  assert_true(mode != 3, msg="out-of-profile Text must not publish an output")
+  let first_close : Ref[Bool?] = Ref(None)
   defer {
-    let first = output.close()
+    let first = match first_close.val {
+      Some(value) => value
+      None => output.close()
+    }
     let mut closed = first
     for _ in 0..<100000 {
       if closed {
@@ -422,6 +520,10 @@ fn original_bound_text_working_case(mode : Int) -> Unit raise {
     assert_true(closed, msg="same original bounded cleanup must finish")
     assert_true(first, msg="first original close must report actual cleanup")
   }
+  assert_true(
+    mode != 5 && mode != 6,
+    msg="refused/current-lost execution cannot publish an output",
+  )
   let rows = output.rows().unwrap()
   assert_eq(rows.length(), if mode == 2 { 512 } else { 1 })
   let seen = Array::make(512, false)
@@ -437,7 +539,15 @@ fn original_bound_text_working_case(mode : Int) -> Unit raise {
       if mode == 2 {
         "expand:".repeat(585)
       } else {
-        "x".repeat(20000)
+        "x".repeat(
+          if mode >= 4 {
+            150000
+          } else if mode == 3 {
+            65537
+          } else {
+            20000
+          },
+        )
       },
     )
     if mode == 2 {
@@ -453,6 +563,27 @@ fn original_bound_text_working_case(mode : Int) -> Unit raise {
   }
   if mode == 2 {
     assert_true(seen.all(value => value))
+  }
+  if mode == 8 {
+    assert_true(last_task_reserved.val)
+    assert_true(blocker.val is Some(_))
+    // The previous CursorRootSlots-per-unit charge alone exceeds this actual
+    // remaining capacity. The measured Text payload and its original aliases
+    // must instead fit without changing the same parent policy or reservation.
+    assert_true(
+      @execution.execution_capacity_inventory_add(
+        0L,
+        CursorRootSlots,
+        140000L,
+        1,
+      ).unwrap() >
+      33554432L,
+    )
+    let first = output.close()
+    first_close.val = Some(first)
+    assert_true(first)
+    @resources.settle_capacity(parent.ledger, blocker.val.unwrap()).unwrap()
+    blocker.val = None
   }
 }
 
@@ -476,7 +607,7 @@ test "ordinary expanded original Text retains full cross product output" {
 }
 
 ///|
-test "ordinary evaluated Text still refuses its selected row value ceiling" {
+test "ordinary evaluated Text crosses the old private row ceiling" {
   original_bound_text_working_case(3)
 }
 
@@ -520,4 +651,53 @@ test "copy Text envelope includes Unicode escapes and duplicate projected fields
     )
     is None,
   )
+}
+
+///|
+test "ordinary evaluated Text grows actual workspace on the same task" {
+  original_bound_text_working_case(4)
+}
+
+///|
+test "ordinary Text actual capacity refusal retains original cleanup" {
+  original_bound_text_working_case(5)
+}
+
+///|
+test "ordinary Text current loss cannot construct or publish and cleans up" {
+  original_bound_text_working_case(6)
+}
+
+///|
+test "ordinary bound Parameter crosses the old private transport ceiling" {
+  original_bound_text_working_case(7)
+}
+
+///|
+test "Parameter input limits use original observed geometry and retain explicit Local limits" {
+  let (source, tree) = request_native_parameter_input_limits(150010L, 2L).unwrap()
+  assert_eq(source.max_input_bytes, 900112)
+  assert_eq(source.max_nodes, 2)
+  assert_eq(source.max_depth, 2)
+  assert_eq(tree.max_string_bytes, 900112)
+  assert_eq(tree.max_total_string_bytes, 900112)
+  assert_true(source.max_input_bytes < 1000000)
+  assert_true(request_native_parameter_input_limits(0L, 1L) is None)
+  assert_true(request_native_parameter_input_limits(1L, 2L) is None)
+  assert_true(request_native_parameter_input_limits(2147483646L, 2L) is None)
+  let (explicit_source, explicit_tree) = @local_preparation.local_parameter_input_limits()
+  assert_eq(explicit_source.max_input_bytes, 65536)
+  assert_eq(explicit_tree.max_string_bytes, 65536)
+  assert_true(
+    @local_preparation.admit_captured_local_parameters(
+      request_native_test_value("{\"p\":\"" + "x".repeat(150000) + "\"}"),
+      native_json_reader,
+    )
+    is Err(_),
+  )
+}
+
+///|
+test "ordinary measured Text fits actual finite task headroom without per-character nodes" {
+  original_bound_text_working_case(8)
 }

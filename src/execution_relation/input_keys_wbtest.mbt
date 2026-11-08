@@ -106,33 +106,33 @@ test "key validation has bounded workspace and cumulative control" {
     run_limits().input_values,
   ).unwrap()
   let work = { remaining: 10000, max_frames: 100, }
-  let space = { limit: 5, live: 0, peak: 0, }
+  let space = row_workspace(5)
   assert_true(validate_captured_keys(rows, work, space) is Ok(_))
   assert_eq(space.live, 0)
   assert_eq(space.peak, 5)
   let used = 10000 - work.remaining
   assert_true(
-    validate_captured_keys(rows, { remaining: used, max_frames: 100, }, {
-      limit: 5,
-      live: 0,
-      peak: 0,
-    })
+    validate_captured_keys(
+      rows,
+      { remaining: used, max_frames: 100, },
+      row_workspace(5),
+    )
     is Ok(_),
   )
   assert_true(
-    validate_captured_keys(rows, { remaining: used - 1, max_frames: 100, }, {
-      limit: 5,
-      live: 0,
-      peak: 0,
-    })
+    validate_captured_keys(
+      rows,
+      { remaining: used - 1, max_frames: 100, },
+      row_workspace(5),
+    )
     is Err(Limit),
   )
   assert_true(
-    validate_captured_keys(rows, { remaining: 10000, max_frames: 100, }, {
-      limit: 4,
-      live: 0,
-      peak: 0,
-    })
+    validate_captured_keys(
+      rows,
+      { remaining: 10000, max_frames: 100, },
+      row_workspace(4),
+    )
     is Err(Limit),
   )
 }
@@ -142,16 +142,16 @@ test "empty keyed input succeeds and invalid key budgets do not" {
   let owner = keyed_owner("[\"n\"]")
   let rows = capture_input(owner, 0, [], max_rows=0, run_limits().input_values).unwrap()
   assert_true(
-    validate_captured_keys(rows, { remaining: 100, max_frames: 100, }, {
-      limit: 1,
-      live: 0,
-      peak: 0,
-    })
+    validate_captured_keys(
+      rows,
+      { remaining: 100, max_frames: 100, },
+      row_workspace(1),
+    )
     is Ok(_),
   )
   assert_true(
     validate_captured_keys(rows, { remaining: 100, max_frames: 100, }, {
-      limit: -1,
+      ..row_workspace(-1),
       live: 0,
       peak: 0,
     })

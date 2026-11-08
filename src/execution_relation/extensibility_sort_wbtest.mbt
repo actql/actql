@@ -276,7 +276,7 @@ test "chunk sort preserves cross-boundary ties and identical kernel charges" {
   let kernel = row_kernel(source.owner, 1)
   let expected = [0, 3, 6, 9, 12, 1, 4, 7, 10, 13, 2, 5, 8, 11, 14]
   let baseline_control = { remaining: 100000, max_frames: 100, }
-  let baseline_workspace = { limit: 100000, live: 0, peak: 0, }
+  let baseline_workspace = row_workspace(100000)
   assert_eq(
     evaluate_sort_selection(
       kernel,
@@ -311,7 +311,7 @@ test "chunk sort preserves cross-boundary ties and identical kernel charges" {
     release_layout_columns(source.storage)
     assert_eq(ledger.bytes.live, 270)
     let control = { remaining: 100000, max_frames: 100, }
-    let workspace = { limit: 100000, live: 0, peak: 0, }
+    let workspace = row_workspace(100000)
     ext_sort_end(s, control, row_output(), workspace).unwrap()
     assert_eq(s.order.unwrap(), expected)
     assert_eq(
@@ -356,11 +356,12 @@ test "chunk sort aborts retained chunks on late append or kernel failure" {
       )
     } else {
       assert_true(
-        ext_sort_end(s, { remaining: 0, max_frames: 100, }, row_output(), {
-          limit: 100000,
-          live: 0,
-          peak: 0,
-        })
+        ext_sort_end(
+          s,
+          { remaining: 0, max_frames: 100, },
+          row_output(),
+          row_workspace(100000),
+        )
         is Err(RowLimit),
       )
     }
@@ -401,11 +402,12 @@ test "stateful sort gates output and matches row kernel across chunk widths" {
       ext_sort_append(s, { ..source, storage, }).unwrap()
       at += n
     }
-    ext_sort_end(s, { remaining: 100000, max_frames: 100, }, row_output(), {
-      limit: 100000,
-      live: 0,
-      peak: 0,
-    }).unwrap()
+    ext_sort_end(
+      s,
+      { remaining: 100000, max_frames: 100, },
+      row_output(),
+      row_workspace(100000),
+    ).unwrap()
     assert_eq(s.order.unwrap(), [1, 2, 0])
     while ext_sort_next(s, width).unwrap() is Some((start, n)) {
       for row in start..<(start + n) {
@@ -416,11 +418,12 @@ test "stateful sort gates output and matches row kernel across chunk widths" {
       }
     }
     assert_true(
-      ext_sort_end(s, { remaining: 100000, max_frames: 100, }, row_output(), {
-        limit: 100000,
-        live: 0,
-        peak: 0,
-      })
+      ext_sort_end(
+        s,
+        { remaining: 100000, max_frames: 100, },
+        row_output(),
+        row_workspace(100000),
+      )
       is Err(InvalidRows),
     )
     ext_sort_dispose(s)

@@ -22,7 +22,7 @@ fn filter_scale(count : Int, keep : Bool) -> Unit raise {
     100,
     10,
   ).unwrap()
-  let workspace = { limit: count * 10 + 100, live: 0, peak: 0, }
+  let workspace = { ..row_workspace(count * 10 + 100), live: 0, peak: 0, }
   let output = value_budget({
     max_nodes: count * 10 + 100,
     max_text_bytes: count * 20 + 100,

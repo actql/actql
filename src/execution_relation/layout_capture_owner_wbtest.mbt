@@ -52,7 +52,7 @@ test "generated invocation imports owned captures without changing admission or 
         2,
         control,
         invocation.output_budget,
-        { limit: 10000, live: 0, peak: 0, },
+        row_workspace(10000),
         physical,
         logical,
       )

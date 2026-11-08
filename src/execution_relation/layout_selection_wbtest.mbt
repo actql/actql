@@ -7,7 +7,7 @@ test "checked sort selection reads every layout with identical output and budget
   for candidate in [RowLayout, ValueColumns, TypedColumns] {
     let input = layout_relation(captured, candidate)
     let control = { remaining: 100000, max_frames: 100, }
-    let workspace = { limit: 100000, live: 0, peak: 0, }
+    let workspace = row_workspace(100000)
     let indices = evaluate_sort_selection(
       kernel,
       input,
@@ -38,7 +38,7 @@ test "checked sort selection reads every layout with identical output and budget
         3,
         { remaining: 100000, max_frames: 100, },
         row_output(),
-        { limit: 100000, live: 0, peak: 0, },
+        row_workspace(100000),
       ).unwrap(),
       (1, 1),
     )
@@ -52,7 +52,7 @@ test "checked sort selection reads every layout with identical output and budget
         2,
         { remaining: 100000, max_frames: 100, },
         row_output(),
-        { limit: 100000, live: 0, peak: 0, },
+        row_workspace(100000),
       )
       is Err(RowLimit),
     )
@@ -73,7 +73,7 @@ test "checked dedupe and distinct selection preserve payload without row materia
   for candidate in [RowLayout, ValueColumns, TypedColumns] {
     let input = layout_relation(captured, candidate)
     let control = { remaining: 100000, max_frames: 100, }
-    let workspace = { limit: 100000, live: 0, peak: 0, }
+    let workspace = row_workspace(100000)
     assert_eq(
       evaluate_dedupe_selection(
         kernel,
@@ -105,7 +105,7 @@ test "checked dedupe and distinct selection preserve payload without row materia
         4,
         { remaining: 100000, max_frames: 100, },
         row_output(),
-        { limit: 100000, live: 0, peak: 0, },
+        row_workspace(100000),
       ).unwrap(),
       [0, 1],
     )

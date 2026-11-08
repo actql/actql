@@ -75,7 +75,7 @@ fn run_group_domain(
       max_depth: 100,
       max_work: 1000000,
     }).unwrap(),
-    { limit: 100000, live: 0, peak: 0, },
+    row_workspace(100000),
   ).unwrap()
 }
 

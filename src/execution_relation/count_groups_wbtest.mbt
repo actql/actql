@@ -7,7 +7,7 @@ test "count groups reuse exact decimal equality and stable representatives" {
     decimal_value("1.010", 3),
     Null,
   ])
-  let workspace = { limit: 100, live: 3, peak: 3, }
+  let workspace = { ..row_workspace(100), live: 3, peak: 3, }
   let groups = count_groups(
     table,
     [{ column: 0, descending: false, nulls_first: true, }],
@@ -25,11 +25,14 @@ test "count groups reuse exact decimal equality and stable representatives" {
 test "count groups distinguish empty global aggregation from empty keyed input" {
   let table = order_table([])
   let run = fn(order, counts) {
-    count_groups(table, order, counts, 1, { remaining: 1000, max_frames: 0, }, {
-      limit: 100,
-      live: 0,
-      peak: 0,
-    }).unwrap()
+    count_groups(
+      table,
+      order,
+      counts,
+      1,
+      { remaining: 1000, max_frames: 0, },
+      row_workspace(100),
+    ).unwrap()
   }
   let global = run([], [None, Some(0)])
   assert_eq(global.length(), 1)
@@ -47,7 +50,7 @@ test "count groups enforce result and scratch limits without refunding work" {
   let table = order_table([Number(2), Number(1), Number(2)])
   let order = [{ column: 0, descending: false, nulls_first: true, }]
   for (max_groups, slots) in [(1, 100), (2, 4)] {
-    let workspace = { limit: slots, live: 2, peak: 2, }
+    let workspace = { ..row_workspace(slots), live: 2, peak: 2, }
     let control = { remaining: 1000, max_frames: 0, }
     assert_true(
       count_groups(table, order, [None], max_groups, control, workspace)
@@ -63,7 +66,7 @@ test "count groups enforce result and scratch limits without refunding work" {
       [Some(2)],
       1,
       { remaining: 1000, max_frames: 0, },
-      { limit: 100, live: 0, peak: 0, },
+      row_workspace(100),
     )
     is Err(InvalidInput),
   )
@@ -78,7 +81,7 @@ test "count groups keep UTF16 ordering and compare typed columns without row mat
     [None],
     3,
     { remaining: 10000, max_frames: 0, },
-    { limit: 100, live: 0, peak: 0, },
+    row_workspace(100),
   ).unwrap()
   assert_eq(strings.map(g => g.representative), [Some(2), Some(1), Some(0)])
   assert_eq(strings.map(g => g.counts), [[2], [1], [1]])
@@ -88,7 +91,7 @@ test "count groups keep UTF16 ordering and compare typed columns without row mat
   let mut expected_peak : Int? = None
   for candidate in [RowLayout, ValueColumns, TypedColumns] {
     let input = layout_relation(captured, candidate)
-    let workspace = { limit: 1000, live: 0, peak: 0, }
+    let workspace = row_workspace(1000)
     let control = { remaining: 10000, max_frames: 0, }
     let groups = count_groups(
       input,
@@ -121,7 +124,7 @@ test "count grouping work stays subquadratic across key distributions" {
         }),
       )
       let control = { remaining: 10000000, max_frames: 0, }
-      let workspace = { limit: count * 6 + 10, live: 0, peak: 0, }
+      let workspace = { ..row_workspace(count * 6 + 10), live: 0, peak: 0, }
       let groups = count_groups(
         table,
         [{ column: 0, descending: false, nulls_first: true, }],

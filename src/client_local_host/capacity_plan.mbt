@@ -339,40 +339,24 @@ fn client_local_capacity_plan(
       }
     None => exports
   }
-  // A top-level value must fit the SAME selected row and measurement policy.
-  // The old independent10000-byte default cannot narrow already admitted Text
-  // or Parameters. Scalar-only profiles retain it; this grows no row, batch,
-  // text, work or physical allowance and supplies no resource backing.
+  // Value admission follows the selected finite value/measurement policy.
+  // Row framing keeps its small initial window: actual measured output grows
+  // the same Task workspace before allocating a larger export batch.
   let max_value_bytes = if scalar_demand is Some(_) {
     10000
   } else {
-    Int::max(10000, Int::min(imports.row.max_bytes, measurement.max_bytes))
-  }
-  // Text kernels reserve their exact UTF-16 builder before construction, in
-  // addition to already live operation controls. Back that selected finite
-  // row envelope on the same quoted/actual execution workspace. Values-only
-  // and scalar-only profiles need no such builder allocation.
-  let text_kernel = scalar_demand is None &&
-    sequences.any(sequence => {
-      let original = @execution.generated_prepared_sequence(sequence)
-      for step in 0..<@lower.sequence_count(original) {
-        if @lower.sequence_step(original, step) is Some(@lower.RowStep(_)) {
-          return true
-        }
-      }
-      false
-    })
-  let execution = if text_kernel {
-    {
-      ..execution,
-      rows: {
-        ..execution.rows,
-        operation_entries: execution.rows.operation_entries +
-        Int::min(values.max_text_bytes, max_value_bytes),
-      },
-    }
-  } else {
-    execution
+    Int::max(
+      10000,
+      Int::min(
+        // Total wire demand can exceed a single supported physical frame.
+        // Preserve the existing Local/framer 16MiB bound for one value.
+        Int::min(
+          16777216,
+          Int::max(imports.row.max_bytes, imports.wire.max_bytes),
+        ),
+        measurement.max_bytes,
+      ),
+    )
   }
   let result_envelope = match graph {
     Some(original) => client_local_result_envelope(original, max_rows)

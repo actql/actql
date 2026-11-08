@@ -8,7 +8,7 @@ fn evaluate_entries(
     Map([]),
     [],
     { remaining: 10000, max_frames: 100, },
-    { limit: 10000, live: 0, peak: 0, },
+    row_workspace(10000),
     logical_work=Some(logical),
   )
 }
@@ -33,7 +33,7 @@ test "demanded root ceiling preserves failure position cleanup and existing logi
     Map([]),
     [],
     { remaining: 10000, max_frames: 100, },
-    { limit: 10000, live: 0, peak: 0, },
+    row_workspace(10000),
     logical_work=Some(constrained),
   )
   guard result is Err(issue) else {
@@ -165,7 +165,7 @@ test "logical exhaustion retains the exact checked failing expression" {
     Map([]),
     [],
     { remaining: 10000, max_frames: 100, },
-    { limit: 10000, live: 0, peak: 0, },
+    row_workspace(10000),
     logical_work=Some(budget),
   )
   guard result is Err(issue) else { fail("limit") }

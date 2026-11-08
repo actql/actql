@@ -42,7 +42,7 @@ test "merge sort steps order like the atomic complete-value sort" {
   atomic_sort_aggregate_values(
     reference,
     { remaining: 100000, max_frames: 0, },
-    { limit: 100, live: 0, peak: 0, },
+    row_workspace(100),
   ).unwrap()
   let control : ControlBudget = { remaining: 100000, max_frames: 0, }
   let sort = start_aggregate_merge_sort(
@@ -80,7 +80,7 @@ test "percentile steps pick ranks and interpolate within exact limits" {
         fraction,
         discrete,
         probe,
-        { limit: 100, live: 0, peak: 0, },
+        row_workspace(100),
       )
       drain_value_steps(() => advance_aggregate_percentile(state), probe)
     }
@@ -88,11 +88,13 @@ test "percentile steps pick ranks and interpolate within exact limits" {
     assert_true(at_most_one)
     let charge = 100000 - probe.remaining
     let exact : ControlBudget = { remaining: charge, max_frames: 0, }
-    let state = start_aggregate_percentile(values, fraction, discrete, exact, {
-      limit: 100,
-      live: 0,
-      peak: 0,
-    })
+    let state = start_aggregate_percentile(
+      values,
+      fraction,
+      discrete,
+      exact,
+      row_workspace(100),
+    )
     let (again, _) = drain_value_steps(
       () => advance_aggregate_percentile(state),
       exact,
@@ -105,7 +107,7 @@ test "percentile steps pick ranks and interpolate within exact limits" {
       fraction,
       discrete,
       short,
-      { limit: 100, live: 0, peak: 0, },
+      row_workspace(100),
     )
     let (failed, _) = drain_value_steps(
       () => advance_aggregate_percentile(failing),
@@ -130,7 +132,7 @@ test "statistical steps follow canonical identity order and exact limits" {
   let reference = atomic_canonical_numeric_values(
     values,
     { remaining: 100000, max_frames: 0, },
-    { limit: 1000, live: 0, peak: 0, },
+    row_workspace(1000),
     stats_limits(),
   ).unwrap()
   for
@@ -142,7 +144,7 @@ test "statistical steps follow canonical identity order and exact limits" {
       sample,
       deviation,
       probe,
-      { limit: 1000, live: 0, peak: 0, },
+      row_workspace(1000),
       stats_limits(),
     )
     let (value, at_most_one) = drain_value_steps(
@@ -159,7 +161,7 @@ test "statistical steps follow canonical identity order and exact limits" {
       sample,
       deviation,
       short,
-      { limit: 1000, live: 0, peak: 0, },
+      row_workspace(1000),
       stats_limits(),
     )
     let (failed, _) = drain_value_steps(

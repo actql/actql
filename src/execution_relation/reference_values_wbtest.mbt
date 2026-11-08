@@ -131,7 +131,7 @@ test "select preserves owned resource and content references and NULL" {
         max_depth: 10,
         max_work: 100000,
       }).unwrap(),
-      { limit: 10000, live: 0, peak: 0, },
+      row_workspace(10000),
       None,
     ).unwrap()
     guard result is AdmittedTable(projected) else {
@@ -192,7 +192,7 @@ test "append preserves owned resource and content references and NULL" {
         max_depth: 10,
         max_work: 100000,
       }).unwrap(),
-      { limit: 10000, live: 0, peak: 0, },
+      row_workspace(10000),
     ).unwrap()
     assert_eq(result.rows.length(), 2)
     assert_true(

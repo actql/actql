@@ -2,7 +2,7 @@
 test "direct aggregate collection advances one contributor per step" {
   let table = order_table([Number(1), Null, Number(2)])
   let control : ControlBudget = { remaining: 3, max_frames: 0, }
-  let workspace = { limit: 2, live: 0, peak: 0, }
+  let workspace = row_workspace(2)
   let state = start_aggregate_direct_collection(
     table,
     [0, 1, 2],
@@ -34,7 +34,7 @@ test "direct aggregate collection preserves work and releases partial values" {
   let table = order_table([Number(1), Number(2)])
   for (work, space, exact) in [(2, 2, true), (1, 2, false), (2, 1, false)] {
     let control : ControlBudget = { remaining: work, max_frames: 0, }
-    let workspace = { limit: space + 1, live: 1, peak: 1, }
+    let workspace = { ..row_workspace(space + 1), live: 1, peak: 1, }
     let state = start_aggregate_direct_collection(
       table,
       [0, 1],
@@ -61,7 +61,7 @@ test "direct aggregate collection preserves work and releases partial values" {
     }
   }
   let control : ControlBudget = { remaining: 2, max_frames: 0, }
-  let workspace = { limit: 3, live: 1, peak: 1, }
+  let workspace = { ..row_workspace(3), live: 1, peak: 1, }
   let state = start_aggregate_direct_collection(
     table,
     [0, 1],

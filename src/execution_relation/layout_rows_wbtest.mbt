@@ -87,7 +87,7 @@ test "column inputs use shared ordered evaluation with exact work live bytes and
         2,
         { remaining: 100000, max_frames: 100, },
         row_output(),
-        { limit: 100000, live: 0, peak: 0, },
+        row_workspace(100000),
         ordered_budget=Some(b),
       ).unwrap()
       assert_eq(output.names, ["a", "b", "old", "total"])
@@ -117,7 +117,7 @@ test "column inputs use shared ordered evaluation with exact work live bytes and
         2,
         { remaining: 100000, max_frames: 100, },
         row_output(),
-        { limit: 100000, live: 0, peak: 0, },
+        row_workspace(100000),
         ordered_budget=Some(b),
       )
       assert_true(output is Err(_))
@@ -133,7 +133,7 @@ test "column inputs use shared ordered evaluation with exact work live bytes and
         2,
         { remaining: 100000, max_frames: 100, },
         row_output(),
-        { limit: 100000, live: 0, peak: 0, },
+        row_workspace(100000),
       )
       is Err(InputMismatch),
     )
@@ -149,7 +149,7 @@ test "column inputs use shared ordered evaluation with exact work live bytes and
         2,
         { remaining: 100000, max_frames: 100, },
         row_output(),
-        { limit: 100000, live: 0, peak: 0, },
+        row_workspace(100000),
       )
       is Err(OwnerMismatch),
     )
@@ -182,7 +182,7 @@ test "column map and filter preserve snapshot lazy branches and atomic late fail
       2,
       baseline_control,
       row_output(),
-      { limit: 100000, live: 0, peak: 0, },
+      row_workspace(100000),
       ordered_budget=Some(baseline_budget),
     )
     for candidate in [RowLayout, ValueColumns, TypedColumns] {
@@ -196,7 +196,7 @@ test "column map and filter preserve snapshot lazy branches and atomic late fail
         2,
         control,
         row_output(),
-        { limit: 100000, live: 0, peak: 0, },
+        row_workspace(100000),
         ordered_budget=Some(b),
       )
       assert_eq(control.remaining, baseline_control.remaining)

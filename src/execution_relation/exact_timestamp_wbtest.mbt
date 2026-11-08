@@ -14,7 +14,7 @@ test "exact UTC scalar and complete comparisons retain nanosecond order" {
     fail("admitted timestamps")
   }
   let control = { remaining: 100, max_frames: 10, }
-  let workspace : RowWorkspace = { limit: 20, live: 0, peak: 0, }
+  let workspace : RowWorkspace = row_workspace(20)
   let cursor = start_complete_tree_comparison(av, bv, control, workspace).unwrap()
   let mut order = None
   for _ in 0..<200 {

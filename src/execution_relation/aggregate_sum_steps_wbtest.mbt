@@ -65,10 +65,10 @@ test "decimal sum steps match the atomic fold in value and charge" {
     sum_decimal("250"),
   ]
   let reference : ControlBudget = { remaining: 100000, max_frames: 0, }
-  let reference_space = { limit: 1000, live: 0, peak: 0, }
+  let reference_space = row_workspace(1000)
   let expected = atomic_decimal_sum(values, reference, reference_space).unwrap()
   let stepped : ControlBudget = { remaining: 100000, max_frames: 0, }
-  let space = { limit: 1000, live: 0, peak: 0, }
+  let space = row_workspace(1000)
   let (actual, at_most_one) = drain_decimal_sum(values, stepped, space)
   guard actual is Ok(Captured(@admitted.Decimal(decimal))) else {
     fail("decimal sum failed")
@@ -82,18 +82,10 @@ test "decimal sum steps match the atomic fold in value and charge" {
   // One unit short fails without publishing a value.
   let charge = 100000 - reference.remaining
   let short : ControlBudget = { remaining: charge - 1, max_frames: 0, }
-  let (failed, _) = drain_decimal_sum(values, short, {
-    limit: 1000,
-    live: 0,
-    peak: 0,
-  })
+  let (failed, _) = drain_decimal_sum(values, short, row_workspace(1000))
   assert_true(failed is Err(RowLimit))
   let exact : ControlBudget = { remaining: charge, max_frames: 0, }
-  let (succeeded, _) = drain_decimal_sum(values, exact, {
-    limit: 1000,
-    live: 0,
-    peak: 0,
-  })
+  let (succeeded, _) = drain_decimal_sum(values, exact, row_workspace(1000))
   assert_true(succeeded is Ok(_))
   assert_eq(exact.remaining, 0)
 }
@@ -105,11 +97,7 @@ test "decimal sum steps reject a foreign contributor scale" {
     Captured(@admitted.decimal_from_coefficient("1", 38, 3).unwrap()),
   ]
   let control : ControlBudget = { remaining: 100000, max_frames: 0, }
-  let (result, _) = drain_decimal_sum(values, control, {
-    limit: 1000,
-    live: 0,
-    peak: 0,
-  })
+  let (result, _) = drain_decimal_sum(values, control, row_workspace(1000))
   assert_true(result is Err(InvalidRows))
 }
 
@@ -125,7 +113,7 @@ test "endpoint steps return the first and last non-null member" {
   let order = [{ column: 0, descending: false, nulls_first: true, }]
   for first in [true, false] {
     let control : ControlBudget = { remaining: 1000, max_frames: 0, }
-    let workspace = { limit: 100, live: 0, peak: 0, }
+    let workspace = row_workspace(100)
     let state = start_aggregate_endpoint(
       members, order, 1, first, control, workspace,
     )

@@ -319,7 +319,7 @@ fn start_text_function(
         expression,
       })
     }
-    let root = match reserve_logical_bytes(budget, 2L) {
+    let root = match reserve_text_logical_bytes(budget, 2L) {
       Ok(root) => root
       Err(issue) => return Err({ kind: LogicalValue(issue), expression, })
     }
@@ -902,10 +902,22 @@ fn advance_text_function(
     }
     // All output bytes were admitted before allocating the exact UTF-16
     // buffer. Reservation belongs to this frame through the final result.
-    if !reserve_slots(workspace, state.units) {
-      return Err({ kind: WorkspaceLimit, expression, })
+    if state.output_root is Some(root) && root.root.text_capacity is Some(_) {
+      match
+        reserve_measured_text_buffer(root, workspace, state.units, state.bytes) {
+        Err(issue) => return Err({ kind: LogicalValue(issue), expression, })
+        Ok(_) => ()
+      }
+      // Fixed Text frame/builder controls were already reserved on entry.
+      // UTF-16 payload units are not structural container entries.
+      state.allocated = 0
+    } else {
+      // Explicit finite/unmanaged callers retain their existing slot guard.
+      if !reserve_slots(workspace, state.units) {
+        return Err({ kind: WorkspaceLimit, expression, })
+      }
+      state.allocated = state.units
     }
-    state.allocated = state.units
     state.builder = Some(StringBuilder(size_hint=state.units * 2))
     state.building = true
     state.position = if state.kind == TextReverse {

@@ -5,13 +5,14 @@
 /// budgets; this is not a heap meter.
 priv struct RowWorkspace {
   limit : Int
+  growth : WorkspaceGrowth?
   mut live : Int
   mut peak : Int
 }
 
 ///|
 fn row_workspace(limit : Int) -> RowWorkspace {
-  { limit, live: if limit < 0 { -1 } else { 0 }, peak: 0, }
+  { limit, growth: None, live: if limit < 0 { -1 } else { 0 }, peak: 0, }
 }
 
 ///|
@@ -27,6 +28,12 @@ fn checked_row_slots_add(left : Int, right : Int) -> Int? {
 fn reserve_slots(w : RowWorkspace, count : Int) -> Bool {
   if w.live < 0 || count < 0 || count > w.limit - w.live {
     return false
+  }
+  if w.growth is Some(growth) {
+    if count > 2147483647 - growth.slots ||
+      !grow_workspace(growth, growth.slots + count, growth.logical) {
+      return false
+    }
   }
   w.live += count
   w.peak = Int::max(w.peak, w.live)
@@ -55,6 +62,9 @@ fn release_slots(w : RowWorkspace, count : Int) -> Unit {
     return
   }
   w.live -= count
+  if w.growth is Some(growth) {
+    growth.slots -= count
+  }
 }
 
 ///|
@@ -111,6 +121,10 @@ fn SlotScope::rollback(self : SlotScope) -> Bool {
     return false
   }
   self.open = false
+  if self.workspace.growth is Some(growth) &&
+    self.workspace.live >= self.baseline {
+    growth.slots -= self.workspace.live - self.baseline
+  }
   self.workspace.live = self.baseline
   true
 }

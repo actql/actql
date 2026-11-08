@@ -34,7 +34,7 @@ fn check_lag_scale(count : Int) -> Unit raise {
   let levels = lag_scale_levels(count)
   let allowance = count * (levels * 30 + 100) + 1000
   let control = { remaining: allowance, max_frames: 100, }
-  let workspace = { limit: count * 20 + 100, live: 0, peak: 0, }
+  let workspace = { ..row_workspace(count * 20 + 100), live: 0, peak: 0, }
   let result = match
     evaluate_lag_rows(
       row_kernel(owner, 0),
