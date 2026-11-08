@@ -358,7 +358,7 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "fa2caf1d9fd10ac25a00f7ee2ad187d4fd31a0e5c46216e4d593940246afee0b",
+      "sha256": "e84c059c086ce233551841870aef1984d9fd55b103ed837da3803a5252a0689f",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
@@ -425,6 +425,7 @@
         "pub fn discard_relation_target_document_original(RelationTargetDocument) -> Bool",
         "pub fn discard_relation_target_row_original(RelationTargetRow) -> Bool",
         "pub fn ensure_row_run_response_transfer_capacity(RowRunResponseBorrow, Int64) -> Result[Unit, RowHostIssue]",
+        "pub fn export_query_row_original_read(@execution_relation.SuppliedRelationRead, @query_planning.QueryRequirement) -> Result[RowOriginalCaptureExport, RowOriginalCaptureIssue]",
         "pub fn export_row_input_original_read(RowInputAcquisition, @execution_relation.SuppliedRelationRead) -> Result[RowOriginalCaptureExport, RowOriginalCaptureIssue]",
         "pub fn export_row_original_read(@execution_relation.SuppliedRelationRead) -> Result[RowOriginalCaptureExport, RowOriginalCaptureIssue]",
         "pub fn extend_row_run_page_charge(RowRun, RowPageCharge, Bytes) -> Result[Unit, RowHostIssue]",
@@ -556,6 +557,7 @@
         "pub fn row_observation_cid(RowObservation) -> String",
         "pub fn row_original_capture_export_facts(RowOriginalCaptureExport) -> (String, String, Array[String])",
         "pub fn row_original_input_capacity() -> (Int64, Int64)",
+        "pub fn row_original_input_query_capacity(@query_planning.QueryRequirement) -> (Int64, Int64)?",
         "pub fn row_run_attempt(RowRun) -> RowAttempt",
         "pub fn row_run_listing_complete(RowRun) -> Bool",
         "pub fn row_run_normal_available(RowRun) -> Bool",
@@ -847,6 +849,10 @@
         {
           "name": "ensure_row_run_response_transfer_capacity",
           "declaration": "pub fn ensure_row_run_response_transfer_capacity(RowRunResponseBorrow, Int64) -> Result[Unit, RowHostIssue]"
+        },
+        {
+          "name": "export_query_row_original_read",
+          "declaration": "pub fn export_query_row_original_read(@execution_relation.SuppliedRelationRead, @query_planning.QueryRequirement) -> Result[RowOriginalCaptureExport, RowOriginalCaptureIssue]"
         },
         {
           "name": "export_row_input_original_read",
@@ -1371,6 +1377,10 @@
         {
           "name": "row_original_input_capacity",
           "declaration": "pub fn row_original_input_capacity() -> (Int64, Int64)"
+        },
+        {
+          "name": "row_original_input_query_capacity",
+          "declaration": "pub fn row_original_input_query_capacity(@query_planning.QueryRequirement) -> (Int64, Int64)?"
         },
         {
           "name": "row_run_attempt",
@@ -4633,6 +4643,78 @@
             "pub fn prepare_catalog_row_input_acquisition(@sourceview_resolution.SourceAcquisition, @pipeline_check_context.ProgramSourceIdentity, @lowering_relation.PreparedSequence, @execution_relation.RegisteredRelationContracts, RowInputLimits, listing_policy? : @capacity_policy.Policy?) -> Result[RowInputAcquisition, RowHostIssue]",
             "pub fn row_capture_schema_columns(RowSourceCapture, @execution_query.CapturedInputSource) -> Int?",
             "pub fn row_input_acquisition_schema(RowInputAcquisition) -> @relation_schema.Schema"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "export_query_row_original_read",
+            "row_original_input_query_capacity"
+          ],
+          "exports": [
+            "pub fn export_query_row_original_read(@execution_relation.SuppliedRelationRead, @query_planning.QueryRequirement) -> Result[RowOriginalCaptureExport, RowOriginalCaptureIssue]",
+            "pub fn row_original_input_query_capacity(@query_planning.QueryRequirement) -> (Int64, Int64)?"
           ],
           "attributes": {
             "responsibility": [

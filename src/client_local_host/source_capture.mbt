@@ -185,7 +185,7 @@ pub fn read_client_source_capture_descriptor(
 /// Read-only geometry of the SAME original Query capture. Equal requirements
 /// or an unrelated schema cannot enlarge the installed Source identity path.
 /// This grants no read, publication, stop or restoration authority.
-fn client_source_capture_schema_columns(
+pub fn client_source_capture_schema_columns(
   source : @query.CapturedInputSource,
   requirement : @planning.QueryRequirement,
 ) -> Int? {
@@ -553,13 +553,20 @@ pub fn restore_accounted_client_source_capture(
     Ok(value) => value
     Err(issue) => return Err(Physical(issue))
   }
-  let sized = query_source_capture_schema_columns(requirement).bind(columns => {
-    source_capture_restoration_capacity(
-      descriptor_wire,
-      rows,
-      original_input,
-      input_columns=columns,
-    )
+  let original_capacity = match original_input {
+    None => Some((0L, 0L))
+    Some(_) => @row_source_host.row_original_input_query_capacity(requirement)
+  }
+  let sized = original_capacity.bind(original_capacity => {
+    query_source_capture_schema_columns(requirement).bind(columns => {
+      source_capture_restoration_capacity(
+        descriptor_wire,
+        rows,
+        original_input,
+        input_columns=columns,
+        original_capacity~,
+      )
+    })
   })
   // Only the returned two-scalar quote remains after sizing. Its caller's
   // original closed control frame precedes the represented-body reservation.

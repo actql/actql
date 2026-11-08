@@ -289,3 +289,13 @@ Query export and restoration independently bind the original checked requirement
 before using that capture port's schema width; descriptor counts cannot enlarge it. For 102 unqualified
 fields, the late metadata/name overlap is 8576 logical execution bytes, alongside
 the separately charged 1664 retained bytes; no new Ledger or authority is issued.
+
+When the Host also retains original input for later dependent reads, its Query
+exporter checks the same nominal receiver/input binding against the original
+QueryRequirement. Export and reconstruction use that checked INPUT schema's
+width, independently of the capture SELECT schema and saved descriptor counts.
+The generic original-input export defaults stay unchanged. The original-input
+receiving quote retains its existing finite wire/tree envelope and adds the
+shared checked-input metadata inventory before allocation on the receiving
+Ledger. This issues no new Source observation or receiving permission; current
+custody and sliced physical backing cleanup remain required.

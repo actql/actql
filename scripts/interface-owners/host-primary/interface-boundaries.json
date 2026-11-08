@@ -1368,7 +1368,7 @@
     },
     {
       "module": "adapters/host-node/acquired-effect-continuation.mjs",
-      "sha256": "37a6bbf7b292b86bdc9783672050b62b2016feba63eeb5a6410fa6433c8cbad3",
+      "sha256": "904af19512e42249f4701e78686f6d475c58c40eb8779665a6fde8d06be9ad62",
       "exports": [
         "acquiredEffectContinuation"
       ],

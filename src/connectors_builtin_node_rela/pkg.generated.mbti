@@ -940,6 +940,8 @@ pub fn client_program_effectful_static_plan_view(@run_publication_host.PreparedC
 
 pub fn client_program_encode_plan_fact_manifest_identity(String) -> Result[@run_publication_host.PlanFactManifestIdentity, @run_publication_host.PlanFactManifestIdentityIssue]
 
+pub fn client_program_export_query_source_original_read(@execution_relation.SuppliedRelationRead, @query_planning.QueryRequirement) -> Result[(String, String, Array[String]), @client_row_source_host.RowOriginalCaptureIssue]
+
 pub fn client_program_export_source_capture(@execution_query.CapturedInputSource, @query_planning.QueryRequirement, String) -> Result[@client_local_host.ClientSourceCaptureExport, @client_local_host.ClientSourceCaptureIssue]
 
 pub fn client_program_export_source_original_read(@execution_relation.SuppliedRelationRead) -> Result[(String, String, Array[String]), @client_row_source_host.RowOriginalCaptureIssue]
@@ -977,6 +979,10 @@ pub fn client_program_hubspot_source_reader_capacity(Array[Int], Int, Int, Array
 pub fn client_program_identify_captured_effect_source_relation(@execution_query.CapturedInputSource) -> Result[@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedSourceIssue]
 
 pub fn client_program_identify_captured_source_relation(@execution_query.CapturedInputSource) -> Result[@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedSourceIssue]
+
+pub fn client_program_identify_query_captured_effect_source_relation(@execution_query.CapturedInputSource, @query_planning.QueryRequirement) -> Result[@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedSourceIssue]
+
+pub fn client_program_identify_query_captured_source_relation(@execution_query.CapturedInputSource, @query_planning.QueryRequirement) -> Result[@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedSourceIssue]
 
 pub fn client_program_identify_row_capture_effect_source_relation(@execution_query.CapturedInputSource, @client_row_source_host.RowSourceCapture) -> Result[@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedSourceIssue]
 

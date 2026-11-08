@@ -177,7 +177,7 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
       : moon.clientProgramExportSourceCapture(captured.capture.source(), captured.requirement, binding));
     const originalRead = wholeInput ? undefined : captured.capture.originalRead?.();
     const originalFacts = originalRead === undefined ? undefined :
-      checked(moon.clientProgramExportSourceOriginalRead(originalRead));
+      checked(moon.clientProgramExportQuerySourceOriginalRead(originalRead, captured.requirement));
     const record = {version: CAPTURE, run_definition_cid: runDefinitionCid,
       scope: state.scope, acquisition: acquisition ?? null, binding,
       ...(wholeInput ? {input_kind: 'whole-input', source_identity: runtimeField(exported, 0),
@@ -353,8 +353,11 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
       const pure = acquired.kind === 'infer';
       if (pure && !wholeInput && moon.clientProgramCapturedTaskSourceMatches(acquired.prepared,
           capturedSource, source.occurrence.task) !== true) fail('HeldAcquisitionChanged');
-      const identity = checked((pure ? moon.clientProgramIdentifyCapturedSourceRelation
-        : moon.clientProgramIdentifyCapturedEffectSourceRelation)(capturedSource));
+      const identity = checked(wholeInput
+        ? (pure ? moon.clientProgramIdentifyCapturedSourceRelation
+          : moon.clientProgramIdentifyCapturedEffectSourceRelation)(capturedSource)
+        : (pure ? moon.clientProgramIdentifyQueryCapturedSourceRelation
+          : moon.clientProgramIdentifyQueryCapturedEffectSourceRelation)(capturedSource, requirement));
       const logicalInput = checked(wholeInput
         ? (pure ? moon.clientProgramIssueWholeSourceInputLogical
           : moon.clientProgramIssueEffectWholeSourceInputLogical)(

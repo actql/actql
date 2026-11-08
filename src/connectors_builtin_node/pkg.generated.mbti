@@ -1284,6 +1284,8 @@ pub fn client_program_export_content_generation_output(@run_publication_host.Cli
 
 pub fn client_program_export_infer_prepared_input(@client_infer_host.Execution, @model_execution.ModelPreparedCallSet, String) -> Result[@client_local_host.ClientInferRetainedInputExport, @client_local_host.ClientInferRetainedInputIssue]
 
+pub fn client_program_export_query_source_original_read(@execution_relation.SuppliedRelationRead, @query_planning.QueryRequirement) -> Result[(String, String, Array[String]), @client_row_source_host.RowOriginalCaptureIssue]
+
 pub fn client_program_export_source_capture(@execution_query.CapturedInputSource, @query_planning.QueryRequirement, String) -> Result[@client_local_host.ClientSourceCaptureExport, @client_local_host.ClientSourceCaptureIssue]
 
 pub fn client_program_export_source_original_read(@execution_relation.SuppliedRelationRead) -> Result[(String, String, Array[String]), @client_row_source_host.RowOriginalCaptureIssue]
@@ -1349,6 +1351,10 @@ pub fn client_program_hubspot_source_reader_capacity(Array[Int], Int, Int, Array
 pub fn client_program_identify_captured_effect_source_relation(@execution_query.CapturedInputSource) -> Result[@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedSourceIssue]
 
 pub fn client_program_identify_captured_source_relation(@execution_query.CapturedInputSource) -> Result[@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedSourceIssue]
+
+pub fn client_program_identify_query_captured_effect_source_relation(@execution_query.CapturedInputSource, @query_planning.QueryRequirement) -> Result[@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedSourceIssue]
+
+pub fn client_program_identify_query_captured_source_relation(@execution_query.CapturedInputSource, @query_planning.QueryRequirement) -> Result[@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedSourceIssue]
 
 pub fn client_program_identify_row_capture_effect_source_relation(@execution_query.CapturedInputSource, @client_row_source_host.RowSourceCapture) -> Result[@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedSourceIssue]
 

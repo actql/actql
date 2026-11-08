@@ -151,6 +151,8 @@ pub fn discard_relation_target_row_original(RelationTargetRow) -> Bool
 
 pub fn ensure_row_run_response_transfer_capacity(RowRunResponseBorrow, Int64) -> Result[Unit, RowHostIssue]
 
+pub fn export_query_row_original_read(@execution_relation.SuppliedRelationRead, @query_planning.QueryRequirement) -> Result[RowOriginalCaptureExport, RowOriginalCaptureIssue]
+
 pub fn export_row_input_original_read(RowInputAcquisition, @execution_relation.SuppliedRelationRead) -> Result[RowOriginalCaptureExport, RowOriginalCaptureIssue]
 
 pub fn export_row_original_read(@execution_relation.SuppliedRelationRead) -> Result[RowOriginalCaptureExport, RowOriginalCaptureIssue]
@@ -412,6 +414,8 @@ pub fn row_observation_cid(RowObservation) -> String
 pub fn row_original_capture_export_facts(RowOriginalCaptureExport) -> (String, String, Array[String])
 
 pub fn row_original_input_capacity() -> (Int64, Int64)
+
+pub fn row_original_input_query_capacity(@query_planning.QueryRequirement) -> (Int64, Int64)?
 
 pub fn row_run_attempt(RowRun) -> RowAttempt
 

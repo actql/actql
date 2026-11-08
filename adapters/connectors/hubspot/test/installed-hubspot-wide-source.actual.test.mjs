@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import * as common from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {runtimeField, runtimeTriple} from '../../../host-common/compiler-binding.generated.mjs';
 import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs';
 import {installedHubSpotFixture, properties, expected, objectBody} from './installed-hubspot.fixture.mjs';
 
@@ -147,4 +148,54 @@ test('wide Source still refuses an omitted selected nullable property', async t 
     error.cause.cause.$tag === 7);
   assert.equal(f.state.requests.length, 3); assert.equal(f.state.resolutions, 3);
   assert.deepEqual(held(ledger), [0n, 0n, 0n, 0n]);
+});
+
+
+test('wide Source restores its separately retained original input from the same checked Query', async t => {
+  const f = await installedHubSpotFixture(t, options()), source = await f.load();
+  const preparation = await f.prepare(source), preparedSource = await source.prepare(preparation);
+  const receiving = source.ledgerCapacity(preparedSource), ledger = f.ledger();
+  const opened = await source.openCapture({...preparation, preparedSource, ledger});
+  f.captures.push(opened);
+  const read = opened.capture.originalRead();
+  assert.ok(read);
+  const original = checked(common.clientProgramExportQuerySourceOriginalRead(read, opened.requirement));
+  const originalRows = runtimeField(original, 2);
+  assert.deepEqual(originalRows.map(JSON.parse), [{...expected, ...additionalProperties}]);
+  const exported = checked(common.clientProgramExportSourceCapture(opened.capture.source(), opened.requirement, 'wide-original-input'));
+  const saved = Object.freeze({requirement: opened.requirement,
+    requirementCid: common.clientProgramSourceCaptureExportRequirement(exported),
+    binding: common.clientProgramSourceCaptureExportBinding(exported),
+    descriptor: common.clientProgramSourceCaptureExportDescriptor(exported),
+    rows: common.clientProgramSourceCaptureExportRows(exported), original});
+  await opened.close();
+  assert.deepEqual(held(ledger), [0n, 0n, 0n, 0n]);
+  assert.throws(() => checked(common.clientProgramExportQuerySourceOriginalRead(read, saved.requirement)),
+    {code:'MoonBitHostFailure'}, 'closed input cannot be exported');
+  let retained = saved;
+  const receivingLedger = f.ledger();
+  const restored = checked(common.clientProgramRestoreSourceCapture(saved.requirement,
+    saved.requirementCid, saved.binding, saved.binding, saved.descriptor, saved.rows,
+    receivingLedger, receiving.capacity, () => retained === saved,
+    undefined, runtimeTriple(runtimeField(original, 0), runtimeField(original, 1), originalRows)));
+  try {
+    const restoredRead = common.clientProgramSourceCaptureOriginalRead(restored);
+    assert.ok(restoredRead);
+    const restoredSource = common.clientProgramSourceCaptureSource(restored);
+    checked(common.clientProgramIdentifyQueryCapturedSourceRelation(restoredSource, saved.requirement));
+    const again = checked(common.clientProgramExportQuerySourceOriginalRead(restoredRead, saved.requirement));
+    for (let index = 0; index < 3; index++) assert.deepEqual(runtimeField(again, index), runtimeField(original, index));
+    // The callback is the same owned in-process custody, not a durable Saved
+    // or permission claim. Revocation must immediately make its read refuse.
+    retained = undefined;
+    assert.throws(() => checked(common.clientProgramExportQuerySourceOriginalRead(restoredRead, saved.requirement)),
+      {code:'MoonBitHostFailure'});
+  } finally {
+    for (let quantum = 0; quantum < 1024; quantum++) {
+      if (common.clientProgramCloseSourceCapture(restored, 64)) break;
+      assert.notEqual(quantum, 1023, 'original input cleanup must finish within the bounded slice count');
+    }
+  }
+  assert.deepEqual(held(receivingLedger), [0n, 0n, 0n, 0n]);
+  assert.equal(f.state.requests.length, 4); assert.equal(f.state.resolutions, 4);
 });

@@ -112,7 +112,9 @@ function fixture({restoring, selected = true} = {}) {
     clientProgramSourceCaptureExportRows: () => [],
     clientProgramRestoreSourceCapture(...args) { captureCurrent = args[8]; return ok({}); },
     clientProgramSourceCaptureSource: () => 'source',
-    clientProgramIdentifyCapturedEffectSourceRelation: () => ok('identity'),
+    clientProgramIdentifyQueryCapturedEffectSourceRelation(source, requirement) {
+      assert.equal(source, 'source'); assert.equal(requirement, 'requirement'); return ok('identity');
+    },
     clientProgramEffectIssueCapturedSourceLogicalAt: () => ok('logical'),
     clientProgramCloseSourceCapture() { calls.push('capture-close'); return true; },
   };
