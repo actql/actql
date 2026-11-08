@@ -528,14 +528,17 @@ test('Native resource fixtures separate long scalars, Unicode escapes and small-
   const [long, unicode, expanded] = nativeResourceShapeFixtures();
   assert.deepEqual([long.id, unicode.id, expanded.id],
     ['few-long-strings', 'unicode-escapes', 'small-input-large-output']);
-  assert.deepEqual(long.expectedRows, [{id: 0, text: 'a'.repeat(16384)}, {id: 1, text: 'b'.repeat(16384)}]);
+  assert.deepEqual(long.expectedRows, [{id: 0, text: 'a'.repeat(524288)}, {id: 1, text: 'b'.repeat(524288)}]);
+  assert.equal(long.program.stages[0].steps[0].values.rows.length, 2);
+  assert(Buffer.byteLength(JSON.stringify(long.program)) > 1048576,
+    'Few long scalars must cross the old wire-byte frontier without many nodes');
   assert.equal(unicode.expectedRows[0].text, '日本語😀'.repeat(128));
   assert.equal(unicode.expectedRows[1].text, 'e\u0301'.repeat(128));
   assert.notEqual(unicode.expectedRows[1].text, unicode.expectedRows[1].text.normalize('NFC'));
   assert.equal(unicode.expectedRows[3].text, '"\\\b\f\n\r\t\u0000\u001f'.repeat(128));
   assert.equal(unicode.expectedRows[4].text, '\u2028\u2029'.repeat(128));
   for (const fixture of [long, unicode, expanded]) {
-    assert(Buffer.byteLength(JSON.stringify(fixture.program)) < 65536);
+    if (fixture !== long) assert(Buffer.byteLength(JSON.stringify(fixture.program)) < 65536);
     assert.equal(fixture.program.stages[0].steps[0].values.rows[0].text.literal, fixture.expectedRows[0].text);
   }
   assert.equal(expanded.program.stages[0].steps[0].values.rows.length, 1);
@@ -566,6 +569,23 @@ test('Native resource oracle reads full scalars and rejects truncation, normaliz
     [expected[0], {id: 1}]]) {
     await writeRows(rows);
     await assert.rejects(verifyNativeResourceRows(path, expected));
+  }
+});
+
+test('Native resource keyed oracle accepts permutations and rejects duplicate or missing keys', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-native-resource-keyed-oracle-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const path = join(root, 'rows.jsonl');
+  const expected = [{id: 0, text: 'e\u0301'}, {id: 1, text: '日本語😀'}, {id: 2, text: '"\\\n\u0000'}];
+  const writeRows = rows => writeFile(path, rows.map(row => JSON.stringify(row)).join('\n') + '\n');
+  await writeRows(expected);
+  const original = await verifyNativeResourceRows(path, expected, 'id');
+  await writeRows([expected[2], expected[0], expected[1]]);
+  assert.deepEqual(await verifyNativeResourceRows(path, expected, 'id'), original);
+  for (const rows of [[expected[0], expected[0], expected[2]],
+    [expected[2], expected[0]], [...expected, {id: 3, text: 'foreign'}]]) {
+    await writeRows(rows);
+    await assert.rejects(verifyNativeResourceRows(path, expected, 'id'));
   }
 });
 
@@ -600,6 +620,7 @@ async function resourceHarness(t, failure) {
         assert.equal(dirname(args.at(-1)), project + '-output');
         const rows = structuredClone(fixture.expectedRows);
         if (saved && failure === 'saved-content') rows.at(-1).text += '!';
+        if (saved && failure === undefined) rows.reverse();
         await writeFile(args.at(-1), rows.map(row => JSON.stringify(row)).join('\n') + '\n', {flag: 'wx'});
         if (saved && failure === 'saved-cleanup') return {code: 1, signal: null, stdout: '', stderr: 'OriginalCleanupFailure'};
       }
@@ -620,6 +641,8 @@ test('Native resource consumer submits each shape once then reads full SAME Save
     ['adopt', ...Array.from({length: 3}, () => ['run', 'result', 'status', 'result']).flat()]);
   assert.equal(report.observations.length, 3);
   assert.deepEqual(report.observations.map(value => value.first.rows), [2, 5, 512]);
+  assert(report.observations[0].inputWireBytes > 1048576);
+  assert(report.observations[0].first.wireBytes > 1048576);
   for (const observed of report.observations) {
     assert.equal(observed.inputRemovedBeforeSaved, true);
     assert.deepEqual(observed.saved, observed.first);

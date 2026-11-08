@@ -208,16 +208,16 @@ export function nativeResourceShapeFixtures() {
     stages: [{id: 'main', inputs: {}, steps, results: {rows: {from: 'output', fields}}}],
     results: {answer0: {from: {stage: 'main', result: 'rows'}}}});
   const textSchema = {id: {type: 'number', nullable: false}, text: {type: 'string', nullable: false}};
-  const longRows = [{id: 0, text: 'a'.repeat(16384)}, {id: 1, text: 'b'.repeat(16384)}];
+  const longRows = [{id: 0, text: 'a'.repeat(524288)}, {id: 1, text: 'b'.repeat(524288)}];
   const unicodeRows = ['日本語😀', 'e\u0301', 'é', '"\\\b\f\n\r\t\u0000\u001f', '\u2028\u2029']
     .map((text, id) => ({id, text: text.repeat(128)}));
   const payload = 'expand:'.repeat(585), copies = Array.from({length: 512}, (_, copy) => ({copy}));
   return [
-    {id: 'few-long-strings', expectedRows: longRows,
+    {id: 'few-long-strings', key: 'id', expectedRows: longRows,
       program: program('few-long-strings', [{as: 'output', values: values(textSchema, longRows)}], ['id', 'text'])},
-    {id: 'unicode-escapes', expectedRows: unicodeRows,
+    {id: 'unicode-escapes', key: 'id', expectedRows: unicodeRows,
       program: program('unicode-escapes', [{as: 'output', values: values(textSchema, unicodeRows)}], ['id', 'text'])},
-    {id: 'small-input-large-output', expectedRows: copies.map(({copy}) => ({text: payload, copy})),
+    {id: 'small-input-large-output', key: 'copy', expectedRows: copies.map(({copy}) => ({text: payload, copy})),
       program: program('small-input-large-output', [
         {as: 'left_rows', values: values({text: {type: 'string', nullable: false}}, [{text: payload}])},
         {as: 'right_rows', values: values({copy: {type: 'number', nullable: false}}, copies)},
@@ -229,20 +229,35 @@ export function nativeResourceShapeFixtures() {
 
 // Compare every actual delivered scalar, including Unicode normalization and
 // escaped controls. Neither a preview nor a digest alone is this oracle.
-export async function verifyNativeResourceRows(path, expectedRows) {
+export async function verifyNativeResourceRows(path, expectedRows, keyField = 'id') {
+  const expected = new Map(), seen = new Set();
+  for (const row of expectedRows) {
+    const key = row[keyField];
+    assert(Number.isSafeInteger(key)); assert(!expected.has(key), 'Unique expected resource key required');
+    expected.set(key, row);
+  }
   const input = createReadStream(path), lines = createInterface({input, crlfDelay: Infinity});
   const closed = new Promise(resolve => input.once('close', resolve));
-  const content = createHash('sha256');
   let rows = 0;
   try {
     for await (const line of lines) {
       assert(rows < expectedRows.length, 'Unexpected extra resource Result row');
       const row = JSON.parse(line);
-      assert.deepEqual(row, expectedRows[rows], `Resource Result row ${rows}`);
-      content.update(canonicalText(row) + '\n'); rows++;
+      assert(row !== null && typeof row === 'object' && !Array.isArray(row), 'Resource Result object required');
+      const key = row[keyField];
+      assert(expected.has(key), 'Unexpected resource Result key');
+      assert(!seen.has(key), 'Duplicate resource Result key');
+      assert.deepEqual(row, expected.get(key), `Resource Result key ${key}`);
+      seen.add(key); rows++;
     }
   } finally {lines.close(); input.destroy(); await closed;}
   assert.equal(rows, expectedRows.length, 'Complete resource Result required');
+  // Every keyed row above has now been compared in full. Hash that verified
+  // content in key order, not unspecified product traversal or delivery order.
+  const content = createHash('sha256');
+  for (const key of [...expected.keys()].sort((a, b) => a - b)) {
+    content.update(canonicalText(expected.get(key)) + '\n');
+  }
   return {rows, contentSha256: content.digest('hex'), wireBytes: (await lstat(path)).size};
 }
 
@@ -261,6 +276,7 @@ export async function observeNativeResourceOperatorShapes({project, cli, assets,
   for (const fixture of nativeResourceShapeFixtures()) {
     const inputName = fixture.id + '.json', input = join(project, inputName);
     const wire = JSON.stringify(fixture.program), inputWireBytes = Buffer.byteLength(wire);
+    if (fixture.id === 'few-long-strings') assert(inputWireBytes > 1048576);
     const first = join(outputDirectory, fixture.id + '-first.jsonl');
     const saved = join(outputDirectory, fixture.id + '-saved.jsonl');
     await writeFile(input, wire, {flag: 'wx', mode: 0o600});
@@ -269,13 +285,16 @@ export async function observeNativeResourceOperatorShapes({project, cli, assets,
     assert.equal(original.status, 'succeeded');
     assert.equal(typeof original.run_id, 'string'); assert(original.run_id.length > 0);
     await command(['result', original.run_id, '--result', 'answer0', '--format', 'jsonl', '--output', first]);
-    const firstRows = await verifyNativeResourceRows(first, fixture.expectedRows);
+    const firstRows = await verifyNativeResourceRows(first, fixture.expectedRows, fixture.key);
+    if (fixture.id === 'few-long-strings') {
+      assert.equal(firstRows.rows, 2); assert(firstRows.wireBytes > 1048576);
+    }
     await unlink(input);
     const restored = JSON.parse((await command(['status', original.run_id, '--json'])).stdout);
     assert.deepEqual([restored.version, restored.run_id, restored.status],
       [original.version, original.run_id, original.status]);
     await command(['result', original.run_id, '--result', 'answer0', '--format', 'jsonl', '--output', saved]);
-    const savedRows = await verifyNativeResourceRows(saved, fixture.expectedRows);
+    const savedRows = await verifyNativeResourceRows(saved, fixture.expectedRows, fixture.key);
     assert.equal(savedRows.contentSha256, firstRows.contentSha256);
     if (fixture.id === 'small-input-large-output') {
       assert(inputWireBytes < 16384); assert(firstRows.wireBytes > 1048576);
