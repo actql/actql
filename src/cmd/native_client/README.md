@@ -565,3 +565,13 @@ Run acceptance and provider I/O. JSON/YAML Program remains supported machine
 input. Text is never retried as another format, and extensions do not choose
 a language. Removal of the old surface does not claim that every adopted
 Graph, VecA/TEA or Effect surface is implemented.
+
+The Native Project adapter retains the admitted Mock implementation with the
+SAME selected execution contract. It consumes the normalization's original
+prompt and the retry/backoff material already produced during metadata
+preparation, rather than regenerating those dependencies in the Run caller.
+Lookup accepts that exact execution object; equal separately admitted material
+cannot select it. Retirement first removes this metadata alias and then waits
+for the original installation's users before releasing its other originals.
+This is implementation selection, not Account, Model dispatch, Scope funding or
+a physical cleanup acknowledgement. Run executions remain per-Run children.

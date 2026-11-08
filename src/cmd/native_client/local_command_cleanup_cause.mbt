@@ -320,6 +320,25 @@ fn command_preparation_cleanup_cause(
             _ => "ProjectMockTaskInvalid"
           }
         Answers(original) => local_project_mock_answer_cleanup_cause(original)
+        Dependencies(original) =>
+          match original {
+            Missing(_) => "ProjectMockDependencyMissing"
+            Body(_, issue) =>
+              match issue.kind {
+                InvalidLimits => "ProjectMockDependencyInvalidLimits"
+                BodyLimit | TaskLimit | WorkLimit =>
+                  "ProjectMockDependencyLimit"
+                _ => "ProjectMockDependencyInvalid"
+              }
+            UnsupportedPolicy(_) => "ProjectMockDependencyUnsupportedPolicy"
+            MediaRole(_, _) => "ProjectMockDependencyMediaRole"
+          }
+        Provider(original) =>
+          match original {
+            ForeignDependencies => "ProjectMockProviderForeignDependencies"
+            ForeignProvider => "ProjectMockProviderForeignOriginal"
+            UnsupportedPrompt => "ProjectMockProviderUnsupportedPrompt"
+          }
         Installation(original) =>
           match original {
             ForeignOriginal => "ProjectMockInstallationForeignOriginal"

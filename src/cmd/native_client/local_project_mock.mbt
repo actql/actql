@@ -279,6 +279,7 @@ priv struct LocalProjectMockModelOriginal {
   mut answers : @model.ModelMockAnswers?
   mut installation : @model.ModelMockInstallation?
   mut execution : @compiler_environment.ModelExecutionContract?
+  mut admitted : @model.AdmittedModelProvider?
 }
 
 ///|
@@ -295,6 +296,8 @@ priv enum LocalProjectMockModelIssue {
   Task(@compiler_environment.ModelTaskIssue)
   Answers(@model.ModelMockAnswerIssue)
   Installation(@model.ModelMockInstallationIssue)
+  Dependencies(@compiler_environment.ModelDependencyIssue)
+  Provider(@model.ModelProviderAdmissionIssue)
 }
 
 ///|
@@ -346,6 +349,7 @@ fn LocalProjectMockDeclarations::prepare_models(
       answers: None,
       installation: None,
       execution: None,
+      admitted: None,
     }
     self.models.push(entry)
     let format = if answer_path.has_suffix(".json") { "json" } else { "yaml" }
@@ -412,6 +416,10 @@ fn LocalProjectMockDeclarations::retire_originals(
   self.source_environment = None
   while self.model_retire_index < self.models.length() {
     let entry = self.models[self.model_retire_index]
+    // The admitted provider is immutable installation metadata, not a Run or
+    // an Allow cache. Stop exposing it before the original child retirement;
+    // a busy execution keeps the installation and its actual cleanup duties.
+    entry.admitted = None
     if entry.installation is Some(original) {
       match @model.retire_original_model_mock(original) {
         Ok(true) => entry.installation = None
@@ -534,7 +542,7 @@ fn LocalProjectMockDeclarations::prepare_model_environment(
         return Err(Task(issue))
       }
     }
-    let (wire, cid, _, _, _, _) = match
+    let (wire, cid, retry, _, backoff, _) = match
       @compiler_environment.model_mock_execution_materials(
         profile, normalized, limits,
       ) {
@@ -564,6 +572,40 @@ fn LocalProjectMockDeclarations::prepare_model_environment(
       ) {
       self.model_failure = Some(ForeignOriginal)
       return Err(ForeignOriginal)
+    }
+    // Consume the SAME prompt and policies already selected above. Retain the
+    // admitted implementation once; a later Model caller must not regenerate
+    // execution material, reparse dependencies or replace this installation.
+    let prompt = @compiler_environment.normalized_public_model_task_materials(
+      normalized,
+    )
+    let dependencies = match
+      @model.read_original_model_mock_dependencies(
+        entry.installation.unwrap(),
+        execution,
+        Some(@utf8.encode(prompt.2)),
+        Some(@utf8.encode(retry)),
+        Some(@utf8.encode(backoff)),
+        limits.bodies,
+        limits.max_work,
+      ) {
+      Ok(value) => value
+      Err(issue) => {
+        self.model_failure = Some(Dependencies(issue))
+        return Err(Dependencies(issue))
+      }
+    }
+    match
+      @model.admit_original_model_mock_provider(
+        entry.installation.unwrap(),
+        execution,
+        dependencies,
+      ) {
+      Ok(value) => entry.admitted = Some(value)
+      Err(issue) => {
+        self.model_failure = Some(Provider(issue))
+        return Err(Provider(issue))
+      }
     }
   }
   Ok(prepared)
@@ -600,4 +642,31 @@ fn local_command_project_environment(
       stop("InvalidProjectBindings")
     }
   }
+}
+
+///|
+// Immutable implementation lookup only. Current Account/dispatch, original
+// Model Scope, constructor funding and per-Run execution stay with their
+// existing owners. Equal separately admitted execution DATA cannot select it.
+fn LocalProjectMockDeclarations::model_provider(
+  self : Self,
+  execution : @compiler_environment.ModelExecutionContract,
+) -> Result[@model.ModelProvider, LocalProjectMockModelIssue] {
+  guard !self.closing &&
+    !self.retired &&
+    self.model_failure is None &&
+    self.model_environment is Some(_) else {
+    return Err(ForeignOriginal)
+  }
+  for entry in self.models {
+    if entry.execution is Some(original) && physical_equal(original, execution) {
+      guard entry.admitted is Some(admitted) &&
+        @model.admitted_model_provider_for(admitted, execution)
+        is Some(provider) else {
+        return Err(ForeignOriginal)
+      }
+      return Ok(provider)
+    }
+  }
+  Err(ForeignOriginal)
 }

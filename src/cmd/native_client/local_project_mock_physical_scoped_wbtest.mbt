@@ -35,6 +35,22 @@ fn native_project_mock_model_in_original_read(
           original.prepare_model_environment(base).unwrap(),
         ),
       )
+      let entry = original.models[0]
+      let execution = entry.execution.unwrap()
+      assert_true(entry.admitted is Some(_))
+      let provider = original.model_provider(execution).unwrap()
+      assert_true(
+        physical_equal(provider, original.model_provider(execution).unwrap()),
+      )
+      assert_true(
+        physical_equal(
+          provider,
+          @model.original_model_mock_provider(entry.installation.unwrap()).unwrap(),
+        ),
+      )
+      // Merely reading immutable selection must neither consult the clock nor
+      // turn this implementation capability into a synchronous call bypass.
+      assert_true(@model.model_provider_synchronous_invoke(provider) is None)
       let tasks = @checked.checking_environment_model_tasks(prepared).unwrap()
       let task = @compiler_environment.resolve_model_task(
         tasks, "model-task:deal-review.v1",
@@ -46,6 +62,25 @@ fn native_project_mock_model_in_original_read(
           original.model_profile.unwrap(),
           task,
         ),
+      )
+      let materials = @compiler_environment.model_mock_execution_materials(
+        original.model_profile.unwrap(),
+        entry.normalized.unwrap(),
+        local_project_mock_task_limits(),
+      ).unwrap()
+      let equal_execution = @compiler_environment.read_model_execution_contract(
+        task,
+        @utf8.encode(materials.0),
+        materials.1,
+        local_project_mock_task_limits().bodies,
+        local_project_mock_task_limits().max_work,
+      ).unwrap()
+      assert_false(physical_equal(execution, equal_execution))
+      assert_true(
+        original.model_provider(equal_execution) is Err(ForeignOriginal),
+      )
+      assert_true(
+        physical_equal(provider, original.model_provider(execution).unwrap()),
       )
       // Equal separately admitted DATA cannot replace this caller's base.
       assert_true(
@@ -836,4 +871,9 @@ fn native_project_mock_file_references_in_original_read() -> Unit raise {
 ///|
 test "Native Project Mock original file listing issuer resolves only its observed identities and retires escaped refs" {
   native_project_mock_model_backed_read(false, file_references=true)
+}
+
+///|
+test "Native Project Mock retains its original admitted implementation before Graph compilation" {
+  native_project_mock_model_backed_read(false, environment=true)
 }

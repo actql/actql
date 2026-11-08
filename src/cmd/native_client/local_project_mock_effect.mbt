@@ -42,7 +42,8 @@ fn[I] LocalProjectMockDeclarations::prepare_effect_graphs(
       selected.installation is Some(_) &&
       @compiler_environment.model_mock_execution_matches(
         profile, normalized, execution,
-      ) else {
+      ) &&
+      self.model_provider(execution) is Ok(_) else {
       stop("LocalOriginalModelUnavailable")
     }
     let graph = @local_values.prepare_request_model_graph(
