@@ -36,13 +36,35 @@ fn LocalCommandBusinessPreparation::execute_mock_effect_model(
   let (sequence, sources, consumer, read_retained, read_execution) = self.original.with_business_request(
     self.capture,
     () => {
+      let base_retained = limits.mapping.logical.max_live_value_bytes
+      let base_execution = limits.identity.wire.max_bytes.to_int64()
+      let read = @run_host.prepare_client_model_read(
+          scope, base_retained, base_execution,
+        )
+        .map_err(issue => LocalNativeMockSourceIdentityIssue::Read(issue))
+        .native_source_identity(self.original)
+      state.model_read = Some(read)
+      let consumer = @run_host.claim_client_model_read_preparation(
+          read,
+          compiled,
+          first.definition,
+          state.graph,
+          base_retained,
+          base_execution,
+        )
+        .map_err(issue => LocalNativeMockSourceIdentityIssue::Read(issue))
+        .native_source_identity(self.original)
+      let mut read_retained = base_retained
+      let mut read_execution = base_execution
+      let mut completed_retained = 0L
+      let mut completed_execution = 0L
       let dag = @strategy.checked_effect_computation_graph(
         @run_host.prepared_client_effect_computation_graph(
           state._retained_prepared,
         ),
       )
       let captured_sources = []
-      let identities = []
+      let identities = state.source_identities
       let logicals = []
       let observations = []
       let authority = @run_host.client_request_authority_scope_cid(
@@ -55,17 +77,74 @@ fn LocalCommandBusinessPreparation::execute_mock_effect_model(
         let captured = state.sources[index]
           .capture()
           .unwrap_or_else(() => stop("LocalOriginalModelSourceUnavailable"))
-        let identity = @query.identify_captured_source_relation(
-          source,
-          limits.identity.rows,
-          limits.output_values,
-          limits.identity.wire,
-          limits.identity.logical_wire,
-          limits.identity.schema,
-          limits.identity.wire.max_bytes,
-        ).unwrap_or_else(() => {
-          stop("LocalOriginalModelSourceIdentityUnavailable")
-        })
+        let quote = @query.captured_source_cell_identity_start_capacity(source).unwrap_or_else(() => {
+            stop("LocalOriginalModelSourceIdentityUnavailable")
+          },
+        )
+        let mut peak_retained = @execution.execution_capacity_retained_bytes(
+          quote,
+        )
+        let mut peak_execution = @execution.execution_capacity_execution_bytes(
+          quote,
+        )
+        let (r, e) = self.grow_mock_source_identity_read(
+          state, read, consumer, compiled, base_retained, base_execution, completed_retained,
+          completed_execution, peak_retained, peak_execution, read_retained, read_execution,
+        )
+        read_retained = r
+        read_execution = e
+        let scan = @query.start_captured_source_cell_identity(
+            source,
+            limits.identity.rows,
+            limits.output_values,
+            limits.identity.wire,
+            limits.identity.logical_wire,
+            limits.identity.schema,
+            limits.identity.work,
+            limits.identity.workspace,
+            16777216,
+          )
+          .map_err(issue => LocalNativeMockSourceIdentityIssue::Source(issue))
+          .native_source_identity(self.original)
+        state.source_identity_scan = Some(scan)
+        let mut complete = false
+        while !complete {
+          let quote = @query.captured_source_cell_identity_next_capacity(scan).unwrap_or_else(() => {
+              stop("LocalOriginalModelSourceIdentityUnavailable")
+            },
+          )
+          peak_retained = Int64::max(
+            peak_retained,
+            @execution.execution_capacity_retained_bytes(quote),
+          )
+          peak_execution = Int64::max(
+            peak_execution,
+            @execution.execution_capacity_execution_bytes(quote),
+          )
+          let (r, e) = self.grow_mock_source_identity_read(
+            state, read, consumer, compiled, base_retained, base_execution, completed_retained,
+            completed_execution, peak_retained, peak_execution, read_retained, read_execution,
+          )
+          read_retained = r
+          read_execution = e
+          let held = @execution.execution_capacity(
+            peak_retained, peak_execution,
+          ).unwrap()
+          complete = @query.advance_captured_source_cell_identity(
+              scan, 31, held,
+            )
+            .map_err(issue => LocalNativeMockSourceIdentityIssue::Source(issue))
+            .native_source_identity(self.original).0
+        }
+        let identity = @query.finish_captured_source_cell_identity(scan)
+          .map_err(issue => LocalNativeMockSourceIdentityIssue::Source(issue))
+          .native_source_identity(self.original)
+        // Retain the returned raw bodies before any later current/semantic
+        // constructor can fail. Old peaks stay on this Read until retirement.
+        identities.push(identity)
+        state.source_identity_scan = None
+        completed_retained += peak_retained
+        completed_execution += peak_execution
         let original = state.input_originals[index]
         let logical = @run_host.issue_captured_whole_source_input_logical(
           dag,
@@ -89,7 +168,6 @@ fn LocalCommandBusinessPreparation::execute_mock_effect_model(
           stop("LocalOriginalModelSourceObservationUnavailable")
         })
         captured_sources.push(source)
-        identities.push(identity)
         logicals.push(logical)
         observations.push(observation)
       }
@@ -119,24 +197,9 @@ fn LocalCommandBusinessPreparation::execute_mock_effect_model(
         plan,
         state.graph,
       ).unwrap_or_else(() => stop("LocalOriginalModelSequenceUnavailable"))
-      // These are the SAME already selected bounds used by this Plan's original
-      // read/model window. No separate Ledger, preset or later quote is issued.
-      let retained = limits.mapping.logical.max_live_value_bytes
-      let execution = limits.identity.wire.max_bytes.to_int64()
-      let read = @run_host.prepare_client_model_read(scope, retained, execution).unwrap_or_else(() => {
-          stop("LocalOriginalModelReadUnavailable")
-        },
-      )
-      state.model_read = Some(read)
-      let consumer = @run_host.claim_client_model_read_preparation(
-        read,
-        compiled,
-        first.definition,
-        state.graph,
-        retained,
-        execution,
-      ).unwrap_or_else(() => stop("LocalOriginalModelReadUnavailable"))
-      (sequence, sources, consumer, retained, execution)
+      // Enter this SAME claimed Read once in Work.open. Its monotone grown
+      // basis retains Source preimages alongside the later Model input body.
+      (sequence, sources, consumer, read_retained, read_execution)
     },
   )
   let require_model = (
@@ -159,8 +222,10 @@ fn LocalCommandBusinessPreparation::execute_mock_effect_model(
         consumer,
         read_retained,
         read_execution,
-        read_retained,
-        read_execution,
+        // Preserve the original separate Model startup allowance. Source
+        // preimages stay on Read and are not charged again to Model startup.
+        limits.mapping.logical.max_live_value_bytes,
+        limits.identity.wire.max_bytes.to_int64(),
         input_body_read=state.model_read,
       ),
     )

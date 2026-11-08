@@ -276,6 +276,8 @@ pub fn grow_execution_reservation_capacity(Ledger, Reservation, Int64, Int64) ->
 
 pub fn[T] grow_funded_read_consumer_capacity(FundedReadConsumer[T], T, Int64, Int64) -> Result[Unit, OriginalReadIssue]
 
+pub fn[T] grow_funded_read_preparing_capacity(FundedReadConsumer[T], T, Int64, Int64) -> Result[Unit, OriginalReadIssue]
+
 pub fn grow_platform_vm_working_capacity(PlatformVMWorkingCapacity, Int64, Int64) -> Result[Unit, ImportedChildLedgerIssue]
 
 pub fn[P] grow_preparation_body_inventory(PreparationBodyBorrow[P], P, OriginalLedgerIdentity, Int64, Int64, Int, Int, Int) -> Result[Unit, PreparationCapacityIssue]

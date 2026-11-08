@@ -2986,3 +2986,38 @@ obligations remain with the original checked Source/RowRun barrier. The input
 seal validates the complete permutation before replacing an unpublished outer
 row array; Values, conditional presence, schema, original owner and consumed
 work are unchanged. It cannot reorder an already exposed capture.
+
+
+### Source identity bodies on the original preparation
+
+The Native Model-to-Effect caller retains Whole Source logical/schema preimages
+from the same incremental identity pass that issues their identities. The cell
+scanner uses the original completed Source input and its exact supplied read;
+without that nominal read the ordinary completed-output target gate remains in
+force. The existing retained-storage identity scanner keeps its separate frame
+verification purpose. No Source is acquired again to recover a discarded body.
+
+One claimed Model Read grows while still Preparing, before the original Model
+Execution enters. The Resource grow preserves the same origin, reservation,
+snapshots and phase; it creates no slot, attempt, transfer or authority. The
+existing Started grow remains restricted to Started. Both paths fence the one
+original-current callback and preserve a reentrant owning stop. Model startup
+then enters the same consumer once. Its separate original allowance stays
+unchanged; retained Source preimages are not added to Model startup a second
+time.
+
+Before each actual identity constructor/transition, the caller backs its quoted
+scan/control/body peak on that Read. Earlier Source peaks remain held alongside
+later Source bodies and the Model input body until the original Read retires.
+Covered transitions neither resize nor call current again. The body limit is a
+serialization refusal bound, not an upfront file-size reservation or proof of
+Native allocator geometry. Logical extents alone remain insufficient evidence
+of installed physical backing.
+
+A cell-scan handle can be cancelled reentrantly without severing its in-flight
+borrow. On return, cancellation prevents identity publication and cuts scan
+aliases. Finished handles remove both original Source/scan references. The
+returned identity retains the actual raw logical/schema strings; the command
+keeps it before later fallible evidence constructors. After Work/Store consumers
+have retired, command cleanup cuts those body aliases before returning the same
+Read. These alias operations never acknowledge physical Source or Model cleanup.

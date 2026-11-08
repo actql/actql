@@ -129,6 +129,26 @@ fn command_preparation_cleanup_cause(
             _ => "EffectProposalsCompleted"
           }
       }
+    CommandBusinessSourceIdentity(cause) =>
+      match cause {
+        Read(issue) =>
+          match issue {
+            ForeignRun => "ReadForeignRun"
+            InvalidBootstrap => "ReadInvalidBootstrap"
+            Resource(_) => "ReadResource"
+          }
+        Source(issue) =>
+          match issue {
+            Unavailable => "SourceUnavailable"
+            Binding(_) => "SourceBinding"
+            Completion(_) => "SourceCompletion"
+            Storage(_) => "SourceStorage"
+            Export(_) => "SourceExport"
+            DependencyBodyLimit => "SourceDependencyBodyLimit"
+          }
+        Capacity => "SourceIdentityCapacity"
+        ForeignOriginal => "SourceIdentityForeignOriginal"
+      }
     CommandBusinessModel(cause) =>
       match cause {
         ForeignOriginal => "ModelForeignOriginal"

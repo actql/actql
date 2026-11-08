@@ -53,11 +53,16 @@ pub fn start_completed_relation_identity_scan(
   max_workspace_slots : Int,
   incremental_metadata? : Bool = false,
   retain_body? : Bool = false,
+  source_input? : SuppliedRelationRead? = None,
 ) -> Result[CompletedRelationIdentityScan, CompletedExportIssue] {
   if !completed_output_available(source) {
     return Err(Unavailable)
   }
   guard source.table is Some(table) else { return Err(NotCellRepresentation) }
+  if source_input is Some(read) &&
+    !completed_source_input_matches_read(source, read) {
+    return Err(Unavailable)
+  }
   if max_work < 0 || max_workspace_slots < 0 {
     return Err(Admission(InvalidCaptureLimits))
   }
@@ -79,7 +84,23 @@ pub fn start_completed_relation_identity_scan(
     reserve_slots(workspace, writer_slots + width * 8) else {
     return Err(Admission(CaptureLimit))
   }
-  let preparation = match
+  let prepared = if source_input is Some(_) {
+    guard completed_export_preparation_workspace_slots(payload_wire.max_columns)
+      is Some(slots) else {
+      return Err(Wire(InvalidLimits))
+    }
+    start_completed_export_rows_metadata(
+      source,
+      completed_output_export_rows(source),
+      max_rows,
+      values,
+      payload_wire,
+      Some(logical_wire),
+      Some(schema_limits),
+      Int::max(1, payload_wire.max_bytes),
+      slots,
+    )
+  } else {
     start_completed_export(
       source,
       None,
@@ -89,7 +110,9 @@ pub fn start_completed_relation_identity_scan(
       Some(logical_wire),
       Some(schema_limits),
       Int::max(1, payload_wire.max_bytes),
-    ) {
+    )
+  }
+  let preparation = match prepared {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

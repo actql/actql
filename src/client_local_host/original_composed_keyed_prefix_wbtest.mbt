@@ -63,6 +63,7 @@ fn original_composed_keyed_consumer(
   large_lookup_policy? : Bool = false,
   publication_identity? : Bool = false,
   publication_early? : Bool = false,
+  source_identity_bodies? : Bool = false,
 ) -> Unit raise {
   let (declaration, keyed_environment) = original_keyed_declaration_environment(
     relation_versions=true,
@@ -389,6 +390,7 @@ fn original_composed_keyed_consumer(
   let closed_inputs = []
   let restorations = []
   let whole_observations = []
+  let whole_identities : Array[@query.CapturedSourceRelationIdentity] = []
   for task in 0..<2 {
     let run = if whole {
       let selected = @publication_host.prepare_client_effect_source_acquisition(
@@ -489,15 +491,51 @@ fn original_composed_keyed_consumer(
       let capacity = whole_capacities[task]
       let source = @row_source_host.row_capture_source(captured).unwrap()
       let limits = original_keyed_content_workspace().export_limits
-      let identity = @query.identify_captured_source_relation(
-        source,
-        1,
-        limits.values,
-        limits.payload_wire,
-        limits.logical_wire,
-        limits.schema,
-        limits.max_batch_bytes,
-      ).unwrap()
+      let identity = if source_identity_bodies {
+        let scan = @query.start_captured_source_cell_identity(
+          source,
+          1,
+          limits.values,
+          limits.payload_wire,
+          limits.logical_wire,
+          limits.schema,
+          1000000,
+          100000,
+          16777216,
+        ).unwrap()
+        let mut complete = false
+        for _ in 0..<100000 {
+          let next = @query.captured_source_cell_identity_next_capacity(scan).unwrap()
+          if @query.advance_captured_source_cell_identity(scan, 7, next).unwrap().0 {
+            complete = true
+            break
+          }
+        }
+        assert_true(complete)
+        let identity = @query.finish_captured_source_cell_identity(scan).unwrap()
+        let (body, schema) = @query.captured_source_relation_dependency_bodies(
+          identity, source,
+        ).unwrap()
+        assert_true(body.has_prefix("{\"sort\":\"relation\",\"value\":["))
+        assert_true(schema.contains("resource"))
+        assert_true(
+          @query.captured_source_relation_identity_matches_source(
+            identity, source,
+          ),
+        )
+        identity
+      } else {
+        @query.identify_captured_source_relation(
+          source,
+          1,
+          limits.values,
+          limits.payload_wire,
+          limits.logical_wire,
+          limits.schema,
+          limits.max_batch_bytes,
+        ).unwrap()
+      }
+      whole_identities.push(identity)
       let logical = @publication_host.issue_captured_whole_source_input_logical(
         @strategy.checked_effect_computation_graph(
           @publication_host.prepared_client_effect_computation_graph(prepared),
@@ -1132,15 +1170,24 @@ fn original_composed_keyed_consumer(
   let logicals = []
   let observations = []
   for task, source in sources {
-    let identity = @query.identify_captured_source_relation(
-      source,
-      1,
-      limits.values,
-      limits.payload_wire,
-      limits.logical_wire,
-      limits.schema,
-      limits.max_batch_bytes,
-    ).unwrap()
+    let identity = if source_identity_bodies && whole {
+      let identity = whole_identities[task]
+      assert_true(
+        @query.captured_source_relation_dependency_bodies(identity, source)
+        is Some(_),
+      )
+      identity
+    } else {
+      @query.identify_captured_source_relation(
+        source,
+        1,
+        limits.values,
+        limits.payload_wire,
+        limits.logical_wire,
+        limits.schema,
+        limits.max_batch_bytes,
+      ).unwrap()
+    }
     let (logical, observation) = if whole {
       whole_observations[task]
     } else {
@@ -1568,6 +1615,20 @@ fn original_composed_keyed_consumer(
     )
   }
   assert_true(cleanup_client_infer_input(input).unwrap())
+  if source_identity_bodies {
+    for identity in whole_identities {
+      @query.clear_captured_source_relation_dependency_bodies(identity)
+    }
+    for index, source in sources {
+      assert_true(
+        @query.captured_source_relation_dependency_bodies(
+          whole_identities[index],
+          source,
+        )
+        is None,
+      )
+    }
+  }
   @row_source_host.close_accounted_row_run(child).unwrap()
   if native_read is Some(read) {
     assert_true(
@@ -1778,5 +1839,15 @@ test "actual two Whole Sources prepare one canonical keyed publication input bef
     whole=true,
     publication_identity=true,
     publication_early=true,
+  )
+}
+
+///|
+test "actual Whole Sources retain one scanned body through same keyed Model input and retire it" {
+  original_composed_keyed_consumer(
+    whole=true,
+    publication_identity=true,
+    publication_early=true,
+    source_identity_bodies=true,
   )
 }

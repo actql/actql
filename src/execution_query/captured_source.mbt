@@ -164,7 +164,7 @@ pub struct CapturedSourceRelationIdentity {
   logical_relation_cid : String
   schema_cid : String
   row_count : Int
-  dependency_bodies : (String, String)?
+  mut dependency_bodies : (String, String)?
 }
 
 ///|
@@ -484,4 +484,14 @@ pub fn[P] capture_verified_source(
     live,
     wire_bytes,
   })
+}
+
+///|
+/// Cut only retained preimage aliases after the actual consumer/Store lifetime
+/// has ended. Logical identity and the original Source capture stay unchanged;
+/// this is neither physical cleanup nor permission to repeat a read.
+pub fn clear_captured_source_relation_dependency_bodies(
+  identity : CapturedSourceRelationIdentity,
+) -> Unit {
+  identity.dependency_bodies = None
 }

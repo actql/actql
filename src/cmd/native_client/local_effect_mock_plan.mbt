@@ -12,6 +12,8 @@ priv struct LocalNativeMockEffectPlan {
   mut prefix : @local_values.ClientOriginalComposedKeyedPrefix?
   mut lookup : @run_host.ClientKeyedLookupInput?
   mut model_read : @run_host.ClientModelReadPreparation?
+  mut source_identity_scan : @query.CapturedSourceCellIdentityScan?
+  source_identities : Array[@query.CapturedSourceRelationIdentity]
   mut model_output : @execution.CompletedOutput?
   mut _retained_model_observation : (
     @publication.RunEvidenceValue,
@@ -281,6 +283,8 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_plan(
       prefix: None,
       lookup: None,
       model_read: None,
+      source_identity_scan: None,
+      source_identities: [],
       model_output: None,
       _retained_model_observation: None,
       _retained_local_model_observation: None,
