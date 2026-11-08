@@ -241,3 +241,31 @@ binding. This allocation-free observer grants no Source/Account permission,
 capacity or retirement acknowledgement. The standalone prefix census remains
 unchanged. The consuming [ordinary task adapter](../client_local_host/captured-tasks-interface.md)
 closes dependent Compute before its caller retires the Source.
+
+
+### Selected-schema capture measurement
+
+Query capture measures both the complete original input scan and the completed
+SELECT output. Its column bound is derived from those same checked schemas
+retained by the original acquisition, rather than the unrelated Values default
+or a Host maximum. The original ordering work, node, wire-byte and depth limits
+remain separate and enforced. This does not grant Source access or change a
+provider's declared field bound; strict missing selected properties still refuse.
+
+The existing RowRun reserves the corresponding temporary names/order metadata
+before I/O through `row_acquisition_execution_capacity`. It uses the shared
+preparation representation policy: n tuple records, n borrowed name references,
+up to 3n simultaneous column-growth references, n tuple name/index pairs, and
+bounded cursor/control records. Qualified spelling uses the original schema
+constructor's own header/UTF16 inventory; unqualified strings stay borrowed.
+The two measurements run sequentially, so their variable workspaces use the
+larger original extent. The existing wire/hash payload envelope is unchanged.
+The checked quote is retained in the same immutable RowHost configuration and
+added to its same original reservation, with no new Ledger, attempt or cleanup
+owner. Physical/current refusal retains the existing reader and Source duties.
+
+For the independently authored 102-column fixture this metadata is 6912 logical
+bytes; it is not a heap/RSS measurement. `measurement_capacity_wbtest.mbt` checks
+unqualified/qualified arithmetic and the unchanged explicit ordering refusals;
+the installed HubSpot wide fixture separately tests complete provider input,
+the original SELECT projection, finite transfer accounting and real cleanup.

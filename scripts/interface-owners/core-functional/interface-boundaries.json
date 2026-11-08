@@ -48269,7 +48269,7 @@
     },
     {
       "module": "src/client_row_source_host/host.mbt",
-      "sha256": "2b86e1ce1aedbd319da2ba8731fc2927d98e97312d9067cb5f5364c4bfdb5f47",
+      "sha256": "7536dad46367e4cbfb07532612a88c52a005bbeb7849b5f7edf46bd3ab1feff9",
       "exports": [],
       "operations": [
         {
@@ -48431,6 +48431,10 @@
         {
           "name": "row_run_listing_complete",
           "declaration": "row_run_listing_complete ( run : RowRun ) - > Bool"
+        },
+        {
+          "name": "row_run_normal_available",
+          "declaration": "row_run_normal_available ( run : RowRun ) - > Bool"
         },
         {
           "name": "row_source_target",
@@ -84894,6 +84898,96 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Next bounded response transfer"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_row_source_host/measurement_capacity.mbt",
+      "sha256": "c95ed46cb3182e9f6f087172a3625ba2f87448dfa927cd06f98523064548877e",
+      "exports": [],
+      "operations": [
+        {
+          "name": "row_capture_measurement_geometry",
+          "declaration": "row_capture_measurement_geometry ( preparation : RowSourcePreparation , ) - > ( Int , Int64 ) ?"
+        },
+        {
+          "name": "row_measurement_workspace",
+          "declaration": "row_measurement_workspace ( schema : @ schema . Schema ) - > Int64 ?"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing Source acquisition, RowRun and checked Compute owners; same original lifetime, no independent permission or resource owner",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "row_capture_measurement_geometry",
+            "row_measurement_workspace"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
               }
             ]
           }
