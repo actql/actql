@@ -255,7 +255,8 @@ test('the actual repository Native compiler narrows a reverse dependency closure
   const graph = normalizeMoonGraph(raw, tree, repository);
   const plan = planMoonTests(['src/bounded_graph_diff/apply_before.mbt'], graph, tree);
   const selected = nativeCoreTestSelection(repository, ['--deny-warn', '--release', '--strip', '-j', '2', '--no-parallelize'],
-    {partitionProfiles:true, ordinaryPartitions:true, timeoutMs:5 * 60_000, executionPackages:plan.packages});
+    {env:{...process.env, MOONBIT_NEW_NATIVE:'0'}, partitionProfiles:true, ordinaryPartitions:true,
+      timeoutMs:5 * 60_000, executionPackages:plan.packages});
   assert.equal(selected.executionScope.mode, 'subset');
   assert(selected.cases > 0 && selected.cases < selected.executionScope.originalCases);
   assert.equal(selected.profiles.ordinary.partitions.length, 2);
@@ -285,7 +286,8 @@ test('actual compiler and Git endpoints execute only selected backend tests whil
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-moon-ci-graph-')));
   t.after(() => rmSync(root, {recursive:true, force:true}));
   const write = (path, value) => {mkdirSync(dirname(join(root, path)), {recursive:true});writeFileSync(join(root, path), value);};
-  const cleanEnv = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('GIT_')));
+  const cleanEnv = {...Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('GIT_'))),
+    MOONBIT_NEW_NATIVE:'0'};
   const originalGit = args => execFileSync('git', args, {cwd:root, env:cleanEnv, encoding:'utf8', timeout:15000});
   write('.gitignore', '_build/\n.moon/\n');
   write('moon.mod', 'name = "actql/actql"\nsource = "src"\npreferred_target = "js"\nsupported_targets = "+js+wasm+native"\n');
@@ -328,12 +330,12 @@ test('actual compiler and Git endpoints execute only selected backend tests whil
   }
   const executionPackages = nativeMoonPackages({...environment, CI_PLAN:JSON.stringify(plan)}, {cwd:root});
   const native = nativeCoreTestSelection(root, ['--deny-warn', '--release', '--strip', '-j', '1', '--no-parallelize'],
-    {partitionProfiles:true, ordinaryPartitions:true, executionPackages});
+    {env:cleanEnv, partitionProfiles:true, ordinaryPartitions:true, executionPackages});
   assert.equal(native.executionScope.mode, 'subset');
   assert.equal(native.executionScope.originalCases, 4); assert.equal(native.cases, 3);
   assert.equal(native.profiles.ordinary.partitions.reduce((sum, part) => sum + part.cases, 0), 3);
   for (const part of native.profiles.ordinary.partitions) assert.equal(runFocusedTests('moon',
-    ['--target', 'native', ...part.args], {cwd:root, expectedTests:part.cases}), 0);
+    ['--target', 'native', ...part.args], {cwd:root, env:cleanEnv, expectedTests:part.cases}), 0);
 
   write('src/unrelated/fail_wbtest.mbt', 'test "unselected runtime sentinel" { assert_true(true) }\n');
   write('src/testless/moon.pkg', '');
