@@ -116,6 +116,7 @@ outside the checkout:
 ```json
 {
   "clientId": "existing-app-client-id",
+  "expectedHubId": "1234567",
   "clientSecretFile": "/private/operator/client-secret",
   "redirectUri": "http://localhost:18763/oauth-callback",
   "tokensFile": "/private/operator/new-tokens.json"
@@ -128,6 +129,9 @@ Run `node /external/fixtures/hubspot-approval/oauth.mjs CONFIGURATION INSTALL_UR
 On macOS this opens the browser after the callback listener is ready. The
 operator chooses the development account and grants the selected scopes;
 authorization may refuse if the app's actual configuration differs. The
+optional `expectedHubId` pins the selected native account ID as a string;
+an otherwise valid token for another account is refused before token output
+is saved. This comparison does not prove provider or ActQL permission. The
 result contains only account/expiry/output-path metadata. Use the saved
 access token through the existing installation secret port; do not paste it
 into the Program or chat. OAuth success does not prove company rights, Host
