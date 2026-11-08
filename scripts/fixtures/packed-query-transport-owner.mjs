@@ -154,7 +154,12 @@ const safeCodes=[
 'NodeManagedRunAdmissionUnavailable','NodeManagedRunCompilationUnavailable','NodeManagedRunPlanUnavailable',
 'NodeManagedRunRuntimeUnavailable','InvalidOriginalCheckObservation',
 'RunHostCompilationRejected','RunHostTaskCompilationRejected','RunHostAdmissionRejected',
-'RunHostStaticPlanRejected','RunHostOriginalPlanRejected'];
+'RunHostStaticPlanRejected','RunHostOriginalPlanRejected',
+// Fixed compiled-Run factories retain an own cause even when it is undefined.
+// Observing one of these categories does not identify its underlying cause.
+'RunHostResultPolicyRejected','RunHostResultSelectionRejected',
+'RunHostTaskDefinitionRejected','RunHostSourceFreeDefinitionRejected','RunHostSourceFreeAdmissionRejected',
+'RunHostTaskInvocationRejected','RunHostInvocationRejected'];
 const row={edge,type},code=Object.getOwnPropertyDescriptor(value,'code');if(code){if('value'in code&&safeCodes.includes(code.value))row.code=code.value;else{row.codeOmitted=true;row.codeType=!('value'in code)?'Accessor':code.value===undefined?'Undefined':typeof code.value==='string'?'String':typeof code.value==='number'?'Number':'Other';}}
 out.push(row);if(depth<16)for(const key of ['cause','primaryFailure','_0','_1','_2']){const d=Object.getOwnPropertyDescriptor(value,key);if(d)queue.push([key,'value'in d?d.value:undefined,depth+1,!('value'in d)]);}}return out;})()`;
   session.on('Debugger.scriptParsed', async ({params}) => {
