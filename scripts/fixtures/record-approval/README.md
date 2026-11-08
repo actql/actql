@@ -124,3 +124,25 @@ control row. The shared child observes exact canonical Host root descriptors
 twice while alive after public close returns; mock has no Credential root to
 observe. Each child retains the original 30-second limit. Keep every original
 state and receipt after failure; never retry that original Run to finish a case.
+
+## CI producer input
+
+The ordinary CI producer emits `packed-client-packages.json`, not a release
+manifest. After the existing exact-artifact download action sets
+`ACTQL_PACKED_CLIENT_PACKAGES`, run one explicit case with:
+
+```sh
+ACTQL_TEST_PRESERVE_SCRATCH=1 node scripts/test-packed-hubspot-source.mjs --ci --approval
+```
+
+Select `--kintone-approval` or a `--mock-CONNECTOR-approval` case in the same way.
+This entry requires all five unchanged archives from the exact clean checkout
+through the existing `packedClientPackage` gate. Missing inputs refuse; there
+is no pack/build fallback or synthetic `release.json`. It installs the original
+archives and the source-pinned DuckDB peer normally in fresh external scratch,
+checks each installed member against the original archive before and after,
+and then executes the same authored fixture. Lifecycle scripts remain enabled.
+Keep install output, original inputs, state and receipts on failure or success.
+Run on the producer's actual supported platform; a Linux native asset does not
+qualify Darwin. This source connection alone is not hosted CI or real-account
+acceptance. The existing three-path release/closed-installation entry is retained.
