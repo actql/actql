@@ -155,6 +155,22 @@ fn command_preparation_cleanup_cause(
         Capacity => "SourceIdentityCapacity"
         ForeignOriginal => "SourceIdentityForeignOriginal"
       }
+    CommandBusinessModelGraph(cause) =>
+      match cause {
+        Preparation(Policy) => "ModelGraphPreparationPolicy"
+        Preparation(ForeignOriginal) => "ModelGraphPreparationForeignOriginal"
+        Preparation(Capacity(_)) => "ModelGraphPreparationCapacity"
+        Preparation(_) => "ModelGraphPreparation"
+        ModelGraph(UnsupportedProgram) => "ModelGraphUnsupportedProgram"
+        ModelGraph(ForeignExecution) => "ModelGraphForeignExecution"
+        ModelGraph(Input(UnrepresentableContract)) => "ModelGraphInputContract"
+        ModelGraph(Input(UnsupportedCarrier)) => "ModelGraphInputCarrier"
+        ModelGraph(Input(Pipeline(_))) => "ModelGraphInputPipeline"
+        ModelGraph(Input(_)) => "ModelGraphInput"
+        ModelGraph(Encoding) => "ModelGraphEncoding"
+        ModelGraph(_) => "ModelGraphConstruction"
+        _ => "ModelGraphRequest"
+      }
     CommandBusinessModel(cause) =>
       match cause {
         ForeignOriginal => "ModelForeignOriginal"

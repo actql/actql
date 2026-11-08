@@ -61,6 +61,8 @@ import {
 import {
   "actql/actql/publication_payload" @test_payload,
   "actql/actql/query_planning" @test_planning,
+  "actql/actql/lowering_relation" @test_lower,
+  "actql/actql/infer_typing" @test_infer,
 } for "wbtest"
 
 options(

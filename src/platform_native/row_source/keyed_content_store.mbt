@@ -87,6 +87,8 @@ priv enum NativeFileContentPhase {
 priv struct NativeRelationFileContent {
   mut input : NativeRelationFileContentInput?
   mut bytes : Bytes?
+  mut raw_snapshot : Bytes?
+  mut raw_snapshot_cid : String?
   mut candidate : @publication_host.ClientCapturedContent?
   mut custody : @store.CapturedContentCustody?
   mut value : @admitted.CheckedValue?
@@ -104,6 +106,8 @@ fn native_relation_file_content(
   {
     input: Some(input),
     bytes: None,
+    raw_snapshot: None,
+    raw_snapshot_cid: None,
     candidate: None,
     custody: None,
     value: None,
@@ -167,9 +171,9 @@ fn native_relation_file_content_capacity(
       projection,
       storage,
       {
-        // Content holder H1/R6/W4 + six Some slots H6/R6/W6; issuer identity,
+        // Content holder H1/R8/W4 + eight Some slots H8/R8/W8; issuer identity,
         // two callbacks and domain delegation H7/R10/W3; page writer and
-        // output UTF8 Bytes H1; four-view request/field access and Store/
+        // output UTF8 Bytes and retained raw digest H2; four-view access and Store/
         // candidate/issuer/clock Result/refusal frontiers H24/R30/W24.
         // SHA block/state/digest/hex live beside projected bytes: H9/R5/W93,
         // B96/T263, with no copied Source text. Core candidate/reference
@@ -178,15 +182,15 @@ fn native_relation_file_content_capacity(
         // reference and actual Some carrier on this same Content reservation.
         record_headers: page.record_headers +
         1L +
-        6L +
+        8L +
         7L +
-        1L +
+        2L +
         24L +
         9L +
         (if input.read_profile is Some(_) { 1L } else { 0L }),
         reference_slots: page.reference_slots +
-        6L +
-        6L +
+        8L +
+        8L +
         10L +
         30L +
         5L +
@@ -194,12 +198,15 @@ fn native_relation_file_content_capacity(
         (if input.read_profile is Some(_) { 1L } else { 0L }),
         scalar_words: page.scalar_words +
         4L +
-        6L +
+        8L +
         3L +
         24L +
         93L +
         (if input.read_profile is Some(_) { 1L } else { 0L }),
-        owned_utf16_units: page.owned_utf16_units + 263L,
+        // The original raw Bytes are already included in the provider's
+        // transport/document overlap. Retaining their alias makes no copy;
+        // the one raw digest is additional to the later Content digest.
+        owned_utf16_units: page.owned_utf16_units + 263L + 71L,
         owned_wire_bytes: provider.limits.page.max_bytes.to_int64() + 96L,
       },
     ])
@@ -499,6 +506,8 @@ fn native_relation_file_content_retained_capacity(
     content.io_complete &&
     !content.issuing &&
     content.bytes is None &&
+    content.raw_snapshot is Some(raw) &&
+    content.raw_snapshot_cid is Some(_) &&
     content.input is Some(input) &&
     content.candidate is Some(candidate) &&
     content.value is Some(_) &&
@@ -515,14 +524,16 @@ fn native_relation_file_content_retained_capacity(
     @execution.compose_preparation_representation([
       storage,
       {
-        // Same holder H1/R6/W4, six optional slots H6/R6/W6 and original
+        // Same holder H1/R8/W4, eight optional slots H8/R8/W8 and original
         // issuer identity/callbacks/domain delegation H7/R10/W3. Input DATA
-        // remains borrowed from its original caller-funded occurrence.
-        record_headers: 1L + 6L + 7L,
-        reference_slots: 6L + 6L + 10L,
-        scalar_words: 4L + 6L + 3L,
-        owned_utf16_units: 0L,
-        owned_wire_bytes: 0L,
+        // remains borrowed. Actual raw Bytes and its one digest stay live
+        // after derived-page/parser retirement: two headers, exact bytes,
+        // and the 71 UTF16 units. No codec ceiling or borrowed spare room.
+        record_headers: 1L + 8L + 7L + 2L,
+        reference_slots: 8L + 8L + 10L,
+        scalar_words: 4L + 8L + 3L,
+        owned_utf16_units: 71L,
+        owned_wire_bytes: raw.length().to_int64(),
       },
     ])
     is Some(inventory) &&

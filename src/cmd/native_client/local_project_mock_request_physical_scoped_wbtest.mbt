@@ -409,13 +409,18 @@ fn native_mock_readme_request_payload(
               assets.ordered,
             ).unwrap()
             try {
-              let models = original.prepare_effect_models(
-                facility.parent,
-                facility.input,
-                @run_host.prepared_client_effect_infer_occurrences(prepared).unwrap(),
-                environment,
-                contracts,
-              )
+              let models = match
+                original.prepare_effect_models(
+                  facility.parent,
+                  facility.input,
+                  @run_host.prepared_client_effect_infer_occurrences(prepared).unwrap(),
+                  environment,
+                  contracts,
+                ) {
+                Ok(value) => value
+                Err(issue) =>
+                  stop(native_model_graph_test_cause(original, prepared, issue))
+              }
               let infers = models.map(value => value.graph)
               if infers.length() != 1 {
                 stop("LocalOriginalModelGraphCount")
@@ -864,4 +869,101 @@ test "Native Model selection backs all three simultaneous original vectors" {
   assert_eq(first.scalar_words, 99L)
   assert_eq(first.owned_utf16_units, 0L)
   assert_eq(first.owned_wire_bytes, 0L)
+}
+
+///|
+// Bounded authored-source diagnosis after the actual Native caller refused.
+// Read only immutable original identities, not application values or state.
+// Return through its existing ClientStop catch so normal physical cleanup runs.
+fn native_model_graph_test_cause(
+  original : LocalProjectMockDeclarations,
+  prepared : @run_host.PreparedClientEffectComputation,
+  issue : @local_values.ClientRequestProgramPlanIssue,
+) -> String {
+  let fallback = command_preparation_cleanup_cause(
+    CommandBusinessModelGraph(issue),
+  )
+  guard issue is @local_values.ModelGraph(@run_host.ForeignExecution) &&
+    @run_host.prepared_client_effect_infer_occurrence(prepared)
+    is Some(occurrence) &&
+    original.models.length() == 1 &&
+    original.models[0].execution is Some(execution) &&
+    @test_lower.node_at(
+      @test_lower.bound_preparation(occurrence.preparation),
+      occurrence.step,
+    )
+    is Some(node) &&
+    @test_lower.payload(node) is @test_lower.Infer(infer) else {
+    return fallback
+  }
+  if !physical_equal(
+      @test_infer.model_task(infer),
+      @compiler_environment.model_execution_task(execution),
+    ) {
+    return "NativeModelGraphOriginalTaskMismatch"
+  }
+  guard @run_host.select_client_effect_model_keyed_acquisition(
+      prepared, occurrence,
+    )
+    is Ok(Some(keyed)) &&
+    @run_host.client_keyed_acquisition_source_evidence_facts(keyed)
+    is Some(facts) &&
+    original.file_sources is Some(files) else {
+    return "NativeModelGraphOriginalKeyedMissing"
+  }
+  let binding = @run_host.client_keyed_acquisition_binding(keyed)
+  if @compiler_environment.lookup_execution_policy(
+      @sourceviews.lookup_bounds_policy(binding.bounds),
+    )
+    is None {
+    return "NativeModelGraphOriginalLookupPolicyMissing"
+  }
+  let selected = @sourceviews.keyed_request_input(
+    @sourceviews.parameterized_keyed_request(
+      @sourceviews.keyed_join_request(binding.join),
+    ),
+  )
+  let request = @compiler_environment.contract_identity(
+      @compiler_environment.reference_contract(
+        @compiler_environment.source_request_reference(
+          @sourceviews.selected_contract(selected),
+        ),
+      ),
+    ).2
+  for file in files {
+    for pair in file._retained_listings {
+      let reader = pair.1
+      if reader.content.source_ref == facts.source_ref &&
+        reader.content.view_cid == facts.source_view_contract_cid {
+        guard @publication.native_file_read_profile_contract_bindings(
+            reader._retained_read_profile.contract(),
+          )
+          is Some((source, request_schema, response)) else {
+          return "NativeModelGraphProfileKind"
+        }
+        if source != facts.source_view_contract_cid {
+          return "NativeModelGraphProfileSource"
+        }
+        if request_schema != request {
+          return "NativeModelGraphProfileRequestSchema"
+        }
+        if response != facts.carrier_schema_contract_cid {
+          return "NativeModelGraphProfileResponseSchema"
+        }
+        guard @test_planning.keyed_source_evidence_members(
+            @run_host.client_keyed_acquisition_facts(keyed),
+          )
+          is Ok(members) &&
+          @compiler_environment.connector_source_evidence_supports(members, [
+            @publication.publication_contract_identity(
+              reader._retained_read_profile.contract(),
+            ),
+          ]) else {
+          return "NativeModelGraphProfileUndeclared"
+        }
+        return "NativeModelGraphOriginalProfileMatched"
+      }
+    }
+  }
+  "NativeModelGraphOriginalProfileMissing"
 }

@@ -3180,3 +3180,18 @@ or selecting/validating the immutable implementation again. Current SourceRead,
 physical transport, durable lookup Artifact publication, Model egress and Effect
 approval/claim remain with their existing owners and still require their actual
 observations. Constructing this Plan supplies none of those outcomes.
+
+The declared-file installation binds its Native implementation descriptor only
+to the final admitted SourceView identity after adding physical lookup facts.
+Rebinding preserves the same physical provider, field selection and limits;
+the initial declaration's descriptor cannot stand in for that final view.
+
+Automatic keyed Content capture retains the fully received original raw Bytes
+before replacing its response buffer with the derived ContentRef page. Its
+existing reservation covers the actual raw byte length and cached digest after
+parser/page construction retires. A current completed capture can borrow only
+that digest and size, without copying or hashing the snapshot again. Original
+Content custody cleanup precedes severing both raw aliases; failed cleanup keeps
+them on the same owner. This physical identity is separate from logical rows
+and Content identity, and supplies neither durable lookup Artifact publication
+nor an attempt receipt or physical-cleanup acknowledgement.

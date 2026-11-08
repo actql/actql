@@ -182,3 +182,24 @@ pub fn NativeRelationFileCapture::keyed_capture(
   }
   Ok(original)
 }
+
+///|
+/// Identity/size of the SAME fully received physical snapshot retained by this
+/// completed automatic Content capture. It is distinct from derived rows and
+/// the logical Content value. Reading this original DATA neither creates an
+/// Artifact/attempt receipt nor proves durable custody or physical cleanup.
+/// No raw Bytes escape this owner and no hash/projection is performed again.
+pub fn NativeRelationFileCapture::keyed_raw_snapshot_identity(
+  self : Self,
+) -> Result[(String, Int), NativeRelationFileIssue] {
+  guard self.current() &&
+    self.retained_keyed_original() &&
+    self.phase is Captured &&
+    self.keyed_result is Some(_) &&
+    self.content is Some(content) &&
+    content.raw_snapshot is Some(raw) &&
+    content.raw_snapshot_cid is Some(cid) else {
+    return Err(Unavailable)
+  }
+  Ok((cid, raw.length()))
+}

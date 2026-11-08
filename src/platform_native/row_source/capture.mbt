@@ -1173,6 +1173,16 @@ fn NativeRelationFileCapture::admit_response(
 ) -> Unit raise FileCaptureStop {
   let run = self.run.unwrap()
   let bytes = self.bytes.unwrap()
+  if self.content is Some(content) {
+    // Keep the original fully received physical bytes, before projection can
+    // replace self.bytes by a derived ContentRef row. The receive/Content
+    // reservation already backs these bytes and this additional digest slot.
+    guard content.raw_snapshot is None && content.raw_snapshot_cid is None else {
+      raise FileCaptureStop(ForeignOriginal)
+    }
+    content.raw_snapshot = Some(bytes)
+    content.raw_snapshot_cid = Some("sha256:" + @sha.hex(bytes))
+  }
   match self.responses {
     Some(original) =>
       file_require(
@@ -1624,6 +1634,8 @@ pub fn NativeRelationFileCapture::close(
       }
       content.input = None
       content.bytes = None
+      content.raw_snapshot = None
+      content.raw_snapshot_cid = None
       content.candidate = None
       content.value = None
       content.issuer = None
