@@ -85,6 +85,37 @@ test('Native dependency scope explains full fallback instead of admitting an emp
   }
 });
 
+test('Native dependency scope keeps full originals for skipped-only selections or either skipped-only partition', t => {
+  const scenarios = [
+    {skip:['active', 'empty'], ordinaryPartitions:true},
+    {skip:['empty'], ordinaryPartitions:true},
+    {skip:['active', 'empty'], ordinaryPartitions:false, allSkipped:true},
+    {skip:['unrelated'], ordinaryPartitions:true, extraSkipped:100},
+  ];
+  for (const scenario of scenarios) {
+    const f = dependencyFixture(t);
+    const execute = (tool, values, options) => {
+      const result = f.execute(tool, values, options);
+      if (values[0] !== 'generate-test-driver') return result;
+      const metadataPath = values[values.indexOf('--output-metadata') + 1];
+      const metadata = JSON.parse(readFileSync(metadataPath, 'utf8'));
+      const skipped = scenario.allSkipped || scenario.skip.some(directory => values.includes(directory + '/main.mbt'));
+      if (skipped) for (const tests of Object.values(metadata.tests)) {
+        tests[0].attrs = ['skip'];
+        if (scenario.extraSkipped) for (let index = 1; index <= scenario.extraSkipped; index++)
+          tests.push({...tests[0], index});
+      }
+      writeFileSync(metadataPath, JSON.stringify(metadata));
+      return result;
+    };
+    const packages = [...f.selectedPackages, ...(scenario.extraSkipped ? ['unrelated'] : [])];
+    const selected = nativeCoreTestSelection(f.root, ['--release'], {execute,
+      partitionProfiles:true, ordinaryPartitions:scenario.ordinaryPartitions, executionPackages:packages});
+    assert.equal(selected.executionScope.mode, 'full-fallback', JSON.stringify(scenario));
+    assert.equal(selected.cases, selected.executionScope.originalCases);
+  }
+});
+
 test('Native dependency scope keeps a full plan for an unselected nested compiler package', t => {
   const f = dependencyFixture(t, {nested:true});
   const selected = nativeCoreTestSelection(f.root, ['--release'], {execute:f.execute,

@@ -223,6 +223,10 @@ export function nativeCoreTestSelection(repository, args, options = {}) {
   return compilerTestSelection(repository, args, options, 'native', false);
 }
 
+function runnableCompilerCase(record) {
+  return !record.benchmark && !record.entry[2].attrs?.includes('skip');
+}
+
 // Portable selection uses the same bounded compiler metadata reader. A driver
 // can contain only benchmarks or no cases; neither establishes test execution.
 export function portableMoonTestCount(repository, args, target, options = {}) {
@@ -341,8 +345,7 @@ function compilerTestSelection(repository, args, {
     if (countOnly) {
       // Keep case identities opaque. Only the compiler's existing benchmark
       // class and explicit skip attribute are excluded from runnable counts.
-      const runnableCases = records.filter(record => !record.benchmark &&
-        !record.entry[2].attrs?.includes('skip')).length;
+      const runnableCases = records.filter(runnableCompilerCase).length;
       remaining(); complete = true;
       return {runnableCases};
     }
@@ -360,15 +363,22 @@ function compilerTestSelection(repository, args, {
       const subset = records.filter(record => requested.has(record.directory));
       const preview = partitionProfiles(args, subset, false, compilerDirectories);
       const ordinaryPaths = preview.ordinary.args?.slice(args.length) ?? [];
-      const ordinaryPackages = new Set(subset.filter(record => !record.benchmark &&
+      const ordinaryPackages = new Set(subset.filter(record => runnableCompilerCase(record) &&
         (ordinaryPaths.includes(record.directory) || ordinaryPaths.includes(record.source))).map(record => record.directory));
       // A directory input includes nested packages. Keep the complete original
       // plan if the closure cannot express that boundary without changing any
       // compiler driver inputs or admitting an unrelated nested driver.
       const nestedOutside = [...compilerDirectories].some(directory => !requested.has(directory) &&
         executionPackages.some(parent => directory.startsWith(parent + '/')));
-      const admitted = subset.some(record => !record.benchmark) && !nestedOutside &&
-        (!ordinaryPartitions || ordinaryPackages.size >= 2);
+      // Existing partition balancing counts original driver/case inventory.
+      // A skipped-only driver can win a partition even when two other packages
+      // have runnable cases; test the actual assigned inputs before narrowing.
+      const nonemptyPartitions = !ordinaryPartitions || ordinaryPackages.size >= 2 &&
+        partitionProfiles(args, subset, true, compilerDirectories).ordinary.partitions.every(partition =>
+          subset.some(record => runnableCompilerCase(record) &&
+            (partition.args.slice(args.length).includes(record.directory) ||
+              partition.args.slice(args.length).includes(record.source))));
+      const admitted = subset.some(runnableCompilerCase) && !nestedOutside && nonemptyPartitions;
       executionScope = {packages:[...executionPackages].sort(), originalCases:cases.length,
         mode:admitted ? 'subset' : 'full-fallback',
         reason:admitted ? 'compiler-owned reverse dependency closure' : nestedOutside
