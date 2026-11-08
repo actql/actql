@@ -14,7 +14,9 @@ test "single JOIN GROUP public input retains one captured shared source" {
     assert_eq(lowered.document.split("\"connector\":").length() - 1, 1)
     assert_true(lowered.document.contains("\"max_output_rows\":20"))
     assert_true(lowered.document.contains("\"with\":\"source\""))
-    assert_true(lowered.document.contains("\"filter\":{\"literal\":true}"))
+    assert_false(lowered.document.contains("\"filter\":{\"literal\":true}"))
+    // Both authored WHERE and HAVING comparisons remain after shared capture.
+    assert_eq(lowered.document.split("\"gt\":").length() - 1, 2)
     assert_true(lowered.document.contains("\"fields\":[\"id\",\"n\"]"))
   }
 }
