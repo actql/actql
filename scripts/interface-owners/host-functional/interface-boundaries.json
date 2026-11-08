@@ -28950,7 +28950,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a09e8833ba3891c013d719cbb2435942ac926193e71ee4d87a9204a91ed589ae",
+      "sha256": "a3a5757c4695714ee0c70c58effc3668ff61406c300f4d43112795766e1f968a",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -29097,21 +29097,8 @@
         {
           "name": "boundedJournalWalFrames/check/check",
           "parameters": [
-            "units"
-          ],
-          "async": false
-        },
-        {
-          "name": "boundedJournalWalFrames/check/check/check",
-          "parameters": [
-            "original"
-          ],
-          "async": false
-        },
-        {
-          "name": "boundedJournalWalFrames/check/check/check#2",
-          "parameters": [
-            "original"
+            "units",
+            "transactionStart"
           ],
           "async": false
         },
@@ -29159,6 +29146,25 @@
         {
           "name": "boundedJournalWalFrames/init:register/init:register/init:register",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "boundedJournalWalFrames/reclaim/reclaim",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "boundedJournalWalFrames/reclaim/reclaim/reclaim",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "boundedJournalWalFrames/reclaim/reclaim/reclaim#2",
+          "parameters": [
+            "original"
+          ],
           "async": false
         },
         {
@@ -32602,8 +32608,6 @@
             "snapshotPrimaryExecutionLimits/snapshotPrimaryExecutionLimits",
             "snapshotPrimarySqlLimits",
             "snapshotPrimarySqlLimits/snapshotPrimarySqlLimits",
-            "boundedJournalWalFrames/check/check/check",
-            "boundedJournalWalFrames/check/check/check#2",
             "boundedJournalWalFrames/init:enter/init:enter",
             "boundedJournalWalFrames/init:leave/init:leave",
             "boundedJournalWalFrames/init:register/init:register",
@@ -32612,7 +32616,10 @@
             "boundedPrimarySql/prepareWalCheckpoint/prepareWalCheckpoint",
             "boundedPrimarySql/prepareWalCheckpoint/prepareWalCheckpoint/prepareWalCheckpoint",
             "boundedPrimarySql/retireWal/init:checkpoint/init:checkpoint",
-            "boundedPrimarySql/retireWal/retireWal"
+            "boundedPrimarySql/retireWal/retireWal",
+            "boundedJournalWalFrames/reclaim/reclaim",
+            "boundedJournalWalFrames/reclaim/reclaim/reclaim",
+            "boundedJournalWalFrames/reclaim/reclaim/reclaim#2"
           ],
           "exports": [
             "assertOriginalClientRequestJournalFacilityCurrent",
