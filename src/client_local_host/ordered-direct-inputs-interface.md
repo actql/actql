@@ -80,3 +80,12 @@ after that read's cleanup, while the enclosing Run still awaits physical ACK.
 If currentness synchronously retires the read, both its marker and Ledger are
 cut. Post-callback checks preserve the existing Retired outcome before testing
 nominal correspondence; initial foreign-original checks remain unchanged.
+
+`prepared_installed_effect_model_sequence` borrows the immutable sequence already
+selected by the same Effect Plan for an original Model Graph. It neither selects
+a range nor prepares a sequence again, observes currentness, grants execution or
+revives a retired Run. The caller keeps the actual managed Run and funds any
+subsequent view. An installed keyed Model input may omit a duplicate producer
+vector: the existing nominal lookup supplies its retained original left/right
+inputs through the checked join handoff. Explicit vectors still require all
+original bindings; no caller-authored rows or new Source reads are substituted.

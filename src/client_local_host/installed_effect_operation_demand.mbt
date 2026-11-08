@@ -1415,3 +1415,36 @@ pub fn installed_effect_operation_extent_physical(
 ) -> Bool {
   value.physical_attempt
 }
+
+///|
+/// Borrow the immutable sequence already selected by this SAME Effect Plan
+/// for its original Model Graph. This does not select/copy a range, prepare a
+/// sequence again, check current, grant execution or revive a retired Run.
+/// The caller retains the original managed Run and funds any selected view.
+pub fn prepared_installed_effect_model_sequence(
+  plan : ClientInstalledEffectManagedPlan,
+  graph : @publication_host.ClientInferPlanGraph,
+) -> Result[@execution.GeneratedSequence, ClientInstalledManagedRunIssue] {
+  guard plan.model is Some(model) else { return Err(Unsupported) }
+  let mut selected = if physical_equal(model.graph, graph) {
+    Some(model)
+  } else {
+    None
+  }
+  if model.components is Some(originals) {
+    for original in originals {
+      if physical_equal(original.graph, graph) {
+        selected = Some(original)
+        break
+      }
+    }
+  }
+  guard selected is Some(original) else { return Err(ForeignOriginal) }
+  let (task, _, _) = @publication_host.client_infer_occurrence_coordinates(
+    original._occurrence,
+  )
+  match plan.sequences.get(task) {
+    Some(sequence) => Ok(sequence)
+    None => Err(Unsupported)
+  }
+}

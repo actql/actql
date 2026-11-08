@@ -450,7 +450,7 @@
     {
       "module": "src/client_local_host/installed_effect_operation_demand.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "d8934e8a96c7da4386bf023c2155160a19745bca20682f99eeb4d40308c7ccaa",
+      "sha256": "747d36fcf056217dc4f018c242720f7f5a68f00ee110030e13702e50156316d6",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -552,6 +552,10 @@
           "declaration": "prepared_installed_effect_managed_source ( plan : ClientInstalledEffectManagedPlan , occurrence : Int , ) - > Result [ ( @ row_source_host . RowDeclaration , @ planning . QueryRequirement , @ row_source_host . RowAcquisition , ClientInstalledCaptureCapacity , ) , ClientInstalledManagedRunIssue , ]"
         },
         {
+          "name": "prepared_installed_effect_model_sequence",
+          "declaration": "prepared_installed_effect_model_sequence ( plan : ClientInstalledEffectManagedPlan , graph : @ publication_host . ClientInferPlanGraph , ) - > Result [ @ execution . GeneratedSequence , ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "resolve_installed_effect_capture_extent",
           "declaration": "resolve_installed_effect_capture_extent ( original : ClientInstalledEffectOperationExtent , rows : Int , ) - > ClientInstalledEffectOperationExtent ?"
         },
@@ -585,7 +589,8 @@
             "prepared_installed_effect_managed_source",
             "resolve_installed_effect_capture_extent",
             "resolve_installed_effect_id_extent",
-            "prepare_installed_effect_managed_plan_owned"
+            "prepare_installed_effect_managed_plan_owned",
+            "prepared_installed_effect_model_sequence"
           ],
           "exports": [],
           "attributes": {

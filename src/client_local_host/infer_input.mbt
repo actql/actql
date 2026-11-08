@@ -307,6 +307,12 @@ pub fn start_client_composed_infer_input(
     )
     let originals_match = match composed {
       None => inputs.is_empty()
+      // The installed keyed root supplies no duplicate producer vector: this
+      // original lookup already retains both admitted inputs and the complete
+      // composed Source association. The same checked join-input handoff below
+      // verifies its live originals before execution. Explicit supplied vectors
+      // still need every original binding check; empty DATA alone grants none.
+      Some(_) if inputs.is_empty() => true
       Some(sources) => {
         guard inputs.length() == sources.length() + 1 &&
           @publication_host.client_composed_keyed_lookup_input_slot(

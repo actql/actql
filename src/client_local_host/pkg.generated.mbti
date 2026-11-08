@@ -918,6 +918,8 @@ pub fn prepared_installed_effect_managed_source(ClientInstalledEffectManagedPlan
 
 pub fn prepared_installed_effect_managed_whole_source(ClientInstalledEffectManagedPlan, Int) -> Result[(@sourceview_resolution.SourceAcquisition, @client_row_source_host.RowInputAcquisition, ClientInstalledWholeSourceCapacity), ClientInstalledManagedRunIssue]
 
+pub fn prepared_installed_effect_model_sequence(ClientInstalledEffectManagedPlan, @run_publication_host.ClientInferPlanGraph) -> Result[@execution_relation.GeneratedSequence, ClientInstalledManagedRunIssue]
+
 pub fn prepared_installed_managed_capture_acquisition(ClientInstalledManagedCapturePlan, Int) -> @client_row_source_host.RowAcquisition?
 
 pub fn prepared_installed_managed_capture_requirements(ClientInstalledManagedCapturePlan) -> Array[Int64]
