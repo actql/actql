@@ -10,6 +10,7 @@ fn captured_content_custody_inventory(
   diagnostics : Int,
   read : @filesystem.NativeFilesystemReadLayout,
   write : @filesystem.NativeFilesystemWriteLayout,
+  canonical_record_bytes? : Int? = None,
 ) -> @execution.PreparationRepresentationUnits? {
   if max_record_bytes <= 0 ||
     active_writers < 0 ||
@@ -18,15 +19,16 @@ fn captured_content_custody_inventory(
     diagnostics <= 0 {
     return None
   }
+  let record = canonical_record_bytes.unwrap_or(max_record_bytes)
+  if record <= 0 || record > max_record_bytes {
+    return None
+  }
   guard read.reader_payload_bytes > 0L &&
     read.external_object_overhead_bytes > 0L &&
     write.writer_payload_bytes > 0L &&
     write.external_object_overhead_bytes > 0L &&
-    @encode.text_writer_construction_inventory(max_record_bytes, 64, 2)
-    is Some(text) &&
-    @decode.preserving_json_admission_construction_inventory(
-      max_record_bytes, 8, 2,
-    )
+    @encode.text_writer_construction_inventory(record, 64, 2) is Some(text) &&
+    @decode.preserving_json_admission_construction_inventory(record, 8, 2)
     is Some(parsed) &&
     @shape.map_construction_extent(1L, active_writers.to_int64() + 1L)
     is Some(registration) else {
@@ -94,6 +96,8 @@ fn captured_content_custody_inventory(
       reference_slots: 4L * text.reference_slots,
       scalar_words: 4L * text.scalar_words,
       owned_utf16_units: 4L * text.owned_utf16_units,
+      // Malformed/raw database bodies can still reach the configured bound.
+      // Only canonical output and prechecked parser geometry use `record`.
       owned_wire_bytes: 5L * max_record_bytes.to_int64(),
     },
     {

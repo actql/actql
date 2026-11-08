@@ -10,6 +10,15 @@ holding CID, retains the returned child before I/O, and funds its constructor,
 metadata, writer, verification window and failed-child overlap under the same
 parent. Store disk/object quota is separate from that live backing.
 
+The construction inventory may borrow that same candidate to bound its closed
+canonical record. Its tag, holding CID, state, generation and escaped original
+wire determine the writer/parser geometry. Raw database readback retains the
+full configured Store bound, including malformed or failed-state bytes. A body
+too long to be the canonical original refuses before parser/index construction;
+the remaining records still pass the original exact canonical equality check.
+This changes neither the stored format nor the Store policy ceiling. Omitting
+the candidate retains the original full-bound inventory.
+
 `persist` checks the exact byte count and digest before acquisition, reserves one
 object even for empty content, and retains the actual writer and sealed file
 generation. A successful journal CAS establishes the immutable terminal once;

@@ -53,13 +53,19 @@ fn captured_content_generation(
   wire : String,
   max_bytes : Int,
 ) -> Result[@filesystem.NativeFileGeneration, NativePublicationStoreIssue] {
-  if body.length() > max_bytes {
+  guard captured_content_record_bound(wire, max_bytes) is Some(bound) else {
+    return Err(StateCollision)
+  }
+  // A longer body cannot be the canonical original checked below. Refuse it
+  // before constructing its preserving parser/index, including failed/cold
+  // readback. The original database read and Store limit remain unchanged.
+  if body.length() > bound {
     return Err(StateCollision)
   }
   try {
     let source = match
       @source.parse_json_bytes_preserving(body, {
-        max_input_bytes: max_bytes,
+        max_input_bytes: bound,
         max_nodes: 8,
         max_depth: 2,
       }) {
@@ -70,8 +76,8 @@ fn captured_content_generation(
       @decode.admit(source, {
         max_nodes: 8,
         max_depth: 2,
-        max_string_bytes: max_bytes,
-        max_total_string_bytes: max_bytes,
+        max_string_bytes: bound,
+        max_total_string_bytes: bound,
       }) {
       Ok(value) => value
       Err(_) => return Err(StateCollision)

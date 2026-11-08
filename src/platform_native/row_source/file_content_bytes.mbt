@@ -104,7 +104,14 @@ fn file_content_construction_inventory(
   if max_content_bytes < 0 || max_content_bytes > provider.limits.page.max_bytes {
     return None
   }
-  let limits = provider.limits.page
+  guard file_capture_projection_backing_page(
+      @rows.relation_document_prepared_contract(provider.prepared_contract),
+      provider.limits.page,
+      response_bytes,
+    )
+    is Some(limits) else {
+    return None
+  }
   guard file_provider_projection_inventory(provider, response_bytes~)
     is Some(projected) &&
     @encode.text_writer_construction_inventory(

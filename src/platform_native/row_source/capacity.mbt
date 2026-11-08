@@ -507,7 +507,16 @@ fn file_capture_response_backing_page(
         None
       } else {
         // Empty malformed input still needs its original bounded refusal frame.
-        Some({ ..page, max_bytes: Int::max(1, bytes), })
+        // Parser frames, nodes and index arrays grow from observed JSON
+        // tokens; they are not preallocated at the configured ceilings. A
+        // node/container needs at least one received byte, including refusal
+        // prefixes. Keep the original parser/decoder guards at admission.
+        Some({
+          ..page,
+          max_bytes: Int::max(1, bytes),
+          max_nodes: Int::min(page.max_nodes, Int::max(1, bytes)),
+          max_depth: Int::min(page.max_depth, Int::max(1, bytes)),
+        })
       }
   }
 }
@@ -543,6 +552,14 @@ fn file_capture_projection_backing_page(
   Some({
     ..page,
     max_bytes: Int64::min(page.max_bytes.to_int64(), Int64::max(1L, bound)).to_int(),
+    // Closed Text rows add no nested value nodes. Retain the whole declared
+    // field frontier even for a tiny malformed input; valid and failed raw
+    // node traversal remains bounded by the received-byte count. Source
+    // projection still receives its original guards, not this quote geometry.
+    max_nodes: Int::min(
+      page.max_nodes,
+      Int::max(@contract.field_count(fields), Int::max(1, bytes)),
+    ),
   })
 }
 
@@ -557,6 +574,7 @@ fn file_capture_construction_capacity(
   prepared_provider : NativeRelationFilePreparedProvider?,
   content : NativeRelationFileContentInput?,
   response_bytes : Int?,
+  storage_candidate? : @publication.CapturedContentReference? = None,
 ) -> (Int64, Int64)? {
   let listing = match original {
     ManagedFileListingAcquisition(_, _, _, _)
@@ -626,6 +644,7 @@ fn file_capture_construction_capacity(
           input,
           prepared_provider,
           response_bytes=response_bound,
+          storage_candidate~,
         )
         is Some((retained, execution)) &&
         @execution.checked_preparation_add_product(

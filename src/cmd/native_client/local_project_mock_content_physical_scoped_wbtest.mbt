@@ -13,6 +13,18 @@ test "Native original README joins its two physical Sources and original keyed C
 }
 
 ///|
+test "Native original README retains both keyed Content originals for its Model input" {
+  assert_eq(@env.get_env_var("ACTQL_TEST_NATIVE_CONTENT_LOOKUPS"), Some("2"))
+  native_project_mock_model_backed_read(
+    false,
+    readme_request=true,
+    effect_compilation=true,
+    effect_source_inputs=true,
+    content_join=true,
+  )
+}
+
+///|
 fn[T, E] Result::native_content_join_stage(
   self : Result[T, E],
   label : String,
@@ -278,34 +290,12 @@ fn native_mock_readme_content_join_adopt(
   let ledger = facility.arena
     .borrow_domain_retained_execution_ledger(facility.physical)
     .unwrap()
-  let lookup = @run_host.start_client_keyed_lookup_input(
-    left, ledger, 4096, 10000,
-  ).native_content_join_stage("original keyed lookup")
-  let preparation = @run_host.start_client_keyed_lookup_request(lookup, 0).unwrap()
-  let mut request = None
-  for _ in 0..<100000 {
-    match @run_host.advance_client_keyed_lookup_request(lookup, preparation) {
-      @run_host.ClientKeyedRequestContinue(..) => ()
-      @run_host.ClientKeyedRequestComplete(value, ..) => {
-        request = Some(value)
-        break
-      }
-      _ => fail("original keyed request did not complete")
-    }
+  let requests = if @env.get_env_var("ACTQL_TEST_NATIVE_CONTENT_LOOKUPS") ==
+    Some("2") {
+    2
+  } else {
+    1
   }
-  let request = request.unwrap()
-  // Select the original assembly's cache slot BEFORE opening a new read.
-  // -1 is this fresh request's real miss; it is not a guessed permission.
-  assert_eq(
-    @run_host.find_client_keyed_lookup_response(lookup, request).unwrap(),
-    -1,
-  )
-  let request_value = @run_host.client_keyed_request_value(request, keyed).unwrap()
-  let file = original.file_sources.unwrap()[0]
-  let binding = file._retained_listings[0].1
-  let physical = binding._retained_provider
-  // The public keyed response's original checked catalogue has its own
-  // admitted per-page ceiling. Raw physical file limits remain unchanged.
   let keyed_capacity = @sourceviews.keyed_source_capacity(
     @run_host.client_keyed_acquisition_facts(keyed),
   )
@@ -313,39 +303,28 @@ fn native_mock_readme_content_join_adopt(
     keyed_capacity,
   )
   assert_true(response_bytes > 0L && response_bytes <= 2147483647L)
-  let read = @local_values.begin_installed_managed_model_keyed_source_read(
-    owner,
-    keyed,
-    request,
-    original.sources[1]._retained_declaration,
-    {
-      page: {
-        max_bytes: response_bytes.to_int(),
-        max_nodes: 4096,
-        max_depth: 32,
-        max_rows: 1,
-      },
-      retention: {
-        max_nodes: 4096,
-        max_depth: 32,
-        max_text_bytes: 1048576,
-        max_work: 16777216,
-      },
-      request: {
-        max_work: 16777216,
-        max_pairs: 4,
-        values: { max_nodes: 4096, max_depth: 32, max_text_bytes: 1048576, },
-      },
-      wire: {
-        max_bytes: 1048576,
-        max_nodes: 4096,
-        max_depth: 32,
-        max_columns: 3,
-        max_order_work: 16777216,
-      },
-    },
-  ).native_content_read_stage("same Model keyed Read")
-  let acquisition = @local_values.installed_keyed_source_read_acquisition(read).unwrap()
+  let assembly_bytes = if requests == 2 {
+    // The actual left original, rather than a checked estimate or another
+    // Source scan, supplies this assembly's maximum number of response rows.
+    let rows = @run_host.client_keyed_left_read_rows(left).unwrap()
+    assert_eq(rows, 2)
+    @execution.checked_preparation_add_product(
+      0L,
+      rows.to_int64(),
+      response_bytes,
+    ).unwrap()
+  } else {
+    4096L
+  }
+  assert_true(assembly_bytes > 0L && assembly_bytes <= 2147483647L)
+  let lookup = @run_host.start_client_keyed_lookup_input(
+    left,
+    ledger,
+    assembly_bytes.to_int(),
+    10000,
+  ).native_content_join_stage("original keyed lookup")
+  let mut measured_text = 0L
+  let content_children : Array[@row_file.NativeRelationFileCapture] = []
   let library = @local_sqlite.load_library(
     @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY").unwrap(),
   ).native_content_join_stage("original SQLite component")
@@ -374,92 +353,226 @@ fn native_mock_readme_content_join_adopt(
     "issuer_contract_cid": Json::string("sha256:" + "b".repeat(64)),
     "capture_authority_cid": Json::string("sha256:" + "c".repeat(64)),
   }).unwrap()
-  let input = @row_file.prepare_native_relation_file_content_input(
-    compiled,
-    first.definition,
-    keyed,
-    request,
-    store,
-    {
-      name: binding._retained_name,
-      version: binding._retained_version,
-      media_type: binding._retained_media_type,
-      path: binding._retained_path,
-    },
-    binding._retained_content_utf8,
-    binding_wire,
-    { max_bytes: 65536, max_nodes: 4096, max_depth: 32, max_text_units: 65536, },
-    1048576,
-    local_status_watch_now_ffi,
-    () => "2026-10-10T00:00:01.000Z",
-    reference => (file._retained_resolve_identity)(binding, reference),
-  ).native_content_join_stage("original keyed Content input")
-  let content = @row_file.prepare_native_managed_relation_file_keyed_capture(
-    facility.arena,
-    facility.physical,
-    original.sources[1]._retained_declaration,
-    binding.content.source_ref,
-    read,
-    acquisition,
-    physical,
-    file._retained_issuer,
-    "native-readme-content",
-    content=Some(input),
-  ).native_content_physical_stage("original keyed Native child")
-  let mut done = false
-  for _ in 0..<100000 {
-    if content
-      .advance(31)
-      .native_content_physical_stage("original keyed Content advance") {
-      done = true
-      break
-    }
-  }
-  assert_true(done)
-  let captured = content
-    .keyed_capture()
-    .native_content_join_stage("original keyed capture")
-  assert_true(
-    @row_host.keyed_row_capture_matches_request(captured, request_value),
-  )
-  // Independent Node SHA-256 of the selected original authored UTF8 field.
-  // The issuer/Store must return a nominal Content value, never a String.
-  let response = @row_host.keyed_row_capture_read(captured).unwrap()
-  assert_eq(@execution.supplied_relation_read_row_count(response), 1)
-  let resource = @sourceviews.keyed_row_request_field(request_value, "resource").unwrap()
-  guard resource.value is @admitted.Reference(resource_reference) else {
-    fail("original ResourceRef required")
-  }
-  let identity = (file._retained_resolve_identity)(binding, resource_reference).unwrap()
-  guard @json.parse(
-      @env.get_env_var("ACTQL_TEST_NATIVE_CONTENT_DIGESTS").unwrap(),
-    )
-    is Object(expected) &&
-    expected.get(identity) is Some(String(digest)) else {
-    fail("independent original content digest required")
-  }
-  let mut content_values = 0
-  for column in 0..<3 {
-    if @execution.supplied_relation_read_cell(response, 0, column)
-      is Some(@admitted.Reference(reference)) &&
-      @admitted.reference_content_metadata(reference) is Some((media, metadata)) {
-      assert_eq(media, "text/plain")
-      guard @canonical.object_field(metadata, "content_cid")
-        is Some(@canonical.String(actual_digest)) else {
-        fail("issued Content metadata digest required")
+  for row in 0..<requests {
+    let preparation = @run_host.start_client_keyed_lookup_request(lookup, row).unwrap()
+    let mut request = None
+    for _ in 0..<100000 {
+      match @run_host.advance_client_keyed_lookup_request(lookup, preparation) {
+        @run_host.ClientKeyedRequestContinue(..) => ()
+        @run_host.ClientKeyedRequestComplete(value, ..) => {
+          request = Some(value)
+          break
+        }
+        _ => fail("original keyed request did not complete")
       }
-      assert_eq(actual_digest, digest)
-      assert_true(@admitted.reference_available(reference))
-      content_values += 1
+    }
+    let request = request.unwrap()
+    // Select the original assembly's cache slot BEFORE opening a new read.
+    // -1 is this fresh request's real miss; it is not a guessed permission.
+    assert_eq(
+      @run_host.find_client_keyed_lookup_response(lookup, request).unwrap(),
+      -1,
+    )
+    let request_value = @run_host.client_keyed_request_value(request, keyed).unwrap()
+    let file = original.file_sources.unwrap()[0]
+    let binding = file._retained_listings[0].1
+    let physical = binding._retained_provider
+    // The public keyed response's original checked catalogue has its own
+    // admitted per-page ceiling. Raw physical file limits remain unchanged.
+    let read = @local_values.begin_installed_managed_model_keyed_source_read(
+      owner,
+      keyed,
+      request,
+      original.sources[1]._retained_declaration,
+      {
+        page: {
+          max_bytes: response_bytes.to_int(),
+          max_nodes: 4096,
+          max_depth: 32,
+          max_rows: 1,
+        },
+        retention: {
+          max_nodes: 4096,
+          max_depth: 32,
+          max_text_bytes: 1048576,
+          max_work: 16777216,
+        },
+        request: {
+          max_work: 16777216,
+          max_pairs: 4,
+          values: { max_nodes: 4096, max_depth: 32, max_text_bytes: 1048576, },
+        },
+        wire: {
+          max_bytes: 1048576,
+          max_nodes: 4096,
+          max_depth: 32,
+          max_columns: 3,
+          max_order_work: 16777216,
+        },
+      },
+    ).native_content_read_stage("same Model keyed Read")
+    let acquisition = @local_values.installed_keyed_source_read_acquisition(
+      read,
+    ).unwrap()
+    let input = @row_file.prepare_native_relation_file_content_input(
+      compiled,
+      first.definition,
+      keyed,
+      request,
+      store,
+      {
+        name: binding._retained_name,
+        version: binding._retained_version,
+        media_type: binding._retained_media_type,
+        path: binding._retained_path,
+      },
+      binding._retained_content_utf8,
+      binding_wire,
+      {
+        max_bytes: 65536,
+        max_nodes: 4096,
+        max_depth: 32,
+        max_text_units: 65536,
+      },
+      1048576,
+      local_status_watch_now_ffi,
+      () => "2026-10-10T00:00:01.000Z",
+      reference => (file._retained_resolve_identity)(binding, reference),
+    ).native_content_join_stage("original keyed Content input")
+    let content = @row_file.prepare_native_managed_relation_file_keyed_capture(
+      facility.arena,
+      facility.physical,
+      original.sources[1]._retained_declaration,
+      binding.content.source_ref,
+      read,
+      acquisition,
+      physical,
+      file._retained_issuer,
+      "native-readme-content",
+      content=Some(input),
+    ).native_content_physical_stage(
+      "original keyed Native child row " + row.to_string(),
+    )
+    let mut done = false
+    for _ in 0..<100000 {
+      if content
+        .advance(31)
+        .native_content_physical_stage("original keyed Content advance") {
+        done = true
+        break
+      }
+    }
+    assert_true(done)
+    let captured = content
+      .keyed_capture()
+      .native_content_join_stage("original keyed capture")
+    assert_true(
+      @row_host.keyed_row_capture_matches_request(captured, request_value),
+    )
+    // Independent Node SHA-256 of the selected original authored UTF8 field.
+    // The issuer/Store must return a nominal Content value, never a String.
+    let response = @row_host.keyed_row_capture_read(captured).unwrap()
+    assert_eq(@execution.supplied_relation_read_row_count(response), 1)
+    let resource = @sourceviews.keyed_row_request_field(
+      request_value, "resource",
+    ).unwrap()
+    guard resource.value is @admitted.Reference(resource_reference) else {
+      fail("original ResourceRef required")
+    }
+    let identity = (file._retained_resolve_identity)(
+      binding, resource_reference,
+    ).unwrap()
+    guard @json.parse(
+        @env.get_env_var("ACTQL_TEST_NATIVE_CONTENT_DIGESTS").unwrap(),
+      )
+      is Object(expected) &&
+      expected.get(identity) is Some(String(digest)) else {
+      fail("independent original content digest required")
+    }
+    let mut content_values = 0
+    for column in 0..<3 {
+      if @execution.supplied_relation_read_cell(response, 0, column)
+        is Some(@admitted.Reference(reference)) &&
+        @admitted.reference_content_metadata(reference)
+        is Some((media, metadata)) {
+        assert_eq(media, "text/plain")
+        guard @canonical.object_field(metadata, "content_cid")
+          is Some(@canonical.String(actual_digest)) else {
+          fail("issued Content metadata digest required")
+        }
+        assert_eq(actual_digest, digest)
+        assert_true(@admitted.reference_available(reference))
+        content_values += 1
+      }
+    }
+    assert_eq(content_values, 1)
+    let mut row_text = 0L
+    for column in 0..<3 {
+      match @execution.supplied_relation_read_cell(response, 0, column) {
+        Some(@admitted.Text(text)) =>
+          row_text += @utf8.encode(text).length().to_int64()
+        Some(@admitted.Reference(reference)) =>
+          row_text += @utf8.encode(@admitted.reference_wire(reference))
+            .length()
+            .to_int64()
+        _ =>
+          fail(
+            "original keyed response has only two references and its version Text",
+          )
+      }
+    }
+    assert_true(row_text <= response_bytes)
+    measured_text += row_text
+    if requests == 2 && row == 1 {
+      // Establish the original 4096-byte fixture mismatch explicitly. The
+      // Source policy/Ledger do not change: its two checked page allowances
+      // already supply this finite assembly construction envelope.
+      assert_true(measured_text > 4096L)
+      assert_true(measured_text <= assembly_bytes)
+    }
+    content_children.push(content)
+    @local_values.begin_client_original_keyed_lookup_response(
+      keyed, lookup, request, captured,
+    ).native_content_join_stage("original response handoff")
+    if requests == 2 {
+      let mut copied = false
+      for _ in 0..<100000 {
+        if @run_host.advance_client_keyed_lookup_input(lookup, 31).native_content_lookup_stage(
+            "original keyed row copy " + row.to_string(),
+          ) {
+          copied = true
+          break
+        }
+      }
+      assert_true(copied)
     }
   }
-  assert_eq(content_values, 1)
-  @local_values.begin_client_original_keyed_lookup_response(
-    keyed, lookup, request, captured,
-  ).native_content_join_stage("original response handoff")
-  assert_true(
-    content.close().native_content_join_stage("Content first physical close"),
-  )
+  if requests == 2 {
+    let complete = @run_host.finish_client_keyed_lookup_input(lookup).native_content_join_stage(
+      "both original keyed responses",
+    )
+    assert_eq(@execution.supplied_relation_read_row_count(complete), 2)
+    let mut content_values = 0
+    for row in 0..<2 {
+      for column in 0..<3 {
+        if @execution.supplied_relation_read_cell(complete, row, column)
+          is Some(@admitted.Reference(reference)) &&
+          @admitted.reference_content_metadata(reference) is Some((media, _)) {
+          assert_eq(media, "text/plain")
+          assert_true(@admitted.reference_available(reference))
+          content_values += 1
+        }
+      }
+    }
+    assert_eq(content_values, 2)
+  }
+  // The original response copy still borrows each nominal Content issuer.
+  // Keep both actual captures, then retire the same children before the Store.
+  for content in content_children {
+    assert_true(
+      content.close().native_content_join_stage("Content first physical close"),
+    )
+  }
   assert_true(
     store.close().native_content_join_stage("Content Store first close"),
   )
@@ -643,6 +756,35 @@ fn[T] Result::native_content_read_stage(
         @local_values.Acquisition(value) =>
           "Acquisition: " + native_content_row_issue(value)
         @local_values.ManagedRun(_) => "ManagedRun"
+      }
+      fail(stage + ": " + label)
+    }
+  }
+}
+
+///|
+fn[T] Result::native_content_lookup_stage(
+  self : Result[T, @run_host.ClientKeyedRequestIssue],
+  stage : String,
+) -> T raise {
+  match self {
+    Ok(value) => value
+    Err(issue) => {
+      let label = match issue {
+        @run_host.ForeignLeft => "ForeignLeft"
+        @run_host.Capture(_) => "Capture"
+        @run_host.Read(_) => "Read"
+        @run_host.Input(_) => "Input"
+        @run_host.Request(_) => "Request"
+        @run_host.Wire(_) => "Wire"
+        @run_host.LookupLimit(name) => "LookupLimit: " + name
+        @run_host.LookupIncomplete => "LookupIncomplete"
+        @run_host.InvalidObservation => "InvalidObservation"
+        @run_host.Assembly(name) => "Assembly: " + name
+        @run_host.Physical(value) => "Physical: " + @debug.to_string(value)
+        @run_host.Row(value) => "Row: " + @debug.to_string(value)
+        @run_host.InputCapture(value) =>
+          "InputCapture: " + @debug.to_string(value)
       }
       fail(stage + ": " + label)
     }
