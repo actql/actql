@@ -143,7 +143,7 @@ test('Local concurrent closes await the same original external cleanup without r
 // This checks routing/retirement; it does not issue a Ledger or file authority.
 async function rowFixture({pending = false, empty = true, readFailure, recoveryGate, accountFailureAfterClose = false} = {}) {
   const owner = {}, request = {}, parent = {}, declaration = {}, originalRead = {}, requirement = {};
-  const acquisition = {}, capacity = {}, ledger = {}, row = {}, captured = {}, source = {};
+  const acquisition = {}, capacity = {}, ledger = {}, row = {}, captured = {}, source = {}, identity = {};
   const calls = [], occurrence = {stage: 0, input: 0, task: 0};
   let closeAllowed = !pending;
   const originalRecovery = {
@@ -160,6 +160,13 @@ async function rowFixture({pending = false, empty = true, readFailure, recoveryG
   const accountFailure = new AcquisitionOpenError(new Error('OriginalAccountUnknown'), 'unknown');
   const moon = {
     clientProgramInstalledManagedRunCheck: () => ok(),
+    clientProgramDirectSourceCoordinates(checked) {
+      assert.strictEqual(checked, owner); return ok([[0, 0, 0, 0]]);
+    },
+    clientProgramInstalledManagedSourceInputKind(run, checked, intent) {
+      assert.strictEqual(run, parent); assert.strictEqual(checked, owner);
+      assert.strictEqual(intent, request); return ok('query');
+    },
     clientProgramInstalledManagedCaptureSourceRead(run, checked, intent, selected, index) {
       assert.deepEqual([run, checked, intent, selected, index], [parent, owner, request, declaration, 0]);
       calls.push('same-plan-tuple'); return ok({_0: originalRead, _1: requirement, _2: acquisition, _3: capacity});
@@ -192,8 +199,14 @@ async function rowFixture({pending = false, empty = true, readFailure, recoveryG
     clientProgramRowSourceCapture: () => ok(captured),
     clientProgramRowSourceCaptureSource: () => ok(source),
     clientProgramCapturedTaskSourceMatches: () => true,
-    clientProgramIdentifyCapturedSourceRelation: () => ok({}),
-    clientProgramIssueCapturedTaskSourceLogical: () => ok({}),
+    clientProgramIdentifyRowCaptureSourceRelation(selected, output) {
+      assert.strictEqual(selected, source); assert.strictEqual(output, captured); return ok(identity);
+    },
+    clientProgramIssueCapturedTaskSourceLogical(checked, selected, original, plan, task) {
+      assert.strictEqual(checked, owner); assert.strictEqual(selected, source);
+      assert.strictEqual(original, identity); assert.strictEqual(plan, requirement); assert.equal(task, 0);
+      return ok({});
+    },
     clientProgramRowSourceCloseAccounted() {calls.push('close-row'); return ok();},
     clientProgramRowSourceCaptureCleanup: () => ok(true),
     clientProgramInstalledSourceReadRetire(read) {
