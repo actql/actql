@@ -50,6 +50,47 @@ cancellation and unexpected skip. The existing global `check` still requires
 conditional behavior, as does
 the optional macOS gate.
 
+## Change-scoped PR verification
+
+Main integration retains all runtime families. Ready PRs may use the existing
+maintenance/focused profiles or a compiler-owned Moon test plan; a failed or
+unavailable diff never authorizes omission.
+
+- Reviewed modifications to contribution/CI prose and the standalone performance
+  report assessor retain lint and spec, including their actual synthetic tests,
+  without starting unrelated product, Native, wheel or proof producers. New,
+  deleted, renamed, executable or aliased files stay full. The list is explicit
+  in `scripts/ci-targets.mjs`, not every Markdown or JavaScript file.
+- `docs/development.md` is also an executable input: packed acceptance reads its
+  Quickstart through `readmeQuickstart`. A prose-only edit may stay maintenance;
+  changed or missing Program, client, expected output or shell blocks restore
+  normal product verification.
+- For a regular Moon-only PR modification, the pinned compiler supplies
+  `moon tree --package --json`. Selection includes the changed packages and all
+  reverse source, whitebox-test and blackbox-test imports. The graph must cover
+  every tracked package manifest. Selected direct files avoid accidentally
+  executing unrelated nested packages.
+- JS/Wasm consumers independently reproduce the normalized graph digest and
+  original file inventory at the tested checkout before calling the existing
+  nonzero test wrapper. Every Core target still runs whole-module
+  `moon check --deny-warn`. Native keeps its existing full physical profiles and
+  both partitions; this change does not replace those profiles with raw tests.
+  If a backend has no applicable selected compiler driver (for example a
+  JS-only package on Wasm), that backend retains its complete nonzero suite.
+  The reason is printed; zero discovery never becomes a successful test result.
+- FFI/platform, generator/build, JS bridge/distribution and proof-snapshot
+  relationships are declared in `ci-moon-test-plan.mjs`. They are not inferred
+  from Moon imports. Their existing product jobs remain required. In particular,
+  the proof snapshot still includes all `src`/`vendor`, so a selected Moon test
+  plan does not narrow the registered three-target proof campaign.
+
+Manifest, toolchain, CI infrastructure, structural and unfamiliar target/ownership
+changes retain broad verification. Unsupported/malformed compiler metadata or an
+oversized plan produces an explained full fallback. The same final gate still
+rejects failed, cancelled, missing and unexpectedly skipped required jobs. An
+unselected family supplies no execution evidence. Graph acquisition is metadata
+only and never substitutes a new package/runtime build for an existing producer.
+
 ## Immutable package handoff
 
 The producer uses `scripts/packed-client-packages.mjs` without skipping `prepack`.

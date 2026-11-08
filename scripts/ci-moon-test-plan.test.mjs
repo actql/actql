@@ -1,0 +1,292 @@
+import assert from 'node:assert/strict';
+import {execFileSync} from 'node:child_process';
+import {readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, realpathSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join, dirname} from 'node:path';
+import {fileURLToPath} from 'node:url';
+import test from 'node:test';
+import {parse} from 'yaml';
+import {moonGraphCandidate, nonMoonRequirements, normalizeMoonGraph, planMoonTests,
+  validateMoonTestPlan, readMoonTestPlan} from './ci-moon-test-plan.mjs';
+import {selectTargets, validateSelection, gateJobRequired, deepProofRequired, verifyGate, gateJobs,
+  maintenanceFiles, readChanges} from './ci-targets.mjs';
+import {runMoonTests} from './ci-moon-tests.mjs';
+
+const repository = fileURLToPath(new URL('../', import.meta.url)).replace(/\/$/u, '');
+const git = args => execFileSync('git', args, {cwd:repository, encoding:'utf8'});
+const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
+const hash = 'a'.repeat(40), other = 'b'.repeat(40);
+function fixture() {
+  const names = ['a', 'b', 'c', 'unrelated', 'b/nested'];
+  const graph = {version:2, status:'success', error:null, logs:[], root:names.map((_, i) => i),
+    nodes:names.map(rel => ({module:'actql/actql', version:'0.0.1', rel,
+      source:{kind:'local', path:repository}})), edges:[
+      {from:1, to:0, alias:'a', kinds:['source']},
+      {from:2, to:1, alias:'b', kinds:['blackbox-test', 'whitebox-test']},
+      {from:1, to:2, alias:'cycle', kinds:['whitebox-test']},
+    ]};
+  const tree = names.flatMap(name => ['moon.pkg', 'code.mbt', 'case_wbtest.mbt'].map(file =>
+    ({path:`src/${name}/${file}`, object:hash, mode:'100644'})));
+  const normalized = normalizeMoonGraph(graph, tree, repository);
+  return {graph, tree, normalized, plan:planMoonTests(['src/a/code.mbt'], normalized, tree)};
+}
+
+test('compiler reverse dependencies include source/test imports and cycles without unrelated/nested packages', () => {
+  const {plan} = fixture();
+  assert.deepEqual(plan.packages, ['src/a', 'src/b', 'src/c']);
+  assert.equal(plan.files.length, 6);
+  assert(!plan.files.some(path => path.includes('nested') || path.includes('unrelated')));
+  assert.deepEqual(plan.changedPackages, ['actql/actql/a']);
+  assert.equal(validateMoonTestPlan(plan), plan);
+});
+
+test('independent Moon edits compose by the union of reverse dependencies', () => {
+  const {normalized, tree} = fixture();
+  const plan = planMoonTests(['src/a/code.mbt', 'src/unrelated/code.mbt'], normalized, tree);
+  assert.deepEqual(plan.packages, ['src/a', 'src/b', 'src/c', 'src/unrelated']);
+  assert.equal(plan.files.length, 8);
+});
+
+test('compiler graph normalization is relocation independent and preserves every import kind', () => {
+  const f = fixture(), moved = structuredClone(f.graph);
+  for (const node of moved.nodes) node.source.path = '/another/checkout';
+  const graph = normalizeMoonGraph(moved, f.tree, '/another/checkout');
+  assert.equal(graph.digest, f.normalized.digest);
+  assert.deepEqual(graph.edges, f.normalized.edges);
+  moved.edges.pop();
+  assert.notEqual(normalizeMoonGraph(moved, f.tree, '/another/checkout').digest, graph.digest);
+});
+
+test('partial, foreign, duplicate, diagnostic and future compiler graphs cannot narrow tests', () => {
+  const mutations = [g => g.version++, g => g.root.pop(), g => g.root.push(g.root[0]),
+    g => g.nodes[0].source.path = '/foreign', g => g.nodes[1].rel = g.nodes[0].rel,
+    g => g.logs.push('warning'), g => g.edges[0].to = 1000,
+    g => g.edges[0].kinds = ['unknown-target']];
+  for (const mutate of mutations) {
+    const {graph, tree} = fixture(); mutate(graph);
+    assert.throws(() => normalizeMoonGraph(graph, tree, repository));
+  }
+});
+
+test('missing/aliased sources, unknown packages and path escapes cannot become an execution plan', () => {
+  for (const path of ['src/new/code.mbt', 'src/a/../code.mbt', 'src/a/moon.pkg', 'src/a/code.c']) {
+    const {normalized, tree} = fixture();
+    assert.throws(() => planMoonTests([path], normalized, tree), path);
+  }
+  const {normalized, tree} = fixture();
+  tree.find(entry => entry.path === 'src/a/code.mbt').mode = '120000';
+  assert.throws(() => planMoonTests(['src/a/code.mbt'], normalized, tree));
+});
+
+test('FFI, generator, JS bridge and proof inputs keep their explicit non-Moon owners', () => {
+  for (const [path, owner] of [
+    ['src/platform_native/sqlite/sqlite_stub.c', 'FFI/platform'],
+    ['scripts/generate-credential-scope-binding.mjs', 'generator/build'],
+    ['adapters/host-common/runtime-core.mjs', 'JS bridge/distribution'],
+    ['packages/run-host-core/package.json', 'generator/build'],
+    ['src/client_values_host_abi/entry.mbt', 'JS bridge/distribution'],
+    ['proofs/relation-pipeline/inventory.mjs', 'proof snapshot'],
+  ]) {
+    assert(nonMoonRequirements([path]).some(row => row.name === owner), path);
+    assert.equal(moonGraphCandidate(['src/a/code.mbt', path]), false, path);
+    const selected = selectTargets(['src/a/code.mbt', path], {moonTests:fixture().plan});
+    assert.equal(selected.profile, 'full'); assert.equal(selected.moonTests, undefined);
+  }
+});
+
+test('a source-bound Moon plan narrows execution without omitting whole checks or Native/proof/product owners', () => {
+  const {plan} = fixture();
+  const selected = validateSelection(selectTargets(['src/a/code.mbt'], {moonTests:plan}));
+  assert.equal(selected.moonTests, plan); assert.deepEqual(selected.targets, ['js', 'wasm', 'native']);
+  for (const name of ['core', 'host', 'client', 'native', 'native-macos', 'python-wheels', 'session-evidence', 'pipeline-evidence'])
+    assert.equal(gateJobRequired(selected, name), true, name);
+  assert.equal(deepProofRequired(selected), true);
+  assert.equal(selectTargets(['src/a/code.mbt'], {moonTests:plan, targetSensitiveDiff:true}).moonTests, undefined);
+  assert.equal(selectTargets(['src/a/code.mbt'], {moonTests:plan, event:'push'}).moonTests, undefined);
+  assert.equal(selectTargets(['src/a/code.mbt'], {moonTests:plan, draft:true}).moonTests, undefined);
+});
+
+test('graph failure remains an explained full selection and never an empty/successful selection', () => {
+  const selected = selectTargets(['src/a/code.mbt'], {moonGraphFailure:'compiler unavailable'});
+  assert.equal(selected.profile, 'full'); assert.equal(selected.moonTests, undefined);
+  assert.match(selected.reason, /compiler unavailable/u);
+  const plan = fixture().plan; plan.files = [];
+  assert.equal(selectTargets(['src/a/code.mbt'], {moonTests:plan}).moonTests, undefined);
+});
+
+test('the same final gate rejects every failed/cancelled/missing selected owner with a Moon plan', () => {
+  const selection = selectTargets(['src/a/code.mbt'], {moonTests:fixture().plan});
+  const outcomes = Object.fromEntries(gateJobs.map(name => [name, {result:gateJobRequired(selection, name) ? 'success' : 'skipped'}]));
+  const envelope = {sourceRevision:hash, selection}, context = {sourceRevision:hash, event:'pull_request'};
+  assert.doesNotThrow(() => verifyGate(envelope, outcomes, context));
+  for (const name of gateJobs.filter(name => gateJobRequired(selection, name))) {
+    for (const result of ['failure', 'cancelled', 'skipped', undefined]) {
+      const changed = structuredClone(outcomes); changed[name].result = result;
+      assert.throws(() => verifyGate(envelope, changed, context), name);
+    }
+  }
+});
+
+test('consumer rederives original graph/files before passing exact file arguments to the nonzero wrapper', () => {
+  const selection = selectTargets(['src/a/code.mbt'], {moonTests:fixture().plan});
+  const envelope = {sourceRevision:hash, selection};
+  let invoked = 0;
+  const options = {git:() => hash, discover(paths, base) {
+    assert.deepEqual(paths, selection.paths); assert.equal(base, other); return structuredClone(selection.moonTests);
+  }, preview:() => '/pinned/bin/moon generate-test-driver original', run(kind, args, {cwd}) {
+    invoked++; assert.equal(kind, 'moon'); assert.equal(cwd, repository);
+    assert.deepEqual(args.slice(0, 3), ['--target', 'js', '--deny-warn']);
+    assert.deepEqual(args.slice(5), selection.moonTests.files); return 7;
+  }, cwd:repository};
+  assert.equal(runMoonTests(envelope, 'js', other, options), 7); assert.equal(invoked, 1);
+  assert.throws(() => runMoonTests(envelope, 'native', other, options));
+  assert.throws(() => runMoonTests(envelope, 'js', other, {...options, git:() => other}));
+  assert.throws(() => runMoonTests(envelope, 'js', other, {...options, discover:() => ({...selection.moonTests, files:[]})}));
+  assert.equal(invoked, 1, 'Refused plans must never invoke a compiler/test');
+});
+
+test('a backend without an applicable compiler driver retains its full nonzero suite', () => {
+  const selection = selectTargets(['src/a/code.mbt'], {moonTests:fixture().plan});
+  let invoked = 0;
+  assert.equal(runMoonTests({sourceRevision:hash, selection}, 'wasm', other, {
+    git:() => hash, discover:() => selection.moonTests, preview:() => '',
+    run(kind, args) {
+      invoked++; assert.equal(kind, 'moon');
+      assert.deepEqual(args.slice(0, 3), ['--target', 'wasm', '--deny-warn']);
+      assert.equal(args.length, 5, 'No selected path means the complete backend, never a zero-case pass');
+      return 1;
+    },
+  }), 1);
+  assert.equal(invoked, 1);
+});
+
+test('raw additions/deletions/renames/modes and omitted mixed changes refuse before graph discovery', () => {
+  for (const status of ['A', 'D', 'R100', 'T']) {
+    let compiler = 0;
+    const fakeGit = args => args[0] === 'rev-parse' ? hash : args.includes('--name-only') ? 'src/a/code.mbt\0'
+      : args.includes('--raw') ? `:100644 100644 ${hash} ${other} ${status}\0src/a/code.mbt\0` : '';
+    assert.throws(() => readMoonTestPlan(['src/a/code.mbt'], other, {git:fakeGit,
+      execute() {compiler++;throw new Error('must not discover');}}));
+    assert.equal(compiler, 0);
+  }
+  assert.throws(() => readMoonTestPlan(['src/a/code.mbt'], other, {git:args => args[0] === 'rev-parse'
+    ? hash : 'src/a/code.mbt\0toolchain.json\0'}), /omits/u);
+});
+
+test('reviewed real prose and independent JS edits omit product jobs but retain their lint/spec owners', () => {
+  for (const path of ['CONTRIBUTING.md', 'docs/contributing/README.md', 'docs/ci-client.md',
+    'scripts/operation-performance.mjs', 'scripts/operation-performance.test.mjs', 'scripts/operation-performance-policy.test.mjs']) {
+    assert(maintenanceFiles.includes(path)); assert(readFileSync(new URL('../' + path, import.meta.url)).length > 0);
+    const selected = selectTargets([path], {maintenanceChanges:[{path, before:{mode:'100644', object:hash}, after:{mode:'100644', object:other}}]});
+    assert.equal(selected.profile, 'maintenance', path);
+    for (const name of ['lint', 'spec']) assert.equal(gateJobRequired(selected, name), true);
+    for (const name of ['core', 'host', 'client', 'native', 'python-wheels', 'session-evidence'])
+      assert.equal(gateJobRequired(selected, name), false, path + ':' + name);
+    assert.equal(selectTargets([path]).profile, 'full', 'Missing original modification identity stays full');
+    assert.equal(selectTargets([path, 'toolchain.json']).profile, 'full');
+  }
+  const owned = workflow.jobs.lint.steps.find(step => step.name === 'Test ordinary operation performance assessment');
+  for (const path of ['scripts/operation-performance.test.mjs', 'scripts/operation-performance-policy.test.mjs']) assert(owned.run.includes(path));
+});
+
+test('workflow prepares graph tools only for candidates and retains full checks and unchanged Native command', () => {
+  const select = workflow.jobs['select-targets'];
+  assert.equal(select.steps.find(step => step.id === 'moon-candidate').run, 'node scripts/ci-targets.mjs moon-graph-candidate');
+  assert.equal(select.steps.find(step => step.name?.startsWith('Install pinned Moon only')).if,
+    "steps.moon-candidate.outputs.required == 'true'");
+  const core = workflow.jobs.core.steps;
+  assert.equal(core.find(step => step.name === 'Check common core').run, 'moon check --target "${{ matrix.target }}" --deny-warn');
+  const run = core.find(step => step.name === 'Test common core');
+  assert.match(run.run, /node scripts\/ci-moon-tests\.mjs "\$\{\{ matrix\.target \}\}"/u);
+  assert.match(run.run, /MOONBIT_NEW_NATIVE=0 node scripts\/test-native-core\.mjs --deny-warn --release --strip -j 2 --no-parallelize --verbose/u);
+  assert.equal(run.env.CI_PLAN, '${{ needs.select-targets.outputs.plan }}');
+  assert(workflow.jobs.lint.steps.some(step => step.run === 'node --test scripts/ci-moon-test-plan.test.mjs'));
+});
+
+test('the actual pinned compiler graph narrows a real Gmail source change and retains its host importer', () => {
+  const tree = git(['ls-tree', '-rz', 'HEAD', '--', 'src']).slice(0, -1).split('\0').map(line => {
+    const [, mode, object, path] = /^(\d{6}) blob ([a-f0-9]{40})\t(.+)$/u.exec(line);
+    return {mode, object, path};
+  });
+  const raw = JSON.parse(execFileSync('moon', ['tree', '--package', '--json'],
+    {cwd:repository, encoding:'utf8', timeout:60000, maxBuffer:16 * 1024 ** 2}));
+  const graph = normalizeMoonGraph(raw, tree, repository);
+  const path = 'src/connectors/gmail/catalog/message_date.mbt';
+  const plan = planMoonTests([path], graph, tree);
+  assert(plan.packages.includes('src/connectors/gmail/catalog'));
+  assert(plan.packages.includes('src/connectors/gmail/host_node'));
+  assert(plan.packages.length < graph.packages.length);
+  assert(!plan.files.some(path => path.startsWith('src/platform_native/')));
+  assert.equal(validateSelection(selectTargets([path], {moonTests:plan})).moonTests, plan);
+  for (const target of ['js', 'wasm']) {
+    const commands = execFileSync('moon', ['test', '--target', target, '--deny-warn', ...plan.files, '--dry-run'],
+      {cwd:repository, encoding:'utf8', timeout:60000, maxBuffer:16 * 1024 ** 2});
+    assert.match(commands, /(?:^|\/)moon generate-test-driver /mu,
+      'The real ordinary input must reach selected execution, not permanent full fallback');
+  }
+});
+
+test('executed documentation Quickstart changes retain product owners while pure prose stays maintenance', () => {
+  const path = 'docs/development.md';
+  const original = readFileSync(new URL('../' + path, import.meta.url), 'utf8');
+  const inspect = after => {
+    const sourceGit = args => args[0] === 'rev-parse' ? hash : args.includes('--name-only') ? path + '\0'
+      : args.includes('--raw') ? `:100644 100644 ${hash} ${other} M\0${path}\0`
+        : args[0] === 'show' ? args[1] === hash ? original : after : '+Changed prose\n';
+    const changed = readChanges({pull_request:{base:{sha:hash}}}, sourceGit);
+    return selectTargets(changed.paths, changed);
+  };
+  assert.equal(inspect(original + '\nProse-only addition.\n').profile, 'maintenance');
+  const changedCommand = original.replace('node quickstart.mjs\ncat answer.jsonl', 'node changed.mjs\ncat answer.jsonl');
+  assert.notEqual(changedCommand, original);
+  for (const body of [changedCommand, original.split('## Quickstart\n')[0]]) {
+    const selected = inspect(body);
+    assert.equal(selected.profile, 'full'); assert.equal(gateJobRequired(selected, 'client'), true);
+  }
+});
+
+test('actual compiler and Git endpoints execute only selected JS/Wasm tests while retaining complete checks', t => {
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-moon-ci-graph-')));
+  t.after(() => rmSync(root, {recursive:true, force:true}));
+  const write = (path, value) => {mkdirSync(dirname(join(root, path)), {recursive:true});writeFileSync(join(root, path), value);};
+  const cleanEnv = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('GIT_')));
+  const originalGit = args => execFileSync('git', args, {cwd:root, env:cleanEnv, encoding:'utf8', timeout:15000});
+  write('moon.mod', 'name = "actql/actql"\nsource = "src"\npreferred_target = "js"\nsupported_targets = "+js+wasm+native"\n');
+  write('src/moon.pkg', '');
+  for (const name of ['base', 'consumer', 'caller', 'unrelated']) write(`src/${name}/moon.pkg`, '');
+  write('src/base/value.mbt', 'pub fn value() -> Int { 7 }\n');
+  write('src/base/value_wbtest.mbt', 'test "base" { assert_eq(value(), 7) }\n');
+  write('src/consumer/moon.pkg', 'import { "actql/actql/base" @base, }\n');
+  write('src/consumer/value.mbt', 'pub fn value() -> Int { @base.value() }\n');
+  write('src/consumer/value_wbtest.mbt', 'test "consumer" { assert_eq(value(), 7) }\n');
+  write('src/caller/moon.pkg', 'import { "actql/actql/consumer" @consumer, } for "wbtest"\n');
+  write('src/caller/value_wbtest.mbt', 'test "caller" { assert_eq(@consumer.value(), 7) }\n');
+  write('src/unrelated/fail_wbtest.mbt', 'test "unselected runtime sentinel" { assert_true(false) }\n');
+  originalGit(['init', '--quiet']);
+  const commit = message => {
+    originalGit(['add', '.']); originalGit(['-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid',
+      '-c', 'commit.gpgsign=false', 'commit', '--quiet', '-m', message]);
+  };
+  execFileSync('moon', ['info', '--target', 'js,wasm,native'], {cwd:root, env:cleanEnv, encoding:'utf8', timeout:60000});
+  commit('Original input'); const base = originalGit(['rev-parse', 'HEAD']).trim();
+  write('src/base/value.mbt', 'pub fn value() -> Int { 7 }\n// body-only change\n'); commit('Changed input');
+  const paths = ['src/base/value.mbt'];
+  const scope = readMoonTestPlan(paths, base, {repository:root, git:originalGit});
+  assert.deepEqual(scope.packages, ['src/base', 'src/caller', 'src/consumer']);
+  const plan = {sourceRevision:originalGit(['rev-parse', 'HEAD']).trim(), selection:selectTargets(paths, {moonTests:scope})};
+  const event = join(root, '_event.json'), output = join(root, '_outputs');
+  writeFileSync(event, JSON.stringify({action:'synchronize', pull_request:{draft:false, base:{sha:base}}}));
+  writeFileSync(output, '');
+  const environment = {...cleanEnv, GITHUB_EVENT_NAME:'pull_request', GITHUB_EVENT_PATH:event,
+    GITHUB_OUTPUT:output, GITHUB_SHA:plan.sourceRevision};
+  const selector = fileURLToPath(new URL('./ci-targets.mjs', import.meta.url));
+  execFileSync(process.execPath, [selector, 'moon-graph-candidate'], {cwd:root, env:environment, encoding:'utf8', timeout:60000});
+  assert.match(readFileSync(output, 'utf8'), /^required=true$/mu);
+  execFileSync(process.execPath, [selector], {cwd:root, env:environment, encoding:'utf8', timeout:60000});
+  const emitted = readFileSync(output, 'utf8').split('\n').find(line => line.startsWith('plan='));
+  assert.deepEqual(JSON.parse(emitted.slice(5)), plan);
+  for (const target of ['js', 'wasm']) {
+    execFileSync('moon', ['check', '--target', target, '--deny-warn'], {cwd:root, env:cleanEnv, encoding:'utf8', timeout:60000});
+    assert.equal(runMoonTests(plan, target, base, {cwd:root, git:originalGit}), 0);
+  }
+});

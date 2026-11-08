@@ -7,6 +7,8 @@ import {focusedPattern, eligibleFocusedChanges, readFocusedTests, validateFocuse
 import {appendFileSync, readFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
+import {moonGraphCandidate, readMoonTestPlan, validateMoonTestPlan, nonMoonRequirements} from './ci-moon-test-plan.mjs';
+import {readmeQuickstart} from './readme-quickstart.mjs';
 
 const all = ['js', 'wasm', 'native'];
 const sha = /^[0-9a-f]{40}$/u;
@@ -16,6 +18,8 @@ const sha = /^[0-9a-f]{40}$/u;
 // registration here before merge; a full run alone does not preserve isolation.
 // README is excluded: packed acceptance executes its literal Quickstart blocks.
 export const maintenanceFiles = Object.freeze([
+  // Prose-only contribution/CI guidance. Generic links/examples remain in spec.
+  'CONTRIBUTING.md', 'docs/contributing/README.md', 'docs/ci-client.md',
   'docs/development.md', 'docs/ci-artifact-analysis.md', 'docs/verification-actions.md',
   // Reviewed prose only: no runtime, build, generator or proof-oracle callers.
   // Generic links, Program examples and version scans remain required in spec
@@ -33,6 +37,10 @@ export const maintenanceFiles = Object.freeze([
   // by packed/public consumers and deliberately remain full-coverage inputs.
   'examples/infer-evaluation/evaluate.test.mjs',
   'examples/infer-evaluation/compare-source-instructions.test.mjs',
+  // Pure report assessment and synthetic oracle tests, all owned by lint.
+  // No runtime, compiler, normal producer or proof imports this implementation.
+  'scripts/operation-performance.mjs', 'scripts/operation-performance.test.mjs',
+  'scripts/operation-performance-policy.test.mjs',
 ]);
 const maintenance = new Set(maintenanceFiles);
 export const gateJobs = Object.freeze(['select-targets', 'preflight', 'lint', 'core', 'host', 'client',
@@ -114,7 +122,8 @@ export function pullRequestDraft(event, payload) {
   return draft;
 }
 export function selectTargets(paths, {draft = null, event = 'pull_request', mainIntegration = event === 'push', nativeMacos = false, failure = null,
-  targetSensitiveDiff = false, maintenanceChanges = null, focusedChanges = null, focusedTests = null} = {}) {
+  targetSensitiveDiff = false, maintenanceChanges = null, focusedChanges = null, focusedTests = null,
+  moonTests = null, moonGraphFailure = null} = {}) {
   const validPaths = Array.isArray(paths) && paths.every(validPath);
   const focusedPaths = validPaths ? partitionFocusedPaths(paths, maintenanceChanges) : null;
   const full = reason => ({schema: 'actql-ci-targets/0.1', targets: [...all], macos: true, reason,
@@ -157,8 +166,17 @@ export function selectTargets(paths, {draft = null, event = 'pull_request', main
       profile: 'focused-tests', targets: ['js'], macos: false, maintenanceChanges, focusedChanges, focusedTests};
   }
   if (targetSensitiveDiff) return full('Target-specific syntax or runtime boundary changed');
+  if (moonTests && moonGraphCandidate(paths)) {
+    try { validateMoonTestPlan(moonTests); }
+    catch { return full('Invalid compiler-owned Moon test plan'); }
+    return {...full('Compiler package reverse dependencies select JS/Wasm tests; whole checks, Native and product/proof owners remain required'), moonTests};
+  }
+  if (moonGraphFailure) return full(`Moon dependency discovery unavailable: ${moonGraphFailure}`);
   const path = paths.find(path => sensitive.test(path) || !reviewedPortableFiles.has(path));
-  if (path) return full(`Target-sensitive or unclassified input: ${path}`);
+  if (path) {
+    const owners = nonMoonRequirements(paths).map(owner => owner.name);
+    return full(`Target-sensitive or unclassified input: ${path}${owners.length ? `; retained owners: ${owners.join(', ')}` : ''}`);
+  }
   return {...full(''), targets: ['js'], macos: false,
     reason: 'Reviewed portable paths: PR core uses JS; full targets run on main integration; optional macOS can be requested manually'};
 }
@@ -184,7 +202,8 @@ function partitionFocusedPaths(paths, maintenanceChanges) {
 
 export function validateSelection(selection) {
   assert.deepEqual(Object.keys(selection ?? {}).sort(), ['schema', 'targets', 'macos', 'reason',
-    'profile', 'event', 'paths', 'maintenanceChanges', 'focusedChanges', 'focusedTests'].sort(), 'Invalid selection fields');
+    'profile', 'event', 'paths', 'maintenanceChanges', 'focusedChanges', 'focusedTests',
+    ...(Object.hasOwn(selection ?? {}, 'moonTests') ? ['moonTests'] : [])].sort(), 'Invalid selection fields');
   assert.equal(selection?.schema, 'actql-ci-targets/0.1');
   assert.deepEqual(selection.targets, selection.targets?.length === 1 ? ['js'] : all);
   assert.equal(typeof selection.macos, 'boolean');
@@ -192,6 +211,11 @@ export function validateSelection(selection) {
   assert(['full', 'maintenance', 'focused-tests', 'draft', 'draft-focused'].includes(selection.profile), 'Invalid selection profile');
   assert(typeof selection.event === 'string' && selection.event.length, 'Missing selection event');
   assert(Array.isArray(selection.paths) && selection.paths.every(validPath), 'Invalid selection paths');
+  if (Object.hasOwn(selection, 'moonTests')) {
+    assert.equal(selection.profile, 'full'); assert.equal(selection.event, 'pull_request');
+    assert.deepEqual(selection.targets, all); assert.equal(selection.macos, true);
+    assert(moonGraphCandidate(selection.paths)); validateMoonTestPlan(selection.moonTests);
+  }
   if (selection.profile !== 'full') assert.equal(selection.event, 'pull_request', 'Narrow selection requires a PR event');
   const focused = ['focused-tests', 'draft-focused'].includes(selection.profile);
   if (selection.profile === 'maintenance') {
@@ -269,6 +293,14 @@ export function readChanges(payload, git = args => execFileSync('git', args,
       changes.push({path: records[index + 1], before: {mode: beforeMode, object: beforeObject},
         after: {mode: afterMode, object: afterObject}});
       if (!(focusedPattern.test(records[index + 1]) ? ['A', 'M'].includes(status) : status === 'M')) changes[index / 2].before.mode = 'unsupported';
+      // Packed consumers execute this exact Quickstart. Prose is independent;
+      // changed/removed executable blocks require their normal product owners.
+      if (records[index + 1] === 'docs/development.md' && status === 'M') {
+        try {
+          assert.deepEqual(readmeQuickstart(git(['show', beforeObject])),
+            readmeQuickstart(git(['show', afterObject])));
+        } catch { changes[index / 2].before.mode = 'unsupported'; }
+      }
     }
     const focused = changes.filter(change => focusedPattern.test(change.path));
     const lightweight = changes.filter(change => maintenance.has(change.path));
@@ -322,7 +354,7 @@ async function main() {
     if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join('\n') + '\n');
     return;
   }
-  assert(!process.argv[2], 'Usage: ci-targets.mjs [gate]');
+  assert(!process.argv[2] || process.argv[2] === 'moon-graph-candidate', 'Usage: ci-targets.mjs [gate|moon-graph-candidate]');
   const draft = pullRequestDraft(process.env.GITHUB_EVENT_NAME,
     process.env.GITHUB_EVENT_NAME === 'pull_request'
       ? JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8')) : null);
@@ -338,16 +370,29 @@ async function main() {
     try { changes = readPushChanges(payload, process.env.GITHUB_SHA); }
     catch (error) { failure = error.message; changes = {paths: []}; }
   }
+  const candidate = process.env.GITHUB_EVENT_NAME === 'pull_request' && draft === false && !failure &&
+    !changes.targetSensitiveDiff && moonGraphCandidate(changes.paths);
+  if (process.argv[2] === 'moon-graph-candidate') {
+    appendFileSync(process.env.GITHUB_OUTPUT, `required=${candidate}\n`);
+    return;
+  }
+  let moonTests = null, moonGraphFailure = null;
+  if (candidate) {
+    try {
+      const payload = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
+      moonTests = readMoonTestPlan(changes.paths, payload.pull_request.base.sha);
+    } catch (error) { moonGraphFailure = error.message; }
+  }
   const selected = validateSelection(selectTargets(changes.paths, {event: process.env.GITHUB_EVENT_NAME, draft,
     mainIntegration: process.env.GITHUB_EVENT_NAME === 'push' ||
       process.env.GITHUB_EVENT_NAME === 'workflow_dispatch' && process.env.GITHUB_REF === 'refs/heads/main',
     nativeMacos: process.env.NATIVE_MACOS === 'true', failure, targetSensitiveDiff: changes.targetSensitiveDiff,
     maintenanceChanges: changes.maintenanceChanges,
-    focusedChanges: changes.focusedChanges, focusedTests: changes.focusedTests}));
+    focusedChanges: changes.focusedChanges, focusedTests: changes.focusedTests, moonTests, moonGraphFailure}));
   const sourceRevision = execFileSync('git', ['rev-parse', 'HEAD'], {encoding: 'utf8'}).trim();
   assert(sha.test(sourceRevision) && sourceRevision === process.env.GITHUB_SHA, 'Unexpected tested checkout');
   const plan = {sourceRevision, selection: selected};
-  appendFileSync(process.env.GITHUB_OUTPUT, `targets=${JSON.stringify(selected.targets)}\nmacos=${selected.macos}\nprofile=${selected.profile}\ndeep_proofs=${deepProofRequired(selected)}\npython_wheels=${pythonWheelAcceptanceRequired(selected)}\nplan=${JSON.stringify(plan)}\n`);
+  appendFileSync(process.env.GITHUB_OUTPUT, `targets=${JSON.stringify(selected.targets)}\nmacos=${selected.macos}\nprofile=${selected.profile}\nmoon_test_selection=${Boolean(selected.moonTests)}\ndeep_proofs=${deepProofRequired(selected)}\npython_wheels=${pythonWheelAcceptanceRequired(selected)}\nplan=${JSON.stringify(plan)}\n`);
   console.log(JSON.stringify(selected, null, 2));
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY,
     `Job profile: ${selected.profile}\n\nCore targets when selected: ${selected.targets.join(', ')}\n\nNative macOS diagnostic: ${selected.macos ? 'required' : 'not applicable for this run'}\n\nPython wheel acceptance: ${pythonWheelAcceptanceRequired(selected) ? "required" : "not selected"}\n\n${selected.reason}\n\nDeep proof campaigns: ${deepProofRequired(selected) ? "required" : "not applicable to changed inputs"}.\n\nUnselected families produce no execution evidence. Selected proof campaigns retain all three targets.\n`);
