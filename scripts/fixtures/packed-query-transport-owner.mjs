@@ -289,6 +289,7 @@ export async function runSubmissionCauseObserver({session, parentPort, workerDat
   const alive = setInterval(() => {}, 1000);
   const originals = new Set();
   const pending = new Set();
+  const sourceFlights = new Set();
   const flight = action => {
     const task = Promise.resolve().then(action);
     pending.add(task);
@@ -298,7 +299,7 @@ export async function runSubmissionCauseObserver({session, parentPort, workerDat
   const drain = async () => {
     while (pending.size > 0) await Promise.allSettled([...pending]);
   };
-  let breakpoint, closing, captured = false, retiring = false;
+  let breakpoint, closing, captured = false, retiring = false, sourceRejected = false;
   // Emit only fixed categories and explicitly listed codes. Even a plausible
   // private code prefix or forged compiled constructor name is not evidence.
   // Keep reflection failures inside this expression. Sending their Error to
@@ -319,14 +320,16 @@ const row={edge,type},code=Object.getOwnPropertyDescriptor(value,'code');if(code
 out.push(row);if(depth<16)for(const key of ['cause','primaryFailure','_0','_1','_2']){const d=Object.getOwnPropertyDescriptor(value,key);if(d)queue.push([key,'value'in d?d.value:undefined,depth+1,!('value'in d)]);}}return out;}catch{return null;}})()`;
   session.on('Debugger.scriptParsed', ({params}) => {
     if (retiring || params.url !== workerData.url) return;
-    void flight(async () => {
+    const validating = flight(async () => {
       try {
         const {scriptSource} = await post('Debugger.getScriptSource', {scriptId: params.scriptId});
         assert.equal(createHash('sha256').update(scriptSource).digest('hex'), workerData.sha256);
         originals.add(params.scriptId);
         parentPort.postMessage({kind: 'loaded'});
-      } catch {parentPort.postMessage({kind: 'unavailable'});}
+      } catch {sourceRejected = true; parentPort.postMessage({kind: 'unavailable'});}
     });
+    sourceFlights.add(validating);
+    validating.then(() => sourceFlights.delete(validating), () => sourceFlights.delete(validating));
   });
   session.on('Debugger.paused', ({params}) => {
     void flight(async () => {
@@ -403,7 +406,12 @@ out.push(row);if(depth<16)for(const key of ['cause','primaryFailure','_0','_1','
   await flight(async () => {
     try {
       await post('Debugger.enable');
-      if (retiring) return;
+      // Enabling enumerates already loaded scripts. Finish those original
+      // validation flights before arming their boundary or announcing ready;
+      // a known mismatch must not enter while its Session is being retired.
+      // A later import has no flight yet and keeps the pending URL breakpoint.
+      while (sourceFlights.size > 0) await Promise.allSettled([...sourceFlights]);
+      if (retiring || sourceRejected) return;
       ({breakpointId: breakpoint} = await post('Debugger.setBreakpointByUrl', {
         url: workerData.url, lineNumber: workerData.lineNumber, columnNumber: 0,
         ...(workerData.condition === undefined ? {} : {condition: workerData.condition})}));

@@ -189,6 +189,79 @@ test(`packed cause observer drains original ${method} before retiring its sessio
 });
 }
 
+for (const matches of [true, false]) {
+test(`packed cause observer validates an already loaded ${matches ? 'matching' : 'mismatched'} Source before arming its boundary`, {timeout: 5000}, async () => {
+  const source = 'original loaded Source', url = 'file:///original-loaded-source.mjs';
+  const session = new EventEmitter(), port = new EventEmitter(), calls = [], messages = [];
+  let release, notifyPending, notifyClosed;
+  const pending = new Promise(resolve => {notifyPending = resolve;});
+  const closed = new Promise(resolve => {notifyClosed = resolve;});
+  session.connectToMainThread = () => {};
+  session.disconnect = () => calls.push('disconnect');
+  port.postMessage = value => messages.push(value);
+  port.close = () => {calls.push('port.close'); notifyClosed();};
+  session.post = (method, parameters, callback) => {
+    calls.push(method);
+    if (method === 'Debugger.getScriptSource') {
+      release = () => callback(null, {scriptSource: matches ? source : 'different Source'});
+      notifyPending();
+      return;
+    }
+    queueMicrotask(() => {
+      if (method === 'Debugger.enable') session.emit('Debugger.scriptParsed', {
+        params: {url, scriptId: 'original-loaded-script'},
+      });
+      callback(null, method === 'Debugger.setBreakpointByUrl'
+        ? {breakpointId: 'original-breakpoint'} : {});
+    });
+  };
+  const starting = runSubmissionCauseObserver({session, parentPort: port,
+    workerData: {url, frame: 0, lineNumber: 0,
+      sha256: createHash('sha256').update(source).digest('hex')}});
+  try {
+    await pending;
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(calls.includes('Debugger.setBreakpointByUrl'), false,
+      'An already loaded original must finish its Source validation before its boundary is armed');
+    assert.equal(messages.some(value => value.kind === 'ready'), false);
+    release();
+    await starting;
+    assert.equal(calls.includes('Debugger.setBreakpointByUrl'), matches);
+    assert.equal(messages.some(value => value.kind === 'ready'), matches);
+    assert.equal(messages.some(value => value.kind === 'loaded'), matches);
+    assert.equal(messages.some(value => value.kind === 'unavailable'), !matches);
+  } finally {
+    release?.(); port.emit('message', {kind: 'close'}); await starting; await closed;
+  }
+  assert.equal(calls.filter(value => value === 'disconnect').length, 1);
+  assert.equal(calls.filter(value => value === 'port.close').length, 1);
+});
+}
+
+test('packed cause observer still arms a later-loaded Source before its original import', {timeout: 5000}, async () => {
+  const source = 'original later Source', url = 'file:///original-later-source.mjs';
+  const session = new EventEmitter(), port = new EventEmitter(), messages = [];
+  let notifyLoaded, notifyClosed;
+  const loaded = new Promise(resolve => {notifyLoaded = resolve;});
+  const closed = new Promise(resolve => {notifyClosed = resolve;});
+  session.connectToMainThread = () => {};
+  session.disconnect = () => {};
+  session.post = (method, parameters, callback) => queueMicrotask(() => callback(null,
+    method === 'Debugger.getScriptSource' ? {scriptSource: source} :
+    method === 'Debugger.setBreakpointByUrl' ? {breakpointId: 'original-breakpoint'} : {}));
+  port.postMessage = value => {messages.push(value); if (value.kind === 'loaded') notifyLoaded();};
+  port.close = () => notifyClosed();
+  await runSubmissionCauseObserver({session, parentPort: port,
+    workerData: {url, frame: 0, lineNumber: 0,
+      sha256: createHash('sha256').update(source).digest('hex')}});
+  try {
+    assert.deepEqual(messages.map(value => value.kind), ['ready']);
+    session.emit('Debugger.scriptParsed', {params: {url, scriptId: 'original-later-script'}});
+    await loaded;
+    assert.deepEqual(messages.map(value => value.kind), ['ready', 'loaded']);
+  } finally {port.emit('message', {kind: 'close'}); await closed;}
+});
+
 test('packed cause observer retains its Worker until the disconnect callback turn completes', async () => {
   const session = new EventEmitter(), port = new EventEmitter(), calls = [];
   let notifyClosed;
