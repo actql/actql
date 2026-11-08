@@ -357,6 +357,8 @@ fn native_mock_readme_content_join_adopt(
     assert_true(done)
     let captured = capture.capture().unwrap()
     captures.push(@row_host.row_capture_input(captured).unwrap())
+    let same_original = evidence_original.unwrap()
+    source_originals.push(same_original)
     if collect_closure {
       let source = @row_host.row_capture_source(captured).unwrap()
       let identity = @query.identify_captured_source_relation(
@@ -371,7 +373,6 @@ fn native_mock_readme_content_join_adopt(
       let dag = @strategy.checked_effect_computation_graph(
         @run_host.prepared_client_effect_computation_graph(prepared),
       )
-      let same_original = evidence_original.unwrap()
       let (logical, observation) = match same_original {
         Whole(original, acquisition) => {
           let logical = @run_host.issue_captured_whole_source_input_logical(
@@ -462,7 +463,6 @@ fn native_mock_readme_content_join_adopt(
           (logical, observation)
         }
       }
-      source_originals.push(same_original)
       source_identities.push(identity)
       source_logicals.push(logical)
       source_observations.push(observation)
