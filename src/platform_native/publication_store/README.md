@@ -34,3 +34,10 @@ cleanup from absence. Store recovery retains sealed Content and refuses unresolv
 pending Content whose original cleanup owner is unavailable. Closing Content I/O
 preserves confirmed immutable DATA while the Store remains available; it grants
 no new Source, Run or reference authority.
+
+After confirmed I/O cleanup, `CapturedContentCustody.retained_inventory` counts
+the same child, generation, private names, original record Bytes and the Store
+Map's actual retained bucket/entry backing. Removing an entry does not release
+its bucket allocation. This callback-free DATA permits the same Source owner to
+retain the confirmed reference while returning finished construction workspace;
+it is neither a physical acknowledgement nor a replacement current check.

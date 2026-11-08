@@ -73,3 +73,55 @@ fn captured_content_record_bound(wire : String, maximum : Int) -> Int? {
     6L,
   ).map(bytes => Int64::min(bytes, maximum.to_int64()).to_int())
 }
+
+///|
+/// Retained representation of this SAME verified child after its original I/O
+/// cleanup. No parser, writer or temporary readback remains. Durable bytes and
+/// the Store/Root/SQLite originals keep their separate custody and backing.
+/// This callback-free inventory is DATA, never a cleanup or currentness ACK.
+pub fn CapturedContentCustody::retained_inventory(
+  self : Self,
+) -> @execution.PreparationRepresentationUnits? {
+  guard self.closed &&
+    self.committed &&
+    self.verified &&
+    !self.registered &&
+    !self.store.closed &&
+    !self.store.retiring &&
+    self.writer is None &&
+    self.failed_writer is None &&
+    self.reader is None &&
+    self.failed_reader is None &&
+    self.generation is Some(_) &&
+    @shape.map_retained_extent(
+      1L,
+      self.store.active_writers.capacity().to_int64(),
+      self.store.active_writers.length().to_int64(),
+    )
+    is Some(registration) else {
+    return None
+  }
+  @execution.compose_preparation_representation([
+    {
+      record_headers: registration.record_headers,
+      reference_slots: registration.reference_slots,
+      scalar_words: registration.scalar_words,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    },
+    {
+      // Original custody H1/R15/W8; retained generation plus Some H2/R1/W4;
+      // three owned names H3; two retained record Bytes H2. Candidate wire,
+      // holding/digest and Store are borrowed, not copied by this child.
+      // A removed Map entry does NOT mean its bucket backing was freed.
+      record_headers: 1L + 2L + 3L + 2L,
+      reference_slots: 15L + 1L,
+      scalar_words: 8L + 4L,
+      owned_utf16_units: self.key.length().to_int64() +
+      self.staging.length().to_int64() +
+      self.name.length().to_int64(),
+      owned_wire_bytes: self.intent.length().to_int64() +
+      self.retired_record.length().to_int64(),
+    },
+  ])
+}

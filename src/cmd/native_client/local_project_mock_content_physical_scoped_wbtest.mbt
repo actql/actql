@@ -455,9 +455,30 @@ fn native_mock_readme_content_join_adopt(
     )
     let mut done = false
     for _ in 0..<100000 {
+      let before = @initial_resources.ledger_usage(ledger)
       if content
         .advance(31)
         .native_content_physical_stage("original keyed Content advance") {
+        let after = @initial_resources.ledger_usage(ledger)
+        // The SAME original frame contracts only after actual I/O/parser/page
+        // retirement. Both nominal references must remain usable below. No
+        // send/work/attempt/byte history or reservation identity is refunded.
+        assert_true(
+          after.reserved_retention_bytes < before.reserved_retention_bytes,
+        )
+        assert_true(
+          after.reserved_execution_bytes < before.reserved_execution_bytes,
+        )
+        // The RowRun settles its one response reservation into its actual
+        // retained holding; the Native capacity token remains live.
+        assert_eq(after.live_reservations, before.live_reservations - 1)
+        assert_eq(after.planning_work, before.planning_work)
+        assert_eq(after.attempts, before.attempts)
+        assert_eq(after.transferred_bytes, before.transferred_bytes)
+        assert_eq(
+          after.uncertain_transfer_bytes,
+          before.uncertain_transfer_bytes,
+        )
         done = true
         break
       }
@@ -565,6 +586,82 @@ fn native_mock_readme_content_join_adopt(
       }
     }
     assert_eq(content_values, 2)
+    // Borrow the original Plan's sequence, never compile or prepare a second
+    // prefix. The completed lookup supplies its SAME checked left/right reads.
+    let selected = @local_values.installed_effect_managed_operation_plan(
+      owner,
+      prepared,
+      first.request,
+    ).native_content_join_stage("original Model Plan sequence owner")
+    let sequence = @local_values.prepared_installed_effect_model_sequence(
+      selected, graph,
+    ).native_content_join_stage("retained original Model sequence")
+    assert_true(
+      physical_equal(
+        sequence,
+        @local_values.prepared_installed_effect_model_sequence(selected, graph).unwrap(),
+      ),
+    )
+    let model_input = @local_values.start_client_composed_infer_input(
+      graph.occurrence,
+      sequence,
+      [],
+      limits.input,
+      limits.measurement,
+      limits.mapping,
+      keyed=Some(lookup),
+    ).native_content_join_stage("same original keyed Model input")
+    let mut mapped = None
+    for _ in 0..<100000 {
+      match
+        @local_values.advance_client_infer_input(model_input, 31).native_content_join_stage(
+          "actual keyed Model mapping",
+        ) {
+        @local_values.Complete(rows, ..) => {
+          mapped = Some(rows)
+          break
+        }
+        @local_values.Continue(..) => ()
+        _ => fail("original keyed Model mapping did not complete")
+      }
+    }
+    let rows = mapped.unwrap()
+    assert_eq(@execution.prepared_infer_rows_count(rows), 2)
+    for row in 0..<2 {
+      let expected_key = if row == 0 { "006Acme" } else { "006Globex" }
+      guard @execution.prepared_infer_rows_key(rows, row, 0).unwrap().value
+        is @admitted.Text(key) else {
+        fail("original sole Model key")
+      }
+      assert_eq(key, expected_key)
+      let mut notes = 0
+      let mut stage = 0
+      let mut next = 0
+      for field in 0..<3 {
+        match
+          @execution.prepared_infer_rows_value(rows, row, field).unwrap().value {
+          @admitted.Reference(reference) => {
+            assert_true(
+              @admitted.reference_content_metadata(reference)
+              is Some(("text/plain", _)),
+            )
+            assert_true(@admitted.reference_available(reference))
+            notes += 1
+          }
+          @admitted.Null if row == 0 => next += 1
+          @admitted.Text(text) if text ==
+            (if row == 0 { "Proposal" } else { "Negotiation" }) => stage += 1
+          @admitted.Text("Legal review") if row == 1 => next += 1
+          _ => fail("original typed README Model input")
+        }
+      }
+      assert_eq((notes, stage, next), (1, 1, 1))
+    }
+    assert_true(
+      @local_values.cleanup_client_infer_input(model_input).native_content_join_stage(
+        "same Model input cleanup",
+      ),
+    )
   }
   // The original response copy still borrows each nominal Content issuer.
   // Keep both actual captures, then retire the same children before the Store.

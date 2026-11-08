@@ -302,3 +302,12 @@ retained before normal work or later cleanup. Entry checks the original current
 parent, and internal post-callback handoffs use retained identity/state fences
 instead of repeating that external current observation. Source/Store failure
 keeps the original capture for child-first cleanup and never reacquires a request.
+
+Completed automatic keyed Content retains the same RowRun, Store custody and
+nominal ContentRef. In a later advance frame, after original Reader/Root, raw
+document and keyed-page constructors have retired, the capture drops finished
+local selection/provider/parser aliases and contracts both byte extents of its
+SAME capacity reservation to the retained inventory. Common reference backing
+remains until the Model input receipt; checked rows keep their own RowRun
+reservation. Work/attempt/transfer history and durable Store quota are unchanged.
+An unresolved child or failed contraction retains the original cleanup owner.

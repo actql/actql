@@ -59,6 +59,7 @@ fn original_composed_keyed_consumer(
   restored? : Bool = false,
   native_keyed? : Bool = false,
   keyed_start_observer? : ((ClientInstalledKeyedSourceRead) -> Unit)? = None,
+  retained_input_root? : Bool = false,
 ) -> Unit raise {
   let (declaration, keyed_environment) = original_keyed_declaration_environment(
     relation_versions=true,
@@ -281,13 +282,34 @@ fn original_composed_keyed_consumer(
     )
     .unwrap()
     .unwrap()
-  let prefix = prepare_client_composed_infer_prefix(
-    model.graph.owner,
-    model._occurrence,
-    contracts,
-    source_query_original_values,
-    fragment_body=Some(source_query_original_fragment),
-  ).unwrap()
+  let prefix = if retained_input_root {
+    let installed = original_composed_keyed_installed_plan(
+      prepared, request, contracts, model, declaration,
+    )
+    let sequence = prepared_installed_effect_model_sequence(
+      installed,
+      model.graph,
+    ).unwrap()
+    let (_, _, step) = @publication_host.client_infer_occurrence_coordinates(
+      model._occurrence,
+    )
+    assert_true(@execution.generated_sequence_step_count(sequence) > step)
+    assert_true(
+      physical_equal(
+        sequence,
+        prepared_installed_effect_model_sequence(installed, model.graph).unwrap(),
+      ),
+    )
+    sequence
+  } else {
+    prepare_client_composed_infer_prefix(
+      model.graph.owner,
+      model._occurrence,
+      contracts,
+      source_query_original_values,
+      fragment_body=Some(source_query_original_fragment),
+    ).unwrap()
+  }
   let ledger = match request_parent {
     Some((parent, _, _)) => parent.ledger
     None =>
@@ -729,6 +751,24 @@ fn original_composed_keyed_consumer(
   let lookup = @publication_host.start_client_keyed_lookup_input(
     left, ledger, 4096, 10000,
   ).unwrap()
+  if retained_input_root {
+    let before = @resources.ledger_usage(ledger)
+    // No completed right input exists yet. An omitted duplicate vector never
+    // substitutes for the original lookup's completed-input association.
+    assert_true(
+      start_client_composed_infer_input(
+        model._occurrence,
+        prefix,
+        [],
+        execution,
+        measurement,
+        mapping,
+        keyed=Some(lookup),
+      )
+      is Err(UnsupportedProgram),
+    )
+    assert_eq(@resources.ledger_usage(ledger), before)
+  }
   let preparation = @publication_host.start_client_keyed_lookup_request(
     lookup, 0,
   ).unwrap()
@@ -1180,7 +1220,11 @@ fn original_composed_keyed_consumer(
   let input = start_client_composed_infer_input(
     model._occurrence,
     prefix,
-    inputs,
+    if retained_input_root {
+      []
+    } else {
+      inputs
+    },
     execution,
     measurement,
     mapping,
@@ -1575,4 +1619,9 @@ fn start_client_original_composed_keyed_input_prefix(
 #cfg(target="js")
 test "restored Whole inputs preserve two dependent Model Source snapshots" {
   original_composed_keyed_consumer(whole=true, restored=true, following=true)
+}
+
+///|
+test "original composed keyed root maps its retained input originals without a duplicate producer vector" {
+  original_composed_keyed_consumer(retained_input_root=true)
 }
