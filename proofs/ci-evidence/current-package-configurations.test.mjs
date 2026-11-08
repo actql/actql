@@ -233,19 +233,30 @@ test('current Source JSON review binds only its checked normalization count depe
   }
 });
 
-test('current Local Host successor binds its original Effect JS selector and preserves prior preimages', () => {
+test('current Local Host successor binds its original keyed Plan JS selector and preserves prior preimages', () => {
   const path = 'src/client_local_host/moon.pkg';
-  const revision = '70ab00c1fae78c176ac34e65857f7332d6619aa7';
-  const digest = '64220f07f198e537a6d9c785fd6abd93a2a3293f3959a24fc313f63135ae1d66';
+  const revision = 'db039dc07a845fc420be9f95b750fe5208183735';
+  const digest = '1ce3256e4f3b1dc32ee5136fcbbe5076fd996ad0a05c901a5cd175a3b16af326';
   const rule = 'literal-target-selectors-with-bound-source-membership';
   assert.deepEqual(currentPackageConfigurations[path], {revision, digest, rule});
   execFileSync('git', ['merge-base', '--is-ancestor', revision, 'HEAD'], {cwd: root});
   const reviewed = gitTree(root, revision), body = reviewed.read(path).toString();
+  const keyedSelector = '    "request_native_keyed_plan_js_wbtest.mbt": [ "js" ],\n';
+  const effectBody = gitTree(root, '70ab00c1fae78c176ac34e65857f7332d6619aa7').read(path).toString();
+  assert.equal(hash(effectBody), '64220f07f198e537a6d9c785fd6abd93a2a3293f3959a24fc313f63135ae1d66');
+  assert.equal(Buffer.byteLength(body), 9850);
+  assert.equal(Buffer.byteLength(effectBody), 9793);
+  assert.equal(Buffer.byteLength(keyedSelector), 57);
+  assert.equal(body.split(keyedSelector).length, 2);
+  assert.equal(body.replace(keyedSelector, ''), effectBody,
+    'only the existing Node Request parent fixture selector extends the reviewed descriptor');
+  assert.deepEqual(packageImports(body).imports, packageImports(effectBody).imports,
+    'every dependency, alias and other target or option retains its original bytes');
   const originalSelector = '    "preparation_request_effect_original_js_wbtest.mbt": [ "js" ],\n';
   const valuesBody = gitTree(root, 'e99acee7bc3ea3a5b0ae3e71ce64aa7c958f2bf4').read(path).toString();
   assert.equal(hash(valuesBody), '0974fff42f958477654738b726f07d929aeccd274463404fc86206545fff2f00');
   assert.equal(body.split(originalSelector).length, 2);
-  assert.equal(body.replace(originalSelector, ''), valuesBody,
+  assert.equal(effectBody.replace(originalSelector, ''), valuesBody,
     'only the original Effect JS fixture selector extends the reviewed descriptor');
   assert.deepEqual(packageImports(body).imports, packageImports(valuesBody).imports,
     'the existing literal UTF-8 whitebox import and every other dependency remain exact');
@@ -296,15 +307,16 @@ test('current Local Host successor binds its original Effect JS selector and pre
     !member.slice('src/capacity_policy/'.length).includes('/')).sort();
   assert(members.includes('src/capacity_policy/moon.pkg'));
   assert.deepEqual(selected.directories.find(entry => entry.path === 'src/capacity_policy/*')?.members, members);
-  for (const member of [...members, ...[originalSelector, valuesSelector, ...selectors, ...successorSelectors].map(selector =>
+  for (const member of [...members, ...[keyedSelector, originalSelector, valuesSelector, ...selectors, ...successorSelectors].map(selector =>
     'src/client_local_host/' + JSON.parse(selector.trim().split(':')[0]))]) {
     assert(selected.paths.includes(member), member);
     assert.equal(currentTree.entries.get(member)?.kind, 'blob');
     assert.equal(currentTree.entries.get(member)?.mode, '100644');
   }
-  for (const changed of [previous, callbackBody, valuesBody, body.replace(dependency, ''), body.replace('@capacity,', '@permission,'),
+  for (const changed of [previous, callbackBody, valuesBody, effectBody, body.replace(dependency, ''), body.replace('@capacity,', '@permission,'),
     body.replace('"moonbitlang/core/encoding/utf8"', '"moonbitlang/core/encoding/utf16"'),
-    ...[originalSelector, valuesSelector, ...selectors, ...successorSelectors].map(selector => body.replace(selector, selector.replace('"js"', '"native"'))),
+    ...[keyedSelector, originalSelector, valuesSelector, ...selectors, ...successorSelectors].map(selector => body.replace(selector, selector.replace('"js"', '"native"'))),
+    body.replace(keyedSelector, keyedSelector + '    "unreviewed_keyed_target.mbt": [ "js" ],\n'),
     body + '\noptions(pre_build: {command: "unreviewed"})\n']) {
     assert.equal(currentPackageConfigurationReviewFor(request(path, hash(changed))), null);
     const altered = {...currentTree, read: member => member === path ? Buffer.from(changed) : currentTree.read(member)};
