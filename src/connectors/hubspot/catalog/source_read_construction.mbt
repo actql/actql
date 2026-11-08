@@ -189,23 +189,61 @@ fn source_property_recheck_construction_capacity(
     @encode.hash_writer_live_key_inventory(0, 0) is Some(hash) else {
     return None
   }
-  initialization_capacity([
-    parsed,
-    initialization_collection_units(metadata),
-    property_catalog_retained_units(bytes, limits[4], {
-      max_bytes: limits[0],
-      max_nodes: limits[1],
-      max_depth: limits[2],
-      max_properties: limits[3],
-      max_name_units: limits[4],
-    }),
-    initialization_collection_units(recheck),
-    {
-      record_headers: hash.record_headers,
-      reference_slots: hash.reference_slots,
-      scalar_words: hash.scalar_words,
-      owned_utf16_units: hash.owned_utf16_units + 4L * b.to_int64() + 128L,
-      owned_wire_bytes: hash.owned_wire_bytes + bytes.to_int64(),
-    },
-  ])
+  // Key normalization returns only its String before parse_json_bytes can
+  // return. Its private scalar/text workspace never overlaps the later native
+  // PropertyMetadata projection. Keep the complete parser peak as one phase,
+  // and every returned tree/key/index/output dependency in the later phase.
+  // This is a pre-construction peak quote, not a refund or physical GC claim.
+  guard @canonical.nfc_lf_construction_scratch_extent(b) is Some(scratch) &&
+    parsed.record_headers >= scratch.record_headers &&
+    parsed.reference_slots >= scratch.reference_slots &&
+    parsed.scalar_words >= scratch.scalar_words &&
+    parsed.owned_utf16_units >= scratch.owned_utf16_units else {
+    return None
+  }
+  guard @execution.compose_preparation_representation([
+      property_catalog_retained_units(bytes, limits[4], {
+        max_bytes: limits[0],
+        max_nodes: limits[1],
+        max_depth: limits[2],
+        max_properties: limits[3],
+        max_name_units: limits[4],
+      }),
+      initialization_collection_units(recheck),
+      {
+        record_headers: hash.record_headers,
+        reference_slots: hash.reference_slots,
+        scalar_words: hash.scalar_words,
+        owned_utf16_units: hash.owned_utf16_units + 4L * b.to_int64() + 128L,
+        owned_wire_bytes: hash.owned_wire_bytes + bytes.to_int64(),
+      },
+    ])
+    is Some(fixed) &&
+    initialization_capacity([parsed, fixed]) is Some(parser_phase) &&
+    initialization_capacity([
+      {
+        record_headers: parsed.record_headers - scratch.record_headers,
+        reference_slots: parsed.reference_slots - scratch.reference_slots,
+        scalar_words: parsed.scalar_words - scratch.scalar_words,
+        owned_utf16_units: parsed.owned_utf16_units - scratch.owned_utf16_units,
+        owned_wire_bytes: parsed.owned_wire_bytes,
+      },
+      initialization_collection_units(metadata),
+      fixed,
+    ])
+    is Some(metadata_phase) else {
+    return None
+  }
+  // Every earlier or failed response still retains this complete maximum at
+  // the original Reader. No same-ticket charge, current or cleanup is spent.
+  @execution.execution_capacity(
+    Int64::max(
+      @execution.execution_capacity_retained_bytes(parser_phase),
+      @execution.execution_capacity_retained_bytes(metadata_phase),
+    ),
+    Int64::max(
+      @execution.execution_capacity_execution_bytes(parser_phase),
+      @execution.execution_capacity_execution_bytes(metadata_phase),
+    ),
+  )
 }
