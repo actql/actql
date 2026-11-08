@@ -1,7 +1,7 @@
 ///|
 /// A borrowed semantic projection of the actual accepted Model. The caller
 /// retains its existing OutputUse and complete observation issuer; this token
-/// neither acquires a third output use nor authenticates Store custody.
+/// neither acquires another output use nor authenticates Store custody.
 pub struct LocalModelObservation {
   held : OutputUse
   issued : ObservationIssuance
@@ -108,22 +108,79 @@ pub fn issue_original_local_model_observation(
     original_local_model_observation_current(held, issued) else {
     return None
   }
+  issue_local_model_observation_body(
+    held,
+    issued,
+    scope,
+    @relation.logical_relation_cid(
+      @relation.completed_relation_export_identity(input_receipt),
+    ),
+    @relation.relation_schema_cid(
+      @relation.completed_relation_export_schema_identity(input_receipt),
+    ),
+    outcome_receipt,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+/// Reuse the original Scope's already exported input identity. Only the raw
+/// Model outcomes need another export for this local projection. No input
+/// rows, schema or Model task are re-admitted or hashed a second time.
+pub fn issue_original_local_model_observation_from_scope(
+  held : OutputUse,
+  issued : ObservationIssuance,
+  outcome_receipt : @relation.CompletedRelationExportReceipt,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> LocalModelObservation? {
+  guard original_local_model_observation_current(held, issued) &&
+    held.owner.plan is Some(plan) &&
+    held.owner.call_scope is Some(scope) &&
+    borrow_original_live_model_relations(
+      held,
+      issued.state.compiled,
+      issued.state.definition,
+      plan,
+    )
+    is Some((_, outcomes)) &&
+    @relation.completed_relation_export_matches_output(
+      outcome_receipt, outcomes,
+    ) &&
+    @publication.model_input_artifact_relation_identities(
+      @publication_host.client_infer_call_scope_artifact(scope),
+    )
+    is Some((logical, schema)) &&
+    original_local_model_observation_current(held, issued) else {
+    return None
+  }
+  issue_local_model_observation_body(
+    held, issued, scope, logical, schema, outcome_receipt, max_wire_bytes, max_nodes,
+    max_depth,
+  )
+}
+
+///|
+fn issue_local_model_observation_body(
+  held : OutputUse,
+  issued : ObservationIssuance,
+  scope : @publication_host.ClientInferCallScope,
+  input_logical : String,
+  input_schema : String,
+  outcome_receipt : @relation.CompletedRelationExportReceipt,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> LocalModelObservation? {
   let (unit, ordinal) = @publication_host.client_infer_call_scope_local_coordinate(
     scope,
   )
   let references = [
-    (
-      "input_logical_relation_cid",
-      @relation.logical_relation_cid(
-        @relation.completed_relation_export_identity(input_receipt),
-      ),
-    ),
-    (
-      "input_relation_schema_cid",
-      @relation.relation_schema_cid(
-        @relation.completed_relation_export_schema_identity(input_receipt),
-      ),
-    ),
+    ("input_logical_relation_cid", input_logical),
+    ("input_relation_schema_cid", input_schema),
     (
       "outcome_logical_relation_cid",
       @relation.logical_relation_cid(

@@ -87,7 +87,12 @@ fn native_mock_readme_content_join(
       _ => @compute_sdk.ComputeUnsupported,
     )
     let selected = native_mock_effect_managed_plan(
-      prepared, first, original, contracts, provider,
+      prepared,
+      first,
+      original,
+      contracts,
+      provider,
+      @local_host.native_client_mock_model_observation_capacity(limits).unwrap(),
     ) catch {
       ClientStop(message) => fail(message)
     }

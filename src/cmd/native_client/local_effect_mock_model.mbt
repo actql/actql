@@ -328,3 +328,53 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_observation(
     })
   }
 }
+
+///|
+/// The same Native Work converts its complete raw outcomes after durable
+/// Model settlement and retains the original issuer. The final Result/suffix
+/// cannot stand in for this observation; no Model or Source is redispatched.
+fn LocalCommandBusinessPreparation::prepare_mock_effect_local_observation(
+  self : Self,
+) -> Unit raise ClientStop {
+  guard self.original.business is Some(business) &&
+    business.effect_model is Some(state) &&
+    state._retained_model_observation is Some(_) &&
+    state.effect_capture is Some(_) &&
+    state._retained_local_model_observation is None &&
+    business.model_work.length() == 1 else {
+    stop("LocalOriginalModelLocalObservationUnavailable")
+  }
+  let work = business.model_work[0]
+  self.original.with_business_request(self.capture, () => {
+    match work.prepare_local_observation() {
+      Err(issue) => {
+        self.original.retain_primary(CommandBusinessModel(issue))
+        stop("LocalOriginalModelLocalObservationUnavailable")
+      }
+      Ok(_) => ()
+    }
+  })
+  let mut complete = false
+  while !complete {
+    complete = self.original.with_business_request(self.capture, () => {
+      match work.advance_local_observation() {
+        Err(issue) => {
+          self.original.retain_primary(CommandBusinessModel(issue))
+          stop("LocalOriginalModelLocalObservationUnavailable")
+        }
+        Ok(done) => {
+          if done {
+            state._retained_local_model_observation = Some(
+              work
+              .local_observation_original()
+              .unwrap_or_else(() => {
+                stop("LocalOriginalModelLocalObservationUnavailable")
+              }),
+            )
+          }
+          done
+        }
+      }
+    })
+  }
+}

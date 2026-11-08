@@ -187,6 +187,21 @@ test "local Model observation binds original complete relations before Result su
     held, issued, input_receipt, outcome_receipt, 4096, 1024, 20,
   ).unwrap()
   let body = original_local_model_observation_body(observation).unwrap()
+  let reused = issue_original_local_model_observation_from_scope(
+    held, issued, outcome_receipt, 4096, 1024, 20,
+  ).unwrap()
+  assert_eq(
+    @publication.captured_effect_dependency_body_json(
+      original_local_model_observation_body(reused).unwrap(),
+    ),
+    @publication.captured_effect_dependency_body_json(body),
+  )
+  assert_true(
+    issue_original_local_model_observation_from_scope(
+      held, issued, filtered_receipt, 4096, 1024, 20,
+    )
+    is None,
+  )
   assert_eq(
     @publication.captured_effect_dependency_body_kind(body),
     "local_model_observation",

@@ -17,6 +17,7 @@ priv struct LocalNativeMockEffectPlan {
     @publication.RunEvidenceValue,
     @publication.PublicationContract,
   )?
+  mut _retained_local_model_observation : @publication.CapturedEffectDependencyBody?
   mut model_use : @infer.OutputUse?
   mut effect_host : @builtin.ConfiguredComputeHost[@strategy.RunIssue]?
   mut effect_capture : @strategy.CapturedEffectRunDAG?
@@ -147,6 +148,7 @@ fn native_mock_effect_managed_plan(
   mock : LocalProjectMockDeclarations,
   contracts : @local_values.ClientInstalledSequenceContracts,
   provider : @local_compute.ManagedProvider,
+  publication : @execution.ExecutionCapacity,
 ) -> @local_values.ClientInstalledEffectManagedPlan raise ClientStop {
   guard first._retained_models.length() == 1 else {
     stop("LocalOriginalEffectPlanUnavailable")
@@ -175,6 +177,7 @@ fn native_mock_effect_managed_plan(
     limits.input.rows.retained_entries,
     limits.input.rows.metadata_entries,
     bootstrap=Some((retained, execution)),
+    publication=Some(publication),
   ).unwrap_or_else(() => stop("LocalOriginalEffectPlanUnavailable"))
   let operations = native_mock_effect_operations(prepared, mock)
   let assets = @run_host.client_local_product_assets()
@@ -255,6 +258,16 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_plan(
       mock,
       self.installed_contracts,
       provider,
+      work
+      .observation_capacity(
+        first.request,
+        first.model_compiled.unwrap(),
+        first.definition,
+        selected.graph,
+      )
+      .unwrap_or_else(() => {
+        stop("LocalOriginalModelPublicationCapacityUnavailable")
+      }),
     )
     let state : LocalNativeMockEffectPlan = {
       first,
@@ -269,6 +282,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_plan(
       model_read: None,
       model_output: None,
       _retained_model_observation: None,
+      _retained_local_model_observation: None,
       model_use: None,
       effect_host: None,
       effect_capture: None,

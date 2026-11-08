@@ -636,6 +636,8 @@ pub fn model_capture_record_text(ModelCaptureRecordRead, String) -> String?
 
 pub fn model_capture_record_tokens(ModelCaptureRecordRead) -> (Int64, Int64)?
 
+pub fn model_input_artifact_relation_identities(RunEvidenceValue) -> (String, String)?
+
 pub fn model_invocation_evidence_version(RunEvidenceValue) -> String?
 
 pub fn model_invocation_review_expires_at(RunEvidenceValue) -> String?
