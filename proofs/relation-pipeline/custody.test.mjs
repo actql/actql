@@ -162,7 +162,14 @@ test('custody modes select the checked cancellation and final-completion owners'
   const read = path => readFileSync(join(root, path));
   const selected = 'src/connectors/local/selected_relation_provider.mbt';
   for (const [mode, step] of [['normal', 1], ['pending', 1], ['success', 2]]) {
-    const code = custodyOverlay(read, mode).overlay[selected];
+    const {overlay,fixture: path}=custodyOverlay(read, mode);
+    const code = overlay[selected];
+    // The corpus's three-field output is independent of its two-column import
+    // frame. Reuse the existing Task output/schema profile without widening
+    // the input frame or bypassing the explicit schema admission.
+    assert.equal(custodyInput().program.stages[0].results.r.fields.length,3);
+    assert.match(overlay[path], /configure_local_managed_test_inputs\(\s*installed,[\s\S]*?wire: retained_attempt_wire_limits\(\),[\s\S]*?max_batch_bytes: 64,[\s\S]*?\n    limits,\n  \)/);
+    assert.match(overlay[path], /configure_local_managed_test_output\(installed, limits\)/);
     assert(code.includes(`if step == ${step} {`));
     assert(code.includes(`if step == ${step} && reclaimed.val {`));
     assert.equal(code.split('ACTQL_CUSTODY_CHAIN:started').length, 2);
