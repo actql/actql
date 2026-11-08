@@ -228,6 +228,14 @@ pub fn prepare_client_keyed_native_activation(
     !(state.selected_request is Some(same) && physical_equal(same, request)) {
     return Err(Assembly("retired_native_activation"))
   }
+  // Growth/current/observation can reenter this SAME preparation. The inner
+  // caller may already have received its original. After the last callback,
+  // compare only our retained slot/history; never replace or poison that token.
+  guard state.known.get(slot_index) is Some((_, None, Some(retained))) &&
+    physical_equal(retained, history) &&
+    history._retained_activation is None else {
+    return Err(Assembly("claimed_native_activation"))
+  }
   let result = {
     original: state,
     request,

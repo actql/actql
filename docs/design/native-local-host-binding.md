@@ -3216,6 +3216,11 @@ activation starts the acquisition clock and binds the original authority scope,
 Native issuer and deadline. Constructing it grants neither dispatch permission
 nor a durable acknowledgement.
 
+The final publication checks the same history's empty activation slot after
+all growth/current callbacks have returned. A synchronous reentrant caller may
+already have received its original; the outer preparation then refuses without
+replacing that token, poisoning the lookup or repeating external currentness.
+
 Before advancing the physical child, the existing Native Model Work records
 those originals through its captured Read and Journal transaction. The accepted
 Run, original definition, batch order and unique slot remain mandatory. A

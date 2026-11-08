@@ -71,6 +71,7 @@ fn original_composed_keyed_consumer(
   pre_dispatch_plan? : Bool = false,
   native_transport? : Bool = false,
   native_activation? : Bool = false,
+  activation_reentry? : Bool = false,
   first_plan? : ((
     ClientRequestPreparation[Array[Int]],
     Array[Int],
@@ -78,6 +79,7 @@ fn original_composed_keyed_consumer(
     @publication.PublicationContract,
   ) -> Unit raise)? = None,
 ) -> Unit raise {
+  let activation_source_live : Ref[(() -> Unit)?] = Ref(None)
   let publication_early = publication_early || pre_dispatch_plan
   let (declaration, keyed_environment) = original_keyed_declaration_environment(
     relation_versions=true,
@@ -680,7 +682,12 @@ fn original_composed_keyed_consumer(
           rows_cid,
           rows,
           ledger,
-          () => true,
+          () => {
+            if activation_source_live.val is Some(reenter) {
+              reenter()
+            }
+            true
+          },
           reference_issuer=issuer,
         ).unwrap()
         closed_inputs.push(
@@ -1104,10 +1111,40 @@ fn original_composed_keyed_consumer(
     request, keyed,
   ).unwrap()
   if native_activation {
-    let activation = @publication_host.prepare_client_keyed_native_activation(
+    let winner : Ref[@publication_host.ClientKeyedNativeActivation?] = Ref(None)
+    let reentering = Ref(false)
+    if activation_reentry {
+      activation_source_live.val = Some(() => {
+        if !reentering.val && winner.val is None {
+          reentering.val = true
+          let prepared = @publication_host.prepare_client_keyed_native_activation(
+            lookup, request, original_request, "native-component-issuer", "2026-10-26T00:00:00.000Z",
+            0L, 16384, 1024, 20,
+          )
+          reentering.val = false
+          if prepared is Ok(value) {
+            winner.val = Some(value)
+          }
+        }
+      })
+    }
+    let outer = @publication_host.prepare_client_keyed_native_activation(
       lookup, request, original_request, "native-component-issuer", "2026-10-26T00:00:00.000Z",
       0L, 16384, 1024, 20,
-    ).unwrap()
+    )
+    activation_source_live.val = None
+    let activation = if activation_reentry {
+      guard winner.val is Some(first) else {
+        fail("same Source.live must prepare its inner original")
+      }
+      assert_true(
+        outer is Err(@publication_host.Assembly("claimed_native_activation")),
+        msg="outer preparation must not replace the original returned by Source.live",
+      )
+      first
+    } else {
+      outer.unwrap()
+    }
     assert_eq((activation.batch_index, activation.batch_count), (0, 1))
     assert_true(
       @publication_host.client_keyed_native_activation_matches(

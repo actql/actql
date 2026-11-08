@@ -264,3 +264,16 @@ test "Native keyed activation retains the original first attempt and refuses dup
     }),
   )
 }
+
+///|
+#cfg(target="js")
+test "Native keyed activation Source live reentry preserves the first returned original" {
+  original_composed_keyed_consumer(
+    whole=true,
+    restored=true,
+    native_activation=true,
+    activation_reentry=true,
+    pre_dispatch_plan=true,
+    native_transport=true,
+  )
+}
