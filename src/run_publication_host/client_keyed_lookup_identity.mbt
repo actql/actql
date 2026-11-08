@@ -23,7 +23,7 @@ pub fn client_keyed_lookup_request_identity(
   max_depth : Int,
 ) -> Result[ClientKeyedLookupRequestIdentity, ClientKeyedRequestIssue] {
   if client_keyed_lookup_input_identity(lookup) is None ||
-    lookup.pending_request is Some(_) {
+    lookup.pending_history is Some(_) {
     return Err(Assembly("unavailable_request_identity"))
   }
   if lookup.publication_identity is Some(original) {
@@ -60,9 +60,15 @@ fn build_client_keyed_lookup_request_identity(
   })
   roles.sort_by((a, b) => @canonical_value.compare_utf16(a.0, b.0))
   let tuples : Array[Array[@values.CheckedValue]] = []
-  for (_, original, _) in lookup.known {
-    guard original is Some(original) &&
-      physical_equal(@acquisition.keyed_row_request_owner(original), template) else {
+  for (_, _, history) in lookup.known {
+    guard history is Some(history) else {
+      return Err(Assembly("missing_request_history"))
+    }
+    let original = history.request.request
+    guard physical_equal(
+      @acquisition.keyed_row_request_owner(original),
+      template,
+    ) else {
       return Err(Assembly("foreign_request_identity"))
     }
     let tuple = []
@@ -202,7 +208,7 @@ pub fn finish_client_keyed_lookup_publication_input(
     lookup.completed is Some(_) ||
     lookup.copying is Some(_) ||
     lookup.preparation is Some(_) ||
-    lookup.pending_request is Some(_) ||
+    lookup.pending_history is Some(_) ||
     lookup.accepted != lookup.rows ||
     lookup.left.lookup_issue is Some(_) ||
     !client_keyed_left_available(lookup.left) {

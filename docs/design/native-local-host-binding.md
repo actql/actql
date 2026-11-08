@@ -3097,3 +3097,28 @@ keyed Artifact still needs its real admitted transport/batch/attempt history,
 the canonical keyset/static-request scope and captured Source provenance.
 Contributing Direct Relations are not a substitute for that proof or for the
 final Artifact, Store custody, Preview, approval or physical update.
+
+
+### Retained original keyed response history
+
+The lookup's existing per-distinct-response slot retains its original
+ClientKeyedRequest and the original RowKeyedSourceCapture supplied by the
+trusted bridge, alongside the same supplied read. The keyset projects typed
+values from that exact Request. It no longer retains a separate row-request
+alias as an alternative history table. Cached repeated left occurrences keep
+using the same one right response, without adding a physical attempt.
+
+The same lookup reservation pays the additional retained execution/history
+controls and optional capture wrapper before creating its row continuation.
+Variable request fields/Values remain charged once at their existing owners.
+Pending history is retained before fallible cursor construction and moves into
+the same cache slot on completion. Cleanup severs these aliases before
+returning lookup capacity, while each physical RowRun retains its own pending
+cleanup duties and consumed attempts. No original counter is copied, reset or
+refunded by this retention.
+
+These retained originals are not an admitted lookup attempt/transport receipt.
+The later protocol issuer must bind their real execution, raw capture,
+accounting and durable lifecycle history under the actual checked read profile.
+Legacy read-only callers may omit the capture; absence remains absence and
+cannot be substituted with an invented transport or successful receipt.

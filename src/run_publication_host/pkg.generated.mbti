@@ -203,7 +203,7 @@ pub fn advance_client_node_model_read_state(ClientNodeModelStateWriter, ClientCo
 
 pub fn advance_release_client_effect_command_content_artifact(ClientEffectLocalResultArtifact, Int) -> Bool
 
-pub fn begin_client_keyed_lookup_response(ClientKeyedLookupInput, ClientKeyedRequest, @execution_relation.SuppliedRelationRead) -> Result[Unit, ClientKeyedRequestIssue]
+pub fn begin_client_keyed_lookup_response(ClientKeyedLookupInput, ClientKeyedRequest, @execution_relation.SuppliedRelationRead, capture? : @client_row_source_host.RowKeyedSourceCapture?) -> Result[Unit, ClientKeyedRequestIssue]
 
 pub fn begin_client_model_read_scope(ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @physical_resources.Ledger, @physical_resources.CapacityReservation, Int, Int, Int, model_limits? : @physical_resources.LedgerLimits?) -> Result[ClientModelReadScope, ClientModelReadPreparationIssue]
 
