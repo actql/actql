@@ -36,21 +36,45 @@ fn serialization_test_ledger(
 
 ///|
 test "composed prefix keeps upstream until the actual consumer closes and preserves consumed work" {
-  let ledger = @resources.create_ledger({ planning_work: 0, attempts: 2, holdings: 0,
-    transfer_bytes: 0L, retained_bytes: 20L, execution_bytes: 20L, }).unwrap()
+  let ledger = @resources.create_ledger({
+    planning_work: 0,
+    attempts: 2,
+    holdings: 0,
+    transfer_bytes: 0L,
+    retained_bytes: 20L,
+    execution_bytes: 20L,
+  }).unwrap()
   let main_token = @resources.reserve_attempt(ledger, 0L, 4L, 5L).unwrap()
   let root_token = @resources.reserve_attempt(ledger, 0L, 6L, 7L).unwrap()
   let ready = Ref(false)
   let root_closes = Ref(0)
   let main_closes = Ref(0)
-  let main = bind_serialization_prefix_reservation(@local.managed_provider_execution(
-    _ => Ok(@local.managed_provider_continue(0L, 3L)), () => true, () => true,
-    () => { main_closes.val += 1; Ok(ready.val) },
-  ), ledger, main_token)
-  let root = bind_serialization_prefix_reservation(@local.managed_provider_execution(
-    _ => Ok(@local.managed_provider_continue(0L, 5L)), () => true, () => true,
-    () => { root_closes.val += 1; Ok(root_closes.val > 1) },
-  ), ledger, root_token)
+  let main = bind_serialization_prefix_reservation(
+    @local.managed_provider_execution(
+      _ => Ok(@local.managed_provider_continue(0L, 3L)),
+      () => true,
+      () => true,
+      () => {
+        main_closes.val += 1
+        Ok(ready.val)
+      },
+    ),
+    ledger,
+    main_token,
+  )
+  let root = bind_serialization_prefix_reservation(
+    @local.managed_provider_execution(
+      _ => Ok(@local.managed_provider_continue(0L, 5L)),
+      () => true,
+      () => true,
+      () => {
+        root_closes.val += 1
+        Ok(root_closes.val > 1)
+      },
+    ),
+    ledger,
+    root_token,
+  )
   main.dependencies.push(root)
   @resources.consume_reserved_attempt(ledger, main_token).unwrap()
   @resources.consume_reserved_attempt(ledger, root_token).unwrap()
