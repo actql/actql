@@ -1,4 +1,14 @@
 ///|
+// Exact successful response history on the existing lookup, not a second
+// acquisition or an admitted attempt receipt. Mutable attempt/completion facts
+// stay on their original Request; the optional actual RowRun capture stays on
+// its physical owner. The later protocol issuer must validate that original.
+priv struct ClientKeyedResponseHistory {
+  request : ClientKeyedRequest
+  _retained_capture : @row_host.RowKeyedSourceCapture?
+}
+
+///|
 /// Bounded assembly owned by the original captured-left use site. Per-key
 /// RowRuns still own their physical readers and holdings. This continuation
 /// borrows them into the ordinary Relation input buffer; it creates neither
@@ -21,7 +31,7 @@ struct ClientKeyedLookupInput {
   rows : Int
   mut input : @execution.AdmittedInput?
   mut known : Array[
-    (String, @acquisition.KeyedRowRequest?, @execution.SuppliedRelationRead?),
+    (String, @execution.SuppliedRelationRead?, ClientKeyedResponseHistory?),
   ]
   mut accepted : Int
   mut work : Int
@@ -31,7 +41,7 @@ struct ClientKeyedLookupInput {
   mut preparation_work : Int
   mut pending_key : String?
   mut pending_read : @execution.SuppliedRelationRead?
-  mut pending_request : @acquisition.KeyedRowRequest?
+  mut pending_history : ClientKeyedResponseHistory?
   mut selected_request : ClientKeyedRequest?
   mut selected_key : String?
   mut selected_index : Int?
@@ -203,7 +213,7 @@ fn start_client_keyed_lookup_input_owned(
     preparation_work: 0,
     pending_key: None,
     pending_read: None,
-    pending_request: None,
+    pending_history: None,
     selected_request: None,
     selected_key: None,
     selected_index: None,
@@ -526,7 +536,7 @@ pub fn reuse_client_keyed_lookup_response(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  guard state.known.get(index) is Some((key, _, Some(read))) &&
+  guard state.known.get(index) is Some((key, Some(read), _)) &&
     key == wire &&
     @execution.supplied_relation_read_available(read) &&
     request.attempts == 0L else {
@@ -547,6 +557,7 @@ pub fn begin_client_keyed_lookup_response(
   state : ClientKeyedLookupInput,
   request : ClientKeyedRequest,
   read : @execution.SuppliedRelationRead,
+  capture? : @row_host.RowKeyedSourceCapture? = None,
 ) -> Result[Unit, ClientKeyedRequestIssue] {
   let index = match find_client_keyed_lookup_response(state, request) {
     Ok(value) => value
@@ -615,11 +626,20 @@ pub fn begin_client_keyed_lookup_response(
     })
     is Some(layout) &&
     @execution.preparation_representation_cost({
-      record_headers: layout.record_headers + request_layout.record_headers + 1L,
+      // Request execution wrapper: 1H/3R/4W + its original accounting
+      // Some: 1H/1R/1W; history: 1H with request + capture option.
+      // Optional capture/Some is 2H/3R/1W.
+      // The previous request Some and existing tuple/read carriers remain;
+      // the same typed request payload is not charged a second time.
+      record_headers: layout.record_headers +
+      request_layout.record_headers +
+      1L +
+      (if capture is Some(_) { 5L } else { 3L }),
       reference_slots: layout.reference_slots +
       request_layout.reference_slots +
-      8L,
-      scalar_words: layout.scalar_words + request_layout.scalar_words + 1L,
+      8L +
+      (if capture is Some(_) { 9L } else { 5L }),
+      scalar_words: layout.scalar_words + request_layout.scalar_words + 1L + 6L,
       owned_utf16_units: wire.length().to_int64(),
       owned_wire_bytes: 0L,
     })
@@ -661,6 +681,7 @@ pub fn begin_client_keyed_lookup_response(
     state.selected_key != Some(wire) {
     return keyed_lookup_fail(state.left, Assembly("unavailable_response"))
   }
+  state.pending_history = Some({ request, _retained_capture: capture, })
   let cursor = match
     @execution.start_admitted_presence_input_row(input, state.max_work, column => {
       @execution.supplied_relation_read_presence_cell(read, 0, column)
@@ -671,10 +692,8 @@ pub fn begin_client_keyed_lookup_response(
   state.copying = Some(cursor)
   state.pending_key = Some(wire)
   state.pending_read = Some(read)
-  // Borrow the original typed request beside its existing physical response.
-  // The row debit includes its full variable field/checked-wrapper carriers,
-  // not just the outer cached reference. Payloads stay on template/left owners.
-  state.pending_request = Some(request.request)
+  // The same original history already retains its typed Request and actual
+  // RowRun capture; no second per-key request/capture table is introduced.
   state.selected_request = None
   state.selected_key = None
   state.selected_index = None
@@ -725,12 +744,12 @@ pub fn advance_client_keyed_lookup_input(
             return Err(Assembly("row_cleanup"))
           }
           let key = state.pending_key.unwrap()
-          state.known.push((key, state.pending_request, Some(read)))
+          state.known.push((key, Some(read), state.pending_history))
           state.accepted += 1
           state.copying = None
           state.pending_key = None
           state.pending_read = None
-          state.pending_request = None
+          state.pending_history = None
         }
       }
     } else {
@@ -865,7 +884,7 @@ fn keyed_lookup_supplied_read(
         state.left.lookup_issue is None &&
         client_keyed_left_available(state.left) &&
         state.known.all(entry => {
-          entry.2
+          entry.1
           .map(@execution.supplied_relation_read_available)
           .unwrap_or(false)
         }) &&
@@ -1062,7 +1081,7 @@ pub fn cleanup_client_keyed_lookup_input(
   }
   state.pending_key = None
   state.pending_read = None
-  state.pending_request = None
+  state.pending_history = None
   state.selected_request = None
   state.selected_key = None
   state.selected_index = None
