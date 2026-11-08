@@ -130,6 +130,13 @@ fn common_grant_fields() -> Array[FieldSpec] {
 ///|
 fn contract_spec(name : String) -> ContractSpec? {
   match name {
+    "native_file_content_read" =>
+      Some({
+        name,
+        version: "actql-native-file-content-read/0.1",
+        identity: "transport_cid",
+        fields: [],
+      })
     "request_key_set" =>
       Some({
         name,

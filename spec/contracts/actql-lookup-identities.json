@@ -3732,7 +3732,16 @@
       "path": "spec/contracts/actql-production-profile-schemas.json",
       "pointer": "/schemas/http_read_transport",
       "self_field": "transport_cid",
-      "schema_cid": "sha256:9d1b94d787b76a5e9ef6714bf9d44bc9c5edd42e3f9f60ffa106c9bc4ecb525c"
+      "schema_cid": "sha256:9d1b94d787b76a5e9ef6714bf9d44bc9c5edd42e3f9f60ffa106c9bc4ecb525c",
+      "implementations": {
+        "actql-native-file-content-read/0.1": {
+          "path": "spec/contracts/actql-production-profile-schemas.json",
+          "pointer": "/schemas/native_file_content_read",
+          "self_field": "transport_cid",
+          "schema_cid": "sha256:087884120840e8d5c74043dfd74af35ccb7b535d9a9e8c01d68a45f9afb76e08",
+          "selection": "Native declared-file keyed Content reader; same SourceView, physical provider and projection; not HTTP or query Source evidence"
+        }
+      }
     },
     "runtime_error": {
       "path": "spec/contracts/actql-protocol-schemas.json",

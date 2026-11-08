@@ -332,6 +332,22 @@ are retained; their CIDs never substitute for local_manifest_cid.
 
 ### Lookup acquisition identities
 
+The Native declared-file keyed Content reader uses the closed
+`actql-native-file-content-read/0.1` implementation profile. It binds the exact
+logical SourceView and request/response schema envelopes to the original
+physical file SourceView, item/key paths and Content projection fields. Local
+file location and live authority remain on the original installed provider;
+the profile is immutable DATA and grants neither access nor byte custody.
+The reader resolves the original Resource and checks the original version,
+then persists the actual Content before admitting its derived response row.
+The profile alone is not a lookup attempt receipt. Dispatch activation, raw
+capture, page adoption, accounting and currentness retain the same lookup
+history obligations as other read implementations. An HTTP profile and broad
+same-process query evidence cannot stand in for this Native binding. Unknown
+profile versions have no fallback.
+
+<!-- machine-import: ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/native_file_content_read sha256:087884120840e8d5c74043dfd74af35ccb7b535d9a9e8c01d68a45f9afb76e08 -->
+
 <!-- requirement-block: lookup-acquisition-identities.product-774467c23fbe lookup-acquisition-identities.product-4554f0d2d0bd lookup-acquisition-identities.product-7ea9da11d811 lookup-acquisition-identities.product-eaa3962db019 lookup-acquisition-identities.product-bf2864bb4433 lookup-acquisition-identities.product-2ac42b610ae9 lookup-acquisition-identities.product-354e1495b498 lookup-acquisition-identities.product-e655e0e2e3f2 -->
 The lookup identity registry fixes the five references in the existing
 `actql-lookup-evidence/0.1` schema. These are not aliases for a published Result
@@ -675,7 +691,7 @@ The auxiliary references have these exact targets, before final Invocation:
 
 | Reference | Contract and admission |
 | --- | --- |
-| transport_plan_cid | Registry transport_plan; adapter_contract_cid resolves the SourceView's checked read execution contract, HTTP production schema http_read_transport with self field transport_cid; not runtime SourceReadPlan |
+| transport_plan_cid | Registry transport_plan; adapter_contract_cid resolves the SourceView's checked read execution contract: HTTP http_read_transport or Native native_file_content_read, each with self field transport_cid; not runtime SourceReadPlan |
 | activation / adoption lifecycle refs | Registry activation / adoption, self_cid; authenticated durable slot ownership and cross-bindings above |
 | accounting / attempt_event lifecycle refs | Registry accounting / attempt_event, self_cid; same barrier, input/batch/slot and cumulative history |
 | raw_response_artifact_cid | Registry raw_response, self_cid; content_cid is SHA-256 of exact decoded response bytes and size_bytes is that byte length; wire and decoded accounting remain separate |
@@ -1340,7 +1356,7 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-lookup-identities.json#/evidence_slots sha256:d5257ad4c6368df06bdd720a132c1759b46ed0d3457b46e66e750b1f7f4aaa66
 ../../../spec/contracts/actql-lookup-identities.json#/reference_roles sha256:24dd3184553911026820fbf87b96d32ac3ce4fb4d256f069fe3d1c9d5533240d
 ../../../spec/contracts/actql-lookup-identities.json#/evidence_kinds sha256:98e11850d4899e992f5b2405ed2e160ed6037fef63e6f0fa02994d8fe3903913
-../../../spec/contracts/actql-lookup-identities.json#/external_contracts sha256:93c4120b39f30053b2713c6725675bc54c0c16dceefe82898fa8ba0d41f6fa1c
+../../../spec/contracts/actql-lookup-identities.json#/external_contracts sha256:d0af52232a41520502bfae7c7a51c0112f9f7bed75182e105c5bac53292d8bd9
 ../../../spec/contracts/actql-lookup-identities.json#/laws sha256:2fb2ee20393958ca02aa8e3aa66e6900efb02acc71e3aaaf7aa64ed285a8b5db
 ```
 <!-- lookup-identity-pins:end -->

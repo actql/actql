@@ -62,6 +62,18 @@ pub fn prepare_native_managed_relation_file_keyed_capture(
     Ok(_) => ()
     Err(issue) => return Err({ issue: Row(issue), owner: None, })
   }
+  if content is Some(input) &&
+    input.read_profile is Some(profile) &&
+    !native_file_keyed_read_profile_matches(
+      profile,
+      declaration,
+      source_ref,
+      physical,
+      input.fields,
+      input.content_utf8,
+    ) {
+    return Err({ issue: ForeignOriginal, owner: None, })
+  }
   prepare_native_relation_file_capture_original(
     arena,
     execution,

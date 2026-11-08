@@ -24,7 +24,8 @@
     "run_graph_receipt": "sha256:6a868ac5d876ee1c54c4e0d96b8a86e08dfb097afa0cfe37bf8c03be32d41aed",
     "control_token_contract": "sha256:9598f3a03a80d05513d05a5d57e6860b4cc7c82d3867c4e520825288eb084a5f",
     "control_token": "sha256:2a388b541a648dab8799ed93530d5a0b7fcca2c0cf84db69d18b5dca60bc9f3b",
-    "inference_barrier": "sha256:34f1a37cbaea973964f4cf84ca3806b2492df545b718042ad8057604c95cb6dd"
+    "inference_barrier": "sha256:34f1a37cbaea973964f4cf84ca3806b2492df545b718042ad8057604c95cb6dd",
+    "native_file_content_read": "sha256:087884120840e8d5c74043dfd74af35ccb7b535d9a9e8c01d68a45f9afb76e08"
   },
   "schemas": {
     "lookup_source": {
@@ -6985,7 +6986,108 @@
           "pattern": "^sha256:[0-9a-f]{64}$"
         }
       }
+    },
+    "native_file_content_read": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-native-file-content-read-0.1.json",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "source_view_contract_cid",
+        "physical_source_view_contract_cid",
+        "request_schema_cid",
+        "response_schema_cid",
+        "projection",
+        "transport_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-native-file-content-read/0.1"
+        },
+        "source_view_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "physical_source_view_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "request_schema_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "response_schema_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "projection": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "identity_field",
+            "name_field",
+            "version_field",
+            "media_type_field",
+            "content_utf8_field",
+            "path_field",
+            "items_path",
+            "key_path"
+          ],
+          "properties": {
+            "identity_field": {
+              "type": "string",
+              "minLength": 1
+            },
+            "name_field": {
+              "type": "string",
+              "minLength": 1
+            },
+            "version_field": {
+              "type": "string",
+              "minLength": 1
+            },
+            "media_type_field": {
+              "type": "string",
+              "minLength": 1
+            },
+            "content_utf8_field": {
+              "type": "string",
+              "minLength": 1
+            },
+            "path_field": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "items_path": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "key_path": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "transport_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
     }
   },
-  "registry_cid": "sha256:b432e852de16d333629e235cc36d35844124182f7ed24582db2342cb0621706f"
+  "registry_cid": "sha256:6882885bd5ac1840127d0bc4177949e8b8dbe561dba050d17f7764e14db4f4f8"
 }

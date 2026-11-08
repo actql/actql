@@ -3,7 +3,7 @@
 
 ///|
 fn generated_protocol_schema_nodes() -> Array[ProtocolSchemaRule] {
-  let nodes : Array[ProtocolSchemaRule] = Array(capacity=7983)
+  let nodes : Array[ProtocolSchemaRule] = Array(capacity=8022)
   generated_protocol_schema_nodes_0(nodes)
   generated_protocol_schema_nodes_1(nodes)
   generated_protocol_schema_nodes_2(nodes)
@@ -12,6 +12,7 @@ fn generated_protocol_schema_nodes() -> Array[ProtocolSchemaRule] {
   generated_protocol_schema_nodes_5(nodes)
   generated_protocol_schema_nodes_6(nodes)
   generated_protocol_schema_nodes_7(nodes)
+  generated_protocol_schema_nodes_8(nodes)
   nodes
 }
 
@@ -21974,6 +21975,128 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
+  nodes.push(
+    protocol_string_rule(Some("actql-native-file-content-read/0.1"), [], 0, 0),
+  )
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[1])
+  nodes.push(nodes[1])
+  nodes.push(nodes[1])
+  nodes.push(nodes[1])
+  nodes.push(nodes[1])
+  nodes.push(nodes[1])
+  nodes.push(nodes[122])
+  nodes.push(AnyOfRule([7993, 7994]))
+  nodes.push(nodes[1])
+  nodes.push(protocol_array_rule(7996, 0, false, -1))
+  nodes.push(nodes[1])
+  nodes.push(protocol_array_rule(7998, 0, false, -1))
+}
+
+///|
+fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit {
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("identity_field", 7988),
+        ("name_field", 7989),
+        ("version_field", 7990),
+        ("media_type_field", 7991),
+        ("content_utf8_field", 7992),
+        ("path_field", 7995),
+        ("items_path", 7997),
+        ("key_path", 7999),
+      ],
+      [
+        "identity_field", "name_field", "version_field", "media_type_field", "content_utf8_field",
+        "path_field", "items_path", "key_path",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("version", 7983),
+        ("source_view_contract_cid", 7984),
+        ("physical_source_view_contract_cid", 7985),
+        ("request_schema_cid", 7986),
+        ("response_schema_cid", 7987),
+        ("projection", 8000),
+      ],
+      [
+        "version", "source_view_contract_cid", "physical_source_view_contract_cid",
+        "request_schema_cid", "response_schema_cid", "projection",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[7983])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[1])
+  nodes.push(nodes[1])
+  nodes.push(nodes[1])
+  nodes.push(nodes[1])
+  nodes.push(nodes[1])
+  nodes.push(nodes[1])
+  nodes.push(nodes[122])
+  nodes.push(AnyOfRule([8012, 8013]))
+  nodes.push(nodes[1])
+  nodes.push(protocol_array_rule(8015, 0, false, -1))
+  nodes.push(nodes[1])
+  nodes.push(protocol_array_rule(8017, 0, false, -1))
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("identity_field", 8007),
+        ("name_field", 8008),
+        ("version_field", 8009),
+        ("media_type_field", 8010),
+        ("content_utf8_field", 8011),
+        ("path_field", 8014),
+        ("items_path", 8016),
+        ("key_path", 8018),
+      ],
+      [
+        "identity_field", "name_field", "version_field", "media_type_field", "content_utf8_field",
+        "path_field", "items_path", "key_path",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("version", 8002),
+        ("source_view_contract_cid", 8003),
+        ("physical_source_view_contract_cid", 8004),
+        ("request_schema_cid", 8005),
+        ("response_schema_cid", 8006),
+        ("projection", 8019),
+        ("transport_cid", 8020),
+      ],
+      [
+        "version", "source_view_contract_cid", "physical_source_view_contract_cid",
+        "request_schema_cid", "response_schema_cid", "projection", "transport_cid",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
 }
 
 ///|
@@ -22128,6 +22251,8 @@ fn generated_protocol_schema_root(name : String, complete : Bool) -> Int? {
     ("installation_publication_storage_binding", true) => Some(7441)
     ("request_key_set", false) => Some(7711)
     ("request_key_set", true) => Some(7982)
+    ("native_file_content_read", false) => Some(8001)
+    ("native_file_content_read", true) => Some(8021)
     _ => None
   }
 }
