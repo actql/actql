@@ -843,6 +843,17 @@ physical profile refuses before Source/Effect installation identity reads,
 credentials, Provider registration or Store opening. Rejecting that missing
 supplier is not implementation or public acceptance of the full mock journey.
 
+The Native initialization query reports implementation availability only. The
+closed Mock Project execution branch additionally requires the same Command's
+retained Project and exact declaration original, completed Source/Model
+preparation without an original failure, and its current original physical
+Read after those constructors. Standalone declaration intake and an equal
+separately read Project cannot supply that association. This branch continues
+through the existing Account, Request, Plan, Journal and physical Owners; the
+availability reply supplies none of their authority or cleanup acknowledgements.
+Source-free installed acceptance records available Mock implementation as
+unmeasured and retains its no-write refusal cases for an unavailable reply.
+
 The Local entry detaches this Host-only choice from the SDK transport options;
 it does not add a profile field to the public connection wire. It captures the
 original requested value once before awaits, under an explicit 65536-code-unit

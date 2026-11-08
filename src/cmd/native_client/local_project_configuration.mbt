@@ -256,7 +256,7 @@ fn local_project_binding_implementation(
   profile : String?,
   mock_inputs : Bool,
 ) -> Bool {
-  profile is None && !mock_inputs
+  (profile is None && !mock_inputs) || (profile == Some("mock") && mock_inputs)
 }
 
 ///|
@@ -277,8 +277,25 @@ fn local_project_require_supported_profile(
     return
   }
   let metadata = selected.metadata
-  if metadata.lock_file() is Some(_) ||
-    !local_project_binding_implementation(
+  if metadata.lock_file() is Some(_) {
+    stop("LocalProjectBindingsUnavailable")
+  }
+  if selected.profile == Some("mock") {
+    // Availability DATA is not a selected installation. Only the exact closed
+    // declaration original may reach the existing Command's Mock assembler.
+    guard selected.mock_declarations is Some(mock) &&
+      !mock.closing &&
+      !mock.retired &&
+      @run_host.client_project_profile_matches(
+        mock.profile,
+        Some(metadata),
+        selected.profile,
+      ) else {
+      stop("LocalProjectBindingsUnavailable")
+    }
+    return
+  }
+  if !local_project_binding_implementation(
       selected.profile,
       metadata.mock_catalog_file() is Some(_) ||
       metadata.mock_data_file() is Some(_) ||
@@ -300,6 +317,36 @@ fn local_project_require_execution_bindings(
     return
   }
   let metadata = selected.metadata
+  if selected.profile == Some("mock") {
+    // prepare_project_input already retained these SAME declarations before
+    // their fallible Source/Model construction. No standalone intake, equal
+    // copy or availability reply may stand in for that live Command Read.
+    guard selected.mock_declarations is Some(mock) &&
+      mock.sources_started &&
+      mock.model_started &&
+      mock.model_failure is None &&
+      mock.model_profile is Some(_) &&
+      command_preparation_invocation.val is Some(original) &&
+      !original.closing &&
+      !original.closed &&
+      original.primary is None &&
+      original.project is Some(retained) &&
+      retained.mock_declarations is Some(retained_mock) &&
+      physical_equal(mock, retained_mock) &&
+      physical_equal(metadata, retained.metadata) &&
+      original.host is Some(host) &&
+      original.read is Some(read) else {
+      stop("LocalProjectBindingsUnavailable")
+    }
+    match local_project_input_read_current(host, read, original.pair) {
+      Ok(_) => ()
+      Err(issue) => {
+        original.retain_primary(issue)
+        stop("LocalProjectBindingsUnavailable")
+      }
+    }
+    return
+  }
   if metadata.connectors_file() is Some(_) ||
     metadata.model_tasks_file() is Some(_) {
     guard selected.source_free_bindings is Some(bindings) &&
@@ -340,8 +387,8 @@ fn local_project_read_execution_bindings(
     return Ok(selected)
   }
   // Intake the exact public Mock documents independently of installation.
-  // The later execution gate remains closed until the real same-Request
-  // Source/Model/Effect assembler exists; these DATA cannot select live mode.
+  // The later execution gate requires the same retained Command and prepared
+  // Source/Model originals; declaration DATA cannot select a live installation.
   let metadata = project.metadata
   if project.profile == Some("mock") &&
     metadata.lock_file() is None &&

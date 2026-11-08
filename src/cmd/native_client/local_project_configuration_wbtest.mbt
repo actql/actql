@@ -636,7 +636,8 @@ test "saved default selection never replaces explicit Remote or reference-file r
 ///|
 test "project init support is implementation data and acquires no command original" {
   assert_true(local_project_binding_implementation(None, false))
-  assert_false(local_project_binding_implementation(Some("mock"), true))
+  assert_true(local_project_binding_implementation(Some("mock"), true))
+  assert_false(local_project_binding_implementation(Some("mock"), false))
   assert_false(local_project_binding_implementation(None, true))
   assert_false(local_project_binding_implementation(Some("other"), false))
   let matches = command().parse(argv=[
@@ -649,7 +650,7 @@ test "project init support is implementation data and acquires no command origin
   assert_eq(
     reply.val,
     Some(
-      "{\"version\":\"actql-project-init-support/0.1\",\"sourceFree\":true,\"mock\":false}",
+      "{\"version\":\"actql-project-init-support/0.1\",\"sourceFree\":true,\"mock\":true}",
     ),
   )
   assert_true(command_preparation_invocation.val is None)
@@ -726,8 +727,9 @@ test "Native Project Mock reads exact public declarations and retains same typed
   )
   assert_true(value._retained_data_file.has_suffix("/mock/data.json"))
   assert_true(answers.contains("006Globex"))
-  // Declaration intake does not advertise or accept an unassembled runtime.
-  assert_false(local_project_binding_implementation(Some("mock"), true))
+  // Implementation availability does not turn standalone declaration intake
+  // into the SAME retained Command/Source/Model preparation.
+  assert_true(local_project_binding_implementation(Some("mock"), true))
   assert_true(
     try {
       local_project_apply_selection(matches, Some(selected))
