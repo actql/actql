@@ -83,6 +83,30 @@ test('local Core adapter runs complete unpartitioned coverage for the hosted Nat
   assert.equal(readFileSync(join(f.root, 'calls'), 'utf8'), 'native:\njs:\nwasm:\n');
 });
 
+test('local Core adapter keeps full coverage without inventing or inheriting a hosted Moon plan', t => {
+  const f = fixture(t), path = join(f.root, '.github/workflows/ci.yml');
+  const workflow = JSON.parse(readFileSync(path, 'utf8'));
+  workflow.jobs.core.steps = [{name:'original full local selection',
+    env:{CI_PLAN:'${{ needs.select-targets.outputs.plan }}'},
+    run:'if [ "${{ needs.select-targets.outputs.moon_test_selection }}" = true ]; then exit 99; fi\n' +
+      'printf "%s:%s\\n" "${{ matrix.target }}" "$CI_PLAN" >> calls'}];
+  writeFileSync(path, JSON.stringify(workflow));
+  for (const target of ['native', 'js', 'wasm']) {
+    const result = f.run(['run', 'core', '--target', target, '--allow-heavy'],
+      {CI_PLAN:'{"selection":{"moonTests":{"foreign":true}}}'});
+    assert.equal(result.status, 0, result.stderr);
+  }
+  assert.equal(readFileSync(join(f.root, 'calls'), 'utf8'), 'native:\njs:\nwasm:\n');
+  for (const value of ['${{ needs.other.outputs.plan }}', '{"selection":{"moonTests":{}}}']) {
+    workflow.jobs.core.steps[0].env.CI_PLAN = value;
+    writeFileSync(path, JSON.stringify(workflow));
+    const refused = f.run(['run', 'core', '--target', 'js', '--allow-heavy']);
+    assert.equal(refused.status, 2);
+    assert.match(refused.stderr, /local CI must retain complete coverage/u);
+  }
+  assert.equal(readFileSync(join(f.root, 'calls'), 'utf8'), 'native:\njs:\nwasm:\n');
+});
+
 test('local Core adapter refuses a literal half or unfamiliar partition instead of narrowing coverage', t => {
   const f = fixture(t), path = join(f.root, '.github/workflows/ci.yml');
   const workflow = JSON.parse(readFileSync(path, 'utf8'));
