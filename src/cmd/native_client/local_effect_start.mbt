@@ -183,7 +183,7 @@ fn local_effect_prepare_start_with_clocks(
   epoch_now : () -> Double,
   business? : LocalCommandBusinessPreparation? = None,
 ) -> LocalEffectPreflightStatus raise ClientStop {
-  if !local_submit_allowed(host, settings, crypto, scope) {
+  if !local_submit_allowed(host, settings, crypto, scope, business~) {
     stop("LocalSubmissionAuthorizationDenied")
   }
   let request_id = @local_host.native_client_submission_request_id(reference)
@@ -219,7 +219,7 @@ fn local_effect_prepare_start_with_clocks(
             )
         }) {
         Ok(Accepted(_)) => {
-          if !local_submit_allowed(host, settings, crypto, scope) {
+          if !local_submit_allowed(host, settings, crypto, scope, business~) {
             stop("LocalSubmissionAuthorizationDenied")
           }
           return AlreadyAccepted
@@ -309,7 +309,7 @@ fn local_effect_prepare_start_with_clocks(
     !@source_owner.resident_effect_source_compute_shape_supported(bound) {
     stop("LocalEffectSourceExecutionProfileNotSupported")
   }
-  if !local_submit_allowed(host, settings, crypto, scope) {
+  if !local_submit_allowed(host, settings, crypto, scope, business~) {
     stop("LocalSubmissionAuthorizationDenied")
   }
   if native_model && business is Some(selected) && policy is Some(binding) {
