@@ -10,7 +10,7 @@ struct ClientKeyedLookupInput {
   max_bytes : Int
   max_work : Int
   mut retained_bytes : Int64
-  execution_bytes : Int64
+  mut execution_bytes : Int64
   mut growing : Bool
   rows : Int
   mut input : @execution.AdmittedInput?
@@ -42,15 +42,10 @@ fn keyed_lookup_layout_capacity(
   if rows < 0L || rows > 2147483647L || max_bytes < 1 || max_work < 1 {
     return None
   }
-  // Only the actual input's row containers live beyond each copy. Immutable
-  // response payloads remain under their original RowRun holdings; request,
-  // decode and identity buffers belong to the one execution workspace.
-  Some(
-    (
-      rows * 64L + 4096L,
-      max_work.to_int64() * 32L + max_bytes.to_int64() * 8L + 4096L,
-    ),
-  )
+  // Initial controls and empty append buffers only. Policy ceilings and the
+  // complete left row count allocate no payload here. The original request
+  // cursor and each actual response grow this SAME reservation below.
+  Some((4096L, 4096L))
 }
 
 ///|
@@ -201,6 +196,105 @@ fn start_client_keyed_lookup_input_owned(
     identity: None,
     closed: false,
   })
+}
+
+///|
+// The existing SourceView cursor reports the NEXT actual construction before
+// emitting it. Keep the original policy/node/depth limits; grow only its real
+// cursor/fragment and accumulated key, with no second serializer or Ledger.
+fn keyed_lookup_request_wire(
+  state : ClientKeyedLookupInput,
+  request : ClientKeyedRequest,
+) -> Result[String, ClientKeyedRequestIssue] {
+  if !client_keyed_request_matches_acquisition(request, state.left.acquisition) {
+    return Err(ForeignLeft)
+  }
+  let mut wire = ""
+  let start = @acquisition.keyed_request_wire_start_inventory()
+  match keyed_lookup_grow_wire(state, start, 0) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let cursor = match
+    @acquisition.start_keyed_request_wire(
+      request.request,
+      state.max_bytes,
+      10000,
+      100,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Wire(issue))
+  }
+  defer @acquisition.cancel_keyed_request_wire(cursor)
+  while true {
+    guard @acquisition.keyed_request_wire_next_inventory(cursor) is Some(next) else {
+      return Err(Assembly("wire_closed"))
+    }
+    match keyed_lookup_grow_wire(state, next, wire.length()) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+    match @acquisition.advance_keyed_request_wire(cursor) {
+      @acquisition.WireContinue => ()
+      @acquisition.WireFragment(fragment) => wire += fragment
+      @acquisition.WireComplete(_, _, _) => return Ok(wire)
+      @acquisition.WireFailed(issue) => return Err(Wire(issue))
+    }
+  } nobreak {
+    Err(Assembly("wire_unavailable"))
+  }
+}
+
+///|
+fn keyed_lookup_grow_wire(
+  state : ClientKeyedLookupInput,
+  next : @acquisition.KeyedRequestWireInventory,
+  accumulated : Int,
+) -> Result[Unit, ClientKeyedRequestIssue] {
+  if state.closed || state.growing || state.left.lookup_issue is Some(_) {
+    return Err(Assembly("wire_unavailable"))
+  }
+  let text = accumulated.to_int64() + next.fragment_bytes.to_int64()
+  guard @execution.preparation_representation_cost({
+      record_headers: next.record_headers + 3L,
+      reference_slots: next.reference_slots + 3L,
+      scalar_words: next.scalar_words + 3L,
+      owned_utf16_units: next.owned_utf16_units + 3L * text,
+      owned_wire_bytes: 0L,
+    })
+    is Some(construction) else {
+    return Err(Assembly("capacity_overflow"))
+  }
+  keyed_lookup_grow_execution(state, 4096L + construction)
+}
+
+///|
+fn keyed_lookup_grow_execution(
+  state : ClientKeyedLookupInput,
+  construction : Int64,
+) -> Result[Unit, ClientKeyedRequestIssue] {
+  let needed = Int64::max(state.execution_bytes, construction)
+  if needed == state.execution_bytes {
+    return Ok(())
+  }
+  state.growing = true
+  let grown = @resources.grow_execution_reservation_capacity(
+    state.ledger,
+    state.reservation,
+    state.retained_bytes,
+    needed,
+  )
+  state.growing = false
+  match grown {
+    Err(issue) => return keyed_lookup_fail(state.left, Physical(issue))
+    Ok(_) => state.execution_bytes = needed
+  }
+  if state.closed ||
+    state.left.lookup_issue is Some(_) ||
+    !client_keyed_left_available(state.left) {
+    return keyed_lookup_fail(state.left, Assembly("wire_unavailable"))
+  }
+  Ok(())
 }
 
 ///|
@@ -359,8 +453,7 @@ fn keyed_lookup_input_request(
       request.assembly_accounting = Some(state)
     }
   }
-  let wire = match
-    client_keyed_request_wire(request, state.max_bytes, 10000, 100) {
+  let wire = match keyed_lookup_request_wire(state, request) {
     Ok(wire) => wire
     Err(issue) => return Err(issue)
   }
@@ -474,7 +567,7 @@ pub fn begin_client_keyed_lookup_response(
   )
   // Fund the two row/presence pointer arrays and their growth overlap. Cells
   // borrow immutable admitted payloads; they do not copy the child value tree.
-  let extra = columns.to_int64() * 32L + wire.length().to_int64() * 2L
+  let extra = 256L + columns.to_int64() * 32L + wire.length().to_int64() * 2L
   if extra > 9223372036854775807L - state.retained_bytes {
     return Err(Assembly("capacity_overflow"))
   }
@@ -589,6 +682,36 @@ pub fn finish_client_keyed_lookup_input(
   if state.completed is None {
     guard state.input is Some(input) else {
       return Err(Assembly("closed_input"))
+    }
+    // Admission has already counted the actual value nodes, names and text.
+    // Its consumed work bounds the hashing writer's simultaneously live keys;
+    // the complete policy ceiling allocates no Map. Empty inputs still need
+    // their actual schema permutation. Both grow BEFORE finishing/hashing.
+    let response_input = @query.keyed_response_input_index(
+      state.left.acquisition.owner,
+      state.left.acquisition.binding.join,
+    ).unwrap()
+    let columns = @schema.field_count(
+      @lower.preparation_input_schema(
+        @lower.bound_preparation(state.left.acquisition.owner),
+        response_input,
+      ).unwrap(),
+    )
+    let nodes = Int::max(@execution.admitted_input_work(input), columns)
+    guard @encode.hash_writer_construction_inventory(nodes, 100) is Some(hash) &&
+      @execution.preparation_representation_cost({
+        record_headers: hash.record_headers,
+        reference_slots: hash.reference_slots,
+        scalar_words: hash.scalar_words,
+        owned_utf16_units: hash.owned_utf16_units,
+        owned_wire_bytes: hash.owned_wire_bytes,
+      })
+      is Some(identity_bytes) else {
+      return Err(Assembly("capacity_overflow"))
+    }
+    match keyed_lookup_grow_execution(state, 4096L + identity_bytes) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
     }
     let rows = match @execution.finish_admitted_input(input) {
       Ok(value) => value

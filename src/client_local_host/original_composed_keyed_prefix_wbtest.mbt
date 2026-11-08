@@ -60,6 +60,7 @@ fn original_composed_keyed_consumer(
   native_keyed? : Bool = false,
   keyed_start_observer? : ((ClientInstalledKeyedSourceRead) -> Unit)? = None,
   retained_input_root? : Bool = false,
+  large_lookup_policy? : Bool = false,
 ) -> Unit raise {
   let (declaration, keyed_environment) = original_keyed_declaration_environment(
     relation_versions=true,
@@ -748,9 +749,20 @@ fn original_composed_keyed_consumer(
     complete_client_original_composed_keyed_prefix(original, 10000, 4096)
     is Err(_),
   )
+  let before_lookup = @resources.ledger_usage(ledger)
   let lookup = match
     @publication_host.start_client_original_composed_keyed_lookup_input(
-      left, 4096, 10000,
+      left,
+      if large_lookup_policy {
+        2147483647
+      } else {
+        4096
+      },
+      if large_lookup_policy {
+        2147483647
+      } else {
+        10000
+      },
     ) {
     Ok(value) => value
     Err(issue) => {
@@ -764,6 +776,22 @@ fn original_composed_keyed_consumer(
     }
   }
 
+  if large_lookup_policy {
+    let after_lookup = @resources.ledger_usage(ledger)
+    // The two actual empty assembly buffers fit the existing small fixture
+    // allowance even with large logical quotas. The complete expected keyed
+    // input/Model mapping below still executes; no row or byte cap is lowered.
+    assert_true(
+      after_lookup.reserved_execution_bytes -
+      before_lookup.reserved_execution_bytes <
+      1048576L,
+    )
+    assert_true(
+      after_lookup.reserved_retention_bytes -
+      before_lookup.reserved_retention_bytes <
+      1048576L,
+    )
+  }
   assert_true(
     @publication_host.client_composed_keyed_lookup_matches_model_parent(
       lookup,
@@ -1653,4 +1681,9 @@ test "restored Whole inputs preserve two dependent Model Source snapshots" {
 ///|
 test "original composed keyed root maps its retained input originals without a duplicate producer vector" {
   original_composed_keyed_consumer(retained_input_root=true)
+}
+
+///|
+test "large keyed logical quotas preserve actual input without an all-key upfront reservation" {
+  original_composed_keyed_consumer(whole=true, large_lookup_policy=true)
 }

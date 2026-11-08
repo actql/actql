@@ -230,19 +230,12 @@ fn LocalCommandBusinessPreparation::capture_mock_effect_content(
       guard response_bytes > 0L && response_bytes <= 2147483647L else {
         stop("LocalOriginalModelKeyedCapacityUnavailable")
       }
-      // One page remains a valid construction window for an empty left side;
-      // it neither invents a response nor changes that original zero row count.
-      let assembly = @execution.checked_preparation_add_product(
-        0L,
-        Int::max(1, rows).to_int64(),
-        response_bytes,
-      ).unwrap_or_else(() => stop("LocalOriginalModelKeyedCapacityUnavailable"))
-      guard assembly > 0L && assembly <= 2147483647L else {
-        stop("LocalOriginalModelKeyedCapacityUnavailable")
-      }
+      // Preserve the original finite whole-input codec policy. A number of
+      // future keys times their per-page maxima is neither current material
+      // nor an input limit. The SAME lookup grows its actual construction.
       let lookup = @run_host.start_client_original_composed_keyed_lookup_input(
         left,
-        assembly.to_int(),
+        limits.identity.wire.max_bytes,
         limits.output_work,
       ).unwrap_or_else(() => stop("LocalOriginalModelKeyedLookupUnavailable"))
       state.lookup = Some(lookup)
