@@ -314,7 +314,9 @@ pub fn NativeClientMockModelWork::local_effect_invocation(
   max_nodes : Int,
   max_depth : Int,
 ) -> @host.ClientEffectLocalInvocation? {
-  guard !self.closing && !self.closed && !self.advancing &&
+  guard !self.closing &&
+    !self.closed &&
+    !self.advancing &&
     self.local_observation is Some(observation) else {
     return None
   }

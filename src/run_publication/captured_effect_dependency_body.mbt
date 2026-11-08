@@ -19,14 +19,18 @@ pub fn local_model_observation_matches_input(
 ) -> Bool {
   body.node.kind == "local_model_observation" &&
   input.name == "model_input_artifact" &&
-  evidence_string(body.value, "unit_definition_cid") == Some(unit_definition_cid) &&
-  model_scope_count(body.value, "source_ordinal") == Some(source_ordinal.to_int64()) &&
-  evidence_string(input.value, "unit_definition_cid") == Some(unit_definition_cid) &&
-  model_scope_count(input.value, "source_ordinal") == Some(source_ordinal.to_int64()) &&
+  evidence_string(body.value, "unit_definition_cid") ==
+  Some(unit_definition_cid) &&
+  model_scope_count(body.value, "source_ordinal") ==
+  Some(source_ordinal.to_int64()) &&
+  evidence_string(input.value, "unit_definition_cid") ==
+  Some(unit_definition_cid) &&
+  model_scope_count(input.value, "source_ordinal") ==
+  Some(source_ordinal.to_int64()) &&
   evidence_string(body.value, "input_logical_relation_cid") ==
-    evidence_string(input.value, "logical_relation_cid") &&
+  evidence_string(input.value, "logical_relation_cid") &&
   evidence_string(body.value, "input_relation_schema_cid") ==
-    evidence_string(input.value, "relation_schema_cid")
+  evidence_string(input.value, "relation_schema_cid")
 }
 
 ///|

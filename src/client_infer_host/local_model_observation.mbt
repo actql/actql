@@ -264,8 +264,12 @@ pub fn issue_original_local_model_effect_invocation(
     return None
   }
   let invocation = @publication_host.issue_single_model_client_effect_local_invocation(
-    value.issued.state.compiled, scope, value.body,
-    max_wire_bytes, max_nodes, max_depth,
+    value.issued.state.compiled,
+    scope,
+    value.body,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
   ).to_option()
   if original_local_model_observation_current(value.held, value.issued) {
     invocation
