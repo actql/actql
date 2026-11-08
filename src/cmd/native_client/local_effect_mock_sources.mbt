@@ -56,16 +56,21 @@ fn LocalCommandBusinessPreparation::capture_mock_effect_sources(
   state.source_started_at = Some(local_utc_now())
   for index, selected in first._retained_sources {
     let declaration = selected._retained_source._retained_declaration
-    let source_ref = match selected._retained_reader {
-      Rows(binding) => binding.view.source_ref
+    let resource = match selected._retained_reader {
+      Rows(binding) => binding.view.resource
       Files(file, listing) =>
         file._retained_listings
         .iter()
         .find_first(pair => physical_equal(pair.0, listing))
-        .unwrap_or_else(() => stop("LocalOriginalSourceUnavailable")).1.listing.source_ref
+        .unwrap_or_else(() => stop("LocalOriginalSourceUnavailable")).1.listing.resource
     }
     let authorize = () => {
-      match work.require_source_in_original_read(self.connection, source_ref) {
+      match
+        work.require_source_in_original_read(
+          self.connection,
+          selected._retained_source._retained_connection,
+          resource,
+        ) {
         Err(issue) => {
           self.original.retain_primary(CommandBusinessModel(issue))
           stop("LocalSourceAuthorizationUnavailable")

@@ -195,6 +195,15 @@ fn LocalCommandPreparationOriginal::close_business_children(
       Ok(_) => ()
     }
     if business.effect_model is Some(state) {
+      for target in state.targets {
+        match target.close() {
+          Err(issue) => return Err(issue)
+          Ok(false) => return Err(CommandBusinessChildren)
+          Ok(true) => ()
+        }
+      }
+      state.targets.clear()
+      state.targets.shrink_to_fit()
       // Sever this caller's output alias before the original Model releases it.
       // This is no physical ACK and does not clear any child obligation.
       if state.proposals is Some(proposals) {

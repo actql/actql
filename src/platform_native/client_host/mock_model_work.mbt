@@ -167,8 +167,9 @@ pub fn NativeClientMockModelWork::claim_start_in_original_read(
 /// boundary. No Source name, checked catalogue or retained token is an Allow.
 pub fn NativeClientMockModelWork::require_source_in_original_read(
   self : Self,
-  connection : String,
-  source_ref : String,
+  control_connection : String,
+  source_connection : String,
+  resource : String,
 ) -> Result[Unit, NativeClientMockModelIssue] {
   guard self.first_start is Some(first) && !self.closing && !self.closed else {
     return Err(ForeignOriginal)
@@ -181,20 +182,25 @@ pub fn NativeClientMockModelWork::require_source_in_original_read(
     let current = () => {
       !self.closing &&
       !self.closed &&
-      self.capture.operation_scope(host, material, self.principal, connection)
+      self.capture.operation_scope(
+        host,
+        material,
+        self.principal,
+        control_connection,
+      )
       is Ok(scope) &&
       scope == @host.client_request_authority_scope_cid(self.request) &&
       self.capture.operation_account(host, material, {
         principal: self.principal,
-        connection,
+        connection: control_connection,
         resource: "run",
         operation: "submit",
       })
       is Ok(@authorization.Allow(_)) &&
       self.capture.operation_account(host, material, {
         principal: self.principal,
-        connection,
-        resource: source_ref,
+        connection: source_connection,
+        resource,
         operation: "read",
       })
       is Ok(@authorization.Allow(_))
