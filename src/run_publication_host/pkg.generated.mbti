@@ -1535,6 +1535,8 @@ pub fn find_client_keyed_lookup_response(ClientKeyedLookupInput, ClientKeyedRequ
 
 pub fn finish_client_keyed_lookup_input(ClientKeyedLookupInput) -> Result[@execution_relation.SuppliedRelationRead, ClientKeyedRequestIssue]
 
+pub fn finish_client_keyed_lookup_publication_input(ClientKeyedLookupInput, Int, Int, Int) -> Result[@execution_relation.SuppliedRelationRead, ClientKeyedRequestIssue]
+
 pub fn finish_client_keyed_request_io(ClientKeyedRequest, Int64) -> Result[Unit, ClientKeyedRequestIssue]
 
 pub fn finish_client_model_read_inventory(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Bool) -> Result[Bool, ClientModelReadPreparationIssue]

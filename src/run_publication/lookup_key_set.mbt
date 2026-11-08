@@ -36,6 +36,43 @@ pub fn issue_lookup_request_key_set(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[PublicationContract, AcquisitionRelationIssue] {
+  build_lookup_request_key_set(
+    source_view_contract_cid, request_schema_cid, roles, tuples, max_bytes, max_nodes,
+    max_depth, false,
+  ).map(value => value.0)
+}
+
+///|
+/// Return the SAME key-set issuance and its original tuple permutation. All
+/// original occurrences remain in the permutation, including equal keys;
+/// only the key-set body deduplicates. The caller backs the scalar index array
+/// before entry and retains its actual input/response owners independently.
+pub fn issue_lookup_request_key_set_with_order(
+  source_view_contract_cid : String,
+  request_schema_cid : String,
+  roles : Array[(String, @contract.Contract)],
+  tuples : Array[Array[@admitted.CheckedValue]],
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[(PublicationContract, Array[Int]), AcquisitionRelationIssue] {
+  build_lookup_request_key_set(
+    source_view_contract_cid, request_schema_cid, roles, tuples, max_bytes, max_nodes,
+    max_depth, true,
+  )
+}
+
+///|
+fn build_lookup_request_key_set(
+  source_view_contract_cid : String,
+  request_schema_cid : String,
+  roles : Array[(String, @contract.Contract)],
+  tuples : Array[Array[@admitted.CheckedValue]],
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  retain_order : Bool,
+) -> Result[(PublicationContract, Array[Int]), AcquisitionRelationIssue] {
   if roles.is_empty() ||
     roles.length() > max_nodes ||
     tuples.length() > max_nodes {
@@ -72,7 +109,22 @@ pub fn issue_lookup_request_key_set(
     }
     ordered.push((keys, tuple))
   }
-  ordered.sort_by((a, b) => compare_lookup_key_orders(a.0, b.0))
+  let indices = if retain_order {
+    let indices = Array::makei(ordered.length(), index => index)
+    indices.sort_by((a, b) => {
+      let order = compare_lookup_key_orders(ordered[a].0, ordered[b].0)
+      if order == 0 {
+        a.compare(b)
+      } else {
+        order
+      }
+    })
+    indices
+  } else {
+    // Preserve the original key-set-only layout and constructor work.
+    ordered.sort_by((a, b) => compare_lookup_key_orders(a.0, b.0))
+    []
+  }
   let writer = @encode.writer(max_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)
   }
@@ -96,7 +148,12 @@ pub fn issue_lookup_request_key_set(
     @encode.key(writer, "tuples")
     @encode.begin_array(writer)
     let mut prior : Array[String]? = None
-    for (order, tuple) in ordered {
+    for position in 0..<ordered.length() {
+      let (order, tuple) = ordered[if retain_order {
+          indices[position]
+        } else {
+          position
+        }]
       if prior
         .map(value => compare_lookup_key_orders(value, order) == 0)
         .unwrap_or(false) {
@@ -119,7 +176,9 @@ pub fn issue_lookup_request_key_set(
   }
   seal_publication_contract(
     "request_key_set", body, max_bytes, max_nodes, max_depth,
-  ).map_err(issue => Contract(issue))
+  )
+  .map_err(issue => AcquisitionRelationIssue::Contract(issue))
+  .map(keys => (keys, indices))
 }
 
 ///|

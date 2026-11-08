@@ -448,9 +448,9 @@ fn LocalCommandBusinessPreparation::capture_mock_effect_content(
     })
   }
   self.original.with_business_request(self.capture, () => {
-    @run_host.finish_client_keyed_lookup_input(lookup).unwrap_or_else(() => {
-      stop("LocalOriginalContentAssemblyUnavailable")
-    })
+    @run_host.finish_client_keyed_lookup_publication_input(
+      lookup, 16384, 1024, 20,
+    ).unwrap_or_else(() => stop("LocalOriginalContentAssemblyUnavailable"))
     |> ignore
   })
 }

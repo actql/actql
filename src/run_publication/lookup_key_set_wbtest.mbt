@@ -235,3 +235,36 @@ test "keyed acquisition scope binds original Source static request and typed key
     "sha256:d0a87caff4a0a962b64be466199c6c3d9dc2de5cc6696bab85e907b9fa1ba920",
   )
 }
+
+///|
+test "one typed key-set issuance retains every original tuple index in canonical order" {
+  let number = @contract.primitive(@contract.NumberType, nullable=false)
+  let two = @admitted.checked_number_value(2.0, number).unwrap()
+  let ten = @admitted.checked_number_value(10.0, number).unwrap()
+  let (keys, order) = issue_lookup_request_key_set_with_order(
+    "sha256:" + "b".repeat(64),
+    "sha256:" + "a".repeat(64),
+    [("n", number)],
+    [[ten], [two], [two]],
+    10000,
+    1000,
+    30,
+  ).unwrap()
+  assert_eq(order, [1, 2, 0])
+  assert_eq(
+    keys.identity,
+    "sha256:8d392a85bd03bccd7e4859429fcc85e261d011c839e7406995ace51da0fccfc8",
+  )
+  assert_true(keys.wire.contains("\"tuples\":[[2],[10]]"))
+  let (empty, empty_order) = issue_lookup_request_key_set_with_order(
+    "sha256:" + "b".repeat(64),
+    "sha256:" + "a".repeat(64),
+    [("n", number)],
+    [],
+    10000,
+    1000,
+    30,
+  ).unwrap()
+  assert_true(empty_order.is_empty())
+  assert_true(empty.wire.contains("\"tuples\":[]"))
+}

@@ -62,6 +62,7 @@ fn original_composed_keyed_consumer(
   retained_input_root? : Bool = false,
   large_lookup_policy? : Bool = false,
   publication_identity? : Bool = false,
+  publication_early? : Bool = false,
 ) -> Unit raise {
   let (declaration, keyed_environment) = original_keyed_declaration_environment(
     relation_versions=true,
@@ -990,7 +991,13 @@ fn original_composed_keyed_consumer(
       break
     }
   }
-  let right = @publication_host.finish_client_keyed_lookup_input(lookup).unwrap()
+  let right = if publication_early {
+    @publication_host.finish_client_keyed_lookup_publication_input(
+      lookup, 16384, 1024, 20,
+    ).unwrap()
+  } else {
+    @publication_host.finish_client_keyed_lookup_input(lookup).unwrap()
+  }
   if publication_identity {
     let keys = match
       @publication_host.client_keyed_lookup_request_identity(
@@ -1002,6 +1009,16 @@ fn original_composed_keyed_consumer(
       Err(@publication_host.Assembly(reason)) =>
         fail("actual key-set assembly: " + reason)
       Err(_) => fail("actual key-set refused outside contract/assembly")
+    }
+    if publication_early {
+      assert_true(
+        physical_equal(
+          keys,
+          @publication_host.client_keyed_lookup_request_identity(
+            lookup, 16384, 1024, 20,
+          ).unwrap(),
+        ),
+      )
     }
     assert_true(
       @publication_host.client_keyed_lookup_request_identity_matches(
@@ -1753,4 +1770,13 @@ test "large keyed logical quotas preserve actual input without an all-key upfron
 ///|
 test "actual two Whole Sources retain the original keyed request identity through Model input and retire it" {
   original_composed_keyed_consumer(whole=true, publication_identity=true)
+}
+
+///|
+test "actual two Whole Sources prepare one canonical keyed publication input before original Model input" {
+  original_composed_keyed_consumer(
+    whole=true,
+    publication_identity=true,
+    publication_early=true,
+  )
 }

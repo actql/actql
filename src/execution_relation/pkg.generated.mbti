@@ -734,6 +734,8 @@ pub fn[P] finish_managed_verified_output(ManagedVerifiedOutputPort[P], P) -> Res
 
 pub fn[P, T] finish_managed_view_output(ManagedViewOutputPort[P, T], P) -> Result[ManagedOutputValueReceipt, ManagedViewOutputIssue]
 
+pub fn finish_ordered_admitted_input(AdmittedInput, Array[Int]) -> Result[CapturedRows, CaptureIssue]
+
 pub fn finish_relation_schema_identity(RelationSchemaIdentityPreparation) -> Result[RelationSchemaIdentity, RelationSchemaIdentityIssue]
 
 pub fn finish_retained_content_read(RetainedContentRead) -> Result[AdmittedOutputStreamReceipt, RetainedContentReadIssue]
