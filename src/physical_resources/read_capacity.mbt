@@ -134,6 +134,38 @@ pub fn grow_capacity_reservation(
 }
 
 ///|
+/// Shrink the SAME byte-only reservation after its owner has disposed of the
+/// returned workspace. This changes neither consumed history nor physical
+/// cleanup obligations, and leaves the original reservation open. Check the
+/// remainder after the original current callback, then use the existing closed
+/// resize path without another callback or an intervening reusable proof.
+pub fn shrink_capacity_reservation(
+  ledger : Ledger,
+  capacity : CapacityReservation,
+  retained : Int64,
+  execution : Int64,
+) -> Result[Unit, LedgerIssue] {
+  if retained < 0L || execution < 0L {
+    return Err(InvalidCharge)
+  }
+  let token = capacity.reservation
+  match reservation_check(ledger, token) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if retained > token.retention ||
+    execution > token.execution ||
+    token.attempt_reserved ||
+    token.attempt_started {
+    return Err(InvalidCharge)
+  }
+  if imported_child_fixed_capacity(ledger, token) {
+    return Err(ChildFundingUnavailable)
+  }
+  resize_capacity_reservation_current(ledger, capacity, retained, execution)
+}
+
+///|
 // Check an exact previously admitted byte-only token without exposing its
 // mutable inner reservation or creating transfer/quantity/send authority.
 pub fn capacity_reservation_matches(
