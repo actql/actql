@@ -165,6 +165,96 @@ test "HubSpot later response phase fits same-policy Ledger without dropping pref
 }
 
 ///|
+test "HubSpot wide selection survives parser phase with one allowed cell" {
+  let protocol = [
+    524288, 65536, 32, 256, 6003, 2, 4, 6, 2, 256, 128, 1, 65536, 262144, 16384,
+    32,
+  ]
+  let reader = [
+    524288, 3145728, 65536, 32, 2, 4, 6, 2, 128, 524288, 37264, 1, 65536, 262144,
+    16384, 32,
+  ]
+  let names = Array::makei(245, index => "wide_" + index.to_string())
+  let metadata = @utf8.encode(
+    "{\"results\":[" +
+    names
+    .map(name => {
+      "{\"name\":\"" + name + "\",\"type\":\"string\",\"fieldType\":\"text\"}"
+    })
+    .join(",") +
+    "]}",
+  )
+  let property_limits : @hubspot_catalog.PropertyLimits = {
+    max_bytes: 524288,
+    max_nodes: 65536,
+    max_depth: 32,
+    max_properties: 256,
+    max_name_units: 6003,
+  }
+  let staged = @hubspot_catalog.prepare_property_response_source(
+    metadata, "/crm/v3/properties/companies", "companies", property_limits,
+  )
+  let geometry = @hubspot_catalog.property_response_source_geometry_data(staged)
+  let catalog = @hubspot_catalog.consume_property_response_source(
+    staged, "/crm/v3/properties/companies", metadata,
+  ).unwrap()
+  // The one-cell limit does not bound the 245 selected tuples/contracts or
+  // seen Map: they exist before parsing, including this long unknown key.
+  let page = @utf8.encode(
+    "{\"results\":[],\"" + String::make(400000, 'k') + "\":0}",
+  )
+  let prefix = [15, metadata.length(), page.length()]
+  let quote = client_program_hubspot_source_reader_observed_capacity(
+    reader, 256, 4096, protocol, 37264, prefix, geometry,
+  ).unwrap()
+  let wider = protocol.copy()
+  wider[9] = 512
+  let wide_quote = client_program_hubspot_source_reader_observed_capacity(
+    reader, 512, 4096, wider, 37264, prefix, geometry,
+  ).unwrap()
+  let delta = @execution.execution_capacity_execution_bytes(wide_quote) -
+    @execution.execution_capacity_execution_bytes(quote)
+  // Existing sequence controls contribute twelve backing references/column.
+  // Each selected string additionally owns at least Contract, Text Shape,
+  // TextLimits and tuple headers before the parser; ignore their other
+  // words/refs and selection Array/Map here to form an independent floor.
+  let floor = @execution.preparation_representation_cost({
+    record_headers: 4L * 256L,
+    reference_slots: 12L * 256L,
+    scalar_words: 0L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).unwrap()
+  println("HubSpot parser selection delta=\{delta} independentFloor=\{floor}")
+  assert_true(delta >= floor)
+  let retained = @execution.execution_capacity_retained_bytes(quote)
+  let execution = @execution.execution_capacity_execution_bytes(quote)
+  let ledger = @resources.create_ledger({
+    planning_work: 1000000,
+    attempts: 16,
+    holdings: 16,
+    transfer_bytes: 10000000L,
+    retained_bytes: 536870912L,
+    execution_bytes: 536870912L,
+  }).unwrap()
+  let reservation = @resources.reserve_capacity(ledger, retained, execution).unwrap()
+  let projected = @hubspot_catalog.project_object_page(page, catalog, names, {
+    max_bytes: 524288,
+    max_nodes: 65536,
+    max_depth: 32,
+    max_rows: 2,
+    max_columns: 256,
+    max_cursor_units: 128,
+    max_value_nodes: 1,
+    max_value_text_bytes: 65536,
+  }).unwrap()
+  assert_eq(@hubspot_catalog.object_page_row_count(projected), 0)
+  assert_eq(@hubspot_catalog.object_page_columns(projected), names)
+  @hubspot_catalog.retire_property_response_source(staged)
+  @resources.settle_capacity(ledger, reservation).unwrap()
+}
+
+///|
 test "HubSpot final Properties phase fits same-policy Ledger without dropping prefixes" {
   let protocol = [
     524288, 65536, 32, 256, 6003, 2, 4, 6, 2, 256, 128, 16384, 65536, 262144, 16384,

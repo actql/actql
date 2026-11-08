@@ -206,7 +206,26 @@ fn source_read_capacity_with_geometry(
     // Empty/malformed bodies still retain their constructor controls. Bounds
     // cover both the normalizing Catalog and preserving Account/page paths.
     let b = Int::max(1, bytes)
-    guard initialization_decoded_construction(
+    // project_object_page builds selected/seen and every derived contract
+    // BEFORE entering the normalizing parser. max_value_nodes limits later
+    // cells, not these per-column originals. Keep this full closed contract
+    // family in BOTH phases, even when a later parse/cell would refuse.
+    guard @shape.collection_construction_extent({
+        // Per column: selected tuple; primitive TextLimits/Text/Contract or
+        // decimal/checkbox inner+outer contracts; lookup/Some/Result carriers.
+        // Names and PropertyMetadata are borrowed from the original Catalog.
+        records: 8L + 12L * columns,
+        record_references: 16L + 20L * columns,
+        record_words: 8L + 16L * columns,
+        reference_arrays: 1L,
+        reference_items: columns,
+        scalar_arrays: 0L,
+        scalar_items: 0L,
+        maps: 1L,
+        map_entries: columns,
+      })
+      is Some(selection) &&
+      initialization_decoded_construction(
         b,
         Int::max(1, n),
         Int::min(Int::max(1, n), limits[2]),
@@ -260,13 +279,7 @@ fn source_read_capacity_with_geometry(
     guard source_normalization_phase_capacity(
         parsed,
         b,
-        {
-          record_headers: 0L,
-          reference_slots: 0L,
-          scalar_words: 0L,
-          owned_utf16_units: 0L,
-          owned_wire_bytes: 0L,
-        },
+        initialization_collection_units(selection),
         [initialization_collection_units(values), writer, projected],
       )
       is Some(current) &&

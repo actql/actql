@@ -323,7 +323,7 @@
     },
     {
       "module": "src/connectors/hubspot/catalog/source_read_construction.mbt",
-      "sha256": "638b073b428f2da9448dda1909a5e1d568dab5b01eff3e973a63ee5951ef67e0",
+      "sha256": "1ca1679961bafdd7936e28da8d32cbee15d744b8867270967974920be7f5b9df",
       "exports": [],
       "operations": [
         {
