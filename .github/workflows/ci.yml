@@ -1538,14 +1538,31 @@ jobs:
       - name: Test packed Sheets
         if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
         run: node scripts/test-packed-sheets.mjs
-      - name: Test packed connector record approval and original Saved
+      - name: Test packed HubSpot record approval and original Saved
         if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
         env:
           ACTQL_TEST_PRESERVE_SCRATCH: '1'
-        run: |
-          for selection in --approval --kintone-approval --mock-salesforce-approval --mock-hubspot-approval --mock-kintone-approval; do
-            node scripts/test-packed-hubspot-source.mjs --ci "$selection"
-          done
+        run: node scripts/test-packed-hubspot-source.mjs --ci --approval
+      - name: Test packed kintone record approval and original Saved
+        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        env:
+          ACTQL_TEST_PRESERVE_SCRATCH: '1'
+        run: node scripts/test-packed-hubspot-source.mjs --ci --kintone-approval
+      - name: Test packed Salesforce mock approval and original Saved
+        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        env:
+          ACTQL_TEST_PRESERVE_SCRATCH: '1'
+        run: node scripts/test-packed-hubspot-source.mjs --ci --mock-salesforce-approval
+      - name: Test packed HubSpot mock approval and original Saved
+        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        env:
+          ACTQL_TEST_PRESERVE_SCRATCH: '1'
+        run: node scripts/test-packed-hubspot-source.mjs --ci --mock-hubspot-approval
+      - name: Test packed kintone mock approval and original Saved
+        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        env:
+          ACTQL_TEST_PRESERVE_SCRATCH: '1'
+        run: node scripts/test-packed-hubspot-source.mjs --ci --mock-kintone-approval
       - name: Test packed Embedded Local Checkpoint and Named Result
         if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
         run: npm run check:packed-embedded-checkpoint
