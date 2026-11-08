@@ -14,7 +14,11 @@ test "original Source capture remains held beside the same Scope read until both
   let execution = @row_source_host.row_acquisition_execution_capacity(
     acquisition,
   )
-  assert_eq(retention, 26404096L)
+  // The two original unqualified names need an allowance for two 16-byte
+  // Array headers and up to four 8-byte backing references, beside the
+  // unchanged wires and original-read allowance.
+  let record_names = 2L * 16L + 4L * 8L
+  assert_eq(retention, 26404096L + record_names)
   let page = @utf8.encode(
     "[{\"id\":2,\"amount\":null},{\"id\":1,\"amount\":7}]",
   )
@@ -111,11 +115,11 @@ test "original Source capture remains held beside the same Scope read until both
   let pending = @resources.ledger_usage(ledger)
   assert_eq(pending.held_bytes, 22404184L)
   assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 10L)
-  // Total 26404106 minus the Source holding 22404184 and two live read
-  // reservations (3 + 7) leaves exactly 3999912. One more must fail without
-  // returning the original allowance or changing usage/serial/custody.
+  // Total 26404106 + record_names minus the Source holding 22404184 and
+  // two live read reservations (3 + 7) leaves 3999912 + record_names.
+  // One more must fail without changing usage/serial/custody.
   assert_true(
-    @resources.reserve_capacity(ledger, 3999913L, 0L)
+    @resources.reserve_capacity(ledger, 3999913L + record_names, 0L)
     is Err(@resources.RetentionLimit),
   )
   assert_eq(@resources.ledger_usage(ledger), pending)
