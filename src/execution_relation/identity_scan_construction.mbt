@@ -25,15 +25,16 @@ fn identity_scan_capacity(
 /// This reads immutable table metadata, not current authority or output values.
 pub fn completed_relation_identity_scan_start_construction_capacity(
   source : CompletedOutput,
+  retain_body? : Bool = false,
 ) -> ExecutionCapacity? {
   guard source.table is Some(table) else { return None }
   let width = IndexedRows::column_count(table).to_int64()
   guard @shape.collection_construction_extent({
       records: 28L,
-      record_references: 60L,
-      record_words: 64L,
-      reference_arrays: 3L,
-      reference_items: width,
+      record_references: 63L,
+      record_words: 65L,
+      reference_arrays: if retain_body { 4L } else { 3L },
+      reference_items: width + (if retain_body { 1L } else { 0L }),
       scalar_arrays: 6L,
       scalar_items: 0L,
       maps: 0L,
@@ -72,8 +73,8 @@ fn completed_export_metadata_next_inventory(
       // ValueBudget and fixed option/transition/receipt carriers. Column tuples
       // retain their original names; no string/value body is copied here.
       records: 28L + order + 1L,
-      record_references: 60L + order + 1L,
-      record_words: 64L + order + 1L,
+      record_references: 63L + order + 1L,
+      record_words: 65L + order + 1L,
       reference_arrays: 3L,
       reference_items: width + order + names + 3L,
       scalar_arrays: 6L,
@@ -159,7 +160,7 @@ fn identity_scan_next_capacity(
     guard completed_export_metadata_next_inventory(preparation) is Some(units) else {
       return None
     }
-    return identity_scan_capacity(units)
+    return identity_scan_add_retained_body_capacity(value, units)
   }
   guard value.stream is Some(stream) &&
     stream.logical_writer is Some(logical) &&
@@ -194,11 +195,11 @@ fn identity_scan_next_capacity(
     buffered.record_headers +
     hash.record_headers +
     arrays.record_headers
-  let mut r = 60L +
+  let mut r = 63L +
     buffered.reference_slots +
     hash.reference_slots +
     arrays.reference_slots
-  let mut w = 48L +
+  let mut w = 49L +
     buffered.scalar_words +
     hash.scalar_words +
     arrays.scalar_words
@@ -277,11 +278,43 @@ fn identity_scan_next_capacity(
     r += retained.reference_slots
     w += retained.scalar_words
   }
-  identity_scan_capacity({
+  identity_scan_add_retained_body_capacity(value, {
     record_headers: h,
     reference_slots: r,
     scalar_words: w,
     owned_utf16_units: t,
     owned_wire_bytes: b,
+  })
+}
+
+///|
+// Optional body storage is actual emitted Text, not the maximum file/policy.
+// Existing collection geometry covers the growing fragments Array. Four live
+// UTF-16 copies conservatively cover fragments, joining buffer growth and the
+// final String before fragments are cut; the writer's next fragment is already
+// bounded by its original emitter. This changes no physical tariff or limit.
+fn identity_scan_add_retained_body_capacity(
+  value : CompletedRelationIdentityScan,
+  base : PreparationRepresentationUnits,
+) -> ExecutionCapacity? {
+  guard value.retained_body is Some(parts) else { return identity_scan_capacity(base) }
+  guard @shape.collection_construction_extent({
+    records: 4L,
+    record_references: 8L,
+    record_words: 4L,
+    reference_arrays: 1L,
+    reference_items: parts.capacity().to_int64() + 3L,
+    scalar_arrays: 0L,
+    scalar_items: 0L,
+    maps: 0L,
+    map_entries: 0L,
+  }) is Some(storage) else { return None }
+  let text = value.retained_body_units + @admitted.wire_emit_fragment_byte_bound().to_int64() + 3L
+  identity_scan_capacity({
+    record_headers: base.record_headers + storage.record_headers,
+    reference_slots: base.reference_slots + storage.reference_slots,
+    scalar_words: base.scalar_words + storage.scalar_words,
+    owned_utf16_units: base.owned_utf16_units + 4L * text,
+    owned_wire_bytes: base.owned_wire_bytes,
   })
 }

@@ -41,10 +41,13 @@ pub fn add_execution_capacity(a : ExecutionCapacity, b : ExecutionCapacity) -> E
 pub(all) struct CompletedOutput { events : Array[String]; mode : Int }
 pub(all) struct CompletedRelationIdentityScan { output : CompletedOutput }
 pub(all) struct CompletedRelationExportReceipt { output : CompletedOutput }
-pub fn completed_relation_identity_scan_start_construction_capacity(_ : CompletedOutput) -> ExecutionCapacity? { Some({retained: 20L, execution: 20L}) }
+pub fn completed_relation_identity_scan_start_construction_capacity(_ : CompletedOutput, retain_body? : Bool = false) -> ExecutionCapacity? {
+  if !retain_body { abort("expected same-scan retained body") }
+  Some({retained: 20L, execution: 20L})
+}
 pub fn completed_relation_identity_scan_next_construction_capacity(_ : CompletedRelationIdentityScan) -> ExecutionCapacity? { Some({retained: 15L, execution: 15L}) }
-pub fn start_completed_relation_identity_scan(output : CompletedOutput, _ : Int, _ : Unit, _ : Unit, _ : Unit, _ : Unit, _ : Int, _ : Int, incremental_metadata? : Bool = false) -> Result[CompletedRelationIdentityScan, Issue] {
-  if !incremental_metadata { abort("expected incremental metadata") }
+pub fn start_completed_relation_identity_scan(output : CompletedOutput, _ : Int, _ : Unit, _ : Unit, _ : Unit, _ : Unit, _ : Int, _ : Int, incremental_metadata? : Bool = false, retain_body? : Bool = false) -> Result[CompletedRelationIdentityScan, Issue] {
+  if !incremental_metadata || !retain_body { abort("expected incremental metadata and same-scan retained body") }
   output.events.push("start")
   if output.mode == 1 { Err(Refused) } else { Ok({output,}) }
 }
@@ -57,6 +60,7 @@ pub fn finish_completed_relation_identity_scan(value : CompletedRelationIdentity
   value.output.events.push("finish")
   if value.output.mode == 4 { Err(Refused) } else { Ok({output: value.output}) }
 }
+pub fn completed_relation_identity_scan_body(_ : CompletedRelationIdentityScan, _ : CompletedRelationExportReceipt) -> String? { Some("original-body") }
 pub fn cancel_completed_relation_identity_scan(value : CompletedRelationIdentityScan) -> Bool { value.output.events.push("scan"); true }
 pub fn cancel_completed_relation_export_receipt(value : CompletedRelationExportReceipt) -> Unit { value.output.events.push("receipt") }
 `);

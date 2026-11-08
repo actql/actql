@@ -233,6 +233,7 @@ fn LocalCommandPreparationOriginal::close_business_children(
       // this caller alias before Work retires that issuer and its reservation.
       state._retained_model_observation = None
       state._retained_local_model_observation = None
+      state._retained_local_model_dependencies = None
       if state.model_use is Some(held) {
         @infer.release_output(held) |> ignore
         state.model_use = None

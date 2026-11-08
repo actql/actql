@@ -184,6 +184,7 @@ pub fn NativeClientMockModelWork::prepare_local_observation(
   guard self.observation_issuer_capacity() is Some(base) &&
     @execution.completed_relation_identity_scan_start_construction_capacity(
       outcomes,
+      retain_body=true,
     )
     is Some(start) &&
     @execution.add_execution_capacity(base, start) is Some(required) else {
@@ -204,6 +205,7 @@ pub fn NativeClientMockModelWork::prepare_local_observation(
       limits.identity.work,
       limits.identity.workspace,
       incremental_metadata=true,
+      retain_body=true,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Model(@infer.IdentityExport(issue)))
@@ -272,7 +274,32 @@ pub fn NativeClientMockModelWork::advance_local_observation(
     Err(issue) => return Err(Model(@infer.IdentityExport(issue)))
   }
   self.local_receipt = Some(receipt)
-  guard self.local_observation_projection_capacity(receipt) is Some(projecting) else {
+  guard self.local_observation_projection_capacity(receipt) is Some(projecting) &&
+    @execution.completed_relation_identity_scan_body(scan, receipt)
+    is Some(body) &&
+    @execution.preparation_execution_capacity({
+      retained: {
+        record_headers: 1L,
+        reference_slots: 0L,
+        scalar_words: 1L,
+        owned_utf16_units: body.length().to_int64(),
+        owned_wire_bytes: 0L,
+      },
+      workspace: {
+        record_headers: 0L,
+        reference_slots: 0L,
+        scalar_words: 0L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      },
+      retained_nodes: 0L,
+      workspace_nodes: 0L,
+      retained_bytes: 0L,
+      workspace_bytes: 0L,
+    })
+    is Some(retained_body) &&
+    @execution.add_execution_capacity(projecting, retained_body)
+    is Some(projecting) else {
     return Err(Encoding)
   }
   match self.grow_observation_capacity(projecting) {
@@ -327,4 +354,39 @@ pub fn NativeClientMockModelWork::local_effect_invocation(
   @infer.issue_original_local_model_effect_invocation(
     observation, max_wire_bytes, max_nodes, max_depth,
   )
+}
+
+///|
+/// Original raw outcomes and schema emitted during the SAME local scan. The
+/// caller retains these aliases until before Work returns its publication
+/// backing. They are semantic DATA, not physical custody or another issuer.
+pub fn NativeClientMockModelWork::local_observation_dependency_bodies(
+  self : Self,
+) -> Array[(String, String)]? {
+  guard !self.closing &&
+    !self.closed &&
+    !self.advancing &&
+    self.local_scan is Some(scan) &&
+    self.local_receipt is Some(receipt) &&
+    self.local_observation is Some(observation) else {
+    return None
+  }
+  self.advancing = true
+  defer {
+    self.advancing = false
+  }
+  guard @infer.original_local_model_observation_body(observation) is Some(_) &&
+    @execution.completed_relation_identity_scan_body(scan, receipt)
+    is Some(body) else {
+    return None
+  }
+  Some([
+    ("relation_value", body),
+    (
+      "relation_schema",
+      @execution.relation_schema_wire(
+        @execution.completed_relation_export_schema_identity(receipt),
+      ),
+    ),
+  ])
 }

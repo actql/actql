@@ -28,6 +28,10 @@ struct CompletedRelationIdentityScan {
   mut advancing : Bool
   mut closed : Bool
   mut fragment_peak : Int
+  mut retained_body : Array[String]?
+  mut retained_body_units : Int64
+  mut completed_body : String?
+  mut body_receipt : CompletedRelationExportReceipt?
 }
 
 ///|
@@ -48,6 +52,7 @@ pub fn start_completed_relation_identity_scan(
   max_work : Int,
   max_workspace_slots : Int,
   incremental_metadata? : Bool = false,
+  retain_body? : Bool = false,
 ) -> Result[CompletedRelationIdentityScan, CompletedExportIssue] {
   if !completed_output_available(source) {
     return Err(Unavailable)
@@ -111,6 +116,10 @@ pub fn start_completed_relation_identity_scan(
     advancing: false,
     closed: false,
     fragment_peak: 0,
+    retained_body: if retain_body { Some(["{\"sort\":\"relation\",\"value\":"]) } else { None },
+    retained_body_units: if retain_body { 27L } else { 0L },
+    completed_body: None,
+    body_receipt: None,
   })
 }
 
@@ -163,9 +172,13 @@ fn cancel_identity_wire(cursor : IdentityWireCursor) -> Unit {
 pub fn cancel_completed_relation_identity_scan(
   value : CompletedRelationIdentityScan,
 ) -> Bool {
-  if value.closed || value.advancing {
-    return false
-  }
+  if value.advancing { return false }
+  if value.retained_body is Some(parts) { parts.clear() }
+  value.retained_body = None
+  value.completed_body = None
+  value.body_receipt = None
+  value.retained_body_units = 0L
+  if value.closed { return false }
   match value.phase {
     MeasureName(cursor) | MeasureCell(cursor) => clear_stepped_measure(cursor)
     MeasureWire(cursor, _) | EmitPayload(cursor) | EmitLogical(cursor) =>
@@ -412,10 +425,15 @@ fn advance_identity_scan_frame(
         }
       Done => ()
     }
-    // Identity-only traversal consumes provisional bytes immediately. It
-    // never materializes a whole row or exposes an unfinished payload.
+    // Retention selects these SAME emitted bytes, not another traversal/hash.
+    // The caller's next construction quote includes their aggregate backing
+    // before this bounded advance. No unfinished body is exposed.
     let fragment = @encode.drain_hash_output(stream.writer)
     value.fragment_peak = Int::max(value.fragment_peak, fragment.length())
+    if value.retained_body is Some(parts) && !fragment.is_empty() {
+      value.retained_body_units += fragment.length().to_int64()
+      parts.push(fragment)
+    }
     Ok(())
   } catch {
     issue => Err(Wire(Encoding(issue)))
@@ -495,12 +513,40 @@ pub fn finish_completed_relation_identity_scan(
   if !(value.phase is Done) {
     return Err(NotFinished)
   }
-  let result = finish_completed_relation_export(value.stream.unwrap()).map(pair => {
-    pair.0
-  })
+  let result = finish_completed_relation_export(value.stream.unwrap())
+  let receipt = match result {
+    Ok((receipt, tail)) => {
+      if value.retained_body is Some(parts) {
+        parts.push(tail)
+        parts.push("}")
+        value.completed_body = Some(parts.join(""))
+        value.body_receipt = Some(receipt)
+        parts.clear()
+        value.retained_body = None
+      }
+      receipt
+    }
+    Err(issue) => {
+      cancel_completed_relation_identity_scan(value) |> ignore
+      return Err(issue)
+    }
+  }
   release_slots(value.workspace, value.workspace.live)
   value.closed = true
-  result
+  Ok(receipt)
+}
+
+///|
+/// The same completed scan/receipt's retained logical preimage. This is DATA,
+/// not a current/access grant. No row admission, encoding or hash runs here.
+pub fn completed_relation_identity_scan_body(
+  value : CompletedRelationIdentityScan,
+  receipt : CompletedRelationExportReceipt,
+) -> String? {
+  if value.closed && value.phase is Done &&
+    value.body_receipt is Some(original) && physical_equal(original, receipt) {
+    value.completed_body
+  } else { None }
 }
 
 ///|

@@ -103,3 +103,27 @@ and its semantic aliases retire before that operation's backing is returned.
 Actual Result exports, acquisition relations and their complete dependency
 bodies still bind the Artifact. Preview, Store persistence, approval, dispatch
 and physical cleanup keep their existing independent obligations.
+
+
+## Retaining the original local outcome body
+
+The Native local observation can retain the canonical logical Relation emitted
+by its original raw-outcome identity scan. It selects the same output before
+the WHERE/Result suffix; no second Model call, value admission, traversal or
+hash is used to reconstruct that body. The original receipt identifies both
+the logical body and its already retained schema. Equal receipts from another
+export cannot borrow this scan's retained bytes.
+
+This optional retention uses the existing publication reservation. Each next
+scan quote includes its actual fragment-array and Text backing, including the
+final join while fragments coexist. It does not reserve a maximum file before
+emission. The final projection includes that completed body's live backing
+beside the semantic observation writers. A capacity yield occurs before the
+next constructor, and cancellation cuts the unfinished fragments.
+
+The command retains the body/schema aliases with the local observation and
+cuts them before Work retires the scan, receipt, output use and original
+publication reservation. These immutable bodies are dependencies, not Store
+custody or permission to publish or apply an Effect. Complete input/source
+bodies, Artifact admission and durable Preview/approval remain independent
+parts of the same publication path.

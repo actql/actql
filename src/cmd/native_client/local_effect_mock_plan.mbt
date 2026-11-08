@@ -18,6 +18,7 @@ priv struct LocalNativeMockEffectPlan {
     @publication.PublicationContract,
   )?
   mut _retained_local_model_observation : @publication.CapturedEffectDependencyBody?
+  mut _retained_local_model_dependencies : Array[(String, String)]?
   mut model_use : @infer.OutputUse?
   mut effect_host : @builtin.ConfiguredComputeHost[@strategy.RunIssue]?
   mut effect_capture : @strategy.CapturedEffectRunDAG?
@@ -283,6 +284,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_plan(
       model_output: None,
       _retained_model_observation: None,
       _retained_local_model_observation: None,
+      _retained_local_model_dependencies: None,
       model_use: None,
       effect_host: None,
       effect_capture: None,
