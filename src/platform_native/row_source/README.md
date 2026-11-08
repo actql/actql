@@ -1,5 +1,31 @@
 # Native relation-file capture component
 
+## Target file I/O
+
+`prepare_native_relation_file_target_io` retains one original physical child
+for a selected record-file read or checked update. It borrows the prepared
+provider's original declaration, contract and path, then admits the whole
+received document before projecting a row. The returned snapshot contains the
+complete canonical before-row and its original version. An update re-reads the
+latest file under its same-path lock and uses Common's existing typed replacement
+function. A stale row version refuses before staging or mutation.
+
+The installing Host must supply original Account read authorization, the durable
+Effect write claim, same-operation byte accounting and all constructor backing
+before advancing this child. This low-level component supplies none of those.
+Opening requires an entered original Native read context. Each chunk returns to
+the caller before a separate projection step, with cumulative received bytes
+still observable on failure. Submitted replacement bytes remain consumed if a
+later write or directory sync fails. Such a failure keeps the same child and
+never opens a retry entrance or reports a successful snapshot.
+
+Ready means the selected I/O and projection completed, not that its physical
+children retired. The caller must retain and close the same child before
+retiring its operation and Native frame. Cleanup retires the original Writer,
+Reader, lock and Root, including failed constructors, and then discards row,
+target and raw-document originals. It never removes an already replaced target
+or substitutes physical cleanup for a business outcome or Journal acknowledgement.
+
 This package connects one actually observed Native file to the existing Common
 RowAcquisition or whole-Source RowInputAcquisition/RowRun owners. It is a component for trusted Host assembly, not an
 installed Source or mock profile. It does not enable the CLI, select an Account,
