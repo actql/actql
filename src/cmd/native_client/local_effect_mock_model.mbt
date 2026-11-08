@@ -54,17 +54,8 @@ fn LocalCommandBusinessPreparation::execute_mock_effect_model(
         )
         .map_err(issue => LocalNativeMockSourceIdentityIssue::Read(issue))
         .native_source_identity(self.original)
-      let mut read_retained = base_retained
-      let mut read_execution = base_execution
-      let mut completed_retained = 0L
-      let mut completed_execution = 0L
-      let dag = @strategy.checked_effect_computation_graph(
-        @run_host.prepared_client_effect_computation_graph(
-          state._retained_prepared,
-        ),
-      )
       let captured_sources = []
-      let identities = state.source_identities
+      let identities = []
       let logicals = []
       let observations = []
       let authority = @run_host.client_request_authority_scope_cid(
@@ -74,102 +65,15 @@ fn LocalCommandBusinessPreparation::execute_mock_effect_model(
         let source = @row_host.row_captured_input_source(input).unwrap_or_else(() => {
           stop("LocalOriginalModelSourceUnavailable")
         })
-        let captured = state.sources[index]
-          .capture()
-          .unwrap_or_else(() => stop("LocalOriginalModelSourceUnavailable"))
-        let quote = @query.captured_source_cell_identity_start_capacity(source).unwrap_or_else(() => {
-            stop("LocalOriginalModelSourceIdentityUnavailable")
-          },
-        )
-        let mut peak_retained = @execution.execution_capacity_retained_bytes(
-          quote,
-        )
-        let mut peak_execution = @execution.execution_capacity_execution_bytes(
-          quote,
-        )
-        let (r, e) = self.grow_mock_source_identity_read(
-          state, read, consumer, compiled, base_retained, base_execution, completed_retained,
-          completed_execution, peak_retained, peak_execution, read_retained, read_execution,
-        )
-        read_retained = r
-        read_execution = e
-        let scan = @query.start_captured_source_cell_identity(
-            source,
-            limits.identity.rows,
-            limits.output_values,
-            limits.identity.wire,
-            limits.identity.logical_wire,
-            limits.identity.schema,
-            limits.identity.work,
-            limits.identity.workspace,
-            16777216,
-          )
-          .map_err(issue => LocalNativeMockSourceIdentityIssue::Source(issue))
-          .native_source_identity(self.original)
-        state.source_identity_scan = Some(scan)
-        let mut complete = false
-        while !complete {
-          let quote = @query.captured_source_cell_identity_next_capacity(scan).unwrap_or_else(() => {
-              stop("LocalOriginalModelSourceIdentityUnavailable")
-            },
-          )
-          peak_retained = Int64::max(
-            peak_retained,
-            @execution.execution_capacity_retained_bytes(quote),
-          )
-          peak_execution = Int64::max(
-            peak_execution,
-            @execution.execution_capacity_execution_bytes(quote),
-          )
-          let (r, e) = self.grow_mock_source_identity_read(
-            state, read, consumer, compiled, base_retained, base_execution, completed_retained,
-            completed_execution, peak_retained, peak_execution, read_retained, read_execution,
-          )
-          read_retained = r
-          read_execution = e
-          let held = @execution.execution_capacity(
-            peak_retained, peak_execution,
-          ).unwrap()
-          complete = @query.advance_captured_source_cell_identity(
-              scan, 31, held,
-            )
-            .map_err(issue => LocalNativeMockSourceIdentityIssue::Source(issue))
-            .native_source_identity(self.original).0
-        }
-        let identity = @query.finish_captured_source_cell_identity(scan)
-          .map_err(issue => LocalNativeMockSourceIdentityIssue::Source(issue))
-          .native_source_identity(self.original)
-        // Retain the returned raw bodies before any later current/semantic
-        // constructor can fail. Old peaks stay on this Read until retirement.
-        identities.push(identity)
-        state.source_identity_scan = None
-        completed_retained += peak_retained
-        completed_execution += peak_execution
-        let original = state.input_originals[index]
-        let logical = @run_host.issue_captured_whole_source_input_logical(
-          dag,
-          source,
-          identity,
-          original.0,
-          task=first._retained_sources[index]._retained_coordinates.2,
+        let original = @run_host.client_keyed_native_source_evidence(
+          lookup, index,
         ).unwrap_or_else(() => {
-          stop("LocalOriginalModelSourceLogicalUnavailable")
-        })
-        let facts = @row_host.row_input_acquisition_facts(original.1)
-        let observation = @row_host.issue_row_input_source_evidence(
-          original.1,
-          captured,
-          identity,
-          logical,
-          authority,
-          facts.source_data_policy_cid,
-          completed_at,
-        ).unwrap_or_else(() => {
-          stop("LocalOriginalModelSourceObservationUnavailable")
+          stop("LocalOriginalModelSourceEvidenceUnavailable")
         })
         captured_sources.push(source)
-        logicals.push(logical)
-        observations.push(observation)
+        identities.push(original.identity)
+        logicals.push(original.logical)
+        observations.push(original.observation)
       }
       let keyed = @run_host.issue_client_keyed_lookup_observation(
         lookup, authority, completed_at,
@@ -197,9 +101,9 @@ fn LocalCommandBusinessPreparation::execute_mock_effect_model(
         plan,
         state.graph,
       ).unwrap_or_else(() => stop("LocalOriginalModelSequenceUnavailable"))
-      // Enter this SAME claimed Read once in Work.open. Its monotone grown
-      // basis retains Source preimages alongside the later Model input body.
-      (sequence, sources, consumer, read_retained, read_execution)
+      // Enter this SAME late Read once in Work.open. The original lookup
+      // retains Source preimages; do not rescan or debit them again here.
+      (sequence, sources, consumer, base_retained, base_execution)
     },
   )
   let require_model = (

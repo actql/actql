@@ -349,6 +349,9 @@ pub(all) enum ClientKeyedRequestIssue {
   Row(@execution.AdmittedOutputRowIssue)
   InputCapture(@execution.CaptureIssue)
   CompletedIdentity(@execution.CompletedExportIssue)
+  SourceLogical(ClientCapturedSourceLogicalIssue)
+  SourceObservation(@row_host.RowHostIssue)
+  Derivation(@publication.ResultEvidenceIssuanceIssue)
 }
 
 ///|
