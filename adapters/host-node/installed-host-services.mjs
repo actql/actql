@@ -369,17 +369,18 @@ export function installedSourceConfigurationReader(services) {
     material.ioPending++;
     const workspace = {nodes: 0n, text: 0n, wire: 0n};
     material.workspaces.add(workspace);
-    let decoded;
+    let decoded, parsedNodes, parsedText;
     try {
       reserveSource(original, material, 0n, 0n,
         2n * BigInt(maxBytes) + BigInt(installedConfigurationChunkBytes), workspace);
       const beforeDecode = bytes => {
         decoded = BigInt(bytes);
         if (json) {
-          // Native parsed input, checked profile/split projections and original
-          // identity preimages can coexist. Keep their complete JSON envelope.
-          reserveSource(original, material, 4n * decoded,
-            12n * decoded, 8n * decoded + BigInt(installedConfigurationChunkBytes), workspace);
+          // Only buffers and one lossy UTF8 String exist at this phase. Fund
+          // their complete overlap before concat/toString; JSON values do not
+          // exist yet. The same String funds the parser in beforeParse below.
+          reserveSource(original, material, 0n, 3n * decoded,
+            2n * decoded + BigInt(installedConfigurationChunkBytes), workspace);
         } else {
           // This constructor returns one String. Lossy decoding may replace
           // each invalid byte with three UTF8 bytes; strict decoding cannot.
@@ -392,15 +393,23 @@ export function installedSourceConfigurationReader(services) {
             {nodes: 0n, text, wire: decoded});
         }
       };
+      const beforeParse = text => {
+        // Preserve the existing parsed/checked/identity envelope, using its
+        // actual wire geometry rather than treating every byte as a node.
+        const geometry = sourceJsonWireGeometry(text);
+        parsedNodes = 4n * geometry.nodes; parsedText = 12n * geometry.units;
+        reserveSource(original, material, parsedNodes, parsedText,
+          8n * decoded + BigInt(installedConfigurationChunkBytes), workspace);
+      };
       const value = await (json ? readSourceProfileJson
         : strictUtf8 ? readBoundedConfigurationUtf8 : readBoundedConfigurationText)(path,
-        {maxBytes, beforeDecode, io: sourceIo(original, material)});
+        {maxBytes, beforeDecode, ...(json ? {beforeParse} : {}), io: sourceIo(original, material)});
       // The original file has actually closed before retaining/reconciling.
       material.inputs.push(value);
-      material.nodes += json ? 4n * decoded : 0n;
+      material.nodes += json ? parsedNodes : 0n;
       // This SAME String is retained before reconciling its actual decoded
       // bytes. A failed/pending close never reaches this successful-return cut.
-      material.text += json ? 12n * decoded : BigInt(Buffer.byteLength(value, 'utf8'));
+      material.text += json ? parsedText : BigInt(Buffer.byteLength(value, 'utf8'));
       // Text inputs can have an actual CA Buffer retained alongside the text.
       material.wire += json ? 0n : decoded;
       material.workspaces.delete(workspace);

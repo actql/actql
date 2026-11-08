@@ -187,10 +187,13 @@ test('funded Source strict UTF8 and JSON retain their distinct original decode e
   await writeFile(f.path, Buffer.from([0xff]));
   await assert.rejects(f.reader.readUtf8(f.path, {maxBytes: 1}), {code: 'ERR_ENCODING_INVALID_ENCODED_DATA'});
   const body = JSON.stringify({value: '日本語😀'}), size = BigInt(Buffer.byteLength(body));
+  const geometry = sourceJsonWireGeometry(body);
   await writeFile(f.path, body);
   assert.deepEqual(await f.reader.readJson(f.path), {value: '日本語😀'});
-  assert(f.quotes.some(q => q[3] === 4n * size && q[4] === 12n * size &&
-    q[5] === 8n * size + BigInt(installedConfigurationChunkBytes)), 'full JSON envelope is unchanged');
+  assert(f.quotes.some(q => q[3] === 0n && q[4] === 3n * size &&
+    q[5] === 2n * size + BigInt(installedConfigurationChunkBytes)), 'decode funds buffers and the same String before JSON values exist');
+  assert(f.quotes.some(q => q[3] === 4n * geometry.nodes && q[4] === 12n * geometry.units &&
+    q[5] === 8n * size + BigInt(installedConfigurationChunkBytes)), 'the same JSON envelope uses structural nodes and UTF16 units, not bytes as nodes');
   await writeFile(f.path, '{"unfinished":');
   await assert.rejects(f.reader.readJson(f.path), SyntaxError);
 });
