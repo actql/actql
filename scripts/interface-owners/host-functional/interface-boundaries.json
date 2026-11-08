@@ -23827,7 +23827,7 @@
     {
       "module": "adapters/host-node/client-effect-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "bea8f7fb8248cecee83524b7376488a19eb9bb1454db0ee29b4e47bf6325febd",
+      "sha256": "9fbc68693a741d9085585698123555e740f05f36078af5072908f9fba285216c",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -23864,6 +23864,7 @@
             "resultPolicyOriginalFor",
             "validateInstallation",
             "updateTargetOriginals",
+            "reserveOriginal",
             "now"
           ],
           "async": false
@@ -24134,6 +24135,10 @@
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "## Effect definition construction settlement"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
               }
             ],
             "inputsOutputs": [
@@ -24164,6 +24169,10 @@
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "## Effect definition construction settlement"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
               }
             ],
             "identity": [
@@ -24194,6 +24203,10 @@
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "## Effect definition construction settlement"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
               }
             ],
             "ownership": [
@@ -24224,6 +24237,10 @@
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "## Effect definition construction settlement"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
               }
             ],
             "synchronization": [
@@ -24254,6 +24271,10 @@
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "## Effect definition construction settlement"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
               }
             ],
             "failure": [
@@ -24284,6 +24305,10 @@
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "## Effect definition construction settlement"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
               }
             ],
             "cancellation": [
@@ -24310,6 +24335,10 @@
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "## Effect definition construction settlement"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
               }
             ],
             "resources": [
@@ -24340,6 +24369,10 @@
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "## Effect definition construction settlement"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
               }
             ],
             "extension": [
@@ -24366,6 +24399,10 @@
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "## Effect definition construction settlement"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
               }
             ],
             "verification": [
@@ -24396,6 +24433,10 @@
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "## Effect definition construction settlement"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
               }
             ]
           }
@@ -116185,6 +116226,116 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "prepareOrdinaryManagedInstallation/view/init:reserveEffectOriginal/init:reserveEffectOriginal",
+            "prepareOrdinaryManagedInstallation/view/init:reserveEffectOriginal/init:reserveEffectOriginal/init:reserveEffectOriginal",
+            "prepareOrdinaryManagedInstallation/view/init:reserveEffectOriginal/init:reserveEffectOriginal/init:reserveEffectOriginal/init:reserveEffectOriginal"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_original.mbt",
+                "anchor": "reserve_request_effect_original_material"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_original.mbt",
+                "anchor": "reserve_request_effect_original_material"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_original.mbt",
+                "anchor": "reserve_request_effect_original_material"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_original.mbt",
+                "anchor": "reserve_request_effect_original_material"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_original.mbt",
+                "anchor": "reserve_request_effect_original_material"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_original.mbt",
+                "anchor": "reserve_request_effect_original_material"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_original.mbt",
+                "anchor": "reserve_request_effect_original_material"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_original.mbt",
+                "anchor": "reserve_request_effect_original_material"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_original.mbt",
+                "anchor": "reserve_request_effect_original_material"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "Effect original projection forwards only the same checked Request and keeps a failed reservation sticky"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_original_js_wbtest.mbt",
+                "anchor": "Effect original envelope refuses one-byte-short retained backing without spending prepaid execution twice"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
@@ -117396,6 +117547,28 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:reserveEffectOriginal/init:reserveEffectOriginal",
+          "parameters": [
+            "prepared",
+            "request",
+            "material",
+            "installations"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:reserveEffectOriginal/init:reserveEffectOriginal/init:reserveEffectOriginal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:reserveEffectOriginal/init:reserveEffectOriginal/init:reserveEffectOriginal/init:reserveEffectOriginal",
+          "parameters": [
+            "index"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:reservePublication/init:reservePublication",
           "parameters": [
             "prepared"
@@ -117584,7 +117757,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "6a20fdda7a89e10bc025e86d50a007230e29b6d257298886f0c107d5dc185bbd"
+      "sha256": "e9578b32c688ab088c334798e3e4fb92e54422612153359e5d4fdef17d7209cf"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",
