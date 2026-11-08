@@ -593,7 +593,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/installed-hubspot-source.mjs",
-      "sha256": "8da0e88238c2c3169ea050a7924fb4edd61faa16a7485eaeb81dac588a6bcdc6",
+      "sha256": "701d9f5f14c48f38440056f9de0f02845d0ec3c5c21b8ea063d3ad5af16f0ebc",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Source, Common declaration, Account/Credential and original RowRun owners",
@@ -693,6 +693,21 @@
           "async": false
         },
         {
+          "name": "closedMetadata/closedMetadata",
+          "parameters": [
+            "value",
+            "keys"
+          ],
+          "async": false
+        },
+        {
+          "name": "closedMetadata/closedMetadata/closedMetadata",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
           "name": "decodeMetadataBody",
           "parameters": [
             "encoded",
@@ -763,7 +778,7 @@
           "async": false
         },
         {
-          "name": "loadInstalledHubSpotSource/admitsApprovalTarget/admitsApprovalTarget/view/view",
+          "name": "loadInstalledHubSpotSource/admitsApprovalTarget/admitsApprovalTarget/original/original",
           "parameters": [
             "value"
           ],
@@ -826,6 +841,13 @@
           "async": false
         },
         {
+          "name": "loadInstalledHubSpotSource/providerReader/init:prepareReadSequence/init:prepareReadSequence/objectType/objectType",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "loadInstalledHubSpotSource/readerBounds/readerBounds",
           "parameters": [
             "name"
@@ -838,6 +860,38 @@
             "resource",
             "fields"
           ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledHubSpotSource/target/target/original/original",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledHubSpotSource/targets/targets",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledHubSpotSource/targets/targets/targets",
+          "parameters": [
+            "resource",
+            "objectType"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledHubSpotSource/targets/targets/targets/targets",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledHubSpotSource/targets/targets#2",
+          "parameters": [],
           "async": false
         },
         {
@@ -859,6 +913,13 @@
           "name": "loadInstalledHubSpotSource/targetUnits/targetUnits#2",
           "parameters": [
             "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledHubSpotSource/view/view",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -946,6 +1007,8 @@
             "checkSite/checkSite",
             "cid/cid",
             "closed/closed",
+            "closedMetadata/closedMetadata",
+            "closedMetadata/closedMetadata/closedMetadata",
             "decodeMetadataBody",
             "fail/fail",
             "installedHubSpotSiteBinding",
@@ -954,7 +1017,7 @@
             "loadInstalledHubSpotSource",
             "loadInstalledHubSpotSource/admitsApprovalTarget/admitsApprovalTarget",
             "loadInstalledHubSpotSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
-            "loadInstalledHubSpotSource/admitsApprovalTarget/admitsApprovalTarget/view/view",
+            "loadInstalledHubSpotSource/admitsApprovalTarget/admitsApprovalTarget/original/original",
             "loadInstalledHubSpotSource/capacityFor/capacityFor",
             "loadInstalledHubSpotSource/columnCount/columnCount",
             "loadInstalledHubSpotSource/loadInstalledHubSpotSource",
@@ -963,8 +1026,18 @@
             "loadInstalledHubSpotSource/providerReader/init:prepareReadSequence/init:prepareReadSequence/authorizeMetadata/authorizeMetadata",
             "loadInstalledHubSpotSource/providerReader/init:prepareReadSequence/init:prepareReadSequence/authorizeMetadata/authorizeMetadata/verifyCurrent/verifyCurrent",
             "loadInstalledHubSpotSource/providerReader/init:prepareReadSequence/init:prepareReadSequence/init:prepareReadSequence",
+            "loadInstalledHubSpotSource/providerReader/init:prepareReadSequence/init:prepareReadSequence/objectType/objectType",
             "loadInstalledHubSpotSource/readerBounds/readerBounds",
             "loadInstalledHubSpotSource/target/target",
+            "loadInstalledHubSpotSource/target/target/original/original",
+            "loadInstalledHubSpotSource/targets/targets",
+            "loadInstalledHubSpotSource/targets/targets/targets",
+            "loadInstalledHubSpotSource/targets/targets/targets/targets",
+            "loadInstalledHubSpotSource/targets/targets#2",
+            "loadInstalledHubSpotSource/targetUnits/targetUnits",
+            "loadInstalledHubSpotSource/targetUnits/targetUnits/targetUnits",
+            "loadInstalledHubSpotSource/targetUnits/targetUnits#2",
+            "loadInstalledHubSpotSource/view/view",
             "metadataBodyBytes",
             "positive/positive",
             "prepareInstalledHubSpotMaterials",
@@ -974,10 +1047,7 @@
             "prepareInstalledHubSpotMaterials/projected/projected",
             "readInputs",
             "readInputs/readInputs",
-            "text/text",
-            "loadInstalledHubSpotSource/targetUnits/targetUnits",
-            "loadInstalledHubSpotSource/targetUnits/targetUnits/targetUnits",
-            "loadInstalledHubSpotSource/targetUnits/targetUnits#2"
+            "text/text"
           ],
           "exports": [
             "INSTALLED_HUBSPOT_SITE_VERSION",
@@ -1111,7 +1181,8 @@
         "../site/hubspot-object-read.mjs",
         "node:crypto",
         "node:fs/promises",
-        "node:path"
+        "node:path",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []

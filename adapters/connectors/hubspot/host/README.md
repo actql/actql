@@ -80,6 +80,17 @@ authorization. Native-only explicit-port component cases check this material
 correspondence and failure ordering; they do not establish whole-initialization
 Ledger funding or a normal installed Effect flow.
 
+The Source freezes the same validated JSON metadata records and object array
+in place before native preparation. Accessors and non-data array members are
+not JSON originals. The existing `prepareReadTarget` constructor and Common
+quantity retain one frozen target inventory with the original ordered fields;
+strings are borrowed, and the one metadata digest is retained once. The real
+reader's object type, approval matching and Common physical target selection
+consume that same inventory. The complete Site binding preimage is unchanged.
+Common may reuse only its original generation and ordered-field correspondence;
+fresh Account/current checks, metadata observations and retirement still run.
+The connector supplies no alternate checking, permission or cleanup owner.
+
 
 ## Managed Source protocol
 

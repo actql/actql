@@ -2,7 +2,8 @@
 // cases establish shared material/ordering, not whole-initialization funding.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {loadInstalledHubSpotSource, prepareInstalledHubSpotMaterials} from '../host/installed-hubspot-source.mjs';
+import {createHash} from 'node:crypto';
+import {loadInstalledHubSpotSource, prepareInstalledHubSpotMaterials, installedHubSpotSiteBinding} from '../host/installed-hubspot-source.mjs';
 
 function fixture(native) {
   const site = {version: 'actql-installed-hubspot-site/0.1', apiOrigin: 'https://api.hubapi.com',
@@ -38,6 +39,7 @@ function fixture(native) {
   };
   const moon = Object.freeze({clientProgramHubSpotAccountConstructionCapacity: quote('account'),
     clientProgramHubSpotObjectConstructionCapacity: quote('object'),
+    clientProgramInstalledSourceConstructionCapacity: (...args) => ({$tag: 1, _0: quote('target')(...args)}),
     clientProgramHubSpotSourceReaderObservedCapacity: quote('source-reader')});
   const construction = {
     configurationReader: {async readJson(path) {
@@ -57,8 +59,17 @@ function fixture(native) {
       state.events.push('declaration');
       state.declaration = Object.freeze({originalViews: views}); return {declared: state.declaration};
     },
+    prepareReadTarget(projection) {
+      const capacity = projection.capacity();
+      assert.strictEqual(capacity, state.quotes.at(-1).capacity);
+      assert.deepEqual(state.quotes.at(-1).args, [27n, 71n, 0n, 27n, 71n, 0n]);
+      state.targets = projection.project();
+      assert(Object.isFrozen(state.targets));
+      assert(state.targets.every(value => Object.isFrozen(value) && Object.isFrozen(value.fields)));
+      state.events.push('read-target'); return state.targets;
+    },
     sourceReaderImplementation(options) {
-      assert.equal(state.events.at(-1), 'declaration');
+      assert(['declaration', 'read-target'].includes(state.events.at(-1)));
       const original = state.quotes.at(-1);
       assert.equal(original.name, 'source-reader');
       assert.equal(original.args.length, 7);
@@ -129,9 +140,72 @@ export function registerHubSpotInstallationMaterialTests(native) {
       construction: f.construction, runtimeBundleCid: 'unused', resolveSecret: () => assert.fail('no secret')}),
     error => error === marker);
     assert.deepEqual(f.state.reads, [f.profile.siteProfilePath, f.profile.metadataPath]);
-    assert.deepEqual(f.state.quotes.map(value => value.name), ['account', 'object', 'object', 'source-reader']);
+    assert.deepEqual(f.state.quotes.map(value => value.name), ['account', 'object', 'object', 'target', 'source-reader']);
     assert.deepEqual(f.state.events, ['reserve:account', 'retained', 'reserve:object', 'retained',
-      'reserve:object', 'retained', 'declaration', 'reader-implementation']);
+      'reserve:object', 'retained', 'declaration', 'read-target', 'reader-implementation']);
+  });
+
+  test('HubSpot immutable target DATA preserves complete identity and the same real reader objectType across mutation', async () => {
+    const f = fixture(native), originalMetadata = JSON.stringify(f.metadata);
+    const canonical = value => value !== null && typeof value === 'object'
+      ? Array.isArray(value) ? '[' + value.map(canonical).join(',') + ']'
+        : '{' + Object.keys(value).sort().map(key => JSON.stringify(key) + ':' + canonical(value[key])).join(',') + '}'
+      : JSON.stringify(value);
+    const digest = value => 'sha256:' + createHash('sha256').update(canonical(value)).digest('hex');
+    const expected = {version: 'actql-installed-hubspot-target/0.1', apiOrigin: f.site.apiOrigin,
+      portalId: '7', resource: 'companies', objectType: 'companies',
+      metadataCid: digest(f.metadata), fields: ['amount']};
+    let admission, reader, output;
+    const prepare = f.construction.prepareDeclaration;
+    f.construction.prepareDeclaration = views => ({declared: {...prepare(views).declared,
+      views: views.map(view => ({resource: view.resource, fields: ['id', 'amount', 'readonly_note']}))}});
+    f.construction.openRowSite = async options => {
+      admission = options.admitsApprovalTarget;
+      assert(admission(expected, 'companies'));
+      for (const change of [() => f.metadata.objects[0].objectType = 'contacts',
+        () => f.metadata.objects[0].propertiesBody = 'e30=', () => f.metadata.objects.reverse(),
+        () => f.metadata.objects = [], () => f.metadata.accountBody = 'e30=']) assert.throws(change, TypeError);
+      f.profile.resources[0].objectType = 'contacts';
+      return {site: {credential: {control: {}}, issueReadGrant: () => ({})},
+        authorization: {context: {contextCid: 'original-context'}, authorize: async () => ({action: 'dispatch'})}};
+    };
+    f.construction.createSourceReader = options => {
+      reader = options; return {capacity: options.implementation.capacity};
+    };
+    f.construction.createRowSource = options => {output = options; return options;};
+    await loadInstalledHubSpotSource(f.profile, {moon: f.moon, providerMoon: native,
+      construction: f.construction, runtimeBundleCid: 'original-runtime'});
+    assert.strictEqual(output.physicalTarget, f.state.targets);
+    assert.deepEqual(output.physicalTarget[0], {...expected, fields: ['id', 'amount', 'readonly_note']});
+    assert.equal(output.bindingCid, digest({version: 'actql-installed-hubspot-binding/0.1',
+      contextCid: 'original-context', runtimeBundleCid: 'original-runtime', metadataCid: digest(JSON.parse(originalMetadata)), site: f.site}));
+    assert.equal(output.bindingCid, installedHubSpotSiteBinding({contextCid: 'original-context',
+      runtimeBundleCid: 'original-runtime', metadata: f.metadata, site: f.site}));
+    assert.equal(JSON.stringify(f.metadata), originalMetadata);
+    for (const binding of [{...expected, objectType: 'contacts'}, {...expected, metadataCid: 'foreign'},
+      {...expected, fields: ['amount', 'amount']}, {...expected, fields: ['foreign']},
+      {...expected, portalId: '8'}, {...expected, extra: 'foreign'}]) assert.equal(admission(binding, 'companies'), false);
+    const sequence = reader.prepareReadSequence({resource: 'companies', columns: ['id', 'amount'],
+      responseBorrow: {}, originalAuthorization: {scope: {runInvocationCid: 'run', dispatchRequestCid: 'dispatch'}}});
+    const marker = new Error('original properties request'), paths = [];
+    await assert.rejects(sequence.read({signal: new AbortController().signal, consumeObservation() {}, async readChild({prepare}) {
+      const child = prepare(); paths.push(child.request.path);
+      if (paths.length === 1) return child.project({accepted: true, statusCode: 200, body: Buffer.from('{"portalId":7}')});
+      assert.equal(child.request.path, '/crm/v3/properties/companies'); throw marker;
+    }}), error => error === marker);
+    assert.deepEqual(paths, ['/account-info/v3/details', '/crm/v3/properties/companies']);
+    sequence.retire();
+  });
+
+  test('HubSpot immutable original metadata refuses accessors before provider or Site work', async () => {
+    for (const kind of ['root', 'object', 'array']) {
+      const f = fixture(native);
+      const [owner, key] = kind === 'root' ? [f.metadata, 'accountBody']
+        : kind === 'object' ? [f.metadata.objects[0], 'objectType'] : [f.metadata.objects, '0'];
+      Object.defineProperty(owner, key, {enumerable: true, get() {assert.fail('no metadata getter');}});
+      await assert.rejects(f.prepare(), {code: 'InvalidInstalledHubSpotMetadata'});
+      assert.equal(f.state.nativeCalls.length, 0); assert.equal(f.state.quotes.length, 0);
+    }
   });
 
   test('HubSpot shared installation preserves account and Catalog refusal order without Site or later constructor', async () => {
