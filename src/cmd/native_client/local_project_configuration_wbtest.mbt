@@ -812,6 +812,7 @@ test "Native Project Mock nested registry keeps original path bases and retires 
 ///|
 fn native_project_mock_model_fixture(
   name : String,
+  operation? : String = "check",
 ) -> LocalProjectMockDeclarations raise {
   let directory = @env.get_env_var(
       "ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT",
@@ -824,7 +825,7 @@ fn native_project_mock_model_fixture(
     )
     .unwrap()
     .unwrap()
-  local_project_read_execution_bindings(Some(project), "check")
+  local_project_read_execution_bindings(Some(project), operation)
   .unwrap()
   .unwrap().mock_declarations.unwrap()
 }
@@ -937,4 +938,24 @@ test "Native Project Mock does not open Source data as a bounded declaration bef
   // A locator is neither an admitted Source snapshot nor missing-file ACK.
   // Its actual source Owner must open it later under the checked Request.
   assert_true(original.model_profile is None)
+}
+
+///|
+test "Mock initial adoption refuses incomplete declarations before document IO" {
+  let matches = command().parse(argv=["adopt"])
+  for
+    wire in [
+      "{\"version\":\"actql-config/0.1\",\"profile\":\"mock\"}", "{\"version\":\"actql-config/0.1\",\"profile\":\"mock\",\"connectors\":\"not-read.json\",\"model_tasks\":\"not-read-tasks.json\"}",
+    ] {
+    let project = local_project_select_loaded(
+      matches, "/never-created-mock", wire,
+    )
+    let refused = try {
+      ignore(local_project_read_execution_bindings(Some(project), "adopt"))
+      false
+    } catch {
+      ClientStop(reason) => reason == "LocalProjectBindingsUnavailable"
+    }
+    assert_true(refused)
+  }
 }

@@ -575,3 +575,20 @@ cannot select it. Retirement first removes this metadata alias and then waits
 for the original installation's users before releasing its other originals.
 This is implementation selection, not Account, Model dispatch, Scope funding or
 a physical cleanup acknowledgement. Run executions remain per-Run children.
+
+
+An explicit first Mock adoption derives finite Account subjects from the same
+admitted Project Source declarations, normalized Tasks and selected UPDATE
+Mapping. The existing Common Mock profile owns their policy meaning: reads and
+Model invocation are restricted to those exact subjects, while UPDATE remains
+Delegate until the original Preview/Checkpoint approval. Missing Mock documents
+cannot initialize a source-free Account instead.
+
+The actual Product initialization persists the selected Account and independent
+Result-read originals before Host adoption. The Native adoption entrance accepts
+that named profile only with the same live excluded Product Root, initialization
+intent and Account bytes. The existing acknowledged Journal adoption supplies
+its bootstrap record identity. Restoration reads the original Product/Account;
+it never refreshes subjects or deadlines from current Project files. Profile
+metadata and successful adoption do not supply execution, Model-call entry,
+approval or physical-cleanup acknowledgement.

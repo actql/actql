@@ -1296,7 +1296,7 @@ fn LocalCommandPreparationOriginal::prepare_adoption(
       selected.map_err(issue => CommandAdoption(issue)),
     )
     self.adoption = Some(capture)
-    if capture.open().issue() is Some(issue) {
+    if capture.open(product=self.product).issue() is Some(issue) {
       self.retain_primary(CommandCapture(issue))
       return Err(CommandCapture(issue))
     }

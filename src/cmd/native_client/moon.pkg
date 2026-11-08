@@ -38,6 +38,7 @@ import {
   "actql/actql/stage_syntax" @syntax,
   "actql/actql/check_environment" @compiler_environment,
   "actql/actql/model_execution" @model,
+  "actql/actql/execution_authorization" @authorization,
   "actql/actql/client_row_source_host" @row_host,
   "actql/actql/platform_native/row_source" @row_file,
   "actql/actql/physical_strategy_host" @strategy,
@@ -57,7 +58,6 @@ import {
   "actql/actql/publication_payload" @test_payload,
   "actql/actql/client_infer_host" @infer_test,
   "actql/actql/connector_sdk" @fixed_test,
-  "actql/actql/execution_authorization" @authorization,
 } for "wbtest"
 
 options(
