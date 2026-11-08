@@ -5970,6 +5970,11 @@ async function openInstalledHost(originalInstallation, preparation) {
               prepareSubmit.assertSubmittedIntent(prepared, originalIntent.intent);
               localPreparationCustody.attach(submission,
                 localPreparationCustody.adopt(prepared, submission));
+              // This entrance owns a fresh funded Prepared/compiler, not the
+              // old projection's restored pair. Recapture on this Request;
+              // restoreComputation still admits the complete original Run
+              // materials against this compiler before any execution.
+              delete submission.updateTargetPreparedOriginal;
             }
             preparation.bindSourceRequest(submission, submission.preparedProgram);
             const requested = requestOf(submission);

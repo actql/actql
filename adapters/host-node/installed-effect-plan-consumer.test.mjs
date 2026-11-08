@@ -1559,3 +1559,93 @@ test('retained manager refuses ambiguous captured and typed intent inputs before
     assert.deepEqual(f.calls,[]);
   }
 });
+
+function freshModelEffectResumeFixture(options = {}) {
+  const savedOriginal = Object.freeze({preparedWire: 'saved-prepared-wire'});
+  const snapshot = Object.freeze({requestId: 'original-request', updateTargetPreparedOriginal: savedOriginal});
+  const prepared = {}, identity = {}, intent = {}, adopted = {}, facts = {}, freshOriginal = {};
+  const ref = {runDefinitionCid: 'original-definition'}, accepted = {ref}, calls = [];
+  const current = {requestId: snapshot.requestId, requestIdentity: identity, ref,
+    runDefinition: {}, runAdmissionEvidence: {updateTargetRunOriginal: {materialsWire: 'complete-saved-material'}}};
+  const prepareSubmit = async submission => {
+    assert.equal(submission.updateTargetPreparedOriginal.preparedWire, savedOriginal.preparedWire);
+    submission.preparedProgram = prepared; calls.push('fresh-prepare'); return prepared;
+  };
+  prepareSubmit.kindOf = value => {assert.strictEqual(value, prepared); return 'effectful';};
+  prepareSubmit.assertSubmittedIntent = (value, original) => {
+    assert.strictEqual(value, prepared); assert.strictEqual(original, intent); calls.push('same-intent');
+  };
+  const effectRun = {capturePreparedOriginal(value, oldProjection) {
+    assert.strictEqual(value, prepared);
+    if (oldProjection !== undefined) throw Object.assign(new Error('InstalledEffectOriginalSelectionChanged'),
+      {code: 'InstalledEffectOriginalSelectionChanged'});
+    calls.push('fresh-funded-capture'); return freshOriginal;
+  }, async restoreComputation(value) {
+    assert.strictEqual(value, accepted); calls.push('full-original-material-current');
+    if (Object.hasOwn(options, 'failure')) throw options.failure;
+    return facts;
+  }};
+  const ports = {prepared, identity, ref, retained: current, moon: {}, control: {}, namespaceId: 'original-scope',
+    token: {snapshot: {submission: snapshot}}, canonicalValueJson: JSON.stringify,
+    assertCurrent() {calls.push('current');}, hostConnection: () => true,
+    journal: {lookupOwnedDefinition: () => current,
+      originalSubmittedIntent: () => ({intent, assertCurrent() {calls.push('intent-current');}}),
+      resolveDefinition: () => ({ref: options.wrongRun ? {runDefinitionCid: 'foreign-definition'} : ref})},
+    preparation: {retainEffectRequestInput(_moon, submission, original, unused, wire) {
+      assert.equal(submission.updateTargetPreparedOriginal.preparedWire, savedOriginal.preparedWire);
+      assert.strictEqual(original, intent); assert.equal(unused, undefined); assert.equal(wire, 'complete-saved-material');
+      calls.push('fund-original-input'); return {finish: outcome => calls.push('finish-' + outcome)};
+    }, bindSourceRequest(submission, value) {assert.strictEqual(value, prepared); calls.push('bind-source');}},
+    prepareSubmit, localPreparationCustody: {
+      adopt(value) {assert.strictEqual(value, prepared); calls.push('adopt'); return adopted;},
+      attach(_submission, value) {assert.strictEqual(value, adopted); calls.push('attach');}},
+    retainRestoredSourceFreeRequest() {assert.fail('A fresh funded Effect cannot borrow an old restored pair');},
+    requestOf: () => ({requested: identity, effectful: true}), effectRun,
+    async admitEffectDefinition(submission) {
+      const original = capture(submission);
+      assert.strictEqual(original.updateTargetPreparedOriginal, freshOriginal);
+      calls.push('same-run-admission'); return accepted;
+    },
+    async executeEffectComputation(value, source, target, model) {
+      assert.strictEqual(value, facts); assert.equal(source, undefined); assert.equal(target, undefined);
+      assert.equal(model.active, false); calls.push('execute-original'); return {status: 'waiting_checkpoint'};
+    }, record: {checkpointCid: null}, claim: undefined, active: undefined, parentCheckpoint: undefined,
+    runId: 'original-run', restorationDispatchEntered: false, restorationStopConfirmed: false,
+    restorationReclaimed: () => true,
+    retainInstalledHostRuntimeFailure(cause, cleanup) {cleanup(); return cause;}};
+  const capture = new Function('prepareSubmit', 'effectRun',
+    'const ' + retainedRequestSourceMember('./embedded-local.mjs', 'capturedUpdateOriginal', 'VariableDeclarator') +
+    '; return capturedUpdateOriginal;')(prepareSubmit, effectRun);
+  const resume = new Function(...Object.keys(ports),
+    'const ' + retainedRequestSourceMember('./embedded-local.mjs', 'runRestoredModel', 'VariableDeclarator') +
+    '; return runRestoredModel;')(...Object.values(ports));
+  return {resume, calls, snapshot, savedOriginal};
+}
+
+test('cold Model Effect resume captures its fresh funded pair while retaining the complete saved original', async () => {
+  const f = freshModelEffectResumeFixture();
+  assert.deepEqual(await f.resume(), {status: 'waiting_checkpoint'});
+  assert.strictEqual(f.snapshot.updateTargetPreparedOriginal, f.savedOriginal);
+  assert.equal(f.calls.filter(value => value === 'fresh-funded-capture').length, 1);
+  assert(f.calls.indexOf('same-intent') < f.calls.indexOf('fresh-funded-capture'));
+  assert(f.calls.indexOf('full-original-material-current') < f.calls.indexOf('execute-original'));
+  assert.equal(f.calls.at(-1), 'finish-returned');
+});
+
+test('cold Model Effect resume keeps full material refusal primary and cleans the same fresh input', async () => {
+  for (const failure of [new Error('OriginalFullMaterialMismatch'), undefined]) {
+    const f = freshModelEffectResumeFixture({failure}); let rejected = false;
+    try {await f.resume();} catch (cause) {rejected = true; assert.strictEqual(cause, failure);}
+    assert(rejected); assert(!f.calls.includes('execute-original'));
+    assert.equal(f.calls.at(-1), 'finish-failed');
+    assert.strictEqual(f.snapshot.updateTargetPreparedOriginal, f.savedOriginal);
+  }
+});
+
+test('cold Model Effect resume refuses a different original Run before capture or execution', async () => {
+  const f = freshModelEffectResumeFixture({wrongRun: true});
+  await assert.rejects(f.resume(), {message: 'ModelResumeRunDefinitionMismatch'});
+  assert(!f.calls.includes('fresh-funded-capture')); assert(!f.calls.includes('execute-original'));
+  assert.equal(f.calls.at(-1), 'finish-failed');
+  assert.strictEqual(f.snapshot.updateTargetPreparedOriginal, f.savedOriginal);
+});
