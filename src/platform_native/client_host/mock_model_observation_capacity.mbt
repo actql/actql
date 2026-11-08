@@ -1,116 +1,159 @@
 ///|
-/// The selected original publication recipe, quoted once before the enclosing
-/// Plan. It adds physical byte demand, never Model attempts/tokens/permission
-/// or a logical limit. The original input has already been identified; only
-/// the completed raw Model relation is exported here.
+/// Fixed publication/use/view controls only. The original retained output
+/// view coexists with transient restricted completion views at projection;
+/// include their predicate/option/receiving and phase-quote controls together.
+/// Output/schema/writer maxima
+/// validate later constructors; they are not retained startup material.
 pub fn native_client_mock_model_observation_capacity(
   limits : @infer.Limits,
 ) -> @execution.ExecutionCapacity? {
   if limits.model.max_items < 0 || limits.model.max_items > 2147483645 {
     return None
   }
-  let identity = limits.identity
-  let batch = Int::max(1, identity.wire.max_bytes)
-  guard @infer.prepared_observation_issuance_metadata_bytes({
-      max_slots: limits.model.max_items,
+  @execution.preparation_execution_capacity({
+    retained: {
+      record_headers: 32L,
+      reference_slots: 128L,
+      scalar_words: 64L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    },
+    workspace: {
+      record_headers: 0L,
+      reference_slots: 0L,
+      scalar_words: 0L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    },
+    retained_nodes: 0L,
+    workspace_nodes: 0L,
+    retained_bytes: 0L,
+    workspace_bytes: 0L,
+  })
+}
+
+///|
+// The existing finite flat-observation protocol allowance belongs at issuer
+// construction with this terminal original's actual row count, not in the
+// pre-execution Plan as a row/file output maximum.
+fn NativeClientMockModelWork::observation_issuer_capacity(
+  self : Self,
+) -> @execution.ExecutionCapacity? {
+  guard self.active is Some(active) &&
+    self.prepared is Some(prepared) &&
+    @model.prepared_model_call_count(prepared) is Some(count) &&
+    count <= 2147483645 &&
+    @infer.original_observation_issuance_metadata_bytes(active, {
+      max_slots: count,
       max_wire_bytes: 16384,
-      max_work: limits.model.max_items + 2,
+      max_work: count + 2,
     })
     is Some(metadata) &&
-    @local_export.local_export_retention_capacity({
-      max_rows: limits.output_rows,
-      values: limits.output_values,
-      wire: identity.wire,
-      max_batch_bytes: batch,
-    })
-    is Some(payload) &&
-    @local_export.local_export_retention_capacity({
-      max_rows: limits.output_rows,
-      values: limits.output_values,
-      wire: identity.logical_wire,
-      max_batch_bytes: batch,
-    })
-    is Some(logical) &&
-    @encode.hash_writer_construction_inventory(
-      identity.schema.max_nodes,
-      identity.schema.max_depth,
+    @execution.execution_capacity(metadata, metadata) is Some(issuer) else {
+    return None
+  }
+  @execution.add_execution_capacity(self._retained_observation_capacity, issuer)
+}
+
+///|
+// This same token grows only when actual phase demand exceeds its held peak.
+// Covered bounded steps do not each invoke another Resource current callback.
+fn NativeClientMockModelWork::grow_observation_capacity(
+  self : Self,
+  required : @execution.ExecutionCapacity,
+) -> Result[Unit, NativeClientMockModelIssue] {
+  guard self.advancing &&
+    !self.closing &&
+    !self.closed &&
+    self.active is Some(active) &&
+    self.publication_capacity is Some(capacity) else {
+    return Err(ForeignOriginal)
+  }
+  let retained = @execution.execution_capacity_retained_bytes(required)
+  let execution = @execution.execution_capacity_execution_bytes(required)
+  if retained <= self.publication_retained &&
+    execution <= self.publication_execution {
+    return Ok(())
+  }
+  match
+    @infer.grow_original_infer_publication_capacity(
+      active, capacity, retained, execution,
+    ) {
+    Err(issue) => return Err(Model(issue))
+    Ok(_) => ()
+  }
+  self.publication_retained = Int64::max(self.publication_retained, retained)
+  self.publication_execution = Int64::max(self.publication_execution, execution)
+  Ok(())
+}
+
+///|
+// Closed eight-member metadata, not row payload. Six original CIDs plus one
+// ordinal determine its actual String bound; nine nodes and one container
+// follow the existing protocol. Admission remains 16KiB/1024 nodes/depth20.
+fn NativeClientMockModelWork::local_observation_projection_capacity(
+  self : Self,
+  receipt : @execution.CompletedRelationExportReceipt,
+) -> @execution.ExecutionCapacity? {
+  guard self.active is Some(active) &&
+    active.call_scope is Some(scope) &&
+    @publication.model_input_artifact_relation_identities(
+      @host.client_infer_call_scope_artifact(scope),
     )
-    is Some(hash) &&
-    @encode.text_writer_construction_inventory(
-      identity.schema.max_bytes,
-      identity.schema.max_nodes,
-      identity.schema.max_depth,
-    )
-    is Some(text) &&
+    is Some((logical, schema)) else {
+    return None
+  }
+  let (unit, _) = @host.client_infer_call_scope_local_coordinate(scope)
+  let output = @execution.logical_relation_cid(
+    @execution.completed_relation_export_identity(receipt),
+  )
+  let output_schema = @execution.relation_schema_cid(
+    @execution.completed_relation_export_schema_identity(receipt),
+  )
+  // Six escaped bytes per original UTF16 unit; 512 covers fixed vocabulary,
+  // version, punctuation and safe-Int ordinal. The self CID is this producer's
+  // original SHA256 spelling (71 units), never fabricated relation data.
+  let strings = unit.length().to_int64() +
+    logical.length().to_int64() +
+    schema.length().to_int64() +
+    output.length().to_int64() +
+    output_schema.length().to_int64() +
+    71L
+  let bytes = Int64::min(16384L, 512L + 6L * strings).to_int()
+  guard @encode.hash_writer_construction_inventory(9, 1) is Some(hash) &&
+    @encode.text_writer_construction_inventory(bytes, 9, 1) is Some(text) &&
     @execution.preparation_execution_capacity({
       retained: {
-        // A distinct use of the SAME output belongs to this projection. These
-        // are its use, two restricted completion views, projection token and
-        // receiving tuple/options; no Model, row or input data is copied.
-        record_headers: 10L,
-        reference_slots: 28L,
-        scalar_words: 10L,
-        owned_utf16_units: 0L,
-        owned_wire_bytes: 0L,
-      },
-      workspace: {
-        record_headers: hash.record_headers + text.record_headers,
-        reference_slots: hash.reference_slots + text.reference_slots,
-        scalar_words: hash.scalar_words + text.scalar_words,
+        record_headers: 6L + hash.record_headers + text.record_headers,
+        reference_slots: 16L + hash.reference_slots + text.reference_slots,
+        scalar_words: 8L + hash.scalar_words + text.scalar_words,
         owned_utf16_units: hash.owned_utf16_units + text.owned_utf16_units,
         owned_wire_bytes: hash.owned_wire_bytes,
+      },
+      workspace: {
+        record_headers: 0L,
+        reference_slots: 0L,
+        scalar_words: 0L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
       },
       retained_nodes: 0L,
       workspace_nodes: 0L,
       retained_bytes: 0L,
       workspace_bytes: 0L,
     })
-    is Some(views) &&
-    @execution.execution_capacity_inventory(
-      [
-        { unit: QuotedBytes, count: metadata, copies: 1, },
-        // Both existing writer owners remain beside their original row/ref
-        // custody. The logical sink hashes only; its full export allowance is
-        // a conservative bound, not a second row materialization.
-        { unit: QuotedBytes, count: payload, copies: 1, },
-        { unit: QuotedBytes, count: logical, copies: 1, },
-      ],
-      [
-        {
-          unit: CursorRootSlots,
-          count: identity.workspace.to_int64(),
-          copies: 1,
-        },
-        {
-          unit: CursorRootSlots,
-          count: identity.schema.max_fields.to_int64(),
-          copies: 1,
-        },
-        {
-          unit: CursorRootSlots,
-          count: identity.schema.max_depth.to_int64(),
-          copies: 1,
-        },
-      ],
-      @execution.RetainedAlongsideExecution,
+    is Some(writers) &&
+    @execution.execution_capacity(
+      self.publication_retained,
+      self.publication_execution,
     )
-    is Some(scanning) &&
-    @execution.add_execution_capacity(views, scanning) is Some(base) else {
+    is Some(held) &&
+    @execution.add_execution_capacity(held, writers) is Some(complete) else {
     return None
   }
-  let mut complete = base
-  // The already selected ordinary evidence codec: observation, invocation,
-  // then local semantic projection. All three retained bodies may overlap.
-  for _ in 0..<3 {
-    guard @local.installed_json_effect_request_construction_capacity(
-        complete, 16384, 1024, 20,
-      )
-      is Some(next) else {
-      return None
-    }
-    complete = next
-  }
-  Some(complete)
+  @local.installed_json_effect_request_construction_capacity(
+    complete, bytes, 9, 1,
+  )
 }
 
 ///|

@@ -71,9 +71,9 @@ pub fn text_writer_next_construction_inventory(
   let bytes = writer.max_bytes -
     writer.remaining_bytes +
     Int::min(fragment_bytes, writer.remaining_bytes)
-  let nodes = writer.max_nodes -
-    writer.remaining_nodes +
-    Int::min(additional_nodes, writer.remaining_nodes)
+  guard writer_next_live_keys(writer, additional_nodes) is Some(nodes) else {
+    return None
+  }
   let depth = Int::max(
     writer.peak_depth,
     writer.frames.length() +

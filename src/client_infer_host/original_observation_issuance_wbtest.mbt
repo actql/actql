@@ -471,12 +471,26 @@ test "complete original observation keeps compiler order when the second Model o
   }
   assert_eq(calls[0].val + calls[1].val, 2)
   let ordered = [owners[0].unwrap(), owners[1].unwrap()]
-  // Independent declared metadata window: 16*4096 +2*128 +1*256 =66048.
+  // Actual flat metadata still needs 16*4096 +2*128 +1*256 =66048.
+  // Start with fixed bytes, then exercise the same parent growth below.
   let publication = reserve_original_infer_publication_capacity(
     ordered[1],
-    66048L,
+    1L,
     7L,
   ).unwrap()
+  // Publication is a sibling byte-only lifetime on the actual shared parent,
+  // not new Model work. Its next constructor may exceed one Model component's
+  // work ceiling while the same parent admits it. Neither ceiling is raised.
+  let child = ordered[1].limits.model.ledger
+  let parent = @resources.ledger_limits(ledger)
+  grow_original_infer_publication_capacity(
+    ordered[1],
+    publication,
+    child.retained_bytes + 1L,
+    child.execution_bytes + 1L,
+  ).unwrap()
+  assert_eq(ordered[1].limits.model.ledger, child)
+  assert_eq(@resources.ledger_limits(ledger), parent)
   let before = @resources.ledger_usage(ledger)
   let issued = start_complete_original_observation_issuance(
     ordered,

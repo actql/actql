@@ -29,6 +29,8 @@ struct NativeClientMockModelWork {
   mut entry_issue : NativeLocalAdoptionIssue?
   mut settlement : NativeMockModelSettlement?
   mut publication_capacity : @model.OriginalModelPublicationCapacity?
+  mut publication_retained : Int64
+  mut publication_execution : Int64
   mut observation : @infer.ObservationIssuance?
   mut local_scan : @execution.CompletedRelationIdentityScan?
   mut local_receipt : @execution.CompletedRelationExportReceipt?
@@ -117,6 +119,8 @@ pub fn prepare_native_client_mock_model_work(
     entry_issue: None,
     settlement: None,
     publication_capacity: None,
+    publication_retained: 0L,
+    publication_execution: 0L,
     observation: None,
     local_scan: None,
     local_receipt: None,
@@ -862,7 +866,7 @@ pub fn native_client_mock_model_work_construction() -> @execution.PreparationRep
   {
     record_headers: 6L,
     reference_slots: 32L,
-    scalar_words: 10L,
+    scalar_words: 12L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }

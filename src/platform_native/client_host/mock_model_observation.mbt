@@ -1,8 +1,7 @@
 ///|
-/// Retain the SAME terminal Model's full preselected publication borrow before
-/// its evidence issuer is constructed. The enclosing Plan already includes
-/// the raw-outcome export and all three codec bodies. The shared issuer still
-/// checks its actual row metadata. There is no new Root or Ledger.
+/// Start with fixed controls, then grow the SAME terminal Model's reservation
+/// for its actual flat-issuer inventory before that constructor. No output
+/// policy-sized row export is reserved and no Root or Ledger is reissued.
 pub fn NativeClientMockModelWork::prepare_observation(
   self : Self,
 ) -> Result[Unit, NativeClientMockModelIssue] {
@@ -28,9 +27,7 @@ pub fn NativeClientMockModelWork::prepare_observation(
     }
     let complete = self._retained_observation_capacity
     guard count <= self._retained_limits.model.max_items &&
-      @infer.original_observation_issuance_metadata_bytes(active, limits)
-      is Some(metadata) &&
-      metadata <= @execution.execution_capacity_retained_bytes(complete) else {
+      self.observation_issuer_capacity() is Some(issuer_capacity) else {
       return Err(Encoding)
     }
     self.advancing = true
@@ -45,6 +42,13 @@ pub fn NativeClientMockModelWork::prepare_observation(
       ).map_err(issue => NativeClientMockModelIssue::Model(issue)),
     )
     self.publication_capacity = Some(capacity)
+    self.publication_retained = @execution.execution_capacity_retained_bytes(
+      complete,
+    )
+    self.publication_execution = @execution.execution_capacity_execution_bytes(
+      complete,
+    )
+    mock_model_require(self.grow_observation_capacity(issuer_capacity))
     let issued = mock_model_require(
       @infer.start_original_observation_issuance(active, capacity, limits).map_err(issue => {
           NativeClientMockModelIssue::Model(issue)
@@ -130,16 +134,19 @@ fn NativeClientMockModelWork::close_observation(
     match @infer.release_original_infer_publication_capacity(capacity) {
       Err(issue) => return Err(Model(issue))
       Ok(false) => return Ok(false)
-      Ok(true) => self.publication_capacity = None
+      Ok(true) => {
+        self.publication_capacity = None
+        self.publication_retained = 0L
+        self.publication_execution = 0L
+      }
     }
   }
   Ok(true)
 }
 
 ///|
-/// The complete issuer and its full preselected publication backing already
-/// belong to this Work. Retain the original output use before any fallible
-/// conversion; a second Model/input execution is never selected here.
+/// The original issuer remains held. Add the actual metadata start inventory
+/// before constructing it; keep the output use before any fallible conversion.
 pub fn NativeClientMockModelWork::prepare_local_observation(
   self : Self,
 ) -> Result[Unit, NativeClientMockModelIssue] {
@@ -174,6 +181,18 @@ pub fn NativeClientMockModelWork::prepare_local_observation(
     return Err(ForeignOriginal)
   }
   let limits = self._retained_limits
+  guard self.observation_issuer_capacity() is Some(base) &&
+    @execution.completed_relation_identity_scan_start_construction_capacity(
+      outcomes,
+    )
+    is Some(start) &&
+    @execution.add_execution_capacity(base, start) is Some(required) else {
+    return Err(Encoding)
+  }
+  match self.grow_observation_capacity(required) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   let scan = match
     @execution.start_completed_relation_identity_scan(
       outcomes,
@@ -212,8 +231,36 @@ pub fn NativeClientMockModelWork::advance_local_observation(
   defer {
     self.advancing = false
   }
+  guard self.observation_issuer_capacity() is Some(base) &&
+    @execution.completed_relation_identity_scan_next_construction_capacity(scan)
+    is Some(next) &&
+    @execution.add_execution_capacity(base, next) is Some(required) else {
+    return Err(Encoding)
+  }
+  match self.grow_observation_capacity(required) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  // The Core continuation yields BEFORE a later constructor exceeds these
+  // already held bytes. Current/Source is checked once per bounded advance,
+  // not again for every covered internal frame.
+  let retained = self.publication_retained -
+    @execution.execution_capacity_retained_bytes(base)
+  let execution = self.publication_execution -
+    @execution.execution_capacity_execution_bytes(base)
+  guard @execution.execution_capacity(
+      Int64::min(retained, execution),
+      execution,
+    )
+    is Some(available) else {
+    return Err(Encoding)
+  }
   let (done, _) = match
-    @execution.advance_completed_relation_identity_scan(scan, 31) {
+    @execution.advance_completed_relation_identity_scan(
+      scan,
+      31,
+      construction_capacity=Some(available),
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Model(@infer.IdentityExport(issue)))
   }
@@ -225,6 +272,13 @@ pub fn NativeClientMockModelWork::advance_local_observation(
     Err(issue) => return Err(Model(@infer.IdentityExport(issue)))
   }
   self.local_receipt = Some(receipt)
+  guard self.local_observation_projection_capacity(receipt) is Some(projecting) else {
+    return Err(Encoding)
+  }
+  match self.grow_observation_capacity(projecting) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   guard @infer.issue_original_local_model_observation_from_scope(
       held, issued, receipt, 16384, 1024, 20,
     )

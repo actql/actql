@@ -5,42 +5,51 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
 
-// Execute the original Native caller methods with explicit typed dependency
-// ports. This is caller retirement/order evidence, not Model, Resource,
-// Journal, Native ABI or physical cleanup acceptance.
+// Exact Native methods with explicit typed dependency ports: caller ordering,
+// not Model/Resource/Journal/Native ABI or physical cleanup acceptance.
 test('Native Model local observation retains partial exports before issuer retirement', {timeout: 90_000}, t => {
   const source = readFileSync(new URL('../src/platform_native/client_host/mock_model_observation.mbt', import.meta.url), 'utf8');
-  const names = ['close_observation', 'prepare_local_observation',
-    'advance_local_observation', 'local_observation_original'];
+  const capacities = readFileSync(new URL('../src/platform_native/client_host/mock_model_observation_capacity.mbt', import.meta.url), 'utf8');
+  const names = ['close_observation', 'prepare_local_observation', 'advance_local_observation', 'local_observation_original'];
   const bodies = names.map(name => {
-    const block = source.split('///|').find(value =>
-      value.includes(`fn NativeClientMockModelWork::${name}(`));
-    assert(block, `Missing original Native method ${name}`);
-    return block;
+    const block = source.split('///|').find(value => value.includes(`fn NativeClientMockModelWork::${name}(`));
+    assert(block, name); return block.trim();
   }).join('\n');
-  const root = mkdtempSync(join(tmpdir(), 'actql-model-observation-order-'));
+  const grow = capacities.split('///|').find(value => value.includes('fn NativeClientMockModelWork::grow_observation_capacity('));
+  const startup = capacities.split('///|').find(value => value.includes('pub fn native_client_mock_model_observation_capacity('));
+  assert(grow && startup);
+  const root = mkdtempSync(join(tmpdir(), 'actql-native-model-observation-order-'));
   t.after(() => rmSync(root, {recursive: true, force: true}));
-  for (const name of ['src', 'src/execution', 'src/publication', 'src/infer'])
-    mkdirSync(join(root, name));
+  for (const name of ['', 'execution', 'publication', 'infer']) mkdirSync(join(root, 'src', name), {recursive: true});
   writeFileSync(join(root, 'moon.mod'), 'name = "actql/model-observation-order-probe"\nsource = "src"\n');
-  for (const name of ['execution', 'publication'])
-    writeFileSync(join(root, `src/${name}/moon.pkg`), 'supported_targets = "js"\n');
-  writeFileSync(join(root, 'src/moon.pkg'),
-    'supported_targets = "js"\nimport { "actql/model-observation-order-probe/execution" @execution, "actql/model-observation-order-probe/infer" @infer, "actql/model-observation-order-probe/publication" @publication } for "wbtest"\n');
-  writeFileSync(join(root, 'src/infer/moon.pkg'),
-    'supported_targets = "js"\nimport { "actql/model-observation-order-probe/execution" @execution, "actql/model-observation-order-probe/publication" @publication }\n');
-  writeFileSync(join(root, 'src/publication/ports.mbt'),
-    'pub(all) struct CapturedEffectDependencyBody { marker : Int }\n');
+  for (const name of ['execution', 'publication']) writeFileSync(join(root, `src/${name}/moon.pkg`), 'supported_targets = "js"\n');
+  writeFileSync(join(root, 'src/moon.pkg'), 'supported_targets = "js"\nimport { "actql/model-observation-order-probe/execution" @execution, "actql/model-observation-order-probe/infer" @infer, "actql/model-observation-order-probe/publication" @publication } for "wbtest"\n');
+  writeFileSync(join(root, 'src/infer/moon.pkg'), 'supported_targets = "js"\nimport { "actql/model-observation-order-probe/execution" @execution, "actql/model-observation-order-probe/publication" @publication }\n');
+  writeFileSync(join(root, 'src/publication/ports.mbt'), 'pub(all) struct CapturedEffectDependencyBody { marker : Int }\n');
   writeFileSync(join(root, 'src/execution/ports.mbt'), `
 pub(all) enum Issue { Refused } derive(Eq, Debug)
+pub(all) struct ExecutionCapacity { retained : Int64; execution : Int64 } derive(Eq, Debug)
+pub(all) struct PreparationRepresentationUnits { record_headers : Int64; reference_slots : Int64; scalar_words : Int64; owned_utf16_units : Int64; owned_wire_bytes : Int64 } derive(Eq, Debug)
+pub(all) struct PreparationExecutionInventory { retained : PreparationRepresentationUnits; workspace : PreparationRepresentationUnits; retained_nodes : Int64; workspace_nodes : Int64; retained_bytes : Int64; workspace_bytes : Int64 }
+let observed_units : Ref[PreparationExecutionInventory?] = Ref(None)
+pub fn preparation_execution_capacity(value : PreparationExecutionInventory) -> ExecutionCapacity? { observed_units.val = Some(value); Some({retained: 1L, execution: 1L}) }
+pub fn startup_units() -> PreparationExecutionInventory { observed_units.val.unwrap() }
+pub fn execution_capacity(retained : Int64, execution : Int64) -> ExecutionCapacity? { Some({retained, execution}) }
+pub fn execution_capacity_retained_bytes(v : ExecutionCapacity) -> Int64 { v.retained }
+pub fn execution_capacity_execution_bytes(v : ExecutionCapacity) -> Int64 { v.execution }
+pub fn add_execution_capacity(a : ExecutionCapacity, b : ExecutionCapacity) -> ExecutionCapacity? { Some({retained: a.retained+b.retained, execution: a.execution+b.execution}) }
 pub(all) struct CompletedOutput { events : Array[String]; mode : Int }
 pub(all) struct CompletedRelationIdentityScan { output : CompletedOutput }
 pub(all) struct CompletedRelationExportReceipt { output : CompletedOutput }
-pub fn start_completed_relation_identity_scan(output : CompletedOutput, _ : Int, _ : Unit, _ : Unit, _ : Unit, _ : Unit, _ : Int, _ : Int) -> Result[CompletedRelationIdentityScan, Issue] {
+pub fn completed_relation_identity_scan_start_construction_capacity(_ : CompletedOutput) -> ExecutionCapacity? { Some({retained: 20L, execution: 20L}) }
+pub fn completed_relation_identity_scan_next_construction_capacity(_ : CompletedRelationIdentityScan) -> ExecutionCapacity? { Some({retained: 15L, execution: 15L}) }
+pub fn start_completed_relation_identity_scan(output : CompletedOutput, _ : Int, _ : Unit, _ : Unit, _ : Unit, _ : Unit, _ : Int, _ : Int, incremental_metadata? : Bool = false) -> Result[CompletedRelationIdentityScan, Issue] {
+  if !incremental_metadata { abort("expected incremental metadata") }
   output.events.push("start")
   if output.mode == 1 { Err(Refused) } else { Ok({output,}) }
 }
-pub fn advance_completed_relation_identity_scan(value : CompletedRelationIdentityScan, _ : Int) -> Result[(Bool, Int), Issue] {
+pub fn advance_completed_relation_identity_scan(value : CompletedRelationIdentityScan, _ : Int, construction_capacity? : ExecutionCapacity? = None) -> Result[(Bool, Int), Issue] {
+  if construction_capacity is None { abort("expected held construction boundary") }
   value.output.events.push("advance")
   if value.output.mode == 2 { Err(Refused) } else { Ok((true, 1)) }
 }
@@ -52,92 +61,110 @@ pub fn cancel_completed_relation_identity_scan(value : CompletedRelationIdentity
 pub fn cancel_completed_relation_export_receipt(value : CompletedRelationExportReceipt) -> Unit { value.output.events.push("receipt") }
 `);
   writeFileSync(join(root, 'src/infer/ports.mbt'), `
-pub(all) enum Issue { IdentityExport(@execution.Issue) } derive(Eq, Debug)
+pub(all) enum Issue { IdentityExport(@execution.Issue); Refused } derive(Eq, Debug)
+pub(all) struct ModelLimits { max_items : Int }
+pub(all) struct Limits { model : ModelLimits }
 pub(all) struct Execution { output : @execution.CompletedOutput }
 pub(all) struct OutputUse { owner : Execution; mut released : Bool }
+pub(all) struct LocalModelObservation { marker : Int }
 pub(all) struct ObservationIssuance { events : Array[String]; mut pending : Bool; mut closed : Bool }
 pub(all) struct OriginalModelPublicationCapacity { events : Array[String]; mut released : Bool }
-pub(all) struct LocalModelObservation { held : OutputUse; issuer : ObservationIssuance }
-pub fn observation_issuance_value(value : ObservationIssuance) -> Unit? { if value.closed { None } else { Some(()) } }
+pub fn observation_issuance_value(_ : ObservationIssuance) -> Int? { Some(1) }
 pub fn acquire_output(owner : Execution) -> OutputUse? { owner.output.events.push("acquire"); Some({owner, released: false}) }
-pub fn borrow_original_live_model_relations(held : OutputUse, _ : Int, _ : Int, _ : Int) -> (Unit, @execution.CompletedOutput)? { if held.released { None } else { Some(((), held.owner.output)) } }
-pub fn issue_original_local_model_observation_from_scope(held : OutputUse, issuer : ObservationIssuance, receipt : @execution.CompletedRelationExportReceipt, _ : Int, _ : Int, _ : Int) -> LocalModelObservation? {
+pub fn borrow_original_live_model_relations(held : OutputUse, _ : Int, _ : Int, _ : Int) -> (Int, @execution.CompletedOutput)? { Some((0, held.owner.output)) }
+pub fn issue_original_local_model_observation_from_scope(_ : OutputUse, _ : ObservationIssuance, receipt : @execution.CompletedRelationExportReceipt, _ : Int, _ : Int, _ : Int) -> LocalModelObservation? {
   receipt.output.events.push("project")
-  if receipt.output.mode == 3 { None } else { Some({held, issuer}) }
+  if receipt.output.mode == 3 { None } else { Some({marker: 9}) }
 }
-pub fn original_local_model_observation_body(value : LocalModelObservation) -> @publication.CapturedEffectDependencyBody? {
-  if value.held.released || value.issuer.closed { None } else { Some({marker: 1}) }
+pub fn original_local_model_observation_body(value : LocalModelObservation) -> @publication.CapturedEffectDependencyBody? { Some({marker: value.marker}) }
+pub fn grow_original_infer_publication_capacity(owner : Execution, value : OriginalModelPublicationCapacity, retained : Int64, _ : Int64) -> Result[Unit, Issue] {
+  if owner.output.mode == 6 || (owner.output.mode == 7 && retained > 30L) {
+    value.events.push("grow-refused"); Err(Refused)
+  } else { value.events.push("grow"); Ok(()) }
 }
 pub fn release_output(value : OutputUse) -> Bool { value.owner.output.events.push("use"); value.released = true; true }
 pub fn cancel_observation_issuance(value : ObservationIssuance) -> Bool { value.events.push("cancel"); true }
 pub fn advance_observation_issuance(_ : ObservationIssuance, _ : Int) -> Result[(Bool, Int), Issue] { Ok((false, 1)) }
-pub fn cleanup_observation_issuance(value : ObservationIssuance) -> Result[Bool, Issue] {
-  value.events.push("issuer")
-  if value.pending { Ok(false) } else { value.closed = true; Ok(true) }
-}
-pub fn release_original_infer_publication_capacity(value : OriginalModelPublicationCapacity) -> Result[Bool, Issue] {
-  value.events.push("capacity"); value.released = true; Ok(true)
-}
+pub fn cleanup_observation_issuance(value : ObservationIssuance) -> Result[Bool, Issue] { value.events.push("issuer"); if value.pending { Ok(false) } else { value.closed = true; Ok(true) } }
+pub fn release_original_infer_publication_capacity(value : OriginalModelPublicationCapacity) -> Result[Bool, Issue] { value.events.push("capacity"); value.released = true; Ok(true) }
 `);
   writeFileSync(join(root, 'src/probe_wbtest.mbt'), `
-pub(all) enum NativeClientMockModelIssue { ForeignOriginal; Model(@infer.Issue) } derive(Eq, Debug)
-priv struct IdentityLimits { wire : Unit; logical_wire : Unit; schema : Unit; work : Int; workspace : Int }
-priv struct Limits { output_rows : Int; output_values : Unit; identity : IdentityLimits }
+pub(all) enum NativeClientMockModelIssue { ForeignOriginal; Encoding; Model(@infer.Issue) } derive(Eq, Debug)
+pub(all) struct Identity { wire : Unit; logical_wire : Unit; schema : Unit; work : Int; workspace : Int }
+pub(all) struct Limits { output_rows : Int; output_values : Unit; identity : Identity }
 struct NativeClientMockModelWork {
   closing : Bool; closed : Bool; mut advancing : Bool
   mut publication_capacity : @infer.OriginalModelPublicationCapacity?
-  active : @infer.Execution?; mut observation : @infer.ObservationIssuance?
+  mut publication_retained : Int64; mut publication_execution : Int64
+  mut observation : @infer.ObservationIssuance?; active : @infer.Execution?
   mut local_use : @infer.OutputUse?; mut local_scan : @execution.CompletedRelationIdentityScan?
   mut local_receipt : @execution.CompletedRelationExportReceipt?; mut local_observation : @infer.LocalModelObservation?
   compiled : Int; definition : Int; graph : Int; _retained_limits : Limits
 }
+fn NativeClientMockModelWork::observation_issuer_capacity(_self : Self) -> @execution.ExecutionCapacity? { Some({retained: 10L, execution: 10L}) }
+fn NativeClientMockModelWork::local_observation_projection_capacity(self : Self, _ : @execution.CompletedRelationExportReceipt) -> @execution.ExecutionCapacity? { Some({retained: self.publication_retained+40L, execution: self.publication_execution+40L}) }
+${grow}
+${startup}
 ${bodies}
 test "same production partial constructor and retirement matrix" {
-  for mode in 0..<6 {
+  for mode in 0..<8 {
     let events : Array[String] = []
     let issuer : @infer.ObservationIssuance = {events, pending: mode == 5, closed: false}
     let capacity : @infer.OriginalModelPublicationCapacity = {events, released: false}
     let work : NativeClientMockModelWork = {
       closing: false, closed: false, advancing: false,
-      publication_capacity: Some(capacity), observation: Some(issuer),
-      active: Some({output: {events, mode}}), local_use: None, local_scan: None,
+      publication_capacity: Some(capacity), publication_retained: 10L, publication_execution: 10L,
+      observation: Some(issuer), active: Some({output: {events, mode}}), local_use: None, local_scan: None,
       local_receipt: None, local_observation: None, compiled: 1, definition: 2, graph: 3,
       _retained_limits: {output_rows: 2, output_values: (), identity: {wire: (), logical_wire: (), schema: (), work: 1000, workspace: 1000}},
     }
     let opened = work.prepare_local_observation()
     assert_eq(events[0], "acquire")
-    assert_eq(events[1], "start")
+    assert_eq(events[1], if mode == 6 { "grow-refused" } else { "grow" })
     assert_true(work.local_use is Some(_))
-    if mode == 1 { assert_true(opened is Err(_)); assert_true(work.local_scan is None) }
-    else {
+    if mode == 1 || mode == 6 {
+      assert_true(opened is Err(_)); assert_true(work.local_scan is None)
+      if mode == 6 { assert_eq(work.publication_retained, 10L); assert_false(events.contains("start")) }
+    } else {
+      assert_eq(events[2], "start")
       assert_true(opened is Ok(_))
       let result = work.advance_local_observation()
-      if mode == 0 || mode == 5 {
-        assert_eq(result, Ok(true))
-        assert_true(work.local_observation_original() is Some(_))
-      } else { assert_true(result is Err(_)) }
+      if mode == 0 || mode == 5 { assert_eq(result, Ok(true)); assert_true(work.local_observation_original() is Some(_)) }
+      else { assert_true(result is Err(_)) }
+      if mode == 3 || mode == 7 { assert_true(work.local_receipt is Some(_)) }
+      if mode == 7 { assert_eq(work.publication_retained, 30L); assert_false(events.contains("project")) }
     }
+    assert_eq(events.filter(value => value == "grow").length(),
+      if mode == 6 { 0 } else if mode == 0 || mode == 3 || mode == 5 { 2 } else { 1 })
     events.clear()
     assert_eq(work.close_observation(), Ok(mode != 5))
     let expected : Array[String] = []
-    if mode != 1 { expected.push("scan") }
-    if mode == 0 || mode == 3 || mode == 5 { expected.push("receipt") }
+    if mode != 1 && mode != 6 { expected.push("scan") }
+    if mode == 0 || mode == 3 || mode == 5 || mode == 7 { expected.push("receipt") }
     expected.push("use"); expected.push("cancel"); expected.push("issuer")
     if mode != 5 { expected.push("capacity") }
     assert_eq(events, expected)
-    assert_true(work.local_observation is None)
-    assert_true(work.local_use is None)
-    assert_true(work.local_scan is None)
-    assert_true(work.local_receipt is None)
+    assert_true(work.local_observation is None); assert_true(work.local_use is None)
+    assert_true(work.local_scan is None); assert_true(work.local_receipt is None)
     if mode == 5 {
-      assert_false(capacity.released)
-      assert_true(work.observation is Some(_))
-      issuer.pending = false
-      events.clear()
-      assert_eq(work.close_observation(), Ok(true))
-      assert_eq(events, ["cancel", "issuer", "capacity"])
+      assert_false(capacity.released); assert_true(work.observation is Some(_))
+      issuer.pending = false; events.clear()
+      assert_eq(work.close_observation(), Ok(true)); assert_eq(events, ["cancel", "issuer", "capacity"])
     }
     assert_true(capacity.released)
+    assert_eq(work.publication_retained, 0L); assert_eq(work.publication_execution, 0L)
+  }
+}
+test "startup selects fixed controls without reading output maxima" {
+  for count in [2, 10000] {
+    assert_true(native_client_mock_model_observation_capacity({model: {max_items: count}}) is Some(_))
+    let units = @execution.startup_units()
+    assert_eq(units.retained.record_headers, 32L)
+    assert_eq(units.retained.reference_slots, 128L)
+    assert_eq(units.retained.scalar_words, 64L)
+    assert_eq(units.retained.owned_utf16_units, 0L)
+    assert_eq(units.retained.owned_wire_bytes, 0L)
+    assert_eq(units.workspace.record_headers, 0L)
   }
 }
 `);
@@ -146,7 +173,7 @@ test "same production partial constructor and retirement matrix" {
   });
   assert.equal(result.error, undefined, result.error?.message);
   assert.equal(result.status, 0, result.stdout + result.stderr);
-  assert.match(result.stdout + result.stderr, /Total tests: 1, passed: 1, failed: 0/);
+  assert.match(result.stdout + result.stderr, /Total tests: 2, passed: 2, failed: 0/);
 });
 
 // This executes the exact production exception shell with a controlled close

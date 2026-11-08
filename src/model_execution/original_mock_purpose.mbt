@@ -262,12 +262,14 @@ fn check_original_mock_capacity(
       }
     }
   }
-  if purpose.publication_retained > available_retained ||
-    retained > available_retained - purpose.publication_retained {
+  // Original publication borrows are already charged by this SAME parent
+  // Ledger. They are not a second Model attempt/output allocation and cannot
+  // shrink or enlarge this component's Model work ceiling. Their separate
+  // counters retain original cleanup association, not another byte quota.
+  if retained > available_retained {
     return Err(Ledger(@resources.RetentionLimit))
   }
-  if purpose.publication_execution > available_execution ||
-    execution > available_execution - purpose.publication_execution {
+  if execution > available_execution {
     return Err(Ledger(@resources.ExecutionLimit))
   }
   if quantities is Some(value) {
