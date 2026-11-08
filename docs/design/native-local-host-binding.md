@@ -3148,3 +3148,35 @@ Only a completed predispatch plan exposes its original transport contract; clean
 severs all three profile/document/transport aliases before returning that capacity.
 This DATA is not a completed batch, attempt receipt, response, access decision or
 physical-cleanup acknowledgement.
+
+### Checked lookup in the first Native Model Plan
+
+The Native reader implementation is selected from the original checked Source
+identity and installed file binding before the first Model Graph is issued. The
+same Request reserves the acquisition/Fragment metadata, two genuine prefix
+lowerings, the original Model-input mapping, and the existing Source provenance
+walk/fold construction. The measured graph then reserves the actual co-held
+Fragment, barrier document, lookup node, edges and Model/Result construction
+before their writers run. A codec ceiling does not provide this reservation.
+
+The component contains the actual left-prefix Fragment, a checked runtime lookup
+barrier, and the actual JOIN/post-lookup Fragment. The left Fragment exposes only
+its genuine external Source ports; the future keyed response cannot become an
+unused input of its own producer. Data edges bind the left Carrier contract to
+the barrier's local input and the checked right Carrier contract to the JOIN.
+The Model barrier consumes the resulting joined Fragment, while the enclosing
+compiler binds external task inputs to the left Fragment. Both sizing and actual
+construction use these same lowerings and emitters.
+
+Lookup request provenance combines the original left-target policy with only
+Host-attested static Request values. It does not substitute response provenance
+for correlated input provenance. The original response policy, authoritative
+Source data policy and joined-output policy remain separate identities. Missing
+provenance remains `unknown`; this metadata does not permit Model egress.
+
+The component retains the original acquisition and Native implementation profile.
+Later readers borrow those originals instead of constructing another acquisition
+or selecting/validating the immutable implementation again. Current SourceRead,
+physical transport, durable lookup Artifact publication, Model egress and Effect
+approval/claim remain with their existing owners and still require their actual
+observations. Constructing this Plan supplies none of those outcomes.

@@ -166,6 +166,8 @@ export function verifyCompilationManifests(write = false) {
     `  ${JSON.stringify(aoaIrVersion)}`, '}', '',
     '///|', 'pub fn compiler_inference_barrier_contract_cid() -> String {',
     `  ${JSON.stringify(verifyInferenceBarrierSchema().cid)}`, '}', '',
+    '///|', 'pub fn compiler_lookup_barrier_contract_cid() -> String {',
+    `  ${JSON.stringify(machineCid(verifyLookupBarrierSchemas().schema))}`, '}', '',
     '///|', 'pub fn compiler_content_barrier_contract_cid() -> String {',
     `  ${JSON.stringify(verifyContentSerializationSchemas().barrierCid)}`, '}', '',
     '///|', 'pub fn compiler_content_serialization_contract_cid() -> String {',

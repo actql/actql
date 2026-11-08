@@ -41,6 +41,11 @@ pub fn compiler_inference_barrier_contract_cid() -> String {
 }
 
 ///|
+pub fn compiler_lookup_barrier_contract_cid() -> String {
+  "sha256:866b8e34f31933d310c208b8423e7a0e9a467e078b0b73114046865873a310c9"
+}
+
+///|
 pub fn compiler_content_barrier_contract_cid() -> String {
   "sha256:4b7fea87dfbed0e1f11e9421cd077793cd3bccfc3e981617fa2a1547960acee5"
 }

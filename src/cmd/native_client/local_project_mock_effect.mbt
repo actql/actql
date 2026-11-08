@@ -57,6 +57,32 @@ fn[I] LocalProjectMockDeclarations::prepare_effect_models(
     let provider = self
       .model_provider(execution)
       .unwrap_or_else(() => stop("LocalOriginalModelUnavailable"))
+    let keyed_native_profile = match
+      @run_host.client_infer_occurrence_keyed_source_identity(occurrence) {
+      None => None
+      Some((source_ref, view_cid)) => {
+        guard self.file_sources is Some(files) else {
+          stop("LocalOriginalModelKeyedPlanUnavailable")
+        }
+        let mut selected = None
+        for file in files {
+          for pair in file._retained_listings {
+            let binding = pair.1
+            if binding.content.source_ref == source_ref &&
+              binding.content.view_cid == view_cid {
+              guard selected is None else {
+                stop("LocalOriginalModelKeyedPlanUnavailable")
+              }
+              selected = Some(binding._retained_read_profile.contract())
+            }
+          }
+        }
+        guard selected is Some(profile) else {
+          stop("LocalOriginalModelKeyedPlanUnavailable")
+        }
+        Some(profile)
+      }
+    }
     let graph = @local_values.prepare_request_model_graph(
       parent,
       input,
@@ -65,6 +91,7 @@ fn[I] LocalProjectMockDeclarations::prepare_effect_models(
       contracts,
       manifests=native_request_manifests,
       compilation_limits=@run_host.client_standard_pure_compilation_limits(),
+      keyed_native_profile~,
       caller_material=Some(
         native_mock_effect_model_selection_storage(
           if index == 0 {

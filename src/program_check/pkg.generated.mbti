@@ -240,6 +240,10 @@ pub fn effective_policy_occurrence_at(EffectivePolicy, Int) -> SourcePolicyOccur
 
 pub fn effective_policy_occurrence_count(EffectivePolicy) -> Int
 
+pub fn effective_policy_source_at(EffectivePolicy, Int) -> String?
+
+pub fn effective_policy_source_count(EffectivePolicy) -> Int
+
 pub fn emit_analytic_numeric_slot(AnalyticNumericSlot, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_asof_search_limit(AsOfSearchLimit, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
@@ -673,6 +677,8 @@ pub fn prepare_effect_computation_input(@stage_syntax.Program, CheckEnvironment,
 pub fn prepare_infer_input_source_policy(CheckedProgram, Int, Int, Int, Int, Int, Int) -> PublicationSourcePolicy? raise UnitBuildFailure
 
 pub fn prepare_infer_item_limit(CheckedProgram, Int, Int, Int, Int, Int, Int) -> InferItemLimit raise UnitBuildFailure
+
+pub fn prepare_keyed_acquisition_source_policies(CheckedProgram, KeyedExecution, Int, Int, Int, Int) -> KeyedAcquisitionSourcePolicies raise UnitBuildFailure
 
 pub fn prepare_parsed_carriers_input(ParsedCheckRegistry) -> Result[ParsedCarriersInput, ParsedCheckPreludeIssue]
 
@@ -1436,6 +1442,13 @@ type InputRequests
 
 type IntervalSearchLimit
 
+pub struct KeyedAcquisitionSourcePolicies {
+  left : PublicationSourcePolicy?
+  request : EffectivePolicy
+  output : PublicationSourcePolicy?
+  original : SourceExecution
+}
+
 pub struct KeyedExecution {
   owner : @pipeline_check_context.SourceProducerContext
   stage : Int
@@ -1831,6 +1844,7 @@ pub struct SourceExecutionSubject {
 pub enum SourcePolicyOccurrence {
   DirectPolicy(DirectSourcePolicy)
   KeyedResponsePolicy(SourceExecution)
+  KeyedStaticRequestPolicy(SourceExecution)
 }
 
 pub(all) enum SourceReadAuthority {
