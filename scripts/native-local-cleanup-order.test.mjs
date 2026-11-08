@@ -132,7 +132,7 @@ test "same original debt and physical close remain separate" {
     let held : LocalNativeMockEffectTarget = {
       operation, child: Some(child), observed: Some(("original-before", "original-version")),
       request_operation: Some(request), _retained_request: Some(("original-request", "original-cid")),
-      charged: 0L,
+      charged: 0L, received: 0L, _retained_account_issue: None,
     }
     let refused = held.close()
     assert_eq(child.close_calls, 1)

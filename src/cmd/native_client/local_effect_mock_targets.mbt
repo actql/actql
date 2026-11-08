@@ -9,23 +9,38 @@ priv struct LocalNativeMockEffectTarget {
   mut request_operation : @local_values.ClientInstalledEffectOperationBorrow?
   mut _retained_request : (String, String)?
   mut charged : Int64
+  mut received : Int64
+  mut _retained_account_issue : @local_values.ClientInstalledManagedRunIssue?
 }
 
 ///|
 fn LocalNativeMockEffectTarget::account_bytes(
   self : Self,
 ) -> Result[Unit, @local_values.ClientInstalledManagedRunIssue] {
-  guard self.child is Some(child) else { return Ok(()) }
-  let (received, submitted) = child.byte_counts()
-  if received < self.charged || submitted != 0L {
-    return Err(ForeignOriginal)
+  if self.child is Some(child) {
+    let (received, submitted) = child.byte_counts()
+    if received < self.received || submitted != 0L {
+      if self._retained_account_issue is None {
+        self._retained_account_issue = Some(ForeignOriginal)
+      }
+      return Err(ForeignOriginal)
+    }
+    // Keep the actual receive observation even if charging or a subsequent
+    // physical close fails. The child may acknowledge close before this debt
+    // can be reconciled; no further file read supplies replacement evidence.
+    self.received = received
   }
-  let delta = received - self.charged
+  let delta = self.received - self.charged
   if delta > 0L {
     match
       @local_values.charge_installed_effect_operation(self.operation, delta) {
-      Err(issue) => return Err(issue)
-      Ok(_) => self.charged = received
+      Err(issue) => {
+        if self._retained_account_issue is None {
+          self._retained_account_issue = Some(issue)
+        }
+        return Err(issue)
+      }
+      Ok(_) => self.charged = self.received
     }
   }
   Ok(())
@@ -35,16 +50,19 @@ fn LocalNativeMockEffectTarget::account_bytes(
 fn LocalNativeMockEffectTarget::close(
   self : Self,
 ) -> Result[Bool, LocalCommandPreparationIssue] {
+  let accounted = self.account_bytes()
+  // Accounting refusal must not block the same physical child's close. Keep
+  // its actual pending/ACK independent from the still-unsettled byte debt.
   if self.child is Some(child) {
-    match self.account_bytes() {
-      Err(issue) => return Err(CommandBusinessEffectProposals(Managed(issue)))
-      Ok(_) => ()
-    }
     match child.close() {
       Err(issue) => return Err(CommandBusinessSource(issue))
       Ok(false) => return Ok(false)
       Ok(true) => self.child = None
     }
+  }
+  match accounted {
+    Err(issue) => return Err(CommandBusinessEffectProposals(Managed(issue)))
+    Ok(_) => ()
   }
   // Drop this caller's escaped DATA before settling its actual backing. The
   // physical child above, not a successful logical result, supplies the ACK.
@@ -159,6 +177,8 @@ fn LocalCommandBusinessPreparation::observe_mock_effect_targets(
           request_operation: None,
           _retained_request: None,
           charged: 0L,
+          received: 0L,
+          _retained_account_issue: None,
         }
         // The original operation and partial child survive every fallible
         // constructor/return. No coordinate or attempt is reissued on error.
