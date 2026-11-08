@@ -2229,9 +2229,12 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       if (typeof sourcePolicy !== 'function' || readSequenceConstruction === undefined &&
           typeof (requestConstruction === undefined ? sourceCapacity : selectedRequestCapacity) !== 'function') fail('InstalledSourceReaderRuntimeUnavailable');
       const policy = Reflect.apply(sourcePolicy, moon, []);
+      // The Values cells-per-row default is not Source schema eligibility.
+      // Source columns retain their declared bounds and typed RowRun capacity;
+      // this bridge still requires the original Core Int representation.
       if (!Array.isArray(policy) || policy.length !== 3 || policy.some(value =>
         !Number.isSafeInteger(value) || value < 1 || value > 2147483647) ||
-        !Number.isSafeInteger(columns) || columns < 1 || columns > policy[2] ||
+        !Number.isSafeInteger(columns) || columns < 1 || columns > 2147483647 ||
         supplied.maxSecretBytes.value > policy[0]) fail('InstalledSourceReaderPolicyUnavailable');
       const limits = Object.freeze(Object.fromEntries(names.map(name => [name, supplied[name].value])));
       const previous = sourceImplementations.get(selection);

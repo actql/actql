@@ -261,7 +261,7 @@ fn prepare_retained_installed_capture_ledger(
 ) -> Result[@resources.Ledger, ClientInstalledManagedRunIssue] {
   guard value.captured_preparation is Some(original) &&
     physical_equal(original, plan) &&
-    value.preparation is Some(PureManaged(admission, prepared)) &&
+    value.preparation is Some(PureManaged(_, prepared)) &&
     physical_equal(prepared, plan.prepared) &&
     physical_equal(value.request, plan.request) else {
     return Err(ForeignOriginal)
@@ -302,16 +302,12 @@ fn prepare_retained_installed_capture_ledger(
       return Err(ForeignOriginal)
     }
   }
-  let fits = match value.preparation_retirement {
-    None =>
-      installed_effect_limits_fit(plan.limits, @resources.ledger_limits(ledger))
-    Some(PurePreparation(original)) =>
-      // This captured Plan retains the SAME backed Request body. Source
-      // and Compute constructors still reserve/grow on its finite Ledger;
-      // their whole-run maxima do not allocate storage at this handoff.
-      preparation_owned_run_limits_fit(original, admission, prepared, ledger)
-    Some(EffectPlanPreparation(_)) => false
-  }
+  let fits = installed_managed_capture_parent_fits(
+    value,
+    prepared,
+    ledger,
+    plan.limits,
+  )
   if !fits {
     return Err(InsufficientCapacity)
   }
@@ -568,4 +564,27 @@ pub fn begin_installed_managed_capture_read(
   read.requirement = Some(capacity.requirement)
   read.acquisition = Some(acquisition)
   Ok(read)
+}
+
+///|
+/// Existing Query and complete-input Plans borrow the same admitted Request.
+/// A backed Request uses its actual phase funding; future whole-run maxima
+/// remain validation/operation policy and are not a startup allocation.
+fn installed_managed_capture_parent_fits(
+  value : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  ledger : @resources.Ledger,
+  limits : @resources.LedgerLimits,
+) -> Bool {
+  guard value.preparation is Some(PureManaged(admission, actual)) &&
+    physical_equal(actual, prepared) else {
+    return false
+  }
+  match value.preparation_retirement {
+    None =>
+      installed_effect_limits_fit(limits, @resources.ledger_limits(ledger))
+    Some(PurePreparation(original)) =>
+      preparation_owned_run_limits_fit(original, admission, prepared, ledger)
+    Some(EffectPlanPreparation(_)) => false
+  }
 }

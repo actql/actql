@@ -675,8 +675,11 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
           const physical = original.physical.find(value => value.resource === resource);
           if (physical === undefined || physical.declaration !== declaration) fail('InstalledMockPhysicalBindingUnavailable');
           const selected = projectOriginal(physical, bytes, options);
-          checked(moon.clientProgramRelationAcceptChargedDocument(rowRun.run, charge,
-            rowRun.acquisition, selected, 16777216));
+          checked(rowRun.inputKind === 'whole-input'
+            ? moon.clientProgramRelationAcceptChargedInputDocument(rowRun.run, charge,
+              rowRun.acquisition, selected, 16777216)
+            : moon.clientProgramRelationAcceptChargedDocument(rowRun.run, charge,
+              rowRun.acquisition, selected, 16777216));
           current();
         }});
       const queryAliases = Object.freeze(entry.queryAliases.map(alias => {

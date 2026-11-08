@@ -154,6 +154,52 @@ pub fn prepare_installed_whole_source_capacity(
   limits : @row_source_host.RowInputLimits,
   provider : @execution.ExecutionCapacity?,
 ) -> Result[ClientInstalledWholeSourceCapacity, ClientInstalledManagedRunIssue] {
+  prepare_installed_whole_source_capacity_original(
+    prepared,
+    original,
+    Some(declaration),
+    contracts,
+    limits,
+    provider,
+  )
+}
+
+///|
+/// The installed DuckDB implementation projects its already checked Catalog
+/// SourceView instead of regenerating an unrelated row declaration.
+pub fn prepare_installed_catalog_whole_source_capacity(
+  prepared : @publication_host.PreparedClientProgram,
+  original : @sourceviews.SourceAcquisition,
+  contracts : ClientInstalledSequenceContracts,
+  limits : @row_source_host.RowInputLimits,
+) -> Result[ClientInstalledWholeSourceCapacity, ClientInstalledManagedRunIssue] {
+  // This installed table binding has no parameterized Source Request compiler.
+  // Preserve that checked payload by refusing it, never by dropping fields.
+  if @sourceviews.parameterized_request_field_count(
+      @sourceviews.source_acquisition_request(original),
+    ) !=
+    0 {
+    return Err(Unsupported)
+  }
+  prepare_installed_whole_source_capacity_original(
+    prepared,
+    original,
+    None,
+    contracts,
+    limits,
+    None,
+  )
+}
+
+///|
+fn prepare_installed_whole_source_capacity_original(
+  prepared : @publication_host.PreparedClientProgram,
+  original : @sourceviews.SourceAcquisition,
+  declaration : @row_source_host.RowDeclaration?,
+  contracts : ClientInstalledSequenceContracts,
+  limits : @row_source_host.RowInputLimits,
+  provider : @execution.ExecutionCapacity?,
+) -> Result[ClientInstalledWholeSourceCapacity, ClientInstalledManagedRunIssue] {
   if !@publication_host.client_source_acquisition_matches_program(
       prepared, 0, 0, original,
     ) {
@@ -172,27 +218,40 @@ pub fn prepare_installed_whole_source_capacity(
     Ok(value) => value
     Err(_) => return Err(Unsupported)
   }
+  let program = @checked.source_identity(
+    @strategy.graph_program(@publication_host.prepared_client_graph(prepared)),
+  )
+  let policy = Some(
+    installed_source_listing_policy(
+      @publication_host.prepared_client_graph(prepared),
+    ),
+  )
   let acquisition = match
-    @row_source_host.prepare_row_input_acquisition(
-      original,
-      @checked.source_identity(
-        @strategy.graph_program(
-          @publication_host.prepared_client_graph(prepared),
-        ),
-      ),
-      sequence,
-      contracts.original.value.contracts,
-      declaration,
-      limits,
-      listing_policy=Some(
-        installed_source_listing_policy(
-          @publication_host.prepared_client_graph(prepared),
-        ),
-      ),
-    ) {
+    (match declaration {
+      Some(declaration) =>
+        @row_source_host.prepare_row_input_acquisition(
+          original,
+          program,
+          sequence,
+          contracts.original.value.contracts,
+          declaration,
+          limits,
+          listing_policy=policy,
+        )
+      None =>
+        @row_source_host.prepare_catalog_row_input_acquisition(
+          original,
+          program,
+          sequence,
+          contracts.original.value.contracts,
+          limits,
+          listing_policy=policy,
+        )
+    }) {
     Ok(value) => value
     Err(_) => return Err(Unsupported)
   }
+
   match
     installed_whole_source_capture_capacity(original, acquisition, provider) {
     Some(value) => Ok(value)
@@ -353,7 +412,12 @@ pub fn installed_managed_whole_source_ledger(
     physical_equal(original_capacity, selected) else {
     return Err(ForeignOriginal)
   }
-  if !installed_effect_limits_fit(plan.limits, @resources.ledger_limits(ledger)) {
+  if !installed_managed_capture_parent_fits(
+      value,
+      prepared,
+      ledger,
+      plan.limits,
+    ) {
     return Err(InsufficientCapacity)
   }
   Ok(ledger)
@@ -393,6 +457,55 @@ pub fn begin_installed_managed_whole_source_read(
   ),
   ClientInstalledManagedRunIssue,
 ] {
+  begin_installed_managed_whole_source_read_original(
+    owner,
+    prepared,
+    request,
+    Some(declaration),
+    None,
+  )
+}
+
+///|
+pub fn begin_installed_managed_catalog_whole_source_read(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  source : ClientInstalledWholeSourceCapacity,
+) -> Result[
+  (
+    ClientInstalledSourceRead,
+    @sourceviews.SourceAcquisition,
+    @row_source_host.RowInputAcquisition,
+    ClientInstalledWholeSourceCapacity,
+  ),
+  ClientInstalledManagedRunIssue,
+] {
+  begin_installed_managed_whole_source_read_original(
+    owner,
+    prepared,
+    request,
+    None,
+    Some(source),
+  )
+}
+
+///|
+fn begin_installed_managed_whole_source_read_original(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  declaration : @row_source_host.RowDeclaration?,
+  expected : ClientInstalledWholeSourceCapacity?,
+) -> Result[
+  (
+    ClientInstalledSourceRead,
+    @sourceviews.SourceAcquisition,
+    @row_source_host.RowInputAcquisition,
+    ClientInstalledWholeSourceCapacity,
+  ),
+  ClientInstalledManagedRunIssue,
+] {
   guard owner.preparation is Some(PureManaged(_, actual)) &&
     physical_equal(actual, prepared) &&
     physical_equal(owner.request, request) &&
@@ -402,14 +515,19 @@ pub fn begin_installed_managed_whole_source_read(
     plan.whole_input is Some(source) else {
     return Err(ForeignOriginal)
   }
-  match
-    @row_source_host.check_row_input_acquisition_original(
-      source.acquisition,
-      declaration,
-      source.original,
-    ) {
-    Ok(_) => ()
-    Err(_) => return Err(ForeignOriginal)
+  if expected is Some(actual) && !physical_equal(actual, source) {
+    return Err(ForeignOriginal)
+  }
+  if declaration is Some(declaration) {
+    match
+      @row_source_host.check_row_input_acquisition_original(
+        source.acquisition,
+        declaration,
+        source.original,
+      ) {
+      Ok(_) => ()
+      Err(_) => return Err(ForeignOriginal)
+    }
   }
   let read = match begin_installed_managed_run_source_read(owner, 0) {
     Ok(value) => value
@@ -422,7 +540,7 @@ pub fn begin_installed_managed_whole_source_read(
     physical_equal(owner.request, request) else {
     return Err(ForeignOriginal)
   }
-  read.declaration = Some(declaration)
+  read.declaration = declaration
   read.whole_input = Some(source)
   Ok((read, source.original, source.acquisition, source))
 }
@@ -699,4 +817,93 @@ fn prepare_installed_managed_whole_source_plan_owned(
     compilation: None,
     limits,
   })
+}
+
+///|
+/// Fixed native projection of the original checked complete input. The same
+/// installed SQL byte policy bounds escaping before any quoted SQL is built.
+pub fn render_installed_catalog_source_sql(
+  capacity : ClientInstalledWholeSourceCapacity,
+  database_schema : String,
+  table : String,
+  max_bytes : Int,
+) -> Result[String, @row_source_host.RowHostIssue] {
+  if @sourceviews.parameterized_request_field_count(
+      @sourceviews.source_acquisition_request(capacity.original),
+    ) !=
+    0 {
+    return Err(@row_source_host.InvalidSpecification)
+  }
+  if database_schema.is_empty() || table.is_empty() {
+    return Err(@row_source_host.InvalidSpecification)
+  }
+  let columns = @row_source_host.row_input_acquisition_columns(
+    installed_whole_source_acquisition(capacity),
+  )
+  // Preflight the SAME installed SQL limit before materializing quoted names.
+  if max_bytes < 13 {
+    return Err(@row_source_host.InvalidSpecification)
+  }
+  let mut remaining = max_bytes - 13 // SELECT and FROM keywords
+  let reserve_name = fn(name : String) {
+    if remaining < 2 {
+      return false
+    }
+    remaining -= 2
+    for character in name {
+      let scalar = character.to_int()
+      if scalar >= 0xD800 && scalar <= 0xDFFF {
+        return false
+      }
+      let bytes = if scalar <= 0x7F {
+        1
+      } else if scalar <= 0x7FF {
+        2
+      } else if scalar <= 0xFFFF {
+        3
+      } else {
+        4
+      }
+      let bytes = bytes + (if character == '"' { 1 } else { 0 })
+      if remaining < bytes {
+        return false
+      }
+      remaining -= bytes
+    }
+    true
+  }
+  for index, name in columns {
+    if index > 0 {
+      if remaining < 2 {
+        return Err(@row_source_host.InvalidSpecification)
+      }
+      remaining -= 2
+    }
+    if !reserve_name(name) {
+      return Err(@row_source_host.InvalidSpecification)
+    }
+  }
+  if !reserve_name(database_schema) || !reserve_name(table) || remaining < 1 {
+    return Err(@row_source_host.InvalidSpecification)
+  }
+  let quote = fn(name : String) {
+    let output = StringBuilder()
+    output.write_char('"')
+    for character in name {
+      if character == '"' {
+        output.write_char('"')
+      }
+      output.write_char(character)
+    }
+    output.write_char('"')
+    output.to_string()
+  }
+  Ok(
+    "SELECT " +
+    columns.map(quote).join(", ") +
+    " FROM " +
+    quote(database_schema) +
+    "." +
+    quote(table),
+  )
 }

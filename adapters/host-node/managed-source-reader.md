@@ -1,5 +1,27 @@
 # Managed Source capture compilation
 
+## Source reader schema bounds
+
+Source reader eligibility uses the selected implementation profile and complete
+declared schema bounds. The standard Values cells-per-row ratio is not a Source
+column ceiling. The Host bridge preserves the original Core Int representation,
+secret and binding limits, same installation/current checks and typed reader
+capacity. Actual reads still enter their original query requirement and
+RowRun/Ledger before credential resolution or Site IO. Initialization does not
+grant read authority or imply a funded capture.
+
+The installed Query material owner derives its field traversal bound from the
+same admitted input/output schemas and original request fields. The corresponding
+Request constructor quote observes those same immutable originals through the
+existing structural Query shape entry, and funds its collection inventory before
+the full material constructor. The retained direct-occurrence holder is reused.
+This shape observation cannot discharge query-time, currentness or authorization;
+the original physical/material issuer still performs those duties. Explicitly
+tighter caller policies, work/byte/node/depth limits and integer overflow still
+refuse. No Source field is dropped and no Values ratio supplies this bound.
+
+## Captured artifact ownership
+
 The captured Plan's publication artifact is produced by the same Request-owned
 Pure artifact emitter as the source-free Plan. Its original typed compilation
 is retained in that Plan before completion and Run adoption. The shared emitter

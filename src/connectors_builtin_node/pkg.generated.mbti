@@ -872,6 +872,18 @@ pub fn client_program_duckdb_selection_document(@client_local_host.ClientDuckDBA
 
 pub fn client_program_duckdb_selection_native(@client_local_host.ClientDuckDBAcquisitionSelection) -> @actql/actql/connectors/duckdb/host.NativeHostConfiguration?
 
+pub fn client_program_duckdb_whole_source_accept_page(@client_row_source_host.RowRun, @client_row_source_host.RowInputAcquisition, @client_row_source_host.RowPageCharge, String, String, Int) -> Result[Int, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_duckdb_whole_source_begin_transport(@client_row_source_host.RowRunResponseBorrow) -> Result[Unit, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_duckdb_whole_source_charge_response(@client_row_source_host.RowRun, Int64) -> Result[@client_row_source_host.RowPageCharge, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_duckdb_whole_source_connector(@client_local_host.ClientInstalledWholeSourceCapacity) -> String
+
+pub fn client_program_duckdb_whole_source_page_depth() -> Int
+
+pub fn client_program_duckdb_whole_source_sql(@client_local_host.ClientInstalledWholeSourceCapacity, String, String, Int) -> Result[String, @client_row_source_host.RowHostIssue]
+
 pub fn client_program_effect_acquisition_count(@run_publication_host.PreparedClientEffectComputation) -> Int
 
 pub fn client_program_effect_allowed_infer_run(@run_publication_host.ClientEffectAllowedRun) -> Result[@run_publication_host.ClientCompiledRun, @run_publication_host.ClientCompiledRunIssue]
@@ -1789,6 +1801,8 @@ pub fn client_program_installed_managed_capture_run_requirements(@run_publicatio
 pub fn client_program_installed_managed_capture_source_read(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @client_row_source_host.RowDeclaration, Int) -> Result[(@client_local_host.ClientInstalledSourceRead, @query_planning.QueryRequirement, @client_row_source_host.RowAcquisition, @client_local_host.ClientInstalledCaptureCapacity), @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_managed_duckdb_capture(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, Int) -> Result[(@query_planning.QueryRequirement, @client_local_host.ClientInstalledCaptureCapacity), @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_installed_managed_duckdb_whole_source_read(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledWholeSourceCapacity) -> Result[(@client_local_host.ClientInstalledSourceRead, @sourceview_resolution.SourceAcquisition, @client_row_source_host.RowInputAcquisition, @client_local_host.ClientInstalledWholeSourceCapacity), @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_managed_keyed_content_check_preparation(@client_local_host.ClientInstalledManagedKeyedPreparation, @run_publication_host.PreparedClientProgram) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
 
@@ -2900,6 +2914,8 @@ pub fn client_program_prepare_duckdb_capture_capacity(@query_planning.QueryRequi
 
 pub fn client_program_prepare_duckdb_source_evidence_context(@query_planning.QueryRequirement) -> Result[@actql/actql/connectors/duckdb/host.NativeSourceEvidenceContext, @actql/actql/connectors/duckdb/host.NativeSourceEvidenceIssue]
 
+pub fn client_program_prepare_duckdb_whole_source_capacity(@run_publication_host.PreparedClientProgram, @sourceview_resolution.SourceAcquisitionRoute, @client_local_host.ClientInstalledSequenceContracts, Int, Int, Int, Int, Int) -> Result[@client_local_host.ClientInstalledWholeSourceCapacity, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_prepare_effect_computation_in_public_environment(String, String, @program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment, String?, Array[@pipeline_check_context.StageCapacityInput]) -> ClientEffectProgramBridgeOutcome
 
 pub fn client_program_prepare_effect_computation_with_parameters(String, String, @program_check.CheckEnvironment, String?, Array[@pipeline_check_context.StageCapacityInput]) -> ClientEffectProgramBridgeOutcome
@@ -3297,6 +3313,8 @@ pub fn client_program_refresh_acquired_effect_cleanup(ClientLocalEffectHost) -> 
 pub fn client_program_register_infer_raw_capture(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferDispatchAdmission, @run_publication.BoundModelInvocationScope, @run_publication.BoundModelRawCapturePolicy, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, @check_environment.DecisionProbabilityProfile?, AuthorizationAccount, String, String, () -> Bool, () -> AuthorizationAccount, () -> String, AuthorizationDecision?) -> Result[@run_publication_host.ClientModelRawCaptureRegistration, @run_publication_host.ClientModelRawCaptureIssue]
 
 pub fn client_program_relation_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RelationTargetDocument, Int) -> Result[Int, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_relation_accept_charged_input_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowInputAcquisition, @client_row_source_host.RelationTargetDocument, Int) -> Result[Int, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_relation_admit_document(Bytes, Int, Int, Int, Int, Int) -> Result[@client_row_source_host.RelationDocument, @client_row_source_host.RowSourceIssue]
 

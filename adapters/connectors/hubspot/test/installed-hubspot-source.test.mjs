@@ -1,4 +1,5 @@
 import {ledgerUsageSnapshot} from '../../../host-common/runtime-core.mjs';
+import './installed-hubspot-wide-source.actual.test.mjs';
 import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';

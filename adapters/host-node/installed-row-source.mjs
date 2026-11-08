@@ -1681,11 +1681,13 @@ export async function createInstalledRowSource({moon, declaration, commands,
       executionBytes: BigInt(limits.maxPageBytes)});
   }
   function managedWholeSourceCapacity({preparedProgram, sourceSelection, installedContracts}) {
-    if (originalReader === undefined || typeof providerSiteCurrent !== 'function' ||
+    if (originalReader === undefined) {
+      if (typeof prepareSourceRead !== 'function') fail('InstalledSourceCapacityUnavailable');
+    } else if (typeof providerSiteCurrent !== 'function' ||
         Reflect.apply(providerSiteCurrent, site, []) !== true) fail('InstalledSourceReaderNotCurrent');
     const selectedPageLimits = managedPageLimits ?? pageLimits;
     const capacity = checked(moon.clientProgramPrepareWholeSourceCapacity(
-      preparedProgram, sourceSelection, declaration, installedContracts, originalReader.capacity,
+      preparedProgram, sourceSelection, declaration, installedContracts, originalReader?.capacity,
       limits.maxCaptureRows, limits.maxPageBytes, selectedPageLimits?.maxNodes ?? 400000,
       selectedPageLimits?.maxDepth ?? 32, limits.maxPageRows));
     return Object.freeze({capacity, wholeInput: true, transferBytes: maxTransferBytes,
@@ -2050,11 +2052,11 @@ export async function createInstalledRowSource({moon, declaration, commands,
         ? checked(moon.clientProgramInstalledEffectManagedWholeSourceRead(
           managedRun, checkedOwner, requestIdentity, declaration, occurrence.task))
         : checked(moon.clientProgramInstalledEffectManagedSourceRead(managedRun, declaration, occurrence.task));
-    } else if (managedRun !== undefined && originalReader !== undefined) {
+    } else if (managedRun !== undefined && (originalReader !== undefined || prepareSourceRead !== undefined)) {
       if (typeof moon.clientProgramInstalledManagedCaptureSourceRead !== 'function') {
         fail('InstalledSourcePlanUnavailable');
       }
-      // Pure provider reads consume the SAME original Plan acquisition too.
+      // Pure provider and Host reads consume the SAME original Plan acquisition.
       // Missing retained-plan support cannot fall back to another equal query.
       if (typeof moon.clientProgramInstalledManagedSourceInputKind !== 'function') {
         fail('InstalledSourcePlanUnavailable');
@@ -2062,16 +2064,14 @@ export async function createInstalledRowSource({moon, declaration, commands,
       const kind = checked(moon.clientProgramInstalledManagedSourceInputKind(managedRun, checkedOwner, requestIdentity));
       if (kind !== 'query' && kind !== 'whole-input') fail('InstalledSourcePlanUnavailable');
       wholeInput = kind === 'whole-input';
+      if (wholeInput && typeof moon.clientProgramInstalledManagedWholeSourceRead !== 'function') {
+        fail('InstalledSourcePlanUnavailable');
+      }
       planned = wholeInput
         ? checked(moon.clientProgramInstalledManagedWholeSourceRead(
           managedRun, checkedOwner, requestIdentity, declaration))
         : checked(moon.clientProgramInstalledManagedCaptureSourceRead(
           managedRun, checkedOwner, requestIdentity, declaration, occurrence.task));
-    } else if (managedRun !== undefined && prepareSourceRead !== undefined) {
-      // This original getter binds Prepared/Request/declaration and crosses
-      // current itself. It retains the same base Row Plan's partial read.
-      planned = checked(moon.clientProgramInstalledManagedCaptureSourceRead(
-        managedRun, checkedOwner, requestIdentity, declaration, occurrence.task));
     }
     const plannedRead = planned === undefined ? undefined : runtimeField(planned, 0);
     if (plannedRead !== undefined) preparingSourceReads.add(plannedRead);
@@ -2835,6 +2835,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
       state.started = true;
       const rowRun = Object.freeze({acquisition, run, requestId: nonce,
         runInvocationCid, dispatchRequestCid,
+        ...(owner.wholeInput ? {inputKind: 'whole-input'} : {}),
         ...(owner.originalRead === undefined ? {} : {originalRead: owner.originalRead})});
       const withOriginalJob = originalOperationScope === undefined ? undefined
         : bindClientSourceOperationRowRun(originalOperationScope, moon,
@@ -3035,7 +3036,8 @@ export async function createInstalledRowSource({moon, declaration, commands,
     sourceReadAccesses,
     ...(originalReader !== undefined || typeof prepareSourceRead === 'function'
       ? {managedCaptureCapacity: managedProviderCaptureCapacity} : {}),
-    ...(originalReader === undefined ? {} : {managedWholeSourceCapacity}),
+    ...(originalReader !== undefined || typeof prepareSourceRead === 'function'
+      ? {managedWholeSourceCapacity} : {}),
       managedEffectPlanSelection() {
         // This entry selects the common original acquisition constructor.
         // A compatibility preparer/policy or earlier physical callback cannot

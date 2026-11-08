@@ -814,3 +814,201 @@ fn check_client_infer_original_evidence(
   }
   Ok(())
 }
+
+///|
+/// Native Catalog inputs retain the original SourceView instead of issuing a
+/// QueryRequirement or regenerating a row declaration with different pins.
+#export_name("clientProgramPrepareDuckDBWholeSourceCapacity")
+pub fn client_program_prepare_duckdb_whole_source_capacity(
+  prepared : @publication_host.PreparedClientProgram,
+  selection : @acquisition.SourceAcquisitionRoute,
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+  max_rows : Int,
+  max_page_bytes : Int,
+  max_page_nodes : Int,
+  max_page_depth : Int,
+  max_page_rows : Int,
+) -> Result[
+  @client_local_host.ClientInstalledWholeSourceCapacity,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  guard selection is @acquisition.WholeInputRoute(original) else {
+    return Err(@client_local_host.Unsupported)
+  }
+  if max_page_depth != @duckdb_input.transport_column_frame_depth() {
+    return Err(@client_local_host.Unsupported)
+  }
+  @client_local_host.prepare_installed_catalog_whole_source_capacity(
+    prepared,
+    original,
+    contracts,
+    @client_local_host.installed_row_input_policy(
+      max_rows, max_page_bytes, max_page_nodes, max_page_depth, max_page_rows,
+    ),
+  )
+}
+
+///|
+#export_name("clientProgramInstalledManagedDuckDBWholeSourceRead")
+pub fn client_program_installed_managed_duckdb_whole_source_read(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  capacity : @client_local_host.ClientInstalledWholeSourceCapacity,
+) -> Result[
+  (
+    @client_local_host.ClientInstalledSourceRead,
+    @acquisition.SourceAcquisition,
+    @client_row_source_host.RowInputAcquisition,
+    @client_local_host.ClientInstalledWholeSourceCapacity,
+  ),
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.begin_installed_managed_catalog_whole_source_read(
+    owner, prepared, request, capacity,
+  )
+}
+
+///|
+/// Fixed native rendering from the exact checked complete input. Physical
+/// identifiers are Host installation DATA; no authored SQL enters this port.
+#export_name("clientProgramDuckDBWholeSourceSql")
+pub fn client_program_duckdb_whole_source_sql(
+  capacity : @client_local_host.ClientInstalledWholeSourceCapacity,
+  database_schema : String,
+  table : String,
+  max_bytes : Int,
+) -> Result[String, @client_row_source_host.RowHostIssue] {
+  @client_local_host.render_installed_catalog_source_sql(
+    capacity, database_schema, table, max_bytes,
+  )
+}
+
+///|
+/// Admit the existing native scalar transport with its exact checked input
+/// field contracts, then hand opaque values to the common charged RowRun.
+#export_name("clientProgramDuckDBWholeSourceAcceptPage")
+pub fn client_program_duckdb_whole_source_accept_page(
+  run : @client_row_source_host.RowRun,
+  acquisition : @client_row_source_host.RowInputAcquisition,
+  charge : @client_row_source_host.RowPageCharge,
+  fields_wire : String,
+  columns_wire : String,
+  rows : Int,
+) -> Result[Int, @client_row_source_host.RowHostIssue] {
+  match
+    @client_row_source_host.check_native_row_input_original(run, acquisition) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  let limits = @client_row_source_host.row_input_acquisition_limits(acquisition)
+  let schema = @client_row_source_host.row_input_acquisition_schema(acquisition)
+  let width = @schema.field_count(schema)
+  if rows < 0 ||
+    rows > limits.page.max_rows ||
+    width <= 0 ||
+    rows > 2147483647 / width {
+    return Err(@client_row_source_host.InvalidSpecification)
+  }
+  let transport : @duckdb_input.TransportColumnLimits = {
+    max_bytes: limits.page.max_bytes,
+    max_nodes: limits.page.max_nodes,
+    max_columns: limits.wire.max_columns,
+    max_rows: limits.page.max_rows,
+    max_text_bytes: limits.retention.max_text_bytes,
+  }
+  let fields = match
+    @duckdb_input.decode_physical_fields(fields_wire, transport) {
+    Ok(value) => value
+    Err(_) => return Err(@client_row_source_host.InvalidSpecification)
+  }
+  let columns = match
+    @duckdb_input.decode_transport_columns(columns_wire, transport) {
+    Ok(value) => value
+    Err(_) => return Err(@client_row_source_host.InvalidSpecification)
+  }
+  if fields.length() != width || columns.length() != width {
+    return Err(@client_row_source_host.InvalidSpecification)
+  }
+  let mappings = []
+  for index in 0..<width {
+    let field = @schema.field_at(schema, index).unwrap()
+    if fields[index].0 != @schema.field_reference_name(field) ||
+      @decode.array_length(columns[index]) != Some(rows) {
+      return Err(@client_row_source_host.InvalidSpecification)
+    }
+    match
+      @duckdb_input.prepare_value_mapping(
+        fields[index].1,
+        @schema.field_contract(field),
+      ) {
+      Ok(value) => mappings.push(value)
+      Err(_) => return Err(@client_row_source_host.InvalidSpecification)
+    }
+  }
+  let values = []
+  for row in 0..<rows {
+    let cells = []
+    for column in 0..<width {
+      match
+        @duckdb_input.admit_physical_value(
+          mappings[column],
+          @decode.element_at(columns[column], row).unwrap(),
+          {
+            max_nodes: limits.retention.max_nodes,
+            max_depth: limits.retention.max_depth,
+            max_text_bytes: limits.retention.max_text_bytes,
+          },
+        ) {
+        Ok(value) => cells.push(value)
+        Err(_) => return Err(@client_row_source_host.InvalidSpecification)
+      }
+    }
+    values.push(cells)
+  }
+  @client_row_source_host.accept_charged_row_run_values(
+    run,
+    charge,
+    fields.map(value => value.0),
+    values,
+  )
+}
+
+///|
+#export_name("clientProgramDuckDBWholeSourceBeginTransport")
+pub fn client_program_duckdb_whole_source_begin_transport(
+  borrow : @client_row_source_host.RowRunResponseBorrow,
+) -> Result[Unit, @client_row_source_host.RowHostIssue] {
+  @client_row_source_host.begin_row_run_response_attempt(borrow)
+}
+
+///|
+#export_name("clientProgramDuckDBWholeSourceChargeResponse")
+pub fn client_program_duckdb_whole_source_charge_response(
+  run : @client_row_source_host.RowRun,
+  bytes : Int64,
+) -> Result[
+  @client_row_source_host.RowPageCharge,
+  @client_row_source_host.RowHostIssue,
+] {
+  @client_row_source_host.charge_native_row_input_response(run, bytes)
+}
+
+///|
+/// Actual selected native scalar-column codec depth, not a reader column ratio.
+#export_name("clientProgramDuckDBWholeSourcePageDepth")
+pub fn client_program_duckdb_whole_source_page_depth() -> Int {
+  @duckdb_input.transport_column_frame_depth()
+}
+
+///|
+/// Declaration DATA for the existing Host's real installation/Catalog join.
+#export_name("clientProgramDuckDBWholeSourceConnector")
+pub fn client_program_duckdb_whole_source_connector(
+  capacity : @client_local_host.ClientInstalledWholeSourceCapacity,
+) -> String {
+  let original = @client_local_host.installed_whole_source_original(capacity)
+  @acquisition.declaration(
+    @acquisition.mode_input(@acquisition.source_acquisition_mode(original)),
+  ).connector
+}

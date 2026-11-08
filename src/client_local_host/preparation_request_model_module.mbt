@@ -737,11 +737,35 @@ pub fn[I] prepare_request_model_capture_module(
           Some(value) => value
         }
       }
-      guard request_local_query_construction_bytes() is Some(query_bytes) &&
-        @execution.checked_preparation_add_product(
-          protocol_bytes,
-          query_bytes,
-          count.to_int64(),
+      let direct = match request_model_direct_occurrences_owned(owner, input) {
+        Ok(value) => value
+        Err(issue) => return Err(Installed(issue))
+      }
+      if @publication_host.client_direct_acquisition_occurrence_count(direct) !=
+        count {
+        return Err(Installed(ForeignOriginal))
+      }
+      let mut query_bytes = 0L
+      for index in 0..<count {
+        guard @publication_host.client_direct_acquisition_occurrence_at(
+            direct, index,
+          )
+          is Some((stage, source_input, task)) &&
+          task == index &&
+          request_local_original_query_construction_bytes(
+            prepared, stage, source_input,
+          )
+          is Some(original_bytes) &&
+          @execution.checked_preparation_add_product(
+            query_bytes, original_bytes, 1L,
+          )
+          is Some(total) else {
+          return Err(Preparation(Policy))
+        }
+        query_bytes = total
+      }
+      guard @execution.checked_preparation_add_product(
+          protocol_bytes, query_bytes, 1L,
         )
         is Some(bytes) else {
         return Err(Preparation(Policy))
@@ -856,14 +880,6 @@ pub fn[I] prepare_request_model_capture_module(
           Err(issue) => return Err(ModelSource(issue))
           Ok(value) => Some(value)
         }
-      }
-      let direct = match request_model_direct_occurrences_owned(owner, input) {
-        Ok(value) => value
-        Err(issue) => return Err(Installed(issue))
-      }
-      if @publication_host.client_direct_acquisition_occurrence_count(direct) !=
-        count {
-        return Err(Installed(ForeignOriginal))
       }
       let captures = []
       for index in 0..<count {

@@ -62972,7 +62972,7 @@
     {
       "module": "adapters/host-node/installed-duckdb-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ca9915cd89b24b3a02741362016207dad66d3934bc87cf8d4819382746041b6d",
+      "sha256": "c0aa1c535aeda1e0a6149e0972105cdcbcd27bb4c9211026d6679b9121ef6f49",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -63052,7 +63052,8 @@
             "requireImmediateReadAuthorization",
             "queryTimePreparation",
             "requestIdentity",
-            "managedRun"
+            "managedRun",
+            "preparedSource"
           ],
           "async": true
         },
@@ -63100,6 +63101,29 @@
           "async": false
         },
         {
+          "name": "createInstalledDuckDBSource/adapter/init:managedWholeSourceCapacity/init:managedWholeSourceCapacity",
+          "parameters": [
+            "preparedProgram",
+            "sourceSelection",
+            "installedContracts"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledDuckDBSource/adapter/init:managedWholeSourceCapacity/init:managedWholeSourceCapacity/declaredCatalogs/declaredCatalogs",
+          "parameters": [
+            "catalog"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledDuckDBSource/adapter/init:managedWholeSourceCapacity/init:managedWholeSourceCapacity/declaredCatalogs/declaredCatalogs/declaredCatalogs",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
           "name": "createInstalledDuckDBSource/adapter/init:openCapture/init:openCapture",
           "parameters": [
             "options"
@@ -63142,6 +63166,21 @@
           "async": false
         },
         {
+          "name": "createInstalledDuckDBSource/adapter/init:retirePreparedSource/init:retirePreparedSource",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledDuckDBSource/authorizeWhole/authorizeWhole",
+          "parameters": [
+            "access",
+            "signal"
+          ],
+          "async": true
+        },
+        {
           "name": "createInstalledDuckDBSource/capacityContracts/capacityContracts",
           "parameters": [
             "name"
@@ -63157,6 +63196,98 @@
         },
         {
           "name": "createInstalledDuckDBSource/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledDuckDBSource/openWhole/openWhole",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledDuckDBSource/openWhole/openWhole/init:chargeTransfer/init:chargeTransfer",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledDuckDBSource/openWhole/openWhole/init:settled/init:settled",
+          "parameters": [
+            "confirmed"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledDuckDBSource/openWhole/openWhole/init:started/init:started",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledDuckDBSource/openWhole/openWhole/openWhole",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledDuckDBSource/openWhole/openWhole/openWhole/acceptFrame/acceptFrame",
+          "parameters": [
+            "frame"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledDuckDBSource/openWhole/openWhole/openWhole/acceptFrame/acceptFrame/acceptFrame",
+          "parameters": [
+            "name",
+            "type"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledDuckDBSource/openWhole/openWhole/openWhole/openWhole",
+          "parameters": [
+            "fields"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledDuckDBSource/openWhole/openWhole/openWhole/openWhole/openWhole",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledDuckDBSource/openWhole/openWhole/openWhole#2",
+          "parameters": [
+            "session"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledDuckDBSource/openWhole/openWhole/recovery/init:cleanup/init:cleanup",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledDuckDBSource/openWhole/openWhole/recovery/recovery",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledDuckDBSource/openWhole/openWhole/verifyRead/verifyRead",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledDuckDBSource/prepareWhole/prepareWhole",
+          "parameters": [
+            "facts"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledDuckDBSource/prepareWholeLimits/prepareWholeLimits",
           "parameters": [],
           "async": false
         },
@@ -63180,6 +63311,13 @@
           "name": "createInstalledDuckDBSource/retainPrepared/retainPrepared/matches/matches/matches",
           "parameters": [
             "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledDuckDBSource/retireWhole/retireWhole",
+          "parameters": [
+            "original"
           ],
           "async": false
         },
@@ -63211,6 +63349,7 @@
             "checkInstalledDuckDBSourceProfile/checkInstalledDuckDBSourceProfile",
             "checkInstalledDuckDBSourceProfile/checkInstalledDuckDBSourceProfile#2",
             "cid",
+            "createInstalledDuckDBSource/authorizeWhole/authorizeWhole",
             "createInstalledDuckDBSource/current/current",
             "installDuckDBSourceProfile",
             "loadInstalledDuckDBSource"
@@ -63681,7 +63820,11 @@
           "operations": [
             "createInstalledDuckDBSource/adapter/init:managedCaptureCapacity/init:managedCaptureCapacity",
             "createInstalledDuckDBSource/adapter/init:managedEffectPlanSelection/init:managedEffectPlanSelection",
-            "createInstalledDuckDBSource/capacityContracts/capacityContracts"
+            "createInstalledDuckDBSource/adapter/init:managedWholeSourceCapacity/init:managedWholeSourceCapacity",
+            "createInstalledDuckDBSource/adapter/init:managedWholeSourceCapacity/init:managedWholeSourceCapacity/declaredCatalogs/declaredCatalogs",
+            "createInstalledDuckDBSource/adapter/init:managedWholeSourceCapacity/init:managedWholeSourceCapacity/declaredCatalogs/declaredCatalogs/declaredCatalogs",
+            "createInstalledDuckDBSource/capacityContracts/capacityContracts",
+            "createInstalledDuckDBSource/prepareWholeLimits/prepareWholeLimits"
           ],
           "exports": [],
           "attributes": {
@@ -63764,10 +63907,26 @@
             "createInstalledDuckDBSource/adapter/init:prepareRetained/init:prepareRetained",
             "createInstalledDuckDBSource/adapter/init:prepareRetainedCapture/init:prepareRetainedCapture",
             "createInstalledDuckDBSource/adapter/init:retainedCapture/init:retainedCapture",
+            "createInstalledDuckDBSource/adapter/init:retirePreparedSource/init:retirePreparedSource",
             "createInstalledDuckDBSource/catalogIds/catalogIds",
+            "createInstalledDuckDBSource/openWhole/openWhole",
+            "createInstalledDuckDBSource/openWhole/openWhole/init:chargeTransfer/init:chargeTransfer",
+            "createInstalledDuckDBSource/openWhole/openWhole/init:settled/init:settled",
+            "createInstalledDuckDBSource/openWhole/openWhole/init:started/init:started",
+            "createInstalledDuckDBSource/openWhole/openWhole/openWhole",
+            "createInstalledDuckDBSource/openWhole/openWhole/openWhole#2",
+            "createInstalledDuckDBSource/openWhole/openWhole/openWhole/acceptFrame/acceptFrame",
+            "createInstalledDuckDBSource/openWhole/openWhole/openWhole/acceptFrame/acceptFrame/acceptFrame",
+            "createInstalledDuckDBSource/openWhole/openWhole/openWhole/openWhole",
+            "createInstalledDuckDBSource/openWhole/openWhole/openWhole/openWhole/openWhole",
+            "createInstalledDuckDBSource/openWhole/openWhole/recovery/init:cleanup/init:cleanup",
+            "createInstalledDuckDBSource/openWhole/openWhole/recovery/recovery",
+            "createInstalledDuckDBSource/openWhole/openWhole/verifyRead/verifyRead",
+            "createInstalledDuckDBSource/prepareWhole/prepareWhole",
             "createInstalledDuckDBSource/retainPrepared/retainPrepared",
             "createInstalledDuckDBSource/retainPrepared/retainPrepared/matches/matches",
-            "createInstalledDuckDBSource/retainPrepared/retainPrepared/matches/matches/matches"
+            "createInstalledDuckDBSource/retainPrepared/retainPrepared/matches/matches/matches",
+            "createInstalledDuckDBSource/retireWhole/retireWhole"
           ],
           "exports": [],
           "attributes": {
@@ -72013,7 +72172,7 @@
     },
     {
       "module": "adapters/local-node/installed-project-mock.mjs",
-      "sha256": "bc847e2a582c338136c0de754281b66580bc5ea1e8313523e046b88e84e783a6",
+      "sha256": "5a86326375ee561500b7c79a1dfb8f211d9253ba2de8519794e59e6f8a8d5be3",
       "exports": [
         "inspectProjectMockDeclarations",
         "installPreparedProjectMockSources",
@@ -127709,7 +127868,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "9c2bf0c654a89b3b38bc5589fe58aa0d5a6daf4691857eee84fc2a94fa562ff2",
+      "sha256": "6e3e57ae439cbc165c3d11c7b02e5f639b78f55b018b281fee218727f71578d9",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -129174,6 +129333,10 @@
               {
                 "path": "adapters/host-node/installed-host-services.mjs",
                 "anchor": "Optional separately bound Resources are declared by this SAME complete"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Source reader schema bounds"
               }
             ],
             "extension": [
@@ -129214,6 +129377,18 @@
               {
                 "path": "adapters/connectors/kintone/test/kintone-public-client.integration.test.mjs",
                 "anchor": "{entrance: 'LocalJSON', format: 'json', program: wholeSource}"
+              },
+              {
+                "path": "adapters/connectors/hubspot/test/installed-hubspot-wide-source.actual.test.mjs",
+                "anchor": "wide Source initialization preserves its complete declared schema without a Values-derived ceiling"
+              },
+              {
+                "path": "adapters/connectors/hubspot/test/installed-hubspot-wide-source.actual.test.mjs",
+                "anchor": "Source still refuses an unfunded original RowRun before credential resolution or transport"
+              },
+              {
+                "path": "adapters/connectors/hubspot/test/installed-hubspot-wide-source.actual.test.mjs",
+                "anchor": "declared Source column bounds still reject a complete wide schema before Site IO"
               }
             ]
           }

@@ -499,6 +499,8 @@ pub fn stream_native_output(NativeReceiving, Int, @execution_relation.ValueLimit
 
 pub fn stream_native_validation(NativeReceiving, @execution_relation.RowWireLimits, @execution_relation.FixedInputGuardMeasureLimits, Int) -> Result[Unit, NativeReceivingIssue]
 
+pub fn transport_column_frame_depth() -> Int
+
 pub fn validate_fixed_compute_join(FixedCompute) -> Result[@execution_relation.FixedJoinValidation?, @execution_relation.RowIssue]
 
 pub fn validate_fixed_join_preflight(FixedJoinInputs) -> Result[@execution_relation.FixedJoinValidation, @execution_relation.RowIssue]

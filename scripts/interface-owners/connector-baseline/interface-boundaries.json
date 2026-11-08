@@ -3040,7 +3040,7 @@
     {
       "module": "adapters/connectors/duckdb/node/session.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2c5c961406b34e0c5258f185510badb725ecafe48aa78389baac7d1ce87573bc",
+      "sha256": "694f448e3419d55c1708dea3e8be5279da9434aac2570f9fdbc483f5765b3fb5",
       "role": "physical-io",
       "owner": "Opaque read-only file grants and Neo native session/transaction/statement/cleanup custody",
       "exports": [
@@ -3275,7 +3275,8 @@
             "parameters",
             "consume",
             "reuseInsert",
-            "statementMode"
+            "statementMode",
+            "receiveMetadata"
           ],
           "async": true
         },

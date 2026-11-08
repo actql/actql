@@ -302,7 +302,9 @@ test('actual standard Source factory forwards the selected constructor request b
   const found=[];const walk=node=>{if(!node||typeof node!=='object')return;
     if(node.type==='Property'&&node.method&&node.key.name==='createSourceReader')found.push(node);
     for(const value of Object.values(node))if(Array.isArray(value))value.forEach(walk);else if(value&&typeof value==='object')walk(value);};
-  walk(parse(source,{ecmaVersion:'latest',sourceType:'module'}));assert.equal(found.length,1);
+  const tree=parse(source,{ecmaVersion:'latest',sourceType:'module'});
+  const owner=tree.body.find(node=>node.type==='ExportNamedDeclaration'&&node.declaration?.id?.name==='createInstalledHostServices');
+  assert.ok(owner);walk(owner.declaration);assert.equal(found.length,1);
   const installation={},selection={},site={},originalSite={},capacity={},cid='sha256:'+'a'.repeat(64),calls=[];
   const limits=Object.fromEntries(installedJsonSourceReaderProfileLimitNames.map((name,i)=>[name,values[i]]));
   const implementation={capacity,limits};const record={runtimeBundleCid:cid,value:implementation,

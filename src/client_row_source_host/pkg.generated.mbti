@@ -15,6 +15,7 @@ import {
   "actql/actql/physical_strategy_host",
   "actql/actql/pipeline_check_context",
   "actql/actql/query_planning",
+  "actql/actql/relation_schema",
   "actql/actql/run_publication",
   "actql/actql/sourceview_resolution",
   "actql/actql/value_admission",
@@ -102,9 +103,13 @@ pub fn cancel_keyed_row_read(RowSourceRead) -> Bool
 
 pub fn capture_row_run(RowRun) -> Result[RowSourceCapture, RowHostIssue]
 
+pub fn charge_native_row_input_response(RowRun, Int64) -> Result[RowPageCharge, RowHostIssue]
+
 pub fn charge_row_run_page(RowRun, Bytes) -> Result[RowPageCharge, RowHostIssue]
 
 pub fn charge_row_run_response_body(RowRun, Bytes) -> Result[RowPageCharge, RowHostIssue]
+
+pub fn check_native_row_input_original(RowRun, RowInputAcquisition) -> Result[Unit, RowHostIssue]
 
 pub fn check_row_acquisition_original(RowAcquisition, RowDeclaration, @query_planning.QueryRequirement) -> Result[Unit, RowHostIssue]
 
@@ -203,6 +208,8 @@ pub fn mock_churn_risk_update_alias_count(MockChurnRiskCatalogue) -> Int
 pub fn observe_mock_churn_risk_target(MockTargetDocument, RowDeclaration, String) -> Result[MockTargetRow, RowSourceIssue]
 
 pub fn observe_relation_target(RelationTargetDocument, RowDeclaration, String) -> Result[RelationTargetRow, RowSourceIssue]
+
+pub fn prepare_catalog_row_input_acquisition(@sourceview_resolution.SourceAcquisition, @pipeline_check_context.ProgramSourceIdentity, @lowering_relation.PreparedSequence, @execution_relation.RegisteredRelationContracts, RowInputLimits, listing_policy? : @capacity_policy.Policy?) -> Result[RowInputAcquisition, RowHostIssue]
 
 pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]
 
@@ -383,6 +390,8 @@ pub fn row_input_acquisition_matches_source(RowInputAcquisition, @sourceview_res
 pub fn row_input_acquisition_max_rows(RowInputAcquisition) -> Int
 
 pub fn row_input_acquisition_request_wire(RowInputAcquisition) -> Result[String, RowHostIssue]
+
+pub fn row_input_acquisition_schema(RowInputAcquisition) -> @relation_schema.Schema
 
 pub fn row_input_acquisition_target(RowInputAcquisition) -> (String, Array[String])
 
