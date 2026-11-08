@@ -681,6 +681,8 @@ pub fn client_infer_call_scope_artifact(ClientInferCallScope) -> @run_publicatio
 
 pub fn client_infer_call_scope_input(ClientInferCallScope) -> @execution_relation.CompletedOutput?
 
+pub fn client_infer_call_scope_local_coordinate(ClientInferCallScope) -> (String, Int)
+
 pub fn client_infer_call_scope_matches(ClientInferCallScope, PreparedClientProgram, @execution_relation.CompletedOutput) -> Bool
 
 pub fn client_infer_call_scope_matches_rows(ClientInferCallScope, @execution_relation.PreparedInferRows, String) -> Bool
