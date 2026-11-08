@@ -258,6 +258,71 @@ test('Native metadata discovery preserves original compiler failures and refuses
   assert.throws(() => nativeCoreTestSelection(root, [], {execute:()=>''}), /No compiler-owned Native test drivers/u);
 });
 
+test('Native metadata deadline funds all original preparation from one explicit caller envelope', t => {
+  const root = fixture(t), timeouts = [], commands = [];
+  let clock = 1000;
+  const command = name => ['moon', 'generate-test-driver', '--output-driver', '_build/'+name+'/driver.mbt',
+    '--output-metadata', '_build/'+name+'/info.json', name+'/main.mbt', '--target', 'native',
+    '--pkg-name', 'fixture/'+name, '--driver-kind', 'blackbox'].join(' ');
+  const execute = (tool, values, options) => {
+    assert.equal(tool, 'moon'); timeouts.push(options.timeout); commands.push(values[0]);
+    clock += 25_000;
+    if (values[0] === 'test') {
+      assert(values.includes('--dry-run'));
+      const paths = ['active', 'empty'].filter(name => values.includes(name));
+      return (paths.length ? paths : ['active', 'empty']).map(command).join('\n');
+    }
+    assert.equal(values[0], 'generate-test-driver');
+    writeFileSync(values[values.indexOf('--output-metadata') + 1], JSON.stringify({tests: {
+      'main.mbt': [{index:0, name:'same original', attrs:[], line_number:1}],
+    }}));
+    return '';
+  };
+  const selected = nativeCoreTestSelection(root, ['--release'], {execute, now:()=>clock,
+    timeoutMs:300_000, partitionProfiles:true, ordinaryPartitions:true});
+  assert.deepEqual(commands, ['test', 'generate-test-driver', 'generate-test-driver', 'test', 'test', 'test']);
+  assert.deepEqual(timeouts, [300_000, 275_000, 250_000, 225_000, 200_000, 175_000]);
+  assert.equal(clock - 1000, 150_000, 'A complete valid preparation may exceed the old one-minute envelope');
+  assert.equal(selected.cases, 2);
+  assert.deepEqual(selected.profiles.ordinary.partitions.map(part => part.cases), [1, 1]);
+  const drivers = selected.profiles.ordinary.partitions.flatMap(part => part.drivers);
+  assert.equal(drivers.length, 2); assert.equal(new Set(drivers).size, 2);
+});
+
+test('Native metadata deadline rejects invalid expired and backwards budgets before child work', t => {
+  const root = fixture(t);
+  let calls = 0;
+  const execute = () => {calls++;throw new Error('MustNotExecute');};
+  for (const timeoutMs of [0, -1, 0.5, NaN, Infinity, 2147483648, '300000']) {
+    assert.throws(() => nativeCoreTestSelection(root, [], {execute, timeoutMs}), /finite positive timer/u);
+  }
+  for (const [times, expected] of [
+    [[100, 200], /deadline exhausted/u], [[100, 99], /clock cannot move backwards/u],
+  ]) assert.throws(() => nativeCoreTestSelection(root, [], {execute, timeoutMs:100,
+    now:()=>times.shift()}), expected);
+  assert.equal(calls, 0);
+});
+
+test('Native metadata deadline never refills across generated drivers or replaces compiler timeout', t => {
+  const root = fixture(t), timeouts = [];
+  let clock = 0, failedScratch;
+  const command = ['moon','generate-test-driver','--output-driver','_build/active/driver.mbt',
+    '--output-metadata','_build/active/info.json','active/main.mbt','--target','native',
+    '--pkg-name','fixture/active','--driver-kind','blackbox'].join(' ');
+  assert.throws(() => nativeCoreTestSelection(root, [], {now:()=>clock, execute:(_tool, values, options)=>{
+    timeouts.push(options.timeout); clock += 30_000;
+    if (values[0] === 'test') return command;
+    failedScratch = dirname(dirname(values[values.indexOf('--output-metadata')+1]));
+    writeFileSync(values[values.indexOf('--output-metadata')+1], JSON.stringify({tests:{'main.mbt':[]}}));
+    return '';
+  }}), /deadline exhausted/u);
+  t.after(() => rmSync(failedScratch,{recursive:true,force:true}));
+  assert.deepEqual(timeouts, [60_000, 30_000], 'The component default and remaining absolute deadline stay finite');
+  const original = Object.assign(new Error('OriginalCompilerTimeout'), {code:'ETIMEDOUT', signal:'SIGTERM'});
+  assert.throws(() => nativeCoreTestSelection(root, [], {timeoutMs:300_000,
+    execute:()=>{throw original;}}), error=>error===original);
+});
+
 test('actual Native profile partition executes every original and both geometry configurations', t => {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-native-test-profiles-')));
   t.after(() => rmSync(root, {recursive: true, force: true}));

@@ -54,7 +54,10 @@ const compilerEnvironment = {...process.env, ACTQL_TEST_NATIVE_CORE_PARTITION: u
 // Keep the original full classification and fixture/budget decisions. These
 // compiler-selected directories omit only packages with no Native test cases.
 const selection = full ? nativeCoreTestSelection(root, args,
-  {env: compilerEnvironment, partitionProfiles: true, ordinaryPartitions: Boolean(partition)}) : undefined;
+  // One absolute metadata-preparation envelope covers four dry-run plans and
+  // all original driver generations. It grants no extra test or C-build time.
+  {env: compilerEnvironment, partitionProfiles: true, ordinaryPartitions: Boolean(partition),
+    timeoutMs: 5 * 60_000}) : undefined;
 if (selection && partition) {
   const originalCases = selection.profiles.ordinary.cases;
   selection.profiles = nativeCorePartitionProfiles(selection.profiles, partition);
