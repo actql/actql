@@ -656,6 +656,8 @@ pub fn shared_capacity_matches_ledger(SharedCapacity, Ledger) -> Bool
 
 pub fn shared_capacity_usage(SharedCapacity) -> SharedCapacityUsage
 
+pub fn shrink_capacity_reservation(Ledger, CapacityReservation, Int64, Int64) -> Result[Unit, LedgerIssue]
+
 pub fn spend_preparation_phase_work(PreparationPhaseWork, Int) -> Result[Unit, PreparationWorkIssue]
 
 pub fn spend_preparation_phase_work64(PreparationPhaseWork64, Int64) -> Result[Unit, PreparationWorkIssue]
@@ -968,7 +970,7 @@ pub struct ModelIoTicket[T] {
   mut active : Bool
 }
 
-type NodeManagedRunAdmission[_]
+type NodeManagedRunAdmission[P]
 
 pub(all) enum NodeManagedRunOperationBacking {
   Construction(CapacityReservation)
@@ -981,7 +983,7 @@ pub(all) enum NodeManagedRunOperationIssue[E] {
   Control(LedgerIssue)
 }
 
-type NodePreparationAdmission[_]
+type NodePreparationAdmission[I]
 
 type OriginalCurrentStateComparison[T]
 
