@@ -2,9 +2,9 @@
 test "generated protocol table shares identical immutable rules without merging constraints" {
   let first = generated_protocol_schema_nodes()
   let second = generated_protocol_schema_nodes()
-  // Original8059 +308 closed static/runtime lookup barrier rules;
+  // Original8059 +308 closed lookup barrier rules +21 Native batch-plan rules;
   // all historical rule/root slots stay unchanged.
-  assert_eq(first.length(), 8367)
+  assert_eq(first.length(), 8388)
   assert_eq(second.length(), first.length())
   // Slots 1 and 3 describe the same nonempty String rule. The CID
   // pattern at slot 2 is distinct, and another construction owns its own data.
