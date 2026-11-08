@@ -124,13 +124,19 @@ pub fn[I] prepare_native_client_submitted_request_input(
   intent : @host.ClientSubmittedIntent,
   environment : @checked.CheckEnvironment,
   publication : @source_publication.PreparedPublishedQueryEnvironment,
+  verify_request_value_policy? : ((String) -> String?)? = None,
 ) -> Result[
   (NativeClientSubmittedPreparation, NativeClientSubmittedRequestBody),
   NativeClientSubmittedPreparationIssue,
 ] {
   match
     check_native_client_submitted_request_input(
-      owner, input, intent, environment, publication,
+      owner,
+      input,
+      intent,
+      environment,
+      publication,
+      verify_request_value_policy~,
     ) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
@@ -191,6 +197,7 @@ pub fn[I] check_native_client_submitted_request_input(
   intent : @host.ClientSubmittedIntent,
   environment : @checked.CheckEnvironment,
   publication : @source_publication.PreparedPublishedQueryEnvironment,
+  verify_request_value_policy? : ((String) -> String?)? = None,
 ) -> Result[Unit, NativeClientSubmittedPreparationIssue] {
   match @local.retain_request_submitted_intent(owner, input, intent) {
     Err(issue) => return Err(RequestPreparation(issue))
@@ -325,5 +332,49 @@ pub fn[I] check_native_client_submitted_request_input(
   } else {
     return Err(InvalidSubmittedInput)
   }
-  prepared.map_err(issue => Request(issue))
+  match prepared {
+    Err(issue) => return Err(Request(issue))
+    Ok(_) => ()
+  }
+  if verify_request_value_policy is Some(verify) {
+    // The original semantic check is complete; no compiler has run yet.
+    // Retain the same funded subject inventory through every Host callback.
+    // An explicit decline still consumes its own original index. Core's
+    // binder observes reentry/currentness before admitting that exact answer.
+    let count = match
+      @local.prepare_request_computation_policy_subjects(
+        owner,
+        input,
+        environment,
+        program_limits.checking.compilation,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Request(issue))
+    }
+    for index in 0..<count {
+      let subject = match
+        @local.request_computation_policy_subject(
+          owner, input, environment, index,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Request(issue))
+      }
+      let policy = verify(subject)
+      match
+        @local.bind_request_computation_policy_subject(
+          owner, input, environment, index, policy,
+        ) {
+        Ok(_) => ()
+        Err(issue) => return Err(Request(issue))
+      }
+    }
+    match
+      @local.finish_request_computation_policy_subjects(
+        owner, input, environment,
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(Request(issue))
+    }
+  }
+  Ok(())
 }
