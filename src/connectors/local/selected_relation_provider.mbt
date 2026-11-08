@@ -320,7 +320,7 @@ fn relation_chain_reclaimed_prefix(
 ) -> Int {
   for index in 0..<@execution.generated_sequence_step_count(sequence) {
     match @execution.generated_sequence_step_at(sequence, index) {
-      Some(@lower.JoinStep(_)) => ()
+      Some(@lower.JoinStep(_)) | Some(@lower.CrossJoinStep(_)) => ()
       // These built-ins detach their accepted completion before cleanup.
       // Cleanup releases only private scratch; downstream ports keep the
       // original output generation, including duplicate expansion rows.
