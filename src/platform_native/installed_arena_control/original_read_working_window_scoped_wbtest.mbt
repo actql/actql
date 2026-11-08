@@ -166,7 +166,8 @@ fn result_delivery_window_construct(target : Int) -> Unit raise {
 
 ///|
 test "original Native Read funds delivery backing and copy beside its unchanged input basis" {
-  let fixture = original_read_consumer_fixture("consumer-working-growth")
+  // The existing fresh Source-frame fixture declares this same64-page input.
+  let fixture = original_read_consumer_fixture("source-frame-original")
   let host = fixture.host
   let consumer = host
     .prepare_domain_original_read_consumer(fixture.read, 8192L, 16384L)
