@@ -1,5 +1,5 @@
 ///|
-/// Closed restored-Model caller only. The Node entry first claims the actual
+/// Original completed-Model caller. Its consumer first claims the actual
 /// completed Execution's one-use output pin. This helper preserves the same
 /// installed Plan, bound Run, Source holdings and Effect dependency inventory.
 pub fn open_installed_effect_retained_model_host(
@@ -72,7 +72,9 @@ fn select_installed_effect_retained_model_host(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let graph = installed_managed_owner_graph(Effect(plan.prepared))
+  let original_graph = installed_managed_owner_graph(Effect(plan.prepared))
+  let graph = plan.graph
+  let whole = plan.whole_sources.any(value => value is Some(_))
   let checked = @publication_host.prepared_client_effect_run_graph(bound)
   guard plan.model is Some(model) &&
     physical_equal(model.compiled, compiled) &&
@@ -82,8 +84,13 @@ fn select_installed_effect_retained_model_host(
       (!models.is_empty() && model.components is Some(_))
     ) &&
     @model.original_completed_model_matches_parent(completed_model, ledger) &&
-    physical_equal(@strategy.checked_effect_run_graph(checked), graph) &&
-    sources.length() == @strategy.graph_captured_prefix(graph) &&
+    physical_equal(@strategy.checked_effect_run_graph(checked), original_graph) &&
+    sources.length() ==
+    (if whole {
+      plan.whole_sources.length()
+    } else {
+      @strategy.graph_captured_prefix(graph)
+    }) &&
     plan.sequences.length() == @strategy.graph_task_count(graph) &&
     client_local_capacity_plan_matches(
       plan.capacity_plan,
@@ -101,11 +108,30 @@ fn select_installed_effect_retained_model_host(
     ) {
     return Err(ForeignOriginal)
   }
+  if whole {
+    for occurrence, source in sources {
+      guard plan.whole_sources[occurrence] is Some((_, selected)) &&
+        @query.captured_source_matches_input_acquisition(
+          source,
+          selected.original,
+        ) else {
+        return Err(ForeignOriginal)
+      }
+    }
+  }
   let captured = if models.is_empty() {
     let (task, _, step) = @publication_host.client_infer_occurrence_coordinates(
       model._occurrence,
     )
-    let captured = match
+    let opened = if whole {
+      @strategy.open_source_inputs_effect_run_dag(
+        checked,
+        graph,
+        sources,
+        ledger,
+        models=[(task, step, output)],
+      )
+    } else {
       @strategy.open_multi_captured_effect_run_retained_model_dag(
         checked,
         Array::makei(sources.length(), index => (index, sources[index])),
@@ -113,7 +139,9 @@ fn select_installed_effect_retained_model_host(
         task,
         step,
         output,
-      ) {
+      )
+    }
+    let captured = match opened {
       Ok(value) => value
       Err(_) => return Err(ForeignOriginal)
     }
@@ -144,13 +172,23 @@ fn select_installed_effect_retained_model_host(
       )
       originals.push((task, step, member_output))
     }
-    match
+    let opened = if whole {
+      @strategy.open_source_inputs_effect_run_dag(
+        checked,
+        graph,
+        sources,
+        ledger,
+        models=originals,
+      )
+    } else {
       @strategy.open_multi_captured_effect_run_retained_models_dag(
         checked,
         Array::makei(sources.length(), index => (index, sources[index])),
         ledger,
         originals,
-      ) {
+      )
+    }
+    match opened {
       Ok(value) => value
       Err(_) => return Err(ForeignOriginal)
     }

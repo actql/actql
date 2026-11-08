@@ -225,3 +225,61 @@ fn LocalCommandBusinessPreparation::execute_mock_effect_model(
     }
   }
 }
+
+///|
+// Continue from the SAME completed physical Model. The original output use
+// outlives all captured Effect consumers; neither Saved restoration nor the
+// fresh-provider entrance can substitute for this already completed Work.
+fn LocalCommandBusinessPreparation::retain_mock_effect_host(
+  self : LocalCommandBusinessPreparation,
+  bound : @run_host.PreparedClientEffectRun,
+) -> Unit raise ClientStop {
+  guard self.original.business is Some(business) &&
+    business.effect_model is Some(state) &&
+    business.request_run is Some(run) &&
+    business.model_work.length() == 1 &&
+    state.model_output is Some(_) &&
+    state.model_use is None &&
+    state.effect_host is None &&
+    state.effect_capture is None else {
+    stop("LocalOriginalEffectContinuationUnavailable")
+  }
+  self.original.with_business_request(self.capture, () => {
+    let active = business.model_work[0]
+      .borrow_opened_original_model()
+      .unwrap_or_else(() => stop("LocalOriginalEffectContinuationUnavailable"))
+    let held = @infer.acquire_output(active).unwrap_or_else(() => {
+      stop("LocalOriginalEffectContinuationUnavailable")
+    })
+    // Retain BEFORE any input currentness/configuration callback can fail.
+    state.model_use = Some(held)
+    let (output, completed) = @infer.borrow_original_live_host_output(
+      held,
+      state.first.model_compiled.unwrap(),
+      state.first.definition,
+      state.graph,
+    ).unwrap_or_else(() => stop("LocalOriginalEffectContinuationUnavailable"))
+    state.model_output = Some(output)
+    let sources = state.captured_inputs.map(input => {
+      @row_host.row_captured_input_source(input).unwrap_or_else(() => {
+        stop("LocalOriginalEffectContinuationUnavailable")
+      })
+    })
+    let (host, captured, _) = @local_values.open_installed_effect_retained_model_host(
+        run,
+        bound,
+        sources,
+        state.first.model_compiled.unwrap(),
+        state.first.definition,
+        state.graph,
+        output,
+        completed,
+      )
+      .unwrap_or_else(() => stop("LocalOriginalEffectContinuationUnavailable"))
+      .unwrap_or_else(() => stop("LocalOriginalEffectContinuationUnavailable"))
+    // The installed parent also retains partially constructed captured tasks.
+    // These are borrowed aliases, not another execution/cleanup Owner.
+    state.effect_capture = Some(captured)
+    state.effect_host = Some(host)
+  })
+}
