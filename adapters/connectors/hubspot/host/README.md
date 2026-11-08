@@ -91,6 +91,14 @@ Common may reuse only its original generation and ordered-field correspondence;
 fresh Account/current checks, metadata observations and retirement still run.
 The connector supplies no alternate checking, permission or cleanup owner.
 
+The same metadata validation observes its closed original token/String extent.
+The existing Core profile identity recipe and native input constructor fund
+canonical/hash workspace before the one loader metadata hash, then fold that
+workspace away after retaining the actual targets/digest. The final Site binding
+uses that digest through the same private preimage as the metadata-taking public
+utility; its complete wire identity is unchanged. Refusal precedes hashing, and
+no parser, whole-tree measurement or policy-maximum estimate is added.
+
 
 ## Managed Source protocol
 

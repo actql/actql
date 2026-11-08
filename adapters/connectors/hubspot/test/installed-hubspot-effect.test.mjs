@@ -23,6 +23,10 @@ test('HubSpot authored Source and Effect binding callers agree on the complete s
       : '{' + Object.keys(value).sort().map(key => JSON.stringify(key) + ':' + canonical(value[key])).join(',') + '}'
     : JSON.stringify(value);
   const digest = value => 'sha256:' + createHash('sha256').update(canonical(value)).digest('hex');
+  const sourceText = await readFile(new URL('../host/installed-hubspot-source.mjs', import.meta.url), 'utf8');
+  const bindingNode = parse(sourceText, {ecmaVersion: 'latest', sourceType: 'module'}).body.find(node =>
+    node.type === 'FunctionDeclaration' && node.id.name === 'siteBinding');
+  const originalBinding = new Function('cid', sourceText.slice(bindingNode.start, bindingNode.end) + ';return siteBinding;')(digest);
   const original = {contextCid: 'sha256:' + 'b'.repeat(64), runtimeBundleCid: cid,
     metadata: {portalId: '7', objects: [{resource: 'companies', propertiesBody: 'e30='}]},
     site: {apiOrigin: 'https://hubspot.invalid', credentialAuthorityId: 'original', credentialKeyId: 'key',
@@ -40,9 +44,10 @@ test('HubSpot authored Source and Effect binding callers agree on the complete s
     assert.equal(found.length, 1, 'Exactly one actual binding caller');
     const expression = found[0].type === 'Property' ? found[0].value : found[0].right;
     const evaluate = new Function('cid', 'authorization', 'runtimeBundleCid', 'metadata', 'siteProfile',
-      'installedHubSpotSiteBinding', 'return (' + text.slice(expression.start, expression.end) + ');');
+      'installedHubSpotSiteBinding', 'siteBinding', 'metadataCid', 'return (' + text.slice(expression.start, expression.end) + ');');
     return input => evaluate(digest, {context: {contextCid: input.contextCid}}, input.runtimeBundleCid,
-      input.metadata, input.site, hubspotSource.installedHubSpotSiteBinding);
+      input.metadata, input.site, hubspotSource.installedHubSpotSiteBinding, originalBinding,
+      digest(input.metadata));
   }
   // Evaluate only the actual pure binding expressions with explicit immutable
   // DATA ports. No constructor, authorization, Site or physical I/O is run.

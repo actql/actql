@@ -593,7 +593,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/installed-hubspot-source.mjs",
-      "sha256": "701d9f5f14c48f38440056f9de0f02845d0ec3c5c21b8ea063d3ad5af16f0ebc",
+      "sha256": "7750d86e5526c607f9b17b02c2a70ddb658caea078b1e5fa2cdf2c6ebb188b21",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Source, Common declaration, Account/Credential and original RowRun owners",
@@ -794,6 +794,20 @@
           "async": false
         },
         {
+          "name": "loadInstalledHubSpotSource/capacityMethods/capacityMethods",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledHubSpotSource/capacityMethods/capacityMethods/capacityMethods",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
           "name": "loadInstalledHubSpotSource/columnCount/columnCount",
           "parameters": [
             "view"
@@ -802,6 +816,24 @@
         },
         {
           "name": "loadInstalledHubSpotSource/loadInstalledHubSpotSource",
+          "parameters": [
+            "views",
+            "materials"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledHubSpotSource/loadInstalledHubSpotSource/identity/identity",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledHubSpotSource/loadInstalledHubSpotSource/identity/init:capacity/init:capacity",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledHubSpotSource/loadInstalledHubSpotSource#2",
           "parameters": [],
           "async": true
         },
@@ -939,33 +971,50 @@
           "async": false
         },
         {
-          "name": "prepareInstalledHubSpotMaterials",
+          "name": "prepareHubSpotMaterials",
           "parameters": [
             "profile",
             "moon",
             "provider",
-            "construction"
+            "construction",
+            "finish"
           ],
           "async": true
         },
         {
-          "name": "prepareInstalledHubSpotMaterials/init:project/init:project",
+          "name": "prepareHubSpotMaterials/init:project/init:project",
           "parameters": [],
           "async": false
+        },
+        {
+          "name": "prepareHubSpotMaterials/prepareHubSpotMaterials",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareHubSpotMaterials/projected/init:project/init:project",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareHubSpotMaterials/projected/projected",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledHubSpotMaterials",
+          "parameters": [
+            "profile",
+            "options"
+          ],
+          "async": true
         },
         {
           "name": "prepareInstalledHubSpotMaterials/prepareInstalledHubSpotMaterials",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledHubSpotMaterials/projected/init:project/init:project",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledHubSpotMaterials/projected/projected",
-          "parameters": [],
+          "parameters": [
+            "views",
+            "materials"
+          ],
           "async": false
         },
         {
@@ -980,6 +1029,16 @@
           "name": "readInputs/readInputs",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "siteBinding",
+          "parameters": [
+            "contextCid",
+            "runtimeBundleCid",
+            "metadataCid",
+            "site"
           ],
           "async": false
         },
@@ -1019,8 +1078,13 @@
             "loadInstalledHubSpotSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
             "loadInstalledHubSpotSource/admitsApprovalTarget/admitsApprovalTarget/original/original",
             "loadInstalledHubSpotSource/capacityFor/capacityFor",
+            "loadInstalledHubSpotSource/capacityMethods/capacityMethods",
+            "loadInstalledHubSpotSource/capacityMethods/capacityMethods/capacityMethods",
             "loadInstalledHubSpotSource/columnCount/columnCount",
             "loadInstalledHubSpotSource/loadInstalledHubSpotSource",
+            "loadInstalledHubSpotSource/loadInstalledHubSpotSource/identity/identity",
+            "loadInstalledHubSpotSource/loadInstalledHubSpotSource/identity/init:capacity/init:capacity",
+            "loadInstalledHubSpotSource/loadInstalledHubSpotSource#2",
             "loadInstalledHubSpotSource/protocolBounds/protocolBounds",
             "loadInstalledHubSpotSource/providerReader/init:prepareReadSequence/init:prepareReadSequence",
             "loadInstalledHubSpotSource/providerReader/init:prepareReadSequence/init:prepareReadSequence/authorizeMetadata/authorizeMetadata",
@@ -1040,13 +1104,16 @@
             "loadInstalledHubSpotSource/view/view",
             "metadataBodyBytes",
             "positive/positive",
+            "prepareHubSpotMaterials",
+            "prepareHubSpotMaterials/init:project/init:project",
+            "prepareHubSpotMaterials/prepareHubSpotMaterials",
+            "prepareHubSpotMaterials/projected/init:project/init:project",
+            "prepareHubSpotMaterials/projected/projected",
             "prepareInstalledHubSpotMaterials",
-            "prepareInstalledHubSpotMaterials/init:project/init:project",
             "prepareInstalledHubSpotMaterials/prepareInstalledHubSpotMaterials",
-            "prepareInstalledHubSpotMaterials/projected/init:project/init:project",
-            "prepareInstalledHubSpotMaterials/projected/projected",
             "readInputs",
             "readInputs/readInputs",
+            "siteBinding",
             "text/text"
           ],
           "exports": [
@@ -1172,6 +1239,7 @@
       ],
       "imports": [
         "../../../../packages/sdk/host-port.mjs",
+        "../../../host-common/compiler-binding.generated.mjs",
         "../../../host-common/owned-invocation-context.mjs",
         "../../../host-common/runtime-result.mjs",
         "../../../host-node/installed-credential-source-reader.mjs",
