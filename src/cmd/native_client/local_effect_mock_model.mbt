@@ -127,7 +127,7 @@ fn LocalCommandBusinessPreparation::execute_mock_effect_model(
         read_retained,
         read_execution,
         // Preserve the original separate Model startup allowance. Source
-        // preimages stay on Read and are not charged again to Model startup.
+        // preimages stay on lookup and are not charged again to Model startup.
         limits.mapping.logical.max_live_value_bytes,
         limits.identity.wire.max_bytes.to_int64(),
         input_body_read=state.model_read,

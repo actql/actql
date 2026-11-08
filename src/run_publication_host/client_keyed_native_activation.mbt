@@ -1,4 +1,17 @@
 ///|
+/// Actual observations on the SAME original first Native attempt. These are
+/// consumed counters, not reservations, a receipt, current permission or ACK.
+/// The original token owns the mutable history; consumers only borrow it.
+pub struct ClientKeyedNativeAttemptUsage {
+  mut request_bytes : Int64
+  mut response_wire_bytes : Int64
+  mut response_decoded_bytes : Int64
+  mut started_ms : Int64
+  mut observed_ms : Int64
+  mut usage_final : Bool
+}
+
+///|
 /// Prepared original metadata on the SAME lookup. Only this checked constructor
 /// can create it; the Native Journal still owes actual durable persistence and
 /// current Source permission before dispatch. None of these bodies is an ACK.
@@ -8,6 +21,7 @@ pub struct ClientKeyedNativeActivation {
   priv client_request : ClientRequestIdentity
   priv definition : @publication.PublicationContract
   priv graph : ClientInferPlanGraph
+  priv usage : ClientKeyedNativeAttemptUsage
   batch : @publication.PublicationContract
   transport : @publication.PublicationContract
   keys : @publication.PublicationContract
@@ -97,10 +111,11 @@ pub fn prepare_client_keyed_native_activation(
     return Err(Assembly("foreign_native_batch_slot"))
   }
   let controls = @execution.preparation_representation_cost({
-    // Original token1H12R6W + history Some1H1R1W + deadline String1H/24U.
-    record_headers: 3L,
-    reference_slots: 13L,
-    scalar_words: 7L,
+    // Original token1H13R6W + history Some1H1R1W + deadline String1H/24U
+    // and SAME actual attempt usage1H6W. No per-poll snapshot is allocated.
+    record_headers: 4L,
+    reference_slots: 14L,
+    scalar_words: 13L,
     owned_utf16_units: 24L,
     owned_wire_bytes: 0L,
   }).unwrap()
@@ -242,6 +257,14 @@ pub fn prepare_client_keyed_native_activation(
     client_request,
     definition: original.definition,
     graph: original.plan,
+    usage: {
+      request_bytes: 0L,
+      response_wire_bytes: 0L,
+      response_decoded_bytes: 0L,
+      started_ms: -1L,
+      observed_ms: -1L,
+      usage_final: false,
+    },
     batch,
     transport,
     keys: identity.keys,
@@ -292,4 +315,29 @@ pub fn client_keyed_native_activation_matches(
   value.request.row == keyed_lookup_next_original_row(state) &&
   value.request.attempts == 0L &&
   !value.request.io_complete
+}
+
+///|
+/// Borrow the original consumed counters, including after refusal/retirement.
+/// No callback, reset, snapshot allocation or completion claim is performed.
+pub fn client_keyed_native_attempt_usage(
+  original : ClientKeyedNativeActivation,
+) -> ClientKeyedNativeAttemptUsage {
+  original.usage
+}
+
+///|
+// Pure original association after the existing observation's current fence.
+// Return the retained Option itself; no new registry or observation callback.
+fn native_keyed_observed_activation(
+  request : ClientKeyedRequest,
+) -> ClientKeyedNativeActivation? {
+  guard request.assembly_accounting is Some(state) &&
+    state.planned_requests is Some(requests) &&
+    requests.get(request.row) is Some((same, slot)) &&
+    physical_equal(same, request) &&
+    state.known.get(slot) is Some((_, _, Some(history))) else {
+    return None
+  }
+  history._retained_activation
 }
