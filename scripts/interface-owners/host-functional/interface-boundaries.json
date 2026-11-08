@@ -28950,7 +28950,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "89b566cf613a0ad0794cc84537861cd98b1487e7155e879425a1396e942fcded",
+      "sha256": "a09e8833ba3891c013d719cbb2435942ac926193e71ee4d87a9204a91ed589ae",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -29102,6 +29102,20 @@
           "async": false
         },
         {
+          "name": "boundedJournalWalFrames/check/check/check",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "boundedJournalWalFrames/check/check/check#2",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
           "name": "boundedJournalWalFrames/init:beforeExec/init:beforeExec",
           "parameters": [
             "sql"
@@ -29123,6 +29137,28 @@
           "parameters": [
             "page"
           ],
+          "async": false
+        },
+        {
+          "name": "boundedJournalWalFrames/init:enter/init:enter",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "boundedJournalWalFrames/init:leave/init:leave",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "boundedJournalWalFrames/init:register/init:register",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "boundedJournalWalFrames/init:register/init:register/init:register",
+          "parameters": [],
           "async": false
         },
         {
@@ -29174,6 +29210,11 @@
           "async": false
         },
         {
+          "name": "boundedPrimarySql/init:prepareWalCheckpoint/init:prepareWalCheckpoint",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "boundedPrimarySql/init:retireClosedNativeAliases/init:retireClosedNativeAliases",
           "parameters": [],
           "async": false
@@ -29183,6 +29224,28 @@
           "parameters": [
             "values"
           ],
+          "async": false
+        },
+        {
+          "name": "boundedPrimarySql/prepareWalCheckpoint/prepareWalCheckpoint",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "boundedPrimarySql/prepareWalCheckpoint/prepareWalCheckpoint/prepareWalCheckpoint",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "boundedPrimarySql/retireWal/init:checkpoint/init:checkpoint",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "boundedPrimarySql/retireWal/retireWal",
+          "parameters": [],
           "async": false
         },
         {
@@ -29229,7 +29292,8 @@
             "executionLimits",
             "walFrames",
             "temporarySelected",
-            "retainedGeometry"
+            "retainedGeometry",
+            "prepareWalCheckpoint"
           ],
           "async": false
         },
@@ -32537,7 +32601,18 @@
             "snapshotPrimaryExecutionLimits",
             "snapshotPrimaryExecutionLimits/snapshotPrimaryExecutionLimits",
             "snapshotPrimarySqlLimits",
-            "snapshotPrimarySqlLimits/snapshotPrimarySqlLimits"
+            "snapshotPrimarySqlLimits/snapshotPrimarySqlLimits",
+            "boundedJournalWalFrames/check/check/check",
+            "boundedJournalWalFrames/check/check/check#2",
+            "boundedJournalWalFrames/init:enter/init:enter",
+            "boundedJournalWalFrames/init:leave/init:leave",
+            "boundedJournalWalFrames/init:register/init:register",
+            "boundedJournalWalFrames/init:register/init:register/init:register",
+            "boundedPrimarySql/init:prepareWalCheckpoint/init:prepareWalCheckpoint",
+            "boundedPrimarySql/prepareWalCheckpoint/prepareWalCheckpoint",
+            "boundedPrimarySql/prepareWalCheckpoint/prepareWalCheckpoint/prepareWalCheckpoint",
+            "boundedPrimarySql/retireWal/init:checkpoint/init:checkpoint",
+            "boundedPrimarySql/retireWal/retireWal"
           ],
           "exports": [
             "assertOriginalClientRequestJournalFacilityCurrent",
@@ -32681,7 +32756,7 @@
               },
               {
                 "path": "adapters/host-node/client-request-journal-wal-bounds.test.mjs",
-                "anchor": "both writable connections share one non-refilling WAL lifetime without charging metadata reads"
+                "anchor": "both original writable connections reuse finite WAL support only after actual native truncation"
               },
               {
                 "path": "adapters/host-node/client-request-journal-iterator-current.test.mjs",
