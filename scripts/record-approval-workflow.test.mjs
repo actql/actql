@@ -2,7 +2,7 @@
 // failure preservation, not provider authentication or ordinary Run acceptance.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {copyFile, mkdir, mkdtemp, readFile, rm, stat, writeFile} from 'node:fs/promises';
+import {copyFile, mkdir, mkdtemp, open, readFile, realpath, rm, stat, writeFile} from 'node:fs/promises';
 import {generateKeyPairSync, verify} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {join} from 'node:path';
@@ -10,6 +10,10 @@ import {tmpdir} from 'node:os';
 import {salesforceUpdateCase, hubspotUpdateCase, kintoneUpdateCase} from './fixtures/record-approval/cases.mjs';
 import {runRecordUpdateApprovalPhase} from './fixtures/record-approval/workflow.mjs';
 import {runRecordApprovalCommand} from './fixtures/record-approval/command.mjs';
+import {hubspotApprovalProvider} from './fixtures/hubspot-approval/provider.mjs';
+import {kintoneApprovalProvider} from './fixtures/kintone-approval/provider.mjs';
+import {recordApprovalHostAccountConfiguration} from './fixtures/record-approval/host-account.fixture.mjs';
+import {observeRecordApprovalDescriptors, recordApprovalScopedPaths} from './fixtures/record-approval/scoped-fds.fixture.mjs';
 import {mockProjectFiles as salesforceMock} from './fixtures/salesforce-approval/mock-project.mjs';
 import {mockProjectFiles as hubspotMock} from './fixtures/hubspot-approval/mock-project.mjs';
 import {runSalesforceApprovalPhase} from './fixtures/salesforce-approval/workflow.mjs';
@@ -19,6 +23,30 @@ import {runKintoneApprovalPhase} from './fixtures/kintone-approval/workflow.mjs'
 
 const cid = mark => 'sha256:' + mark.repeat(64);
 const selection = {recordId: 'record-1', previousName: 'before', nextName: 'after'};
+
+test('record approval descriptor scope includes root, descendants and deleted originals, not siblings', () => {
+  assert.deepEqual(recordApprovalScopedPaths(['/tmp/root', '/tmp/root/file', '/tmp/root (deleted)',
+    '/tmp/root/file (deleted)', '/tmp/root-other/file', '/tmp/other'], ['/tmp/root']),
+  ['/tmp/root', '/tmp/root/file', '/tmp/root (deleted)', '/tmp/root/file (deleted)']);
+});
+
+test('record approval descriptor observer sees actual open root and child then their close', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-approval-descriptors-'));
+  const file = join(root, 'child');
+  let directory, child;
+  try {
+    await writeFile(file, 'synthetic');
+    directory = await open(root, 'r'); child = await open(file, 'r');
+    const before = await observeRecordApprovalDescriptors([root]);
+    assert(before.openPaths.includes(await realpath(root)));
+    assert(before.openPaths.includes(await realpath(file)));
+    await directory.close(); directory = undefined;
+    await child.close(); child = undefined;
+    assert.deepEqual((await observeRecordApprovalDescriptors([root])).openPaths, []);
+  } finally {
+    await directory?.close(); await child?.close(); await rm(root, {recursive: true});
+  }
+});
 async function definition(connector) {
   const files = await Promise.all(['update.aql', 'read.aql'].map(name =>
     readFile(new URL(`./fixtures/${connector}-approval/${name}`, import.meta.url), 'utf8')));
@@ -400,4 +428,144 @@ test('shared command rejects an incompatible operator module before connection',
   await assert.rejects(runRecordApprovalCommand(f.options), /InvalidRecordApprovalOperatorModule/u);
   assert.deepEqual(f.events, []);
   assert.deepEqual(f.log, []);
+});
+
+function hubspotProviderFixture() {
+  const value = hubspotApprovalProvider({...selection, controlId: 'untouched-control'});
+  const exchange = (pathname, body, authorized = true) => ({method: 'POST', pathname,
+    authorized, body: JSON.stringify(body)});
+  const apply = body => value.routes.find(route => route.pathname.endsWith('/batch/update'))
+    .handle(exchange('/crm/v3/objects/companies/batch/update', body));
+  const body = {inputs: [{id: selection.recordId, objectWriteTraceId: cid('a'),
+    properties: {name: selection.nextName, actql_request_id: cid('b')}}]};
+  return {value, exchange, apply, body};
+}
+
+test('HubSpot approval provider retains independent original records and accepts one exact marked update', () => {
+  const f = hubspotProviderFixture(), before = f.value.snapshot();
+  assert.equal(before.target.name, selection.previousName);
+  assert.equal(before.writes, 0);
+  const response = f.apply(f.body);
+  assert.equal(response.body.status, 'COMPLETE');
+  assert.equal(response.body.results[0].id, selection.recordId);
+  const after = f.value.snapshot();
+  assert.equal(after.writes, 1);
+  assert.equal(after.target.name, selection.nextName);
+  assert.equal(after.target.marker, cid('b'));
+  assert.deepEqual(after.control, before.control);
+  assert.throws(() => f.apply(f.body));
+  assert.equal(f.value.snapshot().writes, 1);
+});
+
+test('HubSpot approval provider refuses wrong targets, values and markers without writing', () => {
+  for (const mutate of [body => {body.inputs[0].id = 'other';},
+    body => {body.inputs[0].properties.name = 'other';},
+    body => {delete body.inputs[0].properties.actql_request_id;},
+    body => {body.inputs[0].properties.actql_request_id = 'not-a-cid';},
+    body => {body.inputs[0].extra = 'unapproved';}]) {
+    const f = hubspotProviderFixture();
+    mutate(f.body);
+    assert.throws(() => f.apply(f.body));
+    assert.equal(f.value.snapshot().writes, 0);
+    assert.equal(f.value.snapshot().target.name, selection.previousName);
+  }
+});
+
+test('HubSpot approval provider requires a credential-bearing request before target observation', () => {
+  const f = hubspotProviderFixture();
+  const path = '/crm/v3/objects/companies/batch/read';
+  const read = f.value.routes.find(route => route.pathname === path);
+  assert.throws(() => read.handle(f.exchange(path, {inputs: [{id: selection.recordId}], properties: ['name']}, false)));
+  assert.equal(f.value.snapshot().writes, 0);
+  assert.equal(f.value.snapshot().requests.length, 0);
+  const response = read.handle(f.exchange(path, {inputs: [{id: selection.recordId}], properties: ['name']}));
+  assert.equal(response.body.results[0].properties.name, selection.previousName);
+});
+
+test('shared record approval Account fixture preserves provider policy in one complete Host/Site wire', () => {
+  const provider = {version: 'actql-execution-account-config/0.1', account_id: 'fixture',
+    entries: [{entry_id: 'provider', outcome: 'delegate', principal: {all: true},
+      connection: {any_of: ['hubspot:hubspot']}, resource: {any_of: ['companies']},
+      operation: {any_of: ['effect']}, exclusions: []}]};
+  const original = JSON.stringify(provider);
+  const wire = recordApprovalHostAccountConfiguration(JSON.stringify, original,
+    'original-principal', 'row-source-acquired');
+  const actual = JSON.parse(wire);
+  assert.equal(actual.version, provider.version);
+  assert.equal(actual.account_id, provider.account_id);
+  assert.deepEqual(actual.entries.map(entry => entry.entry_id), ['host-read', 'host-submit', 'provider']);
+  assert.deepEqual(actual.entries[2], provider.entries[0]);
+  assert.deepEqual(actual.entries[0], {entry_id: 'host-read', outcome: 'allow', exclusions: [],
+    principal: {any_of: ['original-principal']}, connection: {any_of: ['actql-remote-host']},
+    resource: {any_of: ['result/main', 'result/updates', 'run']}, operation: {any_of: ['read']}});
+  assert.deepEqual(actual.entries[1].resource, {any_of: ['row-source-acquired']});
+  assert.notEqual(wire, original, 'A provider-only subset is a different complete configuration');
+  assert.equal(JSON.stringify(provider), original);
+});
+
+test('shared record approval Account fixture never overwrites an existing Host rule', () => {
+  for (const entry_id of ['host-read', 'host-submit']) {
+    assert.throws(() => recordApprovalHostAccountConfiguration(JSON.stringify,
+      JSON.stringify({entries: [{entry_id, outcome: 'deny'}]}), 'principal', 'row-source-acquired'),
+    /InvalidRecordApprovalAccountFixture/u);
+  }
+});
+
+function kintoneProviderFixture() {
+  const selected = {...selection, recordId: '9007199254740993', controlId: '9007199254740994'};
+  const value = kintoneApprovalProvider(selected);
+  const exchange = (method, pathname, body, headers = {}, authorized = true) =>
+    ({method, pathname, headers, authorized, body: JSON.stringify(body)});
+  const body = {app: '12', records: [{id: selected.recordId, revision: '9007199254740994',
+    record: {Subject: {value: selected.nextName}}}], upsert: false};
+  const update = value.routes.find(route => route.method === 'PUT');
+  return {value, selected, body, exchange,
+    apply: (body, authorized = true) => update.handle(exchange('PUT', update.pathname, body, {}, authorized))};
+}
+
+test('kintone approval provider keeps string identity and original revision for one UPDATE', () => {
+  const f = kintoneProviderFixture(), before = f.value.snapshot();
+  assert.deepEqual(f.apply(f.body).body.records,
+    [{id: f.selected.recordId, revision: '9007199254740995'}]);
+  const after = f.value.snapshot();
+  assert.equal(after.target.name, selection.nextName);
+  assert.equal(after.target.revision, '9007199254740995');
+  assert.equal(after.writes, 1);
+  assert.deepEqual(after.control, before.control);
+  assert.throws(() => f.apply(f.body));
+  assert.equal(f.value.snapshot().writes, 1);
+});
+
+test('kintone approval provider refuses changed identity, revision, fields and UPSERT before mutation', () => {
+  for (const mutate of [body => {body.records[0].id = '123';},
+    body => {body.records[0].revision = '7';}, body => {delete body.records[0].revision;},
+    body => {body.records[0].record.Subject.value = 'wrong';},
+    body => {body.records[0].record.Computed = {value: 'unapproved'};},
+    body => {body.upsert = true;}]) {
+    const f = kintoneProviderFixture(), before = f.value.snapshot();
+    mutate(f.body); assert.throws(() => f.apply(f.body));
+    assert.equal(f.value.snapshot().writes, 0);
+    assert.deepEqual(f.value.snapshot().target, before.target);
+    assert.deepEqual(f.value.snapshot().control, before.control);
+  }
+  const f = kintoneProviderFixture();
+  assert.throws(() => f.apply(f.body, false));
+  assert.equal(f.value.snapshot().writes, 0);
+});
+
+test('kintone approval provider requires credential-bearing Form and exact selected-record reads', () => {
+  const f = kintoneProviderFixture();
+  const form = f.value.routes.find(route => route.pathname.endsWith('/app/form/fields.json'));
+  const read = f.value.routes.find(route => route.pathname === '/k/v1/records.json' && route.method === 'POST');
+  const headers = {'x-http-method-override': 'GET'};
+  assert.throws(() => form.handle(f.exchange('POST', form.pathname, {app: '12'}, headers, false)));
+  assert.equal(form.handle(f.exchange('POST', form.pathname, {app: '12'}, headers)).body.revision, '7');
+  const body = {app: '12', fields: ['$id', '$revision', 'Computed', 'Subject', 'Tags'],
+    query: `$id in (${f.selected.recordId}) order by $id asc limit 1`};
+  const response = read.handle(f.exchange('POST', read.pathname, body, headers));
+  assert.equal(response.body.records.length, 1);
+  assert.equal(response.body.records[0].$id.value, f.selected.recordId);
+  assert.equal(response.body.records[0].Subject.value, selection.previousName);
+  assert.throws(() => read.handle(f.exchange('POST', read.pathname, {...body, query: 'all'}, headers)));
+  assert.equal(f.value.snapshot().writes, 0);
 });
