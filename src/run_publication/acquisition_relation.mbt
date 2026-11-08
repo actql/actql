@@ -81,6 +81,42 @@ pub fn issue_single_source_acquisition_scope(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[PublicationContract, AcquisitionRelationIssue] {
+  issue_source_request_acquisition_scope(
+    source_contract_cid, request_values_cid, None,
+    max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+/// Bind the existing key-set envelope to its own SourceView/static Request.
+/// This is semantic Scope DATA, not evidence of lookup completion or authority.
+pub fn issue_keyed_source_acquisition_scope(
+  source_contract_cid : String,
+  request_values_cid : String,
+  key_set : PublicationContract,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[PublicationContract, AcquisitionRelationIssue] {
+  if key_set.name != "request_key_set" ||
+    contract_string(key_set, "source_view_contract_cid") != Some(source_contract_cid) {
+    return Err(WrongScope)
+  }
+  issue_source_request_acquisition_scope(
+    source_contract_cid, request_values_cid, Some(key_set.identity),
+    max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+fn issue_source_request_acquisition_scope(
+  source_contract_cid : String,
+  request_values_cid : String,
+  key_set_cid : String?,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[PublicationContract, AcquisitionRelationIssue] {
   let writer = @encode.writer(max_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)
   }
@@ -90,7 +126,10 @@ pub fn issue_single_source_acquisition_scope(
     @encode.begin_array(writer)
     @encode.begin_object(writer)
     @encode.key(writer, "request_key_set_cid")
-    @encode.null_value(writer)
+    match key_set_cid {
+      Some(cid) => @encode.string_value(writer, cid)
+      None => @encode.null_value(writer)
+    }
     @encode.key(writer, "request_values_cid")
     @encode.string_value(writer, request_values_cid)
     @encode.key(writer, "source_contract_cid")

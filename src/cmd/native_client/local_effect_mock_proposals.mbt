@@ -31,7 +31,7 @@ fn[T] Result::native_effect_proposal(
 priv struct LocalNativeMockEffectProposals {
   inputs : @strategy.CapturedEffectInputs
   members : Array[LocalNativeMockEffectProposalMember]
-  mut _retained_keyed_identity : (@publication.PublicationContract, String)?
+  mut _retained_keyed_identity : @run_host.ClientKeyedLookupRequestIdentity?
 }
 
 ///|

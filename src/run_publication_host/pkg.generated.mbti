@@ -825,7 +825,11 @@ pub fn client_keyed_lookup_observation_originals(ClientKeyedLookupObservation) -
 
 pub fn client_keyed_lookup_observation_wires(ClientKeyedLookupObservation) -> (String, String)?
 
-pub fn client_keyed_lookup_request_identity(ClientKeyedLookupInput, Int, Int, Int) -> Result[(@run_publication.PublicationContract, String), ClientKeyedRequestIssue]
+pub fn client_keyed_lookup_request_identity(ClientKeyedLookupInput, Int, Int, Int) -> Result[ClientKeyedLookupRequestIdentity, ClientKeyedRequestIssue]
+
+pub fn client_keyed_lookup_request_identity_matches(ClientKeyedLookupRequestIdentity, ClientKeyedLookupInput) -> Bool
+
+pub fn client_keyed_lookup_request_identity_parts(ClientKeyedLookupRequestIdentity) -> (@run_publication.PublicationContract, String, String, @run_publication.PublicationContract)
 
 pub fn client_keyed_lookup_usage(ClientKeyedLeftRead) -> (Int64, Int64, Int64, Int64, Int64, Int64)
 
@@ -3301,6 +3305,8 @@ type ClientKeyedLeftRead
 type ClientKeyedLookupInput
 
 type ClientKeyedLookupObservation
+
+type ClientKeyedLookupRequestIdentity
 
 type ClientKeyedRequest
 

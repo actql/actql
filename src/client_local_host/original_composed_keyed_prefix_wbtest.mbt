@@ -998,8 +998,14 @@ fn original_composed_keyed_consumer(
       Err(@publication_host.Assembly(reason)) => fail("actual key-set assembly: " + reason)
       Err(_) => fail("actual key-set refused outside contract/assembly")
     }
-    assert_eq(keys.1, "{}")
-    let wire = @publication.publication_contract_json(keys.0)
+    assert_true(@publication_host.client_keyed_lookup_request_identity_matches(keys, lookup))
+    let parts = @publication_host.client_keyed_lookup_request_identity_parts(keys)
+    assert_eq(parts.1, "{}")
+    assert_eq(parts.2, "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a")
+    let scope_wire = @publication.publication_contract_json(parts.3)
+    assert_true(scope_wire.contains("\"request_key_set_cid\":\"" + @publication.publication_contract_identity(parts.0) + "\""))
+    assert_true(scope_wire.contains("\"request_values_cid\":\"" + parts.2 + "\""))
+    let wire = @publication.publication_contract_json(parts.0)
     assert_false(wire.contains("$actql_ref"))
     assert_false(wire.contains("issuer_evidence"))
     guard @json.parse(wire) is Object(fields) && fields["tuples"] is Array(tuples) &&

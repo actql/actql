@@ -572,7 +572,8 @@ pub fn begin_client_keyed_lookup_response(
   // Use the collection owner's append/backing overlap, not a policy ceiling.
   // Existing fixed controls cover the two outer array wrappers; their actual
   // per-row slots, cached key/read carriers and key Text are retained here.
-  guard @shape.collection_construction_extent({
+  guard @acquisition.keyed_row_request_retained_inventory(request.request) is Some(request_layout) &&
+    @shape.collection_construction_extent({
       records: if conditional {
         columns + 3L
       } else {
@@ -597,9 +598,9 @@ pub fn begin_client_keyed_lookup_response(
     })
     is Some(layout) &&
     @execution.preparation_representation_cost({
-      record_headers: layout.record_headers + 1L,
-      reference_slots: layout.reference_slots + 8L,
-      scalar_words: layout.scalar_words + 1L,
+      record_headers: layout.record_headers + request_layout.record_headers + 1L,
+      reference_slots: layout.reference_slots + request_layout.reference_slots + 8L,
+      scalar_words: layout.scalar_words + request_layout.scalar_words + 1L,
       owned_utf16_units: wire.length().to_int64(),
       owned_wire_bytes: 0L,
     })
@@ -652,7 +653,8 @@ pub fn begin_client_keyed_lookup_response(
   state.pending_key = Some(wire)
   state.pending_read = Some(read)
   // Borrow the original typed request beside its existing physical response.
-  // The row debit above includes this additional cached tuple reference.
+  // The row debit includes its full variable field/checked-wrapper carriers,
+  // not just the outer cached reference. Payloads stay on template/left owners.
   state.pending_request = Some(request.request)
   state.selected_request = None
   state.selected_key = None

@@ -1,4 +1,16 @@
 ///|
+/// Immutable semantic publication metadata for one original completed lookup.
+/// The retained lookup identifies its provenance; this value grants no access
+/// and cannot restore a retired physical child.
+struct ClientKeyedLookupRequestIdentity {
+  original : ClientKeyedLookupInput
+  keys : @publication.PublicationContract
+  static_request : String
+  static_request_cid : String
+  scope : @publication.PublicationContract
+}
+
+///|
 /// Borrow the completed assembly's actual checked request originals. The
 /// caller's original capture operation backs the returned key-set/static
 /// request metadata. This issues no request or reference and rechecks no
@@ -8,7 +20,7 @@ pub fn client_keyed_lookup_request_identity(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
-) -> Result[(@publication.PublicationContract, String), ClientKeyedRequestIssue] {
+) -> Result[ClientKeyedLookupRequestIdentity, ClientKeyedRequestIssue] {
   if client_keyed_lookup_input_identity(lookup) is None ||
     lookup.pending_request is Some(_) {
     return Err(Assembly("unavailable_request_identity"))
@@ -73,5 +85,34 @@ pub fn client_keyed_lookup_request_identity(
   if client_keyed_lookup_input_identity(lookup) is None {
     return Err(Assembly("retired_request_identity"))
   }
-  Ok((keys, static_request))
+  let static_request_cid = match @sha.text_hex(static_request) {
+    Ok(hash) => "sha256:" + hash
+    Err(_) => return Err(Assembly("static_request_encoding"))
+  }
+  let scope = match @publication.issue_keyed_source_acquisition_scope(
+    @acquisition.selected_cid(selected), static_request_cid, keys,
+    max_bytes, max_nodes, max_depth,
+  ) {
+    Ok(scope) => scope
+    Err(issue) => return Err(Identity(issue))
+  }
+  Ok({ original: lookup, keys, static_request, static_request_cid, scope, })
+}
+
+///|
+/// Pure original-reference correspondence, not a physical-current observation.
+pub fn client_keyed_lookup_request_identity_matches(
+  value : ClientKeyedLookupRequestIdentity,
+  lookup : ClientKeyedLookupInput,
+) -> Bool {
+  physical_equal(value.original, lookup)
+}
+
+///|
+/// Read the already-issued metadata. No re-encoding, rehashing or callback;
+/// actual access and publication still require the original live capture.
+pub fn client_keyed_lookup_request_identity_parts(
+  value : ClientKeyedLookupRequestIdentity,
+) -> (@publication.PublicationContract, String, String, @publication.PublicationContract) {
+  (value.keys, value.static_request, value.static_request_cid, value.scope)
 }

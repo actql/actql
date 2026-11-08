@@ -561,6 +561,8 @@ pub fn issue_effectful_final_run_receipt(PublicationContract, PublicationContrac
 
 pub fn issue_generated_content_reference(GeneratedContentReference, @value_admission.ReferenceIssuer, @value_admission.ReferenceLimits) -> Result[@value_admission.CheckedValue, GeneratedContentReferenceIssue]
 
+pub fn issue_keyed_source_acquisition_scope(String, String, PublicationContract, Int, Int, Int) -> Result[PublicationContract, AcquisitionRelationIssue]
+
 pub fn issue_local_result_occurrence_evidence(String, String, String, String, Array[String], String, String, String, String, Int, Int, Int) -> Result[ResultOrderingEvidence, ResultEvidenceIssuanceIssue]
 
 pub fn issue_local_sdk_result_read_selection(String, String) -> Result[LocalSDKResultReadSelection, LocalSDKReadSelectionIssue]

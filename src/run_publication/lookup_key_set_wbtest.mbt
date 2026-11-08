@@ -79,3 +79,30 @@ test "key set empty extent still requires typed role schema and rejects non-key 
     10000, 1000, 30,
   ) is Err(_))
 }
+
+///|
+test "keyed acquisition scope binds original Source static request and typed key set" {
+  let keys = seal_publication_contract(
+    "request_key_set", lookup_key_test_body("[[2],[10]]"), 10000, 1000, 30,
+  ).unwrap()
+  let original = "sha256:" + "b".repeat(64)
+  let static_request = "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+  let scope = issue_keyed_source_acquisition_scope(original, static_request, keys, 10000, 1000, 30).unwrap()
+  // Independent authored canonical Scope preimage + Python hashlib, not the
+  // product Scope writer or values observed from an executed Source.
+  assert_eq(scope.identity, "sha256:86c502ffea8b482424d508c771ef8f952aaccc8de54b6db666b69c3cf62dfba9")
+  assert_true(admit_publication_contract("acquisition_scope", scope.wire, 10000, 1000, 30) is Ok(_))
+  assert_true(issue_keyed_source_acquisition_scope(
+    "sha256:" + "c".repeat(64), static_request, keys, 10000, 1000, 30,
+  ) is Err(WrongScope))
+  assert_true(issue_keyed_source_acquisition_scope(
+    original, static_request, scope, 10000, 1000, 30,
+  ) is Err(WrongScope))
+  assert_true(issue_keyed_source_acquisition_scope(
+    original, static_request, keys, 1, 1000, 30,
+  ) is Err(_))
+  let nonkeyed = issue_single_source_acquisition_scope(
+    "sha256:" + "1".repeat(64), "sha256:" + "2".repeat(64), 10000, 1000, 30,
+  ).unwrap()
+  assert_eq(nonkeyed.identity, "sha256:d0a87caff4a0a962b64be466199c6c3d9dc2de5cc6696bab85e907b9fa1ba920")
+}

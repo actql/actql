@@ -163,6 +163,8 @@ pub fn keyed_row_request_field(KeyedRowRequest, String) -> @value_admission.Chec
 
 pub fn keyed_row_request_owner(KeyedRowRequest) -> ParameterizedKeyedRequest
 
+pub fn keyed_row_request_retained_inventory(KeyedRowRequest) -> @decode_shape.CollectionConstructionExtent?
+
 pub fn keyed_row_request_usage(KeyedRowRequest) -> (Int, Int, Int)
 
 pub fn keyed_row_request_wire(KeyedRowRequest, Int, Int, Int) -> Result[String, RequestWireIssue]
