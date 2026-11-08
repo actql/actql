@@ -71,6 +71,23 @@ pub fn generated_sequence_capacity(
 }
 
 ///|
+// Immediate scalar cells are borrowed without an input tree conversion. The
+// bounded reader still charges every original logical occurrence; temporary
+// row arrays and expression roots remain with their existing workspace owner.
+fn bounded_immediate_binding_schema(schema : @schema.Schema) -> Bool {
+  if !@schema.all_fields_required(schema) {
+    return false
+  }
+  for index in 0..<@schema.field_count(schema) {
+    match @schema.field_at(schema, index).unwrap().contract.shape {
+      @contract.Number | @contract.Boolean => ()
+      _ => return false
+    }
+  }
+  true
+}
+
+///|
 /// Constructor-specific recipe for bounded Values, Append and binding-row
 /// providers; not a claim about arbitrary executors of the same kernel.
 /// The bounded single-operation constructors use an operation workspace, not
@@ -106,6 +123,28 @@ pub fn generated_bounded_sequence_capacity(
     is Some(schema) else {
     return generated_sequence_capacity(generated, limits, measurement)
   }
+  let borrowed_row = match operation {
+    @lower.RowStep(kernel) => {
+      let bounded = @lower.kernel_bindings(kernel) is Some(_) ||
+        (match @lower.kernel_body(kernel) {
+          @lower.Filter(_)
+          | @lower.Select(_)
+          | @lower.StableSort(_)
+          | @lower.Limit(_, _, _)
+          | @lower.AssertAll(_)
+          | @lower.AssertUnique(_) => true
+          _ => false
+        })
+      bounded &&
+      @lower.node_input_count(node) == 1 &&
+      bounded_immediate_binding_schema(schema) &&
+      @lower.node_input_target(node, 0)
+      .bind(target => @lower.preparation_schema_at(prepared, target))
+      .map(bounded_immediate_binding_schema)
+      .unwrap_or(false)
+    }
+    _ => false
+  }
   let roots = @schema.field_count(schema).to_int64() +
     @lower.node_input_count(node).to_int64()
   let ordinary = generated_sequence_capacity_with_roots(
@@ -115,7 +154,7 @@ pub fn generated_bounded_sequence_capacity(
     roots,
     roots,
     true,
-    borrowed_binary_input=operation is @lower.AppendStep(_),
+    borrowed_input_values=operation is @lower.AppendStep(_) || borrowed_row,
   )
   guard ordinary is Some(ordinary) else { return None }
   // The Values provider does not pass FixedInputGuardMeasureLimits to its
@@ -205,7 +244,7 @@ fn generated_sequence_capacity_with_roots(
   retained_roots : Int64,
   metadata_scratch : Int64,
   bounded_single : Bool,
-  borrowed_binary_input? : Bool = false,
+  borrowed_input_values? : Bool = false,
 ) -> ExecutionCapacity? {
   let rows = limits.rows
   if rows.retained_entries < 0 || rows.metadata_entries < 0 {
@@ -235,11 +274,11 @@ fn generated_sequence_capacity_with_roots(
       { unit: CursorRootSlots, count: limits.max_frames.to_int64(), copies: 1, },
       {
         unit: ValueNodeSlots,
-        // The selected bounded Append scans original ProducerRead cells;
+        // The selected bounded constructor scans original input cells;
         // its cursor stack is already bounded by operation_entries. It does
         // not copy the input value forest. Logical input admission still
         // scans and charges every occurrence before any output is committed.
-        count: if borrowed_binary_input {
+        count: if borrowed_input_values {
           0L
         } else {
           rows.input_values.max_nodes.to_int64()
@@ -263,7 +302,7 @@ fn generated_sequence_capacity_with_roots(
       },
       {
         unit: DecodedTextBytes,
-        count: if borrowed_binary_input {
+        count: if borrowed_input_values {
           0L
         } else {
           rows.input_values.max_text_bytes.to_int64()

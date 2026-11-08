@@ -319,13 +319,11 @@ pub fn local_module_metered_output_start_capacity(
     local_module_capacity_for_sequence(installed, slot, sequence) is Some(full) else {
     return None
   }
-  // The selected Append constructor uses its bounded operation workspace,
-  // not the generic sequence's retained table and metadata arrays. Keep its
-  // exact input, measurement, output and frame allowances in the original
+  // These selected singleton constructors use their bounded operation
+  // workspace, not the generic sequence's retained table and metadata arrays.
+  // Keep their exact input, measurement, output and frame allowances in the original
   // bounded recipe before deferring only output DATA to the same growth owner.
-  let base = if count == 1 &&
-    @execution.generated_sequence_step_at(sequence, 0)
-    is Some(@lower.AppendStep(_)) {
+  let base = if count == 1 {
     @execution.generated_sequence_step_index_at(sequence, 0)
     .bind(step => @execution.select_generated_sequence_step(sequence, step))
     .bind(selected => {
