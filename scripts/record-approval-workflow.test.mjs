@@ -468,6 +468,7 @@ test('HubSpot approval provider refuses wrong targets, values and markers withou
     assert.throws(() => f.apply(f.body));
     assert.equal(f.value.snapshot().writes, 0);
     assert.equal(f.value.snapshot().target.name, selection.previousName);
+    assert.equal(f.value.snapshot().failures.length, 1, 'The rejected route remains an independent fixture failure');
   }
 });
 
@@ -547,10 +548,12 @@ test('kintone approval provider refuses changed identity, revision, fields and U
     assert.equal(f.value.snapshot().writes, 0);
     assert.deepEqual(f.value.snapshot().target, before.target);
     assert.deepEqual(f.value.snapshot().control, before.control);
+    assert.equal(f.value.snapshot().failures.length, 1, 'The rejected route remains an independent fixture failure');
   }
   const f = kintoneProviderFixture();
   assert.throws(() => f.apply(f.body, false));
   assert.equal(f.value.snapshot().writes, 0);
+  assert.equal(f.value.snapshot().failures.length, 1);
 });
 
 test('kintone approval provider requires credential-bearing Form and exact selected-record reads', () => {
