@@ -9,6 +9,7 @@ import {
   "actql/actql/client_infer_host" @infer,
   "actql/actql/check_environment" @environment,
   "actql/actql/client_local_host" @local,
+  "actql/actql/connectors/local" @local_export,
   "actql/actql/client_source_publication" @source_publication,
   "actql/actql/client_row_source_host" @rows,
   "actql/actql/execution_query",

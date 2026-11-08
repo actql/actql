@@ -5,6 +5,150 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
 
+// Execute the original Native caller methods with explicit typed dependency
+// ports. This is caller retirement/order evidence, not Model, Resource,
+// Journal, Native ABI or physical cleanup acceptance.
+test('Native Model local observation retains partial exports before issuer retirement', {timeout: 90_000}, t => {
+  const source = readFileSync(new URL('../src/platform_native/client_host/mock_model_observation.mbt', import.meta.url), 'utf8');
+  const names = ['close_observation', 'prepare_local_observation',
+    'advance_local_observation', 'local_observation_original'];
+  const bodies = names.map(name => {
+    const block = source.split('///|').find(value =>
+      value.includes(`fn NativeClientMockModelWork::${name}(`));
+    assert(block, `Missing original Native method ${name}`);
+    return block;
+  }).join('\n');
+  const root = mkdtempSync(join(tmpdir(), 'actql-model-observation-order-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  for (const name of ['src', 'src/execution', 'src/publication', 'src/infer'])
+    mkdirSync(join(root, name));
+  writeFileSync(join(root, 'moon.mod'), 'name = "actql/model-observation-order-probe"\nsource = "src"\n');
+  for (const name of ['execution', 'publication'])
+    writeFileSync(join(root, `src/${name}/moon.pkg`), 'supported_targets = "js"\n');
+  writeFileSync(join(root, 'src/moon.pkg'),
+    'supported_targets = "js"\nimport { "actql/model-observation-order-probe/execution" @execution, "actql/model-observation-order-probe/infer" @infer, "actql/model-observation-order-probe/publication" @publication } for "wbtest"\n');
+  writeFileSync(join(root, 'src/infer/moon.pkg'),
+    'supported_targets = "js"\nimport { "actql/model-observation-order-probe/execution" @execution, "actql/model-observation-order-probe/publication" @publication }\n');
+  writeFileSync(join(root, 'src/publication/ports.mbt'),
+    'pub(all) struct CapturedEffectDependencyBody { marker : Int }\n');
+  writeFileSync(join(root, 'src/execution/ports.mbt'), `
+pub(all) enum Issue { Refused } derive(Eq, Debug)
+pub(all) struct CompletedOutput { events : Array[String]; mode : Int }
+pub(all) struct CompletedRelationIdentityScan { output : CompletedOutput }
+pub(all) struct CompletedRelationExportReceipt { output : CompletedOutput }
+pub fn start_completed_relation_identity_scan(output : CompletedOutput, _ : Int, _ : Unit, _ : Unit, _ : Unit, _ : Unit, _ : Int, _ : Int) -> Result[CompletedRelationIdentityScan, Issue] {
+  output.events.push("start")
+  if output.mode == 1 { Err(Refused) } else { Ok({output,}) }
+}
+pub fn advance_completed_relation_identity_scan(value : CompletedRelationIdentityScan, _ : Int) -> Result[(Bool, Int), Issue] {
+  value.output.events.push("advance")
+  if value.output.mode == 2 { Err(Refused) } else { Ok((true, 1)) }
+}
+pub fn finish_completed_relation_identity_scan(value : CompletedRelationIdentityScan) -> Result[CompletedRelationExportReceipt, Issue] {
+  value.output.events.push("finish")
+  if value.output.mode == 4 { Err(Refused) } else { Ok({output: value.output}) }
+}
+pub fn cancel_completed_relation_identity_scan(value : CompletedRelationIdentityScan) -> Bool { value.output.events.push("scan"); true }
+pub fn cancel_completed_relation_export_receipt(value : CompletedRelationExportReceipt) -> Unit { value.output.events.push("receipt") }
+`);
+  writeFileSync(join(root, 'src/infer/ports.mbt'), `
+pub(all) enum Issue { IdentityExport(@execution.Issue) } derive(Eq, Debug)
+pub(all) struct Execution { output : @execution.CompletedOutput }
+pub(all) struct OutputUse { owner : Execution; mut released : Bool }
+pub(all) struct ObservationIssuance { events : Array[String]; mut pending : Bool; mut closed : Bool }
+pub(all) struct OriginalModelPublicationCapacity { events : Array[String]; mut released : Bool }
+pub(all) struct LocalModelObservation { held : OutputUse; issuer : ObservationIssuance }
+pub fn observation_issuance_value(value : ObservationIssuance) -> Unit? { if value.closed { None } else { Some(()) } }
+pub fn acquire_output(owner : Execution) -> OutputUse? { owner.output.events.push("acquire"); Some({owner, released: false}) }
+pub fn borrow_original_live_model_relations(held : OutputUse, _ : Int, _ : Int, _ : Int) -> (Unit, @execution.CompletedOutput)? { if held.released { None } else { Some(((), held.owner.output)) } }
+pub fn issue_original_local_model_observation_from_scope(held : OutputUse, issuer : ObservationIssuance, receipt : @execution.CompletedRelationExportReceipt, _ : Int, _ : Int, _ : Int) -> LocalModelObservation? {
+  receipt.output.events.push("project")
+  if receipt.output.mode == 3 { None } else { Some({held, issuer}) }
+}
+pub fn original_local_model_observation_body(value : LocalModelObservation) -> @publication.CapturedEffectDependencyBody? {
+  if value.held.released || value.issuer.closed { None } else { Some({marker: 1}) }
+}
+pub fn release_output(value : OutputUse) -> Bool { value.owner.output.events.push("use"); value.released = true; true }
+pub fn cancel_observation_issuance(value : ObservationIssuance) -> Bool { value.events.push("cancel"); true }
+pub fn advance_observation_issuance(_ : ObservationIssuance, _ : Int) -> Result[(Bool, Int), Issue] { Ok((false, 1)) }
+pub fn cleanup_observation_issuance(value : ObservationIssuance) -> Result[Bool, Issue] {
+  value.events.push("issuer")
+  if value.pending { Ok(false) } else { value.closed = true; Ok(true) }
+}
+pub fn release_original_infer_publication_capacity(value : OriginalModelPublicationCapacity) -> Result[Bool, Issue] {
+  value.events.push("capacity"); value.released = true; Ok(true)
+}
+`);
+  writeFileSync(join(root, 'src/probe_wbtest.mbt'), `
+pub(all) enum NativeClientMockModelIssue { ForeignOriginal; Model(@infer.Issue) } derive(Eq, Debug)
+priv struct IdentityLimits { wire : Unit; logical_wire : Unit; schema : Unit; work : Int; workspace : Int }
+priv struct Limits { output_rows : Int; output_values : Unit; identity : IdentityLimits }
+struct NativeClientMockModelWork {
+  closing : Bool; closed : Bool; mut advancing : Bool
+  mut publication_capacity : @infer.OriginalModelPublicationCapacity?
+  active : @infer.Execution?; mut observation : @infer.ObservationIssuance?
+  mut local_use : @infer.OutputUse?; mut local_scan : @execution.CompletedRelationIdentityScan?
+  mut local_receipt : @execution.CompletedRelationExportReceipt?; mut local_observation : @infer.LocalModelObservation?
+  compiled : Int; definition : Int; graph : Int; _retained_limits : Limits
+}
+${bodies}
+test "same production partial constructor and retirement matrix" {
+  for mode in 0..<6 {
+    let events : Array[String] = []
+    let issuer : @infer.ObservationIssuance = {events, pending: mode == 5, closed: false}
+    let capacity : @infer.OriginalModelPublicationCapacity = {events, released: false}
+    let work : NativeClientMockModelWork = {
+      closing: false, closed: false, advancing: false,
+      publication_capacity: Some(capacity), observation: Some(issuer),
+      active: Some({output: {events, mode}}), local_use: None, local_scan: None,
+      local_receipt: None, local_observation: None, compiled: 1, definition: 2, graph: 3,
+      _retained_limits: {output_rows: 2, output_values: (), identity: {wire: (), logical_wire: (), schema: (), work: 1000, workspace: 1000}},
+    }
+    let opened = work.prepare_local_observation()
+    assert_eq(events[0], "acquire")
+    assert_eq(events[1], "start")
+    assert_true(work.local_use is Some(_))
+    if mode == 1 { assert_true(opened is Err(_)); assert_true(work.local_scan is None) }
+    else {
+      assert_true(opened is Ok(_))
+      let result = work.advance_local_observation()
+      if mode == 0 || mode == 5 {
+        assert_eq(result, Ok(true))
+        assert_true(work.local_observation_original() is Some(_))
+      } else { assert_true(result is Err(_)) }
+    }
+    events.clear()
+    assert_eq(work.close_observation(), Ok(mode != 5))
+    let expected : Array[String] = []
+    if mode != 1 { expected.push("scan") }
+    if mode == 0 || mode == 3 || mode == 5 { expected.push("receipt") }
+    expected.push("use"); expected.push("cancel"); expected.push("issuer")
+    if mode != 5 { expected.push("capacity") }
+    assert_eq(events, expected)
+    assert_true(work.local_observation is None)
+    assert_true(work.local_use is None)
+    assert_true(work.local_scan is None)
+    assert_true(work.local_receipt is None)
+    if mode == 5 {
+      assert_false(capacity.released)
+      assert_true(work.observation is Some(_))
+      issuer.pending = false
+      events.clear()
+      assert_eq(work.close_observation(), Ok(true))
+      assert_eq(events, ["cancel", "issuer", "capacity"])
+    }
+    assert_true(capacity.released)
+  }
+}
+`);
+  const result = spawnSync('moon', ['test', '--target', 'js', '--deny-warn'], {
+    cwd: root, encoding: 'utf8', timeout: 75_000, maxBuffer: 4 * 1024 * 1024,
+  });
+  assert.equal(result.error, undefined, result.error?.message);
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  assert.match(result.stdout + result.stderr, /Total tests: 1, passed: 1, failed: 0/);
+});
+
 // This executes the exact production exception shell with a controlled close
 // outcome. It proves compiler control-flow/exception precedence, not physical
 // Native Host execution or permission to bypass an unsupported platform guard.

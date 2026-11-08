@@ -139,6 +139,8 @@ pub fn invocation_evidence(Execution, Int) -> @run_publication.RunEvidenceValue?
 
 pub fn issue_original_local_model_observation(OutputUse, ObservationIssuance, @execution_relation.CompletedRelationExportReceipt, @execution_relation.CompletedRelationExportReceipt, Int, Int, Int) -> LocalModelObservation?
 
+pub fn issue_original_local_model_observation_from_scope(OutputUse, ObservationIssuance, @execution_relation.CompletedRelationExportReceipt, Int, Int, Int) -> LocalModelObservation?
+
 pub fn issued_attachment_admission(Execution, Int) -> Result[@run_publication.RunEvidenceValue?, @model_execution.ModelExecutionIssue]
 
 pub fn issued_slot_capture(Execution, Int) -> Result[@run_publication.RunEvidenceValue, @model_execution.ModelExecutionIssue]
@@ -192,6 +194,8 @@ pub fn prepared_input_export_matches(Execution, @model_execution.ModelPreparedCa
 pub fn prepared_input_scope_snapshot(Execution, @model_execution.ModelPreparedCallSet) -> Result[String, @run_publication_host.ClientInferCallScopeIssue]
 
 pub fn prepared_input_unit_id(Execution, @model_execution.ModelPreparedCallSet) -> String?
+
+pub fn prepared_observation_issuance_metadata_bytes(ObservationIssuanceLimits) -> Int64?
 
 pub fn read_saved_input_scope(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, () -> Bool) -> Result[@run_publication_host.ClientInferSavedCallScope, @run_publication_host.ClientInferCallScopeIssue]
 

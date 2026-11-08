@@ -24,6 +24,30 @@ fn observation_issuance_metadata_bytes(
 }
 
 ///|
+/// Prepared single-Model metadata envelope from the same issuer formula.
+/// This is DATA for its enclosing Plan before execution, not a grant or a
+/// complete physical publication recipe. Actual issuance still counts rows.
+pub fn prepared_observation_issuance_metadata_bytes(
+  limits : ObservationIssuanceLimits,
+) -> Int64? {
+  if limits.max_slots < 0 ||
+    limits.max_wire_bytes < 1 ||
+    limits.max_wire_bytes > 16384 ||
+    limits.max_work < 1 {
+    None
+  } else {
+    Some(
+      observation_issuance_metadata_bytes(
+        limits.max_wire_bytes,
+        limits.max_slots,
+        1,
+        0,
+      ),
+    )
+  }
+}
+
+///|
 /// Quote only this same terminal original's flat metadata component. Read the
 /// already prepared row inventory without acquiring output/capture, invoking
 /// current or traversing values. The original reservation and issuer still

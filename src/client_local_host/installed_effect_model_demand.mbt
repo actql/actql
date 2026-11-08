@@ -11,6 +11,9 @@ struct ClientInstalledEffectModelDemand {
   graph : @publication_host.ClientInferPlanGraph
   limits : @resources.LedgerLimits
   model_limits : @resources.LedgerLimits
+  // Separately selected constructor/retention bytes on the SAME parent. The
+  // original Model/read quantities and their selected ceilings stay unchanged.
+  publication : @execution.ExecutionCapacity?
   read_retained_bytes : Int64
   read_execution_bytes : Int64
   bootstrap_retained_bytes : Int64
@@ -39,6 +42,7 @@ pub fn prepare_installed_effect_model_demand(
   max_holdings : Int,
   max_delegations : Int,
   bootstrap? : (Int64, Int64)? = None,
+  publication? : @execution.ExecutionCapacity? = None,
 ) -> Result[ClientInstalledEffectModelDemand, ClientInstalledManagedRunIssue] {
   if !@publication_host.client_compiled_run_matches_effect(
       compiled, prepared, compilation,
@@ -62,6 +66,7 @@ pub fn prepare_installed_effect_model_demand(
       read_retained_bytes,
       read_execution_bytes,
       bootstrap~,
+      publication~,
     )
     is Some(limits) else {
     return Err(InsufficientCapacity)
@@ -78,6 +83,7 @@ pub fn prepare_installed_effect_model_demand(
     graph,
     limits,
     model_limits,
+    publication,
     read_retained_bytes,
     read_execution_bytes,
     bootstrap_retained_bytes,
@@ -106,6 +112,7 @@ fn installed_model_demand_limits(
   read_retained_bytes : Int64,
   read_execution_bytes : Int64,
   bootstrap? : (Int64, Int64)? = None,
+  publication? : @execution.ExecutionCapacity? = None,
 ) -> @resources.LedgerLimits? {
   // These are the original Scope bootstrap and simultaneous read allowance.
   // Both stay retained until the original census/reader retires. Count their
@@ -159,7 +166,26 @@ fn installed_model_demand_limits(
     is Some(limits) else {
     return None
   }
-  Some(limits)
+  match publication {
+    None => Some(limits)
+    Some(capacity) => {
+      guard @execution.checked_preparation_add_product(
+          limits.retained_bytes,
+          @execution.execution_capacity_retained_bytes(capacity),
+          1L,
+        )
+        is Some(retained_bytes) &&
+        @execution.checked_preparation_add_product(
+          limits.execution_bytes,
+          @execution.execution_capacity_execution_bytes(capacity),
+          1L,
+        )
+        is Some(execution_bytes) else {
+        return None
+      }
+      Some({ ..limits, retained_bytes, execution_bytes, })
+    }
+  }
 }
 
 ///|
@@ -203,6 +229,8 @@ pub fn prepare_installed_effect_models_demand(
   let mut reservations = 0
   let mut holdings = 0
   let mut delegations = 0
+  let mut publication_r = 0L
+  let mut publication_e = 0L
   for index, original in components {
     if original.components is Some(_) ||
       !physical_equal(original.prepared, first.prepared) ||
@@ -233,6 +261,24 @@ pub fn prepare_installed_effect_models_demand(
       return Err(InsufficientCapacity)
     }
     models = next
+    if original.publication is Some(capacity) {
+      guard @execution.checked_preparation_add_product(
+          publication_r,
+          @execution.execution_capacity_retained_bytes(capacity),
+          1L,
+        )
+        is Some(pr) &&
+        @execution.checked_preparation_add_product(
+          publication_e,
+          @execution.execution_capacity_execution_bytes(capacity),
+          1L,
+        )
+        is Some(pe) else {
+        return Err(InsufficientCapacity)
+      }
+      publication_r = pr
+      publication_e = pe
+    }
     r = next_r
     e = next_e
     br = Int64::max(br, original.bootstrap_retained_bytes)
@@ -241,7 +287,15 @@ pub fn prepare_installed_effect_models_demand(
     holdings = Int::max(holdings, original.max_holdings)
     delegations = Int::max(delegations, original.max_delegations)
   }
-  guard installed_model_demand_limits(models, r, e, bootstrap=Some((br, be)))
+  guard @execution.execution_capacity(publication_r, publication_e)
+    is Some(publication) &&
+    installed_model_demand_limits(
+      models,
+      r,
+      e,
+      bootstrap=Some((br, be)),
+      publication=Some(publication),
+    )
     is Some(limits) else {
     return Err(InsufficientCapacity)
   }
@@ -249,6 +303,7 @@ pub fn prepare_installed_effect_models_demand(
     ..first,
     limits,
     model_limits: models,
+    publication: Some(publication),
     read_retained_bytes: r,
     read_execution_bytes: e,
     bootstrap_retained_bytes: br,

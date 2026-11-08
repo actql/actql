@@ -12,6 +12,7 @@ struct NativeClientMockModelWork {
   profile : @environment.ModelMockProfile
   _retained_provider : @model.ModelProvider
   _retained_limits : @infer.Limits
+  _retained_observation_capacity : @execution.ExecutionCapacity
   principal : String
   namespace_id : String
   current_time : () -> String
@@ -29,6 +30,10 @@ struct NativeClientMockModelWork {
   mut settlement : NativeMockModelSettlement?
   mut publication_capacity : @model.OriginalModelPublicationCapacity?
   mut observation : @infer.ObservationIssuance?
+  mut local_scan : @execution.CompletedRelationIdentityScan?
+  mut local_receipt : @execution.CompletedRelationExportReceipt?
+  mut local_observation : @infer.LocalModelObservation?
+  mut local_use : @infer.OutputUse?
   mut open_attempted : Bool
   mut advancing : Bool
   mut closing : Bool
@@ -82,6 +87,10 @@ pub fn prepare_native_client_mock_model_work(
     is Err(_) {
     return Err(ForeignOriginal)
   }
+  guard native_client_mock_model_observation_capacity(limits)
+    is Some(observation_capacity) else {
+    return Err(Encoding)
+  }
   Ok({
     capture,
     request,
@@ -91,6 +100,7 @@ pub fn prepare_native_client_mock_model_work(
     profile,
     _retained_provider: provider,
     _retained_limits: limits,
+    _retained_observation_capacity: observation_capacity,
     principal,
     namespace_id,
     current_time,
@@ -108,6 +118,10 @@ pub fn prepare_native_client_mock_model_work(
     settlement: None,
     publication_capacity: None,
     observation: None,
+    local_scan: None,
+    local_receipt: None,
+    local_observation: None,
+    local_use: None,
     open_attempted: false,
     advancing: false,
     closing: false,
@@ -846,9 +860,9 @@ fn[T] mock_model_require(
 /// this through the SAME Request before preparing this existing Native Work.
 pub fn native_client_mock_model_work_construction() -> @execution.PreparationRepresentationUnits {
   {
-    record_headers: 5L,
-    reference_slots: 27L,
-    scalar_words: 8L,
+    record_headers: 6L,
+    reference_slots: 32L,
+    scalar_words: 10L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }

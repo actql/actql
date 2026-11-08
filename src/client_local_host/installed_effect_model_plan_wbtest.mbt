@@ -229,6 +229,93 @@ test "Effect Model read window projects its original selected demand without ano
 }
 
 ///|
+test "Effect Model publication adds same-parent byte demand without changing Model quantities or original read" {
+  let (prepared, request, contracts, original) = effect_model_plan_inputs()
+  let capacity = @execution.execution_capacity(300L, 400L).unwrap()
+  let selected = prepare_installed_effect_model_demand(
+    prepared,
+    original.compiled,
+    original._compilation,
+    original.definition,
+    original._occurrence,
+    original.graph,
+    original.model_limits,
+    original.read_retained_bytes,
+    original.read_execution_bytes,
+    original.max_reservations,
+    original.max_holdings,
+    original.max_delegations,
+    publication=Some(capacity),
+  ).unwrap()
+  assert_eq(selected.model_limits, original.model_limits)
+  assert_true(physical_equal(selected.graph, original.graph))
+  assert_eq(
+    installed_effect_model_read_window(selected),
+    installed_effect_model_read_window(original),
+  )
+  assert_eq(selected.limits, {
+    ..original.limits,
+    retained_bytes: original.limits.retained_bytes + 300L,
+    execution_bytes: original.limits.execution_bytes + 400L,
+  })
+  let calls = Ref(0)
+  let before = effect_model_plan_fixture(
+    prepared, request, contracts, original, calls,
+  )
+  let after = effect_model_plan_fixture(
+    prepared, request, contracts, selected, calls,
+  )
+  assert_eq(after.limits, {
+    ..before.limits,
+    retained_bytes: before.limits.retained_bytes + 300L,
+    execution_bytes: before.limits.execution_bytes + 400L,
+  })
+  assert_eq(calls.val, 2)
+}
+
+///|
+test "plural Effect Model demand preserves each original publication byte window" {
+  let (environment, document) = effect_model_plan_source(plural=true)
+  let prepared = @publication_host.prepare_client_effect_computation(
+    document,
+    Json,
+    environment,
+    None,
+    [],
+    @publication_host.client_standard_effect_computation_limits(),
+  ).unwrap()
+  let (_, _, original, members) = effect_models_plan_for_prepared(prepared)
+  let first = members[0]
+  let selected = prepare_installed_effect_model_demand(
+    prepared,
+    first.compiled,
+    first._compilation,
+    first.definition,
+    first._occurrence,
+    first.graph,
+    first.model_limits,
+    first.read_retained_bytes,
+    first.read_execution_bytes,
+    first.max_reservations,
+    first.max_holdings,
+    first.max_delegations,
+    publication=Some(@execution.execution_capacity(300L, 400L).unwrap()),
+  ).unwrap()
+  let combined = prepare_installed_effect_models_demand([selected, members[1]]).unwrap()
+  assert_eq(combined.model_limits, original.model_limits)
+  assert_eq(combined.limits, {
+    ..original.limits,
+    retained_bytes: original.limits.retained_bytes + 300L,
+    execution_bytes: original.limits.execution_bytes + 400L,
+  })
+  assert_eq(
+    installed_effect_model_read_window(combined),
+    installed_effect_model_read_window(original),
+  )
+  assert_true(installed_effect_model_demand_complete(combined))
+}
+
+///|
 fn effect_model_plan_fixture(
   prepared : @publication_host.PreparedClientEffectComputation,
   request : @publication_host.ClientRequestIdentity,
