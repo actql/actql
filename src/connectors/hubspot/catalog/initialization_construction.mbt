@@ -12,6 +12,43 @@ fn initialization_collection_units(
 }
 
 ///|
+// Shared native PropertyMetadata/option projection. Source initialization and
+// an already-authorized metadata recheck build the same Catalog family; a row
+// ValueNode limit or row-wire writer does not describe this constructor.
+fn property_projection_construction_extent(
+  n : Int,
+  f : Int,
+) -> @shape.CollectionConstructionExtent? {
+  if n < 1 || f < 0 || f > n {
+    return None
+  }
+  let child = @decode.indexed_child_construction_extent()
+  @shape.collection_construction_extent({
+    // PropertyMetadata1H6R; scalar text/flag/Presence/Some/Result families
+    // <=32H40R32W per property. Each option owns view/lookup/text outcomes
+    // <=8H10R8W. Counts co-cover malformed prefixes and modificationMetadata.
+    records: 16L +
+    33L * f.to_int64() +
+    8L * n.to_int64() +
+    child.record_headers * (10L * f.to_int64() + 3L * n.to_int64() + 4L),
+    record_references: 24L +
+    46L * f.to_int64() +
+    10L * n.to_int64() +
+    child.reference_slots * (10L * f.to_int64() + 3L * n.to_int64() + 4L),
+    record_words: 16L +
+    32L * f.to_int64() +
+    8L * n.to_int64() +
+    child.scalar_words * (10L * f.to_int64() + 3L * n.to_int64() + 4L),
+    reference_arrays: 3L + f.to_int64(),
+    reference_items: 3L * f.to_int64() + n.to_int64(),
+    scalar_arrays: 0L,
+    scalar_items: 0L,
+    maps: 2L + 3L * f.to_int64() + n.to_int64(),
+    map_entries: 2L * n.to_int64() + 2L * f.to_int64(),
+  })
+}
+
+///|
 // One Catalog output model for both Source initialization and Effect metadata.
 // Parser/index/sort/schema-writer forests do not escape with these originals.
 fn property_catalog_retained_units(
@@ -283,33 +320,9 @@ fn object_initialization_peak_capacity(
     f.to_int64() * (Int64::max(decimal, array) + 4L),
   ).to_int()
   let sn = Int64::min(max_schema_nodes.to_int64(), 4L + 6L * f.to_int64()).to_int()
-  let child = @decode.indexed_child_construction_extent()
   guard initialization_decoded_construction(b, n, limits.max_depth, true)
     is Some(parsed) &&
-    @shape.collection_construction_extent({
-      // PropertyMetadata1H6R; scalar text/flag/Presence/Some/Result families
-      // <=32H40R32W per property. Each option owns view/lookup/text outcomes
-      // <=8H10R8W. Counts co-cover malformed prefixes and modificationMetadata.
-      records: 16L +
-      33L * f.to_int64() +
-      8L * n.to_int64() +
-      child.record_headers * (10L * f.to_int64() + 3L * n.to_int64() + 4L),
-      record_references: 24L +
-      46L * f.to_int64() +
-      10L * n.to_int64() +
-      child.reference_slots * (10L * f.to_int64() + 3L * n.to_int64() + 4L),
-      record_words: 16L +
-      32L * f.to_int64() +
-      8L * n.to_int64() +
-      child.scalar_words * (10L * f.to_int64() + 3L * n.to_int64() + 4L),
-      reference_arrays: 3L + f.to_int64(),
-      reference_items: 3L * f.to_int64() + n.to_int64(),
-      scalar_arrays: 0L,
-      scalar_items: 0L,
-      maps: 2L + 3L * f.to_int64() + n.to_int64(),
-      map_entries: 2L * n.to_int64() + 2L * f.to_int64(),
-    })
-    is Some(metadata) &&
+    property_projection_construction_extent(n, f) is Some(metadata) &&
     @contract.object_construction_inventory(f + 1, Int::min(b, max_name_bytes))
     is Some(object) &&
     @contract.checked_emission_construction_extent(2 * f + 1) is Some(emission) &&
