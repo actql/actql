@@ -337,3 +337,35 @@ SAME capacity reservation to the retained inventory. Common reference backing
 remains until the Model input receipt; checked rows keep their own RowRun
 reservation. Work/attempt/transfer history and durable Store quota are unchanged.
 An unresolved child or failed contraction retains the original cleanup owner.
+
+
+## Original lookup raw custody
+
+The installed Native caller binds its original Host retention with
+`bind_lookup_raw_retention` before the capture opens a file. After EOF and the
+original generation/byte-ticket checks, this SAME capture retains the actual
+raw Bytes and their digest. The `RawResponse` continuation runs before physical
+JSON document admission, Content extraction or typed page admission.
+
+`prepare_client_keyed_native_raw_response` reads the activation retained by the
+SAME selected request, its checked response data policy and original Request
+scope. It preserves the supplied retention's custody/time bounds, derives the
+Source-specific effective retention envelope, and binds byte identity, call
+slot, first attempt and original issuer. It does not acknowledge an attempt,
+Journal entry, successful response or adopted page. Closed metadata and its
+holding name are funded by the existing lookup reservation before construction.
+
+The Source grows its own original capacity reservation for the existing
+`CapturedContentCustody` raw alternative before creating the Store child,
+retains that child before persistence, verifies exact bytes and retires its
+I/O before returning to document admission. Later Content construction includes
+the co-held raw Store inventory; constructor retirement retains both actual
+Store children and original raw bytes. No disk quota supplies this live backing.
+
+Failed persistence/confirmation keeps the original child on this Source and
+cannot produce a page or retry with another Request. Close reconciles the same
+Store, retires both children and only then cuts raw metadata/retention/byte
+aliases. The CLI stops lookup assembly without returning its reservation,
+closes the original Source children, then reclaims lookup/prefix backing. A
+borrowed `keyed_raw_response` is metadata of confirmed Store custody only; it is
+not a page-adoption/event receipt, Result Artifact or renewed read permission.

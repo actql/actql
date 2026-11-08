@@ -79,6 +79,7 @@ priv enum FileCapturePhase {
   Prepared
   Reading
   Received
+  RawResponse
   Listing
   ContentReady
   KeyedPage
@@ -1177,11 +1178,14 @@ fn NativeRelationFileCapture::admit_response(
     // Keep the original fully received physical bytes, before projection can
     // replace self.bytes by a derived ContentRef row. The receive/Content
     // reservation already backs these bytes and this additional digest slot.
-    guard content.raw_snapshot is None && content.raw_snapshot_cid is None else {
+    if content.raw_snapshot is None && content.raw_snapshot_cid is None {
+      content.raw_snapshot = Some(bytes)
+      content.raw_snapshot_cid = Some("sha256:" + @sha.hex(bytes))
+    } else if !(content.raw_snapshot is Some(original) &&
+      physical_equal(original, bytes) &&
+      content.raw_snapshot_cid is Some(_)) {
       raise FileCaptureStop(ForeignOriginal)
     }
-    content.raw_snapshot = Some(bytes)
-    content.raw_snapshot_cid = Some("sha256:" + @sha.hex(bytes))
   }
   match self.responses {
     Some(original) =>
@@ -1240,6 +1244,7 @@ fn NativeRelationFileCapture::admit_response(
       Some(provider),
       Some(input),
       Some(bytes.length()),
+      raw_candidate=content.raw_response.map(value => value.metadata),
     ).unwrap_or_else(() => raise FileCaptureStop(Capacity))
     file_require(
       @resources.grow_capacity_reservation(
@@ -1248,6 +1253,18 @@ fn NativeRelationFileCapture::admit_response(
     )
     // A successful grow remains on this same owner even after reentrant close.
     if !self.current() {
+      raise FileCaptureStop(Unavailable)
+    }
+  }
+  if self.content is Some(content) && content.raw_retention is Some(_) {
+    if content.raw_response is None {
+      content.phase = PrepareRawResponse
+      self.phase = RawResponse
+      return
+    }
+    guard content.raw_response is Some(original) &&
+      content.raw_custody is Some(custody) &&
+      custody.matches_lookup_raw_confirmed(original.metadata) else {
       raise FileCaptureStop(Unavailable)
     }
   }
@@ -1475,6 +1492,10 @@ fn NativeRelationFileCapture::advance_original(
       Prepared => self.open_file()
       Reading => self.read_chunk()
       Received => self.admit_response(elapsed_ms)
+      RawResponse =>
+        if self.content is Some(content) {
+          file_require(self.advance_raw_response(content))
+        }
       ContentReady =>
         if self.content is Some(content) {
           file_require(self.advance_content(content))
@@ -1632,6 +1653,13 @@ pub fn NativeRelationFileCapture::close(
         file_require(custody.retry_cleanup().map_err(issue => Store(issue)))
         |> ignore
       }
+      if content.raw_custody is Some(custody) {
+        file_require(custody.retry_cleanup().map_err(issue => Store(issue)))
+        |> ignore
+      }
+      content.raw_custody = None
+      content.raw_response = None
+      content.raw_retention = None
       content.input = None
       content.bytes = None
       content.raw_snapshot = None

@@ -63,6 +63,31 @@ test "Native README prepares one first activation for each original canonical ke
 }
 
 ///|
+// Actual Source/Store component, not Journal persistence or ordinary authority.
+test "Native README retains original raw Store custody before keyed Content page admission" {
+  assert_eq(@env.get_env_var("ACTQL_TEST_NATIVE_RAW_STORE"), Some("1"))
+  native_project_mock_model_backed_read(
+    false,
+    readme_request=true,
+    effect_compilation=true,
+    effect_source_inputs=true,
+    content_join=true,
+  )
+}
+
+///|
+test "Native raw Store refusal prevents a keyed page and keeps its original cleanup child" {
+  assert_eq(@env.get_env_var("ACTQL_TEST_NATIVE_RAW_STORE_REFUSAL"), Some("1"))
+  native_project_mock_model_backed_read(
+    false,
+    readme_request=true,
+    effect_compilation=true,
+    effect_source_inputs=true,
+    content_join=true,
+  )
+}
+
+///|
 // Actual same Store/SQLite/Root/Writer/Reader, with authored raw metadata DATA.
 // No Source authority, Journal activation, Model send or normal funding proof.
 test "Native lookup raw Store preserves exact bytes and original purpose through reopen" {
@@ -701,20 +726,56 @@ fn native_mock_readme_content_join_adopt(
   ).native_content_join_stage("original SQLite component")
   let root = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
   let authority = "sha256:" + "8".repeat(64)
+  let raw_refusal = @env.get_env_var("ACTQL_TEST_NATIVE_RAW_STORE_REFUSAL") ==
+    Some("1")
   let store = @local_store.open_store_with_custody(
     library,
     root,
     authority,
-    1048576L,
+    if raw_refusal {
+      1L
+    } else {
+      1048576L
+    },
     8L,
     65536L,
     diagnostic_ceiling=Some(4096),
   ).native_content_join_stage("same bounded Content Store")
   let facts = @run_host.client_keyed_acquisition_source_evidence_facts(keyed).unwrap()
+  let raw_store = @env.get_env_var("ACTQL_TEST_NATIVE_RAW_STORE") == Some("1")
+  let scope_cid = @run_host.client_request_authority_scope_cid(first.request)
+  let raw_retention = if raw_store {
+    let cid = "sha256:" + "d".repeat(64)
+    Some(
+      @publication.seal_publication_contract(
+        "result_retention_policy",
+        "{\"version\":\"actql-result-retention-policy/0.1\",\"retention_contract_cid\":\"" +
+        cid +
+        "\",\"effective_data_policy_cid\":\"" +
+        cid +
+        "\",\"available_until\":\"2099-01-01T00:00:00.000Z\",\"delete_by\":\"2099-01-02T00:00:00.000Z\",\"extension_ceiling_at\":\"2099-01-02T00:00:00.000Z\",\"metadata_retention_policy_cid\":\"" +
+        cid +
+        "\",\"metadata_delete_by\":\"2099-01-03T00:00:00.000Z\",\"clock_contract_cid\":\"" +
+        cid +
+        "\"}",
+        65536,
+        4096,
+        32,
+      ).unwrap(),
+    )
+  } else {
+    None
+  }
   let binding_wire = local_project_mock_relation_wire({
     "content_store_id": "native-readme-component",
     "content_store_cid": Json::string(authority),
-    "workspace_scope_cid": Json::string("sha256:" + "9".repeat(64)),
+    "workspace_scope_cid": Json::string(
+      if raw_store {
+        scope_cid
+      } else {
+        "sha256:" + "9".repeat(64)
+      },
+    ),
     "storage_scope": "workspace",
     "retention_class": "component",
     "expires_at": "2099-01-01T00:00:00.000Z",
@@ -722,7 +783,13 @@ fn native_mock_readme_content_join_adopt(
     "effective_data_policy_cid": Json::string(facts.source_data_policy_cid),
     "data_classification": Json::string(facts.data_classification),
     "issuer_contract_cid": Json::string("sha256:" + "b".repeat(64)),
-    "capture_authority_cid": Json::string("sha256:" + "c".repeat(64)),
+    "capture_authority_cid": Json::string(
+      if raw_store {
+        scope_cid
+      } else {
+        "sha256:" + "c".repeat(64)
+      },
+    ),
   }).unwrap()
   let planned_keys = if @env.get_env_var("ACTQL_TEST_NATIVE_BATCH_PLAN") ==
     Some("1") {
@@ -918,7 +985,13 @@ fn native_mock_readme_content_join_adopt(
       },
       1048576,
       local_status_watch_now_ffi,
-      () => "2026-10-10T00:00:01.000Z",
+      () => {
+        if raw_store {
+          "2026-10-26T00:00:00.001Z"
+        } else {
+          "2026-10-10T00:00:01.000Z"
+        }
+      },
       reference => (file._retained_resolve_identity)(binding, reference),
     ).native_content_join_stage("original keyed Content input")
     let content = @row_file.prepare_native_managed_relation_file_keyed_capture(
@@ -935,10 +1008,64 @@ fn native_mock_readme_content_join_adopt(
     ).native_content_physical_stage(
       "original keyed Native child row " + row.to_string(),
     )
+    if raw_retention is Some(retention) {
+      content
+      .bind_lookup_raw_retention(retention)
+      .native_content_join_stage("original raw retention")
+      assert_true(content.bind_lookup_raw_retention(retention) is Err(_))
+      // No physical attempt has started; metadata cannot bypass that original.
+      assert_true(
+        @run_host.prepare_client_keyed_native_raw_response(
+          compiled,
+          first.definition,
+          request,
+          retention,
+          binding_wire,
+          "sha256:" + "a".repeat(64),
+          1,
+          "2026-10-26T00:00:00.001Z",
+          local_status_watch_now_ffi(),
+          {
+            max_bytes: 65536,
+            max_nodes: 4096,
+            max_depth: 32,
+            max_text_units: 65536,
+          },
+        )
+        is Err(_),
+      )
+      assert_true(content.keyed_raw_response() is Err(_))
+    }
     if @env.get_env_var("ACTQL_TEST_NATIVE_RAW_SNAPSHOT") == Some("1") {
       assert_true(
         content.keyed_raw_snapshot_identity() is Err(@row_file.Unavailable),
       )
+    }
+    if raw_refusal {
+      let mut refused = false
+      for _ in 0..<100000 {
+        match content.advance(31) {
+          Ok(false) => ()
+          Ok(true) => fail("raw refusal cannot produce a Content page")
+          Err(failure) => {
+            assert_true(
+              failure.issue()
+              is @row_file.Store(
+                @local_store.Database(@local_sqlite.CapacityExceeded)
+              ),
+            )
+            assert_true(content.keyed_capture() is Err(_))
+            assert_true(content.keyed_raw_response() is Err(_))
+            // The failed original child must be retired by this SAME Source.
+            assert_true(store.close() is Err(@local_store.CleanupPending))
+            refused = true
+            break
+          }
+        }
+      }
+      assert_true(refused)
+      content_children.push(content)
+      break
     }
     let mut done = false
     for _ in 0..<100000 {
@@ -985,6 +1112,48 @@ fn native_mock_readme_content_join_adopt(
       // ContentRef row or the selected business field's logical digest.
       assert_true(size > 0)
       assert_eq(content.keyed_raw_snapshot_identity().unwrap(), (cid, size))
+    }
+    if raw_retention is Some(retention) {
+      let raw = content
+        .keyed_raw_response()
+        .native_content_join_stage("original persisted raw envelope")
+      let expected_cid = @env.get_env_var("ACTQL_TEST_NATIVE_RAW_SNAPSHOT_CID").unwrap()
+      let expected_bytes = @env.get_env_var(
+        "ACTQL_TEST_NATIVE_RAW_SNAPSHOT_BYTES",
+      ).unwrap()
+      let (cid, size) = @publication.lookup_raw_response_content(raw.metadata).unwrap()
+      assert_eq(cid, expected_cid)
+      assert_eq(size.to_string(), expected_bytes)
+      assert_true(
+        @publication.result_retention_bounds_equal(retention, raw.retention),
+      )
+      // Original retention had a different effective policy. Source projection
+      // preserves its exact time/custody bounds, without retaining that policy.
+      assert_true(
+        @publication.publication_contract_identity(retention) !=
+        @publication.publication_contract_identity(raw.retention),
+      )
+      guard @json.parse(@publication.publication_contract_json(raw.metadata))
+        is Object(fields) else {
+        fail("raw metadata object")
+      }
+      assert_eq(
+        fields.get("effective_data_policy_cid"),
+        Some(Json::string(facts.source_data_policy_cid)),
+      )
+      assert_eq(
+        fields.get("authority_scope_cid"),
+        Some(Json::string(scope_cid)),
+      )
+      assert_eq(fields.get("network_attempt"), Some(Json::number(1.0)))
+      assert_eq(
+        fields.get("media_type"),
+        Some(Json::string("application/json")),
+      )
+      assert_eq(
+        fields.get("issuer_id"),
+        Some(Json::string("explicit-native-component-issuer")),
+      )
     }
     let captured = content
       .keyed_capture()
@@ -1070,7 +1239,7 @@ fn native_mock_readme_content_join_adopt(
       assert_true(copied)
     }
   }
-  if requests == 2 {
+  if requests == 2 && !raw_refusal {
     let complete = (if planned_keys is Some(_) {
       @run_host.finish_client_keyed_lookup_publication_input(
         lookup,

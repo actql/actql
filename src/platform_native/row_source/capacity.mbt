@@ -578,6 +578,7 @@ fn file_capture_construction_capacity(
   content : NativeRelationFileContentInput?,
   response_bytes : Int?,
   storage_candidate? : @publication.CapturedContentReference? = None,
+  raw_candidate? : @publication.PublicationContract? = None,
 ) -> (Int64, Int64)? {
   let listing = match original {
     ManagedFileListingAcquisition(_, _, _, _)
@@ -648,6 +649,7 @@ fn file_capture_construction_capacity(
           prepared_provider,
           response_bytes=response_bound,
           storage_candidate~,
+          raw_candidate~,
         )
         is Some((retained, execution)) &&
         @execution.checked_preparation_add_product(

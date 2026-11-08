@@ -456,6 +456,9 @@ fn LocalCommandBusinessPreparation::capture_mock_effect_content(
             stop("LocalOriginalContentCaptureUnavailable")
           }
         }
+        content
+        .bind_lookup_raw_retention(installation.retention)
+        .unwrap_or_else(() => stop("LocalOriginalRawRetentionUnavailable"))
         let activation = @run_host.prepare_client_keyed_native_activation(
           lookup,
           request,

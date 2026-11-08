@@ -272,6 +272,19 @@ fn LocalCommandPreparationOriginal::close_business_children(
       }
       state.source_failures.clear()
       state.source_failures.shrink_to_fit()
+      // Stop new assembly work without returning its backing. Raw envelopes
+      // borrowed by Source/Store children remain funded by this SAME lookup
+      // until those original physical children have retired and cut aliases.
+      if state.lookup is Some(lookup) {
+        @run_host.stop_client_keyed_lookup_input(lookup)
+      }
+      for source in state.sources {
+        match source.close() {
+          Err(issue) => return Err(CommandBusinessSource(issue))
+          Ok(false) => return Err(CommandBusinessChildren)
+          Ok(true) => ()
+        }
+      }
       if state.lookup is Some(lookup) {
         match @run_host.cleanup_client_keyed_lookup_input(lookup, 31) {
           Err(_) => return Err(CommandBusinessChildren)
@@ -288,13 +301,6 @@ fn LocalCommandPreparationOriginal::close_business_children(
           Err(_) => return Err(CommandBusinessChildren)
           Ok(false) => return Err(CommandBusinessChildren)
           Ok(true) => state.prefix = None
-        }
-      }
-      for source in state.sources {
-        match source.close() {
-          Err(issue) => return Err(CommandBusinessSource(issue))
-          Ok(false) => return Err(CommandBusinessChildren)
-          Ok(true) => ()
         }
       }
       for read in state.source_reads {
