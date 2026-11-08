@@ -1,0 +1,100 @@
+///|
+fn funded_row_output(growth : WorkspaceGrowth) -> AdmittedOutput {
+  let owner = bound_pipeline(
+    "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":1}]},\"as\":\"out\"}]",
+  )
+  let output = prepare_admitted_output(owner, @pipeline.Step(0), 10, {
+    max_nodes: 100,
+    max_text_bytes: 100,
+    max_depth: 10,
+    max_work: 1000,
+  }).unwrap()
+  output.buffer.budget.retention = Some(growth)
+  output
+}
+
+///|
+fn funded_row_number(
+  output : AdmittedOutput,
+  value : Double,
+) -> @admitted.CheckedValue {
+  @admitted.checked_number_value(
+    value,
+    @schema.field_at(output.buffer.schema, 0).unwrap().contract,
+  ).unwrap()
+}
+
+///|
+test "persistent output growth composes original buffers before every row commit" {
+  let requests : Array[Int64] = []
+  let growth = working_growth_fixture(bytes => {
+    requests.push(bytes)
+    Ok(())
+  })
+  growth.retained_outputs = Some(0L)
+  let first = funded_row_output(growth)
+  let second = funded_row_output(growth)
+  append_admitted_output(first, [funded_row_number(first, 1.0)]).unwrap()
+  // A row root, one number node, and its two-byte field name.
+  assert_eq(requests, [528L])
+  append_admitted_output(second, [funded_row_number(second, 2.0)]).unwrap()
+  assert_eq(requests, [528L, 1056L])
+  append_admitted_output(first, [funded_row_number(first, 3.0)]).unwrap()
+  assert_eq(requests, [528L, 1056L, 1584L])
+  let earlier = finish_admitted_output(first).unwrap()
+  assert_eq(admitted_output_row_count(earlier), 2)
+  assert_eq(growth.retained_outputs, Some(1584L))
+  assert_true(cancel_admitted_output(second))
+  // Failed/cancelled buffers retain their actual charge until task cleanup.
+  assert_eq(growth.retained_outputs, Some(1584L))
+  assert_eq(requests, [528L, 1056L, 1584L])
+}
+
+///|
+test "output growth refusal cannot commit a row or discard an earlier output charge" {
+  let calls = Ref(0)
+  let growth = working_growth_fixture(_ => {
+    calls.val += 1
+    if calls.val == 1 {
+      Ok(())
+    } else {
+      Err(WorkspaceUnavailable)
+    }
+  })
+  growth.retained_outputs = Some(0L)
+  let first = funded_row_output(growth)
+  append_admitted_output(first, [funded_row_number(first, 1.0)]).unwrap()
+  let earlier = finish_admitted_output(first).unwrap()
+  let second = funded_row_output(growth)
+  assert_true(
+    append_admitted_output(second, [funded_row_number(second, 2.0)])
+    is Err(CaptureLimit),
+  )
+  assert_true(second.buffer.rows.is_empty())
+  assert_false(second.buffer.open)
+  assert_eq(admitted_output_row_count(earlier), 1)
+  assert_eq(growth.retained_outputs, Some(528L))
+  assert_eq(second.buffer.budget.retention_funded, 0L)
+  assert_true(growth.failed)
+  assert_eq(calls.val, 2)
+}
+
+///|
+test "cancellation inside output funding prevents persistent row transfer" {
+  let original : Ref[AdmittedOutput?] = Ref(None)
+  let growth = working_growth_fixture(_ => {
+    cancel_admitted_output(original.val.unwrap()) |> ignore
+    Ok(())
+  })
+  growth.retained_outputs = Some(0L)
+  let output = funded_row_output(growth)
+  original.val = Some(output)
+  assert_true(
+    append_admitted_output(output, [funded_row_number(output, 1.0)])
+    is Err(CaptureLimit),
+  )
+  assert_true(output.buffer.rows.is_empty())
+  assert_false(output.buffer.open)
+  assert_eq(growth.retained_outputs, Some(528L))
+  assert_true(cancel_admitted_output(output) == false)
+}

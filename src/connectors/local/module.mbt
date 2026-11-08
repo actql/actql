@@ -8,6 +8,8 @@ struct LocalComputeModule {
   managed_providers : Array[ManagedProvider]
   selected_providers : Array[ManagedProvider?]
   selected_capacities : Array[@execution.ExecutionCapacity?]
+  // Original constructor selection only, not permission or runtime liveness.
+  selected_default : Array[Bool]
   managed_capacity : @connector.FixedComputeCapacity
   execution : @execution.SequenceExecutionLimits
   measurement : @execution.FixedInputGuardMeasureLimits
@@ -18,12 +20,12 @@ struct LocalComputeModule {
 /// Owned sequence/provider snapshot arrays and original-slot selection arrays.
 /// The provider objects and sequence bodies are borrowed, not copied. Each
 /// exact-length array owns one header/backing pair and its module link. This
-/// inventories all four containers, not provider/kernel construction backing.
+/// inventories all five containers, not provider/kernel construction backing.
 pub fn local_module_container_inventory(
   slots : Int,
   installed_providers : Int,
 ) -> @execution.PreparationRepresentationUnits? {
-  guard @execution.checked_preparation_add_product(8L, slots.to_int64(), 3L)
+  guard @execution.checked_preparation_add_product(10L, slots.to_int64(), 3L)
     is Some(references) &&
     @execution.checked_preparation_add_product(
       references,
@@ -34,9 +36,9 @@ pub fn local_module_container_inventory(
     return None
   }
   Some({
-    record_headers: 8L,
+    record_headers: 10L,
     reference_slots: references,
-    scalar_words: 8L,
+    scalar_words: 8L + slots.to_int64(),
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   })
@@ -86,6 +88,7 @@ pub fn prepare_local_compute_module(
     original_sequences.length(),
     None,
   )
+  let selected_default = Array::make(original_sequences.length(), false)
   for slot, sequence in original_sequences {
     let mut selected : ManagedProvider? = None
     for provider in original_providers {
@@ -98,10 +101,12 @@ pub fn prepare_local_compute_module(
     }
     let selected = match selected {
       Some(_) => selected
-      None =>
+      None => {
+        selected_default[slot] = true
         local_default_managed_provider(
           original_providers, execution, measurement, sequence,
         )
+      }
     }
     let capacity = match selected {
       Some(provider) => managed_provider_capacity(provider, sequence)
@@ -121,6 +126,7 @@ pub fn prepare_local_compute_module(
     managed_providers: original_providers,
     selected_providers,
     selected_capacities,
+    selected_default,
     managed_capacity: managed_capacity.unwrap_or({
       contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
       max_rows: execution.rows.max_rows,
@@ -285,6 +291,103 @@ pub fn local_module_capacity_for_sequence(
     return None
   }
   Some(required)
+}
+
+///|
+/// Startup DATA for the exact built-in row/CROSS JOIN chain. Its unchanged
+/// full capacity remains the fallback and semantic bound. Persistent output
+/// DATA is charged by the same task before each buffer commit; all fixed
+/// child metadata, input/measurement/traversal and one live child scratch
+/// remain prepaid. An injected provider selected for this slot cannot use this constructor proof.
+pub fn local_module_metered_output_start_capacity(
+  installed : LocalComputeModule,
+  slot : Int,
+  sequence : @execution.GeneratedSequence,
+) -> @execution.ExecutionCapacity? {
+  let count = @execution.generated_sequence_step_count(sequence)
+  guard installed.selected_default.get(slot) == Some(true) &&
+    count > 1 &&
+    relation_chain_reclaimed_prefix(sequence) == count &&
+    local_module_capacity_for_sequence(installed, slot, sequence) is Some(full) &&
+    @execution.generated_sequence_capacity(
+      sequence,
+      installed.execution,
+      installed.measurement,
+    )
+    is Some(base) else {
+    return None
+  }
+  for index in 0..<count {
+    match @execution.generated_sequence_step_at(sequence, index) {
+      Some(@lower.CrossJoinStep(_)) => ()
+      Some(@lower.RowStep(kernel)) if selected_binding_rows_supported(kernel) =>
+        ()
+      _ => return None
+    }
+  }
+  let output = installed.execution.rows.output_values
+  guard @execution.execution_capacity_inventory_bytes([
+      {
+        unit: @execution.ValueNodeSlots,
+        count: output.max_nodes.to_int64(),
+        copies: 1,
+      },
+      {
+        unit: @execution.DecodedTextBytes,
+        count: output.max_text_bytes.to_int64(),
+        copies: 1,
+      },
+    ])
+    is Some(data) &&
+    base.execution_bytes >= data else {
+    return None
+  }
+  let mut fixed = 0L
+  let mut scratch = base.execution_bytes - data
+  for index in 0..<count {
+    guard @execution.generated_sequence_step_index_at(sequence, index)
+      is Some(step) &&
+      @execution.select_generated_sequence_step(sequence, step)
+      is Some(selected) &&
+      bounded_relation_step_provider(
+        selected,
+        installed.execution,
+        installed.measurement,
+        family=[],
+      )
+      is Some(provider) &&
+      managed_provider_capacity(provider, selected) is Some(child) &&
+      child.retained_bytes >= data &&
+      child.execution_bytes >= data &&
+      @execution.checked_preparation_add_product(
+        fixed,
+        child.retained_bytes - data,
+        1L,
+      )
+      is Some(next) else {
+      return None
+    }
+    fixed = next
+    scratch = Int64::max(scratch, child.execution_bytes - data)
+  }
+  // Original chain handles/cursors plus one bounded control envelope per
+  // output budget for the existing growth link and funded-usage counter.
+  guard @execution.checked_preparation_add_product(fixed, scratch, 1L)
+    is Some(total) &&
+    @execution.execution_capacity_inventory_add(
+      total,
+      @execution.CursorRootSlots,
+      2L * count.to_int64() + 2L,
+      1,
+    )
+    is Some(total) &&
+    total <= full.execution_bytes else {
+    return None
+  }
+  @execution.execution_capacity(
+    full.retained_bytes,
+    Int64::max(full.retained_bytes, total),
+  )
 }
 
 ///|

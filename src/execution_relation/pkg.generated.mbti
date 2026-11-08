@@ -242,7 +242,7 @@ pub fn bind_generated_numeric_execution(GeneratedSequence, NumericAggregateExecu
 
 pub fn bind_generated_sequence_query_time(GeneratedSequence, @run_publication.QueryEvaluationTime, Int, Int) -> Result[GeneratedSequence, SequenceRunIssue]
 
-pub fn bind_generated_workspace_growth(GeneratedSequence, SequenceExecutionLimits, Int64, (Int64) -> Result[Unit, WorkspaceGrowthIssue]) -> Result[GeneratedSequence, SequenceRunIssue]
+pub fn bind_generated_workspace_growth(GeneratedSequence, SequenceExecutionLimits, Int64, (Int64) -> Result[Unit, WorkspaceGrowthIssue], meter_retained_outputs? : Bool) -> Result[GeneratedSequence, SequenceRunIssue]
 
 pub fn bind_infer_captured_input(@lowering_relation.PreparedInferInputs, @lowering_relation.BoundPrepared, @pipeline_typing.Target, CapturedRows) -> Result[InferRowInput, InferPreparationIssue]
 

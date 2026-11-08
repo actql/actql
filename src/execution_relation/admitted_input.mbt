@@ -214,6 +214,9 @@ fn append_admitted_buffer_values(
     }
     row.push(value)
   }
+  if !fund_output_retention(budget, budget.nodes, budget.text) || !input.open {
+    return Err(CaptureLimit)
+  }
   input.rows.push(row)
   Ok(())
 }
@@ -251,6 +254,9 @@ fn append_admitted_row(
       return Err(CaptureLimit)
     }
     row.push(checked.value)
+  }
+  if !fund_output_retention(budget, budget.nodes, budget.text) || !input.open {
+    return Err(CaptureLimit)
   }
   input.rows.push(row)
   Ok(())
@@ -325,6 +331,9 @@ fn append_admitted_buffer_presence(
   budget.nodes += copied.usage.nodes
   budget.text += copied.usage.text_bytes
   budget.work += copied.usage.work
+  if !fund_output_retention(budget, budget.nodes, budget.text) || !buffer.open {
+    return Err(CaptureLimit)
+  }
   buffer.presence_rows.push(copied)
   Ok(())
 }

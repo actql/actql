@@ -124,6 +124,7 @@ fn prepare_bounded_sequence_admitted_output(
     limits,
   ).map(output => {
     output.buffer.deferred_reclamation = true
+    output.buffer.budget.retention = generated.working
     output
   })
 }
