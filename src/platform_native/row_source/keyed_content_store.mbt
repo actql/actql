@@ -71,6 +71,11 @@ pub fn prepare_native_relation_file_content_input(
 
 ///|
 priv enum NativeFileContentPhase {
+  PrepareRawResponse
+  PrepareRawStore
+  PersistRaw
+  VerifyRaw
+  RetireRawIO
   ProjectContent
   PrepareContentStore
   PersistContent
@@ -89,6 +94,9 @@ priv struct NativeRelationFileContent {
   mut bytes : Bytes?
   mut raw_snapshot : Bytes?
   mut raw_snapshot_cid : String?
+  mut raw_retention : @publication.PublicationContract?
+  mut raw_response : @publication_host.ClientKeyedNativeRawResponse?
+  mut raw_custody : @store.CapturedContentCustody?
   mut candidate : @publication_host.ClientCapturedContent?
   mut custody : @store.CapturedContentCustody?
   mut value : @admitted.CheckedValue?
@@ -108,6 +116,9 @@ fn native_relation_file_content(
     bytes: None,
     raw_snapshot: None,
     raw_snapshot_cid: None,
+    raw_retention: None,
+    raw_response: None,
+    raw_custody: None,
     candidate: None,
     custody: None,
     value: None,
@@ -125,6 +136,7 @@ fn native_relation_file_content_capacity(
   physical : NativeRelationFilePreparedProvider?,
   response_bytes? : Int? = None,
   storage_candidate? : @publication.CapturedContentReference? = None,
+  raw_candidate? : @publication.PublicationContract? = None,
 ) -> (Int64, Int64)? {
   // The Store child does not exist until its original candidate has been
   // built. Its exact constructor is grown on this SAME reservation below,
@@ -146,7 +158,25 @@ fn native_relation_file_content_capacity(
       )
     _ => None
   }
-  guard physical is Some(provider) &&
+  let raw_storage : @execution.PreparationRepresentationUnits? = match
+    (raw_candidate, physical) {
+    (None, _) =>
+      Some({
+        record_headers: 0L,
+        reference_slots: 0L,
+        scalar_words: 0L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      })
+    (Some(original), Some(provider)) =>
+      input.store.lookup_raw_custody_construction_inventory(
+        provider.limits.chunk_bytes,
+        original,
+      )
+    _ => None
+  }
+  guard raw_storage is Some(raw_storage) &&
+    physical is Some(provider) &&
     file_listing_fields_valid(provider, input.fields) &&
     file_content_construction_inventory(
       provider,
@@ -170,6 +200,7 @@ fn native_relation_file_content_capacity(
     @execution.compose_preparation_representation([
       projection,
       storage,
+      raw_storage,
       {
         // Content holder H1/R8/W4 + eight Some slots H8/R8/W8; issuer identity,
         // two callbacks and domain delegation H7/R10/W3; page writer and
@@ -180,7 +211,10 @@ fn native_relation_file_content_capacity(
         // wire/tree construction uses its existing separate workspace below.
         // The installed profile body is borrowed, not copied. Retain its input
         // reference and actual Some carrier on this same Content reservation.
-        record_headers: page.record_headers +
+        // Raw retention/response/custody: three field refs, three Some
+        // carriers H3/R3/W3, and bind/advance Result/clock frames H4/R5/W4.
+        record_headers: 7L +
+        page.record_headers +
         1L +
         8L +
         7L +
@@ -188,7 +222,8 @@ fn native_relation_file_content_capacity(
         24L +
         9L +
         (if input.read_profile is Some(_) { 1L } else { 0L }),
-        reference_slots: page.reference_slots +
+        reference_slots: 11L +
+        page.reference_slots +
         8L +
         8L +
         10L +
@@ -196,7 +231,8 @@ fn native_relation_file_content_capacity(
         5L +
         1L +
         (if input.read_profile is Some(_) { 1L } else { 0L }),
-        scalar_words: page.scalar_words +
+        scalar_words: 7L +
+        page.scalar_words +
         4L +
         8L +
         3L +
@@ -332,6 +368,11 @@ fn NativeRelationFileCapture::advance_content(
     return Err(ForeignOriginal)
   }
   match content.phase {
+    PrepareRawResponse
+    | PrepareRawStore
+    | PersistRaw
+    | VerifyRaw
+    | RetireRawIO => return Err(Unavailable)
     ProjectContent => {
       let identity = (input.resolve_identity)(reference)
       guard self.retained_keyed_original() && identity is Some(identity) else {
@@ -385,6 +426,7 @@ fn NativeRelationFileCapture::advance_content(
           storage_candidate=Some(
             @publication_host.client_captured_content_candidate(candidate),
           ),
+          raw_candidate=content.raw_response.map(value => value.metadata),
         ) {
         Some(value) => value
         None => return Err(Capacity)
@@ -502,7 +544,26 @@ fn NativeRelationFileCapture::advance_content(
 fn native_relation_file_content_retained_capacity(
   content : NativeRelationFileContent,
 ) -> (Int64, Int64)? {
-  guard content.phase is CompleteContentPage &&
+  let raw_storage : @execution.PreparationRepresentationUnits? = match
+    (content.raw_response, content.raw_custody) {
+    (None, None) =>
+      Some({
+        record_headers: 0L,
+        reference_slots: 0L,
+        scalar_words: 0L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      })
+    (Some(original), Some(custody)) =>
+      if custody.matches_lookup_raw_confirmed(original.metadata) {
+        custody.retained_inventory()
+      } else {
+        None
+      }
+    _ => None
+  }
+  guard raw_storage is Some(raw_storage) &&
+    content.phase is CompleteContentPage &&
     content.io_complete &&
     !content.issuing &&
     content.bytes is None &&
@@ -523,15 +584,16 @@ fn native_relation_file_content_retained_capacity(
     is Some((reference_retained, reference_execution)) &&
     @execution.compose_preparation_representation([
       storage,
+      raw_storage,
       {
         // Same holder H1/R8/W4, eight optional slots H8/R8/W8 and original
         // issuer identity/callbacks/domain delegation H7/R10/W3. Input DATA
         // remains borrowed. Actual raw Bytes and its one digest stay live
         // after derived-page/parser retirement: two headers, exact bytes,
         // and the 71 UTF16 units. No codec ceiling or borrowed spare room.
-        record_headers: 1L + 8L + 7L + 2L,
-        reference_slots: 8L + 8L + 10L,
-        scalar_words: 4L + 8L + 3L,
+        record_headers: 3L + 1L + 8L + 7L + 2L,
+        reference_slots: 6L + 8L + 8L + 10L,
+        scalar_words: 3L + 4L + 8L + 3L,
         owned_utf16_units: 71L,
         owned_wire_bytes: raw.length().to_int64(),
       },

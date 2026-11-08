@@ -68,11 +68,13 @@ pub fn project_native_relation_file_listing_page(NativeRelationFilePreparedProvi
 type NativeRelationFileCapture
 pub fn NativeRelationFileCapture::advance(Self, Int) -> Result[Bool, NativeRelationFileFailure]
 pub fn NativeRelationFileCapture::advance_listing(Self, Int, Int64) -> Result[Bool, NativeRelationFileFailure]
+pub fn NativeRelationFileCapture::bind_lookup_raw_retention(Self, @run_publication.PublicationContract) -> Result[Unit, NativeRelationFileIssue]
 pub fn NativeRelationFileCapture::capture(Self) -> Result[@client_row_source_host.RowSourceCapture, NativeRelationFileIssue]
 pub fn NativeRelationFileCapture::close(Self) -> Result[Bool, NativeRelationFileIssue]
 pub fn NativeRelationFileCapture::complete_keyed_content_page(Self, @client_row_source_host.RelationDocument, Bytes) -> Result[Unit, NativeRelationFileFailure]
 pub fn NativeRelationFileCapture::keyed_capture(Self) -> Result[@client_row_source_host.RowKeyedSourceCapture, NativeRelationFileIssue]
 pub fn NativeRelationFileCapture::keyed_content_document(Self) -> Result[@client_row_source_host.RelationDocument, NativeRelationFileIssue]
+pub fn NativeRelationFileCapture::keyed_raw_response(Self) -> Result[@run_publication_host.ClientKeyedNativeRawResponse, NativeRelationFileIssue]
 pub fn NativeRelationFileCapture::keyed_raw_snapshot_identity(Self) -> Result[(String, Int), NativeRelationFileIssue]
 
 type NativeRelationFileContentInput

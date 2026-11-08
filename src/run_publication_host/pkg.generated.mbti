@@ -1995,6 +1995,8 @@ pub fn prepare_client_keyed_native_activation(ClientKeyedLookupInput, ClientKeye
 
 pub fn prepare_client_keyed_native_batch_plan(ClientKeyedLookupInput, Int, Int, Int) -> Result[@run_publication.PublicationContract, ClientKeyedRequestIssue]
 
+pub fn prepare_client_keyed_native_raw_response(ClientCompiledRun, @run_publication.PublicationContract, ClientKeyedRequest, @run_publication.PublicationContract, String, String, Int, String, Int64, @value_admission.ReferenceLimits) -> Result[ClientKeyedNativeRawResponse, ClientKeyedRequestIssue]
+
 pub fn prepare_client_keyed_serialization_inputs(PreparedClientProgram, ClientKeyedLookupInput, @execution_query.CapturedInputSource, @physical_resources.Ledger, @execution_relation.GeneratedSequence) -> Result[(@execution_relation.ProducerRead, @execution_relation.SuppliedRelationRead), ClientKeyedRequestIssue]
 
 pub fn prepare_client_local_checkpoint_proof(String, String) -> Result[ClientLocalCheckpointProof, ClientLocalCheckpointProofIssue]
@@ -3364,6 +3366,12 @@ pub struct ClientKeyedNativeActivation {
   reserved_decoded_bytes : Int64
   reserved_duration_ms : Int64
   // private fields
+}
+
+pub struct ClientKeyedNativeRawResponse {
+  metadata : @run_publication.PublicationContract
+  retention : @run_publication.PublicationContract
+  holding : String
 }
 
 type ClientKeyedRequest
