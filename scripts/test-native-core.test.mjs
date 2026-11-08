@@ -28,6 +28,7 @@ import './native-core-scoped-profile.test.mjs';
 import './native-core-scoped-fixture.test.mjs';
 import './native-core-relation-work-fixture.test.mjs';
 import './native-process-region-fixture.test.mjs';
+import './native-project-configuration-fixture.test.mjs';
 
 test('Native Effect capture progress preserves partial evidence without reading private files', async t => {
   const root = mkdtempSync(join(tmpdir(), 'actql-capture-progress-'));
@@ -845,6 +846,11 @@ function fixture(t, {scoped = false, http = false, sourcePeers = false, relation
   mkdirSync(join(checkout, 'packages/native-cli/lib'), {recursive: true});
   copyFileSync(new URL('../packages/native-cli/lib/project-template.mjs', import.meta.url),
     join(checkout, 'packages/native-cli/lib/project-template.mjs'));
+  mkdirSync(join(checkout, 'spec/contracts'), {recursive: true});
+  for (const name of ['actql-query-acquisition.json', 'actql-query-process-evidence.json']) {
+    copyFileSync(new URL('../spec/contracts/' + name, import.meta.url),
+      join(checkout, 'spec/contracts', name));
+  }
   // This fixture observes wrapper routing. The original ten process/channel
   // cases exercise the physical C/Rust leaf with the real preparation helper.
   writeFileSync(join(checkout, 'scripts/native-process-region-fixture.mjs'), `
