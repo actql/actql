@@ -100,28 +100,50 @@ const encodeComponent = value => encodeURIComponent(value)
   .replace(/[!'()*]/gu, character =>
     `%${character.charCodeAt(0).toString(16).toUpperCase()}`);
 
+// Physical RFC 3986 encoding demand, before allocating encoded strings. Stop
+// at the SAME owner's bound; this does not interpret provider query meaning.
+function componentBytes(value, remaining) {
+  let bytes = 0;
+  for (const unit of value) {
+    const point = unit.codePointAt(0);
+    if (point >= 0xd800 && point <= 0xdfff) throw new URIError('URI malformed');
+    bytes += /^[A-Za-z0-9._~-]$/u.test(unit) ? 1
+      : point < 128 ? 3 : point < 2048 ? 6 : point < 65536 ? 9 : 12;
+    if (bytes > remaining) fail('InvalidHttpRequestQuery');
+  }
+  return bytes;
+}
+
 // The exact request target: the provider's path plus its ordered query
 // pairs, encoded here so that no caller text reaches the wire unencoded. A
 // path that already carries its own encoded query (a provider-built locator)
 // takes no further pairs; the credential resource re-checks the whole target.
-export function requestTarget(path, query = []) {
+export function requestTarget(path, query = [], {maxQueryBytes = exchangeLimits.maxQueryBytes} = {}) {
   if (typeof path !== 'string' || path.length === 0) {
     fail('InvalidHttpRequestTarget');
   }
-  if (!Array.isArray(query) || query.length > exchangeLimits.maxQueryPairs) {
+  // A selected installed Reader may supply its separately funded query
+  // constructor bound. It is not the request-body bound or provider DATA.
+  if (!Number.isSafeInteger(maxQueryBytes) || maxQueryBytes < 1 || maxQueryBytes > 2147483647 ||
+      !Array.isArray(query) || query.length > exchangeLimits.maxQueryPairs) {
     fail('InvalidHttpRequestQuery');
   }
+  if (arguments[2] !== undefined && Buffer.byteLength(path) > maxQueryBytes) fail('InvalidHttpRequestTarget');
   if (query.length === 0) return path;
   if (path.includes('?')) fail('InvalidHttpRequestTarget');
+  let bytes = query.length - 1;
   const encoded = query.map(pair => {
-    if (!Array.isArray(pair) || pair.length !== 2 ||
-        typeof pair[0] !== 'string' || pair[0].length === 0 ||
-        typeof pair[1] !== 'string') {
+    if (!Array.isArray(pair) || pair.length !== 2) {
       fail('InvalidHttpRequestQuery');
     }
-    return `${encodeComponent(pair[0])}=${encodeComponent(pair[1])}`;
+    const key = pair[0], value = pair[1];
+    if (typeof key !== 'string' || !key || typeof value !== 'string') fail('InvalidHttpRequestQuery');
+    bytes += 1 + componentBytes(key, maxQueryBytes - bytes - 1);
+    bytes += componentBytes(value, maxQueryBytes - bytes);
+    if (bytes > maxQueryBytes) fail('InvalidHttpRequestQuery');
+    return `${encodeComponent(key)}=${encodeComponent(value)}`;
   }).join('&');
-  if (Buffer.byteLength(encoded) > exchangeLimits.maxQueryBytes) {
+  if (Buffer.byteLength(encoded) > maxQueryBytes) {
     fail('InvalidHttpRequestQuery');
   }
   return `${path}?${encoded}`;
@@ -129,11 +151,11 @@ export function requestTarget(path, query = []) {
 
 // One owned request: method, exact target, owned headers and an optional
 // string body (POST/PATCH/PUT only).
-export function ownHttpRequest({method, path, query, headers, body}) {
+export function ownHttpRequest({method, path, query, headers, body}, queryConstruction) {
   checkHttpRequestMethodBody(method, body);
   return Object.freeze({
     method,
-    target: requestTarget(path, query),
+    target: requestTarget(path, query, queryConstruction),
     headers: ownRequestHeaders(headers),
     ...(body === undefined ? {} : {body}),
   });

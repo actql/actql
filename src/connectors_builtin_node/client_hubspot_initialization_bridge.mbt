@@ -99,5 +99,6 @@ pub fn client_program_hubspot_source_reader_capacity(
     secret_bytes,
     native,
     received=Some((total, received.length())),
+    max_query_bytes=target_units,
   )
 }

@@ -136,3 +136,51 @@ test "HubSpot managed tiny input does not reserve future rows pages or requests"
     @execution.execution_capacity_execution_bytes(large),
   )
 }
+
+///|
+test "HubSpot query construction is separately funded on the same reader without a body allowance" {
+  let limits = [
+    4096, 20480, 1000, 20, 1, 2, 5, 1, 64, 4096, 7000, 100, 4096, 4096, 100, 10,
+  ]
+  let native = @execution.execution_capacity(0L, 0L)
+  let original = @client_local_host.installed_native_source_reader_capacity(
+    limits, 3, 128, native,
+  ).unwrap()
+  let query = @client_local_host.installed_native_source_reader_capacity(
+    limits,
+    3,
+    128,
+    native,
+    max_query_bytes=6767,
+  ).unwrap()
+  assert_true(
+    @execution.execution_capacity_retained_bytes(query) >
+    @execution.execution_capacity_retained_bytes(original),
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(query) >
+    @execution.execution_capacity_execution_bytes(original),
+  )
+  for bound in [-1, 7001] {
+    assert_true(
+      @client_local_host.installed_native_source_reader_capacity(
+        limits,
+        3,
+        128,
+        native,
+        max_query_bytes=bound,
+      )
+      is None,
+    )
+  }
+  assert_true(
+    @client_local_host.installed_native_source_reader_capacity(
+      limits,
+      3,
+      128,
+      None,
+      max_query_bytes=6767,
+    )
+    is None,
+  )
+}

@@ -658,7 +658,11 @@ pub fn installed_native_source_reader_capacity(
   secret_bytes : Int,
   native : @execution.ExecutionCapacity?,
   received? : (Int64, Int)? = None,
+  max_query_bytes? : Int = 0,
 ) -> @execution.ExecutionCapacity? {
+  if max_query_bytes < 0 {
+    return None
+  }
   guard native is Some(native) &&
     installed_source_reader_retained_inventory(
       limits,
@@ -668,6 +672,9 @@ pub fn installed_native_source_reader_capacity(
       received~,
     )
     is Some(retained) else {
+    return None
+  }
+  if max_query_bytes > limits[10] {
     return None
   }
   let controls = installed_source_reader_control_inventory()
@@ -696,7 +703,42 @@ pub fn installed_native_source_reader_capacity(
     is Some(reader) else {
     return None
   }
-  @execution.add_execution_capacity(reader, native)
+  guard @execution.add_execution_capacity(reader, native) is Some(reader) else {
+    return None
+  }
+  if max_query_bytes == 0 {
+    return Some(reader)
+  }
+  // The same Reader owns one serial HTTP query constructor. Input pairs and
+  // strings are borrowed. Up to 32 pairs retain two encoded components and
+  // their pair strings during map/join; the final ASCII target includes the
+  // separately bounded path. This is quantity DATA, not permission, a body
+  // allowance, a reservation or another Owner. Failures retain this quote.
+  let bytes = max_query_bytes.to_int64()
+  guard @execution.preparation_execution_capacity({
+      retained: {
+        record_headers: 1L,
+        reference_slots: 1L,
+        scalar_words: 1L,
+        owned_utf16_units: 2L * bytes + 1L,
+        owned_wire_bytes: 0L,
+      },
+      workspace: {
+        record_headers: 34L,
+        reference_slots: 98L,
+        scalar_words: 34L,
+        owned_utf16_units: 4L * bytes,
+        owned_wire_bytes: 0L,
+      },
+      retained_nodes: 0L,
+      workspace_nodes: 0L,
+      retained_bytes: 0L,
+      workspace_bytes: 0L,
+    })
+    is Some(query) else {
+    return None
+  }
+  @execution.add_execution_capacity(reader, query)
 }
 
 ///|

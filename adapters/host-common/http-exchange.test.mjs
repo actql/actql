@@ -216,3 +216,58 @@ test('response header observation admits only declared names under caps', () => 
   assert.throws(() => observeResponseHeaders(wide, Object.keys(wide)),
     {code: 'HttpHeaderObservationExceeded'});
 });
+
+
+test('funded query construction keeps the exact encoded demand and all default refusals', () => {
+  const query = [['properties', 'x'.repeat(6000)], ['after', "é/😀!'()*"]];
+  const expected = '/objects?properties=' + 'x'.repeat(6000) +
+    '&after=%C3%A9%2F%F0%9F%98%80%21%27%28%29%2A';
+  const bound = expected.length - '/objects?'.length;
+  assert.throws(() => requestTarget('/objects', query), {code:'InvalidHttpRequestQuery'});
+  assert.equal(requestTarget('/objects', query, {maxQueryBytes:bound}), expected);
+  assert.throws(() => requestTarget('/objects', query, {maxQueryBytes:bound-1}), {code:'InvalidHttpRequestQuery'});
+  for (const maxQueryBytes of [0,-1,Infinity,2147483648,1.5]) {
+    assert.throws(() => requestTarget('/objects', [], {maxQueryBytes}), {code:'InvalidHttpRequestQuery'});
+  }
+  assert.throws(() => requestTarget('/objects', Array.from({length:33},()=>['a','b']),
+    {maxQueryBytes:10000}), {code:'InvalidHttpRequestQuery'});
+  assert.throws(() => ownHttpRequest({method:'GET',path:'/objects',query,
+    maxQueryBytes:bound}), {code:'InvalidHttpRequestQuery'}, 'provider DATA cannot select the owner bound');
+  assert.throws(() => ownHttpRequest({method:'GET',path:'/objects',query,
+    headers:[['authorization','x']]}, {maxQueryBytes:bound}), {code:'ReservedHttpRequestHeader'});
+  assert.throws(() => requestTarget('/query?original=x', [['a','b']],
+    {maxQueryBytes:bound}), {code:'InvalidHttpRequestTarget'});
+  assert.throws(() => requestTarget('/path-too-large', [], {maxQueryBytes:2}),
+    {code:'InvalidHttpRequestTarget'});
+});
+
+test('actual HubSpot managed caller preserves all selected properties through funded HTTP construction', async () => {
+  const {prepareHubSpotManagedSequence} = await import('../connectors/hubspot/site/hubspot-managed-sequence.mjs');
+  // Explicit provider decoder/current/response ports; this executes actual
+  // protocol request construction, not a physical send or numerical admission.
+  const names = Array.from({length:245},(_,index)=>'field_'+String(index).padStart(3,'0')+'_long_property');
+  const observed = [], originalCatalog = {};
+  const moon = {
+    hubspotRecheckAccountIdentityJson(){},hubspotProjectProperties(){return {$tag:1,_0:originalCatalog};},
+    hubspotRecheckPropertyCatalog(){return {$tag:1};},hubspotPropertyCatalogObjectType(){return 'companies';},
+    hubspotProjectObjectPage(){return {$tag:1,_0:{}};},hubspotObjectPageRowsWire(){return {$tag:1,_0:'[]'};},
+    hubspotObjectPageMetadataJson(){return '{"rowCount":0}';},
+  };
+  const sequence = prepareHubSpotManagedSequence({moon,originalPortalId:'7',originalCatalog,
+    objectType:'companies',properties:names,limits:{maxColumns:245,maxNameUnits:10000,maxResponseBytes:100,
+      maxRequests:4,maxPages:1,maxRows:2,perPage:2},authorizeMetadata:async()=>({}),responseCapacity(){}});
+  await sequence.read({signal:new AbortController().signal,
+    async readChild(child){const prepared=child.prepare();
+      const request=ownHttpRequest(prepared.request,{maxQueryBytes:10000});observed.push(request.target);
+      if(prepared.request.query.length){
+        assert.throws(()=>ownHttpRequest(prepared.request),{code:'InvalidHttpRequestQuery'});
+        const params=new URL('https://example.invalid'+request.target).searchParams;
+        assert.deepEqual(params.get('properties').split(','),names);
+        assert.equal(params.get('limit'),'2');assert.equal(params.get('archived'),'false');
+        return prepared.project({accepted:true,statusCode:200,body:Buffer.from('{}')});
+      }
+      return undefined;
+    },async consumeObservation(){},async consumePage(rows){assert.deepEqual(rows,[]);},
+  });
+  assert.equal(observed.length,4);assert(observed[2].length>4096);assert.equal(sequence.retire(),true);
+});

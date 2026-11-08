@@ -275,14 +275,16 @@ test('same pending Source read cannot retire through stop or a copied factory', 
   assert.equal(f.events.filter(x => x === 'provider-read').length, 1);
 });
 
-function directFixture({gate, pendingBinding = false, failCharge = false, beforeSend = false, transferFailure} = {}) {
+function directFixture({gate, pendingBinding = false, failCharge = false, beforeSend = false, transferFailure, query, maxQueryBytes} = {}) {
   const events = [], raw = {grant:{},scope:{operation:'read'}}, credential = {}, capacity = {}, began = deferred();
   const bodies = ['account', 'schema', 'page', 'final-schema'].map(value => Object.freeze({body: Buffer.from(value)}));
   let cleanup, bindingClosed = !pendingBinding, retired = false, sent = 0;
   const originalSite = Object.freeze({site: Object.freeze({}), callResource(input) {
     const receive = () => {
       const response = bodies[sent++];input.responseCustody.retain(response);
-      events.push('retain-' + response.body.toString());return response;
+      events.push('retain-' + response.body.toString());
+      if(query!==undefined)assert.equal(input.operations.get('read').path, '/part-' + (sent-1) + '?properties=' + query[0][1]);
+      return response;
     };
     return beforeSend ? input.currentBeforeSend().then(receive) : receive();
   }, readChildCredential(_acquisition, authorization) {assert.equal(authorization,raw);return credential;},
@@ -292,12 +294,13 @@ function directFixture({gate, pendingBinding = false, failCharge = false, before
       return Object.freeze({credential, close() {events.push('close-binding'); return bindingClosed ? 'closed' : 'pending';}});
     }});
   const factory = createInstalledCredentialSourceReader({capacity, originalSite, maxResponses: 4, maxResponseBytes:128,
+    ...(maxQueryBytes===undefined?{}:{maxQueryBytes}),
     assertCurrent() {}, prepareReadSequence() {return {
       async read(context) {
         events.push('sequence');
         for (let index=0;index<bodies.length;index++) {
           await context.readChild({operation:'read',prepare() {
-            return {request:{method:'GET',path:'/part-' + index},project() {}};
+            return {request:{method:'GET',path:'/part-' + index,...(query===undefined?{}:{query,maxQueryBytes:999999})},project() {}};
           }});
           began.resolve();
           if (gate) await gate;
@@ -764,4 +767,18 @@ test('managed next-unit transfer refusal sends no request and retains original c
   assert.deepEqual(f.events.filter(value => value.startsWith('charge-')),[]);
   assert.equal(await f.session.cleanup(),false);
   f.retireBinding();assert.equal(await f.session.cleanup(),true);
+});
+
+
+test('same managed reader uses only its funded query bound before original transport and cleanup', async () => {
+  const query=[['properties','x'.repeat(6000)]];
+  const admitted=directFixture({query,maxQueryBytes:6011,beforeSend:true});
+  assert.deepEqual(await admitted.read(),{pages:4,rowCount:1});admitted.session.close();
+  assert.equal(admitted.inspect().sent,4);assert.equal(admitted.inspect().retired,true);
+  for(const maxQueryBytes of [undefined,6010]){
+    const refused=directFixture({query,maxQueryBytes,beforeSend:true});
+    await assert.rejects(refused.read(),{code:'InvalidHttpRequestQuery'});
+    assert.equal(refused.inspect().sent,0);refused.session.close();
+    assert.equal(refused.inspect().retired,true);
+  }
 });
