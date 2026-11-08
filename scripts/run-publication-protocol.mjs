@@ -563,9 +563,9 @@ function registerArtifactSchema(name, selection) {
     delete complete.$defs;
   }
   const body = structuredClone(complete);
-  if (['model_invocation_evidence', 'model_capture_bundle', 'effect_row_outcome_receipt'].includes(name)) {
-    // Both exact registered versions exclude only their own identity field.
-    // Unknown versions and mixed embedded captures match neither branch.
+  if (['model_invocation_evidence', 'model_capture_bundle', 'effect_row_outcome_receipt', 'lookup_barrier'].includes(name)) {
+    // Each closed registered alternative excludes only its own identity field.
+    // Unknown versions and mixed proof/runtime forms match no branch.
     for (const version of body.oneOf) {
       omitRequiredProperty(version, selection.identity);
     }
@@ -671,6 +671,9 @@ registerArtifactSchema('native_file_content_read', {
 registerArtifactSchema('native_file_lookup_transport', {
   schema: 'transport_plan', identity: 'self_cid', registry: 'lookup',
 });
+registerArtifactSchema('lookup_barrier', {
+  schema: 'lookup_barrier', identity: 'barrier_cid', registry: 'profiles',
+});
 const sharedNodes = shareProtocolRuleConstructors(nodes);
 
 const nodeChunks = [];
@@ -731,6 +734,6 @@ const localVectors = join(root,
 if (readFileSync(localVectors, 'utf8') !== generateEffectLocalOperationVectors()) {
   throw new Error(`Independent local-operation vectors are stale: ${localVectors}`);
 }
-// EffectOutcome, response profile and two Native file descriptors are outside selected.
-console.log(`${Object.keys(selected).length + 4} Run and Effect schemas and ` +
+// EffectOutcome, response profile and two Native file descriptors and the lookup barrier are outside selected.
+console.log(`${Object.keys(selected).length + 5} Run and Effect schemas and ` +
   `${Object.keys(control.schemas).length} interactive schemas verified.`);

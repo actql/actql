@@ -5,6 +5,7 @@ import {pathToFileURL} from 'node:url';
 import {machineCid} from './actql-spec-family.mjs';
 import {operationInventory} from './operation-inventory.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
+import {verifyLookupBarrierSchemas} from './lookup-barrier-contract.mjs';
 import {verifyInferenceBarrierSchema} from './inference-barrier-contract.mjs';
 import {verifyContentSerializationSchemas} from './content-serialization-contract.mjs';
 
@@ -44,6 +45,7 @@ function grammarBody() {
 }
 
 function barrierBody() {
+  verifyLookupBarrierSchemas();
   verifyInferenceBarrierSchema();
   verifyContentSerializationSchemas();
   const registry = read('spec/contracts/actql-production-profile-schemas.json');

@@ -5,7 +5,7 @@
   "run_graph_manifest_cid": "sha256:1377084eb6a8136ba4f3f1bb48d2ae384196fb453b016ef1f045764025a58f2b",
   "schema_cids": {
     "lookup_source": "sha256:6730fdb00f7b0f21ae796bd55f686fb984cddac5b8da5325cec2114b82a37e1c",
-    "lookup_barrier": "sha256:587bfea69fbab0d23d200ac65ffc20c373142c4843820d37db6e0c617f10206a",
+    "lookup_barrier": "sha256:866b8e34f31933d310c208b8423e7a0e9a467e078b0b73114046865873a310c9",
     "lookup_evidence": "sha256:4e50bf4d62354e45aca753d9f436e1002721c78604bcf2a7bfcf6365f8200dc5",
     "content_source": "sha256:18591195eb1c2484081052246944a32f9231dfe77b73decbdf61b558230e0e68",
     "content_barrier": "sha256:4b7fea87dfbed0e1f11e9421cd077793cd3bccfc3e981617fa2a1547960acee5",
@@ -145,151 +145,323 @@
     "lookup_barrier": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "$id": "https://smooth.dev/schemas/actql-lookup-barrier-0.1.json",
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "version",
-        "barrier_id",
-        "input_ref",
-        "source_input_ref",
-        "output_ref",
-        "source_view_contract_cid",
-        "request_schema_cid",
-        "output_contract_cid",
-        "request_mapping",
-        "correlation",
-        "bounds",
-        "capacity_guarantee",
-        "on_non_success",
-        "capacity_proof_cid",
-        "input_artifact_fields",
-        "request_input_data_policy_cids",
-        "effective_request_classification",
-        "effective_request_data_policy_cid",
-        "response_source_data_policy_cid",
-        "effective_response_classification",
-        "effective_response_data_policy_cid",
-        "observed_response_fields",
-        "correlation_fields",
-        "response_identity_fields",
-        "effective_output_classification",
-        "effective_output_data_policy_cid",
-        "egress_requirements",
-        "barrier_cid"
-      ],
-      "properties": {
-        "version": {
-          "const": "actql-lookup-barrier/0.1"
-        },
-        "barrier_id": {
-          "type": "string",
-          "minLength": 1
-        },
-        "input_ref": {
-          "type": "string",
-          "minLength": 1
-        },
-        "source_input_ref": {
-          "type": "string",
-          "minLength": 1
-        },
-        "output_ref": {
-          "type": "string",
-          "minLength": 1
-        },
-        "source_view_contract_cid": {
-          "type": "string",
-          "pattern": "^sha256:[a-f0-9]{64}$"
-        },
-        "request_schema_cid": {
-          "type": "string",
-          "pattern": "^sha256:[a-f0-9]{64}$"
-        },
-        "output_contract_cid": {
-          "type": "string",
-          "pattern": "^sha256:[a-f0-9]{64}$"
-        },
-        "request_mapping": {
-          "type": "object",
-          "minProperties": 1,
-          "additionalProperties": {
-            "oneOf": [
-              {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                  "field"
-                ],
-                "properties": {
-                  "field": {
-                    "type": "string",
-                    "minLength": 1
-                  }
-                }
-              },
-              {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                  "literal"
-                ],
-                "properties": {
-                  "literal": {}
-                }
-              },
-              {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                  "$param"
-                ],
-                "properties": {
-                  "$param": {
-                    "type": "string",
-                    "minLength": 1
-                  }
-                }
-              }
-            ]
-          }
-        },
-        "correlation": {
+      "oneOf": [
+        {
           "type": "object",
           "additionalProperties": false,
           "required": [
-            "on",
-            "identity",
-            "cardinality",
-            "null_request_policy",
-            "on_missing",
-            "on_unrequested_key",
-            "on_excess_cardinality",
-            "on_duplicate_identity"
+            "version",
+            "barrier_id",
+            "input_ref",
+            "source_input_ref",
+            "output_ref",
+            "source_view_contract_cid",
+            "request_schema_cid",
+            "output_contract_cid",
+            "request_mapping",
+            "correlation",
+            "bounds",
+            "capacity_guarantee",
+            "on_non_success",
+            "capacity_proof_cid",
+            "input_artifact_fields",
+            "request_input_data_policy_cids",
+            "effective_request_classification",
+            "effective_request_data_policy_cid",
+            "response_source_data_policy_cid",
+            "effective_response_classification",
+            "effective_response_data_policy_cid",
+            "observed_response_fields",
+            "correlation_fields",
+            "response_identity_fields",
+            "effective_output_classification",
+            "effective_output_data_policy_cid",
+            "egress_requirements",
+            "barrier_cid"
           ],
           "properties": {
-            "on": {
-              "type": "array",
-              "minItems": 1,
-              "items": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                  "request",
-                  "response"
-                ],
-                "properties": {
-                  "request": {
-                    "type": "string",
-                    "minLength": 1
+            "version": {
+              "const": "actql-lookup-barrier/0.1"
+            },
+            "barrier_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "input_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source_input_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "output_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source_view_contract_cid": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "request_schema_cid": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "output_contract_cid": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "request_mapping": {
+              "type": "object",
+              "minProperties": 1,
+              "additionalProperties": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "field"
+                    ],
+                    "properties": {
+                      "field": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
                   },
-                  "response": {
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "literal"
+                    ],
+                    "properties": {
+                      "literal": {}
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "$param"
+                    ],
+                    "properties": {
+                      "$param": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "correlation": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "on",
+                "identity",
+                "cardinality",
+                "null_request_policy",
+                "on_missing",
+                "on_unrequested_key",
+                "on_excess_cardinality",
+                "on_duplicate_identity"
+              ],
+              "properties": {
+                "on": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "request",
+                      "response"
+                    ],
+                    "properties": {
+                      "request": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "response": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  }
+                },
+                "identity": {
+                  "type": "array",
+                  "minItems": 1,
+                  "uniqueItems": true,
+                  "items": {
                     "type": "string",
                     "minLength": 1
                   }
+                },
+                "cardinality": {
+                  "enum": [
+                    "zero_or_one",
+                    "zero_or_many",
+                    "one",
+                    "one_or_many"
+                  ]
+                },
+                "null_request_policy": {
+                  "enum": [
+                    "exclude_from_request",
+                    "fail"
+                  ]
+                },
+                "on_missing": {
+                  "enum": [
+                    "emit_no_row",
+                    "fail"
+                  ]
+                },
+                "on_unrequested_key": {
+                  "const": "fail"
+                },
+                "on_excess_cardinality": {
+                  "const": "fail"
+                },
+                "on_duplicate_identity": {
+                  "const": "fail"
                 }
               }
             },
-            "identity": {
+            "bounds": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "max_input_rows",
+                "max_distinct_keys",
+                "max_keys_per_batch",
+                "max_batches",
+                "max_pages_per_batch",
+                "max_requests",
+                "max_network_attempts",
+                "max_rows_per_key",
+                "max_response_rows",
+                "max_request_bytes_per_attempt",
+                "max_total_request_bytes",
+                "max_total_response_bytes",
+                "max_total_duration_ms"
+              ],
+              "properties": {
+                "max_input_rows": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "max_distinct_keys": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "max_keys_per_batch": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "max_batches": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "max_pages_per_batch": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "max_requests": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "max_network_attempts": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "max_rows_per_key": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "max_response_rows": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "max_request_bytes_per_attempt": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "max_total_request_bytes": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "max_total_response_bytes": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "max_total_duration_ms": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "capacity_guarantee": {
+              "enum": [
+                "complete",
+                "hard_limit_only"
+              ]
+            },
+            "on_non_success": {
+              "const": "fail"
+            },
+            "capacity_proof_cid": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "input_artifact_fields": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "request_input_data_policy_cids": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              }
+            },
+            "effective_request_classification": {
+              "enum": [
+                "public",
+                "internal",
+                "confidential",
+                "restricted"
+              ]
+            },
+            "effective_request_data_policy_cid": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "response_source_data_policy_cid": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "effective_response_classification": {
+              "enum": [
+                "public",
+                "internal",
+                "confidential",
+                "restricted"
+              ]
+            },
+            "effective_response_data_policy_cid": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "observed_response_fields": {
               "type": "array",
               "minItems": 1,
               "uniqueItems": true,
@@ -298,274 +470,286 @@
                 "minLength": 1
               }
             },
-            "cardinality": {
+            "correlation_fields": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "response_identity_fields": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "effective_output_classification": {
               "enum": [
-                "zero_or_one",
-                "zero_or_many",
-                "one",
-                "one_or_many"
+                "public",
+                "internal",
+                "confidential",
+                "restricted"
               ]
             },
-            "null_request_policy": {
-              "enum": [
-                "exclude_from_request",
-                "fail"
+            "effective_output_data_policy_cid": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "egress_requirements": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "not_required"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "request_data_handling_contract_cid",
+                    "provider_execution_capability_cid",
+                    "provider_account_boundary_cid",
+                    "resolved_region",
+                    "host_policy_cid",
+                    "accepted_classifications",
+                    "allowed_regions",
+                    "accepted_media_types",
+                    "require_full_artifact",
+                    "egress_requirements_cid"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "required"
+                    },
+                    "request_data_handling_contract_cid": {
+                      "type": "string",
+                      "pattern": "^sha256:[a-f0-9]{64}$"
+                    },
+                    "provider_execution_capability_cid": {
+                      "type": "string",
+                      "pattern": "^sha256:[a-f0-9]{64}$"
+                    },
+                    "provider_account_boundary_cid": {
+                      "type": "string",
+                      "pattern": "^sha256:[a-f0-9]{64}$"
+                    },
+                    "resolved_region": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "host_policy_cid": {
+                      "type": "string",
+                      "pattern": "^sha256:[a-f0-9]{64}$"
+                    },
+                    "accepted_classifications": {
+                      "type": "array",
+                      "minItems": 1,
+                      "uniqueItems": true,
+                      "items": {
+                        "enum": [
+                          "public",
+                          "internal",
+                          "confidential",
+                          "restricted"
+                        ]
+                      }
+                    },
+                    "allowed_regions": {
+                      "type": "array",
+                      "minItems": 1,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "accepted_media_types": {
+                      "type": "array",
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "max_artifact_bytes": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "require_full_artifact": {
+                      "type": "boolean"
+                    },
+                    "egress_requirements_cid": {
+                      "type": "string",
+                      "pattern": "^sha256:[a-f0-9]{64}$"
+                    }
+                  }
+                }
               ]
             },
-            "on_missing": {
-              "enum": [
-                "emit_no_row",
-                "fail"
-              ]
-            },
-            "on_unrequested_key": {
-              "const": "fail"
-            },
-            "on_excess_cardinality": {
-              "const": "fail"
-            },
-            "on_duplicate_identity": {
-              "const": "fail"
+            "barrier_cid": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
             }
           }
         },
-        "bounds": {
+        {
           "type": "object",
           "additionalProperties": false,
           "required": [
-            "max_input_rows",
-            "max_distinct_keys",
-            "max_keys_per_batch",
-            "max_batches",
-            "max_pages_per_batch",
-            "max_requests",
-            "max_network_attempts",
-            "max_rows_per_key",
-            "max_response_rows",
-            "max_request_bytes_per_attempt",
-            "max_total_request_bytes",
-            "max_total_response_bytes",
-            "max_total_duration_ms"
+            "version",
+            "barrier_id",
+            "input_ref",
+            "source_input_ref",
+            "output_ref",
+            "source_view_contract_cid",
+            "request_schema_cid",
+            "output_contract_cid",
+            "request_mapping",
+            "correlation",
+            "capacity_guarantee",
+            "on_non_success",
+            "input_artifact_fields",
+            "request_input_data_policy_cids",
+            "effective_request_classification",
+            "effective_request_data_policy_cid",
+            "response_source_data_policy_cid",
+            "effective_response_classification",
+            "effective_response_data_policy_cid",
+            "observed_response_fields",
+            "correlation_fields",
+            "response_identity_fields",
+            "effective_output_classification",
+            "effective_output_data_policy_cid",
+            "egress_requirements",
+            "barrier_cid",
+            "lookup_execution_cid"
           ],
           "properties": {
-            "max_input_rows": {
-              "type": "integer",
-              "minimum": 1
+            "version": {
+              "const": "actql-lookup-barrier/0.1"
             },
-            "max_distinct_keys": {
-              "type": "integer",
-              "minimum": 1
+            "barrier_id": {
+              "type": "string",
+              "minLength": 1
             },
-            "max_keys_per_batch": {
-              "type": "integer",
-              "minimum": 1
+            "input_ref": {
+              "type": "string",
+              "minLength": 1
             },
-            "max_batches": {
-              "type": "integer",
-              "minimum": 1
+            "source_input_ref": {
+              "type": "string",
+              "minLength": 1
             },
-            "max_pages_per_batch": {
-              "type": "integer",
-              "minimum": 1
+            "output_ref": {
+              "type": "string",
+              "minLength": 1
             },
-            "max_requests": {
-              "type": "integer",
-              "minimum": 1
+            "source_view_contract_cid": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
             },
-            "max_network_attempts": {
-              "type": "integer",
-              "minimum": 1
+            "request_schema_cid": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
             },
-            "max_rows_per_key": {
-              "type": "integer",
-              "minimum": 1
+            "output_contract_cid": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
             },
-            "max_response_rows": {
-              "type": "integer",
-              "minimum": 1
-            },
-            "max_request_bytes_per_attempt": {
-              "type": "integer",
-              "minimum": 1
-            },
-            "max_total_request_bytes": {
-              "type": "integer",
-              "minimum": 1
-            },
-            "max_total_response_bytes": {
-              "type": "integer",
-              "minimum": 1
-            },
-            "max_total_duration_ms": {
-              "type": "integer",
-              "minimum": 1
-            }
-          }
-        },
-        "capacity_guarantee": {
-          "enum": [
-            "complete",
-            "hard_limit_only"
-          ]
-        },
-        "on_non_success": {
-          "const": "fail"
-        },
-        "capacity_proof_cid": {
-          "type": "string",
-          "pattern": "^sha256:[a-f0-9]{64}$"
-        },
-        "input_artifact_fields": {
-          "type": "array",
-          "uniqueItems": true,
-          "items": {
-            "type": "string",
-            "minLength": 1
-          }
-        },
-        "request_input_data_policy_cids": {
-          "type": "array",
-          "uniqueItems": true,
-          "items": {
-            "type": "string",
-            "pattern": "^sha256:[a-f0-9]{64}$"
-          }
-        },
-        "effective_request_classification": {
-          "enum": [
-            "public",
-            "internal",
-            "confidential",
-            "restricted"
-          ]
-        },
-        "effective_request_data_policy_cid": {
-          "type": "string",
-          "pattern": "^sha256:[a-f0-9]{64}$"
-        },
-        "response_source_data_policy_cid": {
-          "type": "string",
-          "pattern": "^sha256:[a-f0-9]{64}$"
-        },
-        "effective_response_classification": {
-          "enum": [
-            "public",
-            "internal",
-            "confidential",
-            "restricted"
-          ]
-        },
-        "effective_response_data_policy_cid": {
-          "type": "string",
-          "pattern": "^sha256:[a-f0-9]{64}$"
-        },
-        "observed_response_fields": {
-          "type": "array",
-          "minItems": 1,
-          "uniqueItems": true,
-          "items": {
-            "type": "string",
-            "minLength": 1
-          }
-        },
-        "correlation_fields": {
-          "type": "array",
-          "minItems": 1,
-          "uniqueItems": true,
-          "items": {
-            "type": "string",
-            "minLength": 1
-          }
-        },
-        "response_identity_fields": {
-          "type": "array",
-          "minItems": 1,
-          "uniqueItems": true,
-          "items": {
-            "type": "string",
-            "minLength": 1
-          }
-        },
-        "effective_output_classification": {
-          "enum": [
-            "public",
-            "internal",
-            "confidential",
-            "restricted"
-          ]
-        },
-        "effective_output_data_policy_cid": {
-          "type": "string",
-          "pattern": "^sha256:[a-f0-9]{64}$"
-        },
-        "egress_requirements": {
-          "oneOf": [
-            {
+            "request_mapping": {
               "type": "object",
-              "additionalProperties": false,
-              "required": [
-                "kind"
-              ],
-              "properties": {
-                "kind": {
-                  "const": "not_required"
-                }
+              "minProperties": 1,
+              "additionalProperties": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "field"
+                    ],
+                    "properties": {
+                      "field": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "literal"
+                    ],
+                    "properties": {
+                      "literal": {}
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "$param"
+                    ],
+                    "properties": {
+                      "$param": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  }
+                ]
               }
             },
-            {
+            "correlation": {
               "type": "object",
               "additionalProperties": false,
               "required": [
-                "kind",
-                "request_data_handling_contract_cid",
-                "provider_execution_capability_cid",
-                "provider_account_boundary_cid",
-                "resolved_region",
-                "host_policy_cid",
-                "accepted_classifications",
-                "allowed_regions",
-                "accepted_media_types",
-                "require_full_artifact",
-                "egress_requirements_cid"
+                "on",
+                "identity",
+                "cardinality",
+                "null_request_policy",
+                "on_missing",
+                "on_unrequested_key",
+                "on_excess_cardinality",
+                "on_duplicate_identity"
               ],
               "properties": {
-                "kind": {
-                  "const": "required"
-                },
-                "request_data_handling_contract_cid": {
-                  "type": "string",
-                  "pattern": "^sha256:[a-f0-9]{64}$"
-                },
-                "provider_execution_capability_cid": {
-                  "type": "string",
-                  "pattern": "^sha256:[a-f0-9]{64}$"
-                },
-                "provider_account_boundary_cid": {
-                  "type": "string",
-                  "pattern": "^sha256:[a-f0-9]{64}$"
-                },
-                "resolved_region": {
-                  "type": "string",
-                  "minLength": 1
-                },
-                "host_policy_cid": {
-                  "type": "string",
-                  "pattern": "^sha256:[a-f0-9]{64}$"
-                },
-                "accepted_classifications": {
+                "on": {
                   "type": "array",
                   "minItems": 1,
-                  "uniqueItems": true,
                   "items": {
-                    "enum": [
-                      "public",
-                      "internal",
-                      "confidential",
-                      "restricted"
-                    ]
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "request",
+                      "response"
+                    ],
+                    "properties": {
+                      "request": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "response": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
                   }
                 },
-                "allowed_regions": {
+                "identity": {
                   "type": "array",
                   "minItems": 1,
                   "uniqueItems": true,
@@ -574,34 +758,239 @@
                     "minLength": 1
                   }
                 },
-                "accepted_media_types": {
-                  "type": "array",
-                  "uniqueItems": true,
-                  "items": {
-                    "type": "string",
-                    "minLength": 1
-                  }
+                "cardinality": {
+                  "enum": [
+                    "zero_or_one",
+                    "zero_or_many",
+                    "one",
+                    "one_or_many"
+                  ]
                 },
-                "max_artifact_bytes": {
-                  "type": "integer",
-                  "minimum": 1
+                "null_request_policy": {
+                  "enum": [
+                    "exclude_from_request",
+                    "fail"
+                  ]
                 },
-                "require_full_artifact": {
-                  "type": "boolean"
+                "on_missing": {
+                  "enum": [
+                    "emit_no_row",
+                    "fail"
+                  ]
                 },
-                "egress_requirements_cid": {
-                  "type": "string",
-                  "pattern": "^sha256:[a-f0-9]{64}$"
+                "on_unrequested_key": {
+                  "const": "fail"
+                },
+                "on_excess_cardinality": {
+                  "const": "fail"
+                },
+                "on_duplicate_identity": {
+                  "const": "fail"
                 }
               }
+            },
+            "capacity_guarantee": {
+              "const": "complete"
+            },
+            "on_non_success": {
+              "const": "fail"
+            },
+            "input_artifact_fields": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "request_input_data_policy_cids": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              }
+            },
+            "effective_request_classification": {
+              "enum": [
+                "public",
+                "internal",
+                "confidential",
+                "restricted",
+                "unknown"
+              ]
+            },
+            "effective_request_data_policy_cid": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "response_source_data_policy_cid": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "effective_response_classification": {
+              "enum": [
+                "public",
+                "internal",
+                "confidential",
+                "restricted",
+                "unknown"
+              ]
+            },
+            "effective_response_data_policy_cid": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "observed_response_fields": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "correlation_fields": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "response_identity_fields": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "effective_output_classification": {
+              "enum": [
+                "public",
+                "internal",
+                "confidential",
+                "restricted",
+                "unknown"
+              ]
+            },
+            "effective_output_data_policy_cid": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "egress_requirements": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "not_required"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "request_data_handling_contract_cid",
+                    "provider_execution_capability_cid",
+                    "provider_account_boundary_cid",
+                    "resolved_region",
+                    "host_policy_cid",
+                    "accepted_classifications",
+                    "allowed_regions",
+                    "accepted_media_types",
+                    "require_full_artifact",
+                    "egress_requirements_cid"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "required"
+                    },
+                    "request_data_handling_contract_cid": {
+                      "type": "string",
+                      "pattern": "^sha256:[a-f0-9]{64}$"
+                    },
+                    "provider_execution_capability_cid": {
+                      "type": "string",
+                      "pattern": "^sha256:[a-f0-9]{64}$"
+                    },
+                    "provider_account_boundary_cid": {
+                      "type": "string",
+                      "pattern": "^sha256:[a-f0-9]{64}$"
+                    },
+                    "resolved_region": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "host_policy_cid": {
+                      "type": "string",
+                      "pattern": "^sha256:[a-f0-9]{64}$"
+                    },
+                    "accepted_classifications": {
+                      "type": "array",
+                      "minItems": 1,
+                      "uniqueItems": true,
+                      "items": {
+                        "enum": [
+                          "public",
+                          "internal",
+                          "confidential",
+                          "restricted"
+                        ]
+                      }
+                    },
+                    "allowed_regions": {
+                      "type": "array",
+                      "minItems": 1,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "accepted_media_types": {
+                      "type": "array",
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "max_artifact_bytes": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "require_full_artifact": {
+                      "type": "boolean"
+                    },
+                    "egress_requirements_cid": {
+                      "type": "string",
+                      "pattern": "^sha256:[a-f0-9]{64}$"
+                    }
+                  }
+                }
+              ]
+            },
+            "barrier_cid": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "lookup_execution_cid": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
             }
-          ]
-        },
-        "barrier_cid": {
-          "type": "string",
-          "pattern": "^sha256:[a-f0-9]{64}$"
+          }
         }
-      }
+      ]
     },
     "lookup_evidence": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -7089,5 +7478,5 @@
       }
     }
   },
-  "registry_cid": "sha256:6882885bd5ac1840127d0bc4177949e8b8dbe561dba050d17f7764e14db4f4f8"
+  "registry_cid": "sha256:8214d513814201d771b8a9f945f0eef3ab40e8d2190f5ce7cdb4757911209674"
 }
