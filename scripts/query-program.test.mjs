@@ -164,8 +164,7 @@ test('real-source CTE JOIN preserves one normal acquisition and shared producer'
   const expected = {version: 'actql/0.1', id: 'fixture.cte_capture',
     stages: [
       {id: 'capture', inputs: {orders: input}, steps: [
-        {from: 'orders', filter: {literal: true}},
-        {select: fields, as: 'aql_capture_0'}],
+        {from: 'orders', select: fields, as: 'aql_capture_0'}],
       results: {source: {from: 'aql_capture_0', fields}}},
       // Captured JOINs use common Script lowering: one retained Source Result
       // feeds a single CTE producer used by both sides of the JOIN. Author this
@@ -181,8 +180,9 @@ test('real-source CTE JOIN preserves one normal acquisition and shared producer'
     results: {answer: {from: {stage: 'main', result: 'rows'}}}};
   for (const predicate of ['', ' WHERE amount > 0']) {
     const authored = structuredClone(expected);
-    if (predicate !== '') authored.stages[0].steps[0].filter =
-      {gt: [{field: 'amount'}, {literal: 0}]};
+    if (predicate !== '') authored.stages[0].steps = [
+      {from: 'orders', filter: {gt: [{field: 'amount'}, {literal: 0}]}},
+      {select: fields, as: 'aql_capture_0'}];
     const wire = compileCapturedQueryJson(
       'WITH seed AS (SELECT id, amount FROM orders' + predicate + ') '
         + 'SELECT l.id AS id FROM seed l JOIN seed r ON l.id = r.id ORDER BY id',
