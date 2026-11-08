@@ -39,6 +39,16 @@ envelopes in both phases. Both malformed-prefix and metadata-failure envelopes
 remain funded. Earlier response maxima still accumulate until the same Reader
 retires; this change performs no successful-return refund or physical cleanup.
 
+The later metadata/page envelope has the same sequential boundary: its
+normalizing parser returns before native cell projection, row emission and
+Host row construction. It uses the same private phase helper as the fixed
+Properties recheck. The complete parser peak remains one alternative; the
+later alternative removes only canonical scratch, retaining all returned
+tree/key/index data beside every existing Value, writer and Host-row bound.
+The complete maximum of each response still accumulates through retirement.
+No response role is inferred, no configured limit is increased, and a failed
+or unretired constructor is never refunded by this pre-construction quote.
+
 The configured node/depth ceilings remain rejection bounds. Parser and decoder
 arrays grow from observed elements rather than preallocating every allowed
 slot, but this byte-length-only quote has no current-body geometry. A Catalog's

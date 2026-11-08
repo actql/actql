@@ -229,9 +229,6 @@ fn source_read_capacity_with_geometry(
       is Some(values) else {
       return None
     }
-    parts.push(parsed)
-    parts.push(initialization_collection_units(values))
-    parts.push(writer)
     // Native projected rows, exact exported wire and its Host JSON.parse tree
     // coexist. Do not count delimiters as post-parse facts or retire a failed
     // prefix merely because the next response succeeded.
@@ -244,7 +241,7 @@ fn source_read_capacity_with_geometry(
       is Some(host_rows) else {
       return None
     }
-    parts.push({
+    let projected : @execution.PreparationRepresentationUnits = {
       record_headers: host_rows.record_headers + 16L,
       reference_slots: host_rows.reference_slots + 32L,
       scalar_words: host_rows.scalar_words + 16L,
@@ -255,7 +252,31 @@ fn source_read_capacity_with_geometry(
       6L * limits[4].to_int64() +
       2048L,
       owned_wire_bytes: b.to_int64(),
-    })
+    }
+    // The original normalizing parser returns before object-cell admission,
+    // row emission and Host JSON construction. Only its private canonical
+    // scratch is sequential; keep its returned tree, normalized keys and
+    // indexed-admission envelope beside every later representation.
+    guard source_normalization_phase_capacity(
+        parsed,
+        b,
+        {
+          record_headers: 0L,
+          reference_slots: 0L,
+          scalar_words: 0L,
+          owned_utf16_units: 0L,
+          owned_wire_bytes: 0L,
+        },
+        [initialization_collection_units(values), writer, projected],
+      )
+      is Some(current) &&
+      @execution.add_execution_capacity(metadata_capacity, current)
+      is Some(combined) else {
+      return None
+    }
+    // Preserve the complete maximum of every earlier/failed response. This
+    // is a pre-construction phase proof, never a successful-return refund.
+    metadata_capacity = combined
   }
   guard initialization_capacity(parts) is Some(common) else { return None }
   @execution.add_execution_capacity(common, metadata_capacity)
@@ -320,14 +341,6 @@ fn source_property_recheck_capacity_with_geometry(
   // and every returned tree/key/index/output dependency in the later phase.
   // This is a pre-construction peak quote, not a refund or physical GC claim.
   let key_units = geometry.map(g => g.longest_quoted_raw_utf16).unwrap_or(b)
-  guard @canonical.nfc_lf_construction_scratch_extent(key_units)
-    is Some(scratch) &&
-    parsed.record_headers >= scratch.record_headers &&
-    parsed.reference_slots >= scratch.reference_slots &&
-    parsed.scalar_words >= scratch.scalar_words &&
-    parsed.owned_utf16_units >= scratch.owned_utf16_units else {
-    return None
-  }
   guard @execution.compose_preparation_representation([
       property_catalog_retained_units(bytes, limits[4], {
         max_bytes: limits[0],
@@ -345,32 +358,58 @@ fn source_property_recheck_capacity_with_geometry(
         owned_wire_bytes: hash.owned_wire_bytes + bytes.to_int64(),
       },
     ])
-    is Some(fixed) &&
-    initialization_capacity([parsed, fixed]) is Some(parser_phase) &&
-    initialization_capacity([
-      {
-        record_headers: parsed.record_headers - scratch.record_headers,
-        reference_slots: parsed.reference_slots - scratch.reference_slots,
-        scalar_words: parsed.scalar_words - scratch.scalar_words,
-        owned_utf16_units: parsed.owned_utf16_units - scratch.owned_utf16_units,
-        owned_wire_bytes: parsed.owned_wire_bytes,
-      },
-      initialization_collection_units(metadata),
-      fixed,
-    ])
-    is Some(metadata_phase) else {
+    is Some(fixed) else {
     return None
   }
-  // Every earlier or failed response still retains this complete maximum at
-  // the original Reader. No same-ticket charge, current or cleanup is spent.
+  source_normalization_phase_capacity(parsed, key_units, fixed, [
+    initialization_collection_units(metadata),
+  ])
+}
+
+///|
+// Both closed metadata and metadata/page-superset callers use the SAME
+// canonical Owner's scratch/output split. Parsing completes before their
+// synchronous projection/emission starts. No returned tree/key/index or
+// earlier/failed prefix is removed, and the complete parser phase still fits.
+fn source_normalization_phase_capacity(
+  parsed : @execution.PreparationRepresentationUnits,
+  key_units : Int,
+  fixed : @execution.PreparationRepresentationUnits,
+  later : Array[@execution.PreparationRepresentationUnits],
+) -> @execution.ExecutionCapacity? {
+  guard @canonical.nfc_lf_construction_scratch_extent(key_units)
+    is Some(scratch) &&
+    parsed.record_headers >= scratch.record_headers &&
+    parsed.reference_slots >= scratch.reference_slots &&
+    parsed.scalar_words >= scratch.scalar_words &&
+    parsed.owned_utf16_units >= scratch.owned_utf16_units else {
+    return None
+  }
+  let projected : Array[@execution.PreparationRepresentationUnits] = [
+    {
+      record_headers: parsed.record_headers - scratch.record_headers,
+      reference_slots: parsed.reference_slots - scratch.reference_slots,
+      scalar_words: parsed.scalar_words - scratch.scalar_words,
+      owned_utf16_units: parsed.owned_utf16_units - scratch.owned_utf16_units,
+      owned_wire_bytes: parsed.owned_wire_bytes,
+    },
+    fixed,
+  ]
+  for part in later {
+    projected.push(part)
+  }
+  guard initialization_capacity([parsed, fixed]) is Some(parser_phase) &&
+    initialization_capacity(projected) is Some(projection_phase) else {
+    return None
+  }
   @execution.execution_capacity(
     Int64::max(
       @execution.execution_capacity_retained_bytes(parser_phase),
-      @execution.execution_capacity_retained_bytes(metadata_phase),
+      @execution.execution_capacity_retained_bytes(projection_phase),
     ),
     Int64::max(
       @execution.execution_capacity_execution_bytes(parser_phase),
-      @execution.execution_capacity_execution_bytes(metadata_phase),
+      @execution.execution_capacity_execution_bytes(projection_phase),
     ),
   )
 }

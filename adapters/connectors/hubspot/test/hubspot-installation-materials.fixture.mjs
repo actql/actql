@@ -38,7 +38,7 @@ function fixture(native) {
   };
   const moon = Object.freeze({clientProgramHubSpotAccountConstructionCapacity: quote('account'),
     clientProgramHubSpotObjectConstructionCapacity: quote('object'),
-    clientProgramHubSpotSourceReaderCapacity: quote('source-reader')});
+    clientProgramHubSpotSourceReaderObservedCapacity: quote('source-reader')});
   const construction = {
     configurationReader: {async readJson(path) {
       state.reads.push(path);
@@ -61,6 +61,9 @@ function fixture(native) {
       assert.equal(state.events.at(-1), 'declaration');
       const original = state.quotes.at(-1);
       assert.equal(original.name, 'source-reader');
+      assert.equal(original.args.length, 7);
+      assert.deepEqual(original.args[6], []);
+      assert(Object.isFrozen(original.args[6]));
       assert.strictEqual(options.readSequenceConstruction.capacity, original.capacity);
       assert.equal(options.columnCount, 3);
       assert.equal(options.limits.maxTotalResponseBytes, 65536);
