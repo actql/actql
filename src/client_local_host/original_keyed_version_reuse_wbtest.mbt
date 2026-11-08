@@ -1,12 +1,21 @@
 ///|
 // Authored version-history rows in an ordinary Relation Source. No FILES
 // listing receipt admits contradictory observations for the same Resource.
-fn original_keyed_version_row(index : Int, columns : Array[String]) -> String {
+fn original_keyed_version_row(
+  index : Int,
+  columns : Array[String],
+  reverse_versions? : Bool = false,
+) -> String {
   let fields = columns.map(name => {
     let value = match name {
       "name" => "\"" + ["a", "b", "c"][index] + "\""
       "resource" => original_keyed_child_resource(0)
-      "version" => if index == 1 { "\"v2\"" } else { "\"v1\"" }
+      "version" =>
+        if (index == 1) != reverse_versions {
+          "\"v2\""
+        } else {
+          "\"v1\""
+        }
       "media_type" => "\"application/pdf\""
       "modified_at" => "null"
       "path" => "\"same.pdf\""
@@ -40,6 +49,9 @@ fn original_keyed_version_history(
   one_short_census? : Bool = false,
   unknown_left_rows? : Bool = false,
   request_retention_boundary? : Int = 0,
+  publication_order? : Bool = false,
+  publication_refusal? : Bool = false,
+  publication_reentry? : Bool = false,
 ) -> Unit raise {
   let source_contracts = prepare_installed_sequence_contracts(
     source_query_original_registry,
@@ -144,7 +156,15 @@ fn original_keyed_version_history(
   let columns = @row_source_host.row_acquisition_columns(acquisition)
   let page = @utf8.encode(
     "[" +
-    [0, 1, 2].map(index => original_keyed_version_row(index, columns)).join(",") +
+    [0, 1, 2]
+    .map(index => {
+      original_keyed_version_row(
+        index,
+        columns,
+        reverse_versions=publication_order,
+      )
+    })
+    .join(",") +
     "]",
   )
   // Existing assembly layout for three left occurrences, not two unique keys:
@@ -173,6 +193,9 @@ fn original_keyed_version_history(
     @execution.execution_capacity_retained_bytes(suffix_capacity) +
     @execution.execution_capacity_retained_bytes(workspace_capacity) +
     3L +
+    // Exact extra explicit test allowance for the selected metadata constructor,
+    // not an installed native physical profile or a changed provider limit.
+    (if publication_order { 16L * 16384L + 128L * 8L } else { 0L }) +
     // Nominal API-only read7 + handoff10, not a physical Model profile.
     (if same_ledger_consumer { 17L } else { 0L }),
     execution_bytes: @row_source_host.row_acquisition_execution_capacity(
@@ -185,6 +208,7 @@ fn original_keyed_version_history(
     @execution.execution_capacity_execution_bytes(suffix_capacity) +
     @execution.execution_capacity_execution_bytes(workspace_capacity) +
     2L +
+    (if publication_order { 16L * 16384L + 128L * 8L } else { 0L }) +
     (if same_ledger_consumer { 10L } else { 0L }),
   }).unwrap()
   let bootstrap = @resources.reserve_capacity(ledger, 3L, 2L).unwrap()
@@ -199,7 +223,7 @@ fn original_keyed_version_history(
     // These two actual roles do not change attempts/holding/byte limits.
     (if one_short_census { 1 } else if same_ledger_consumer { 2 } else { 0 }) +
     // One explicit test-only spare-capacity blocker, no new physical attempt.
-    (if request_retention_boundary != 0 { 1 } else { 0 }),
+    (if request_retention_boundary != 0 || publication_refusal { 1 } else { 0 }),
     if content {
       5
     } else {
@@ -220,7 +244,14 @@ fn original_keyed_version_history(
     page.length().to_int64(),
     4096L,
   ).unwrap()
+  let reentry : Ref[(() -> Unit)?] = Ref(None)
+  let reentry_debit_preserved = Ref(false)
+  let reentry_deferred = Ref(false)
   let permits = wire => {
+    if reentry.val is Some(callback) {
+      reentry.val = None
+      callback()
+    }
     wire == original_keyed_child_resource(0) ||
     wire == original_keyed_child_content(0) ||
     wire == original_keyed_child_content(1)
@@ -399,7 +430,7 @@ fn original_keyed_version_history(
       "{\"resource\":" +
       original_keyed_child_resource(0) +
       ",\"version\":\"" +
-      (if row == 1 { "v2" } else { "v1" }) +
+      (if (row == 1) != publication_order { "v2" } else { "v1" }) +
       "\"}",
     )
     if index >= 0 {
@@ -458,7 +489,15 @@ fn original_keyed_version_history(
       0L,
     ).unwrap()
     @row_source_host.begin_keyed_row_run(child, reference_issuer=Some(issuer)).unwrap()
-    let reply = "[" + original_keyed_version_response(row) + "]"
+    let reply = "[" +
+      original_keyed_version_response(
+        if publication_order {
+          1 - row
+        } else {
+          row
+        },
+      ) +
+      "]"
     @publication_host.observe_client_keyed_response(
       request,
       reply.length().to_int64(),
@@ -565,17 +604,103 @@ fn original_keyed_version_history(
   assert_eq(requested.length(), 2)
   assert_true(requested[0] != requested[1])
   if !retained_refusal {
-    let read = @publication_host.finish_client_keyed_lookup_input(lookup).unwrap()
-    assert_eq(@execution.supplied_relation_read_row_count(read), 2)
-    for index in 0..<2 {
-      assert_eq(
-        @execution.supplied_relation_read_row_wire(
-          read,
-          index,
-          original_keyed_child_limits().wire,
-        ).unwrap(),
-        original_keyed_version_response(index),
+    let read = if publication_reentry {
+      reentry.val = Some(() => {
+        let before = @resources.ledger_usage(ledger)
+        reentry_deferred.val = @publication_host.cleanup_client_keyed_lookup_input(
+            lookup, 10000,
+          )
+          is Ok(false)
+        reentry_debit_preserved.val = @resources.ledger_usage(ledger) == before
+      })
+      assert_true(
+        @publication_host.finish_client_keyed_lookup_publication_input(
+          lookup, 16384, 1024, 20,
+        )
+        is Err(@publication_host.Assembly("retired_publication_input")),
       )
+      assert_true(reentry.val is None)
+      assert_true(reentry_deferred.val)
+      assert_true(reentry_debit_preserved.val)
+      assert_true(
+        @publication_host.client_keyed_lookup_input_identity(lookup) is None,
+      )
+      None
+    } else if publication_refusal {
+      let before = @resources.ledger_usage(ledger)
+      let metadata = 16L * 16384L + 128L * 8L
+      let available = @resources.ledger_limits(ledger).retained_bytes -
+        before.held_bytes -
+        before.reserved_retention_bytes
+      assert_true(available >= metadata)
+      let blocker = @resources.reserve_capacity(
+        ledger,
+        available - metadata + 1L,
+        0L,
+      ).unwrap()
+      assert_true(
+        @publication_host.finish_client_keyed_lookup_publication_input(
+          lookup, 16384, 1024, 20,
+        )
+        is Err(@publication_host.Physical(@resources.RetentionLimit)),
+      )
+      assert_true(
+        @publication_host.client_keyed_lookup_input_identity(lookup) is None,
+      )
+      assert_eq(@resources.ledger_usage(ledger).attempts, before.attempts)
+      @resources.settle_capacity(ledger, blocker).unwrap()
+      None
+    } else if publication_order {
+      let before = @resources.ledger_usage(ledger)
+      let read = @publication_host.finish_client_keyed_lookup_publication_input(
+        lookup, 16384, 1024, 20,
+      ).unwrap()
+      let first_identity = @publication_host.client_keyed_lookup_request_identity(
+        lookup, 16384, 1024, 20,
+      ).unwrap()
+      let after = @resources.ledger_usage(ledger)
+      assert_eq(after.attempts, before.attempts)
+      assert_eq(after.transferred_bytes, before.transferred_bytes)
+      assert_eq(
+        after.held_bytes - before.held_bytes,
+        16L * 16384L +
+        128L * 8L +
+        before.reserved_retention_bytes -
+        after.reserved_retention_bytes,
+      )
+      assert_true(
+        physical_equal(
+          read,
+          @publication_host.finish_client_keyed_lookup_publication_input(
+            lookup, 16384, 1024, 20,
+          ).unwrap(),
+        ),
+      )
+      assert_true(
+        physical_equal(
+          first_identity,
+          @publication_host.client_keyed_lookup_request_identity(
+            lookup, 16384, 1024, 20,
+          ).unwrap(),
+        ),
+      )
+      assert_eq(@resources.ledger_usage(ledger), after)
+      Some(read)
+    } else {
+      Some(@publication_host.finish_client_keyed_lookup_input(lookup).unwrap())
+    }
+    if read is Some(read) {
+      assert_eq(@execution.supplied_relation_read_row_count(read), 2)
+      for index in 0..<2 {
+        assert_eq(
+          @execution.supplied_relation_read_row_wire(
+            read,
+            index,
+            original_keyed_child_limits().wire,
+          ).unwrap(),
+          original_keyed_version_response(index),
+        )
+      }
     }
     assert_eq(
       @query.captured_source_row_count(
@@ -622,7 +747,9 @@ fn original_keyed_version_history(
   // Direct capture, two keyed children and the lookup still retain four slots.
   assert_eq(
     @resources.ledger_usage(ledger).holdings,
-    if retained_refusal {
+    if retained_refusal || publication_refusal || publication_reentry {
+      // Publication refusal occurs before the assembly creates its holding;
+      // the Direct capture and both actual physical children still own theirs.
       3
     } else {
       4
@@ -740,4 +867,25 @@ test "unknown Source rows feed Content through the same keyed Run without a take
 test "distinct keyed Requests retain full carriers at exact capacity and refuse one short while physical children remain pending" {
   original_keyed_version_history(request_retention_boundary=1)
   original_keyed_version_history(request_retention_boundary=2)
+}
+
+///|
+test "original keyed publication sorts reverse requests once and preserves repeated left rows and pending child duties" {
+  original_keyed_version_history(publication_order=true)
+}
+
+///|
+test "original keyed publication refuses one short before sealing while original physical children remain pending" {
+  original_keyed_version_history(
+    publication_order=true,
+    publication_refusal=true,
+  )
+}
+
+///|
+test "original keyed publication defers reentrant cleanup through its same reference-key borrow" {
+  original_keyed_version_history(
+    publication_order=true,
+    publication_reentry=true,
+  )
 }

@@ -282,6 +282,44 @@ pub fn finish_admitted_input(
 }
 
 ///|
+/// Seal the same unpublished input in an explicitly supplied original-row
+/// order. Validate the complete permutation before touching either buffer;
+/// immutable Values, original owner, schema, presence and consumed work stay
+/// unchanged. The caller backs the two outer arrays and validation bitmap
+/// before entry. No row admission, authorization or logical hashing is repeated.
+pub fn finish_ordered_admitted_input(
+  input : AdmittedInput,
+  order : Array[Int],
+) -> Result[CapturedRows, CaptureIssue] {
+  let buffer = input.buffer
+  if !buffer.open || buffer.reading {
+    return Err(ClosedCapture)
+  }
+  let present = !buffer.presence_rows.is_empty()
+  let count = if present {
+    buffer.presence_rows.length()
+  } else {
+    buffer.rows.length()
+  }
+  if order.length() != count {
+    return Err(InvalidCheckedRow)
+  }
+  let seen = Array::make(count, false)
+  for index in order {
+    if index < 0 || index >= count || seen[index] {
+      return Err(InvalidCheckedRow)
+    }
+    seen[index] = true
+  }
+  if present {
+    buffer.presence_rows = order.map(index => buffer.presence_rows[index])
+  } else {
+    buffer.rows = order.map(index => buffer.rows[index])
+  }
+  finish_admitted_input(input)
+}
+
+///|
 /// Import immutable presence-bearing rows only under the exact prepared input
 /// schema. Cumulative resource limits and cancellation stay with this buffer.
 pub fn append_admitted_input_presence(

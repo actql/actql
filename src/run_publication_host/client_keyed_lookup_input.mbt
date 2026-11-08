@@ -33,6 +33,7 @@ struct ClientKeyedLookupInput {
   mut read : @execution.SuppliedRelationRead?
   mut holding : @resources.Holding?
   mut identity : String?
+  mut publication_identity : ClientKeyedLookupRequestIdentity?
   mut closed : Bool
 }
 
@@ -198,6 +199,7 @@ fn start_client_keyed_lookup_input_owned(
     read: None,
     holding: None,
     identity: None,
+    publication_identity: None,
     closed: false,
   })
 }
@@ -737,7 +739,8 @@ pub fn finish_client_keyed_lookup_input(
     !client_keyed_left_available(state.left) {
     return Err(Assembly("incomplete"))
   }
-  if state.completed is None {
+  if state.completed is None ||
+    (state.identity is None && state.publication_identity is Some(_)) {
     guard state.input is Some(input) else {
       return Err(Assembly("closed_input"))
     }
@@ -771,11 +774,17 @@ pub fn finish_client_keyed_lookup_input(
       Err(issue) => return Err(issue)
       Ok(_) => ()
     }
-    let rows = match @execution.finish_admitted_input(input) {
-      Ok(value) => value
-      Err(issue) => return Err(InputCapture(issue))
+    let rows = match state.completed {
+      Some(rows) => rows
+      None => {
+        let rows = match @execution.finish_admitted_input(input) {
+          Ok(value) => value
+          Err(issue) => return Err(InputCapture(issue))
+        }
+        state.completed = Some(rows)
+        rows
+      }
     }
-    state.completed = Some(rows)
     let wire = match
       @execution.identify_captured_rows(rows, {
         max_bytes: state.max_bytes,
@@ -1015,9 +1024,10 @@ pub fn cleanup_client_keyed_lookup_input(
   quantum : Int,
 ) -> Result[Bool, ClientKeyedRequestIssue] {
   stop_client_keyed_lookup_input(state)
-  if quantum <= 0 {
+  if quantum <= 0 || state.growing {
     return Ok(false)
   }
+  state.publication_identity = None
   if state.copying is Some(cursor) {
     @execution.cleanup_admitted_input_row(cursor) |> ignore
     state.copying = None

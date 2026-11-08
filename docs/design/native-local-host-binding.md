@@ -2956,3 +2956,33 @@ miss preserves the original generic collision; unrelated constraints are not
 silently relabeled. This query neither owns a transaction nor acknowledges a
 commit, retry or cleanup. Input and returned key use the existing 512-byte
 physical name bound; the original CID and Run Owners retain semantic admission.
+
+
+### Original keyed publication order
+
+The Native Model-to-Effect path seals its keyed response input only after the
+original checked request tuples have supplied canonical typed order. The
+key-set issuer can return the same issuance with a permutation of original
+request occurrences. It computes the typed ordering once; the logical input
+seal borrows the original row containers in that order, and later publication
+reads the already retained key set, static request identity and acquisition
+scope. Ordinary lookup callers that do not select this publication purpose keep
+their existing entry and layout.
+
+The explicit publication constructor grows the same lookup reservation before
+its bounded protocol metadata and actual tuple/index/row-control overlap. It
+uses the existing finite protocol metadata envelope, not a Source file-size
+maximum at startup. A denied grow precedes input sealing and identity issuance.
+Repeated reads of the retained metadata do not create another reservation,
+key-set issuance, request, Model invocation or hash. Cleanup cuts that retained
+association before returning the lookup allocation. During synchronous key
+projection, reentrant cleanup retains the original holders until the borrow
+returns; cancellation still prevents publication.
+
+A tuple permutation retains every original occurrence, even equal keys; only
+the key-set body deduplicates. The permutation is DATA, not evidence of response
+identity, cardinality, completeness, authority or physical cleanup. Those
+obligations remain with the original checked Source/RowRun barrier. The input
+seal validates the complete permutation before replacing an unpublished outer
+row array; Values, conditional presence, schema, original owner and consumed
+work are unchanged. It cannot reorder an already exposed capture.

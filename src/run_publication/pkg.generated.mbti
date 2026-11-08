@@ -569,6 +569,8 @@ pub fn issue_local_sdk_result_read_selection(String, String) -> Result[LocalSDKR
 
 pub fn issue_lookup_request_key_set(String, String, Array[(String, @value_contract.Contract)], Array[Array[@value_admission.CheckedValue]], Int, Int, Int) -> Result[PublicationContract, AcquisitionRelationIssue]
 
+pub fn issue_lookup_request_key_set_with_order(String, String, Array[(String, @value_contract.Contract)], Array[Array[@value_admission.CheckedValue]], Int, Int, Int) -> Result[(PublicationContract, Array[Int]), AcquisitionRelationIssue]
+
 pub fn issue_manifest_read_grant(PublicationContract, PublicationContract, String, String, String, Int, Int, String, String, Int, Int, Int) -> Result[PublicationContract, DeliveryIssuanceIssue]
 
 pub fn issue_model_raw_response(BoundModelRawCapturePolicy, BoundModelInvocationScope, Int, RunEvidenceValue, RunEvidenceValue, String, Int, Int, Bool, String) -> Result[RunEvidenceValue, RunEvidenceValueIssue]
