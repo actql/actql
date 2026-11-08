@@ -34,6 +34,7 @@ test('wide Source initialization preserves its complete declared schema without 
 });
 
 test('wide Source reads the complete declared schema through its original funded RowRun', async t => {
+  try {
   const f = await installedHubSpotFixture(t, options()), source = await f.load(), preparation = await f.prepare(source);
   // Independent fixture inventory, not counts obtained from provider output.
   const nodeCount = value => value === null || typeof value !== 'object' ? 1
@@ -41,8 +42,10 @@ test('wide Source reads the complete declared schema through its original funded
   assert.equal(1 + 1 + (1 + 2) + 99, 104);
   assert.equal(nodeCount([{...expected, ...additionalProperties}]), 106);
   const ledger = f.ledger();
+  const preparedSource = await source.prepare(preparation);
+  const receiving = source.ledgerCapacity(preparedSource);
   let opened;
-  try { opened = await source.openCapture({...preparation, ledger}); }
+  try { opened = await source.openCapture({...preparation, preparedSource, ledger}); }
   catch (error) {
     // Diagnostic enum identity/counts only; never serialize owned state or DATA.
     const enums = [];
@@ -59,10 +62,54 @@ test('wide Source reads the complete declared schema through its original funded
   }
   f.captures.push(opened);
   const exported = checked(common.clientProgramExportSourceCapture(opened.capture.source(), opened.requirement, 'wide-source-read'));
-  assert.deepEqual(common.clientProgramSourceCaptureExportRows(exported).map(JSON.parse), [expected]);
+  // Acquisition capture is the complete Source port. The authored SQL SELECT
+  // is a separate downstream Program result; this component does not execute it.
+  assert.deepEqual(common.clientProgramSourceCaptureExportRows(exported).map(JSON.parse),
+    [{...expected, ...additionalProperties}]);
   assert.equal(f.state.requests.length, 4); assert.equal(f.state.resolutions, 4);
+  const saved = Object.freeze({requirement: opened.requirement,
+    requirementCid: common.clientProgramSourceCaptureExportRequirement(exported),
+    binding: common.clientProgramSourceCaptureExportBinding(exported),
+    descriptor: common.clientProgramSourceCaptureExportDescriptor(exported),
+    rows: Object.freeze([...common.clientProgramSourceCaptureExportRows(exported)])});
+  assert.equal(saved.requirementCid, common.clientProgramQueryRequirementCid(opened.requirement));
+  assert.equal(JSON.parse(saved.descriptor).columns, 102);
+  assert.equal(common.clientProgramQueryRequirementOutputContractCid(opened.requirement),
+    common.clientProgramQueryRequirementInputContractCid(opened.requirement),
+    'the original acquisition SELECT retains the complete Source schema');
   await opened.close();
   assert.deepEqual(held(ledger), [0n, 0n, 0n, 0n]);
+  // Same-process Host component custody only: the exact original export remains
+  // retained here. This is no durable Saved/receiving permission acceptance.
+  let retained = saved;
+  const restored = checked(common.clientProgramRestoreSourceCapture(saved.requirement,
+    saved.requirementCid, saved.binding, saved.binding, saved.descriptor, saved.rows,
+    ledger, receiving.capacity, () => retained === saved && saved.requirement === opened.requirement,
+    undefined, undefined));
+  try {
+    const receivingSource = common.clientProgramSourceCaptureSource(restored);
+    assert.ok(receivingSource);
+    const roundtrip = checked(common.clientProgramExportSourceCapture(receivingSource,
+      saved.requirement, saved.binding));
+    assert.deepEqual(common.clientProgramSourceCaptureExportRows(roundtrip), saved.rows);
+  } finally {
+    assert.equal(common.clientProgramCloseSourceCapture(restored), true);
+    retained = undefined;
+  }
+  assert.deepEqual(held(ledger), [0n, 0n, 0n, 0n]);
+  } catch (error) {
+    const enums = [];
+    for (let value = error, depth = 0; value && depth < 12; depth++) {
+      const name = value.constructor?.name;
+      if (typeof name === 'string' && /^_M0DTP[0-9A-Za-z_]+$/.test(name)) {
+        enums.push({name:name.match(/\d+([A-Z][A-Za-z]+)$/)?.[1], tag:value.$tag,
+          nestedTag:Number.isInteger(value._0) ? value._0 : value._0?.$tag});
+        value = value._0;
+      } else value = value.cause;
+    }
+    t.diagnostic(JSON.stringify({stage:'capture-export-restoration',enums}));
+    throw error;
+  }
 });
 
 test('Source still refuses an unfunded original RowRun before credential resolution or transport', async t => {

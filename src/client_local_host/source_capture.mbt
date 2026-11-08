@@ -195,6 +195,18 @@ fn client_source_capture_schema_columns(
   if !@query.captured_source_matches_query(source, original) {
     return None
   }
+  query_source_capture_schema_columns(requirement)
+}
+
+///|
+// Only the original checked Query requirement supplies receiving geometry.
+// Descriptor DATA and row contents cannot enlarge it.
+fn query_source_capture_schema_columns(
+  requirement : @planning.QueryRequirement,
+) -> Int? {
+  let original = @planning.query_material_owner(
+    @planning.query_requirement_material(requirement),
+  )
   let query = @query.query_sequence_requirement(original)
   @lower.preparation_schema_at(
     @lower.bound_preparation(@query.query_sequence_owner(original)),
@@ -277,7 +289,7 @@ pub fn export_client_source_capture(
     }
   }
   let evidence = match
-    @execution.retain_completion_evidence(retained, 100, 100) {
+    @execution.retain_completion_evidence(retained, 100, columns) {
     Ok(value) => value
     Err(issue) => return Err(Evidence(issue))
   }
@@ -356,6 +368,9 @@ pub fn restore_client_source_capture(
   if !custody_available() {
     return Err(CustodyUnavailable)
   }
+  guard query_source_capture_schema_columns(requirement) is Some(columns) else {
+    return Err(BindingMismatch)
+  }
   let rows = supplied_rows.copy()
   let query = @planning.query_material_owner(
     @planning.query_requirement_material(requirement),
@@ -369,7 +384,7 @@ pub fn restore_client_source_capture(
       descriptor,
       100,
       source_capture_values(),
-      source_capture_wire(),
+      { ..source_capture_wire(), max_columns: columns, },
       1000000,
     ) {
     Ok(value) => value
@@ -406,7 +421,7 @@ pub fn restore_client_source_capture(
     @execution.prepare_trusted_retained_readmission(
       preparation,
       descriptor,
-      100,
+      Int::max(100, columns),
       10000,
       fn(proof : @execution.AdmittedOutputStreamReceipt) {
         if available() &&
@@ -433,7 +448,7 @@ pub fn restore_client_source_capture(
       restored,
       100,
       source_capture_values(),
-      source_capture_wire(),
+      { ..source_capture_wire(), max_columns: columns, },
       1000000,
     ) {
     Ok(value) => value
@@ -538,9 +553,14 @@ pub fn restore_accounted_client_source_capture(
     Ok(value) => value
     Err(issue) => return Err(Physical(issue))
   }
-  let sized = source_capture_restoration_capacity(
-    descriptor_wire, rows, original_input,
-  )
+  let sized = query_source_capture_schema_columns(requirement).bind(columns => {
+    source_capture_restoration_capacity(
+      descriptor_wire,
+      rows,
+      original_input,
+      input_columns=columns,
+    )
+  })
   // Only the returned two-scalar quote remains after sizing. Its caller's
   // original closed control frame precedes the represented-body reservation.
   match @resources.settle_capacity(ledger, quote_reservation) {

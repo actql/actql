@@ -269,7 +269,9 @@ For the independently authored 102-column fixture this metadata is 6912 logical
 bytes; it is not a heap/RSS measurement. `measurement_capacity_wbtest.mbt` checks
 unqualified/qualified arithmetic and the unchanged explicit ordering refusals;
 the installed HubSpot wide fixture separately tests complete provider input,
-the original SELECT projection, finite transfer accounting and real cleanup.
+the complete acquisition SELECT port, finite transfer accounting and real cleanup.
+The authored Program SELECT is a later Compute result and has its separate
+three-field oracle; exporting acquisition Source does not execute that result.
 
 The evidence record writer receives that same original input field count.
 Its retained name Array is backed on the same RowRun as well: two Array/backing
@@ -282,8 +284,8 @@ the writer's field check nor the receiving schema's nominal validation.
 Installed Query and Whole identity callers pass the same live RowSourceCapture
 and its exact cached Source. The receiver checks physical identity and the
 original observation variant before reading its checked capture schema width;
-foreign or closed captures refuse. Legacy generic identity and standalone
-restoration limits stay unchanged. Query export independently binds its original
-requirement before using that capture port's schema width. For 102 unqualified
+foreign or closed captures refuse. Legacy generic identity limits stay unchanged.
+Query export and restoration independently bind the original checked requirement
+before using that capture port's schema width; descriptor counts cannot enlarge it. For 102 unqualified
 fields, the late metadata/name overlap is 8576 logical execution bytes, alongside
 the separately charged 1664 retained bytes; no new Ledger or authority is issued.
