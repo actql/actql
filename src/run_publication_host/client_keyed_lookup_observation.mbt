@@ -36,34 +36,49 @@ pub fn issue_client_keyed_lookup_observation(
     ]) {
     return Err(Assembly("source_capability"))
   }
-  let logical = match
-    @execution.identify_captured_relation(rows, {
-      max_bytes: lookup.max_bytes,
-      max_nodes: lookup.max_work,
-      max_columns: lookup.max_work,
-      max_order_work: lookup.max_work,
-      max_depth: 100,
-    }) {
-    Ok(value) => value
-    Err(_) => return Err(Assembly("logical_identity"))
-  }
-  let schema = match
-    @execution.identify_relation_schema(
-      @execution.supplied_relation_read_schema(read),
-      {
-        max_fields: lookup.max_work,
+  let (logical_cid, schema_cid) = if lookup.identity_receipt is Some(receipt) {
+    (
+      @execution.logical_relation_cid(
+        @execution.completed_relation_export_identity(receipt),
+      ),
+      @execution.relation_schema_cid(
+        @execution.completed_relation_export_schema_identity(receipt),
+      ),
+    )
+  } else {
+    let logical = match
+      @execution.identify_captured_relation(rows, {
         max_bytes: lookup.max_bytes,
         max_nodes: lookup.max_work,
+        max_columns: lookup.max_work,
+        max_order_work: lookup.max_work,
         max_depth: 100,
-      },
-    ) {
-    Ok(value) => value
-    Err(_) => return Err(Assembly("schema_identity"))
+      }) {
+      Ok(value) => value
+      Err(_) => return Err(Assembly("logical_identity"))
+    }
+    let schema = match
+      @execution.identify_relation_schema(
+        @execution.supplied_relation_read_schema(read),
+        {
+          max_fields: lookup.max_work,
+          max_bytes: lookup.max_bytes,
+          max_nodes: lookup.max_work,
+          max_depth: 100,
+        },
+      ) {
+      Ok(value) => value
+      Err(_) => return Err(Assembly("schema_identity"))
+    }
+    (
+      @execution.logical_relation_cid(logical),
+      @execution.relation_schema_cid(schema),
+    )
   }
   let input = match
     seal_client_source_input_logical(
-      @execution.logical_relation_cid(logical),
-      @execution.relation_schema_cid(schema),
+      logical_cid,
+      schema_cid,
       source.source_contract_cid,
     ) {
     Ok(value) => value
@@ -89,12 +104,7 @@ pub fn issue_client_keyed_lookup_observation(
     Ok(value) => value
     Err(_) => return Err(Assembly("source_evidence"))
   }
-  Ok({
-    lookup,
-    input,
-    source: evidence,
-    logical_relation_cid: @execution.logical_relation_cid(logical),
-  })
+  Ok({ lookup, input, source: evidence, logical_relation_cid: logical_cid, })
 }
 
 ///|

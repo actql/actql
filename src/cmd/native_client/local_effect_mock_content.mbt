@@ -449,7 +449,11 @@ fn LocalCommandBusinessPreparation::capture_mock_effect_content(
   }
   self.original.with_business_request(self.capture, () => {
     @run_host.finish_client_keyed_lookup_publication_input(
-      lookup, 16384, 1024, 20,
+      lookup,
+      16384,
+      1024,
+      20,
+      retain_body=true,
     ).unwrap_or_else(() => stop("LocalOriginalContentAssemblyUnavailable"))
     |> ignore
   })
