@@ -70,8 +70,20 @@ fn validate_effect_dependency_import_bindings(
       }
       let positions : Map[String, Bool] = Map([])
       let observed_interfaces : Map[String, Bool] = Map([])
+      let model_positions : Map[Int64, Bool] = Map([])
       for cid in observations {
-        if index.get(dependency_key("result_import_observation", cid))
+        if index.get(dependency_key("local_model_observation", cid))
+          is Some(observation) {
+          guard evidence_string(observation, "unit_definition_cid") ==
+            Some(unit) &&
+            @json.object_field(observation, "source_ordinal")
+            is Some(@json.Number(raw)) &&
+            @scalar.read_safe_integer(raw) is Some(ordinal) &&
+            !model_positions.contains(ordinal) else {
+            return Err(InvalidBody)
+          }
+          model_positions[ordinal] = true
+        } else if index.get(dependency_key("result_import_observation", cid))
           is Some(observation) {
           guard evidence_string(observation, "consumer_unit_definition_cid") ==
             Some(unit) &&

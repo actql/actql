@@ -79,6 +79,8 @@ pub fn bind_run(Execution, @run_publication_host.ClientCompiledRun, @run_publica
 
 pub fn borrow_original_live_host_output(OutputUse, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph) -> (@execution_relation.CompletedOutput, @model_execution.ModelExecution)?
 
+pub fn borrow_original_live_model_relations(OutputUse, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph) -> (@execution_relation.CompletedOutput, @execution_relation.CompletedOutput)?
+
 pub fn borrow_original_restored_host_output(OutputUse, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph) -> (@execution_relation.CompletedOutput, @model_execution.ModelExecution)?
 
 pub fn call_scope(Execution) -> @run_publication_host.ClientInferCallScope?
@@ -135,6 +137,8 @@ pub fn invocation_binding_output(InvocationBinding) -> @execution_relation.Compl
 
 pub fn invocation_evidence(Execution, Int) -> @run_publication.RunEvidenceValue?
 
+pub fn issue_original_local_model_observation(OutputUse, ObservationIssuance, @execution_relation.CompletedRelationExportReceipt, @execution_relation.CompletedRelationExportReceipt, Int, Int, Int) -> LocalModelObservation?
+
 pub fn issued_attachment_admission(Execution, Int) -> Result[@run_publication.RunEvidenceValue?, @model_execution.ModelExecutionIssue]
 
 pub fn issued_slot_capture(Execution, Int) -> Result[@run_publication.RunEvidenceValue, @model_execution.ModelExecutionIssue]
@@ -148,6 +152,8 @@ pub fn matches(Execution, @run_publication_host.PreparedClientProgram) -> Bool
 pub fn model_cleanup_progress(Execution) -> Int
 
 pub fn observation_issuance_value(ObservationIssuance) -> (@run_publication.RunEvidenceValue, @run_publication.PublicationContract)?
+
+pub fn original_local_model_observation_body(LocalModelObservation) -> @run_publication.CapturedEffectDependencyBody?
 
 pub fn original_model_current_state_match_current(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalCurrentStateMatch[@run_publication_host.ClientModelReadOrigin]) -> @physical_resources.OriginalCurrentStateMatch[@run_publication_host.ClientModelReadOrigin]?
 
@@ -362,6 +368,12 @@ pub(all) struct Limits {
   output_work : Int
   output_workspace : Int
   identity : IdentityLimits
+}
+
+pub struct LocalModelObservation {
+  held : OutputUse
+  issued : ObservationIssuance
+  body : @run_publication.CapturedEffectDependencyBody
 }
 
 pub struct ObservationIssuance {

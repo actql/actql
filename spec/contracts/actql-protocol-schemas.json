@@ -17279,7 +17279,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:41af233cbf261bcb7692d83401f19ca414df82bf1ee99a427330fcc575060ada",
+  "artifact_registry_cid": "sha256:447843aa6284014cb8fa15d6d4b2ad6ad74223fc0ebaca774aaa40bf5de43989",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:cf421ba9a3d602be0bf53fc646eb822c0fa96151a2c5cf72a2f271cc7c3a6d77",
@@ -17316,7 +17316,7 @@
     "plan_document": "sha256:8faa3038775b916b1446c42b8ef3a2349bed1fb9f4341a96025f668a6d199232",
     "plan_result": "sha256:692b481d25e23400f0f81e0ddade946aba2dafca4dd2f1fe6c22c7e15e5122c1",
     "run_state": "sha256:3fbfc2cc5a79449fd05fce58e0fad25f6eef0ecde8314a222417a2e233db28c2",
-    "captured_run": "sha256:a37894cfc6919e1562be6b44293871f349085e6b94e27281eec26b7af8d0514c",
+    "captured_run": "sha256:feed43823ca2721a948906e49866261d6dff991d20aec1dd7330ea7b433e86fd",
     "execution_account_config": "sha256:12fabf23550cc9bb9ab5023865de0a8e6393a271d7f8c68d31fc1f6dfa41db20",
     "caller_input_intent": "sha256:513e966082bc64cdc0e6bfd0aa05b0bab90cfd37cd429ddef21a3052e037263d",
     "initial_input_artifact_set": "sha256:ee4569cb2e67186da874a8115acf455276927362d6ee724cdca7ec3389b0176d",
@@ -85910,6 +85910,7 @@
                       "local_computation",
                       "local_manifest",
                       "result_import_observation",
+                      "local_model_observation",
                       "local_dependencies",
                       "result_import_interface",
                       "gate_requirement",

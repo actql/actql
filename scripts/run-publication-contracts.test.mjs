@@ -17,6 +17,50 @@ import {
 } from './run-publication-contracts.mjs';
 import {machineCid} from './actql-spec-family.mjs';
 import {canonicalText, verifyIdentity} from './check-canonical-json.mjs';
+import {checkLocalModelObservationContract, withLocalModelObservationContract} from './local-model-observation-contract.mjs';
+import {withLocalTableInputContract} from './local-table-input-contract.mjs';
+
+test('local Model observation has a closed semantic body and typed relation dependencies', () => {
+  const registry = read('spec/contracts/actql-stage-contracts.json');
+  checkLocalModelObservationContract(registry);
+  assert.deepEqual(
+    withLocalModelObservationContract(withLocalTableInputContract(registry)),
+    withLocalTableInputContract(withLocalModelObservationContract(registry)));
+  const schema = registry.schemas.local_model_observation;
+  assert.equal(schema.additionalProperties, false);
+  assert.deepEqual(schema.required, Object.keys(schema.properties));
+  assert.deepEqual(schema.properties.source_ordinal,
+    {type: 'integer', minimum: 0, maximum: 2147483646});
+  assert.deepEqual(registry.reference_roles.local_model_observation, {
+    unit_definition_cid: 'local_dependencies',
+    input_logical_relation_cid: 'external:relation-value',
+    input_relation_schema_cid: 'external:value-contract',
+    outcome_logical_relation_cid: 'external:relation-value',
+    outcome_relation_schema_cid: 'external:value-contract',
+  });
+  for (const field of ['run_definition_cid', 'observation_set_cid',
+    'model_call_slot_cid', 'provider_request_id', 'capture_completed_at']) {
+    assert.equal(Object.hasOwn(schema.properties, field), false);
+  }
+  const protocol = read('spec/contracts/actql-protocol-schemas.json');
+  assert.ok(protocol.artifact_schemas.captured_run.properties.effect_context
+    .properties.effect_dependency_inventory.items.properties.kind.enum
+    .includes('local_model_observation'));
+});
+
+test('independent local Model vector binds the complete realization and checked occurrence', () => {
+  const fixture = read('portability/corpus/local-model-observation.json');
+  verifyIdentity(fixture.preimage, fixture.expected_cid,
+    fixture.expected_canonical_bytes);
+  for (const field of ['unit_definition_cid', 'input_logical_relation_cid',
+    'input_relation_schema_cid', 'outcome_logical_relation_cid',
+    'outcome_relation_schema_cid']) {
+    assert.notEqual(machineCid({...fixture.preimage,
+      [field]: 'sha256:' + 'f'.repeat(64)}), fixture.expected_cid);
+  }
+  assert.notEqual(machineCid({...fixture.preimage, source_ordinal: 3}),
+    fixture.expected_cid);
+});
 
 test('Run Definition selection projection is optional in its closed schema', () => {
   const registry = read('spec/contracts/actql-protocol-schemas.json');

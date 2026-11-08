@@ -418,6 +418,15 @@ pub fn client_infer_call_scope_unit_id(value : ClientInferCallScope) -> String? 
 }
 
 ///|
+/// Pure semantic coordinate of the same checked INFER. No Run, physical
+/// capture or replacement task/step is selected by this DATA projection.
+pub fn client_infer_call_scope_local_coordinate(
+  value : ClientInferCallScope,
+) -> (String, Int) {
+  (value.unit_definition_cid, value.source_ordinal)
+}
+
+///|
 /// Exact private originals for a completed fixed input. This record is not
 /// a public artifact or permission; authenticated Store custody is required
 /// before it can be used by the saved-scope reader below.

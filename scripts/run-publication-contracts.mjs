@@ -4,6 +4,7 @@ import {pathToFileURL} from 'node:url';
 import {isDeepStrictEqual} from 'node:util';
 import {machineCid} from './actql-spec-family.mjs';
 import {checkLocalTableInputContract} from './local-table-input-contract.mjs';
+import {checkLocalModelObservationContract} from './local-model-observation-contract.mjs';
 
 const registryPath = 'spec/contracts/actql-protocol-schemas.json';
 const cliPath = 'spec/contracts/actql-cli-run-response.schema.json';
@@ -639,7 +640,7 @@ export function correctedContracts(registry, cli) {
         'table_input_artifact', 'table_input_derivation', 'table_input_ordering',
         'acquisition_relation', 'acquisition_scope', 'result_retention_policy',
         'local_result_definition', 'local_table_input_definition', 'local_computation', 'local_manifest',
-        'result_import_observation', 'local_dependencies',
+        'result_import_observation', 'local_model_observation', 'local_dependencies',
         'result_import_interface', 'gate_requirement', 'source_input_logical',
         'source_evidence', 'local_body', 'parameter_declarations',
         'used_values', 'local_contracts', 'local_policy', 'result_import_type',
@@ -701,6 +702,7 @@ export function cliOutputVerificationSchema() {
 
 export function checkContracts(registry, cli) {
   checkLocalTableInputContract(stageRegistry);
+  checkLocalModelObservationContract(stageRegistry);
   const expected = correctedContracts(registry, cli);
   assert.deepEqual(registry, expected.registry, 'Run publication schemas are stale');
   assert.deepEqual(cli, expected.cli, 'CLI Run state embedding is stale');
