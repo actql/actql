@@ -98,14 +98,23 @@ pub fn admit_publication_effect_dependency_body(
   }
   let value = contract.value
   if kind == "request_key_set" {
-    guard dependency_single_reference(value, "source_view_contract_cid", "source_view_contract")
+    guard dependency_single_reference(
+        value, "source_view_contract_cid", "source_view_contract",
+      )
       is Some(source) &&
       dependency_single_reference(value, "request_schema_cid", "request_schema")
-      is Some(schema) else { return Err(InvalidBody) }
+      is Some(schema) else {
+      return Err(InvalidBody)
+    }
     return Ok({
-      node: { kind, identity: contract.identity,
-        canonical_bytes: @utf8.encode(wire).length(), references: [source, schema], },
-      wire, value,
+      node: {
+        kind,
+        identity: contract.identity,
+        canonical_bytes: @utf8.encode(wire).length(),
+        references: [source, schema],
+      },
+      wire,
+      value,
     })
   }
   let table = kind == "table_input_artifact" ||

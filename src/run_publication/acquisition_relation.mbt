@@ -82,8 +82,12 @@ pub fn issue_single_source_acquisition_scope(
   max_depth : Int,
 ) -> Result[PublicationContract, AcquisitionRelationIssue] {
   issue_source_request_acquisition_scope(
-    source_contract_cid, request_values_cid, None,
-    max_bytes, max_nodes, max_depth,
+    source_contract_cid,
+    request_values_cid,
+    None,
+    max_bytes,
+    max_nodes,
+    max_depth,
   )
 }
 
@@ -99,12 +103,17 @@ pub fn issue_keyed_source_acquisition_scope(
   max_depth : Int,
 ) -> Result[PublicationContract, AcquisitionRelationIssue] {
   if key_set.name != "request_key_set" ||
-    contract_string(key_set, "source_view_contract_cid") != Some(source_contract_cid) {
+    contract_string(key_set, "source_view_contract_cid") !=
+    Some(source_contract_cid) {
     return Err(WrongScope)
   }
   issue_source_request_acquisition_scope(
-    source_contract_cid, request_values_cid, Some(key_set.identity),
-    max_bytes, max_nodes, max_depth,
+    source_contract_cid,
+    request_values_cid,
+    Some(key_set.identity),
+    max_bytes,
+    max_nodes,
+    max_depth,
   )
 }
 

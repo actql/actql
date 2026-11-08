@@ -81,7 +81,11 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
       )
       .map_err(issue => LocalNativeMockEffectProposalIssue::Capture(issue))
       .native_effect_proposal(self.original)
-    let held : LocalNativeMockEffectProposals = { inputs, members: [], _retained_keyed_identity: None, }
+    let held : LocalNativeMockEffectProposals = {
+      inputs,
+      members: [],
+      _retained_keyed_identity: None,
+    }
     state.proposals = Some(held)
     @local_values.retain_installed_effect_captured_input_inventory(
       run,
@@ -134,9 +138,11 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
         // identity is shared by all members; no rows are checked or fetched
         // again and no key/ref or static request is synthesized.
         held._retained_keyed_identity = Some(
-          @run_host.client_keyed_lookup_request_identity(lookup, 16384, 1024, 20)
-            .map_err(issue => LocalNativeMockEffectProposalIssue::Keyed(issue))
-            .native_effect_proposal(self.original),
+          @run_host.client_keyed_lookup_request_identity(
+            lookup, 16384, 1024, 20,
+          )
+          .map_err(issue => LocalNativeMockEffectProposalIssue::Keyed(issue))
+          .native_effect_proposal(self.original),
         )
       }
       let invocation = business.model_work[0]

@@ -14,7 +14,9 @@ struct ClientKeyedLookupInput {
   mut growing : Bool
   rows : Int
   mut input : @execution.AdmittedInput?
-  mut known : Array[(String, @acquisition.KeyedRowRequest?, @execution.SuppliedRelationRead?)]
+  mut known : Array[
+    (String, @acquisition.KeyedRowRequest?, @execution.SuppliedRelationRead?),
+  ]
   mut accepted : Int
   mut work : Int
   mut retired_row_work : Int64
@@ -572,7 +574,8 @@ pub fn begin_client_keyed_lookup_response(
   // Use the collection owner's append/backing overlap, not a policy ceiling.
   // Existing fixed controls cover the two outer array wrappers; their actual
   // per-row slots, cached key/read carriers and key Text are retained here.
-  guard @acquisition.keyed_row_request_retained_inventory(request.request) is Some(request_layout) &&
+  guard @acquisition.keyed_row_request_retained_inventory(request.request)
+    is Some(request_layout) &&
     @shape.collection_construction_extent({
       records: if conditional {
         columns + 3L
@@ -599,7 +602,9 @@ pub fn begin_client_keyed_lookup_response(
     is Some(layout) &&
     @execution.preparation_representation_cost({
       record_headers: layout.record_headers + request_layout.record_headers + 1L,
-      reference_slots: layout.reference_slots + request_layout.reference_slots + 8L,
+      reference_slots: layout.reference_slots +
+      request_layout.reference_slots +
+      8L,
       scalar_words: layout.scalar_words + request_layout.scalar_words + 1L,
       owned_utf16_units: wire.length().to_int64(),
       owned_wire_bytes: 0L,

@@ -53,7 +53,8 @@ pub fn checked_local_catalog_dependency_body(
     "capability_evidence" => (@environment.ConnectorCapabilities, None)
     "source_contract" | "source_view_contract" =>
       (@environment.SourceViews, Some("contract_cid"))
-    "data_policy" | "request_schema" => (@environment.ContractRegistry, Some("cid"))
+    "data_policy" | "request_schema" =>
+      (@environment.ContractRegistry, Some("cid"))
     _ => return Err(MissingDependency)
   }
   let environment = checked_environment(program)
