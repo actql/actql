@@ -175,6 +175,8 @@ pub fn prepared_call_set(Execution) -> @model_execution.ModelPreparedCallSet?
 
 pub fn prepared_composed_bounds(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph) -> Result[Limits, Issue]
 
+pub fn prepared_composed_bounds_construction() -> @execution_relation.PreparationRepresentationUnits
+
 pub fn prepared_input_export_matches(Execution, @model_execution.ModelPreparedCallSet, @client_local_host.ClientInferRetainedInputExport) -> Bool
 
 pub fn prepared_input_scope_snapshot(Execution, @model_execution.ModelPreparedCallSet) -> Result[String, @run_publication_host.ClientInferCallScopeIssue]

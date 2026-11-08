@@ -3770,3 +3770,89 @@ test "adopted captured Model reads only its retained original prefix before payl
   )
   assert_eq(@resources.ledger_usage(f.parent.ledger).live_reservations, 0)
 }
+
+///|
+test "Effect Graph admits the installed caller material on its same Request before construction" {
+  let storage : @execution.PreparationRepresentationUnits = {
+    record_headers: 3L,
+    reference_slots: 7L,
+    scalar_words: 11L,
+    owned_utf16_units: 13L,
+    owned_wire_bytes: 17L,
+  }
+  let mut unextended = (0L, 0L)
+  for extended in [false, true] {
+    let (parent, input, prepared, holder, occurrence, execution) = request_effect_model_graph_inputs()
+    let capacity = parent.effect_capacity.unwrap()
+    let before = @resources.preparation_capacity_working_extents(
+      capacity, input,
+    ).unwrap()
+    let graph = prepare_request_model_graph(
+      parent,
+      input,
+      occurrence,
+      execution,
+      request_program_module_contracts(),
+      manifests=request_program_module_manifests(),
+      compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+      caller_material=if extended { Some(storage) } else { None },
+    ).unwrap()
+    let after = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
+    if extended {
+      let bytes = @execution.preparation_representation_cost(storage).unwrap()
+      assert_eq(after.0 - before.0, unextended.0 + bytes)
+      assert_eq(after.1 - before.1, unextended.1 + bytes)
+    } else {
+      unextended = (after.0 - before.0, after.1 - before.1)
+    }
+    assert_true(physical_equal(parent.effect_capacity.unwrap(), capacity))
+    assert_true(physical_equal(parent.compiled_effect.unwrap(), prepared))
+    assert_true(
+      parent.program_domain_compilation_inputs
+      is Some(RequestModelGraph(_, _, _, selected)) &&
+      physical_equal(selected, graph),
+    )
+    @resources.return_preparation_body_borrow(holder).unwrap() |> ignore
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+    assert_eq(@resources.ledger_usage(parent.ledger).held_bytes, 0L)
+  }
+}
+
+///|
+test "invalid caller material cannot construct an Effect Model Graph or replace its original cleanup" {
+  let (parent, input, prepared, holder, occurrence, execution) = request_effect_model_graph_inputs()
+  let capacity = parent.effect_capacity.unwrap()
+  let before = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
+  assert_true(
+    prepare_request_model_graph(
+      parent,
+      input,
+      occurrence,
+      execution,
+      request_program_module_contracts(),
+      manifests=request_program_module_manifests(),
+      compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+      caller_material=Some({
+        record_headers: -1L,
+        reference_slots: 0L,
+        scalar_words: 0L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      }),
+    )
+    is Err(Preparation(Policy)),
+  )
+  assert_true(parent.phase == EffectBodyFailed)
+  assert_true(parent.program_domain_compilation_inputs is None)
+  assert_true(physical_equal(parent.effect_capacity.unwrap(), capacity))
+  assert_true(physical_equal(parent.compiled_effect.unwrap(), prepared))
+  assert_eq(
+    @resources.preparation_capacity_working_extents(capacity, input).unwrap(),
+    before,
+  )
+  @resources.return_preparation_body_borrow(holder).unwrap() |> ignore
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  assert_eq(@resources.ledger_usage(parent.ledger).held_bytes, 0L)
+}
