@@ -8,8 +8,7 @@ pub fn client_whole_source_capture_schema_columns(
   guard @query.captured_source_matches_input_acquisition(
       source,
       capacity.original,
-    ) &&
-    @query.captured_source_available(source) else {
+    ) else {
     return None
   }
   Some(
