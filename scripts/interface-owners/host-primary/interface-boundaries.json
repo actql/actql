@@ -23445,7 +23445,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "b6980a52271f3bb85d01c993a129974390395e97ba69777f32c56bb8f5203048"
+      "sha256": "06e858ebeb4fb1fe8a71080ec6833015874b453e24bd849d8561ed7d14d53e6d"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
