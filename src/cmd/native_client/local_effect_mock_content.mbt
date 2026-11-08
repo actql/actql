@@ -247,6 +247,17 @@ fn LocalCommandBusinessPreparation::capture_mock_effect_content(
         limits.output_work,
       ).unwrap_or_else(() => stop("LocalOriginalModelKeyedLookupUnavailable"))
       state.lookup = Some(lookup)
+      @run_host.prepare_client_keyed_native_left_identity(
+        lookup,
+        limits.identity.rows,
+        limits.output_values,
+        limits.identity.wire,
+        limits.identity.logical_wire,
+        limits.identity.schema,
+        limits.identity.work,
+        limits.identity.workspace,
+      ).unwrap_or_else(() => stop("LocalOriginalLookupLeftIdentityUnavailable"))
+      |> ignore
       (
         lookup,
         rows,

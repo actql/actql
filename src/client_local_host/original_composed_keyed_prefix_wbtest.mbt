@@ -72,6 +72,7 @@ fn original_composed_keyed_consumer(
   native_transport? : Bool = false,
   native_activation? : Bool = false,
   activation_reentry? : Bool = false,
+  left_identity_reentry? : Bool = false,
   first_plan? : ((
     ClientRequestPreparation[Array[Int]],
     Array[Int],
@@ -933,6 +934,71 @@ fn original_composed_keyed_consumer(
     }
   }
 
+  if left_identity_reentry {
+    let limits = original_keyed_content_workspace().export_limits
+    let issue_left = () => {
+      @publication_host.prepare_client_keyed_native_left_identity(
+        lookup,
+        1,
+        limits.values,
+        limits.payload_wire,
+        limits.logical_wire,
+        limits.schema,
+        1000000,
+        100000,
+      )
+    }
+    let first : Ref[@publication_host.ClientKeyedNativeLeftIdentity?] = Ref(
+      None,
+    )
+    let reentering = Ref(false)
+    let inner_issue = Ref("not-observed")
+    activation_source_live.val = Some(() => {
+      if !reentering.val && first.val is None {
+        reentering.val = true
+        let result = issue_left()
+        reentering.val = false
+        match result {
+          Ok(identity) => first.val = Some(identity)
+          Err(@publication_host.CompletedIdentity(issue)) =>
+            inner_issue.val = match issue {
+              @execution.Unavailable => "Unavailable"
+              @execution.NotCellRepresentation => "NotCellRepresentation"
+              @execution.InvalidTarget => "InvalidTarget"
+              @execution.NotFinished => "NotFinished"
+              @execution.Closed => "Closed"
+              @execution.ForeignMaterial => "ForeignMaterial"
+              @execution.CanonicalRow => "CanonicalRow"
+              @execution.Admission(_) => "Admission"
+              @execution.Wire(_) => "Wire"
+              @execution.Schema(_) => "Schema"
+              @execution.ResultView(_) => "ResultView"
+            }
+          Err(@publication_host.Assembly(issue)) =>
+            inner_issue.val = "Assembly:" + issue
+          Err(_) => inner_issue.val = "other typed refusal"
+        }
+      }
+    })
+    let outer = issue_left()
+    activation_source_live.val = None
+    guard first.val is Some(original_identity) else {
+      fail(
+        "Source.live must return its original left identity: " + inner_issue.val,
+      )
+    }
+    assert_true(
+      outer is Err(@publication_host.Assembly("claimed_native_left_identity")),
+      msg="outer current observer must preserve the original returned by Source.live",
+    )
+    assert_true(
+      physical_equal(
+        @publication_host.client_keyed_native_left_identity(lookup).unwrap(),
+        original_identity,
+      ),
+    )
+    assert_eq(original_identity.rows, 1)
+  }
   if large_lookup_policy {
     let after_lookup = @resources.ledger_usage(ledger)
     // The two actual empty assembly buffers fit the existing small fixture

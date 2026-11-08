@@ -88,6 +88,18 @@ test "Native raw Store refusal prevents a keyed page and keeps its original clea
 }
 
 ///|
+test "Native original left Relation identity retains its actual completed prefix before dispatch" {
+  assert_eq(@env.get_env_var("ACTQL_TEST_NATIVE_LEFT_IDENTITY"), Some("1"))
+  native_project_mock_model_backed_read(
+    false,
+    readme_request=true,
+    effect_compilation=true,
+    effect_source_inputs=true,
+    content_join=true,
+  )
+}
+
+///|
 // Actual same Store/SQLite/Root/Writer/Reader, with authored raw metadata DATA.
 // No Source authority, Journal activation, Model send or normal funding proof.
 test "Native lookup raw Store preserves exact bytes and original purpose through reopen" {
@@ -719,6 +731,102 @@ fn native_mock_readme_content_join_adopt(
     assembly_bytes.to_int(),
     10000,
   ).native_content_join_stage("original keyed lookup")
+  let left_identity = if @env.get_env_var("ACTQL_TEST_NATIVE_LEFT_IDENTITY") ==
+    Some("1") {
+    let identity = @run_host.prepare_client_keyed_native_left_identity(
+      lookup,
+      limits.identity.rows,
+      limits.output_values,
+      limits.identity.wire,
+      limits.identity.logical_wire,
+      limits.identity.schema,
+      limits.identity.work,
+      limits.identity.workspace,
+    ).native_content_lookup_stage("actual original completed left")
+    assert_eq(identity.rows, 2)
+    assert_true(
+      identity.producer_contract_cid != identity.computation_contract_cid,
+    )
+    // The retained logical preimage includes its exact sort/relation wrapper,
+    // not storage bytes or a fabricated Result identity.
+    assert_eq(
+      identity.logical_value_cid,
+      "sha256:" + @sha.hex(@utf8.encode(identity.body)),
+    )
+    assert_eq(
+      identity.relation_schema_cid,
+      "sha256:" + @sha.hex(@utf8.encode(identity.schema_wire)),
+    )
+    guard @json.parse(identity.body) is Object(logical) &&
+      logical.get("sort") == Some(Json::string("relation")) &&
+      logical.get("value") is Some(Array(rows)) &&
+      rows.length() == 2 else {
+      fail("actual left row array")
+    }
+    for row in 0..<2 {
+      let expected = Json::string(
+        if row == 0 {
+          "006Acme"
+        } else {
+          "006Globex"
+        },
+      )
+      guard rows[row] is Object(fields) else { fail("actual left row object") }
+      let mut matches = 0
+      for (_, value) in fields {
+        if value == expected {
+          matches += 1
+        }
+      }
+      assert_eq(matches, 1)
+    }
+    guard @json.parse(@run_host.client_infer_plan_graph_wire(graph))
+      is Object(graph_fields) &&
+      graph_fields.get("nodes") is Some(Array(nodes)) else {
+      fail("actual compiled graph nodes")
+    }
+    let mut matched = 0
+    for node in nodes {
+      if node is Object(fields) &&
+        fields.get("kind") == Some(Json::string("acquisition_barrier")) &&
+        fields.get("profile_id") == Some(Json::string("actql-lookup/0.1")) {
+        guard fields.get("input_contracts") is Some(Object(ports)) else {
+          fail("actual checked lookup ports")
+        }
+        assert_eq(
+          ports.get("input_0"),
+          Some(Json::string(identity.producer_contract_cid)),
+        )
+        matched += 1
+      }
+    }
+    assert_eq(matched, 1)
+    let observed_work = @run_host.client_keyed_lookup_input_work(lookup)
+    assert_true(observed_work > 0L)
+    assert_true(
+      @run_host.prepare_client_keyed_native_left_identity(
+        lookup,
+        limits.identity.rows,
+        limits.output_values,
+        limits.identity.wire,
+        limits.identity.logical_wire,
+        limits.identity.schema,
+        limits.identity.work,
+        limits.identity.workspace,
+      )
+      is Err(_),
+    )
+    assert_eq(@run_host.client_keyed_lookup_input_work(lookup), observed_work)
+    assert_true(
+      physical_equal(
+        @run_host.client_keyed_native_left_identity(lookup).unwrap(),
+        identity,
+      ),
+    )
+    Some(identity)
+  } else {
+    None
+  }
   let mut measured_text = 0L
   let content_children : Array[@row_file.NativeRelationFileCapture] = []
   let library = @local_sqlite.load_library(
@@ -1438,6 +1546,14 @@ fn native_mock_readme_content_join_adopt(
       ),
     )
   }
+  if left_identity is Some(identity) {
+    assert_true(
+      physical_equal(
+        @run_host.client_keyed_native_left_identity(lookup).unwrap(),
+        identity,
+      ),
+    )
+  }
   // The original response copy still borrows each nominal Content issuer.
   // Keep both actual captures, then retire the same children before the Store.
   for content in content_children {
@@ -1457,6 +1573,9 @@ fn native_mock_readme_content_join_adopt(
   assert_true(
     @run_host.cleanup_client_keyed_lookup_input(lookup, 10000).unwrap(),
   )
+  if left_identity is Some(_) {
+    assert_true(@run_host.client_keyed_native_left_identity(lookup) is None)
+  }
   assert_true(
     @local_values.cleanup_client_serialization_prefix(
       @local_values.client_original_composed_keyed_prefix_execution(prefix),
@@ -1665,6 +1784,22 @@ fn[T] Result::native_content_lookup_stage(
         @run_host.Row(value) => "Row: " + @debug.to_string(value)
         @run_host.InputCapture(value) =>
           "InputCapture: " + @debug.to_string(value)
+        @run_host.CompletedIdentity(value) => {
+          let cause = match value {
+            @execution.Unavailable => "Unavailable"
+            @execution.NotCellRepresentation => "NotCellRepresentation"
+            @execution.InvalidTarget => "InvalidTarget"
+            @execution.NotFinished => "NotFinished"
+            @execution.Closed => "Closed"
+            @execution.ForeignMaterial => "ForeignMaterial"
+            @execution.CanonicalRow => "CanonicalRow"
+            @execution.Admission(_) => "Admission"
+            @execution.Wire(_) => "Wire"
+            @execution.Schema(_) => "Schema"
+            @execution.ResultView(_) => "ResultView"
+          }
+          "CompletedIdentity: " + cause
+        }
       }
       fail(stage + ": " + label)
     }

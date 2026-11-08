@@ -369,3 +369,22 @@ aliases. The CLI stops lookup assembly without returning its reservation,
 closes the original Source children, then reclaims lookup/prefix backing. A
 borrowed `keyed_raw_response` is metadata of confirmed Store custody only; it is
 not a page-adoption/event receipt, Result Artifact or renewed read permission.
+
+
+Before first keyed dispatch, the installing CLI also calls
+`prepare_client_keyed_native_left_identity` with the same selected typed export
+limits. This borrows the prefix's original completed segment output and retains
+one bounded logical preimage/schema receipt on the existing lookup reservation.
+The preimage includes its `sort: relation` wrapper; row order and multiplicity
+are preserved. Its producer is the checked output-contract CID feeding the
+barrier's input port, distinct from the computation/fragment identity.
+
+This work precedes the later Model Read claim. It neither re-executes the
+prefix nor issues a Result Artifact, upstream observation or acquisition
+completion. Source/derivation/scope admission is still needed to publish the
+actual acquisition Relation. The original receipt is retained before later
+failure, and its consumed scan work survives right-side identity and cleanup.
+A final pure original-slot fence after callbacks preserves a first identity
+returned during synchronous Source reentry. Lookup cleanup cancels the same
+in-progress scan/receipt and cuts metadata before returning its backing; the
+metadata token holds no strong lookup/Scope/Source backpointer.
