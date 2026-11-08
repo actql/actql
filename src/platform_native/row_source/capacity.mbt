@@ -34,8 +34,10 @@
 //   four borrowed selector slots. Its separate raw-provider capacity is added
 //   before reservation; checked keyed-row response storage remains RowRun-owned.
 //
-// The reservation retains this complete peak until final close. No phase/GC
-// credit is claimed. Fixed VM stack frames belong to the installed baseline.
+// The default reservation retains this complete peak until final close.
+// Completed automatic keyed Content alone uses the explicit retained census
+// below after its original constructors/I/O retire and local aliases are cut.
+// No phase/GC credit is inferred. Fixed VM stack frames belong to the baseline.
 fn file_capture_metadata_capacity(
   selection : NativeRelationFileSelection,
   limits : NativeRelationFileLimits,
@@ -661,4 +663,36 @@ fn file_capture_construction_capacity(
     }
   }
   Some((metadata_retained, metadata_execution))
+}
+
+///|
+// Steady original keyed capture after transport/document/page completion. The
+// RowRun's checked rows retain THEIR own reservation. This holder keeps every
+// optional slot conservatively, failure/current/close frontiers and original
+// Content; it drops no live output or consumed work/attempt history.
+fn file_capture_keyed_retained_capacity(
+  content : NativeRelationFileContent,
+) -> (Int64, Int64)? {
+  guard native_relation_file_content_retained_capacity(content)
+    is Some((retained, execution)) &&
+    @execution.preparation_representation_cost({
+      // Same holder H1/R27/W8 and acquisition H1/R4/W1, all26 Some wrappers;
+      // first failure H9/R10/W8; original verify/cleanup closures H3/R3;
+      // current/return/close frontier H11/R13/W11; keyed H10/R14/W10.
+      // No selection copy, transport payload, parser/index, quote walk or
+      // writer remains. Installation provider/contract originals are borrowed.
+      record_headers: 1L + 1L + 26L + 9L + 3L + 11L + 10L,
+      reference_slots: 27L + 4L + 26L + 10L + 3L + 13L + 14L,
+      scalar_words: 8L + 1L + 26L + 8L + 11L + 10L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(controls) &&
+    @execution.checked_preparation_add_product(retained, controls, 1L)
+    is Some(retained) &&
+    @execution.checked_preparation_add_product(execution, controls, 1L)
+    is Some(execution) else {
+    return None
+  }
+  Some((retained, execution))
 }

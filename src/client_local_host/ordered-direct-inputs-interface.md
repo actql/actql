@@ -87,5 +87,8 @@ a range nor prepares a sequence again, observes currentness, grants execution or
 revives a retired Run. The caller keeps the actual managed Run and funds any
 subsequent view. An installed keyed Model input may omit a duplicate producer
 vector: the existing nominal lookup supplies its retained original left/right
-inputs through the checked join handoff. Explicit vectors still require all
+inputs through the checked join handoff. That entry accepts the same retained
+full sequence and selects the checked JOIN-to-Model range once, excluding the
+Model marker and every later occurrence; other entries keep the exact-prefix
+requirement. Explicit vectors still require all
 original bindings; no caller-authored rows or new Source reads are substituted.

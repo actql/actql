@@ -479,3 +479,54 @@ test "Native Content canonical record geometry preserves extreme originals and m
     )
   }
 }
+
+///|
+test "Native captured Content retained inventory keeps original records and actual Map backing after I/O" {
+  let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY").unwrap()
+  let library = @sqlite.load_library(path).captured_content_stage(
+    "retained library",
+  )
+  let (store, authority, _) = native_content_store_fixture(
+    "retained-original",
+    16L,
+    library,
+    diagnostic_ceiling=Some(128),
+  )
+  let bytes = b"original"
+  let original = native_content_candidate(authority, bytes)
+  let child = store
+    .prepare_captured_content_custody(
+      original,
+      native_payload_cid("retained-original-holding"),
+    )
+    .captured_content_stage("retained child")
+  assert_true(child.retained_inventory() is None)
+  child.persist(bytes).captured_content_stage("retained persist")
+  child.confirm(2).captured_content_stage("retained confirm")
+  assert_true(child.retained_inventory() is None)
+  assert_true(child.retry_cleanup().captured_content_stage("retained cleanup"))
+  let inventory = child.retained_inventory().unwrap()
+  // Original Map retains its actual allocated buckets even after entry removal.
+  assert_eq(store.active_writers.length(), 0)
+  assert_true(store.active_writers.capacity() > 0)
+  assert_eq(
+    inventory.reference_slots,
+    18L + store.active_writers.capacity().to_int64(),
+  )
+  assert_eq(inventory.record_headers, 10L)
+  assert_eq(inventory.scalar_words, 18L)
+  assert_eq(
+    inventory.owned_wire_bytes,
+    child.intent.length().to_int64() + child.retired_record.length().to_int64(),
+  )
+  assert_eq(
+    inventory.owned_utf16_units,
+    child.key.length().to_int64() +
+    child.staging.length().to_int64() +
+    child.name.length().to_int64(),
+  )
+  assert_true(child.matches_confirmed(original))
+  assert_true(store.close().captured_content_stage("retained Store close"))
+  assert_true(child.retained_inventory() is None)
+  assert_true(library.close_checked() is Err(@sqlite.Physical(_)))
+}

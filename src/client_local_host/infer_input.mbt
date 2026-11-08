@@ -276,9 +276,17 @@ pub fn start_client_composed_infer_input(
       @publication_host.client_infer_occurrence_preparation(occurrence),
       @execution.generated_sequence_owner(sequence),
     ) ||
-    @execution.generated_sequence_step_count(sequence) != step {
+    (
+      @execution.generated_sequence_step_count(sequence) != step &&
+      !(keyed is Some(_) &&
+      inputs.is_empty() &&
+      @execution.generated_sequence_step_count(sequence) > step)
+    ) {
     return Err(UnsupportedProgram)
   }
+  // The installed keyed root can borrow the retained full sequence. Only its
+  // checked JOIN-to-Model range is selected below, once; later occurrences
+  // never enter this executor. Other entries still require an exact prefix.
   for index in 0..<step {
     if @execution.generated_sequence_step_index_at(sequence, index) !=
       Some(index) {

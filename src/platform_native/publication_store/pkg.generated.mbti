@@ -37,6 +37,7 @@ pub fn CapturedContentCustody::confirm(Self, Int) -> Result[Unit, NativePublicat
 pub fn CapturedContentCustody::matches_confirmed(Self, @run_publication.CapturedContentReference) -> Bool
 pub fn CapturedContentCustody::persist(Self, Bytes) -> Result[Unit, NativePublicationStoreIssue]
 pub fn CapturedContentCustody::restore(Self) -> Result[Unit, NativePublicationStoreIssue]
+pub fn CapturedContentCustody::retained_inventory(Self) -> @execution_relation.PreparationRepresentationUnits?
 pub fn CapturedContentCustody::retry_cleanup(Self) -> Result[Bool, NativePublicationStoreIssue]
 
 type ConfirmedPayloadDelivery

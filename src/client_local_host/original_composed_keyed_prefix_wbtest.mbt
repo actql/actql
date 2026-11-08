@@ -282,13 +282,34 @@ fn original_composed_keyed_consumer(
     )
     .unwrap()
     .unwrap()
-  let prefix = prepare_client_composed_infer_prefix(
-    model.graph.owner,
-    model._occurrence,
-    contracts,
-    source_query_original_values,
-    fragment_body=Some(source_query_original_fragment),
-  ).unwrap()
+  let prefix = if retained_input_root {
+    let installed = original_composed_keyed_installed_plan(
+      prepared, request, contracts, model, declaration,
+    )
+    let sequence = prepared_installed_effect_model_sequence(
+      installed,
+      model.graph,
+    ).unwrap()
+    let (_, _, step) = @publication_host.client_infer_occurrence_coordinates(
+      model._occurrence,
+    )
+    assert_true(@execution.generated_sequence_step_count(sequence) > step)
+    assert_true(
+      physical_equal(
+        sequence,
+        prepared_installed_effect_model_sequence(installed, model.graph).unwrap(),
+      ),
+    )
+    sequence
+  } else {
+    prepare_client_composed_infer_prefix(
+      model.graph.owner,
+      model._occurrence,
+      contracts,
+      source_query_original_values,
+      fragment_body=Some(source_query_original_fragment),
+    ).unwrap()
+  }
   let ledger = match request_parent {
     Some((parent, _, _)) => parent.ledger
     None =>

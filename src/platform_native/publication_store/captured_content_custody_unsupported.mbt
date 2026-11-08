@@ -57,3 +57,10 @@ pub fn CapturedContentCustody::retry_cleanup(
 ) -> Result[Bool, NativePublicationStoreIssue] {
   Err(UnsupportedTarget)
 }
+
+///|
+pub fn CapturedContentCustody::retained_inventory(
+  _self : Self,
+) -> @execution.PreparationRepresentationUnits? {
+  None
+}

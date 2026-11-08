@@ -462,3 +462,105 @@ fn NativeRelationFileCapture::advance_content(
   }
   Ok(())
 }
+
+///|
+// Completed Content keeps its original candidate/issuer/value and Store child.
+// Retain the Common reference workspace until the Model input receipt; only
+// the finished Native projection/page writer/storage constructors disappear.
+fn native_relation_file_content_retained_capacity(
+  content : NativeRelationFileContent,
+) -> (Int64, Int64)? {
+  guard content.phase is CompleteContentPage &&
+    content.io_complete &&
+    !content.issuing &&
+    content.bytes is None &&
+    content.input is Some(input) &&
+    content.candidate is Some(candidate) &&
+    content.value is Some(_) &&
+    content.issuer is Some(_) &&
+    content.custody is Some(custody) &&
+    custody.matches_confirmed(
+      @publication_host.client_captured_content_candidate(candidate),
+    ) &&
+    custody.retained_inventory() is Some(storage) &&
+    @publication_host.client_captured_content_workspace_capacity(
+      input.reference_limits.max_bytes,
+    )
+    is Some((reference_retained, reference_execution)) &&
+    @execution.compose_preparation_representation([
+      storage,
+      {
+        // Same holder H1/R6/W4, six optional slots H6/R6/W6 and original
+        // issuer identity/callbacks/domain delegation H7/R10/W3. Input DATA
+        // remains borrowed from its original caller-funded occurrence.
+        record_headers: 1L + 6L + 7L,
+        reference_slots: 6L + 6L + 10L,
+        scalar_words: 4L + 6L + 3L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      },
+    ])
+    is Some(inventory) &&
+    @execution.preparation_representation_cost(inventory) is Some(bytes) &&
+    @execution.checked_preparation_add_product(bytes, reference_retained, 1L)
+    is Some(retained) &&
+    @execution.checked_preparation_add_product(bytes, reference_execution, 1L)
+    is Some(execution) else {
+    return None
+  }
+  Some((retained, execution))
+}
+
+///|
+// Called only in a later advance frame, after raw/page constructors returned.
+// The same completed RowRun/Store/ContentRef remain live. Drop finished local
+// aliases BEFORE contracting this original reservation; callbacks may retire
+// the parent, so success never bypasses the original post-current fence.
+fn NativeRelationFileCapture::retire_keyed_content_construction(
+  self : Self,
+  content : NativeRelationFileContent,
+) -> Result[Unit, NativeRelationFileIssue] {
+  guard self.retained_keyed_original() &&
+    self.phase is Parsed &&
+    self.transport_retired &&
+    self.transient_retired &&
+    self.root is None &&
+    self.rejected_root is None &&
+    self.reader is None &&
+    self.rejected_reader is None &&
+    self.observation is None &&
+    self.document is None &&
+    self.target is None &&
+    self.content is Some(original) &&
+    physical_equal(original, content) &&
+    self.ledger is Some(ledger) &&
+    self.metadata is Some(metadata) &&
+    file_capture_keyed_retained_capacity(content) is Some((retained, execution)) else {
+    return Err(Unavailable)
+  }
+  self.buffer = None
+  self.bytes = None
+  self.charge = None
+  self.response_provider = None
+  self.prepared_contract = None
+  self.declaration = None
+  self.selection = None
+  match
+    @resources.shrink_capacity_reservation(
+      ledger, metadata, retained, execution,
+    ) {
+    Err(issue) => return Err(Resource(issue))
+    Ok(_) => ()
+  }
+  guard self.retained_keyed_original() &&
+    self.phase is Parsed &&
+    self.content is Some(original) &&
+    physical_equal(original, content) &&
+    self.ledger is Some(original_ledger) &&
+    physical_equal(original_ledger, ledger) &&
+    self.metadata is Some(original_metadata) &&
+    physical_equal(original_metadata, metadata) else {
+    return Err(Unavailable)
+  }
+  Ok(())
+}

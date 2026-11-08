@@ -1540,6 +1540,7 @@ fn NativeRelationFileCapture::advance_original(
             if !self.retained_keyed_original() {
               raise FileCaptureStop(Unavailable)
             }
+            file_require(self.retire_keyed_content_construction(content))
           }
           self.phase = Captured
         } else {
