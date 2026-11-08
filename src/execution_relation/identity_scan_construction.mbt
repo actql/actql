@@ -33,7 +33,11 @@ pub fn completed_relation_identity_scan_start_construction_capacity(
       records: 28L,
       record_references: 63L,
       record_words: 65L,
-      reference_arrays: if retain_body { 4L } else { 3L },
+      reference_arrays: if retain_body {
+        4L
+      } else {
+        3L
+      },
       reference_items: width + (if retain_body { 1L } else { 0L }),
       scalar_arrays: 6L,
       scalar_items: 0L,
@@ -297,19 +301,26 @@ fn identity_scan_add_retained_body_capacity(
   value : CompletedRelationIdentityScan,
   base : PreparationRepresentationUnits,
 ) -> ExecutionCapacity? {
-  guard value.retained_body is Some(parts) else { return identity_scan_capacity(base) }
+  guard value.retained_body is Some(parts) else {
+    return identity_scan_capacity(base)
+  }
   guard @shape.collection_construction_extent({
-    records: 4L,
-    record_references: 8L,
-    record_words: 4L,
-    reference_arrays: 1L,
-    reference_items: parts.capacity().to_int64() + 3L,
-    scalar_arrays: 0L,
-    scalar_items: 0L,
-    maps: 0L,
-    map_entries: 0L,
-  }) is Some(storage) else { return None }
-  let text = value.retained_body_units + @admitted.wire_emit_fragment_byte_bound().to_int64() + 3L
+      records: 4L,
+      record_references: 8L,
+      record_words: 4L,
+      reference_arrays: 1L,
+      reference_items: parts.capacity().to_int64() + 3L,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(storage) else {
+    return None
+  }
+  let text = value.retained_body_units +
+    @admitted.wire_emit_fragment_byte_bound().to_int64() +
+    3L
   identity_scan_capacity({
     record_headers: base.record_headers + storage.record_headers,
     reference_slots: base.reference_slots + storage.reference_slots,

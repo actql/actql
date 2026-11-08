@@ -220,9 +220,16 @@ fn retained_identity_body_fixture(
   retained? : Bool = true,
 ) -> CompletedRelationIdentityScan {
   start_completed_relation_identity_scan(
-    source, 2, stream_value_limits(), row_wire_limits(), row_wire_limits(),
-    publication_schema_limits(), 10000, 100000,
-    incremental_metadata=true, retain_body=retained,
+    source,
+    2,
+    stream_value_limits(),
+    row_wire_limits(),
+    row_wire_limits(),
+    publication_schema_limits(),
+    10000,
+    100000,
+    incremental_metadata=true,
+    retain_body=retained,
   ).unwrap()
 }
 
@@ -233,17 +240,26 @@ test "retained identity body keeps exact emitted Unicode relation and its origin
   let scan = retained_identity_body_fixture(source)
   assert_true(completed_relation_identity_scan_body(scan, foreign) is None)
   let before = scan.work
-  assert_eq(advance_completed_relation_identity_scan(scan, 31,
-    construction_capacity=Some(execution_capacity(0L, 0L).unwrap()),
-  ).unwrap(), (false, 0))
+  assert_eq(
+    advance_completed_relation_identity_scan(
+      scan,
+      31,
+      construction_capacity=Some(execution_capacity(0L, 0L).unwrap()),
+    ).unwrap(),
+    (false, 0),
+  )
   assert_eq(scan.work, before)
   let mut done = false
   for _ in 0..<10000 {
     let next = completed_relation_identity_scan_next_construction_capacity(scan).unwrap()
-    done = advance_completed_relation_identity_scan(scan, 31,
-      construction_capacity=Some(next),
-    ).unwrap().0
-    if done { break }
+    done = advance_completed_relation_identity_scan(
+        scan,
+        31,
+        construction_capacity=Some(next),
+      ).unwrap().0
+    if done {
+      break
+    }
   }
   assert_true(done)
   let receipt = finish_completed_relation_identity_scan(scan).unwrap()
@@ -251,7 +267,10 @@ test "retained identity body keeps exact emitted Unicode relation and its origin
   // Independently authored canonical logical Relation, not an expected value
   // copied from product emission. References remain ordinary typed cells.
   let expected = "{\"sort\":\"relation\",\"value\":[{\"n\":1,\"s\":\"é\"},{\"n\":2,\"s\":\"😀\"}]}"
-  assert_eq(completed_relation_identity_scan_body(scan, receipt), Some(expected))
+  assert_eq(
+    completed_relation_identity_scan_body(scan, receipt),
+    Some(expected),
+  )
   assert_true(completed_relation_identity_scan_body(scan, foreign) is None)
   assert_eq(scan.work, work)
   assert_true(completed_relation_export_matches_output(receipt, source))
@@ -259,11 +278,17 @@ test "retained identity body keeps exact emitted Unicode relation and its origin
   // Existing non-retaining use still emits the same identity and stores no
   // body; it does not silently inherit the optional Native retention purpose.
   let plain = retained_identity_body_fixture(source, retained=false)
-  while !advance_completed_relation_identity_scan(plain, 31).unwrap().0 { () }
+  while !advance_completed_relation_identity_scan(plain, 31).unwrap().0 {
+    ()
+  }
   let plain_receipt = finish_completed_relation_identity_scan(plain).unwrap()
-  assert_eq(logical_relation_cid(completed_relation_export_identity(receipt)),
-    logical_relation_cid(completed_relation_export_identity(plain_receipt)))
-  assert_true(completed_relation_identity_scan_body(plain, plain_receipt) is None)
+  assert_eq(
+    logical_relation_cid(completed_relation_export_identity(receipt)),
+    logical_relation_cid(completed_relation_export_identity(plain_receipt)),
+  )
+  assert_true(
+    completed_relation_identity_scan_body(plain, plain_receipt) is None,
+  )
   assert_false(cancel_completed_relation_identity_scan(scan))
   assert_true(completed_relation_identity_scan_body(scan, receipt) is None)
   assert_true(completed_output_available(source))
@@ -275,9 +300,13 @@ test "retained identity body cancellation cuts unfinished chunks without retirin
   let scan = retained_identity_body_fixture(source)
   for _ in 0..<10 {
     let next = completed_relation_identity_scan_next_construction_capacity(scan).unwrap()
-    assert_false(advance_completed_relation_identity_scan(scan, 1,
-      construction_capacity=Some(next),
-    ).unwrap().0)
+    assert_false(
+      advance_completed_relation_identity_scan(
+        scan,
+        1,
+        construction_capacity=Some(next),
+      ).unwrap().0,
+    )
   }
   assert_true(scan.retained_body is Some(_))
   assert_true(cancel_completed_relation_identity_scan(scan))
