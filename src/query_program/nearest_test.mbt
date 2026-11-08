@@ -284,7 +284,10 @@ test "NEAREST reuses one source producer without filtering the candidate corpus"
   let body = semantic(program)
   // Capture is shared by both demands. The query predicate remains downstream
   // of that producer and cannot silently shrink the explicitly named corpus.
-  assert_true(body.contains("\"filter\":{\"literal\":true}"))
+  assert_false(body.contains("\"filter\":{\"literal\":true}"))
+  let before_main = body.split("\"id\":\"" + context.stage_id + "\"").to_array()
+  assert_eq(before_main.length(), 2)
+  assert_false(before_main[0].contains("\"filter\":"))
   assert_true(
     body.contains(
       "\"filter\":{\"eq\":[{\"field\":\"request_id\"},{\"literal\":\"q1\"}]}",

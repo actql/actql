@@ -4,6 +4,8 @@ fn check_pair_acquisitions(
   program : @program.Program,
   environment : @check.CheckEnvironment,
   supplied : @wire.Cursor?,
+  expected_names : Array[String],
+  expected_schema : @schema.Schema,
 ) -> @publication_host.PreparedClientProgram raise {
   let prepared = match
     @publication_host.prepare_parsed_effect_free_client_program(
@@ -43,23 +45,76 @@ fn check_pair_acquisitions(
   }).unwrap()
   let counts : Map[Int, Int] = Map([])
   let mut count = 0
+  let mut whole_count = 0
+  let names = []
   for index in 0..<@sourceviews.count(originals) {
     let original = @sourceviews.at(originals, index).unwrap()
     let source_index = counts.get(original.stage_index).unwrap_or(0)
-    let acquisition = @publication_host.prepare_client_query_acquisition(
+    let acquisition = @publication_host.prepare_client_source_acquisition(
       prepared,
       original.stage_index,
       source_index,
     ).unwrap()
-    assert_eq(@source_resolution.query_acquisition_filter_index(acquisition), 0)
     assert_true(
-      @source_resolution.query_acquisition_capture(acquisition)
-      is @pipeline.Step(1),
+      @publication_host.client_source_acquisition_matches_program(
+        prepared,
+        original.stage_index,
+        source_index,
+        acquisition,
+      ),
     )
+    let target = @source_resolution.source_acquisition_input(acquisition)
+    guard target is @pipeline.Input(input_index) else {
+      fail("Source acquisition must retain its actual input binding")
+    }
+    let pipeline = @source_resolution.source_acquisition_pipeline(acquisition)
+    let (name, _) = @pipeline.input_at(pipeline, input_index).unwrap()
+    assert_eq(name, original.input_name)
+    names.push(name)
+    let schema = @pipeline.schema_at(pipeline, target).unwrap()
+    assert_eq(@schema.field_count(schema), @schema.field_count(expected_schema))
+    for field_index in 0..<@schema.field_count(expected_schema) {
+      let actual = @schema.field_at(schema, field_index).unwrap()
+      let expected = @schema.field_at(expected_schema, field_index).unwrap()
+      assert_eq(actual.name, expected.name)
+      assert_eq(actual.presence, expected.presence)
+      assert_true(@contract.type_equal(actual.contract, expected.contract, 100))
+    }
+    match
+      @source_resolution.source_acquisition_route(acquisition, 1000000).unwrap() {
+      WholeInputRoute(selected) => {
+        whole_count += 1
+        assert_true(physical_equal(selected, acquisition))
+        assert_true(
+          @publication_host.prepare_client_query_acquisition(
+            prepared,
+            original.stage_index,
+            source_index,
+          )
+          is Err(UnsupportedAcquisition(@source_resolution.UnsupportedShape)),
+        )
+      }
+      QueryRoute(query) => {
+        assert_true(
+          physical_equal(
+            @source_resolution.query_acquisition_owner(query),
+            @source_resolution.source_acquisition_owner(acquisition),
+          ),
+        )
+        assert_eq(@source_resolution.query_acquisition_input(query), target)
+        assert_eq(@source_resolution.query_acquisition_filter_index(query), 0)
+        assert_true(
+          @source_resolution.query_acquisition_capture(query)
+          is @pipeline.Step(1),
+        )
+      }
+    }
     counts[original.stage_index] = source_index + 1
     count += 1
   }
   assert_eq(count, 2)
+  assert_true(whole_count > 0)
+  assert_eq(names, expected_names)
   prepared
 }
 
@@ -88,6 +143,7 @@ test "unfiltered SQL and Pipe JOIN retain two independent Source acquisitions" {
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   )
+  let context = direct_pair_context()
   for
     text in [
       "SELECT l.id AS id FROM remote AS l JOIN second AS r ON l.id = r.id MAX_OUTPUT_ROWS 4",
@@ -95,10 +151,17 @@ test "unfiltered SQL and Pipe JOIN retain two independent Source acquisitions" {
     ] {
     let program = compile_query_script(
       @query.parse_query_script(text, syntax_limits()).unwrap(),
-      direct_pair_context(),
+      context,
       construction_limits(),
     ).unwrap()
-    check_pair_acquisitions(program, environment, None) |> ignore
+    check_pair_acquisitions(
+      program,
+      environment,
+      None,
+      ["remote", "second"],
+      context.input_schemas[0].1,
+    )
+    |> ignore
   }
 }
 
@@ -144,11 +207,15 @@ test "independent JOIN acquisition preserves authored parameter identity" {
     program,
     environment,
     Some(from_unpivot_public_cursor("{\"minimum\":0}")),
+    ["remote", "second"],
+    base.input_schemas[0].1,
   )
   let second = check_pair_acquisitions(
     program,
     environment,
     Some(from_unpivot_public_cursor("{\"minimum\":1}")),
+    ["remote", "second"],
+    base.input_schemas[0].1,
   )
   let first_identity = @publication_host.prepared_client_identity(first)
   let second_identity = @publication_host.prepared_client_identity(second)
@@ -189,5 +256,12 @@ test "unfiltered scan JOIN captures both Sources before local computation" {
     context,
     construction_limits(),
   ).unwrap()
-  check_pair_acquisitions(program, environment, None) |> ignore
+  check_pair_acquisitions(
+    program,
+    environment,
+    None,
+    ["objects", "second"],
+    base.input_schemas[0].1,
+  )
+  |> ignore
 }
