@@ -1,15 +1,26 @@
 ///|
+// Per-invocation selection retained by the existing command, not another
+// Model, Resource or cleanup owner. The provider and profile are the original
+// admitted Project objects; the Limits are selected once from this Graph.
+priv struct LocalProjectMockEffectModelInput {
+  graph : @run_host.ClientInferPlanGraph
+  _retained_provider : @model.ModelProvider
+  _retained_profile : @compiler_environment.ModelMockProfile
+  _retained_limits : @infer.Limits
+}
+
+///|
 // The metadata Read retains the selected original execution contract. The
 // SAME Request funds and retains every measured Graph before the first Task
 // compiler consumes it. No Model call, resource grant or new input is issued.
-fn[I] LocalProjectMockDeclarations::prepare_effect_graphs(
+fn[I] LocalProjectMockDeclarations::prepare_effect_models(
   self : Self,
   parent : @local_values.ClientRequestPreparation[I],
   input : I,
   prepared : @run_host.PreparedClientEffectComputation,
   environment : @checked.CheckEnvironment,
   contracts : @local_values.ClientInstalledSequenceContracts,
-) -> Array[@run_host.ClientInferPlanGraph] raise ClientStop {
+) -> Array[LocalProjectMockEffectModelInput] raise ClientStop {
   guard !self.closing &&
     !self.retired &&
     self.model_environment is Some((_, original_environment)) &&
@@ -19,7 +30,7 @@ fn[I] LocalProjectMockDeclarations::prepare_effect_graphs(
     is Some(occurrences) else {
     stop("LocalOriginalModelUnavailable")
   }
-  let graphs = []
+  let models = []
   for occurrence in occurrences {
     let mut selected : LocalProjectMockModelOriginal? = None
     for entry in self.models {
@@ -42,10 +53,12 @@ fn[I] LocalProjectMockDeclarations::prepare_effect_graphs(
       selected.installation is Some(_) &&
       @compiler_environment.model_mock_execution_matches(
         profile, normalized, execution,
-      ) &&
-      self.model_provider(execution) is Ok(_) else {
+      ) else {
       stop("LocalOriginalModelUnavailable")
     }
+    let provider = self
+      .model_provider(execution)
+      .unwrap_or_else(() => stop("LocalOriginalModelUnavailable"))
     let graph = @local_values.prepare_request_model_graph(
       parent,
       input,
@@ -55,7 +68,16 @@ fn[I] LocalProjectMockDeclarations::prepare_effect_graphs(
       manifests=native_request_manifests,
       compilation_limits=@run_host.client_standard_pure_compilation_limits(),
     ).unwrap_or_else(() => stop("LocalOriginalModelGraphUnavailable"))
-    graphs.push(graph)
+    let limits = @infer.prepared_composed_bounds(occurrence, graph).unwrap_or_else(() => {
+        stop("LocalOriginalModelBoundsUnavailable")
+      },
+    )
+    models.push({
+      graph,
+      _retained_provider: provider,
+      _retained_profile: profile,
+      _retained_limits: limits,
+    })
   }
-  graphs
+  models
 }

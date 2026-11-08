@@ -16,6 +16,7 @@ priv struct LocalEffectFirstCompilation {
   definition : @publication.PublicationContract
   issued : @run_host.ClientEffectIssuedNormalizationMaterials
   _retained_sources : Array[LocalProjectMockEffectSourceInput]
+  _retained_models : Array[LocalProjectMockEffectModelInput]
 }
 
 ///|
@@ -46,6 +47,7 @@ fn local_effect_first_compilation(
   now : String,
   until : String,
   infers? : Array[@run_host.ClientInferPlanGraph] = [],
+  models? : Array[LocalProjectMockEffectModelInput] = [],
   request? : @run_host.ClientRequestIdentity? = None,
   source_inputs? : Array[LocalProjectMockEffectSourceInput] = [],
 ) -> LocalEffectFirstCompilation raise ClientStop {
@@ -111,7 +113,14 @@ fn local_effect_first_compilation(
     normalization,
     request=Some(request),
   ).unwrap_or_else(() => stop("LocalEffectOriginalMaterialsUnavailable"))
-  { request, allowed, definition, issued, _retained_sources: source_inputs, }
+  {
+    request,
+    allowed,
+    definition,
+    issued,
+    _retained_sources: source_inputs,
+    _retained_models: models,
+  }
 }
 
 ///|

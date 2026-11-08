@@ -409,6 +409,17 @@ Model component executes that retained prefix through the same bounded input
 owner, then retains its original Model and output cleanup duties. This private
 composition supplies neither permission nor another Run or resource admission.
 
+The Native command also retains each original admitted Mock provider and
+profile beside its Request-owned Model Graph and the installed Limits selected
+from that graph before the first Effect compilation. The compiler consumes
+those same graphs; later execution uses the retained selection rather than
+looking up the provider or selecting the bounds again. Provider and profile
+admission originals retain their nominal meaning. Limits remain ordinary
+immutable configuration DATA; copying or deriving that configuration does not
+create an identity requirement or supply physical backing. The complete Native
+constructor, Model/read Scope and output/failed-child overlap still require
+admission on the same Request before execution begins.
+
 The original preparation, compiled admission and graph stay together in the same
 Host preparation membership. A private restored-membership index rejects a
 copied bundle; it does not create a second execution Owner or a resume permit.

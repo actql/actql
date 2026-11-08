@@ -62,7 +62,7 @@ fn native_mock_readme_content_join(
   graph : @run_host.ClientInferPlanGraph,
 ) -> Unit raise {
   let occurrence = graph.occurrence
-  let limits = @infer_test.prepared_composed_bounds(occurrence, graph).native_content_join_stage(
+  let limits = @infer.prepared_composed_bounds(occurrence, graph).native_content_join_stage(
     "original prepared Model bounds",
   )
   let compiled = @run_host.client_effect_allowed_infer_run(first.allowed).unwrap()
@@ -170,7 +170,7 @@ fn native_mock_readme_content_join_adopt(
   graph : @run_host.ClientInferPlanGraph,
   compiled : @run_host.ClientCompiledRun,
   scope : @run_host.ClientModelReadScope,
-  limits : @infer_test.Limits,
+  limits : @infer.Limits,
 ) -> Unit raise {
   let owner = @local_values.begin_request_effect_model_managed_run(
     facility.parent,
