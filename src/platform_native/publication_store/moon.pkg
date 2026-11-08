@@ -53,6 +53,7 @@ options(
     "effect_capture_custody_unsupported.mbt": [ "not", "native" ],
     "effect_source_custody_unsupported.mbt": [ "not", "native" ],
     "store_native_wbtest.mbt": [ "native" ],
+    "delivery_chunk_native_wbtest.mbt": [ "native" ],
     "open_failure_custody_native_wbtest.mbt": [ "native" ],
     "open_failure_gap_wbtest.mbt": [ "native" ],
     "checked_retirement_native_wbtest.mbt": [ "native" ],
