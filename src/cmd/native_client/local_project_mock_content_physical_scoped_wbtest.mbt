@@ -114,6 +114,31 @@ test "Native README reuses original Source evidence in its left Relation and Mod
 }
 
 ///|
+test "Native README records actual per attempt bytes and finality without refund on retirement" {
+  assert_eq(@env.get_env_var("ACTQL_TEST_NATIVE_ATTEMPT_USAGE"), Some("1"))
+  native_project_mock_model_backed_read(
+    false,
+    readme_request=true,
+    effect_compilation=true,
+    effect_source_inputs=true,
+    content_join=true,
+  )
+}
+
+///|
+test "Native raw Store refusal retains actual per attempt usage and unresolved finality" {
+  assert_eq(@env.get_env_var("ACTQL_TEST_NATIVE_ATTEMPT_USAGE"), Some("1"))
+  assert_eq(@env.get_env_var("ACTQL_TEST_NATIVE_RAW_STORE_REFUSAL"), Some("1"))
+  native_project_mock_model_backed_read(
+    false,
+    readme_request=true,
+    effect_compilation=true,
+    effect_source_inputs=true,
+    content_join=true,
+  )
+}
+
+///|
 // Actual same Store/SQLite/Root/Writer/Reader, with authored raw metadata DATA.
 // No Source authority, Journal activation, Model send or normal funding proof.
 test "Native lookup raw Store preserves exact bytes and original purpose through reopen" {
@@ -846,6 +871,9 @@ fn native_mock_readme_content_join_adopt(
     None
   }
   let mut measured_text = 0L
+  let attempt_usage = @env.get_env_var("ACTQL_TEST_NATIVE_ATTEMPT_USAGE") ==
+    Some("1")
+  let native_usages : Array[@run_host.ClientKeyedNativeAttemptUsage] = []
   let content_children : Array[@row_file.NativeRelationFileCapture] = []
   let library = @local_sqlite.load_library(
     @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY").unwrap(),
@@ -1093,7 +1121,8 @@ fn native_mock_readme_content_join_adopt(
       -1,
     )
     let request_value = @run_host.client_keyed_request_value(request, keyed).unwrap()
-    if @env.get_env_var("ACTQL_TEST_NATIVE_ACTIVATION") == Some("1") {
+    let native_activation = if @env.get_env_var("ACTQL_TEST_NATIVE_ACTIVATION") ==
+      Some("1") {
       let activation = @run_host.prepare_client_keyed_native_activation(
         lookup,
         request,
@@ -1131,6 +1160,25 @@ fn native_mock_readme_content_join_adopt(
         is Err(_),
       )
       assert_eq(@run_host.client_keyed_lookup_usage(left), before)
+      Some(activation)
+    } else {
+      None
+    }
+    if attempt_usage {
+      let usage = @run_host.client_keyed_native_attempt_usage(
+        native_activation.unwrap(),
+      )
+      assert_eq(
+        (
+          usage.request_bytes,
+          usage.response_wire_bytes,
+          usage.response_decoded_bytes,
+        ),
+        (0L, 0L, 0L),
+      )
+      assert_eq((usage.started_ms, usage.observed_ms), (-1L, -1L))
+      assert_false(usage.usage_final)
+      native_usages.push(usage)
     }
     if planned_keys is Some(keys) {
       guard @json.parse(@publication.publication_contract_json(keys))
@@ -1293,6 +1341,19 @@ fn native_mock_readme_content_join_adopt(
         }
       }
       assert_true(refused)
+      if attempt_usage {
+        let usage = native_usages[row]
+        assert_true(usage.request_bytes > 0L)
+        assert_eq(
+          usage.response_wire_bytes.to_string(),
+          @env.get_env_var("ACTQL_TEST_NATIVE_RAW_SNAPSHOT_BYTES").unwrap(),
+        )
+        assert_eq(usage.response_decoded_bytes, usage.response_wire_bytes)
+        assert_true(
+          usage.observed_ms >= usage.started_ms && usage.started_ms >= 0L,
+        )
+        assert_false(usage.usage_final)
+      }
       content_children.push(content)
       break
     }
@@ -1327,6 +1388,24 @@ fn native_mock_readme_content_join_adopt(
       }
     }
     assert_true(done)
+    if attempt_usage {
+      let original = native_activation.unwrap()
+      let usage = @run_host.client_keyed_native_attempt_usage(original)
+      assert_true(physical_equal(usage, native_usages[row]))
+      let wire = @sourceviews.keyed_row_request_wire(
+        request_value, 65536, 4096, 32,
+      ).unwrap()
+      assert_eq(usage.request_bytes, @utf8.encode(wire).length().to_int64())
+      assert_eq(
+        usage.response_wire_bytes.to_string(),
+        @env.get_env_var("ACTQL_TEST_NATIVE_RAW_SNAPSHOT_BYTES").unwrap(),
+      )
+      assert_eq(usage.response_decoded_bytes, usage.response_wire_bytes)
+      assert_true(
+        usage.observed_ms >= usage.started_ms && usage.started_ms >= 0L,
+      )
+      assert_true(usage.usage_final)
+    }
     if @env.get_env_var("ACTQL_TEST_NATIVE_RAW_SNAPSHOT") == Some("1") {
       let expected_cid = @env.get_env_var("ACTQL_TEST_NATIVE_RAW_SNAPSHOT_CID").unwrap()
       let expected_bytes = @env.get_env_var(
@@ -1668,12 +1747,42 @@ fn native_mock_readme_content_join_adopt(
     )
   }
   if left_identity is Some(identity) {
-    assert_true(
-      physical_equal(
-        @run_host.client_keyed_native_left_identity(lookup).unwrap(),
-        identity,
-      ),
+    if raw_refusal {
+      // Original lookup refusal closes public identity access even while its
+      // metadata/consumed work remain held for the same cleanup owner.
+      assert_true(@run_host.client_keyed_native_left_identity(lookup) is None)
+    } else {
+      assert_true(
+        physical_equal(
+          @run_host.client_keyed_native_left_identity(lookup).unwrap(),
+          identity,
+        ),
+      )
+    }
+  }
+  let measured_usage = native_usages.map(value => {
+    (
+      value.request_bytes,
+      value.response_wire_bytes,
+      value.response_decoded_bytes,
+      value.started_ms,
+      value.observed_ms,
+      value.usage_final,
     )
+  })
+  if attempt_usage {
+    let totals = @run_host.client_keyed_lookup_usage(left)
+    assert_eq(totals.0, native_usages.length().to_int64())
+    assert_eq(totals.1, native_usages.length().to_int64())
+    let mut requests = 0L
+    let mut wire = 0L
+    let mut decoded = 0L
+    for usage in native_usages {
+      requests += usage.request_bytes
+      wire += usage.response_wire_bytes
+      decoded += usage.response_decoded_bytes
+    }
+    assert_eq((totals.2, totals.3, totals.4), (requests, wire, decoded))
   }
   // The original response copy still borrows each nominal Content issuer.
   // Keep both actual captures, then retire the same children before the Store.
@@ -1702,6 +1811,21 @@ fn native_mock_readme_content_join_adopt(
       @run_host.client_keyed_native_source_evidence(lookup, 0) is None,
     )
     assert_true(@run_host.client_keyed_native_left_relation(lookup) is None)
+  }
+  if attempt_usage {
+    for index, usage in native_usages {
+      assert_eq(
+        (
+          usage.request_bytes,
+          usage.response_wire_bytes,
+          usage.response_decoded_bytes,
+          usage.started_ms,
+          usage.observed_ms,
+          usage.usage_final,
+        ),
+        measured_usage[index],
+      )
+    }
   }
   assert_true(
     @local_values.cleanup_client_serialization_prefix(

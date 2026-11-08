@@ -853,6 +853,8 @@ pub fn client_keyed_lookup_usage(ClientKeyedLeftRead) -> (Int64, Int64, Int64, I
 
 pub fn client_keyed_native_activation_matches(ClientKeyedNativeActivation, ClientRequestIdentity, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> Bool
 
+pub fn client_keyed_native_attempt_usage(ClientKeyedNativeActivation) -> ClientKeyedNativeAttemptUsage
+
 pub fn client_keyed_native_left_identity(ClientKeyedLookupInput) -> ClientKeyedNativeLeftIdentity?
 
 pub fn client_keyed_native_left_relation(ClientKeyedLookupInput) -> ClientKeyedNativeLeftRelation?
@@ -3378,6 +3380,15 @@ pub struct ClientKeyedNativeActivation {
   reserved_decoded_bytes : Int64
   reserved_duration_ms : Int64
   // private fields
+}
+
+pub struct ClientKeyedNativeAttemptUsage {
+  mut request_bytes : Int64
+  mut response_wire_bytes : Int64
+  mut response_decoded_bytes : Int64
+  mut started_ms : Int64
+  mut observed_ms : Int64
+  mut usage_final : Bool
 }
 
 pub struct ClientKeyedNativeLeftIdentity {
