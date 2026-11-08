@@ -623,6 +623,8 @@ pub fn local_sdk_result_read_selection_parameters(LocalSDKResultReadSelection) -
 
 pub fn local_sdk_result_read_selection_wire(LocalSDKResultReadSelection) -> String
 
+pub fn lookup_request_key_set_tuple_count(PublicationContract) -> Int?
+
 pub fn manifest_read_grant_allows_bytes(PublicationContract, Int) -> Bool
 
 pub fn manifest_read_grant_valid_at(PublicationContract, String) -> Bool

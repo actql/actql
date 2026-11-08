@@ -52,6 +52,8 @@ fn original_keyed_version_history(
   publication_order? : Bool = false,
   publication_refusal? : Bool = false,
   publication_reentry? : Bool = false,
+  pre_dispatch_plan? : Bool = false,
+  pre_plan_failure? : Int = 0,
 ) -> Unit raise {
   let source_contracts = prepare_installed_sequence_contracts(
     source_query_original_registry,
@@ -398,26 +400,203 @@ fn original_keyed_version_history(
   let requested : Array[String] = []
   let mut first_request_retained = 0L
   let mut retained_refusal = false
-  for row in 0..<3 {
-    let preparation = @publication_host.start_client_keyed_lookup_request(
-      lookup, row,
-    ).unwrap()
-    let mut selected = None
-    for _ in 0..<10000 {
-      match
-        @publication_host.advance_client_keyed_lookup_request(
-          lookup, preparation,
-        ) {
-        @publication_host.ClientKeyedRequestContinue(..) => ()
-        @publication_host.ClientKeyedRequestComplete(value, ..) => {
-          selected = Some(value)
+  let pre_dispatch_original : Ref[@publication_host.ClientKeyedRequest?] = Ref(
+    None,
+  )
+  if pre_dispatch_plan {
+    @publication_host.start_client_keyed_lookup_request_plan(lookup).unwrap()
+    for row in 0..<3 {
+      let preparation = @publication_host.start_client_keyed_lookup_request(
+        lookup, row,
+      ).unwrap()
+      let mut request = None
+      for _ in 0..<10000 {
+        match
+          @publication_host.advance_client_keyed_lookup_request(
+            lookup, preparation,
+          ) {
+          @publication_host.ClientKeyedRequestContinue(..) => ()
+          @publication_host.ClientKeyedRequestComplete(value, ..) => {
+            request = Some(value)
+            break
+          }
+          _ => fail("predispatch original Request")
+        }
+      }
+      let request = request.unwrap()
+      if row == 0 {
+        pre_dispatch_original.val = Some(request)
+      }
+      assert_true(
+        @publication_host.observe_client_keyed_request_attempt(request, 1L, 0L)
+        is Err(@publication_host.Assembly("request_plan_not_ready")),
+      )
+      assert_true(
+        @publication_host.client_keyed_lookup_planned_request(lookup, row)
+        is Err(_),
+      )
+      @publication_host.retain_client_keyed_lookup_planned_request(
+        lookup, request,
+      ).unwrap()
+    }
+    assert_true(
+      @publication_host.client_keyed_lookup_planned_request_identity(lookup)
+      is None,
+    )
+    assert_eq(@resources.ledger_usage(ledger).attempts, 1)
+    if pre_plan_failure != 0 {
+      let before = @resources.ledger_usage(ledger)
+      let blocker = if pre_plan_failure == 1 {
+        let available = @resources.ledger_limits(ledger).retained_bytes -
+          before.held_bytes -
+          before.reserved_retention_bytes
+        Some(@resources.reserve_capacity(ledger, available, 0L).unwrap())
+      } else {
+        None
+      }
+      if pre_plan_failure == 2 {
+        reentry.val = Some(() => {
+          let before = @resources.ledger_usage(ledger)
+          reentry_deferred.val = @publication_host.cleanup_client_keyed_lookup_input(
+              lookup, 10000,
+            )
+            is Ok(false)
+          reentry_debit_preserved.val = @resources.ledger_usage(ledger) ==
+            before
+        })
+      }
+      let failed = @publication_host.finish_client_keyed_lookup_request_plan(
+        lookup, 16384, 1024, 20,
+      )
+      if pre_plan_failure == 1 {
+        assert_true(
+          failed is Err(@publication_host.Physical(@resources.RetentionLimit)),
+        )
+      } else {
+        assert_true(
+          failed is Err(@publication_host.Assembly("retired_publication_input")),
+        )
+        assert_true(
+          reentry.val is None &&
+          reentry_deferred.val &&
+          reentry_debit_preserved.val,
+        )
+      }
+      assert_true(
+        @publication_host.client_keyed_lookup_planned_request_identity(lookup)
+        is None,
+      )
+      assert_eq(@resources.ledger_usage(ledger).attempts, before.attempts)
+      assert_eq(
+        @resources.ledger_usage(ledger).transferred_bytes,
+        before.transferred_bytes,
+      )
+      if blocker is Some(blocker) {
+        @resources.settle_capacity(ledger, blocker).unwrap()
+      }
+      let mut retired = false
+      for _ in 0..<10000 {
+        if @publication_host.cleanup_client_original_keyed_prefix_lookup(
+            prefixed_lookup, 1,
+          ).unwrap() {
+          retired = true
           break
         }
-        @publication_host.ClientKeyedRequestFailed(_, ..) =>
-          fail("original version-history request preparation failed")
       }
+      assert_true(retired)
+      // The original left Source is still alive. Retiring the plan must not
+      // turn its former Request back into an unplanned legacy I/O entrance.
+      let retained_failure = @publication_host.observe_client_keyed_request_attempt(
+        pre_dispatch_original.val.unwrap(),
+        1L,
+        0L,
+      )
+      if pre_plan_failure == 1 {
+        assert_true(
+          retained_failure
+          is Err(@publication_host.Physical(@resources.RetentionLimit)),
+        )
+      } else {
+        assert_true(
+          retained_failure
+          is Err(@publication_host.Assembly("retired_publication_input")),
+        )
+      }
+      pre_dispatch_original.val = None
+      assert_true(cleanup_client_original_keyed_prefix_input(prefix).unwrap())
+      @row_source_host.close_accounted_row_run(direct).unwrap()
+      assert_true(
+        @publication_host.finish_client_model_read_scope(
+          scope, compiled, definition, plan, true,
+        ).unwrap(),
+      )
+      let after = @resources.ledger_usage(ledger)
+      assert_eq(after.attempts, 1)
+      assert_eq(after.held_bytes, 0L)
+      assert_eq(after.holdings, 0)
+      assert_eq(after.reserved_retention_bytes, 0L)
+      assert_eq(after.reserved_execution_bytes, 0L)
+      return
     }
-    let request = selected.unwrap()
+    let metadata = @publication_host.finish_client_keyed_lookup_request_plan(
+      lookup, 16384, 1024, 20,
+    ).unwrap()
+    assert_true(
+      @publication_host.find_client_keyed_lookup_response(
+        lookup,
+        pre_dispatch_original.val.unwrap(),
+      )
+      is Err(@publication_host.Assembly("foreign_or_unavailable_request")),
+    )
+    pre_dispatch_original.val = None
+    assert_true(
+      @publication_host.client_keyed_lookup_request_identity(
+        lookup, 16384, 1024, 20,
+      )
+      is Err(_),
+    )
+    assert_true(
+      physical_equal(
+        metadata,
+        @publication_host.client_keyed_lookup_planned_request_identity(lookup).unwrap(),
+      ),
+    )
+    let (keys, _, _, _) = @publication_host.client_keyed_lookup_request_identity_parts(
+      metadata,
+    )
+    assert_eq(@publication.lookup_request_key_set_tuple_count(keys), Some(2))
+    assert_true(
+      @publication_host.client_keyed_lookup_input_identity(lookup) is None,
+    )
+    assert_true(
+      @publication_host.finish_client_keyed_lookup_input(lookup)
+      is Err(@publication_host.Assembly("planned_publication_required")),
+    )
+  }
+  for row in 0..<3 {
+    let request = if pre_dispatch_plan {
+      @publication_host.client_keyed_lookup_planned_request(lookup, row).unwrap()
+    } else {
+      let preparation = @publication_host.start_client_keyed_lookup_request(
+        lookup, row,
+      ).unwrap()
+      let mut selected = None
+      for _ in 0..<10000 {
+        match
+          @publication_host.advance_client_keyed_lookup_request(
+            lookup, preparation,
+          ) {
+          @publication_host.ClientKeyedRequestContinue(..) => ()
+          @publication_host.ClientKeyedRequestComplete(value, ..) => {
+            selected = Some(value)
+            break
+          }
+          @publication_host.ClientKeyedRequestFailed(_, ..) =>
+            fail("original version-history request preparation failed")
+        }
+      }
+      selected.unwrap()
+    }
     let index = @publication_host.find_client_keyed_lookup_response(
       lookup, request,
     ).unwrap()
@@ -665,8 +844,7 @@ fn original_keyed_version_history(
       assert_eq(after.transferred_bytes, before.transferred_bytes)
       assert_eq(
         after.held_bytes - before.held_bytes,
-        16L * 16384L +
-        128L * 8L +
+        (if pre_dispatch_plan { 0L } else { 16L * 16384L + 128L * 8L }) +
         before.reserved_retention_bytes -
         after.reserved_retention_bytes,
       )
@@ -889,5 +1067,28 @@ test "original keyed publication defers reentrant cleanup through its same refer
   original_keyed_version_history(
     publication_order=true,
     publication_reentry=true,
+  )
+}
+
+///|
+test "predispatch keyed plan keeps exact original Requests and canonical keys before any child" {
+  original_keyed_version_history(publication_order=true, pre_dispatch_plan=true)
+}
+
+///|
+test "predispatch keyed plan refuses missing metadata backing before physical attempts" {
+  original_keyed_version_history(
+    publication_order=true,
+    pre_dispatch_plan=true,
+    pre_plan_failure=1,
+  )
+}
+
+///|
+test "predispatch keyed plan defers reentrant retirement through original Ref encoding" {
+  original_keyed_version_history(
+    publication_order=true,
+    pre_dispatch_plan=true,
+    pre_plan_failure=2,
   )
 }

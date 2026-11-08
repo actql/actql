@@ -1,7 +1,7 @@
 ///|
-/// Immutable semantic publication metadata for one original completed lookup.
-/// The retained lookup identifies its provenance; this value grants no access
-/// and cannot restore a retired physical child.
+/// Immutable request-set metadata for one original checked lookup. Its
+/// predispatch preparation and later completed publication reuse this SAME
+/// value; it proves no response, attempt, access or physical cleanup.
 struct ClientKeyedLookupRequestIdentity {
   original : ClientKeyedLookupInput
   keys : @publication.PublicationContract
@@ -196,6 +196,25 @@ pub fn finish_client_keyed_lookup_publication_input(
   retain_body? : Bool = false,
 ) -> Result[@execution.SuppliedRelationRead, ClientKeyedRequestIssue] {
   if lookup.publication_identity is Some(_) {
+    if lookup.planned_requests is Some(_) && lookup.completed is None {
+      guard !lookup.closed &&
+        !lookup.growing &&
+        !lookup.identifying &&
+        lookup.left.lookup_issue is None &&
+        lookup.accepted == lookup.rows &&
+        lookup.copying is None &&
+        lookup.preparation is None &&
+        lookup.pending_history is None &&
+        lookup.input is Some(input) &&
+        lookup.planned_order is Some(order) else {
+        return Err(Assembly("unavailable_planned_publication"))
+      }
+      let rows = match @execution.finish_ordered_admitted_input(input, order) {
+        Ok(rows) => rows
+        Err(issue) => return Err(InputCapture(issue))
+      }
+      lookup.completed = Some(rows)
+    }
     return if retain_body {
       finish_keyed_lookup_identity_bodies(lookup)
     } else {
@@ -219,6 +238,42 @@ pub fn finish_client_keyed_lookup_publication_input(
   }
   if lookup.closed || lookup.left.lookup_issue is Some(_) {
     return Err(Assembly("retired_publication_input"))
+  }
+  let (identity, order) = match
+    prepare_keyed_lookup_request_metadata(
+      lookup, max_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let rows = match @execution.finish_ordered_admitted_input(input, order) {
+    Ok(rows) => rows
+    Err(issue) => {
+      keyed_lookup_fail(lookup.left, InputCapture(issue)) |> ignore
+      return Err(InputCapture(issue))
+    }
+  }
+  lookup.completed = Some(rows)
+  lookup.publication_identity = Some(identity)
+  if retain_body {
+    finish_keyed_lookup_identity_bodies(lookup)
+  } else {
+    finish_client_keyed_lookup_input(lookup)
+  }
+}
+
+///|
+fn prepare_keyed_lookup_request_metadata(
+  lookup : ClientKeyedLookupInput,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (ClientKeyedLookupRequestIdentity, Array[Int]),
+  ClientKeyedRequestIssue,
+] {
+  guard lookup.input is Some(input) else {
+    return Err(Assembly("closed_input"))
   }
   let template = @acquisition.keyed_join_request(
     lookup.left.acquisition.binding.join,
@@ -296,18 +351,66 @@ pub fn finish_client_keyed_lookup_publication_input(
     keyed_lookup_fail(lookup.left, issue) |> ignore
     return Err(issue)
   }
-  let rows = match @execution.finish_ordered_admitted_input(input, order) {
-    Ok(rows) => rows
-    Err(issue) => {
-      keyed_lookup_fail(lookup.left, InputCapture(issue)) |> ignore
-      return Err(InputCapture(issue))
-    }
+  Ok((identity, order))
+}
+
+///|
+/// Close the actual checked key set/static request/scope before the first
+/// provider dispatch. This DATA is not a batch or attempt receipt. The existing
+/// transport/batch/activation owners still have to bind their actual history.
+pub fn finish_client_keyed_lookup_request_plan(
+  lookup : ClientKeyedLookupInput,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientKeyedLookupRequestIdentity, ClientKeyedRequestIssue] {
+  guard !lookup.closed &&
+    !lookup.growing &&
+    !lookup.identifying &&
+    lookup.planned_requests is Some(requests) &&
+    requests.length() == lookup.rows &&
+    lookup.planned_order is None &&
+    lookup.publication_identity is None &&
+    lookup.accepted == 0 &&
+    lookup.selected_request is None &&
+    lookup.preparation is None &&
+    lookup.pending_history is None &&
+    lookup.copying is None &&
+    lookup.left.lookup_issue is None else {
+    return Err(Assembly("unfinished_request_plan"))
   }
-  lookup.completed = Some(rows)
+  let (identity, order) = match
+    prepare_keyed_lookup_request_metadata(
+      lookup, max_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  // Distinct wire requests for one typed equality key need a declared
+  // canonical request mapping. Never pick an authorization envelope by input
+  // enumeration merely because its semantic Ref identity is equal.
+  if @publication.lookup_request_key_set_tuple_count(identity.keys) !=
+    Some(lookup.known.length()) {
+    let issue = Assembly("ambiguous_typed_request")
+    keyed_lookup_fail(lookup.left, issue) |> ignore
+    return Err(issue)
+  }
   lookup.publication_identity = Some(identity)
-  if retain_body {
-    finish_keyed_lookup_identity_bodies(lookup)
+  lookup.planned_order = Some(order)
+  Ok(identity)
+}
+
+///|
+/// Borrow the already-closed predispatch metadata, without re-encoding/hash or
+/// current callbacks. Its original lookup still owns all access and cleanup.
+pub fn client_keyed_lookup_planned_request_identity(
+  lookup : ClientKeyedLookupInput,
+) -> ClientKeyedLookupRequestIdentity? {
+  if lookup.closed ||
+    lookup.left.lookup_issue is Some(_) ||
+    lookup.planned_order is None {
+    None
   } else {
-    finish_client_keyed_lookup_input(lookup)
+    lookup.publication_identity
   }
 }

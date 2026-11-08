@@ -63,7 +63,7 @@ pub fn borrow_client_original_keyed_serialization_inputs(
       scope.ledger,
       prefix,
       lookup.reservation,
-      lookup.known.length(),
+      lookup.completed_responses,
     ) else {
     return Err(Assembly("original_serialization_custody_changed"))
   }

@@ -255,24 +255,48 @@ fn LocalCommandBusinessPreparation::capture_mock_effect_content(
       )
     },
   )
+  self.original.with_business_request(self.capture, () => {
+    @run_host.start_client_keyed_lookup_request_plan(lookup).unwrap_or_else(() => {
+      stop("LocalOriginalModelKeyedPlanUnavailable")
+    })
+  })
+  for row in 0..<rows {
+    self.original.with_business_request(self.capture, () => {
+      let preparation = @run_host.start_client_keyed_lookup_request(lookup, row).unwrap_or_else(() => {
+          stop("LocalOriginalModelKeyedRequestUnavailable")
+        },
+      )
+      let mut request = None
+      while request is None {
+        match
+          @run_host.advance_client_keyed_lookup_request(lookup, preparation) {
+          @run_host.ClientKeyedRequestContinue(..) => ()
+          @run_host.ClientKeyedRequestComplete(value, ..) =>
+            request = Some(value)
+          _ => stop("LocalOriginalModelKeyedRequestUnavailable")
+        }
+      }
+      @run_host.retain_client_keyed_lookup_planned_request(
+        lookup,
+        request.unwrap(),
+      ).unwrap_or_else(() => stop("LocalOriginalModelKeyedPlanUnavailable"))
+    })
+  }
+  self.original.with_business_request(self.capture, () => {
+    @run_host.finish_client_keyed_lookup_request_plan(lookup, 16384, 1024, 20).unwrap_or_else(() => {
+        stop("LocalOriginalModelKeyedPlanUnavailable")
+      },
+    )
+    |> ignore
+  })
   for row in 0..<rows {
     let (request, file, binding) = self.original.with_business_request(
       self.capture,
       () => {
-        let preparation = @run_host.start_client_keyed_lookup_request(
-          lookup, row,
-        ).unwrap_or_else(() => stop("LocalOriginalModelKeyedRequestUnavailable"))
-        let mut request = None
-        while request is None {
-          match
-            @run_host.advance_client_keyed_lookup_request(lookup, preparation) {
-            @run_host.ClientKeyedRequestContinue(..) => ()
-            @run_host.ClientKeyedRequestComplete(value, ..) =>
-              request = Some(value)
-            _ => stop("LocalOriginalModelKeyedRequestUnavailable")
-          }
-        }
-        let request = request.unwrap()
+        let request = @run_host.client_keyed_lookup_planned_request(lookup, row).unwrap_or_else(() => {
+            stop("LocalOriginalModelKeyedRequestUnavailable")
+          },
+        )
         let original = @run_host.client_keyed_request_value(request, keyed).unwrap_or_else(() => {
             stop("LocalOriginalModelKeyedRequestUnavailable")
           },

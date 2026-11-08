@@ -31,6 +31,7 @@ test "lookup key set derives numeric typed order and one identity across enumera
       "sha256:8d392a85bd03bccd7e4859429fcc85e261d011c839e7406995ace51da0fccfc8",
     )
     assert_true(keys.wire.contains("\"tuples\":[[2],[10]]"))
+    assert_eq(lookup_request_key_set_tuple_count(keys), Some(2))
     assert_eq(
       admit_publication_contract("request_key_set", keys.wire, 10000, 1000, 30).unwrap().identity,
       keys.identity,
