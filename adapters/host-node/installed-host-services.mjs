@@ -2345,6 +2345,8 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       if (implementation.readSequenceConstruction !== undefined && !managedSequence) fail('InstalledSourceReaderSequenceSelectionRequired');
       const originalSite = installedRowCredentialOperationSite(fields.site.value.credential);
       const limits = implementation.value.limits, sequence = implementation.readSequenceConstruction;
+      const maxQueryBytes = sequence !== undefined && Object.hasOwn(sequence, 'maxQueryBytes')
+        ? sequence.maxQueryBytes : undefined;
       const constructor = sourceContexts.get(selection);
       if (constructor?.scope.reader !== undefined) fail('InstalledSourceReaderAlreadyConstructed');
       // Optional separately bound Resources are declared by this SAME complete
@@ -2374,7 +2376,7 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
           maxResponseBytes: limits.maxResponseBytes, maxTotalResponseBytes: limits.maxTotalResponseBytes,
           maxSecretBytes: limits.maxSecretBytes} : {}),
         ...(managedSequence ? {maxResponseBytes: limits.maxResponseBytes,
-          ...(sequence?.maxQueryBytes !== undefined ? {maxQueryBytes:sequence.maxQueryBytes} : {}),
+          ...(maxQueryBytes === undefined ? {} : {maxQueryBytes}),
           ...(sequence?.maxRequestBytes !== undefined ? {maxRequestBytes:sequence.maxRequestBytes}
             : {}),
           maxTotalResponseBytes: limits.maxTotalResponseBytes} : {})});

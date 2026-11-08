@@ -384,6 +384,18 @@ test('actual managed Source factory forwards only the same selected query constr
   assert.equal(captured.operation,undefined);assert.deepEqual(calls,['current']);
   assert.throws(()=>method({installation,implementation,site,prepareReadSequence}),
     {code:'InstalledSourceReaderAlreadyConstructed'});
+  // A frozen sequence may legally have a prototype. Only the separately
+  // validated own data field may reach the actual shared Reader factory.
+  let inheritedReads=0;
+  const prototype={get maxQueryBytes(){inheritedReads++;return Infinity;}};
+  record.readSequenceConstruction=Object.freeze(Object.create(prototype,{
+    capacity:{value:capacity},sequence:{value:Object.freeze({children:[]})},
+  }));
+  sourceContexts.set(selection,{scope:{}});
+  assert.equal(method({installation,implementation,site,prepareReadSequence}),factory);
+  assert.equal(inheritedReads,0);
+  assert.equal(Object.hasOwn(captured,'maxQueryBytes'),false);
+
 });
 
 
