@@ -28,6 +28,20 @@ other targets and foreign toolchains remain unreviewed. The old descriptor is
 not a current review. The configuration map and review source are action inputs,
 so this update requires fresh evidence rather than promoting old receipts.
 
+The current successor at `e99acee7bc3ea3a5b0ae3e71ce64aa7c958f2bf4` adds only
+`"original_values_text_working_js_wbtest.mbt": [ "js" ]`. Its descriptor SHA256 is
+`0974fff42f958477654738b726f07d929aeccd274463404fc86206545fff2f00`.
+Removing exactly that clause reconstructs the complete descriptor at
+`d3aed5e30374353163fe2beb3f7a8b4f784b2ea9` (SHA256
+`508773432a6b071bb057fc41d51008054462a6f8006f862ce6638e91e448d00e`).
+The Values fixture already contains an `extern "js"` callback; this clause selects
+its actual backend without changing imports, Native options or runtime settings.
+The current map accepts only these exact JS/toolchain-scoped bytes. The fixture
+and every other immediate package member remain bound as source inputs regardless
+of target selection. Earlier descriptors, altered selectors, hooks and foreign
+targets/toolchains remain unreviewed; full-source fallback and mandatory proof,
+source-restoration and receipt checks are unchanged.
+
 This establishes source/configuration correspondence only. It does not qualify
 compiler execution, runtime ABI, resource admission, physical cleanup, Native
 behavior or reuse eligibility. The extractor, isolated experiment contract and
