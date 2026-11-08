@@ -2,7 +2,7 @@
 // failure preservation, not provider authentication or ordinary Run acceptance.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {copyFile, mkdir, mkdtemp, readFile, rm, stat, writeFile} from 'node:fs/promises';
+import {copyFile, mkdir, mkdtemp, open, readFile, realpath, rm, stat, writeFile} from 'node:fs/promises';
 import {generateKeyPairSync, verify} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {join} from 'node:path';
@@ -12,6 +12,7 @@ import {runRecordUpdateApprovalPhase} from './fixtures/record-approval/workflow.
 import {runRecordApprovalCommand} from './fixtures/record-approval/command.mjs';
 import {hubspotApprovalProvider} from './fixtures/hubspot-approval/provider.mjs';
 import {recordApprovalHostAccountConfiguration} from './fixtures/record-approval/host-account.fixture.mjs';
+import {observeRecordApprovalDescriptors, recordApprovalScopedPaths} from './fixtures/record-approval/scoped-fds.fixture.mjs';
 import {mockProjectFiles as salesforceMock} from './fixtures/salesforce-approval/mock-project.mjs';
 import {mockProjectFiles as hubspotMock} from './fixtures/hubspot-approval/mock-project.mjs';
 import {runSalesforceApprovalPhase} from './fixtures/salesforce-approval/workflow.mjs';
@@ -21,6 +22,30 @@ import {runKintoneApprovalPhase} from './fixtures/kintone-approval/workflow.mjs'
 
 const cid = mark => 'sha256:' + mark.repeat(64);
 const selection = {recordId: 'record-1', previousName: 'before', nextName: 'after'};
+
+test('record approval descriptor scope includes root, descendants and deleted originals, not siblings', () => {
+  assert.deepEqual(recordApprovalScopedPaths(['/tmp/root', '/tmp/root/file', '/tmp/root (deleted)',
+    '/tmp/root/file (deleted)', '/tmp/root-other/file', '/tmp/other'], ['/tmp/root']),
+  ['/tmp/root', '/tmp/root/file', '/tmp/root (deleted)', '/tmp/root/file (deleted)']);
+});
+
+test('record approval descriptor observer sees actual open root and child then their close', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-approval-descriptors-'));
+  const file = join(root, 'child');
+  let directory, child;
+  try {
+    await writeFile(file, 'synthetic');
+    directory = await open(root, 'r'); child = await open(file, 'r');
+    const before = await observeRecordApprovalDescriptors([root]);
+    assert(before.openPaths.includes(await realpath(root)));
+    assert(before.openPaths.includes(await realpath(file)));
+    await directory.close(); directory = undefined;
+    await child.close(); child = undefined;
+    assert.deepEqual((await observeRecordApprovalDescriptors([root])).openPaths, []);
+  } finally {
+    await directory?.close(); await child?.close(); await rm(root, {recursive: true});
+  }
+});
 async function definition(connector) {
   const files = await Promise.all(['update.aql', 'read.aql'].map(name =>
     readFile(new URL(`./fixtures/${connector}-approval/${name}`, import.meta.url), 'utf8')));

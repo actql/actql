@@ -11,9 +11,10 @@ import {runFocusedTests} from './test-execution.mjs';
 assert.equal(process.env.ACTQL_TEST_PRESERVE_SCRATCH, '1',
   'Preserve original Run/DB/keys/raw on success and failure');
 const repository = fileURLToPath(new URL('../', import.meta.url));
-const [source, release, consumer] = process.argv.slice(2);
-assert.equal(process.argv.length, 5,
-  'usage: test-packed-hubspot-source.mjs <original-normal-source> <RC-directory> <closed-installed-consumer>');
+const [source, release, consumer, selection] = process.argv.slice(2);
+assert((process.argv.length === 5 || process.argv.length === 6 && selection === '--approval'),
+  'usage: test-packed-hubspot-source.mjs <original-normal-source> <RC-directory> <closed-installed-consumer> [--approval]');
+const approval = selection === '--approval';
 for (const path of [source, release, consumer]) assert(isAbsolute(path), 'Require absolute original input paths');
 assert(!process.env.NODE_PATH && !process.env.NODE_OPTIONS,
   'Ordinary installed acceptance refuses ambient module/loader overlays');
@@ -29,14 +30,21 @@ async function verifyInstalled() {
 }
 await verifyInstalled();
 const scratch = await createOwnedScratch({parent: join(repository, '_build'),
-  prefix: 'packed-hubspot-original-', label: 'ordinary installed HubSpot Source and original Run restoration'});
+  prefix: 'packed-hubspot-original-', label: approval
+    ? 'ordinary installed HubSpot approval and original Saved restoration'
+    : 'ordinary installed HubSpot Source and original Run restoration'});
 const application = join(scratch.path, 'application');
 await mkdir(application);
 await writeFile(join(application, 'package.json'), '{"private":true,"type":"module"}\n');
 // Read-only borrow of the independently installed exact artifact closure;
 // fresh Host/Run/credential/TLS/SQLite roots below never mutate that donor.
 await symlink(join(consumer, 'node_modules'), join(application, 'node_modules'), 'dir');
-const fixtureFiles = ['scripts/fixtures/packed-hubspot-public.mjs',
+const fixtureFiles = approval ? ['scripts/fixtures/packed-hubspot-approval.mjs',
+  ...['provider.mjs', 'installed-child.mjs', 'workflow.mjs', 'update.aql', 'read.aql']
+    .map(name => 'scripts/fixtures/hubspot-approval/' + name),
+  ...['command.mjs', 'workflow.mjs', 'cases.mjs', 'host-account.fixture.mjs', 'scoped-fds.fixture.mjs']
+    .map(name => 'scripts/fixtures/record-approval/' + name),
+  'adapters/site-node/https-exchange-fixture.mjs'] : ['scripts/fixtures/packed-hubspot-public.mjs',
   'scripts/fixtures/packed-hubspot-public.fixture.mjs',
   'scripts/fixtures/packed-hubspot-restart.mjs',
   'adapters/site-node/https-exchange-fixture.mjs'];
@@ -49,8 +57,12 @@ for (const path of fixtureFiles) {
   inputs.push({path, bytes: bytes.byteLength,
     sha256: createHash('sha256').update(bytes).digest('hex')});
 }
-const code = runFocusedTests('node', ['scripts/fixtures/packed-hubspot-public.mjs'],
-  {cwd: application, timeout: 50000, killSignal: 'SIGTERM'});
+const expectedTests = approval ? 1 : 2;
+const code = runFocusedTests('node', [approval
+  ? 'scripts/fixtures/packed-hubspot-approval.mjs' : 'scripts/fixtures/packed-hubspot-public.mjs'],
+  {cwd: application, expectedTests, timeout: approval ? 110000 : 50000, killSignal: 'SIGTERM'});
+// Verify immutable inputs even when the original functional case fails.
+await original.verifyUnchanged(); await verifyInstalled();
 // No false pass from startup failure, zero discovery, timeout or failed cleanup.
 assert.equal(code, 0, `Ordinary installed HubSpot runtime refused; original evidence: ${scratch.path}`);
 const focusedRoot = join(application, '_build', 'focused-evidence');
@@ -58,12 +70,14 @@ const focused = await readdir(focusedRoot);
 assert.equal(focused.length, 1, 'Exactly one original runtime attempt');
 const execution = JSON.parse(await readFile(join(focusedRoot, focused[0], '001.result.json'), 'utf8'));
 assert(execution.complete && execution.outputComplete && execution.status === 0 && execution.verificationStatus === 0);
-assert.deepEqual(execution.counts, {tests: 2, passed: 2, failed: 0, cancelled: 0, skipped: 0, todo: 0});
-await original.verifyUnchanged(); await verifyInstalled();
-const receipt = {qualification: 'Actual public Local/HTTPS using the exact borrowed ordinary installed cohort; fresh Host and original same-Run restoration in a fresh process. No new npm install, package build, live service, write or normal numeric-profile claim.',
+assert.deepEqual(execution.counts, {tests: expectedTests, passed: expectedTests,
+  failed: 0, cancelled: 0, skipped: 0, todo: 0});
+const receipt = {qualification: approval
+  ? 'Actual installed Local capture, signed approval, exactly one synthetic TLS provider UPDATE and separate-process original Saved before status. No real provider, performance or physical cleanup ACK claim.'
+  : 'Actual public Local/HTTPS using the exact borrowed ordinary installed cohort; fresh Host and original same-Run restoration in a fresh process. No new npm install, package build, live service, write or normal numeric-profile claim.',
   productSource: original.manifest.sourceSha, manifestSha256: original.manifestSha256,
   consumer, application, node: process.version, fixtures: inputs,
-  expectedTests: 2, actualCounts: execution.counts, observedExitCode: code,
+  expectedTests, actualCounts: execution.counts, observedExitCode: code,
   installedMembers: original.manifest.packages.reduce((count, item) => count + item.files.length, 0)};
 await writeFile(join(scratch.path, 'qualification.json'), JSON.stringify(receipt, null, 2) + '\n');
 scratch.passed();

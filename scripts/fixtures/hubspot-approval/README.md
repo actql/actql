@@ -34,3 +34,26 @@ Saved recovery must perform no provider request or resend. Keep the first
 unexpected failure and its fresh state; no missing response or timeout proves
 absence, nonacceptance or cleanup acknowledgement. Record each actual public
 close and observe live state/Credential descriptors independently.
+
+## Reproduce with an existing normal installation
+
+From the consumer checkout, run the existing bounded local-check wrapper with
+`scripts/test-packed-hubspot-source.mjs ORIGINAL_SOURCE NORMAL_RELEASE_DIRECTORY CLOSED_APPLICATION --approval`.
+All three paths must be absolute. Set `ACTQL_TEST_PRESERVE_SCRATCH=1` and clear
+ambient `NODE_PATH`, `NODE_OPTIONS`, `ACTQL_LOCAL_SOURCE_PROFILE` and
+`ACTQL_LOCAL_EFFECT_PROFILE`. The original Source must be clean and match the
+normal release manifest. The runner verifies archives and every installed
+member before and after, including a failed functional attempt; it builds and
+installs nothing. The default selection still runs the two existing Source
+cases; `--approval` selects only this one distinct three-process case.
+
+The fixture uses the selected installed runtime's original initialization
+owner to obtain the declared alias, then closes that preparation before the
+public workflow. Each child keeps its original 30-second whole-process limit.
+Capture, approval and recovery use separate processes and fresh explicit HOME,
+Host and Credential roots. Both live descriptor snapshots include each exact
+root and its descendants, with physical path aliases resolved, using `lsof` on
+macOS or `/proc/self/fd` on Linux. An unavailable observer fails explicitly.
+These observations do not constitute a physical cleanup acknowledgement.
+Keep the printed original root and its state, receipts, stdout, stderr and
+summary on every outcome; never reopen a failed state merely to retry.
