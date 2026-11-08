@@ -554,8 +554,18 @@ test "original keyed empty listing keeps Direct custody through assembly cleanup
     assembled_usage.reserved_attempts,
     captured_usage.reserved_attempts + 1,
   )
-  assert_eq(assembled_usage.reserved_retention_bytes, 4096L + 3L)
-  assert_eq(assembled_usage.reserved_execution_bytes, 4096L + 2L)
+  // Same constructor now retains two original left receipt/identity references
+  // and one consumed-work word: 2*8 + 8 under the pinned central tariff.
+  // Preserve this capture's independently supplied retained3/execution2.
+  let original_identity_fields = 2L * 8L + 8L
+  assert_eq(
+    assembled_usage.reserved_retention_bytes,
+    4096L + original_identity_fields + 3L,
+  )
+  assert_eq(
+    assembled_usage.reserved_execution_bytes,
+    4096L + original_identity_fields + 2L,
+  )
   assert_eq(assembled_usage.holdings, 1)
   // Zero progress is neither cleanup acknowledgment nor permission to return
   // the buffer's reservation. It must not close the original Direct child.

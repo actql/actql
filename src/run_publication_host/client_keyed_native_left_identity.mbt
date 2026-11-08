@@ -16,6 +16,22 @@ pub struct ClientKeyedNativeLeftIdentity {
 }
 
 ///|
+// The SAME pure preplanning predicate brackets callbacks. These are mutable
+// phase/slot observations only; checking it invokes no Source/current work.
+fn native_left_identity_preplanning(lookup : ClientKeyedLookupInput) -> Bool {
+  !lookup.closed &&
+  !lookup.growing &&
+  !lookup.identifying &&
+  lookup.native_left_receipt is None &&
+  lookup.native_left_identity is None &&
+  lookup.identity_scan is None &&
+  lookup.planned_requests is None &&
+  lookup.left.lookup_issue is None &&
+  lookup.left.requests == 0L &&
+  lookup.left.attempts == 0L
+}
+
+///|
 /// Freeze the actual left Relation ONCE, before request planning/dispatch and
 /// before claiming the later Model Read. Borrow the original completed segment
 /// output, never re-execute the prefix, copy rows or wrap it as a new Result.
@@ -29,16 +45,7 @@ pub fn prepare_client_keyed_native_left_identity(
   max_work : Int,
   workspace : Int,
 ) -> Result[ClientKeyedNativeLeftIdentity, ClientKeyedRequestIssue] {
-  guard !lookup.closed &&
-    !lookup.growing &&
-    !lookup.identifying &&
-    lookup.native_left_receipt is None &&
-    lookup.native_left_identity is None &&
-    lookup.identity_scan is None &&
-    lookup.planned_requests is None &&
-    lookup.left.lookup_issue is None &&
-    lookup.left.requests == 0L &&
-    lookup.left.attempts == 0L &&
+  guard native_left_identity_preplanning(lookup) &&
     lookup.left.composed is Some(original) &&
     original.plan.keyed is Some(component) &&
     client_keyed_left_available(lookup.left) &&
@@ -53,12 +60,7 @@ pub fn prepare_client_keyed_native_left_identity(
   // The preceding original-current/output observations may reenter this very
   // constructor. After the LAST callback, preserve any original already
   // returned by the inner call; do not overwrite its receipt or poison it.
-  guard !lookup.closed &&
-    !lookup.identifying &&
-    !lookup.growing &&
-    lookup.native_left_receipt is None &&
-    lookup.native_left_identity is None &&
-    lookup.left.lookup_issue is None else {
+  guard native_left_identity_preplanning(lookup) else {
     return Err(Assembly("claimed_native_left_identity"))
   }
   lookup.identifying = true

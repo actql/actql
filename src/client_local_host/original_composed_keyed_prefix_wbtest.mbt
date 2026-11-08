@@ -73,6 +73,7 @@ fn original_composed_keyed_consumer(
   native_activation? : Bool = false,
   activation_reentry? : Bool = false,
   left_identity_reentry? : Bool = false,
+  left_plan_reentry? : Bool = false,
   first_plan? : ((
     ClientRequestPreparation[Array[Int]],
     Array[Int],
@@ -934,6 +935,46 @@ fn original_composed_keyed_consumer(
     }
   }
 
+  if left_plan_reentry {
+    let limits = original_keyed_content_workspace().export_limits
+    let planned = Ref(false)
+    let reentering = Ref(false)
+    activation_source_live.val = Some(() => {
+      if !reentering.val && !planned.val {
+        reentering.val = true
+        let result = @publication_host.start_client_keyed_lookup_request_plan(
+          lookup,
+          native_read_profile=native_profile.map(value => value.1),
+        )
+        reentering.val = false
+        if result is Ok(_) {
+          planned.val = true
+        }
+      }
+    })
+    let outer = @publication_host.prepare_client_keyed_native_left_identity(
+      lookup,
+      1,
+      limits.values,
+      limits.payload_wire,
+      limits.logical_wire,
+      limits.schema,
+      1000000,
+      100000,
+    )
+    activation_source_live.val = None
+    assert_true(
+      planned.val,
+      msg="Source.live must preserve its original started plan",
+    )
+    assert_true(
+      outer is Err(@publication_host.Assembly("claimed_native_left_identity")),
+      msg="original plan wins before outer identity publication",
+    )
+    assert_true(
+      @publication_host.client_keyed_native_left_identity(lookup) is None,
+    )
+  }
   if left_identity_reentry {
     let limits = original_keyed_content_workspace().export_limits
     let issue_left = () => {
@@ -1049,7 +1090,7 @@ fn original_composed_keyed_consumer(
     )
     assert_eq(@resources.ledger_usage(ledger), before)
   }
-  if pre_dispatch_plan {
+  if pre_dispatch_plan && !left_plan_reentry {
     assert_true(
       @publication_host.client_keyed_lookup_native_transport(lookup) is None,
     )

@@ -290,3 +290,16 @@ test "Native original left identity Source live reentry preserves the first retu
     native_transport=true,
   )
 }
+
+///|
+#cfg(target="js")
+test "Native original left identity Source live planning reentry preserves the original plan" {
+  original_composed_keyed_consumer(
+    whole=true,
+    restored=true,
+    left_plan_reentry=true,
+    native_activation=true,
+    pre_dispatch_plan=true,
+    native_transport=true,
+  )
+}
