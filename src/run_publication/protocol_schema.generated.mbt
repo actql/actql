@@ -3,7 +3,7 @@
 
 ///|
 fn generated_protocol_schema_nodes() -> Array[ProtocolSchemaRule] {
-  let nodes : Array[ProtocolSchemaRule] = Array(capacity=8482)
+  let nodes : Array[ProtocolSchemaRule] = Array(capacity=8612)
   generated_protocol_schema_nodes_0(nodes)
   generated_protocol_schema_nodes_1(nodes)
   generated_protocol_schema_nodes_2(nodes)
@@ -23368,6 +23368,324 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
+  nodes.push(protocol_string_rule(Some("captured"), [], 0, 0))
+  nodes.push(
+    protocol_object_rule([("outcome", 8482)], ["outcome"], -2, 0, None),
+  )
+  nodes.push(nodes[2])
+  nodes.push(nodes[122])
+  nodes.push(nodes[122])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("raw_response_artifact_cid", 8484),
+        ("runtime_error_cid", 8485),
+        ("failure_code", 8486),
+      ],
+      [],
+      -2,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(8483, 8487, 8488))
+  nodes.push(
+    protocol_string_rule(None, ["dispatched", "unknown", "unattempted"], 0, 0),
+  )
+  nodes.push(
+    protocol_object_rule([("outcome", 8490)], ["outcome"], -2, 0, None),
+  )
+  nodes.push(nodes[122])
+  nodes.push(nodes[122])
+  nodes.push(nodes[122])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("raw_response_artifact_cid", 8492),
+        ("runtime_error_cid", 8493),
+        ("failure_code", 8494),
+      ],
+      [],
+      -2,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(8491, 8495, 8496))
+  nodes.push(nodes[2659])
+  nodes.push(
+    protocol_object_rule([("outcome", 8498)], ["outcome"], -2, 0, None),
+  )
+  nodes.push(nodes[1])
+  nodes.push(protocol_object_rule([("failure_code", 8500)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(8499, 8501, 8502))
+  nodes.push(
+    protocol_string_rule(Some("actql-lookup-attempt-event/0.1"), [], 0, 0),
+  )
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[936])
+  nodes.push(nodes[2])
+  nodes.push(nodes[122])
+  nodes.push(AnyOfRule([8509, 8510]))
+  nodes.push(nodes[80])
+  nodes.push(
+    protocol_string_rule(
+      None,
+      ["dispatched", "captured", "failed", "unknown", "unattempted"],
+      0,
+      0,
+    ),
+  )
+  nodes.push(nodes[2])
+  nodes.push(nodes[122])
+  nodes.push(AnyOfRule([8514, 8515]))
+  nodes.push(nodes[2])
+  nodes.push(nodes[122])
+  nodes.push(AnyOfRule([8517, 8518]))
+  nodes.push(nodes[1])
+  nodes.push(nodes[122])
+  nodes.push(AnyOfRule([8520, 8521]))
+  nodes.push(nodes[1])
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("version", 8504),
+        ("barrier_cid", 8505),
+        ("batch_plan_cid", 8506),
+        ("call_slot_cid", 8507),
+        ("network_attempt", 8508),
+        ("previous_event_cid", 8511),
+        ("recorded_at", 8512),
+        ("outcome", 8513),
+        ("raw_response_artifact_cid", 8516),
+        ("runtime_error_cid", 8519),
+        ("failure_code", 8522),
+        ("issuer_id", 8523),
+        ("authority_scope_cid", 8524),
+      ],
+      [
+        "version", "barrier_cid", "batch_plan_cid", "call_slot_cid", "network_attempt",
+        "previous_event_cid", "recorded_at", "outcome", "raw_response_artifact_cid",
+        "runtime_error_cid", "failure_code", "issuer_id", "authority_scope_cid",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(AllOfRule([8489, 8497, 8503, 8525]))
+  nodes.push(nodes[8482])
+  nodes.push(
+    protocol_object_rule([("outcome", 8527)], ["outcome"], -2, 0, None),
+  )
+  nodes.push(nodes[2])
+  nodes.push(nodes[122])
+  nodes.push(nodes[122])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("raw_response_artifact_cid", 8529),
+        ("runtime_error_cid", 8530),
+        ("failure_code", 8531),
+      ],
+      [],
+      -2,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(8528, 8532, 8533))
+  nodes.push(nodes[8490])
+  nodes.push(
+    protocol_object_rule([("outcome", 8535)], ["outcome"], -2, 0, None),
+  )
+  nodes.push(nodes[122])
+  nodes.push(nodes[122])
+  nodes.push(nodes[122])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("raw_response_artifact_cid", 8537),
+        ("runtime_error_cid", 8538),
+        ("failure_code", 8539),
+      ],
+      [],
+      -2,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(8536, 8540, 8541))
+  nodes.push(nodes[2659])
+  nodes.push(
+    protocol_object_rule([("outcome", 8543)], ["outcome"], -2, 0, None),
+  )
+  nodes.push(nodes[1])
+  nodes.push(protocol_object_rule([("failure_code", 8545)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(8544, 8546, 8547))
+  nodes.push(nodes[8504])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[936])
+  nodes.push(nodes[2])
+  nodes.push(nodes[122])
+  nodes.push(AnyOfRule([8554, 8555]))
+  nodes.push(nodes[80])
+  nodes.push(nodes[8513])
+  nodes.push(nodes[2])
+  nodes.push(nodes[122])
+  nodes.push(AnyOfRule([8559, 8560]))
+  nodes.push(nodes[2])
+  nodes.push(nodes[122])
+  nodes.push(AnyOfRule([8562, 8563]))
+  nodes.push(nodes[1])
+  nodes.push(nodes[122])
+  nodes.push(AnyOfRule([8565, 8566]))
+  nodes.push(nodes[1])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("version", 8549),
+        ("barrier_cid", 8550),
+        ("batch_plan_cid", 8551),
+        ("call_slot_cid", 8552),
+        ("network_attempt", 8553),
+        ("previous_event_cid", 8556),
+        ("recorded_at", 8557),
+        ("outcome", 8558),
+        ("raw_response_artifact_cid", 8561),
+        ("runtime_error_cid", 8564),
+        ("failure_code", 8567),
+        ("issuer_id", 8568),
+        ("authority_scope_cid", 8569),
+        ("self_cid", 8570),
+      ],
+      [
+        "version", "barrier_cid", "batch_plan_cid", "call_slot_cid", "network_attempt",
+        "previous_event_cid", "recorded_at", "outcome", "raw_response_artifact_cid",
+        "runtime_error_cid", "failure_code", "issuer_id", "authority_scope_cid",
+        "self_cid",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(AllOfRule([8534, 8542, 8548, 8571]))
+  nodes.push(
+    protocol_string_rule(Some("actql-lookup-page-adoption/0.1"), [], 0, 0),
+  )
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[936])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[122])
+  nodes.push(AnyOfRule([8583, 8584]))
+  nodes.push(nodes[14])
+  nodes.push(nodes[270])
+  nodes.push(nodes[80])
+  nodes.push(nodes[1])
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("version", 8573),
+        ("barrier_cid", 8574),
+        ("batch_plan_cid", 8575),
+        ("call_slot_cid", 8576),
+        ("activation_cid", 8577),
+        ("network_attempt", 8578),
+        ("capture_event_cid", 8579),
+        ("raw_response_artifact_cid", 8580),
+        ("response_schema_cid", 8581),
+        ("page_value_cid", 8582),
+        ("previous_adoption_cid", 8585),
+        ("terminal", 8586),
+        ("next_token", 8587),
+        ("recorded_at", 8588),
+        ("issuer_id", 8589),
+        ("authority_scope_cid", 8590),
+      ],
+      [
+        "version", "barrier_cid", "batch_plan_cid", "call_slot_cid", "activation_cid",
+        "network_attempt", "capture_event_cid", "raw_response_artifact_cid", "response_schema_cid",
+        "page_value_cid", "previous_adoption_cid", "terminal", "next_token", "recorded_at",
+        "issuer_id", "authority_scope_cid",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[8573])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[936])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[122])
+  nodes.push(AnyOfRule([8602, 8603]))
+  nodes.push(nodes[14])
+  nodes.push(nodes[270])
+  nodes.push(nodes[80])
+  nodes.push(nodes[1])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("version", 8592),
+        ("barrier_cid", 8593),
+        ("batch_plan_cid", 8594),
+        ("call_slot_cid", 8595),
+        ("activation_cid", 8596),
+        ("network_attempt", 8597),
+        ("capture_event_cid", 8598),
+        ("raw_response_artifact_cid", 8599),
+        ("response_schema_cid", 8600),
+        ("page_value_cid", 8601),
+        ("previous_adoption_cid", 8604),
+        ("terminal", 8605),
+        ("next_token", 8606),
+        ("recorded_at", 8607),
+        ("issuer_id", 8608),
+        ("authority_scope_cid", 8609),
+        ("self_cid", 8610),
+      ],
+      [
+        "version", "barrier_cid", "batch_plan_cid", "call_slot_cid", "activation_cid",
+        "network_attempt", "capture_event_cid", "raw_response_artifact_cid", "response_schema_cid",
+        "page_value_cid", "previous_adoption_cid", "terminal", "next_token", "recorded_at",
+        "issuer_id", "authority_scope_cid", "self_cid",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
 }
 
 ///|
@@ -23538,6 +23856,10 @@ fn generated_protocol_schema_root(name : String, complete : Bool) -> Int? {
     ("native_file_lookup_activation", true) => Some(8456)
     ("native_file_lookup_raw_response", false) => Some(8468)
     ("native_file_lookup_raw_response", true) => Some(8481)
+    ("native_file_lookup_attempt_event", false) => Some(8526)
+    ("native_file_lookup_attempt_event", true) => Some(8572)
+    ("native_file_lookup_adoption", false) => Some(8591)
+    ("native_file_lookup_adoption", true) => Some(8611)
     _ => None
   }
 }

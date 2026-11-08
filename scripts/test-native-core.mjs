@@ -271,7 +271,7 @@ if (full) {
             ACTQL_TEST_NATIVE_BATCH_PLAN: undefined, ACTQL_TEST_NATIVE_ACTIVATION: undefined,
             ACTQL_TEST_NATIVE_RAW_STORE: undefined, ACTQL_TEST_NATIVE_RAW_STORE_REFUSAL: undefined,
             ACTQL_TEST_NATIVE_LEFT_IDENTITY: undefined, ACTQL_TEST_NATIVE_SOURCE_ARTIFACTS: undefined,
-            ACTQL_TEST_NATIVE_ATTEMPT_USAGE: undefined};
+            ACTQL_TEST_NATIVE_ATTEMPT_USAGE: undefined, ACTQL_TEST_NATIVE_CAPTURED_PAGE: undefined};
         const scopedArgs = ['--target', 'native', ...args, test.source, '--index', String(test.index),
           '--target-dir', scoped.targetDirectory];
         const timeout = scopedDeadline - Date.now();

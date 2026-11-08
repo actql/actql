@@ -3243,3 +3243,30 @@ Writer duties. Successful I/O retirement keeps the durable bytes for their
 original holding. The Source still owes its actual pre-page capture, policy,
 retention, activation and adoption correspondence; Store byte custody alone
 grants none of these and cannot authorize another Source call.
+
+A completed Native Source binds its confirmed raw Store metadata to its exact
+admitted RowRun page before that page enters lookup assembly. The existing
+lookup reservation backs the supplied-input identity export and its partial
+read, capture, output, scanner and receipt. One bounded scan supplies the logical
+Relation preimage and schema; the ordered-row wire hash is not substituted for
+the registered logical Relation hash. The immutable page metadata contains no
+lookup or physical Source backpointer. Its capture event and terminal adoption
+bind the same activation, raw response, response contract and actual page value;
+constructing those bodies is not a durable adoption acknowledgement.
+
+The physical Source privately retains that exact page original. The Native
+Model Work uses a callback-free correspondence check on it while holding the
+same captured Journal Read, not another execution-domain entry. Its transaction
+requires the original accepted Run and exact activation body and observed
+revision, an empty adoption slot, canonical batch order and the fixed live
+deadline. It records the event, raw metadata and actual page/schema preimages
+with the adoption in one existing Journal transaction. This does not serialize
+Source rows again or infer Source authority from an operation label.
+
+The existing Work entry retains the original page before fallible persistence.
+An attempted but unobserved adoption keeps that same entry and cleanup pending.
+A known COMMIT is retained before a later Read return may fail, then drops the
+page and activation-body aliases held by that persistence observation. Source
+and Store cleanup remain separate duties. Neither a captured event nor its
+adoption alone constitutes the cumulative accounting/attempt receipt or the
+validated whole lookup Relation required for final lookup evidence.

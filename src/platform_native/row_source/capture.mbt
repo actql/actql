@@ -1660,6 +1660,7 @@ pub fn NativeRelationFileCapture::close(
       content.raw_custody = None
       content.raw_response = None
       content.raw_retention = None
+      content.captured_page = None
       content.input = None
       content.bytes = None
       content.raw_snapshot = None

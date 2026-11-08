@@ -139,6 +139,20 @@ test "Native raw Store refusal retains actual per attempt usage and unresolved f
 }
 
 ///|
+// Actual Source/Store page binding and metadata only. The durable Host
+// transaction and ordinary CLI remain separate qualification boundaries.
+test "Native README binds each actual captured page to its original activation before adoption" {
+  assert_eq(@env.get_env_var("ACTQL_TEST_NATIVE_CAPTURED_PAGE"), Some("1"))
+  native_project_mock_model_backed_read(
+    false,
+    readme_request=true,
+    effect_compilation=true,
+    effect_source_inputs=true,
+    content_join=true,
+  )
+}
+
+///|
 // Actual same Store/SQLite/Root/Writer/Reader, with authored raw metadata DATA.
 // No Source authority, Journal activation, Model send or normal funding proof.
 test "Native lookup raw Store preserves exact bytes and original purpose through reopen" {
@@ -874,6 +888,7 @@ fn native_mock_readme_content_join_adopt(
   let attempt_usage = @env.get_env_var("ACTQL_TEST_NATIVE_ATTEMPT_USAGE") ==
     Some("1")
   let native_usages : Array[@run_host.ClientKeyedNativeAttemptUsage] = []
+  let captured_pages : Array[@run_host.ClientKeyedNativeCapturedPage] = []
   let content_children : Array[@row_file.NativeRelationFileCapture] = []
   let library = @local_sqlite.load_library(
     @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY").unwrap(),
@@ -1463,6 +1478,134 @@ fn native_mock_readme_content_join_adopt(
         Some(Json::string("explicit-native-component-issuer")),
       )
     }
+    if @env.get_env_var("ACTQL_TEST_NATIVE_CAPTURED_PAGE") == Some("1") {
+      let page = content
+        .prepare_keyed_page_original(
+          limits.identity.rows,
+          limits.output_values,
+          limits.identity.wire,
+          limits.identity.logical_wire,
+          limits.identity.schema,
+          limits.identity.work,
+          limits.identity.workspace,
+          65536,
+          4096,
+          32,
+        )
+        .native_content_physical_stage("same Source captured page original")
+      assert_eq(page.batch_index, row)
+      assert_eq(
+        page.logical_value_cid,
+        "sha256:" + @sha.hex(@utf8.encode(page.body)),
+      )
+      guard @json.parse(page.body) is Object(body) &&
+        body.get("sort") == Some(Json::string("relation")) &&
+        body.get("value") is Some(Array(page_rows)) else {
+        fail("actual page logical preimage")
+      }
+      assert_eq(page_rows.length(), 1)
+      assert_true(
+        content.keyed_captured_page_matches(
+          page,
+          first.request,
+          compiled,
+          first.definition,
+          graph,
+        ),
+      )
+      let raw = content.keyed_raw_response().unwrap()
+      assert_true(physical_equal(page.raw, raw.metadata))
+      guard @json.parse(@publication.publication_contract_json(page.event))
+        is Object(event) &&
+        @json.parse(@publication.publication_contract_json(page.adoption))
+        is Object(adoption) else {
+        fail("actual captured event/adoption")
+      }
+      assert_eq(event.get("outcome"), Some(Json::string("captured")))
+      assert_eq(
+        event.get("raw_response_artifact_cid"),
+        Some(
+          Json::string(@publication.publication_contract_identity(raw.metadata)),
+        ),
+      )
+      assert_eq(event.get("previous_event_cid"), Some(Json::null()))
+      assert_eq(
+        adoption.get("call_slot_cid"),
+        Some(Json::string(page.call_slot_cid)),
+      )
+      assert_eq(
+        adoption.get("batch_plan_cid"),
+        Some(Json::string(page.batch_plan_cid)),
+      )
+      assert_eq(
+        adoption.get("activation_cid"),
+        Some(Json::string(page.activation_cid)),
+      )
+      assert_eq(
+        adoption.get("capture_event_cid"),
+        Some(
+          Json::string(@publication.publication_contract_identity(page.event)),
+        ),
+      )
+      assert_eq(
+        adoption.get("page_value_cid"),
+        Some(Json::string(page.logical_value_cid)),
+      )
+      assert_eq(adoption.get("terminal"), Some(Json::boolean(true)))
+      assert_eq(adoption.get("next_token"), Some(Json::null()))
+      assert_eq(adoption.get("previous_adoption_cid"), Some(Json::null()))
+      let before = @run_host.client_keyed_lookup_input_work(lookup)
+      assert_true(
+        @run_host.prepare_client_keyed_native_captured_page(
+          request,
+          content.keyed_capture().unwrap(),
+          raw,
+          "2026-10-26T00:00:00.001Z",
+          limits.identity.rows,
+          limits.output_values,
+          limits.identity.wire,
+          limits.identity.logical_wire,
+          limits.identity.schema,
+          limits.identity.work,
+          limits.identity.workspace,
+          65536,
+          4096,
+          32,
+        )
+        is Err(_),
+      )
+      assert_eq(@run_host.client_keyed_lookup_input_work(lookup), before)
+      assert_true(
+        content.keyed_captured_page_matches(
+          page,
+          first.request,
+          compiled,
+          first.definition,
+          graph,
+        ),
+      )
+      if row == 1 {
+        assert_false(
+          content.keyed_captured_page_matches(
+            captured_pages[0],
+            first.request,
+            compiled,
+            first.definition,
+            graph,
+          ),
+        )
+        assert_false(
+          content_children[0].keyed_captured_page_matches(
+            page,
+            first.request,
+            compiled,
+            first.definition,
+            graph,
+          ),
+        )
+      }
+      captured_pages.push(page)
+    }
     let captured = content
       .keyed_capture()
       .native_content_join_stage("original keyed capture")
@@ -1786,10 +1929,21 @@ fn native_mock_readme_content_join_adopt(
   }
   // The original response copy still borrows each nominal Content issuer.
   // Keep both actual captures, then retire the same children before the Store.
-  for content in content_children {
+  for index, content in content_children {
     assert_true(
       content.close().native_content_join_stage("Content first physical close"),
     )
+    if @env.get_env_var("ACTQL_TEST_NATIVE_CAPTURED_PAGE") == Some("1") {
+      assert_false(
+        content.keyed_captured_page_matches(
+          captured_pages[index],
+          first.request,
+          compiled,
+          first.definition,
+          graph,
+        ),
+      )
+    }
     if @env.get_env_var("ACTQL_TEST_NATIVE_RAW_SNAPSHOT") == Some("1") {
       assert_true(
         content.keyed_raw_snapshot_identity() is Err(@row_file.Unavailable),

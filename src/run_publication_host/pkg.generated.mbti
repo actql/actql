@@ -855,6 +855,8 @@ pub fn client_keyed_native_activation_matches(ClientKeyedNativeActivation, Clien
 
 pub fn client_keyed_native_attempt_usage(ClientKeyedNativeActivation) -> ClientKeyedNativeAttemptUsage
 
+pub fn client_keyed_native_captured_page_matches(ClientKeyedNativeCapturedPage, ClientKeyedRequest, ClientRequestIdentity, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> Bool
+
 pub fn client_keyed_native_left_identity(ClientKeyedLookupInput) -> ClientKeyedNativeLeftIdentity?
 
 pub fn client_keyed_native_left_relation(ClientKeyedLookupInput) -> ClientKeyedNativeLeftRelation?
@@ -2002,6 +2004,8 @@ pub fn prepare_client_keyed_lookup_join_inputs(ClientKeyedLookupInput, @executio
 pub fn prepare_client_keyed_native_activation(ClientKeyedLookupInput, ClientKeyedRequest, ClientRequestIdentity, String, String, Int64, Int, Int, Int) -> Result[ClientKeyedNativeActivation, ClientKeyedRequestIssue]
 
 pub fn prepare_client_keyed_native_batch_plan(ClientKeyedLookupInput, Int, Int, Int) -> Result[@run_publication.PublicationContract, ClientKeyedRequestIssue]
+
+pub fn prepare_client_keyed_native_captured_page(ClientKeyedRequest, @client_row_source_host.RowKeyedSourceCapture, ClientKeyedNativeRawResponse, String, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int, Int, Int, Int, Int) -> Result[ClientKeyedNativeCapturedPage, ClientKeyedRequestIssue]
 
 pub fn prepare_client_keyed_native_left_identity(ClientKeyedLookupInput, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int, Int) -> Result[ClientKeyedNativeLeftIdentity, ClientKeyedRequestIssue]
 
@@ -3389,6 +3393,20 @@ pub struct ClientKeyedNativeAttemptUsage {
   mut started_ms : Int64
   mut observed_ms : Int64
   mut usage_final : Bool
+}
+
+pub struct ClientKeyedNativeCapturedPage {
+  batch_index : Int
+  deadline_epoch_ms : Int64
+  call_slot_cid : String
+  batch_plan_cid : String
+  activation_cid : String
+  raw : @run_publication.PublicationContract
+  event : @run_publication.PublicationContract
+  adoption : @run_publication.PublicationContract
+  logical_value_cid : String
+  body : String
+  schema_wire : String
 }
 
 pub struct ClientKeyedNativeLeftIdentity {

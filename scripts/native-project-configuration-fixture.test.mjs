@@ -42,6 +42,7 @@ test('Native Content case indices retain every original role in distinct fresh S
     'Native README reuses original Source evidence in its left Relation and Model input',
     'Native README records actual per attempt bytes and finality without refund on retirement',
     'Native raw Store refusal retains actual per attempt usage and unresolved finality',
+    'Native README binds each actual captured page to its original activation before adoption',
     'Native lookup raw Store preserves exact bytes and original purpose through reopen',
     'Native README Source originals retain the keyed Model closure',
     'Native README original file Effect Plan admits actual operations before children',
@@ -53,15 +54,15 @@ test('Native Content case indices retain every original role in distinct fresh S
     const path = join(root, String(index)); mkdirSync(path); return path;
   });
   const cases = namespaces.map((path, index) => nativeProjectContentCaseFixture(path, index, project));
-  assert.deepEqual(cases.map(value => value.ACTQL_TEST_NATIVE_CONTENT_LOOKUPS), ['1', ...Array(13).fill('2')]);
-  assert.equal(new Set(cases.map(value => value.ACTQL_TEST_NATIVE_STORE_ROOT)).size, 14);
+  assert.deepEqual(cases.map(value => value.ACTQL_TEST_NATIVE_CONTENT_LOOKUPS), ['1', ...Array(14).fill('2')]);
+  assert.equal(new Set(cases.map(value => value.ACTQL_TEST_NATIVE_STORE_ROOT)).size, 15);
   const roles = {
-    RAW_SNAPSHOT: [2, 3, 4, 5, 6, 7, 8, 9, 10],
-    BATCH_PLAN: [3, 4, 5, 6, 7, 8, 9, 10],
-    ACTIVATION: [4, 5, 6, 7, 8, 9, 10],
-    RAW_STORE: [5, 6, 7, 8, 9, 10], RAW_STORE_REFUSAL: [6, 10],
-    LEFT_IDENTITY: [7, 8, 9, 10], SOURCE_ARTIFACTS: [8, 9, 10],
-    ATTEMPT_USAGE: [9, 10], MODEL_SOURCE_CLOSURE: [8, 9, 10, 12], EFFECT_PLAN_ONLY: [13],
+    RAW_SNAPSHOT: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+    BATCH_PLAN: [3, 4, 5, 6, 7, 8, 9, 10, 11],
+    ACTIVATION: [4, 5, 6, 7, 8, 9, 10, 11],
+    RAW_STORE: [5, 6, 7, 8, 9, 10, 11], RAW_STORE_REFUSAL: [6, 10],
+    LEFT_IDENTITY: [7, 8, 9, 10, 11], SOURCE_ARTIFACTS: [8, 9, 10, 11],
+    ATTEMPT_USAGE: [9, 10, 11], CAPTURED_PAGE: [11], MODEL_SOURCE_CLOSURE: [8, 9, 10, 11, 13], EFFECT_PLAN_ONLY: [14],
   };
   for (const [role, selected] of Object.entries(roles)) {
     const key = 'ACTQL_TEST_NATIVE_' + role;
@@ -73,7 +74,7 @@ test('Native Content case indices retain every original role in distinct fresh S
     assert.deepEqual(readdirSync(value.ACTQL_TEST_NATIVE_STORE_ROOT), []);
   }
   assert.throws(() => nativeProjectContentCaseFixture(namespaces[0], 0), {code: 'EEXIST'});
-  for (const index of [-1, 14, 0.5, '1', undefined]) {
+  for (const index of [-1, 15, 0.5, '1', undefined]) {
     assert.throws(() => nativeProjectContentCaseFixture(root, index), /exact original/u);
   }
 });

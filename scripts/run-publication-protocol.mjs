@@ -683,6 +683,8 @@ for (const [name, schema] of [
   ['native_file_lookup_call_slot', 'call_slot'],
   ['native_file_lookup_activation', 'activation'],
   ['native_file_lookup_raw_response', 'raw_response'],
+  ['native_file_lookup_attempt_event', 'attempt_event'],
+  ['native_file_lookup_adoption', 'adoption'],
 ]) {
   registerArtifactSchema(name, {schema, identity: 'self_cid', registry: 'lookup'});
 }

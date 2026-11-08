@@ -270,6 +270,24 @@ fn build_keyed_lookup_identity_bodies(
 
 ///|
 fn clear_keyed_lookup_identity_bodies(lookup : ClientKeyedLookupInput) -> Unit {
+  for (_, _, history) in lookup.known {
+    if history is Some(history) && history._retained_native_page is Some(page) {
+      if page.scan is Some(scan) {
+        @execution.cancel_completed_relation_identity_scan(scan) |> ignore
+      }
+      page.scan = None
+      if page.receipt is Some(receipt) {
+        @execution.cancel_completed_relation_export_receipt(receipt)
+      }
+      page.receipt = None
+      page.output = None
+      page.read = None
+      page.capture = None
+      page.result = None
+      history._retained_native_page = None
+    }
+  }
+
   if lookup.identity_scan is Some(scan) {
     @execution.cancel_completed_relation_identity_scan(scan) |> ignore
   }

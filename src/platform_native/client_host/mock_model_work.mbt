@@ -782,9 +782,10 @@ pub fn NativeClientMockModelWork::close(
     self.observation_time = None
     if self.lookup_entries is Some(entries) {
       for entry in entries {
-        if entry.attempted && !entry.recorded {
+        if (entry.attempted && !entry.recorded) ||
+          (entry.page_attempted && !entry.page_recorded) {
           // The original Journal owns this unresolved write/return. A Model
-          // close cannot turn ambiguous activation persistence into no send.
+          // close cannot turn ambiguous activation/adoption into no send.
           return Err(CleanupPending)
         }
       }

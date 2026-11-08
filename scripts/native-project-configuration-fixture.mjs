@@ -117,9 +117,9 @@ export function nativeProjectConfigurationFixture(namespace) {
 // require their original earlier ports too; the last two keep their separate
 // Source-closure/Effect selections. Ambient flags cannot retarget another case.
 export function nativeProjectContentCaseFixture(namespace, index, projectRoot) {
-  assert(Number.isInteger(index) && index >= 0 && index <= 13,
+  assert(Number.isInteger(index) && index >= 0 && index <= 14,
     'An exact original Native Content case index is required');
-  const selected = (first, last = 10) => index >= first && index <= last;
+  const selected = (first, last = 11) => index >= first && index <= last;
   const raw = selected(2) ? readFileSync(join(projectRoot, 'deal-review/mock/data.json')) : undefined;
   const store = join(namespace, 'content-store');
   mkdirSync(store, {mode: 0o700});
@@ -136,7 +136,8 @@ export function nativeProjectContentCaseFixture(namespace, index, projectRoot) {
     ACTQL_TEST_NATIVE_LEFT_IDENTITY: selected(7) ? '1' : undefined,
     ACTQL_TEST_NATIVE_SOURCE_ARTIFACTS: selected(8) ? '1' : undefined,
     ACTQL_TEST_NATIVE_ATTEMPT_USAGE: selected(9) ? '1' : undefined,
-    ACTQL_TEST_NATIVE_MODEL_SOURCE_CLOSURE: selected(8) || index === 12 ? '1' : undefined,
-    ACTQL_TEST_NATIVE_EFFECT_PLAN_ONLY: index === 13 ? '1' : undefined,
+    ACTQL_TEST_NATIVE_MODEL_SOURCE_CLOSURE: selected(8) || index === 13 ? '1' : undefined,
+    ACTQL_TEST_NATIVE_CAPTURED_PAGE: index === 11 ? '1' : undefined,
+    ACTQL_TEST_NATIVE_EFFECT_PLAN_ONLY: index === 14 ? '1' : undefined,
     ACTQL_TEST_NATIVE_STORE_ROOT: store};
 }
