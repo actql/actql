@@ -36,6 +36,7 @@ struct NativeClientMockModelWork {
   mut local_receipt : @execution.CompletedRelationExportReceipt?
   mut local_observation : @infer.LocalModelObservation?
   mut local_use : @infer.OutputUse?
+  mut lookup_entries : Array[NativeMockLookupJournalEntry]?
   mut open_attempted : Bool
   mut advancing : Bool
   mut closing : Bool
@@ -126,6 +127,7 @@ pub fn prepare_native_client_mock_model_work(
     local_receipt: None,
     local_observation: None,
     local_use: None,
+    lookup_entries: Some([]),
     open_attempted: false,
     advancing: false,
     closing: false,
@@ -778,8 +780,18 @@ pub fn NativeClientMockModelWork::close(
     self.closing = true
     self.account = None
     self.observation_time = None
+    if self.lookup_entries is Some(entries) {
+      for entry in entries {
+        if entry.attempted && !entry.recorded {
+          // The original Journal owns this unresolved write/return. A Model
+          // close cannot turn ambiguous activation persistence into no send.
+          return Err(CleanupPending)
+        }
+      }
+    }
     match self.active {
       None => {
+        self.lookup_entries = None
         self.first_start = None
         self.closed = true
         Ok(true)
@@ -828,6 +840,7 @@ pub fn NativeClientMockModelWork::close(
           }),
         )
         if closed {
+          self.lookup_entries = None
           self.active = None
           self.prepared = None
           self.admission = None
@@ -866,9 +879,10 @@ fn[T] mock_model_require(
 /// this through the SAME Request before preparing this existing Native Work.
 pub fn native_client_mock_model_work_construction() -> @execution.PreparationRepresentationUnits {
   {
-    record_headers: 6L,
-    reference_slots: 32L,
-    scalar_words: 12L,
+    // Existing controls plus the one retained lookup-entry vector and field.
+    record_headers: 10L,
+    reference_slots: 47L,
+    scalar_words: 15L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }

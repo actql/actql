@@ -854,19 +854,19 @@ test "Native README first compiler retains the same prepared Model provider prof
 ///|
 test "Native Model selection backs all three simultaneous original vectors" {
   // Bounds (20H/32R/78W), Work including its publication snapshot
-  // (6H/32R/10W), and its four-reference
+  // (10H/47R/15W, including the original lookup-entry vector), and its four-reference
   // selection holder are per occurrence. The first occurrence also retains
   // the compiled view (4H/12R/3W) and THREE growing vectors: selected Models,
   // compiler Graph arguments, and business.model_work. Two occurrences give
   // six vector elements; the shared Array convention gives 9H/57R/6W.
   let later = native_mock_effect_model_selection_storage(0)
-  assert_eq(later.record_headers, 27L)
-  assert_eq(later.reference_slots, 68L)
-  assert_eq(later.scalar_words, 90L)
+  assert_eq(later.record_headers, 31L)
+  assert_eq(later.reference_slots, 83L)
+  assert_eq(later.scalar_words, 93L)
   let first = native_mock_effect_model_selection_storage(2)
-  assert_eq(first.record_headers, 40L)
-  assert_eq(first.reference_slots, 137L)
-  assert_eq(first.scalar_words, 99L)
+  assert_eq(first.record_headers, 44L)
+  assert_eq(first.reference_slots, 152L)
+  assert_eq(first.scalar_words, 102L)
   assert_eq(first.owned_utf16_units, 0L)
   assert_eq(first.owned_wire_bytes, 0L)
 }

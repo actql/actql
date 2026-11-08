@@ -3,7 +3,7 @@
 
 ///|
 fn generated_protocol_schema_nodes() -> Array[ProtocolSchemaRule] {
-  let nodes : Array[ProtocolSchemaRule] = Array(capacity=8388)
+  let nodes : Array[ProtocolSchemaRule] = Array(capacity=8457)
   generated_protocol_schema_nodes_0(nodes)
   generated_protocol_schema_nodes_1(nodes)
   generated_protocol_schema_nodes_2(nodes)
@@ -23083,6 +23083,215 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
+  nodes.push(
+    protocol_string_rule(Some("actql-lookup-semantic-request/0.1"), [], 0, 0),
+  )
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[81])
+  nodes.push(nodes[122])
+  nodes.push(nodes[2])
+  nodes.push(nodes[270])
+  nodes.push(
+    protocol_object_rule(
+      [("previous_response_artifact_cid", 8394), ("token", 8395)],
+      ["previous_response_artifact_cid", "token"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(AnyOfRule([8393, 8396]))
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("version", 8388),
+        ("source_view_contract_cid", 8389),
+        ("request_schema_cid", 8390),
+        ("transport_plan_cid", 8391),
+        ("request_values", 8392),
+        ("continuation", 8397),
+      ],
+      [
+        "version", "source_view_contract_cid", "request_schema_cid", "transport_plan_cid",
+        "request_values", "continuation",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[8388])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[81])
+  nodes.push(nodes[122])
+  nodes.push(nodes[2])
+  nodes.push(nodes[270])
+  nodes.push(
+    protocol_object_rule(
+      [("previous_response_artifact_cid", 8405), ("token", 8406)],
+      ["previous_response_artifact_cid", "token"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(AnyOfRule([8404, 8407]))
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("version", 8399),
+        ("source_view_contract_cid", 8400),
+        ("request_schema_cid", 8401),
+        ("transport_plan_cid", 8402),
+        ("request_values", 8403),
+        ("continuation", 8408),
+        ("self_cid", 8409),
+      ],
+      [
+        "version", "source_view_contract_cid", "request_schema_cid", "transport_plan_cid",
+        "request_values", "continuation", "self_cid",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_string_rule(Some("actql-lookup-call-slot/0.1"), [], 0, 0))
+  nodes.push(nodes[2])
+  nodes.push(nodes[4])
+  nodes.push(nodes[4])
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("version", 8411),
+        ("batch_plan_cid", 8412),
+        ("batch_index", 8413),
+        ("page_index", 8414),
+        ("semantic_request_cid", 8415),
+      ],
+      [
+        "version", "batch_plan_cid", "batch_index", "page_index", "semantic_request_cid",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[8411])
+  nodes.push(nodes[2])
+  nodes.push(nodes[4])
+  nodes.push(nodes[4])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("version", 8417),
+        ("batch_plan_cid", 8418),
+        ("batch_index", 8419),
+        ("page_index", 8420),
+        ("semantic_request_cid", 8421),
+        ("self_cid", 8422),
+      ],
+      [
+        "version", "batch_plan_cid", "batch_index", "page_index", "semantic_request_cid",
+        "self_cid",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(
+    protocol_string_rule(Some("actql-lookup-attempt-activation/0.1"), [], 0, 0),
+  )
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[936])
+  nodes.push(nodes[2])
+  nodes.push(nodes[122])
+  nodes.push(AnyOfRule([8429, 8430]))
+  nodes.push(nodes[2])
+  nodes.push(nodes[122])
+  nodes.push(AnyOfRule([8432, 8433]))
+  nodes.push(nodes[80])
+  nodes.push(nodes[80])
+  nodes.push(nodes[1])
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("version", 8424),
+        ("barrier_cid", 8425),
+        ("batch_plan_cid", 8426),
+        ("call_slot_cid", 8427),
+        ("network_attempt", 8428),
+        ("previous_activation_cid", 8431),
+        ("previous_attempt_event_cid", 8434),
+        ("recorded_at", 8435),
+        ("deadline", 8436),
+        ("issuer_id", 8437),
+        ("authority_scope_cid", 8438),
+      ],
+      [
+        "version", "barrier_cid", "batch_plan_cid", "call_slot_cid", "network_attempt",
+        "previous_activation_cid", "previous_attempt_event_cid", "recorded_at", "deadline",
+        "issuer_id", "authority_scope_cid",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[8424])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[936])
+  nodes.push(nodes[2])
+  nodes.push(nodes[122])
+  nodes.push(AnyOfRule([8445, 8446]))
+  nodes.push(nodes[2])
+  nodes.push(nodes[122])
+  nodes.push(AnyOfRule([8448, 8449]))
+  nodes.push(nodes[80])
+  nodes.push(nodes[80])
+  nodes.push(nodes[1])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("version", 8440),
+        ("barrier_cid", 8441),
+        ("batch_plan_cid", 8442),
+        ("call_slot_cid", 8443),
+        ("network_attempt", 8444),
+        ("previous_activation_cid", 8447),
+        ("previous_attempt_event_cid", 8450),
+        ("recorded_at", 8451),
+        ("deadline", 8452),
+        ("issuer_id", 8453),
+        ("authority_scope_cid", 8454),
+        ("self_cid", 8455),
+      ],
+      [
+        "version", "barrier_cid", "batch_plan_cid", "call_slot_cid", "network_attempt",
+        "previous_activation_cid", "previous_attempt_event_cid", "recorded_at", "deadline",
+        "issuer_id", "authority_scope_cid", "self_cid",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
 }
 
 ///|
@@ -23245,6 +23454,12 @@ fn generated_protocol_schema_root(name : String, complete : Bool) -> Int? {
     ("lookup_barrier", true) => Some(8366)
     ("native_file_lookup_batch_plan", false) => Some(8376)
     ("native_file_lookup_batch_plan", true) => Some(8387)
+    ("native_file_lookup_request", false) => Some(8398)
+    ("native_file_lookup_request", true) => Some(8410)
+    ("native_file_lookup_call_slot", false) => Some(8416)
+    ("native_file_lookup_call_slot", true) => Some(8423)
+    ("native_file_lookup_activation", false) => Some(8439)
+    ("native_file_lookup_activation", true) => Some(8456)
     _ => None
   }
 }

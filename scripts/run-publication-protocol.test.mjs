@@ -57,6 +57,13 @@ test('generator preserves operation-specific array ceilings', () => {
   }));
 });
 
+test('generator admits the existing lookup UTC-millisecond spelling without a permissive pattern fallback', () => {
+  assert.doesNotThrow(() => emitSchema({type: 'string',
+    pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$'}));
+  assert.throws(() => emitSchema({type: 'string',
+    pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'}), /Unsupported publication schema pattern/);
+});
+
 test('generator preserves exact positional records without permissive tuple fallback', () => {
   const exact = {type: 'array', prefixItems: [{type: 'string'}, {type: 'boolean'}],
     items: false, minItems: 2, maxItems: 2};

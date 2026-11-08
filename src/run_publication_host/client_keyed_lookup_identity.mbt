@@ -433,8 +433,21 @@ fn grow_keyed_lookup_protocol_metadata(
   max_bytes : Int,
   slots : Int64,
   extra_controls? : Int64 = 0L,
+  copies? : Int = 1,
 ) -> Result[Unit, ClientKeyedRequestIssue] {
-  let metadata = 16L * max_bytes.to_int64() + 128L * slots + extra_controls
+  guard copies > 0 &&
+    @execution.checked_preparation_add_product(
+      0L,
+      16L * max_bytes.to_int64(),
+      copies.to_int64(),
+    )
+    is Some(bodies) &&
+    @execution.checked_preparation_add_product(bodies, 128L, slots)
+    is Some(fields) &&
+    @execution.checked_preparation_add_product(fields, extra_controls, 1L)
+    is Some(metadata) else {
+    return Err(Assembly("capacity_overflow"))
+  }
   if metadata > 9223372036854775807L - lookup.retained_bytes {
     return Err(Assembly("capacity_overflow"))
   }

@@ -3206,3 +3206,27 @@ number. Responses already admitted in canonical dispatch order are sealed
 without applying the original-slot permutation again. The existing unplanned
 and non-Native publication paths retain their original ordering. Neither this
 immutable Plan nor its schedule supplies durable activation or attempt evidence.
+
+The selected first Native attempt retains its semantic Request, call slot and
+activation on that same lookup. The semantic body embeds the already encoded
+typed Request unchanged, including original Ref values. Its reservation uses
+the actual SourceView response ceiling and the remaining original Host budget;
+it does not lower the physical read limit to fit a smaller allowance. The
+activation starts the acquisition clock and binds the original authority scope,
+Native issuer and deadline. Constructing it grants neither dispatch permission
+nor a durable acknowledgement.
+
+The final publication checks the same history's empty activation slot after
+all growth/current callbacks have returned. A synchronous reentrant caller may
+already have received its original; the outer preparation then refuses without
+replacing that token, poisoning the lookup or repeating external currentness.
+
+Before advancing the physical child, the existing Native Model Work records
+those originals through its captured Read and Journal transaction. The accepted
+Run, original definition, batch order and unique slot remain mandatory. A
+previous or ambiguous write cannot authorize a resend. A known COMMIT is retained
+before a fallible outer Read return; its observation then severs the whole
+lookup/Request alias. An uncertain transaction retains its original and keeps
+cleanup pending. Actual Source authorization is observed again after persistence
+and before physical advance. This entry does not replace raw-response custody,
+attempt events, adoption, cumulative accounting or the five lookup Artifacts.

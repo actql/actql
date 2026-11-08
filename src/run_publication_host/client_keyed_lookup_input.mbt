@@ -6,6 +6,7 @@
 priv struct ClientKeyedResponseHistory {
   request : ClientKeyedRequest
   mut _retained_capture : @row_host.RowKeyedSourceCapture?
+  mut _retained_activation : ClientKeyedNativeActivation?
 }
 
 ///|
@@ -685,7 +686,7 @@ pub fn begin_client_keyed_lookup_response(
         4L + (if capture is Some(_) { 3L } else { 0L })
       } else {
         request_layout.reference_slots +
-        8L +
+        9L +
         (if capture is Some(_) { 9L } else { 5L })
       }),
       scalar_words: layout.scalar_words +
@@ -744,7 +745,7 @@ pub fn begin_client_keyed_lookup_response(
     history._retained_capture = capture
     state.known[planned_slot].2
   } else {
-    Some({ request, _retained_capture: capture, })
+    Some({ request, _retained_capture: capture, _retained_activation: None, })
   }
   state.pending_slot = planned_slot
   let cursor = match

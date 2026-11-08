@@ -130,6 +130,27 @@ fn common_grant_fields() -> Array[FieldSpec] {
 ///|
 fn contract_spec(name : String) -> ContractSpec? {
   match name {
+    "native_file_lookup_request" =>
+      Some({
+        name,
+        version: "actql-lookup-semantic-request/0.1",
+        identity: "self_cid",
+        fields: [],
+      })
+    "native_file_lookup_call_slot" =>
+      Some({
+        name,
+        version: "actql-lookup-call-slot/0.1",
+        identity: "self_cid",
+        fields: [],
+      })
+    "native_file_lookup_activation" =>
+      Some({
+        name,
+        version: "actql-lookup-attempt-activation/0.1",
+        identity: "self_cid",
+        fields: [],
+      })
     "native_file_lookup_batch_plan" =>
       Some({
         name,
@@ -1202,6 +1223,7 @@ pub fn seal_publication_contract(
       max_nodes - 1,
       max_depth,
       data_keys=name == "captured_run" ||
+        name == "native_file_lookup_request" ||
         name == "lookup_barrier" ||
         name == "native_file_lookup_transport" ||
         name == "effect_row_outcome_receipt" ||
@@ -1299,6 +1321,7 @@ pub fn admit_publication_contract(
       max_nodes,
       max_depth,
       data_keys=name == "captured_run" ||
+        name == "native_file_lookup_request" ||
         name == "lookup_barrier" ||
         name == "native_file_lookup_transport" ||
         name == "effect_row_outcome_receipt" ||
@@ -1336,6 +1359,7 @@ pub fn admit_publication_contract(
   }
   if [
       "acquisition_relation", "acquisition_scope", "request_key_set", "native_file_lookup_batch_plan",
+      "native_file_lookup_request", "native_file_lookup_call_slot", "native_file_lookup_activation",
     ].contains(name) &&
     wire != complete_wire {
     return Err(InvalidWire)
