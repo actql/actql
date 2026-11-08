@@ -145,6 +145,7 @@ priv struct RowHostConfiguration {
   limits : RowCompletionLimits
   listing_rows : RowListingRows?
   measurement_workspace : Int64
+  record_fields_retained : Int64
 }
 
 ///|
@@ -309,7 +310,9 @@ fn prepare_row_acquisition_owned(
     Err(issue) => return Err(SourceEvidence(issue))
   }
   guard row_capture_measurement_geometry(preparation)
-    is Some((measurement_columns, measurement_workspace)) else {
+    is Some(
+      (measurement_columns, measurement_workspace, record_fields_retained)
+    ) else {
     return Err(Physical(InvalidLimits))
   }
   // The residual filter and capture measure every captured value; the
@@ -330,6 +333,7 @@ fn prepare_row_acquisition_owned(
       candidate,
       listing_rows,
       measurement_workspace,
+      record_fields_retained,
       limits: {
         execution: {
           rows: {
@@ -362,7 +366,7 @@ fn prepare_row_acquisition_owned(
         },
         records: {
           max_work: 1000000,
-          max_fields: 100,
+          max_fields: preparation.columns.length(),
           max_parameters: 100,
           max_bytes: 1000000,
           max_nodes: 100000,
@@ -402,7 +406,9 @@ pub fn row_acquisition_request_wire(
 /// bound for the simultaneously retained scan and output, not a heap estimate.
 pub fn row_acquisition_retained_capacity(value : RowAcquisition) -> Int64 {
   let (original, _) = row_original_input_capacity()
-  value.configuration.limits.retention.retained_wire_bytes.to_int64() + original
+  value.configuration.limits.retention.retained_wire_bytes.to_int64() +
+  value.configuration.record_fields_retained +
+  original
 }
 
 ///|

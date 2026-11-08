@@ -5,14 +5,14 @@
 // references. Eight fixed records and 16 reference/scalar slots cover the
 // order cursor, comparison/control, array headers and one pending item. Wire
 // writer/hash payload remains in the original bounded wire/record envelope.
-fn row_measurement_workspace(schema : @schema.Schema) -> Int64? {
+fn row_schema_measurement_capacity(schema : @schema.Schema) -> (Int64, Int64)? {
   let n = @schema.field_count(schema).to_int64()
-  let mut headers = n + 8L
+  let mut name_headers = 0L
   let mut utf16 = 0L
   for index in 0..<@schema.field_count(schema) {
     let field = @schema.field_at(schema, index).unwrap()
     let extent = @schema.reference_name_construction_extent(field.name)
-    headers += extent.scratch.record_headers
+    name_headers += extent.scratch.record_headers
     guard @execution.checked_preparation_add_product(
         utf16,
         extent.scratch_utf16_units,
@@ -23,13 +23,29 @@ fn row_measurement_workspace(schema : @schema.Schema) -> Int64? {
     }
     utf16 = next
   }
-  @execution.preparation_representation_cost({
-    record_headers: headers,
-    reference_slots: n * 5L + 16L,
-    scalar_words: n + 16L,
-    owned_utf16_units: utf16,
-    owned_wire_bytes: 0L,
-  })
+  guard @execution.preparation_representation_cost({
+      record_headers: n + 8L + name_headers,
+      reference_slots: n * 5L + 16L,
+      scalar_words: n + 16L,
+      owned_utf16_units: utf16,
+      owned_wire_bytes: 0L,
+    })
+    is Some(measurement) &&
+    @execution.preparation_representation_cost({
+      // Query evidence retains this complete input's name Array. Its final
+      // backing has less than 2n slots; names are borrowed unless qualified.
+      record_headers: 2L + name_headers,
+      reference_slots: n * 2L,
+      scalar_words: 0L,
+      owned_utf16_units: utf16,
+      owned_wire_bytes: 0L,
+    })
+    is Some(records) else {
+    return None
+  }
+  // The measurement's 5n refs dominate the record builder's 3n growth peak;
+  // measurement temporaries retire before record construction starts.
+  Some((measurement, records))
 }
 
 ///|
@@ -38,7 +54,7 @@ fn row_measurement_workspace(schema : @schema.Schema) -> Int64? {
 // The two measurements are sequential; their variable workspaces do not sum.
 fn row_capture_measurement_geometry(
   preparation : RowSourcePreparation,
-) -> (Int, Int64)? {
+) -> (Int, Int64, Int64)? {
   let owner = @lower.bound_preparation(preparation.owner)
   guard @lower.preparation_input_schema(owner, preparation.input_index)
     is Some(input) &&
@@ -54,14 +70,16 @@ fn row_capture_measurement_geometry(
       @sourcequery.query_acquisition_capture(query),
     )
     is Some(output) &&
-    row_measurement_workspace(input) is Some(input_workspace) &&
-    row_measurement_workspace(output) is Some(output_workspace) else {
+    row_schema_measurement_capacity(input)
+    is Some((input_workspace, record_retained)) &&
+    row_schema_measurement_capacity(output) is Some((output_workspace, _)) else {
     return None
   }
   Some(
     (
       Int::max(@schema.field_count(input), @schema.field_count(output)),
       Int64::max(input_workspace, output_workspace),
+      record_retained,
     ),
   )
 }

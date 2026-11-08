@@ -48269,7 +48269,7 @@
     },
     {
       "module": "src/client_row_source_host/host.mbt",
-      "sha256": "7536dad46367e4cbfb07532612a88c52a005bbeb7849b5f7edf46bd3ab1feff9",
+      "sha256": "bde8e2624f2272e7264a63c5313d8c2b6226322706913001b7f97fca9bb92daf",
       "exports": [],
       "operations": [
         {
@@ -84906,16 +84906,16 @@
     },
     {
       "module": "src/client_row_source_host/measurement_capacity.mbt",
-      "sha256": "c95ed46cb3182e9f6f087172a3625ba2f87448dfa927cd06f98523064548877e",
+      "sha256": "5ef5dc391309b217b7b99f7860d0fd9fcd31017ec7d164e0490eac76ae0a8285",
       "exports": [],
       "operations": [
         {
           "name": "row_capture_measurement_geometry",
-          "declaration": "row_capture_measurement_geometry ( preparation : RowSourcePreparation , ) - > ( Int , Int64 ) ?"
+          "declaration": "row_capture_measurement_geometry ( preparation : RowSourcePreparation , ) - > ( Int , Int64 , Int64 ) ?"
         },
         {
-          "name": "row_measurement_workspace",
-          "declaration": "row_measurement_workspace ( schema : @ schema . Schema ) - > Int64 ?"
+          "name": "row_schema_measurement_capacity",
+          "declaration": "row_schema_measurement_capacity ( schema : @ schema . Schema ) - > ( Int64 , Int64 ) ?"
         }
       ],
       "role": "common-semantics",
@@ -84926,7 +84926,7 @@
           "operations": [
             "<module>",
             "row_capture_measurement_geometry",
-            "row_measurement_workspace"
+            "row_schema_measurement_capacity"
           ],
           "exports": [],
           "attributes": {

@@ -3,7 +3,7 @@ import test from 'node:test';
 import * as common from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs';
-import {installedHubSpotFixture, properties, expected} from './installed-hubspot.fixture.mjs';
+import {installedHubSpotFixture, properties, expected, objectBody} from './installed-hubspot.fixture.mjs';
 
 // Real existing installed Source, TLS/Credential/Account and RowRun/Ledger.
 // Full declarations remain intact; the original query still selects its own
@@ -83,4 +83,17 @@ test('declared Source column bounds still reject a complete wide schema before S
   await assert.rejects(f.load(), error => error.code === 'InstalledHostInitializationFailed' &&
     error.cause?.code === 'MoonBitHostFailure');
   assert.equal(f.state.requests.length, 0); assert.equal(f.state.resolutions, 0);
+});
+
+
+test('wide Source still refuses an omitted selected nullable property', async t => {
+  const selected = options(); selected.objectResponseBody = objectBody;
+  const f = await installedHubSpotFixture(t, selected), source = await f.load(), preparation = await f.prepare(source);
+  const ledger = f.ledger();
+  await assert.rejects(source.openCapture({...preparation, ledger}), error =>
+    error.code === 'MoonBitHostFailure' &&
+    error.cause?.cause?.constructor?.name.endsWith('MissingProperty') &&
+    error.cause.cause.$tag === 7);
+  assert.equal(f.state.requests.length, 3); assert.equal(f.state.resolutions, 3);
+  assert.deepEqual(held(ledger), [0n, 0n, 0n, 0n]);
 });

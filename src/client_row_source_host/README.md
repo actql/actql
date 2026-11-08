@@ -269,3 +269,11 @@ bytes; it is not a heap/RSS measurement. `measurement_capacity_wbtest.mbt` check
 unqualified/qualified arithmetic and the unchanged explicit ordering refusals;
 the installed HubSpot wide fixture separately tests complete provider input,
 the original SELECT projection, finite transfer accounting and real cleanup.
+
+The evidence record writer receives that same original input field count.
+Its retained name Array is backed on the same RowRun as well: two Array/backing
+headers, up to 2n retained references and the original qualified-name storage.
+For 102 unqualified fields this adds 1664 logical retained bytes. Its 3n growth
+peak is smaller than the already funded measurement workspace. Parameter,
+byte, node, ordering and work bounds remain independent; this replaces neither
+the writer's field check nor the receiving schema's nominal validation.

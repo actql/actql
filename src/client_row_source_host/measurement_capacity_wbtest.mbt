@@ -7,7 +7,7 @@ test "measurement metadata follows the original schema width and qualified spell
     max_name_bytes=2048,
   ).unwrap()
   // Shared representation units: (n+8)headers, (5n+16)refs, (n+16)words.
-  assert_eq(row_measurement_workspace(wide), Some(6912L))
+  assert_eq(row_schema_measurement_capacity(wide), Some((6912L, 1664L)))
   let small = @schema.from_fields(
     [("a", contract), ("b", contract), ("c", contract)].map(pair => {
       (@schema.Unqualified(pair.0), pair.1)
@@ -15,14 +15,14 @@ test "measurement metadata follows the original schema width and qualified spell
     max_fields=3,
     max_name_bytes=32,
   ).unwrap()
-  assert_eq(row_measurement_workspace(small), Some(576L))
+  assert_eq(row_schema_measurement_capacity(small), Some((576L, 80L)))
   let qualified = @schema.from_fields(
     [(@schema.Qualified(@schema.Left, "é"), contract)],
     max_fields=1,
     max_name_bytes=32,
   ).unwrap()
   // One original qualified name adds one header and six UTF16 units.
-  assert_eq(row_measurement_workspace(qualified), Some(476L))
+  assert_eq(row_schema_measurement_capacity(qualified), Some((476L, 76L)))
 }
 
 ///|
