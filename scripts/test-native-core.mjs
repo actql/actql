@@ -15,7 +15,7 @@ import {nativeCoreCCompiler} from './native-core-c-compiler.mjs';
 import {nativeProjectConfigurationFixture, nativeProjectContentCaseFixture} from './native-project-configuration-fixture.mjs';
 import {nativeCoreTestSelection, nativeCoreScopedAllocationProfile, nativeCoreScopedBackingPages,
   nativeRelationWorkTestFile, nativeRelationCaptureTestFiles, nativeCorePartitionProfiles,
-  nativeProjectMockContentTestFile} from './native-core-test-selection.mjs';
+  nativeProjectMockContentTestFile, nativeRelationTargetIOTestFile} from './native-core-test-selection.mjs';
 import {nativeProcessRegionFixture} from './native-process-region-fixture.mjs';
 import {nativeCoreOrdinaryProcessFixture} from './native-core-scoped-fixture.mjs';
 import {nativeHttpLifetimeFixture} from './native-http-lifetime-fixture.mjs';
@@ -207,7 +207,8 @@ if (full) {
     const scopedScratch = await createOwnedScratch({parent: join(root, '_build', 'native-core-scoped'),
       prefix: 'profile-', label: 'Native Core scoped compiler', preserve: true});
     const {prepareNativeCoreScopedProfile} = await import('./native-core-scoped-profile.mjs');
-    const {nativeCoreScopedFixture, nativeRelationFileCaptureFixture, nativeCoreModelFrameFixture} = await import('./native-core-scoped-fixture.mjs');
+    const {nativeCoreScopedFixture, nativeRelationFileCaptureFixture, nativeCoreModelFrameFixture,
+      nativeRelationTargetIOFixture} = await import('./native-core-scoped-fixture.mjs');
     const {prepareNativeRuntimeBundleLibraries} = await import('./native-runtime-bundle-fixture.mjs');
     // The scoped component entrance binds its owned API to this executable's
     // provider. Raw system SQLite/OpenSSL remain the ordinary fixture inputs.
@@ -252,6 +253,8 @@ if (full) {
           ? await relationFixture(caseNamespace, relationRuntime)
           : nativeRelationCaptureTestFiles.includes(test.source)
           ? nativeRelationFileCaptureFixture(caseNamespace)
+          : test.source === nativeRelationTargetIOTestFile
+          ? nativeRelationTargetIOFixture(caseNamespace, test.index)
           : test.source === 'src/platform_native/installed_arena_control/model_read_frame_physical_scoped_wbtest.mbt'
           ? nativeCoreModelFrameFixture(caseNamespace)
           : nativeCoreScopedFixture(caseNamespace, {
@@ -261,7 +264,8 @@ if (full) {
         });
         const content = test.source === nativeProjectMockContentTestFile
           ? nativeProjectContentCaseFixture(caseNamespace, test.index)
-          : {ACTQL_TEST_NATIVE_CONTENT_LOOKUPS: undefined, ACTQL_TEST_NATIVE_MODEL_SOURCE_CLOSURE: undefined};
+          : {ACTQL_TEST_NATIVE_CONTENT_LOOKUPS: undefined, ACTQL_TEST_NATIVE_MODEL_SOURCE_CLOSURE: undefined,
+            ACTQL_TEST_NATIVE_EFFECT_PLAN_ONLY: undefined};
         const scopedArgs = ['--target', 'native', ...args, test.source, '--index', String(test.index),
           '--target-dir', scoped.targetDirectory];
         const timeout = scopedDeadline - Date.now();
@@ -271,7 +275,8 @@ if (full) {
           "process.exitCode = runFocusedTests('moon', " + JSON.stringify(scopedArgs) +
           ", {timeout: " + timeout + ", expectedTests: 1, evidenceScratch: " +
           JSON.stringify(scopedScratch.path) + "});"],
-        {cwd: root, stdio: 'inherit', env: {...fixtureEnvironment, ...scoped.environment, ...physical, ...content}}));
+        {cwd: root, stdio: 'inherit', env: {...fixtureEnvironment, ...scoped.environment,
+          ACTQL_TEST_NATIVE_TARGET_IO_ROOT: undefined, ...physical, ...content}}));
       }
     }
     scopedScratch.passed();
