@@ -223,7 +223,7 @@ async function prepareHubSpotMaterials(profile, {moon, providerMoon: provider, c
 }
 
 export async function prepareInstalledHubSpotMaterials(profile, options) {
-  return prepareHubSpotMaterials(profile, options, ({views, ...materials}) => {
+  return prepareHubSpotMaterials(profile, options, ({views, identityExtent: _identityExtent, ...materials}) => {
     const {declared} = options.construction.prepareDeclaration(views);
     return Object.freeze({...materials, declared});
   });

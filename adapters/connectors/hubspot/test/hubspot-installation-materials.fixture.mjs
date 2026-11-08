@@ -112,6 +112,7 @@ export function registerHubSpotInstallationMaterialTests(native, common) {
   const makeFixture = () => fixture(native, common);
   test('HubSpot shared installation retains every original Catalog and complete read-only schema once', async () => {
     const f = makeFixture(), original = await f.prepare();
+    assert.deepEqual(Object.keys(original).sort(), ['catalogs', 'declared', 'installed', 'metadata', 'objects', 'siteProfile']);
     assert(Object.isFrozen(original)); assert.strictEqual(original.metadata, f.metadata);
     assert.strictEqual(original.declared, f.state.declaration);
     assert.deepEqual(f.state.reads, [f.profile.siteProfilePath, f.profile.metadataPath]);

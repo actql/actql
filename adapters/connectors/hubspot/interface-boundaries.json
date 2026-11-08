@@ -593,7 +593,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/installed-hubspot-source.mjs",
-      "sha256": "7750d86e5526c607f9b17b02c2a70ddb658caea078b1e5fa2cdf2c6ebb188b21",
+      "sha256": "8b34206e5c7d73cdcae99ec1c5ed9c884e1ad8d09a10b26541e7b7197568601b",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Source, Common declaration, Account/Credential and original RowRun owners",
@@ -1013,6 +1013,7 @@
           "name": "prepareInstalledHubSpotMaterials/prepareInstalledHubSpotMaterials",
           "parameters": [
             "views",
+            "_identityExtent",
             "materials"
           ],
           "async": false
