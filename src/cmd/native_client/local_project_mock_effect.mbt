@@ -17,7 +17,7 @@ fn[I] LocalProjectMockDeclarations::prepare_effect_models(
   self : Self,
   parent : @local_values.ClientRequestPreparation[I],
   input : I,
-  prepared : @run_host.PreparedClientEffectComputation,
+  occurrences : Array[@run_host.ClientInferOccurrence],
   environment : @checked.CheckEnvironment,
   contracts : @local_values.ClientInstalledSequenceContracts,
 ) -> Array[LocalProjectMockEffectModelInput] raise ClientStop {
@@ -25,9 +25,7 @@ fn[I] LocalProjectMockDeclarations::prepare_effect_models(
     !self.retired &&
     self.model_environment is Some((_, original_environment)) &&
     physical_equal(original_environment, environment) &&
-    self.model_profile is Some(profile) &&
-    @run_host.prepared_client_effect_infer_occurrences(prepared)
-    is Some(occurrences) else {
+    self.model_profile is Some(profile) else {
     stop("LocalOriginalModelUnavailable")
   }
   let models = []
@@ -94,7 +92,7 @@ fn[I] LocalProjectMockDeclarations::prepare_effect_models(
 ///|
 // Same domain inventories, before their actual constructors. Each selected
 // provider/profile/Graph is borrowed; the new holder owns four references.
-// The first occurrence also backs both growing selection and Graph projection
+// The first occurrence also backs selection, Graph projection and Native Work
 // Arrays with their actual checked count. Every later occurrence adds only its
 // own bounds and holder; prior debits survive all failures and parent cleanup.
 fn native_mock_effect_model_selection_storage(
@@ -109,15 +107,39 @@ fn native_mock_effect_model_selection_storage(
   }
   let arrays = @execution.preparation_array_representation(
     if vector_count > 0 {
-      2L
+      3L
     } else {
       0L
     },
-    2L * vector_count.to_int64(),
+    3L * vector_count.to_int64(),
     true,
   ).unwrap_or_else(() => stop("LocalOriginalModelBoundsUnavailable"))
+  // One actual ClientCompiledRun record, Effects/Result/Some wrappers, and
+  // their slots. This view is created once after the first compiler and kept
+  // for all original Model children; no Run/admission or payload is copied.
+  let compiled_view : @execution.PreparationRepresentationUnits = {
+    record_headers: if vector_count > 0 {
+      4L
+    } else {
+      0L
+    },
+    reference_slots: if vector_count > 0 {
+      12L
+    } else {
+      0L
+    },
+    scalar_words: if vector_count > 0 {
+      3L
+    } else {
+      0L
+    },
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
   @execution.compose_preparation_representation([
+    compiled_view,
     @infer.prepared_composed_bounds_construction(),
+    @local_host.native_client_mock_model_work_construction(),
     holder,
     arrays,
   ]).unwrap_or_else(() => stop("LocalOriginalModelBoundsUnavailable"))

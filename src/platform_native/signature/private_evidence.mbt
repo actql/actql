@@ -9,7 +9,9 @@ pub(all) enum NativePrivateEvidenceIssue {
 fn private_evidence_binding(name : String, cid : String) -> Bytes? {
   if ![
       "effect_preview", "effect_capture", "effect_catalog", "credential_raw_observation",
-      "continuation_record", "checkpoint",
+      "continuation_record", "checkpoint", "model_call_attempt", "model_attempt_accounting",
+      "model_attempt_outcome", "model_dispatch_authority", "model_slot_capture",
+      "model_invocation_evidence", "model_capture_bundle", "model_attachment_admission",
     ].contains(name) ||
     cid.length() != 71 ||
     !cid.has_prefix("sha256:") {

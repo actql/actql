@@ -412,7 +412,7 @@ fn native_mock_readme_request_payload(
               let models = original.prepare_effect_models(
                 facility.parent,
                 facility.input,
-                prepared,
+                @run_host.prepared_client_effect_infer_occurrences(prepared).unwrap(),
                 environment,
                 contracts,
               )
@@ -532,6 +532,14 @@ fn native_mock_readme_request_payload(
               // The first compiler retains the exact early provider/bounds
               // selection. Later execution must not reselect either object.
               assert_true(physical_equal(compiled._retained_models, models))
+              assert_true(
+                compiled.model_compiled is Some(model_run) &&
+                @run_host.check_client_compiled_run_definition(
+                  model_run,
+                  compiled.definition,
+                )
+                is Ok(_),
+              )
               let selected = models[0]
               assert_true(physical_equal(selected.graph, infers[0]))
               assert_true(
@@ -828,4 +836,23 @@ test "Native README first compiler retains the same prepared Model provider prof
     effect_compilation=true,
     effect_source_inputs=true,
   )
+}
+
+///|
+test "Native Model selection backs all three simultaneous original vectors" {
+  // Bounds (20H/32R/78W), Work (2H/21R/7W), and its four-reference
+  // selection holder are per occurrence. The first occurrence also retains
+  // the compiled view (4H/12R/3W) and THREE growing vectors: selected Models,
+  // compiler Graph arguments, and business.model_work. Two occurrences give
+  // six vector elements; the shared Array convention gives 9H/57R/6W.
+  let later = native_mock_effect_model_selection_storage(0)
+  assert_eq(later.record_headers, 23L)
+  assert_eq(later.reference_slots, 57L)
+  assert_eq(later.scalar_words, 85L)
+  let first = native_mock_effect_model_selection_storage(2)
+  assert_eq(first.record_headers, 36L)
+  assert_eq(first.reference_slots, 126L)
+  assert_eq(first.scalar_words, 94L)
+  assert_eq(first.owned_utf16_units, 0L)
+  assert_eq(first.owned_wire_bytes, 0L)
 }

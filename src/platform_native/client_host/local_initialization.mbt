@@ -72,7 +72,8 @@ fn initialize_native_local_client_rows(
       "client_local_grant_custody", "client_local_grant_originals", "client_local_preparation_target_originals",
       "client_local_signing_result_originals", "client_local_signing_candidate_originals",
       "client_local_installation_custody", "client_local_installation_originals",
-      "client_worker_provisioning_custody", "client_worker_provisioning",
+      "client_worker_provisioning_custody", "client_worker_provisioning", "client_model_call_originals",
+      "client_model_call_settlements",
     ] {
     match
       scan_client_journal_value(
