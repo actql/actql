@@ -15,9 +15,17 @@ import {nativeCoreTestSelection, portableMoonTestCount} from './native-core-test
 import {runFocusedTests} from './test-execution.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url)).replace(/\/$/u, '');
-const git = args => execFileSync('git', args, {cwd:repository, encoding:'utf8'});
+// Complete tracked-source metadata exceeds Node's default 1 MiB. Keep the
+// same finite Git transport bound as readMoonTestPlan; errors still propagate.
+const git = args => execFileSync('git', args,
+  {cwd:repository, encoding:'utf8', maxBuffer:32 * 1024 ** 2});
 const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
 const hash = 'a'.repeat(40), other = 'b'.repeat(40);
+test('repository Git metadata preserves command failure and argument exceptions', () => {
+  assert.throws(() => git(['cat-file', '-e', '0'.repeat(40)]),
+    error => error.status === 1 && error.signal === null);
+  assert.throws(() => git(['rev-parse', '\0']), {code:'ERR_INVALID_ARG_VALUE'});
+});
 function fixture() {
   const names = ['a', 'b', 'c', 'unrelated', 'b/nested'];
   const graph = {version:2, status:'success', error:null, logs:[], root:names.map((_, i) => i),
