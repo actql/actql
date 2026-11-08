@@ -245,6 +245,52 @@ test('held originals restore concrete selection without invoking a source resolv
   assert.deepEqual(f.calls, ['restore-prepared']);
 });
 
+test('held caller reuses its complete original only after existing nominal current and full-byte validation', async t => {
+  const f = await fixture(t), base = runInstallationFixture();
+  const original = f.originals.capturePrepared(f.prepared, f.compilation);
+  const restored = f.originals.restorePrepared(original);
+  let reservations = 0, observations = 0, compilations = 0;
+  const observe = f.moon.clientProgramEffectTargetSelectionCurrent;
+  f.moon.clientProgramEffectTargetSelectionCurrent = function(...args) {
+    observations++; return Reflect.apply(observe, this, args);
+  };
+  const moon = {...base.moon, ...f.moon,
+    clientProgramCompileLocalEffects() {compilations++; assert.fail('Do not recompile restored material');}};
+  const run = installNodeClientEffectRun({...base.options, moon,
+    publicationControl: f.control, updateTargetOriginals: f.originals,
+    reserveOriginal() {reservations++; assert.fail('Do not demand a new construction parent for held original');}});
+  assert.strictEqual(run.capturePreparedOriginal(restored.prepared, original), original);
+  assert.equal(observations, 1, 'full original recapture still observes current installation');
+  for (const changed of [{...original, preparedWire: original.preparedWire + ' '},
+    {...original, compiledPlanCid: cid('9')},
+    {...original, installations: [{...original.installations[0], cid: cid('9')}]}]) {
+    assert.throws(() => run.capturePreparedOriginal(restored.prepared, changed),
+      {code: 'InstalledEffectOriginalSelectionChanged'});
+  }
+  f.moon.clientProgramEffectTargetSelectionCurrent = () => false;
+  assert.throws(() => run.capturePreparedOriginal(restored.prepared, original));
+  assert.equal(reservations, 0); assert.equal(compilations, 0);
+});
+
+test('fresh caller still reserves its new original and cannot label it as restored DATA', async t => {
+  const f = await fixture(t), base = runInstallationFixture();
+  let reservations = 0;
+  const moon = {...base.moon, ...f.moon,
+    clientProgramEffectCompilationIssueCode: () => undefined,
+    clientProgramCompileLocalEffects: value => {assert.equal(value, f.prepared); return ok(f.compilation);}};
+  const run = installNodeClientEffectRun({...base.options, moon,
+    publicationControl: f.control, updateTargetOriginals: f.originals,
+    reserveOriginal(prepared, wire, installations) {
+      assert.equal(prepared, f.prepared); assert.equal(typeof wire, 'string');
+      assert.equal(installations.length, 1); reservations++;
+    }});
+  const original = run.capturePreparedOriginal(f.prepared);
+  assert.equal(reservations, 1);
+  assert.throws(() => run.capturePreparedOriginal(f.prepared, original),
+    {code: 'InstalledEffectOriginalSelectionChanged'});
+  assert.equal(reservations, 1);
+});
+
 test('accepted original binds the independently selected Run before exposing selection', async t => {
   const f = await fixture(t);
   const original = f.originals.captureRun({...f, identity: 'request'});

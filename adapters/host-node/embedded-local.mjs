@@ -2608,7 +2608,8 @@ async function openInstalledHost(originalInstallation, preparation) {
   };
   const capturedUpdateOriginal = submission => {
     if (prepareSubmit.kindOf(submission.preparedProgram) !== 'effectful') return {};
-    const original = effectRun.capturePreparedOriginal(submission.preparedProgram);
+    const original = effectRun.capturePreparedOriginal(submission.preparedProgram,
+      submission.updateTargetPreparedOriginal);
     return original === undefined ? {} : {updateTargetPreparedOriginal: original};
   };
   const plan = installClientStaticPlan({moon, control, prepare: prepareSubmit,

@@ -125,7 +125,15 @@ export function installNodeClientEffectRun({moon,
     // this installed Host cannot compile. The exact compiled owner is reused
     // by acceptance; this check neither issues a Run nor starts physical I/O.
     checkSupported(prepared) { compile(prepared); },
-    capturePreparedOriginal(prepared) {
+    capturePreparedOriginal(prepared, original) {
+      if (original !== undefined) {
+        if (updateTargetOriginals === undefined) throw denied();
+        // Held restoration already owns these complete materials. Preserve its
+        // existing nominal compiler/current/full-byte validator; a copied DATA
+        // flag cannot select this branch without that restored original pair.
+        updateTargetOriginals.validatePreparedOriginal(prepared, compile(prepared), original);
+        return original;
+      }
       return updateTargetOriginals?.capturePrepared(prepared, compile(prepared), reserveOriginal);
     },
     // Restore ONLY the existing resource preparation for an already retained

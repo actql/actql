@@ -178,6 +178,13 @@ still performs the complete original-material, compiler, Run and installation
 checks; the larger outer conversion is neither successful admission nor a
 permission or resource grant.
 
+A held-submission caller supplies its complete saved prepared original to the
+existing nominal compiler/current/full-byte validation before forwarding that
+same DATA. It does not demand a new ordinary construction parent merely to
+reproduce a retained capture. Fresh captures still reserve their actual new
+projection. Equal DATA without the existing restored compiler association, a
+changed original or a failed current observation cannot select this reuse.
+
 ## Original Content preparation projection
 
 The existing execution-relation export owns the issued Content Reference and
