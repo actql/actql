@@ -591,7 +591,7 @@ pub fn graph_task_unit_index(@physical_strategy.CheckedDAG, Int) -> Int?
 
 pub fn graph_with_completed_keyed_model_input(@physical_strategy.CheckedDAG, Int, Int, @execution_relation.SuppliedRelationRead) -> @physical_strategy.CheckedDAG?
 
-pub fn grow_task_execution_workspace(CapturedDAG, TaskExecution, Int64) -> Result[Unit, @physical_resources.LedgerIssue]
+pub fn grow_task_execution_workspace(CapturedDAG, TaskExecution, Int64, retained? : Int64?) -> Result[Unit, @physical_resources.LedgerIssue]
 
 pub fn host_cleanup_pending(Bool, Bool, Bool) -> Bool
 

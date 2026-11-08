@@ -7,6 +7,7 @@ priv struct WorkspaceGrowth {
   initial_live : Int64
   live_ceiling : Int64
   reserve : (Int64) -> Result[Unit, WorkspaceGrowthIssue]
+  reserve_retained : ((Int64, Int64) -> Result[Unit, WorkspaceGrowthIssue])?
   mut slots : Int
   mut logical : Int64
   mut text : Int64
@@ -15,6 +16,7 @@ priv struct WorkspaceGrowth {
   mut logical_peak : Int64
   mut funded : Int64
   mut used : Int64
+  mut retained_funded : Int64
   // None preserves the full prepaid output recipe. Some meters cumulative
   // retained output DATA on this same task, without returning prior charges.
   mut retained_outputs : Int64?
@@ -79,7 +81,8 @@ fn grow_workspace(
     growth.failed = true
     return false
   }
-  if extra > growth.funded {
+  if extra > growth.funded ||
+    (growth.reserve_retained is Some(_) && retained > growth.retained_funded) {
     // Fund a bounded page, not every small row. This is spare backing on the
     // same original task, not extra semantic permission or spent usage.
     let remainder = extra % 16384L
@@ -90,17 +93,34 @@ fn grow_workspace(
     } else {
       0L
     }
-    let preferred = extra + spare
+    let minimum = Int64::max(extra, growth.funded)
+    let preferred = Int64::max(extra + spare, minimum)
+    let minimum_retained = Int64::max(retained, growth.retained_funded)
+    let remainder = minimum_retained % 16384L
+    let preferred_retained = if growth.reserve_retained is Some(_) &&
+      remainder != 0L &&
+      minimum_retained <= 9223372036854775807L - (16384L - remainder) {
+      minimum_retained + 16384L - remainder
+    } else {
+      minimum_retained
+    }
+    let reserve = fn(bytes, retained_bytes) {
+      match growth.reserve_retained {
+        Some(reserve) => reserve(bytes, retained_bytes)
+        None => (growth.reserve)(bytes)
+      }
+    }
     growth.busy = true
-    let result = (growth.reserve)(preferred)
-    let (result, funded) = if result is Err(WorkspaceBudgetUnavailable) &&
-      preferred > extra &&
+    let result = reserve(preferred, preferred_retained)
+    let (result, funded, retained_funded) = if result
+      is Err(WorkspaceBudgetUnavailable) &&
+      (preferred > minimum || preferred_retained > minimum_retained) &&
       !growth.failed {
       // The callback promises no reservation/current/resource mutation for
       // this specific refusal. Every other error is terminal, never retried.
-      ((growth.reserve)(extra), extra)
+      (reserve(minimum, minimum_retained), minimum, minimum_retained)
     } else {
-      (result, preferred)
+      (result, preferred, preferred_retained)
     }
     growth.busy = false
     if result is Err(_) || growth.failed {
@@ -108,6 +128,7 @@ fn grow_workspace(
       return false
     }
     growth.funded = funded
+    growth.retained_funded = retained_funded
   }
   growth.used = extra
   if growth.retained_outputs is Some(_) {
@@ -133,9 +154,13 @@ pub fn bind_generated_workspace_growth(
   live_ceiling : Int64,
   reserve : (Int64) -> Result[Unit, WorkspaceGrowthIssue],
   meter_retained_outputs? : Bool = false,
+  reserve_retained? : ((Int64, Int64) -> Result[Unit, WorkspaceGrowthIssue])? = None,
 ) -> Result[GeneratedSequence, SequenceRunIssue] {
   let initial_slots = limits.rows.operation_entries
-  if initial_slots < 0 || live_ceiling < 0L || generated.working is Some(_) {
+  if initial_slots < 0 ||
+    live_ceiling < 0L ||
+    generated.working is Some(_) ||
+    (reserve_retained is Some(_) && !meter_retained_outputs) {
     return Err(InvalidLimits)
   }
   let mut initial_live = 0L
@@ -168,6 +193,7 @@ pub fn bind_generated_workspace_growth(
       initial_live,
       live_ceiling,
       reserve,
+      reserve_retained,
       slots: 0,
       logical: 0L,
       text: 0L,
@@ -176,6 +202,7 @@ pub fn bind_generated_workspace_growth(
       logical_peak: 0L,
       funded: 0L,
       used: 0L,
+      retained_funded: 0L,
       retained_outputs: if meter_retained_outputs {
         Some(0L)
       } else {
@@ -233,7 +260,9 @@ fn fund_output_retention(budget : ValueBudget, nodes : Int, text : Int) -> Bool 
   }
   let delta = required - budget.retention_funded
   let next = total + delta
-  if growth.used <= growth.funded && delta <= growth.funded - growth.used {
+  if growth.used <= growth.funded &&
+    delta <= growth.funded - growth.used &&
+    (growth.reserve_retained is None || next <= growth.retained_funded) {
     // Already funded: no reservation callback, inventory allocation, provider
     // call or current observer for each row. The buffer still checks liveness
     // immediately before its original commit.

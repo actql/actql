@@ -134,6 +134,132 @@ test "actual Task accepts exact output backing when a spare page cannot fit" {
 }
 
 ///|
+test "small actual output completes on tight original retention despite large declared maximum" {
+  let value = captured_tasks_fixture()
+  let before = @resources.ledger_usage(value.ledger)
+  let (run, dispatch) = metered_tail_dispatch(value)
+  let (startup, _) = @local_driver.local_managed_dispatch_site_capacity(
+    dispatch,
+  ).unwrap()
+  // Two earlier buffers and the final checked validation each admit the same
+  // two real rows, before the last receipt becomes the exact retained holding.
+  let actual = 3168L
+  assert_true(
+    startup + actual < value.requirements.maximum_limits().retained_bytes,
+  )
+  let block = @resources.reserve_capacity(
+    value.ledger,
+    @resources.ledger_limits(value.ledger).retained_bytes -
+    before.held_bytes -
+    before.reserved_retention_bytes -
+    startup -
+    actual,
+    0L,
+  ).unwrap()
+  let operations = @local_driver.start_local_managed_dispatch_node(dispatch).unwrap()
+  let task : LocalValuesTaskExecution = {
+    operations,
+    settled: false,
+    completed: None,
+  }
+  let tasks : Array[LocalValuesTaskExecution?] = [None, Some(task), None]
+  let payload : Ref[Int?] = Ref(Some(1))
+  let available = () => payload.val is Some(_)
+  (operations.execute)().unwrap()
+  (operations.prepare_finalization)(
+    payload.val.unwrap(),
+    operations.storage_bytes,
+    available,
+  ).unwrap()
+  let mut finished = false
+  for _ in 0..<100000 {
+    if (operations.advance_finalization)(1).unwrap().complete {
+      finished = true
+      break
+    }
+  }
+  assert_true(finished)
+  (operations.settle)().unwrap()
+  task.settled = true
+  let completed = (operations.complete)(
+    payload.val.unwrap(),
+    operations.storage_bytes,
+    available,
+  ).unwrap()
+  task.completed = Some(completed)
+  assert_eq(
+    @execution.managed_completed_output_storage_bytes(completed),
+    Some(startup + 1056L),
+  )
+  assert_eq(
+    @resources.ledger_usage(value.ledger).held_bytes - before.held_bytes,
+    startup + 1056L,
+  )
+  assert_true(@strategy.captured_task_completed(run, 1))
+  // The fixture Host drops its actual retained payload after the last use.
+  // A constant-true storage callback cannot acknowledge its destruction.
+  payload.val = None
+  let mut closed = false
+  for _ in 0..<10000 {
+    if close_local_values_tasks(run, tasks) {
+      closed = true
+      break
+    }
+  }
+  assert_true(closed)
+  @resources.settle_capacity(value.ledger, block).unwrap()
+  let after = @resources.ledger_usage(value.ledger)
+  assert_eq(after.attempts, before.attempts + 1)
+  assert_eq(after.held_bytes, before.held_bytes)
+  assert_eq(after.reserved_retention_bytes, before.reserved_retention_bytes)
+  assert_eq(after.reserved_execution_bytes, before.reserved_execution_bytes)
+  captured_tasks_close_source(value)
+}
+
+///|
+test "real retention exhaustion refuses output before atomic capacity mutation" {
+  let value = captured_tasks_fixture()
+  let before = @resources.ledger_usage(value.ledger)
+  let (run, dispatch) = metered_tail_dispatch(value)
+  let (startup, execution) = @local_driver.local_managed_dispatch_site_capacity(
+    dispatch,
+  ).unwrap()
+  let block = @resources.reserve_capacity(
+    value.ledger,
+    @resources.ledger_limits(value.ledger).retained_bytes -
+    before.held_bytes -
+    before.reserved_retention_bytes -
+    startup -
+    528L,
+    0L,
+  ).unwrap()
+  let operations = @local_driver.start_local_managed_dispatch_node(dispatch).unwrap()
+  let tasks : Array[LocalValuesTaskExecution?] = [
+    None,
+    Some({ operations, settled: false, completed: None, }),
+    None,
+  ]
+  assert_true(
+    (operations.execute)()
+    is Err(@local_driver.Execution(Physical(RetentionLimit))),
+  )
+  assert_eq(
+    @resources.ledger_usage(value.ledger).reserved_execution_bytes,
+    before.reserved_execution_bytes + execution + 528L,
+  )
+  assert_false(@strategy.captured_task_completed(run, 1))
+  assert_true(close_local_values_tasks(run, tasks))
+  @resources.settle_capacity(value.ledger, block).unwrap()
+  let after = @resources.ledger_usage(value.ledger)
+  assert_eq(after.attempts, before.attempts + 1)
+  assert_eq(after.held_bytes, before.held_bytes)
+  assert_eq(after.reserved_retention_bytes, before.reserved_retention_bytes)
+  assert_eq(after.reserved_execution_bytes, before.reserved_execution_bytes)
+  assert_true(@row_source_host.row_capture_source(value.capture) is Ok(_))
+  captured_tasks_close_source(value)
+}
+
+///|
 test "cancelling an actual growing Task retains Source until its own cleanup" {
   let value = captured_tasks_fixture()
   let before = @resources.ledger_usage(value.ledger)

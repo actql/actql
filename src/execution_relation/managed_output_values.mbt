@@ -70,6 +70,7 @@ pub fn prepare_managed_output_values(
   values : ValueLimits,
   max_value_bytes : Int,
   measurement : FixedInputGuardMeasureLimits,
+  working? : GeneratedSequence? = None,
 ) -> Result[ManagedOutputValues, ManagedOutputValueIssue] {
   if max_value_bytes < 0 ||
     measurement.max_work < 0 ||
@@ -78,7 +79,18 @@ pub fn prepare_managed_output_values(
     measurement.max_depth < 0 {
     return Err(Guard(InvalidLimits))
   }
-  let output = match prepare_admitted_output(owner, target, max_rows, values) {
+  let preparation = match working {
+    Some(generated) => {
+      if !physical_equal(generated_sequence_owner(generated), owner) {
+        return Err(Admission(InvalidCheckedRow))
+      }
+      prepare_bounded_sequence_admitted_output(
+        generated, target, max_rows, values,
+      )
+    }
+    None => prepare_admitted_output(owner, target, max_rows, values)
+  }
+  let output = match preparation {
     Ok(value) => value
     Err(issue) => return Err(Admission(issue))
   }

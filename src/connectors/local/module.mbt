@@ -317,12 +317,36 @@ pub fn local_module_metered_output_start_capacity(
     is Some(base) else {
     return None
   }
+  let mut metered_retention = true
   for index in 0..<count {
     match @execution.generated_sequence_step_at(sequence, index) {
       Some(@lower.CrossJoinStep(_)) => ()
       Some(@lower.RowStep(kernel)) if selected_binding_rows_supported(kernel) =>
-        ()
+        match @lower.kernel_body(kernel) {
+          @lower.Filter(_)
+          | @lower.Select(_)
+          | @lower.StableSort(_)
+          | @lower.Limit(_, _, _)
+          | @lower.AssertAll(_)
+          | @lower.AssertUnique(_) => ()
+          // These other supported rows can use an independently retained
+          // snapshot conversion. Keep its original full R until that copy's
+          // own admission is attached to the same funding path too.
+          _ => metered_retention = false
+        }
       _ => return None
+    }
+    let schema = @execution.generated_sequence_step_index_at(sequence, index).bind(step => {
+        @lower.preparation_schema_at(
+          @lower.bound_preparation(
+            @execution.generated_sequence_owner(sequence),
+          ),
+          @pipeline.Step(step),
+        )
+      },
+    )
+    if schema.map(@schema.all_fields_required) != Some(true) {
+      metered_retention = false
     }
   }
   let output = installed.execution.rows.output_values
@@ -384,10 +408,12 @@ pub fn local_module_metered_output_start_capacity(
     total <= full.execution_bytes else {
     return None
   }
-  @execution.execution_capacity(
-    full.retained_bytes,
-    Int64::max(full.retained_bytes, total),
-  )
+  let retained = if metered_retention && full.retained_bytes >= data {
+    full.retained_bytes - data
+  } else {
+    full.retained_bytes
+  }
+  @execution.execution_capacity(retained, Int64::max(retained, total))
 }
 
 ///|
