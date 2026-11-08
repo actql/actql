@@ -1354,6 +1354,22 @@ pub fn client_program_borrow_request_effect_plan_input(
 }
 
 ///|
+#export_name("clientProgramReserveRequestEffectOriginalMaterial")
+pub fn client_program_reserve_request_effect_original_material(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  count : Int,
+  wire_at : (Int) -> String,
+) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.reserve_request_effect_original_material(
+    parent, input, prepared, count, wire_at,
+  )
+}
+
+///|
 #export_name("clientProgramCompleteRequestEffectPreparation")
 pub fn client_program_complete_request_effect_preparation(
   parent : @client_local_host.ClientRequestPreparation[

@@ -1107,7 +1107,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
             const names = ['clientProgramBorrowRequestEffectPlanInput',
               'clientProgramEffectPreparationInputRead', 'clientProgramEffectPreparationInputReturn',
               'clientProgramEffectPreparationInputSibling', 'clientProgramEffectPreparationInputRetirementStarted',
-              'clientProgramCompleteRequestEffectPreparation', 'clientProgramAdoptRequestEffectPreparation'];
+              'clientProgramCompleteRequestEffectPreparation', 'clientProgramAdoptRequestEffectPreparation',
+              'clientProgramReserveRequestEffectOriginalMaterial'];
             const methods = names.map(name => moon[name]);
             if (methods.some(method => typeof method !== 'function')) fail('NodeManagedRunRuntimeUnavailable');
             // Model is optional for a non-Model installation. Capture each
@@ -1207,6 +1208,30 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       return Object.freeze({kind: state.compilationKind, prepared,
         originalInputs: Object.freeze({environment, parameters: undefined,
           parametersCursor: state.parametersCursor})});
+    },
+    reserveEffectOriginal(prepared, request, material, installations) {
+      current();
+      const producer = producerForRequest(request), state = producer?.preparation;
+      if (state?.preparationFailed) throw state.preparationFailure;
+      if (state === undefined || state.prepared !== prepared || state.compilationKind !== 'effectful' ||
+          state.holder === undefined || state.preparing || state.adopting ||
+          state.effectBorrowMethods?.clientProgramEffectPreparationInputRead(state.holder) !== prepared) {
+        fail('ForeignInstalledSourceProducer');
+      }
+      const moon = state.context.runtime;
+      const reserve = state.effectBorrowMethods.clientProgramReserveRequestEffectOriginalMaterial;
+      const issue = moon.clientProgramRequestPreparationIssueCode;
+      if (typeof reserve !== 'function' || typeof issue !== 'function') fail('NodeManagedRunRuntimeUnavailable');
+      return constructRequestDomain(state, () => {
+        checkedRequestProgramPreparation(moon, Reflect.apply(reserve, moon,
+          [state.parent, producer.receipt, prepared, installations.length + 1,
+            index => index === 0 ? material : installations[index - 1].wire]), issue);
+        current();
+        if (producer.finished || producer.preparation !== state || state.prepared !== prepared ||
+            state.effectBorrowMethods.clientProgramEffectPreparationInputRead(state.holder) !== prepared) {
+          fail('ForeignInstalledSourceProducer');
+        }
+      });
     },
     prepareModelMaterials(prepared, request, count, wireAt, containerCount) {
       current();

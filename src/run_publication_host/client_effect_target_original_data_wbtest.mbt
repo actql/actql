@@ -1,8 +1,73 @@
 ///|
 fn target_original_quote(value : String) -> String raise @encode.EncodeFailure {
-  let writer = @encode.writer(65536, 1, 1)
+  let writer = @encode.writer(
+    CLIENT_EFFECT_TARGET_ORIGINAL_ENVELOPE_MAX_BYTES,
+    1,
+    1,
+  )
   @encode.string_value(writer, value)
   @encode.finish(writer)
+}
+
+///|
+test "complete prepared original has a distinct bounded envelope without widening installation metadata" {
+  let installation = "{\"cid\":\"sha256:9ee844e04eda0aa8f6e901a0fdc3fcd2694aa4bf94ad053b2308a5ae3ef4a2ca\",\"wire\":" +
+    target_original_quote(target_original_installation_wire()) +
+    "}"
+  let material = "\"".repeat(60000)
+  let original = "{\"preparedWire\":" +
+    target_original_quote(material) +
+    ",\"compiledPlanCid\":\"sha256:" +
+    "a".repeat(64) +
+    "\",\"installations\":[" +
+    installation +
+    "]}"
+  assert_true(original.length() > 65536)
+  assert_true(client_effect_target_prepared_original_shape(original))
+  assert_true(
+    client_effect_target_original_data_equal(original, " " + original),
+  )
+  assert_false(
+    client_effect_target_prepared_original_shape(
+      original.replace(
+        old=target_original_quote(material),
+        new=target_original_quote("a".repeat(262145)),
+      ),
+    ),
+  )
+  assert_false(
+    client_effect_target_prepared_original_shape(
+      original.replace(
+        old="\"installations\":[",
+        new="\"extra\":0,\"installations\":[",
+      ),
+    ),
+  )
+  assert_true(
+    client_effect_target_original_envelope_capacity(2, index => {
+      if index == 0 {
+        material
+      } else {
+        target_original_installation_wire()
+      }
+    })
+    is Some(_),
+  )
+  assert_true(
+    client_effect_target_original_envelope_capacity(2, index => {
+      if index == 0 {
+        material
+      } else {
+        "a".repeat(65536)
+      }
+    })
+    is None,
+  )
+  assert_false(
+    client_effect_target_installations_shape(
+      "[" + " ".repeat(65536) + installation + "]",
+    ),
+  )
 }
 
 ///|

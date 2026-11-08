@@ -165,6 +165,26 @@ Releasing references or completing a synchronous comparison makes none of those
 claims. The original Run, Store, Checkpoint, Unknown and cleanup responsibilities
 stay with their existing Owners.
 
+Selection and installation metadata retains its 64 KiB bound. A complete
+prepared/Run original is a separate envelope around the existing bounded Run
+material string: JSON escaping can enlarge that outer wire without enlarging
+the material's own codec or any metadata field. Its conversion ceiling derives
+from the existing material limit plus the independent metadata bound. The
+normal Host reserves the actual material/installation projection on the same
+checked Effect Request before converting that envelope. Common measures the
+borrowed strings, retains each actual output and reuses sequential workspace;
+it preserves current/reentry, refusal and cleanup fences. Cold restoration
+still performs the complete original-material, compiler, Run and installation
+checks; the larger outer conversion is neither successful admission nor a
+permission or resource grant.
+
+A held-submission caller supplies its complete saved prepared original to the
+existing nominal compiler/current/full-byte validation before forwarding that
+same DATA. It does not demand a new ordinary construction parent merely to
+reproduce a retained capture. Fresh captures still reserve their actual new
+projection. Equal DATA without the existing restored compiler association, a
+changed original or a failed current observation cannot select this reuse.
+
 ## Original Content preparation projection
 
 The existing execution-relation export owns the issued Content Reference and

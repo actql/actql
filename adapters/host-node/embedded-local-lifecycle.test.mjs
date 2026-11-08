@@ -745,6 +745,21 @@ function heldControl(name, ports) {
     ';return ' + name + ';')(...Object.values(ports));
 }
 
+test('actual captured submission forwards its same held original and keeps fresh capture distinct', () => {
+  const prepared = {}, original = Object.freeze({preparedWire: 'retained original'}), fresh = {};
+  const calls = [];
+  const capture = heldControl('capturedUpdateOriginal', {
+    prepareSubmit: {kindOf(value) {assert.strictEqual(value, prepared); return 'effectful';}},
+    effectRun: {capturePreparedOriginal(value, held) {
+      assert.strictEqual(value, prepared); calls.push(held); return held ?? fresh;
+    }},
+  });
+  assert.strictEqual(capture({preparedProgram: prepared,
+    updateTargetPreparedOriginal: original}).updateTargetPreparedOriginal, original);
+  assert.strictEqual(capture({preparedProgram: prepared}).updateTargetPreparedOriginal, fresh);
+  assert.deepEqual(calls, [original, undefined]);
+});
+
 // Extract the actual route/getter rather than reproducing their branch logic.
 function heldSourceFunction(name, ports) {
   const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
