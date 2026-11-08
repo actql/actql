@@ -289,7 +289,9 @@ async function runSubmissionCauseObserver() {
   let breakpoint, captured = false;
   // Emit only fixed categories and explicitly listed codes. Even a plausible
   // private code prefix or forged compiled constructor name is not evidence.
-  const expression = `(()=>{const out=[],queue=[['original',error,0]],seen=new Set();
+  // Keep reflection failures inside this expression. Sending their Error to
+  // Inspector's exception formatter can execute private message/stack getters.
+  const expression = `(()=>{try{const out=[],queue=[['original',error,0]],seen=new Set();
 while(queue.length&&out.length<32){const [edge,value,depth,accessor]=queue.shift();
 if(accessor){out.push({edge,type:'Accessor'});continue;}
 if(value===null){out.push({edge,type:'Null'});continue;}
@@ -302,7 +304,7 @@ const name=typeof ctor==='function'?Object.getOwnPropertyDescriptor(ctor,'name')
 const type=['Object','Array','Error','TypeError','RangeError','SyntaxError','ClientError','DOMException'].includes(name)?name:typeof name==='string'&&/^_M[A-Za-z0-9_]{1,157}$/.test(name)?'MoonBit':'Other';
 const safeCodes=${JSON.stringify(originalFailureCodes)};
 const row={edge,type},code=Object.getOwnPropertyDescriptor(value,'code');if(code){if('value'in code&&safeCodes.includes(code.value))row.code=code.value;else{row.codeOmitted=true;row.codeType=!('value'in code)?'Accessor':code.value===undefined?'Undefined':typeof code.value==='string'?'String':typeof code.value==='number'?'Number':'Other';}}
-out.push(row);if(depth<16)for(const key of ['cause','primaryFailure','_0','_1','_2']){const d=Object.getOwnPropertyDescriptor(value,key);if(d)queue.push([key,'value'in d?d.value:undefined,depth+1,!('value'in d)]);}}return out;})()`;
+out.push(row);if(depth<16)for(const key of ['cause','primaryFailure','_0','_1','_2']){const d=Object.getOwnPropertyDescriptor(value,key);if(d)queue.push([key,'value'in d?d.value:undefined,depth+1,!('value'in d)]);}}return out;}catch{return null;}})()`;
   session.on('Debugger.scriptParsed', async ({params}) => {
     if (params.url !== workerData.url) return;
     try {
@@ -348,6 +350,7 @@ out.push(row);if(depth<16)for(const key of ['cause','primaryFailure','_0','_1','
         callFrameId: frame.callFrameId, expression,
         returnByValue: true, silent: true});
       assert.equal(exceptionDetails, undefined);
+      assert(Array.isArray(result.value), 'Original failure inspection unavailable');
       parentPort.postMessage({kind: 'primary', types: result.value});
     } catch {retireBreakpoint = true; parentPort.postMessage({kind: 'unavailable'});}
     finally {
