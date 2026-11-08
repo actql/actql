@@ -185,6 +185,29 @@ test('same full HubSpot Source and original approval Program compile with held c
   await f.close(); assert.equal(f.pending(), false); assert.equal(f.retire(), true);
 });
 
+test('same full HubSpot Source and original verification read compile with held checked projection demand', async t => {
+  const {f, source} = await wideEffectFixture(t, {propertyNameUnits: 6001});
+  const installedSource = await f.load(source);
+  const base = (await readFile(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8')).trimEnd();
+  const composed = composeInstalledSourceEnvironment(f.services, f.moon, base,
+    installedSource.environmentWire);
+  const view = composed.body.schema_snapshots[0];
+  const alias = {name: 'hubspot.companies', sourceRef: view.source_ref,
+    sourceViewContractCid: view.source_view_contract_cid, schemaContractCid: view.carrier_schema_contract_cid};
+  const publication = sourceAliasPublication(f.moon, composed.admitted, [alias]);
+  const program = await readFile(new URL('../../scripts/fixtures/hubspot-approval/read.aql', import.meta.url), 'utf8');
+  const outcome = f.moon.clientProgramPreparePublicSourceComputationWithParameters(program, 'aql-text',
+    composed.admitted, JSON.stringify(publication),
+    JSON.stringify({record_id: {type: 'string'}}), JSON.stringify({record_id: 'component-record'}), true, []);
+  const pure = f.moon.clientProgramSourceComputationPure(outcome);
+  assert(pure);
+  const prepared = f.moon.clientProgramPreparationReady(pure);
+  assert(prepared);
+  assert(checked(f.moon.clientProgramCompileLocalTasks(prepared)));
+  assert.equal(f.secretReads(), 0);
+  await f.close(); assert.equal(f.pending(), false); assert.equal(f.retire(), true);
+});
+
 test('wide HubSpot Effect still rejects a Catalog beyond its original Source property limit before Mapping', async t => {
   const {f, selection} = await wideEffectFixture(t, {maxProperties: 244});
   await assert.rejects(f.load(selection), {code: 'InstalledHostInitializationFailed'});
