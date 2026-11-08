@@ -37185,7 +37185,7 @@
     },
     {
       "module": "src/client_local_host/installed_source_reader_capacity.mbt",
-      "sha256": "6450b4bae10b609242887debfac2dadc94bd92236893e94de42e6915c497a39a",
+      "sha256": "60cd3d40f109f03523c8edaba1a0cf312a8bc196ccdcdf0bc3b677b62e47abeb",
       "operations": [
         {
           "name": "installed_gmail_thread_reader_capacity",
@@ -37638,6 +37638,10 @@
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "before grammar construction. This geometry bounds malformed prefixes as well"
+              },
+              {
+                "path": "adapters/host-common/http-exchange.test.mjs",
+                "anchor": "test('funded query construction keeps the exact encoded demand and all default refusals'"
               }
             ],
             "cancellation": [
@@ -37650,6 +37654,10 @@
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "one next bounded transport buffer, including the first offending response. The"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "## Funded query construction"
               }
             ],
             "extension": [

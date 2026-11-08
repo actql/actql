@@ -593,7 +593,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/installed-hubspot-source.mjs",
-      "sha256": "6be22cb2d47b9c82bd89e29e34df3231f0ac1714cbd32d18bb1cefac38b6dff9",
+      "sha256": "94af5c4ecbf70575eac5f2bb4aec9ff0971e8b7cbe982bae8667586f782db30d",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Source, Common declaration, Account/Credential and original RowRun owners",
@@ -1033,6 +1033,10 @@
               {
                 "path": "adapters/connectors/hubspot/host/README.md",
                 "anchor": "- Resources:"
+              },
+              {
+                "path": "adapters/host-common/http-body-lifetime.md",
+                "anchor": "## Funded query construction"
               }
             ],
             "extension": [
