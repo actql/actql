@@ -22,8 +22,20 @@ fn local_submit_allowed(
   settings : LocalHostSettings,
   crypto : @local_crypto.Library,
   scope : String,
+  business? : LocalCommandBusinessPreparation? = None,
 ) -> Bool {
-  local_run_operation_allowed(host, settings, crypto, scope, "submit")
+  match business {
+    Some(original) =>
+      original.scope == scope &&
+      physical_equal(original.host, host) &&
+      local_captured_run_operation_allowed(
+        original.capture,
+        settings,
+        scope,
+        "submit",
+      )
+    None => local_run_operation_allowed(host, settings, crypto, scope, "submit")
+  }
 }
 
 ///|
@@ -37,24 +49,40 @@ fn local_run_operation_allowed(
 ) -> Bool {
   native_timing_count(19)
   if capture is Some(original) {
-    return original.authority_scope_cid_in_original_read(
-        settings.principal,
-        settings.connection,
-      )
-      is Ok(current) &&
-      current == scope &&
-      original.authorize_in_original_read({
-        principal: settings.principal,
-        connection: settings.connection,
-        resource: "run",
-        operation,
-      })
-      is Ok(Allow(_))
+    return local_captured_run_operation_allowed(
+      original, settings, scope, operation,
+    )
   }
   host.authority_scope_cid(settings.principal, settings.connection, crypto)
   is Ok(current) &&
   current == scope &&
   host.authorize({
+    principal: settings.principal,
+    connection: settings.connection,
+    resource: "run",
+    operation,
+  })
+  is Ok(Allow(_))
+}
+
+///|
+// Existing Account decision under the actual captured Read. Currentness is
+// checked by these same authority ports; a live Command or matching scope
+// alone never supplies submit/cancel/lookup permission. Keep both callers on
+// this one decision without allocating another optional capture wrapper.
+fn local_captured_run_operation_allowed(
+  original : @local_host.NativeLocalJournalCapture,
+  settings : LocalHostSettings,
+  scope : String,
+  operation : String,
+) -> Bool {
+  original.authority_scope_cid_in_original_read(
+    settings.principal,
+    settings.connection,
+  )
+  is Ok(current) &&
+  current == scope &&
+  original.authorize_in_original_read({
     principal: settings.principal,
     connection: settings.connection,
     resource: "run",
