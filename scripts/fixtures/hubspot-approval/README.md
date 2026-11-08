@@ -135,8 +135,24 @@ is saved. This comparison does not prove provider or ActQL permission. The
 result contains only account/expiry/output-path metadata. Use the saved
 access token through the existing installation secret port; do not paste it
 into the Program or chat. OAuth success does not prove company rights, Host
-admission, approval, UPDATE or Saved recovery. This helper does not implement
-token refresh or overwrite a previous token file.
+admission, approval, UPDATE or Saved recovery. Neither login nor refresh
+overwrites a previous token file.
+
+To refresh an expired credential, create a new operator configuration with the
+same client/secret/account selection and a distinct, absent `tokensFile` path.
+Then run:
+
+```sh
+node /external/fixtures/hubspot-approval/oauth.mjs --refresh /private/operator/refresh.json /private/operator/original-tokens.json
+```
+
+Refresh reads the original private token file, sends its refresh token only in
+the same bounded token endpoint's request body, and requires the returned native
+account and scope set to match that original. A narrowed or expanded scope set
+refuses. It writes one new private token file and prints only metadata; no
+browser or loopback listener is needed. The original remains unchanged. Select
+the new credential through the existing operator secret port explicitly.
+Failure or timeout is not automatically retried and grants no ActQL permission.
 
 ## Owned TLS provider
 

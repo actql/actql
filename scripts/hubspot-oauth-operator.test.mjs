@@ -6,7 +6,7 @@ import {createServer} from 'node:net';
 import {mkdtemp, writeFile, readFile, stat, chmod, rm} from 'node:fs/promises';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
-import {hubspotAuthorizationUrl, loginHubSpotOAuth} from './fixtures/hubspot-approval/oauth.mjs';
+import {hubspotAuthorizationUrl, loginHubSpotOAuth, refreshHubSpotOAuth} from './fixtures/hubspot-approval/oauth.mjs';
 
 async function fixture(t) {
   const root = await mkdtemp(join(tmpdir(), 'actql-hubspot-oauth-mechanism-'));
@@ -109,4 +109,71 @@ test('HubSpot OAuth operator refuses public secret files before browser use and 
     {code: 'HubSpotOAuthAuthorizationTimeout'});
   assert.equal(browsers, 1); assert.equal(calls, 0);
   await assert.rejects(stat(f.configuration.tokensFile), {code: 'ENOENT'});
+});
+
+async function refreshFixture(t) {
+  const f = await fixture(t), originalTokensFile = f.configuration.tokensFile + '.original';
+  const original = {access_token: 'expired-synthetic-access', refresh_token: 'original-synthetic-refresh',
+    hub_id: 7, token_type: 'bearer', scopes: ['oauth', 'crm.objects.companies.read'], expiresAt: '2000-01-01T00:00:00.000Z'};
+  await writeFile(originalTokensFile, JSON.stringify(original) + '\n', {mode: 0o600});
+  return {...f, originalTokensFile, original, configuration: {...f.configuration, expectedHubId: '7'}};
+}
+const refreshedToken = {access_token: 'new-synthetic-access', refresh_token: 'new-synthetic-refresh',
+  hub_id: 7, token_type: 'bearer', scopes: ['crm.objects.companies.read', 'oauth'], expires_in: 1800};
+
+test('HubSpot OAuth refresh uses the same grant and a new private output while preserving the original', async t => {
+  const f = await refreshFixture(t), before = await readFile(f.originalTokensFile), identity = await stat(f.originalTokensFile);
+  let calls = 0;
+  const result = await refreshHubSpotOAuth(f.configuration, f.originalTokensFile, {async fetchToken(url, options) {
+    calls++; assert.equal(url, 'https://api.hubspot.com/oauth/v3/token');
+    assert.equal(options.method, 'POST'); assert.equal(options.redirect, 'error');
+    assert.deepEqual(Object.fromEntries(options.body), {client_id: f.configuration.clientId,
+      client_secret: 'synthetic-client-secret', refresh_token: f.original.refresh_token, grant_type: 'refresh_token'});
+    return new Response(JSON.stringify(refreshedToken));
+  }});
+  assert.equal(calls, 1); assert.equal(result.status, 'oauth_refreshed'); assert.equal(result.hubId, '7');
+  assert(!JSON.stringify(result).includes('synthetic-access'));
+  assert.deepEqual(await readFile(f.originalTokensFile), before);
+  assert.equal((await stat(f.originalTokensFile)).ino, identity.ino);
+  assert.equal((await stat(result.tokensFile)).mode & 0o777, 0o600);
+  assert.equal(JSON.parse(await readFile(result.tokensFile, 'utf8')).refresh_token, refreshedToken.refresh_token);
+});
+
+test('HubSpot OAuth refresh refuses foreign accounts or changed scopes without saving a token', async t => {
+  for (const token of [{...refreshedToken, hub_id: 8}, {...refreshedToken, scopes: ['oauth']},
+    {...refreshedToken, scopes: [...refreshedToken.scopes, 'crm.objects.companies.write']}]) {
+    const f = await refreshFixture(t); let calls = 0;
+    await assert.rejects(refreshHubSpotOAuth(f.configuration, f.originalTokensFile, {async fetchToken() {
+      calls++; return new Response(JSON.stringify(token));
+    }}), {code: token.hub_id === 8 ? 'HubSpotOAuthAccountMismatch' : 'HubSpotOAuthScopesChanged'});
+    assert.equal(calls, 1); await assert.rejects(stat(f.configuration.tokensFile), {code: 'ENOENT'});
+    assert.deepEqual(JSON.parse(await readFile(f.originalTokensFile, 'utf8')), f.original);
+  }
+});
+
+test('HubSpot OAuth refresh refuses public input and original or existing outputs before any exchange', async t => {
+  const f = await refreshFixture(t), before = await readFile(f.originalTokensFile); let calls = 0;
+  const options = {fetchToken() {calls++; assert.fail('No exchange on invalid local inputs');}};
+  await assert.rejects(refreshHubSpotOAuth({...f.configuration, tokensFile: f.originalTokensFile}, f.originalTokensFile, options),
+    {code: 'HubSpotOAuthNewTokenFileRequired'});
+  await chmod(f.originalTokensFile, 0o644);
+  await assert.rejects(refreshHubSpotOAuth(f.configuration, f.originalTokensFile, options), {code: 'HubSpotOAuthPrivateTokensRequired'});
+  await chmod(f.originalTokensFile, 0o600);
+  await assert.rejects(refreshHubSpotOAuth({...f.configuration, expectedHubId: '8'}, f.originalTokensFile, options), {code: 'HubSpotOAuthAccountMismatch'});
+  await writeFile(f.configuration.tokensFile, 'retained-original-output', {mode: 0o600});
+  await assert.rejects(refreshHubSpotOAuth(f.configuration, f.originalTokensFile, options), {code: 'HubSpotOAuthNewTokenFileRequired'});
+  assert.equal(calls, 0); assert.deepEqual(await readFile(f.originalTokensFile), before);
+  assert.equal(await readFile(f.configuration.tokensFile, 'utf8'), 'retained-original-output');
+});
+
+test('HubSpot OAuth refresh bounds and sanitizes rejected or malformed token responses', async t => {
+  for (const [body, status, code] of [['synthetic-secret-must-not-leak', 400, 'HubSpotOAuthTokenRejected'],
+    ['{"access_token":"synthetic-secret-must-not-leak"', 200, 'InvalidHubSpotOAuthTokenResponse'],
+    ['x'.repeat(16385), 200, 'HubSpotOAuthTokenResponseLimit']]) {
+    const f = await refreshFixture(t); let calls = 0;
+    await assert.rejects(refreshHubSpotOAuth(f.configuration, f.originalTokensFile, {async fetchToken() {
+      calls++; return new Response(body, {status});
+    }}), error => error.code === code && !error.message.includes('synthetic-secret'));
+    assert.equal(calls, 1); await assert.rejects(stat(f.configuration.tokensFile), {code: 'ENOENT'});
+  }
 });
