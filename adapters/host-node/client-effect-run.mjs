@@ -24,7 +24,7 @@ export function installNodeClientEffectRun({moon,
   publicationControl: control = runtimeCore(moon).publicationControl,
   journal, authorizeRequest, authorizeRunStart, prepareExecution, execute,
   prepareDefinition, assertRequestedStopAvailable, requestIdentityFor,
-  inferPlanFor, resultPolicyOriginalFor, validateInstallation, updateTargetOriginals,
+  inferPlanFor, resultPolicyOriginalFor, validateInstallation, updateTargetOriginals, reserveOriginal,
   now = () => new Date().toISOString()}) {
   if (typeof moon?.clientProgramEffectCompilationIssueCode !== 'function' ||
       typeof authorizeRequest !== 'function' ||
@@ -38,6 +38,7 @@ export function installNodeClientEffectRun({moon,
       (resultPolicyOriginalFor !== undefined &&
         typeof resultPolicyOriginalFor !== 'function') ||
       (validateInstallation !== undefined && typeof validateInstallation !== 'function') ||
+      (reserveOriginal !== undefined && typeof reserveOriginal !== 'function') ||
       (updateTargetOriginals !== undefined &&
         (typeof moon?.clientProgramEffectTargetSelections !== 'function' ||
          typeof moon?.clientProgramEffectTargetSelectionOriginal !== 'function')) ||
@@ -125,7 +126,7 @@ export function installNodeClientEffectRun({moon,
     // by acceptance; this check neither issues a Run nor starts physical I/O.
     checkSupported(prepared) { compile(prepared); },
     capturePreparedOriginal(prepared) {
-      return updateTargetOriginals?.capturePrepared(prepared, compile(prepared));
+      return updateTargetOriginals?.capturePrepared(prepared, compile(prepared), reserveOriginal);
     },
     // Restore ONLY the existing resource preparation for an already retained
     // Run. No start claim, execution Owner, new Definition, query-time sample
@@ -269,7 +270,7 @@ export function installNodeClientEffectRun({moon,
           const runDefinition = control.admit('run_definition',
             moon.strategyPublicationContractJson(definition), limits);
           const updateTargetRunOriginal = updateTargetOriginals?.captureRun({prepared,
-            allowed, definition, identity});
+            allowed, definition, identity}, reserveOriginal);
           // Selected UPDATE/STORE custody already contains this exact codec;
           // do not retain a second serialized copy. Other requested stops need
           // the same original materials before acceptance, not current config

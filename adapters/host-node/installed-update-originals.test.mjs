@@ -8,7 +8,10 @@ import {createInstalledRowEffect, installedRowEffectOwnerBinding} from './instal
 import {installUpdateTargetOriginals} from './installed-update-originals.mjs';
 import {updateTargetPreparedOriginalShape as preparedShape,
   updateTargetRunOriginalShape as runShape, updateTargetSelectionsCid as selectionsCid} from './update-target-original-shape.mjs';
-import * as dataOwner from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+import {pathToFileURL} from 'node:url';
+const dataOwner = await import(process.env.ACTQL_TEST_UPDATE_ORIGINAL_RUNTIME === undefined
+  ? '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js'
+  : pathToFileURL(process.env.ACTQL_TEST_UPDATE_ORIGINAL_RUNTIME).href);
 
 import {recoverAdmittedEffectRun} from './effect-run-recovery.mjs';
 import {installNodeClientEffectRun} from './client-effect-run.mjs';
@@ -170,6 +173,12 @@ async function fixture(t) {
       assert.equal(wire, materialsWire); assert.equal(expected, cid('2'));
       assert.equal(features.at(-1), 'request'); return ok({prepared, compilation, allowed, definition});
     },
+    clientProgramAdmitEffectRunMaterialsWithCompilation(wire, expected, originalCompilation, request) {
+      calls.push('bind-exact-run');
+      assert.equal(wire, materialsWire); assert.equal(expected, cid('2'));
+      assert.strictEqual(originalCompilation, compilation); assert.equal(request, 'request');
+      return ok({prepared, compilation, allowed, definition});
+    },
     clientProgramEffectRunMaterialsPrepared: value => value.prepared,
     clientProgramEffectRunMaterialsCompilation: value => value.compilation,
     clientProgramEffectRunMaterialsAllowed: value => value.allowed,
@@ -204,6 +213,26 @@ async function fixture(t) {
   return {prepared, compilation, allowed, definition, calls, originals, materialsWire,
     selectionWire, selections: originals.selectionsOf(prepared), installedEffect, moon, control, runDefinition};
 }
+
+test('prepared and Run original projections fund their actual material before DATA conversion', async t => {
+  const f = await fixture(t), projected = [];
+  const reserve = (prepared, material, installations) => {
+    assert.strictEqual(prepared, f.prepared);
+    assert.equal(installations.length, 1);
+    assert.equal(installations[0].cid, expectedOwnerCid);
+    projected.push(material);
+  };
+  const original = f.originals.capturePrepared(f.prepared, f.compilation, reserve);
+  assert.deepEqual(projected, [original.preparedWire]);
+  f.originals.captureRun({...f, identity: 'request'}, reserve);
+  assert.deepEqual(projected, [original.preparedWire, f.materialsWire]);
+  const refused = new Error('SameRequestCapacityRefused');
+  assert.throws(() => f.originals.capturePrepared(f.prepared, f.compilation,
+    () => {throw refused;}), error => error === refused);
+  assert.throws(() => f.originals.captureRun({...f, identity: 'request'},
+    () => {throw refused;}), error => error === refused);
+  assert.equal(f.originals.restorePrepared(original).prepared, f.prepared);
+});
 
 test('held originals restore concrete selection without invoking a source resolver', async t => {
   const f = await fixture(t);

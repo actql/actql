@@ -3,10 +3,14 @@ import {readFile, mkdtemp, mkdir, writeFile, rm} from 'node:fs/promises';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import test from 'node:test';
-import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
-import {encodeUpdateTargetData} from './update-target-data.generated.mjs';
+import {pathToFileURL} from 'node:url';
+const moon = await import(process.env.ACTQL_TEST_UPDATE_ORIGINAL_RUNTIME === undefined
+  ? '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js'
+  : pathToFileURL(process.env.ACTQL_TEST_UPDATE_ORIGINAL_RUNTIME).href);
+import {encodeUpdateTargetData, encodeUpdateTargetOriginalData} from './update-target-data.generated.mjs';
 import {updateTargetSelectionsCid, updateTargetOriginalDataEqual,
-  issueUpdateTargetInstallation, installationsShape} from './update-target-original-shape.mjs';
+  issueUpdateTargetInstallation, installationsShape,
+  updateTargetPreparedOriginalShape} from './update-target-original-shape.mjs';
 import {generateUpdateTargetDataCodec} from '../../scripts/generate-update-target-data-codec.mjs';
 
 test('actual selection DATA reader retains every independent original identity vector', async () => {
@@ -43,6 +47,26 @@ test('transport snapshot reads each original field and array length once', () =>
   assert.equal(lengths, 1);
 });
 
+test('complete material envelope keeps the independent metadata and inner-material limits', () => {
+  const profile = {continuation: 'actql-installed-row-effect-continuation/0.1',
+    continuationBinding: 'binding_cid', dispatch: 'actql-installed-row-effect-dispatch/0.1',
+    recovery: 'actql-installed-row-effect-recovery/0.1', source: 'actql-installed-row-effect-source/0.1',
+    targetCheck: 'actql-installed-row-effect-check/0.1', unit: 'actql-installed-row-effect-unit/0.1'};
+  const installation = issueUpdateTargetInstallation(moon, {binding_cid: 'sha256:' + 'c'.repeat(64),
+    connection: 'fixture', connector_registration: 'update_target_fixture',
+    connector_revision: 'update_target_fixture/0.1', continuation_binding: 'sha256:' + 'e'.repeat(64),
+    profile, runtime_bundle_cid: 'sha256:' + 'd'.repeat(64)});
+  const original = {preparedWire: '"'.repeat(60000), compiledPlanCid: 'sha256:' + 'a'.repeat(64),
+    installations: [installation]};
+  assert.throws(() => encodeUpdateTargetData(original), /InvalidUpdateTargetData/u);
+  assert(Buffer.byteLength(encodeUpdateTargetOriginalData(original)) > 65536);
+  assert.equal(updateTargetPreparedOriginalShape(original, moon), true);
+  assert.equal(updateTargetOriginalDataEqual(moon, original, structuredClone(original)), true);
+  assert.equal(updateTargetPreparedOriginalShape({...original, preparedWire: 'a'.repeat(262145)}, moon), false);
+  assert.equal(updateTargetPreparedOriginalShape({...original, installations: [
+    {...installation, wire: 'a'.repeat(65536)}]}, moon), false);
+});
+
 test('transport bounds reject limit plus one cycles invalid text and non-JSON values before encoding', () => {
   assert.deepEqual(moon.clientProgramEffectTargetOriginalCodecLimits(), [65536, 65536, 64]);
   assert.equal(Buffer.byteLength(encodeUpdateTargetData('a'.repeat(65534))), 65536);
@@ -74,10 +98,11 @@ test('actual installation Owner refuses changed saved data rather than authentic
 test('normal codec generation checks the single Owner source and refuses generated drift', async () => {
   const root = await mkdtemp(join(tmpdir(), 'actql-update-codec-'));
   try {
-    for (const path of ['src/run_publication_host', 'scripts/templates', 'adapters/host-node']) {
+    for (const path of ['src/run_publication_host', 'src/remote_site_protocol', 'scripts/templates', 'adapters/host-node']) {
       await mkdir(join(root, path), {recursive: true});
     }
     for (const path of ['src/run_publication_host/client_effect_target_original_data.mbt',
+      'src/remote_site_protocol/poll.mbt',
       'scripts/templates/update-target-data-codec.mjs']) {
       await writeFile(join(root, path), await readFile(new URL('../../' + path, import.meta.url)));
     }

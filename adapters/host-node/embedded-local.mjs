@@ -4517,6 +4517,8 @@ async function openInstalledHost(originalInstallation, preparation) {
   };
   const effectRun = effectInstallation === undefined ? undefined :
     installNodeClientEffectRun({moon, publicationControl: control, journal,
+      reserveOriginal: (prepared, material, installations) =>
+        preparation.reserveManagedEffectOriginal(moon, prepared, material, installations),
       requestIdentityFor({prepared, authorityScopeCid: scope, requestId}) {
         if (scope !== authorityScopeCid) throw clientOperationError('ClientProgramNeedsInputs');
         return originalSourceFreeRequest(prepared, requestId, true);
@@ -7855,6 +7857,16 @@ async function openPreparedInstalledHost(options, initialEntry) {
       return manager.prepareContentCompilation(prepared, originalSourceManagedHostRequest(originals, prepared), graph,
         (parent, input, originalGraph, contracts) => control.prepareCheckedClientRequestSerializationCompilation(
           parent, input, originalGraph, contracts));
+    },
+    reserveManagedEffectOriginal(runtime, prepared, material, installations) {
+      const manager = sourceManaged ?? computeManaged;
+      if (runtime !== moon || manager === undefined || typeof manager.reserveEffectOriginal !== 'function') {
+        throw clientOperationError('NodeManagedRunCompilationUnavailable');
+      }
+      (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
+        : assertSourceManagedInstallationCurrent)(manager, originals);
+      return manager.reserveEffectOriginal(prepared,
+        originalSourceManagedHostRequest(originals, prepared), material, installations);
     },
     prepareManagedModelMaterials(runtime, prepared, count, wireAt, containers) {
       const manager = sourceManaged ?? computeManaged;

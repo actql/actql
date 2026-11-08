@@ -647,6 +647,8 @@ pub fn client_effect_target_original_codec_limits() -> Array[Int]
 
 pub fn client_effect_target_original_data_equal(String, String) -> Bool
 
+pub fn client_effect_target_original_envelope_capacity(Int, (Int) -> String) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_effect_target_prepared_original_shape(String) -> Bool
 
 pub fn client_effect_target_run_original_shape(String, String?, String?) -> Bool

@@ -2,7 +2,7 @@
 // fields, constraints, canonical identities and original-material matching.
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
-import {encodeUpdateTargetData} from './update-target-data.generated.mjs';
+import {encodeUpdateTargetData, encodeUpdateTargetOriginalData} from './update-target-data.generated.mjs';
 
 // Conversion aliases borrow Common's opaque original. Copying every DATA
 // property cannot copy this association; Common still checks the original on
@@ -51,7 +51,7 @@ export function issueUpdateTargetInstallation(moon, facts) {
 export function updateTargetOriginalDataEqual(moon, left, right) {
   try {
     return moon.clientProgramEffectTargetOriginalDataEqual(
-      encodeUpdateTargetData(left), encodeUpdateTargetData(right));
+      encodeUpdateTargetOriginalData(left), encodeUpdateTargetOriginalData(right));
   } catch { return false; }
 }
 
@@ -61,13 +61,13 @@ export function installationsShape(values, moon) {
 }
 
 export function updateTargetPreparedOriginalShape(value, moon) {
-  try { return moon.clientProgramEffectTargetPreparedOriginalShape(encodeUpdateTargetData(value)); }
+  try { return moon.clientProgramEffectTargetPreparedOriginalShape(encodeUpdateTargetOriginalData(value)); }
   catch { return false; }
 }
 
 export function updateTargetRunOriginalShape(value, evidence, moon) {
   try {
-    return moon.clientProgramEffectTargetRunOriginalShape(encodeUpdateTargetData(value),
+    return moon.clientProgramEffectTargetRunOriginalShape(encodeUpdateTargetOriginalData(value),
       evidence === undefined ? [] : [evidence.prepared, evidence.authorization]);
   } catch { return false; }
 }
