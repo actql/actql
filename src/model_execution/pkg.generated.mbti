@@ -87,6 +87,8 @@ pub fn complete_model_output(ModelOutputPreparation) -> Result[@execution_relati
 
 pub fn finish_model_content_bytes(ModelContentByteCheck) -> Result[ModelContentAdmission, ModelContentIssue]
 
+pub fn grow_original_model_publication_capacity(OriginalModelPublicationCapacity, ModelExecution, @run_publication_host.ClientInferCallScope, Int64, Int64) -> Result[Unit, ModelExecutionIssue]
+
 pub fn guard_model_request_preflight_current(ModelRequestPreflight, () -> Bool) -> ModelRequestPreflight
 
 pub fn install_async_model_provider(String) -> Result[ModelProvider, ModelExecutionIssue]

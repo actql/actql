@@ -6015,6 +6015,17 @@ Content and Journal owners retain their own lifetimes. Outer cleanup retains
 the first actual thrown value, including `undefined` or `null`, while still
 attempting independent cleanup duties.
 
+The original publication borrow may grow before its next constructor from the
+actual simultaneous retained and execution demand. It keeps the same Model,
+CallScope and byte-only reservation; growth creates no output use, reservation
+slot, send attempt or quantity allowance. Lower subsequent demand retains the
+previous peak until the original publication retirement. The Resource owner
+performs its current callback and post-callback checks in the resize operation,
+while the Model fences synchronous reentry. Capacity refusal leaves both the
+borrow's amounts and the Ledger usage unchanged. The immutable installed policy
+ceiling is not changed by this operation, and the caller still owes the exact
+constructor inventory before any allocation.
+
 ### Native initialization selected for a Request
 
 The Native command retains its input and Request on the existing business
