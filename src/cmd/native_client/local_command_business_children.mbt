@@ -194,6 +194,11 @@ fn LocalCommandPreparationOriginal::close_business_children(
       Err(issue) => return Err(issue)
       Ok(_) => ()
     }
+    if business.effect_model is Some(state) {
+      // Sever this caller's output alias before the original Model releases it.
+      // This is no physical ACK and does not clear any child obligation.
+      state.model_output = None
+    }
     for work in business.model_work {
       match work.close() {
         Err(issue) => return Err(CommandBusinessModel(issue))
@@ -214,6 +219,24 @@ fn LocalCommandPreparationOriginal::close_business_children(
       }
       state.source_failures.clear()
       state.source_failures.shrink_to_fit()
+      if state.lookup is Some(lookup) {
+        match @run_host.cleanup_client_keyed_lookup_input(lookup, 31) {
+          Err(_) => return Err(CommandBusinessChildren)
+          Ok(false) => return Err(CommandBusinessChildren)
+          Ok(true) => state.lookup = None
+        }
+      }
+      if state.prefix is Some(prefix) {
+        let original = @local_values.client_original_composed_keyed_prefix_execution(
+          prefix,
+        )
+        @local_values.cancel_client_serialization_prefix(original) |> ignore
+        match @local_values.cleanup_client_serialization_prefix(original) {
+          Err(_) => return Err(CommandBusinessChildren)
+          Ok(false) => return Err(CommandBusinessChildren)
+          Ok(true) => state.prefix = None
+        }
+      }
       for source in state.sources {
         match source.close() {
           Err(issue) => return Err(CommandBusinessSource(issue))
@@ -225,6 +248,39 @@ fn LocalCommandPreparationOriginal::close_business_children(
         match @local_values.retire_installed_source_read(read) {
           Err(_) => return Err(CommandBusinessChildren)
           Ok(_) => ()
+        }
+      }
+      for read in state.keyed_reads {
+        match @local_values.retire_installed_keyed_source_read(read) {
+          Err(_) => return Err(CommandBusinessChildren)
+          Ok(_) => ()
+        }
+      }
+      state.keyed_reads.clear()
+      state.keyed_reads.shrink_to_fit()
+      state.model_output = None
+      if state.model_read is Some(read) {
+        match
+          @run_host.stop_client_model_read_checked(
+            state.scope.unwrap(),
+            read,
+            state.first.model_compiled.unwrap(),
+            state.first.definition,
+            state.graph,
+          ) {
+          Err(_) => return Err(CommandBusinessChildren)
+          Ok(_) => ()
+        }
+        match
+          @run_host.settle_client_model_read_checked(
+            read,
+            state.first.model_compiled.unwrap(),
+            state.first.definition,
+            state.graph,
+            true,
+          ) {
+          Err(_) => return Err(CommandBusinessChildren)
+          Ok(_) => state.model_read = None
         }
       }
       state.source_reads.clear()

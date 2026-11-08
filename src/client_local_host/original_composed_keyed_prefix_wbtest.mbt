@@ -748,9 +748,38 @@ fn original_composed_keyed_consumer(
     complete_client_original_composed_keyed_prefix(original, 10000, 4096)
     is Err(_),
   )
-  let lookup = @publication_host.start_client_keyed_lookup_input(
-    left, ledger, 4096, 10000,
-  ).unwrap()
+  let lookup = match
+    @publication_host.start_client_original_composed_keyed_lookup_input(
+      left, 4096, 10000,
+    ) {
+    Ok(value) => value
+    Err(issue) => {
+      let reason = match issue {
+        @publication_host.ForeignLeft => "ForeignLeft"
+        @publication_host.Assembly(reason) => "Assembly:" + reason
+        @publication_host.Physical(_) => "Physical"
+        _ => "Other"
+      }
+      fail("original Model Scope lookup: " + reason)
+    }
+  }
+
+  assert_true(
+    @publication_host.client_composed_keyed_lookup_matches_model_parent(
+      lookup,
+      model.compiled,
+      model.definition,
+      model.graph,
+      ledger,
+    ),
+  )
+  // The SAME left cannot open another assembly, even with identical bounds.
+  assert_true(
+    @publication_host.start_client_original_composed_keyed_lookup_input(
+      left, 4096, 10000,
+    )
+    is Err(_),
+  )
   if retained_input_root {
     let before = @resources.ledger_usage(ledger)
     // No completed right input exists yet. An omitted duplicate vector never

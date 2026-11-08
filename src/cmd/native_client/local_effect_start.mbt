@@ -319,7 +319,10 @@ fn local_effect_prepare_start_with_clocks(
       run.retention,
       now,
       epoch_now(),
+      run,
     )
+    selected.capture_mock_effect_content(run)
+    selected.execute_mock_effect_model(run)
   }
   AuthoritySupplierUnavailable
 }

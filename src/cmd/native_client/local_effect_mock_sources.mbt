@@ -9,6 +9,7 @@ fn LocalCommandBusinessPreparation::capture_mock_effect_sources(
   retention : @publication.PublicationContract,
   issued_at : String,
   now : Double,
+  installation : LocalRunInstallation,
 ) -> Unit raise ClientStop {
   guard self.original.business is Some(business) &&
     business.effect_model is Some(state) &&
@@ -43,6 +44,7 @@ fn LocalCommandBusinessPreparation::capture_mock_effect_sources(
     }
     Ok(Ok(_)) => ()
   }
+  self.prepare_mock_effect_store(installation)
   let work = business.model_work[0]
   match work.claim_start_in_original_read(self.connection) {
     Err(issue) => {
@@ -51,6 +53,7 @@ fn LocalCommandBusinessPreparation::capture_mock_effect_sources(
     }
     Ok(_) => ()
   }
+  state.source_started_at = Some(local_utc_now())
   for index, selected in first._retained_sources {
     let declaration = selected._retained_source._retained_declaration
     let source_ref = match selected._retained_reader {
@@ -153,4 +156,5 @@ fn LocalCommandBusinessPreparation::capture_mock_effect_sources(
       )
     })
   }
+  state.source_completed_at = Some(local_utc_now())
 }

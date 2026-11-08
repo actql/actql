@@ -354,7 +354,7 @@ fn native_mock_readme_content_join_adopt(
     captures.push(@row_host.row_capture_input(captured).unwrap())
     if collect_closure {
       let source = @row_host.row_capture_source(captured).unwrap()
-      let identity = @test_query.identify_captured_source_relation(
+      let identity = @query.identify_captured_source_relation(
         source,
         limits.identity.rows,
         limits.output_values,
@@ -402,9 +402,7 @@ fn native_mock_readme_content_join_adopt(
               requirement,
             ),
           )
-          assert_true(
-            @test_query.captured_source_matches_query(source, sequence),
-          )
+          assert_true(@query.captured_source_matches_query(source, sequence))
           let program = @checked.source_identity(@strategy.graph_program(dag))
           assert_true(
             physical_equal(
@@ -413,15 +411,15 @@ fn native_mock_readme_content_join_adopt(
             ),
           )
           assert_true(
-            @test_query.captured_source_matches(
+            @query.captured_source_matches(
               source,
               program,
-              @test_query.query_sequence_owner(sequence),
+              @query.query_sequence_owner(sequence),
             ),
           )
           let full_task = @strategy.graph_task_owner(dag, coordinates.2).unwrap()
           assert_true(
-            @test_query.captured_source_matches(source, program, full_task),
+            @query.captured_source_matches(source, program, full_task),
           )
           let logical = @run_host.issue_captured_source_input_logical(
             dag,
@@ -490,14 +488,12 @@ fn native_mock_readme_content_join_adopt(
         @local_values.Physical(value) => "Physical: " + @debug.to_string(value)
         @local_values.Provider(_) => "Provider"
         @local_values.Capture(
-          @test_query.Binding(@execution.ProducerBindingMismatch)
+          @query.Binding(@execution.ProducerBindingMismatch)
         ) => "Capture: ProducerBindingMismatch"
-        @local_values.Capture(
-          @test_query.Binding(@execution.ProducerOwnerMismatch)
-        ) => "Capture: ProducerOwnerMismatch"
-        @local_values.Capture(
-          @test_query.Binding(@execution.ProducerTargetMismatch)
-        ) => "Capture: ProducerTargetMismatch"
+        @local_values.Capture(@query.Binding(@execution.ProducerOwnerMismatch)) =>
+          "Capture: ProducerOwnerMismatch"
+        @local_values.Capture(@query.Binding(@execution.ProducerTargetMismatch)) =>
+          "Capture: ProducerTargetMismatch"
         @local_values.Capture(_) => "Capture"
         @local_values.ProducerRead(_) => "ProducerRead"
       }

@@ -546,6 +546,36 @@ fn client_keyed_left_available(left : ClientKeyedLeftRead) -> Bool {
 }
 
 ///|
+/// Assemble the SAME completed composed prefix on its retained Model Scope.
+/// The original left already owns this private tuple. No caller Ledger,
+/// copied Scope, reconstructed binding or new admission can replace it.
+pub fn start_client_original_composed_keyed_lookup_input(
+  left : ClientKeyedLeftRead,
+  max_bytes : Int,
+  max_work : Int,
+) -> Result[ClientKeyedLookupInput, ClientKeyedRequestIssue] {
+  guard left.source is None &&
+    left.composed is Some(original) &&
+    physical_equal(left.acquisition, original.keyed) &&
+    client_composed_keyed_original_current(original) else {
+    return Err(ForeignLeft)
+  }
+  // The legacy optional entrance authenticates exactly ONE captured child.
+  // This composed left already authenticates its ordered MULTIPLE Sources,
+  // completed producers and same recorded prefix above. Reusing the single-
+  // child shape would refuse this genuine two-Source inventory. Keep that
+  // other entrance unchanged; the existing allocator still debits this exact
+  // retained Scope Ledger and preserves every consumed attempt on failure.
+  start_client_keyed_lookup_input_owned(
+    left,
+    original.scope.ledger,
+    max_bytes,
+    max_work,
+    None,
+  )
+}
+
+///|
 pub fn client_composed_keyed_lookup_matches_model_parent(
   lookup : ClientKeyedLookupInput,
   compiled : ClientCompiledRun,
