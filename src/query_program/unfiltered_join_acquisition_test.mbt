@@ -33,6 +33,9 @@ fn check_pair_acquisitions(
     Err(_) => fail("preparation outside check/graph")
   }
   assert_eq(@publication_host.prepared_client_acquisition_count(prepared), 2)
+  // None of these callers authors TRUE, even when another predicate is real.
+  // One Source must not regain an invented Query while the other stays Whole.
+  assert_false(semantic(program).contains("\"filter\":{\"literal\":true}"))
   let staged = @stage_parameters.prepare(program, {
     max_parameters: 100,
     max_nodes: 10000,
