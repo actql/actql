@@ -109,7 +109,13 @@ pub fn generated_bounded_sequence_capacity(
   let roots = @schema.field_count(schema).to_int64() +
     @lower.node_input_count(node).to_int64()
   let ordinary = generated_sequence_capacity_with_roots(
-    generated, limits, measurement, roots, roots, true,
+    generated,
+    limits,
+    measurement,
+    roots,
+    roots,
+    true,
+    borrowed_binary_input=operation is @lower.AppendStep(_),
   )
   guard ordinary is Some(ordinary) else { return None }
   // The Values provider does not pass FixedInputGuardMeasureLimits to its
@@ -199,6 +205,7 @@ fn generated_sequence_capacity_with_roots(
   retained_roots : Int64,
   metadata_scratch : Int64,
   bounded_single : Bool,
+  borrowed_binary_input? : Bool = false,
 ) -> ExecutionCapacity? {
   let rows = limits.rows
   if rows.retained_entries < 0 || rows.metadata_entries < 0 {
@@ -228,7 +235,15 @@ fn generated_sequence_capacity_with_roots(
       { unit: CursorRootSlots, count: limits.max_frames.to_int64(), copies: 1, },
       {
         unit: ValueNodeSlots,
-        count: rows.input_values.max_nodes.to_int64(),
+        // The selected bounded Append scans original ProducerRead cells;
+        // its cursor stack is already bounded by operation_entries. It does
+        // not copy the input value forest. Logical input admission still
+        // scans and charges every occurrence before any output is committed.
+        count: if borrowed_binary_input {
+          0L
+        } else {
+          rows.input_values.max_nodes.to_int64()
+        },
         copies: 1,
       },
       {
@@ -248,7 +263,11 @@ fn generated_sequence_capacity_with_roots(
       },
       {
         unit: DecodedTextBytes,
-        count: rows.input_values.max_text_bytes.to_int64(),
+        count: if borrowed_binary_input {
+          0L
+        } else {
+          rows.input_values.max_text_bytes.to_int64()
+        },
         copies: 1,
       },
       {
