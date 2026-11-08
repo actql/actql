@@ -2361,6 +2361,8 @@ pub fn start_client_model_current_state_document_read(@physical_resources.Origin
 
 pub fn start_client_model_current_state_write(@physical_resources.OriginalResourcePark[ClientModelReadOrigin], ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @encode_core.Writer) -> Result[@physical_resources.OriginalCurrentStateWrite[ClientModelReadOrigin], @physical_resources.OriginalStateWriteIssue]
 
+pub fn start_client_original_composed_keyed_lookup_input(ClientKeyedLeftRead, Int, Int) -> Result[ClientKeyedLookupInput, ClientKeyedRequestIssue]
+
 pub fn start_client_original_keyed_lookup_input(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, ClientKeyedAcquisition, ClientKeyedLeftRead, Int, Int) -> Result[ClientKeyedLookupInput, ClientKeyedRequestIssue]
 
 pub fn start_client_original_keyed_prefix_lookup(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, ClientKeyedAcquisition, @execution_query.CapturedInputSource, @execution_relation.CompletedOutput, @execution_relation.ProducerRead, @physical_resources.Reservation, Int, Int, Int, Int) -> Result[ClientOriginalKeyedPrefixLookup, ClientKeyedRequestIssue]

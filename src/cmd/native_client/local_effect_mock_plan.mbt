@@ -7,6 +7,13 @@ priv struct LocalNativeMockEffectPlan {
   _retained_plan : @local_values.ClientInstalledEffectManagedPlan
   graph : @run_host.ClientInferPlanGraph
   mut scope : @run_host.ClientModelReadScope?
+  mut source_started_at : String?
+  mut source_completed_at : String?
+  mut prefix : @local_values.ClientOriginalComposedKeyedPrefix?
+  mut lookup : @run_host.ClientKeyedLookupInput?
+  mut model_read : @run_host.ClientModelReadPreparation?
+  mut model_output : @execution.CompletedOutput?
+  keyed_reads : Array[@local_values.ClientInstalledKeyedSourceRead]
   sources : Array[@row_file.NativeRelationFileCapture]
   source_failures : Array[@row_file.NativeRelationFileFailure]
   source_reads : Array[@local_values.ClientInstalledSourceRead]
@@ -246,6 +253,13 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_plan(
       _retained_plan: plan,
       graph: selected.graph,
       scope: None,
+      source_started_at: None,
+      source_completed_at: None,
+      prefix: None,
+      lookup: None,
+      model_read: None,
+      model_output: None,
+      keyed_reads: [],
       sources: [],
       source_failures: [],
       source_reads: [],

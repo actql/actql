@@ -3099,13 +3099,10 @@ pub fn client_program_start_infer_call_settlement_export(
   max_bytes : Int,
   max_work : Int,
 ) -> Result[@model.ModelCaptureExport, @model.ModelExecutionIssue] {
-  @model.start_model_call_settlement_export(value, {
-    max_bytes,
-    max_nodes: 100000,
-    max_depth: 100,
-    max_chunk_bytes: 16384,
-    max_work,
-  })
+  @model.start_model_call_settlement_export(
+    value,
+    @model.model_call_settlement_export_limits(max_bytes, max_work),
+  )
 }
 
 ///|

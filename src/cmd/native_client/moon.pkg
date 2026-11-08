@@ -32,6 +32,7 @@ import {
   "actql/actql/connectors/duckdb/adapters/native" @duckdb,
   "actql/actql/connectors/duckdb/standard_host" @dispatch,
   "actql/actql/execution_relation" @execution,
+  "actql/actql/execution_query" @query,
   "actql/actql/physical_cost" @cost,
   "actql/actql/source_frontend" @frontend,
   "actql/actql/sourceview_resolution" @sourceviews,
@@ -58,7 +59,6 @@ import {
 
 import {
   "actql/actql/publication_payload" @test_payload,
-  "actql/actql/execution_query" @test_query,
   "actql/actql/query_planning" @test_planning,
 } for "wbtest"
 
