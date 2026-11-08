@@ -13,10 +13,12 @@ assert.equal(process.env.ACTQL_TEST_PRESERVE_SCRATCH, '1',
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const [source, release, consumer, selection] = process.argv.slice(2);
 assert((process.argv.length === 5 || process.argv.length === 6 &&
-  ['--approval', '--kintone-approval'].includes(selection)),
-  'usage: test-packed-hubspot-source.mjs <original-normal-source> <RC-directory> <closed-installed-consumer> [--approval|--kintone-approval]');
-const approvalConnector = selection === '--approval' ? 'hubspot'
-  : selection === '--kintone-approval' ? 'kintone' : undefined;
+  ['--approval', '--kintone-approval', '--mock-salesforce-approval',
+    '--mock-hubspot-approval', '--mock-kintone-approval'].includes(selection)),
+  'usage: test-packed-hubspot-source.mjs <original-normal-source> <RC-directory> <closed-installed-consumer> [--approval|--kintone-approval|--mock-CONNECTOR-approval]');
+const mockConnector = /^--mock-(salesforce|hubspot|kintone)-approval$/u.exec(selection ?? '')?.[1];
+const approvalConnector = mockConnector ?? (selection === '--approval' ? 'hubspot'
+  : selection === '--kintone-approval' ? 'kintone' : undefined);
 const approval = approvalConnector !== undefined;
 for (const path of [source, release, consumer]) assert(isAbsolute(path), 'Require absolute original input paths');
 assert(!process.env.NODE_PATH && !process.env.NODE_OPTIONS,
@@ -34,7 +36,7 @@ async function verifyInstalled() {
 await verifyInstalled();
 const scratch = await createOwnedScratch({parent: join(repository, '_build'),
   prefix: 'packed-hubspot-original-', label: approval
-    ? `ordinary installed ${approvalConnector} approval and original Saved restoration`
+    ? `ordinary installed ${approvalConnector}${mockConnector ? ' mock' : ''} approval and original Saved restoration`
     : 'ordinary installed HubSpot Source and original Run restoration'});
 const application = join(scratch.path, 'application');
 await mkdir(application);
@@ -42,7 +44,12 @@ await writeFile(join(application, 'package.json'), '{"private":true,"type":"modu
 // Read-only borrow of the independently installed exact artifact closure;
 // fresh Host/Run/credential/TLS/SQLite roots below never mutate that donor.
 const software = join(consumer, 'node_modules'), softwareAlias = join(application, 'node_modules');
-const fixtureFiles = approval ? [`scripts/fixtures/packed-${approvalConnector}-approval.mjs`,
+const fixtureFiles = mockConnector ? ['scripts/fixtures/packed-record-approval-mock.mjs',
+  ...['mock-project.mjs', 'run.mjs', 'workflow.mjs', 'update.aql', 'read.aql']
+    .map(name => `scripts/fixtures/${mockConnector}-approval/` + name),
+  ...['command.mjs', 'workflow.mjs', 'cases.mjs', 'mock-project.mjs',
+    'scoped-fds.fixture.mjs', 'installed-child.mjs'].map(name => 'scripts/fixtures/record-approval/' + name)]
+  : approval ? [`scripts/fixtures/packed-${approvalConnector}-approval.mjs`,
   ...['provider.mjs', 'installed.fixture.mjs', 'update.aql', 'read.aql']
     .map(name => `scripts/fixtures/${approvalConnector}-approval/` + name),
   ...['command.mjs', 'workflow.mjs', 'cases.mjs', 'host-account.fixture.mjs', 'scoped-fds.fixture.mjs',
@@ -67,8 +74,10 @@ let code;
 await symlink(software, softwareAlias, 'dir');
 try {
   code = runFocusedTests('node', [approval
-    ? `scripts/fixtures/packed-${approvalConnector}-approval.mjs` : 'scripts/fixtures/packed-hubspot-public.mjs'],
-    {cwd: application, expectedTests, timeout: approval ? 110000 : 50000, killSignal: 'SIGTERM'});
+    ? mockConnector ? 'scripts/fixtures/packed-record-approval-mock.mjs'
+      : `scripts/fixtures/packed-${approvalConnector}-approval.mjs` : 'scripts/fixtures/packed-hubspot-public.mjs'],
+    {cwd: application, expectedTests, timeout: approval ? 110000 : 50000, killSignal: 'SIGTERM',
+      env: mockConnector ? {...process.env, ACTQL_RECORD_APPROVAL_MOCK_CONNECTOR: mockConnector} : process.env});
 } finally {
   // Return only this fresh link, never its original installed software target.
   assert.equal(await readlink(softwareAlias), software);
@@ -84,7 +93,9 @@ const execution = JSON.parse(await readFile(join(focusedRoot, focused[0], '001.r
 assert(execution.complete && execution.outputComplete && execution.status === 0 && execution.verificationStatus === 0);
 assert.deepEqual(execution.counts, {tests: expectedTests, passed: expectedTests,
   failed: 0, cancelled: 0, skipped: 0, todo: 0});
-const receipt = {qualification: approval
+const receipt = {qualification: mockConnector
+  ? 'Actual declared mock capture, explicit default Local approval and separate-process original Saved before status on the selected normal installation. No provider or installed Effect acceptance claim.'
+  : approval
   ? 'Actual installed Local capture, signed approval, exactly one synthetic TLS provider UPDATE and separate-process original Saved before status. No real provider, performance or physical cleanup ACK claim.'
   : 'Actual public Local/HTTPS using the exact borrowed ordinary installed cohort; fresh Host and original same-Run restoration in a fresh process. No new npm install, package build, live service, write or normal numeric-profile claim.',
   productSource: original.manifest.sourceSha, manifestSha256: original.manifestSha256,

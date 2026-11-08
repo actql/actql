@@ -107,3 +107,20 @@ ordinary installed support. A declared mock UPDATE likewise does not establish
 that a connector's standard installed Effect factory is connected. The kintone
 fixture retains string `$id` values without numeric conversion; its normal
 installed Effect connection is a separate requirement from mock acceptance.
+
+For a reproducible ordinary mock consumer using an already closed normal
+installation, the same bounded runner accepts one explicit selection at a time:
+`scripts/test-packed-hubspot-source.mjs ORIGINAL_SOURCE NORMAL_RELEASE_DIRECTORY CLOSED_APPLICATION --mock-salesforce-approval`
+(or `--mock-hubspot-approval`, `--mock-kintone-approval`). Use absolute paths,
+preserve scratch and clear ambient loader/local-profile overrides as described
+by the installed fixtures. The normal release Source/archive/installed-member
+checks are retained; no build, npm install or provider call is made.
+
+Each selected case writes only a fresh declared mock project, runs `check`
+without creating Host state, then uses three separate processes for capture,
+explicit default Local approval and Saved-first recovery. It compares the
+entire authored mock data before and after every phase, including the untouched
+control row. The shared child observes exact canonical Host root descriptors
+twice while alive after public close returns; mock has no Credential root to
+observe. Each child retains the original 30-second limit. Keep every original
+state and receipt after failure; never retry that original Run to finish a case.
