@@ -7787,7 +7787,7 @@ fn compile_client_local_effects(
   @publication_host.issue_prepared_client_effect_compilation(
     prepared,
     manifests,
-    client_local_sequence_limits(),
+    @publication_host.prepared_client_effect_sequence_limits(prepared),
     1000,
     10000,
     1000000,

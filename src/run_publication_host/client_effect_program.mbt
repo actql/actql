@@ -74,6 +74,17 @@ fn client_effect_program_view(
 }
 
 ///|
+/// Same checked projection demand as the Effect compiler and Local sequence
+/// owner. This grants no rows, bindings, expression work or physical capacity.
+pub fn prepared_client_effect_sequence_limits(
+  value : PreparedClientEffectComputation,
+) -> @lower.SequenceLimits {
+  client_sequence_limits_with_projection_demand(
+    value.sequence_preparation_demand,
+  )
+}
+
+///|
 pub fn prepare_client_effect_computation(
   document : String,
   format : @syntax.Format,

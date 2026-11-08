@@ -95,7 +95,8 @@ fn client_local_owner_sequence_limits(
   match value {
     Pure(prepared) =>
       @publication_host.prepared_client_values_sequence_limits(prepared)
-    Effect(_) => @publication_host.client_standard_values_sequence_limits()
+    Effect(prepared) =>
+      @publication_host.prepared_client_effect_sequence_limits(prepared)
   }
 }
 

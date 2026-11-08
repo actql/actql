@@ -2129,6 +2129,8 @@ pub fn prepared_client_effect_run_graph(PreparedClientEffectRun) -> @physical_st
 
 pub fn prepared_client_effect_run_source_dispatch(PreparedClientEffectRun) -> @remote_site_protocol.DispatchRequest?
 
+pub fn prepared_client_effect_sequence_limits(PreparedClientEffectComputation) -> @lowering_relation.SequenceLimits
+
 pub fn prepared_client_effect_serialization_occurrences(PreparedClientEffectComputation) -> Array[(Int, Int)]
 
 pub fn prepared_client_effect_target_selections(PreparedClientEffectComputation) -> String?

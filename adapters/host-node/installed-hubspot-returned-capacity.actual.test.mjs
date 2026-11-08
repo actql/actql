@@ -8,6 +8,8 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import * as provider from '../../_build/js/release/build/connectors/hubspot/host_node/host_node.js';
 import {composeInstalledSourceEnvironment} from './installed-funded-environment.mjs';
+import {sourceAliasPublication} from './source-alias-publication.mjs';
+import {installedUpdateTargets} from './installed-effect-inventory.mjs';
 
 // Actual unchanged policy/Ledger and provider constructors. No public Run,
 // real provider, credential, caller budget replacement or successful mock.
@@ -154,6 +156,32 @@ test('wide HubSpot Effect keeps the admitted Source Catalog limit through its ac
   assert.deepEqual(mapping.writable_fields, ['name']);
   assert.equal(latestReserve(events).accepted, true);
   assert.equal(f.secretReads(), 0, 'initialization grants no provider operation');
+  await f.close(); assert.equal(f.pending(), false); assert.equal(f.retire(), true);
+});
+
+test('same full HubSpot Source and original approval Program compile with held checked projection demand', async t => {
+  const {f, source, selection} = await wideEffectFixture(t, {propertyNameUnits: 6001});
+  const installedSource = await f.load(source), installedEffect = await f.load(selection);
+  const base = (await readFile(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8')).trimEnd();
+  const composed = composeInstalledSourceEnvironment(f.services, f.moon, base,
+    installedSource.environmentWire, installedEffect.environmentWire);
+  const view = composed.body.schema_snapshots[0];
+  const alias = {name: 'hubspot.companies', sourceRef: view.source_ref,
+    sourceViewContractCid: view.source_view_contract_cid, schemaContractCid: view.carrier_schema_contract_cid};
+  const updateTargets = installedUpdateTargets(installedEffect,
+    [{name: alias.name, targetRef: installedEffect.mappings[0].target}], composed.wire);
+  const publication = sourceAliasPublication(f.moon, composed.admitted, [alias], [], {updateTargets});
+  const program = await readFile(new URL('../../scripts/fixtures/hubspot-approval/update.aql', import.meta.url), 'utf8');
+  const outcome = f.moon.clientProgramPreparePublicSourceComputationWithParameters(program, 'aql-text',
+    composed.admitted, JSON.stringify(publication),
+    JSON.stringify({record_id: {type: 'string'}, next_name: {type: 'string'}}),
+    JSON.stringify({record_id: 'component-record', next_name: 'component-updated'}), true, []);
+  const prepared = f.moon.clientProgramSourceComputationEffect(outcome);
+  assert(prepared);
+  const ready = f.moon.clientProgramEffectPreparationReady(prepared);
+  assert(ready);
+  assert(checked(f.moon.clientProgramCompileLocalEffects(ready)));
+  assert.equal(f.secretReads(), 0);
   await f.close(); assert.equal(f.pending(), false); assert.equal(f.retire(), true);
 });
 
