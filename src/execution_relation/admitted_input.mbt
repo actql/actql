@@ -214,6 +214,9 @@ fn append_admitted_buffer_values(
     }
     row.push(value)
   }
+  if !input.open {
+    return Err(ClosedCapture)
+  }
   if !fund_output_retention(budget, budget.nodes, budget.text) || !input.open {
     return Err(CaptureLimit)
   }
@@ -254,6 +257,11 @@ fn append_admitted_row(
       return Err(CaptureLimit)
     }
     row.push(checked.value)
+  }
+  // Reference measurement can revoke this buffer through its Host callback.
+  // A retired row must not request more funding before its commit is refused.
+  if !input.open {
+    return Err(ClosedCapture)
   }
   if !fund_output_retention(budget, budget.nodes, budget.text) || !input.open {
     return Err(CaptureLimit)
