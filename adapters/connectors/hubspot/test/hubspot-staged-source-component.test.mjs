@@ -46,7 +46,8 @@ function fixture(mode) {
     async readChild(input){
       const prepared=input.prepare();
       const body=input.operation===HUBSPOT_ACCOUNT_DETAILS_OPERATION?bytes({portalId:7}):
-        input.operation===HUBSPOT_PROPERTIES_READ_OPERATION?(mode==='http'&&count===1?Buffer.from([255]):bytes(schema)):
+        input.operation===HUBSPOT_PROPERTIES_READ_OPERATION?(mode==='http'&&count===1?Buffer.from([255]):
+          mode==='bom'&&count===1?Buffer.from('\uFEFF'+JSON.stringify(schema).slice(0,-1)+',"numeric":-12.50e2}'):bytes(schema)):
           bytes({results:[{id:'41',archived:false,properties:{name:'Expected'}}]});
       currentBody=body;total+=BigInt(body.length);count++;events.push('charged');
       sequence.responseCapacity(body.length,body,prepared.request.path,total,count);
@@ -89,4 +90,12 @@ test('staged mutation and cancellation cannot decode or fall back to replacement
   const canceled=fixture('cancel');await assert.rejects(canceled.sequence.read(canceled.context),{name:'AbortError'});
   assert.deepEqual(canceled.counts(),{legacy:0,consumed:0,retired:0});assert.equal(canceled.sequence.retire(),true);
   assert.deepEqual(moon.hubspotPropertyResponseSourceGeometryData(canceled.staged()),[]);
+});
+
+test('staged final matching provider caller preserves BOM numeric input and one-use original',async()=>{
+  const f=fixture('bom');await f.sequence.read(f.context);
+  assert.deepEqual(f.rows(),[{id:'41',name:'Expected'}]);
+  assert.deepEqual(f.counts(),{legacy:1,consumed:1,retired:0});
+  assert.deepEqual(moon.hubspotPropertyResponseSourceGeometryData(f.staged()),[]);
+  assert.equal(f.sequence.retire(),true);
 });

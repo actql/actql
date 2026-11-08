@@ -26,6 +26,9 @@ pub fn prepare_property_response_source(
   if property_input_issue(bytes, object_type, limits) is Some(issue) {
     return Err(issue)
   }
+  // Bind the original before decoding/preflight; later Resource reentry is
+  // checked against these bytes, not a digest first taken after staging.
+  let digest = @sha.hex(bytes)
   let text = @utf8.decode(bytes[:], ignore_bom=false) catch {
     _ => return Err(InvalidResponse)
   }
@@ -55,7 +58,7 @@ pub fn prepare_property_response_source(
   Ok({
     bytes,
     path,
-    digest: @sha.hex(bytes),
+    digest,
     object_type,
     limits,
     preflight,
