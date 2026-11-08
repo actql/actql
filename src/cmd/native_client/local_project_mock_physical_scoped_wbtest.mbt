@@ -966,3 +966,337 @@ fn native_project_mock_account_in_original_read() -> Unit raise {
 test "Native Mock first adoption retains only the original Project Account subjects" {
   native_project_mock_model_backed_read(false, account_initialization=true)
 }
+
+///|
+// Same ordinary finite Read/SQLite declarations, actual original components
+// and original adopted Account. This component does not supply a packaged
+// Runtime, Model dispatch, Preview, grant, business Run or Saved acceptance.
+test "Native Mock Account opens its original consuming Journal Read before Model dispatch" {
+  let profile = local_command_installed_profile(
+    "0000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000001",
+  )
+  let host = @initial_arena.prepare_installed_arena_host(
+    profile.source,
+    profile.recipe,
+    1L,
+    profile.arena_bytes,
+    profile.host_limits,
+    profile.control_bytes,
+  ).native_mock_journal_required("prepare original Host")
+  host.acquire().native_mock_journal_required("acquire original Host")
+  let backing = host
+    .borrow_backing()
+    .native_mock_journal_required("borrow original backing")
+  host
+  .enter_backing_borrow_scope(backing)
+  .native_mock_journal_required("enter backing borrow")
+  let read_domain = match
+    host
+    .prepare_domain_in_process(
+      backing,
+      profile.read_domain_bytes,
+      profile.read_domain_limits,
+    )
+    .native_mock_journal_required("prepare original Read domain") {
+    @initial_arena.PreparedDomain(value) => value
+    @initial_arena.PendingDomain(_, _) =>
+      fail("original Journal Read domain pending")
+  }
+  host
+  .transfer_domain(read_domain)
+  .native_mock_journal_required("transfer Read domain")
+  let sql_domain = match
+    host
+    .prepare_domain_in_process(
+      backing,
+      profile.sqlite_domain_bytes,
+      profile.sqlite_domain_limits,
+    )
+    .native_mock_journal_required("prepare original SQLite domain") {
+    @initial_arena.PreparedDomain(value) => value
+    @initial_arena.PendingDomain(_, _) =>
+      fail("original Journal SQLite domain pending")
+  }
+  host
+  .transfer_domain(sql_domain)
+  .native_mock_journal_required("transfer SQLite domain")
+  host
+  .leave_backing_borrow_scope(backing)
+  .native_mock_journal_required("leave backing borrow")
+  host
+  .return_backing_borrow(backing)
+  .native_mock_journal_required("return backing borrow")
+  let budget = local_command_initial_read_budget(profile)
+  host
+  .prepare_domain_read(
+    read_domain,
+    execution_ceiling=match profile.native_storage.read_selection {
+      CommandReadFiniteFacility(value) => value
+    },
+  )
+  .native_mock_journal_required("select original Read ceiling")
+  host
+  .prepare_domain_read(
+    sql_domain,
+    execution_ceiling=match profile.native_storage.sqlite_domain_selection {
+      CommandSqliteDomainFiniteFacility(value) => value
+    },
+  )
+  .native_mock_journal_required("select original SQLite ceiling")
+  let read = match
+    host
+    .prepare_domain_original_read(read_domain, budget)
+    .native_mock_journal_required("prepare original consuming Read") {
+    @initial_arena.ReadyOriginalRead(value) => value
+    @initial_arena.PendingOriginalRead(_, _) =>
+      fail("original consuming Read pending")
+  }
+  let sqlite = match
+    host
+    .prepare_sqlite_library(
+      sql_domain,
+      @env.get_env_var("ACTQL_TEST_SQLITE_COMPONENT").native_mock_journal_required(
+        "select SQLite component",
+      ),
+      profile.sqlite_heap_bytes,
+      profile.diagnostic_ceiling,
+    )
+    .native_mock_journal_required("prepare SQLite Library") {
+    @initial_arena.ReadySqlite(value) => value
+    @initial_arena.PendingSqlite(_, issue) =>
+      fail(
+        "original SQLite component pending: " +
+        command_preparation_cleanup_cause(CommandSqlite(issue)),
+      )
+  }
+  let pair = host
+    .bind_local_host_resources(read, sqlite)
+    .native_mock_journal_required("bind original Read/SQLite pair")
+  let consumer = host
+    .prepare_local_host_read_consumer(
+      pair,
+      profile.consumer_retained_bytes,
+      Int64::min(profile.consumer_execution_bytes, budget.read_execution),
+    )
+    .native_mock_journal_required("prepare original consumer")
+  let control = host
+    .prepare_local_host_read_crypto_control(pair, read)
+    .native_mock_journal_required("retain original Crypto control")
+  native_mock_original_journal_body(host, pair, read, control, profile)
+  // All caller aliases from the body retire before its original pair. The
+  // existing owners, not process exit or our booleans, supply these ACKs.
+  host
+  .close_local_host_resources(pair)
+  .native_mock_journal_required("close original Read/SQLite pair")
+  host
+  .close_domain_after_owner_ack(read_domain)
+  .native_mock_journal_required("close Read domain after ACK")
+  host
+  .close_domain_after_owner_ack(sql_domain)
+  .native_mock_journal_required("close SQLite domain after ACK")
+  host.try_close().native_mock_journal_required("close original Host")
+  ignore(consumer)
+}
+
+///|
+fn native_mock_original_journal_body(
+  arena : @initial_arena.InstalledArenaHost,
+  pair : @initial_arena.InstalledArenaLocalHostResources,
+  read : @initial_arena.InstalledArenaOriginalRead,
+  control : @initial_arena.InstalledArenaCryptoComponent,
+  profile : LocalCommandPreparationProfile,
+) -> Unit raise {
+  arena
+  .enter_local_host_phase(pair, @initial_arena.HostRead)
+  .native_mock_journal_required("enter original Read")
+  let component = match
+    arena
+    .prepare_local_host_read_crypto(
+      pair,
+      read,
+      @env.get_env_var("ACTQL_TEST_CRYPTO_COMPONENT").native_mock_journal_required(
+        "select Crypto component",
+      ),
+      profile.crypto_heap_bytes,
+      profile.diagnostic_ceiling,
+    )
+    .native_mock_journal_required("prepare original Crypto component") {
+    @initial_arena.ReadyCrypto(value) => value
+    @initial_arena.PendingCrypto(_, _) =>
+      fail("original Crypto component pending")
+  }
+  assert_true(physical_equal(component, control))
+  let original_crypto = arena
+    .current_crypto_component(component)
+    .native_mock_journal_required("borrow original Crypto component")
+  let crypto = match
+    original_crypto
+    .new_library()
+    .native_mock_journal_required("prepare original Crypto Library") {
+    @local_crypto.ReadyCryptoLibrary(value) => value
+    @local_crypto.PendingCryptoLibrary(_, _) =>
+      fail("original Crypto Library pending")
+  }
+  let original = native_project_mock_model_fixture("deal-review")
+  original
+  .prepare_source_declarations()
+  .native_mock_journal_required("prepare original Source declarations")
+  original
+  .prepare_models(
+    local_project_mock_task_limits(),
+    local_project_mock_answer_limits(),
+    local_utc_now,
+  )
+  .native_mock_journal_required("prepare original Model metadata")
+  let subjects = original
+    .account_subjects()
+    .native_mock_journal_required("retain original Account subjects")
+  let path = @env.get_env_var("ACTQL_TEST_INSTALLED_PROCESS_ROOT").native_mock_journal_required(
+    "select fresh process root",
+  )
+  let originals = @run_host.client_local_product_finite_originals(
+    path + "/product",
+    @env.get_env_var("ACTQL_TEST_SQLITE_COMPONENT").native_mock_journal_required(
+      "select original SQLite path",
+    ),
+    @env.get_env_var("ACTQL_TEST_CRYPTO_COMPONENT").native_mock_journal_required(
+      "select original Crypto path",
+    ),
+    "2026-10-12T00:00:00.000Z",
+    @run_host.client_local_product_assets(),
+    mock=Some(subjects),
+  ).native_mock_journal_required("prepare original Product files")
+  let product = @local_host.prepare_native_local_product_configuration_capture_in_current_read_context(
+    path,
+    "product",
+    crypto,
+    profile.diagnostic_ceiling,
+    originals=Some(originals),
+  ).native_mock_journal_required("retain original Product capture")
+  product.open().native_mock_journal_required("open original Product") |> ignore
+  product
+  .stage_configuration()
+  .native_mock_journal_required("stage original Product configuration")
+  let adoption = @local_host.prepare_native_local_initial_adoption_capture_in_current_read_context(
+    {
+      parent_path: path + "/product",
+      state_name: "host",
+      source_path: path + "/product",
+      source_name: "account.json",
+      account_id: "local-cli",
+      configuration_files: [],
+      managed_root_path: None,
+    },
+    crypto,
+    profile.diagnostic_ceiling,
+  ).native_mock_journal_required("retain original first adoption")
+  assert_true(adoption.open(product=Some(product)).issue() is None)
+  // Match the real first-use command. Only the original fresh Session may
+  // consume its initializer; an existing-only Journal cannot stand in for it.
+  let material = adoption
+    .original_session()
+    .native_mock_journal_required("retain original adoption Session")
+    .create_initial_signing_material(crypto)
+    .native_mock_journal_required("create original first signing material")
+  let capture = adoption
+    .capture_initial_command_journal_with_original_resources(
+      arena,
+      pair,
+      read,
+      material,
+      @run_host.client_local_default_signing_bootstrap_policy(),
+      100.0,
+      profile.native_storage.max_records,
+      profile.native_storage.max_snapshot_bytes,
+    )
+    .native_mock_journal_required("retain original initial Journal capture")
+  arena
+  .leave_local_host_phase(pair)
+  .native_mock_journal_required("leave initial Read")
+  let observed = native_mock_journal_adoption_result(
+    capture.with_original_read(_ => {
+      let account = match capture.configuration_in_original_read() {
+        Ok(value) => value
+        Err(_) => return None
+      }
+      let allow = @authorization.evaluate_account(account, {
+          principal: "local-cli",
+          connection: "mock",
+          resource: subjects.model_tasks[0],
+          operation: "infer",
+        })
+        is @authorization.Allow(_)
+      let delegated = @authorization.evaluate_account(account, {
+          principal: "local-cli",
+          connection: "salesforce",
+          resource: "Opportunity",
+          operation: "effect",
+        })
+        is @authorization.Delegate(_)
+      Some((account.configuration_cid(), allow, delegated))
+    }),
+    "actual original captured Journal Read",
+  )
+  guard observed is Some((configuration, allow, delegated)) else {
+    fail("same adopted Account unavailable inside captured Read")
+  }
+  assert_true(allow && delegated)
+  assert_true(configuration.has_prefix("sha256:"))
+  assert_true(capture.close().issue() is None)
+  // Journal close selects cleanup-only custody. Match the ordinary caller:
+  // retire the remaining Read aliases in that SAME cleanup frame.
+  arena
+  .enter_local_host_cleanup(pair, @initial_arena.HostRead)
+  .native_mock_journal_required("enter original cleanup Read")
+  original.retire()
+  assert_true(adoption.close().issue() is None)
+  product.close().native_mock_journal_required("close original Product")
+  crypto
+  .close_checked()
+  .native_mock_journal_required("close original Crypto Library")
+  arena
+  .close_local_host_read_crypto_component(pair, read, component)
+  .native_mock_journal_required("close same-frame original Crypto component")
+  original_crypto
+  .close_checked()
+  .native_mock_journal_required("observe original component close")
+  arena
+  .leave_local_host_phase(pair)
+  .native_mock_journal_required("leave original cleanup Read")
+}
+
+///|
+fn[T] native_mock_journal_adoption_result(
+  value : Result[T, @local_host.NativeLocalAdoptionIssue],
+  stage : String,
+) -> T raise {
+  match value {
+    Ok(value) => value
+    Err(issue) =>
+      fail(
+        stage + ": " + command_preparation_cleanup_cause(CommandAdoption(issue)),
+      )
+  }
+}
+
+///|
+fn[T, E] Result::native_mock_journal_required(
+  self : Result[T, E],
+  stage : String,
+) -> T raise {
+  match self {
+    Ok(value) => value
+    Err(_) => fail(stage)
+  }
+}
+
+///|
+fn[T] Option::native_mock_journal_required(
+  self : T?,
+  stage : String,
+) -> T raise {
+  match self {
+    Some(value) => value
+    None => fail(stage)
+  }
+}
