@@ -69,6 +69,7 @@ import {
 
 options(
   targets: {
+    "original_values_text_working_js_wbtest.mbt": [ "js" ],
     "preparation_request_native_document_js_wbtest.mbt": [ "js" ],
     "preparation_request_native_intake_js_wbtest.mbt": [ "js" ],
     "preparation_request_native_intake_retirement_js_wbtest.mbt": [ "js" ],
