@@ -412,8 +412,9 @@ composition supplies neither permission nor another Run or resource admission.
 The Native command also retains each original admitted Mock provider and
 profile beside its Request-owned Model Graph and the installed Limits selected
 from that graph before the first Effect compilation. The compiler consumes
-those same graphs; later execution uses the retained selection rather than
-looking up the provider or selecting the bounds again. Provider and profile
+those same graphs. The Native caller forwards the retained provider and numeric
+Limits to execution. Existing Core Host/contract intersections remain at their
+owner; the caller does not repeat provider lookup or default-bounds selection. Provider and profile
 admission originals retain their nominal meaning. Limits remain ordinary
 immutable configuration DATA; copying or deriving that configuration does not
 create an identity requirement or supply physical backing. The complete Native
@@ -428,6 +429,29 @@ caller material defaults to absent for existing consumers. An invalid inventory
 refuses before measuring/issuing the Graph and retains the original parent for
 cleanup. This preparation-only addition does not cover later Model/provider,
 Store encryption, output or failed-child constructors by implication.
+
+The same command carrier also retains each Native Mock Model Work before the
+next constructor or execution/Read return can fail. The Effect's Model component
+view is constructed once and shared by the original Work, Plan and read Scope;
+calling its view constructor again would create a different original. Its fixed
+record inventory
+is admitted in that same preparation allowance. Work retains the original
+compiled Run, Definition, Graph, provider, profile and selected Limits; its open
+consumes that selection after the original Model/read consumer is available.
+The command closes these actual Work children in its existing execution cleanup
+frame before retiring its Request/Run parent. A partial or Unknown child keeps
+its original holder and the parent's cleanup duty.
+
+Model Entry persistence runs on the original captured Journal Read between
+bounded Model steps. Core's saved-entry observation remains separate from
+current permission to dispatch. Settlement export retains the original evidence
+and output pin; Store confirmations and the original Journal COMMIT precede the
+same settlement acknowledgement, including a later cleanup-only observation.
+The Host obtains the encryption material from its existing adopted epoch secret
+and actual Store binding through the private
+`actql-native-local-model-evidence-key/0.1` preimage. This adds no key generation,
+caller key, signing permission or replacement Library. Store/Journal ambiguity
+retains the original response and cleanup duties instead of permitting resend.
 
 The original preparation, compiled admission and graph stay together in the same
 Host preparation membership. A private restored-membership index rejects a

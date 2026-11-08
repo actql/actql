@@ -251,3 +251,86 @@ test "entry persistence carrier rejects a foreign acknowledgement" {
   assert_true(cleanup(active).unwrap())
   assert_true(cleanup(foreign).unwrap())
 }
+
+///|
+test "persistence originals keep the same owned evidence after stop without observing current twice" {
+  let calls = Ref(0)
+  let current = Ref(evidence_account(@authorization.Allow))
+  let now = Ref("2026-10-02T00:00:00.000Z")
+  let egress = Ref(Some(egress_fixture_observation()))
+  let observations = Ref(0)
+  let (active, prepared, admission, prefix_work) = entry_gate_fixture(
+    calls,
+    current,
+    now,
+    egress,
+    current_observations=Some(observations),
+  )
+  let (foreign, foreign_prepared, foreign_admission, foreign_work) = entry_gate_fixture(
+    Ref(0),
+    current,
+    now,
+    egress,
+  )
+  let entries : Array[@model.ModelCallEntry] = []
+  let checks : Array[Bool] = []
+  bind_model_dispatch(active, prepared, admission, entry => {
+    entries.push(entry)
+    let observed = observations.val
+    let before = @model.model_call_entry_persistence_originals(
+      entry, prepared, admission,
+    ).unwrap()
+    checks.push(before.0 == 2 && before.1 == 0)
+    checks.push(
+      @model.model_call_entry_persistence_originals(
+        entry, foreign_prepared, admission,
+      )
+      is None,
+    )
+    checks.push(
+      @model.model_call_entry_persistence_originals(
+        entry, prepared, foreign_admission,
+      )
+      is None,
+    )
+    cancel(active) |> ignore
+    current.val = evidence_account(@authorization.Deny)
+    let after = @model.model_call_entry_persistence_originals(
+      entry, prepared, admission,
+    ).unwrap()
+    checks.push(
+      physical_equal(before.2, after.2) &&
+      physical_equal(before.3, after.3) &&
+      physical_equal(before.4, after.4) &&
+      physical_equal(before.5, after.5),
+    )
+    checks.push(observations.val == observed)
+    checks.push(@model.model_call_entry_originals(entry) is None)
+    checks.push(
+      @model.model_call_entry_acknowledgement_current(
+        @model.acknowledge_saved_model_call_entry(entry, prepared).unwrap(),
+        prepared,
+      ) ==
+      false,
+    )
+    true
+  }).unwrap()
+  assert_true(fixture_finish(active, initial_work=prefix_work) is Stopped(_))
+  assert_eq(checks.length(), 7)
+  for check in checks {
+    assert_true(check)
+  }
+  assert_eq(calls.val, 0)
+  assert_true(
+    @model.model_call_entry_persistence_originals(
+      entries[0],
+      prepared,
+      admission,
+    )
+    is None,
+  )
+  assert_true(cleanup(active).unwrap())
+  cancel(foreign) |> ignore
+  assert_true(fixture_finish(foreign, initial_work=foreign_work) is Stopped(_))
+  assert_true(cleanup(foreign).unwrap())
+}

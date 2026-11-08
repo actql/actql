@@ -72,6 +72,22 @@ fn command_preparation_cleanup_cause(
         StoreOperationSqlite(_) => "StoreOperationSqlite"
       }
     CommandBusinessChildren => "CommandBusinessChildren"
+    CommandBusinessModel(cause) =>
+      match cause {
+        ForeignOriginal => "ModelForeignOriginal"
+        NotOpened => "ModelNotOpened"
+        CleanupPending => "ModelCleanupPending"
+        Account(_) => "ModelAccount"
+        Original(_) => "ModelOriginal"
+        Model(_) => "ModelExecution"
+        Binding(_) => "ModelBinding"
+        Dispatch(_) => "ModelDispatch"
+        Egress(_) => "ModelEgress"
+        Evidence(_) => "ModelEvidence"
+        Capture(_) => "ModelCapture"
+        Store(_) => "ModelStore"
+        Encoding => "ModelEncoding"
+      }
     CommandBusinessPublication => "CommandBusinessPublication"
     CommandBusinessStore(cause) =>
       match cause {

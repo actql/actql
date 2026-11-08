@@ -266,6 +266,7 @@ fn LocalCommandBusinessPreparation::compile_effect_first(
   now : String,
   until : String,
   request : @run_host.ClientRequestIdentity,
+  current_time : () -> String,
 ) -> LocalEffectFirstCompilation raise ClientStop {
   guard self.original.business is Some(business) &&
     business.request_parent is Some(parent) &&
@@ -293,7 +294,7 @@ fn LocalCommandBusinessPreparation::compile_effect_first(
       mock.prepare_effect_models(
         parent,
         input,
-        prepared,
+        occurrences,
         self.environment,
         self.installed_contracts,
       )
@@ -313,7 +314,7 @@ fn LocalCommandBusinessPreparation::compile_effect_first(
       }
       mock.prepare_effect_sources(prepared, direct)
     }
-    local_effect_first_compilation(
+    let first = local_effect_first_compilation(
       self.preparation,
       scope,
       configuration_cid,
@@ -326,5 +327,39 @@ fn LocalCommandBusinessPreparation::compile_effect_first(
       request=Some(request),
       source_inputs~,
     )
+    if !models.is_empty() {
+      guard business.model_work.is_empty() else {
+        stop("LocalOriginalModelWorkUnavailable")
+      }
+      let compiled = first.model_compiled.unwrap_or_else(() => {
+        stop("LocalOriginalModelWorkUnavailable")
+      })
+      for selected in models {
+        let work = match
+          @local_host.prepare_native_client_mock_model_work(
+            self.capture,
+            first.request,
+            compiled,
+            first.definition,
+            selected.graph,
+            selected._retained_profile,
+            selected._retained_provider,
+            selected._retained_limits,
+            self.principal,
+            namespace_id,
+            current_time,
+          ) {
+          Ok(value) => value
+          Err(issue) => {
+            self.original.retain_primary(CommandBusinessModel(issue))
+            stop("LocalOriginalModelWorkUnavailable")
+          }
+        }
+        // Retain each actual original before the next constructor or the
+        // existing execution/Read return can fail. No Model open or I/O yet.
+        business.model_work.push(work)
+      }
+    }
+    first
   })
 }
