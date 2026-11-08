@@ -422,3 +422,62 @@ test "physical failure survives a distinct accounting refusal" {
   assert.equal(result.status, 0, result.stdout + result.stderr);
   assert.match(result.stdout + result.stderr, /Total tests: 1, passed: 1, failed: 0/);
 });
+
+
+// Exact callbackful Native boundary with explicit dependency ports, not actual
+// Model/Core/Resource execution, ABI, physical ACK or ordinary acceptance.
+test('Native Model Effect Invocation fences reentry and refuses after retirement', {timeout: 90_000}, t => {
+  const source = readFileSync(new URL('../src/platform_native/client_host/mock_model_observation.mbt', import.meta.url), 'utf8');
+  const body = source.split('///|').find(value => value.includes('fn NativeClientMockModelWork::local_effect_invocation('));
+  assert(body);
+  const root = mkdtempSync(join(tmpdir(), 'actql-native-model-effect-invocation-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  for (const name of ['', 'host', 'infer']) mkdirSync(join(root, 'src', name), {recursive: true});
+  writeFileSync(join(root, 'moon.mod'), 'name = "actql/local-model-effect-invocation-probe"\nsource = "src"\n');
+  writeFileSync(join(root, 'src/moon.pkg'), 'supported_targets = "js"\nimport { "actql/local-model-effect-invocation-probe/host" @host, "actql/local-model-effect-invocation-probe/infer" @infer } for "wbtest"\n');
+  writeFileSync(join(root, 'src/host/moon.pkg'), 'supported_targets = "js"\n');
+  writeFileSync(join(root, 'src/infer/moon.pkg'), 'supported_targets = "js"\nimport { "actql/local-model-effect-invocation-probe/host" @host }\n');
+  writeFileSync(join(root, 'src/host/ports.mbt'), 'pub(all) struct ClientEffectLocalInvocation { marker : Int }\n');
+  writeFileSync(join(root, 'src/infer/ports.mbt'), `
+pub(all) struct LocalModelObservation { probe : () -> Unit; fail : Bool }
+pub fn issue_original_local_model_effect_invocation(value : LocalModelObservation, _ : Int, _ : Int, _ : Int) -> @host.ClientEffectLocalInvocation? {
+  (value.probe)()
+  if value.fail { None } else { Some({marker: 7}) }
+}
+`);
+  writeFileSync(join(root, 'src/probe_wbtest.mbt'), `
+struct NativeClientMockModelWork {
+  mut closing : Bool; closed : Bool; mut advancing : Bool
+  mut local_observation : @infer.LocalModelObservation?
+}
+${body}
+test "same Native original guards and callbackful reentry" {
+  let calls = Ref(0)
+  let latched = Ref(false)
+  let reentry_refused = Ref(false)
+  let work : NativeClientMockModelWork = {closing: false, closed: false, advancing: false, local_observation: None}
+  assert_true(work.local_effect_invocation(10, 10, 10) is None)
+  work.local_observation = Some({fail: false, probe: () => {
+    calls.val += 1
+    latched.val = work.advancing
+    reentry_refused.val = work.local_effect_invocation(10, 10, 10) is None
+  }})
+  assert_true(work.local_effect_invocation(10, 10, 10) is Some({marker: 7}))
+  assert_false(work.advancing)
+  assert_true(latched.val)
+  assert_true(reentry_refused.val)
+  assert_eq(calls.val, 1)
+  work.local_observation = Some({fail: true, probe: () => calls.val += 1})
+  assert_true(work.local_effect_invocation(10, 10, 10) is None)
+  assert_false(work.advancing)
+  assert_eq(calls.val, 2)
+  work.closing = true
+  assert_true(work.local_effect_invocation(10, 10, 10) is None)
+  assert_eq(calls.val, 2)
+}
+`);
+  const result = spawnSync('moon', ['test', '--target', 'js', '--deny-warn'], {cwd: root, env: process.env, encoding: 'utf8', timeout: 80_000});
+  assert.ifError(result.error);
+  assert.equal(result.status, 0, result.stdout+'\n'+result.stderr);
+  assert.match(result.stdout+'\n'+result.stderr, /Total tests: 1, passed: 1, failed: 0/);
+});

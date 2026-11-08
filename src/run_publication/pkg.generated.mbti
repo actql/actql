@@ -604,6 +604,8 @@ pub fn issue_succeeded_run_state(String, String, Array[String], Array[ResultAvai
 
 pub fn issue_succeeded_run_state_wire(String, String, Array[String], Array[String], Array[String], Array[String], Array[String], Int, Int, Int) -> Result[String, RunStateIssue]
 
+pub fn local_model_observation_matches_input(CapturedEffectDependencyBody, String, Int, RunEvidenceValue) -> Bool
+
 pub fn local_sdk_result_read_selection_cid(LocalSDKResultReadSelection) -> String
 
 pub fn local_sdk_result_read_selection_data_policy_cid(LocalSDKResultReadSelection) -> String

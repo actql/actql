@@ -139,6 +139,8 @@ pub fn invocation_binding_output(InvocationBinding) -> @execution_relation.Compl
 
 pub fn invocation_evidence(Execution, Int) -> @run_publication.RunEvidenceValue?
 
+pub fn issue_original_local_model_effect_invocation(LocalModelObservation, Int, Int, Int) -> @run_publication_host.ClientEffectLocalInvocation?
+
 pub fn issue_original_local_model_observation(OutputUse, ObservationIssuance, @execution_relation.CompletedRelationExportReceipt, @execution_relation.CompletedRelationExportReceipt, Int, Int, Int) -> LocalModelObservation?
 
 pub fn issue_original_local_model_observation_from_scope(OutputUse, ObservationIssuance, @execution_relation.CompletedRelationExportReceipt, Int, Int, Int) -> LocalModelObservation?

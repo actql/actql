@@ -82,3 +82,24 @@ that capture's publication custody before reading the durable Saved/Unknown
 classification. A pending retirement or live child remains uncertain. Completing
 an accepted writer does not rerun Compute, resend a request, or turn a genuinely
 unknown physical response into a known failure.
+
+
+## Local Effect semantic invocation
+
+A single-Model local Effect Unit reuses the original Effect compilation and
+its retained INFER Scope. The semantic invocation includes the complete
+Scope's Source observation CIDs and its original local Model observation CID,
+in canonical order. It does not cast Whole Source acquisitions to Query or
+claim an input-free Unit. The local Model body must match that Scope's Unit,
+INFER ordinal and completed input relation/schema identities; these comparisons
+read admitted fields without encoding or checking the Program a second time.
+
+The publication Host's semantic projection alone attests neither Model
+execution nor physical retention. The normal Model caller enters through the
+same live OutputUse and accepted complete observation issuer before and after
+the projection. Native keeps its Work reentry latch around this callbackful
+boundary. The existing member-capture operation is retained before construction
+and its semantic aliases retire before that operation's backing is returned.
+Actual Result exports, acquisition relations and their complete dependency
+bodies still bind the Artifact. Preview, Store persistence, approval, dispatch
+and physical cleanup keep their existing independent obligations.
