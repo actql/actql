@@ -153,7 +153,7 @@ test "same original Native Read acquires its window before resize and constructo
 
 ///|
 fn result_delivery_window_construct(target : Int) -> Unit raise {
-  let output = Buffer(size_hint=target)
+  let output = @byte_buffer.Buffer(size_hint=target)
   for _ in 0..<target {
     output.write_byte(71)
   }
