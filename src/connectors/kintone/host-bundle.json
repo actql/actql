@@ -11,6 +11,15 @@
         "identityParts": "installedKintoneSourceIdentityParts",
         "load": "loadInstalledKintoneSource"
       }
+    },
+    "effect": {
+      "profileVersion": "actql-installed-kintone-effect/0.1",
+      "module": "adapters/connectors/kintone/host/installed-kintone-effect.mjs",
+      "exports": {
+        "check": "checkInstalledKintoneEffectProfile",
+        "identityParts": "installedKintoneEffectIdentityParts",
+        "load": "loadInstalledKintoneEffect"
+      }
     }
   }
 }

@@ -1,0 +1,6 @@
+SELECT r.`$id` AS id, r.Subject AS previous_name, @next_name AS next_name
+FROM kintone.inquiries AS r
+WHERE r.`$id` = @record_id
+|> ASSERT UNIQUE BY (id)
+|> RESULT updates
+|> EFFECT UPDATE kintone.inquiries ID id SET (Subject = next_name);

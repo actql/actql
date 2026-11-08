@@ -87,13 +87,16 @@ export function createInstalledCredentialSourceReader(options) {
   let referenceCurrent = ownMethod(sourceSite, 'referenceCurrent');
   let factory, preparing = 0, retiring = false, factoryRetired = false;
   const readers = new Set();
-  factory = Object.freeze({capacity, prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow) {
+  factory = Object.freeze({capacity, prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity) {
     if (this !== factory) fail('ForeignInstalledCredentialSourceReader');
     if (retainPreparation !== undefined && typeof retainPreparation !== 'function') {
       fail('InvalidInstalledSourcePreparationRetention');
     }
     if (reserveResponseCapacity !== undefined && typeof reserveResponseCapacity !== 'function') {
       fail('InvalidInstalledSourceResponseCapacity');
+    }
+    if (reserveTransferCapacity !== undefined && typeof reserveTransferCapacity !== 'function') {
+      fail('InvalidInstalledSourceTransferCapacity');
     }
     if (preparing === Number.MAX_SAFE_INTEGER || readers.size === Number.MAX_SAFE_INTEGER) {
       fail('InstalledSourceReaderInventoryUnavailable');
@@ -201,7 +204,7 @@ export function createInstalledCredentialSourceReader(options) {
           responses = undefined;
           acquisition = closeBinding = retireBinding = selected = selectedSite = signal = stop = primary = undefined;
           provider = fetchPage = decodePage = runSequence = providerRetire = responseCapacity = onError = setupFailure = undefined;
-          verifyRead = authorizationFor = authorizeReadChild = chargePage = consumeObservation = consumePage = consumePageWire = consumeProjectedPage = consumeValues = reserveResponseCapacity = transportFailure = undefined;
+          verifyRead = authorizationFor = authorizeReadChild = chargePage = consumeObservation = consumePage = consumePageWire = consumeProjectedPage = consumeValues = reserveResponseCapacity = reserveTransferCapacity = transportFailure = undefined;
           retired = true; readers.delete(handle);
           return true;
         } finally {cleanupRunning = false;}
@@ -271,6 +274,17 @@ export function createInstalledCredentialSourceReader(options) {
         responses.push(response); responseCount++; responseBytes += BigInt(response.body.byteLength);
         if (responseCount > maxResponses) fail('InstalledSourceResponseCountLimit');
       }});
+      async function beforeSourceSend(verifyCurrent) {
+        await verifyCurrent();
+        // The SAME RowRun owns this private callback. Standard pages and
+        // managed children are serial, so only the next native unit is backed.
+        // The physical port calls this after its original current fence and
+        // before I/O; a refusal therefore cannot send an unfunded request.
+        if (reserveTransferCapacity !== undefined) {
+          callProjection(reserveTransferCapacity, undefined, [BigInt(maxResponseBytes)]);
+        }
+        check();signal.throwIfAborted();
+      }
       async function receiveSourceResponse(invoke) {
         let received, body, response, failure, failed = false;
         const custody = Object.freeze({retain(original) {
@@ -324,7 +338,7 @@ export function createInstalledCredentialSourceReader(options) {
           await verify();
           const {response, charge} = await receiveSourceResponse(responseCustody => invokeScopedCredentialOperation({authorization,credential,
             callResource: input => Reflect.apply(callResource, selectedSite.site,
-              [{...input,currentBeforeSend:verify}]),
+              [{...input,currentBeforeSend:() => beforeSourceSend(verify)}]),
             operation,method:request.method,path:request.target,headers:request.headers,
             ...(request.body === undefined ? {} : {body:request.body}),
             ...(maxRequestBytes === undefined ? {} : {maxRequestBytes}),
@@ -506,7 +520,7 @@ export function createInstalledCredentialSourceReader(options) {
               const responseCredential = retainedResponse?.value === true
                 ? Object.freeze({...credential, retainRunResponseOriginal: true}) : credential;
               const received = await receiveSourceResponse(responseCustody => invokeScopedCredentialOperation({authorization,credential:responseCredential,
-                callResource: input => Reflect.apply(callResource,selectedSite.site,[{...input,currentBeforeSend:verifyChild}]),
+                callResource: input => Reflect.apply(callResource,selectedSite.site,[{...input,currentBeforeSend:() => beforeSourceSend(verifyChild)}]),
                 operation,method:request.method,path:request.target,headers:request.headers,
                 ...(request.body === undefined ? {} : {body:request.body}),
                 ...(maxRequestBytes === undefined ? {} : {maxRequestBytes}),

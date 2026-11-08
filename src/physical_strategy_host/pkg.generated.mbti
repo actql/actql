@@ -637,6 +637,8 @@ pub fn open_source_free_effect_run_dag(@physical_strategy.CheckedEffectRunDAG, @
 
 pub fn open_source_input_dag(@physical_strategy.CheckedDAG, @execution_query.CapturedInputSource, @physical_resources.Ledger) -> Result[CapturedDAG, RunIssue]
 
+pub fn open_source_inputs_dag(@physical_strategy.CheckedDAG, Array[@execution_query.CapturedInputSource], @physical_resources.Ledger) -> Result[CapturedDAG, RunIssue]
+
 pub fn open_source_inputs_effect_run_dag(@physical_strategy.CheckedEffectRunDAG, @physical_strategy.CheckedDAG, Array[@execution_query.CapturedInputSource], @physical_resources.Ledger, keyed? : (Int, Int, @execution_relation.SuppliedRelationRead)?, models? : Array[(Int, Int, @execution_relation.CompletedOutput)]) -> Result[CapturedEffectRunDAG, RunIssue]
 
 pub fn operational_candidate_positions(PolicyCandidateSet) -> Result[Array[Int], SearchIssue]

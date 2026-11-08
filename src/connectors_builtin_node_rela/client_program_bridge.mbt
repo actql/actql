@@ -2587,6 +2587,7 @@ pub fn client_program_captured_source_dependency_bodies(
 fn identify_installed_captured_source(
   source : @query.CapturedInputSource,
   retain_body_bytes : Int,
+  columns? : Int = 100,
 ) -> Result[@query.CapturedSourceRelationIdentity, @query.CapturedSourceIssue] {
   @query.identify_captured_source_relation(
     source,
@@ -2598,20 +2599,20 @@ fn identify_installed_captured_source(
       max_work: 1000000,
     },
     {
-      max_columns: 100,
+      max_columns: columns,
       max_order_work: 1000000,
       max_bytes: 10000000,
       max_nodes: 1000000,
       max_depth: 64,
     },
     {
-      max_columns: 100,
+      max_columns: columns,
       max_order_work: 1000000,
       max_bytes: 10000000,
       max_nodes: 1000003,
       max_depth: 66,
     },
-    { max_fields: 100, max_bytes: 100000, max_nodes: 10000, max_depth: 64, },
+    { max_fields: columns, max_bytes: 100000, max_nodes: 10000, max_depth: 64, },
     65536,
     retain_body_bytes~,
   )
@@ -7789,7 +7790,7 @@ fn compile_client_local_effects(
   @publication_host.issue_prepared_client_effect_compilation(
     prepared,
     manifests,
-    client_local_sequence_limits(),
+    @publication_host.prepared_client_effect_sequence_limits(prepared),
     1000,
     10000,
     1000000,

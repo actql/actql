@@ -66,6 +66,24 @@ priv struct RowInputObservation {
 }
 
 ///|
+fn row_input_limits_valid(limits : RowInputLimits) -> Bool {
+  !(limits.max_rows < 0 ||
+  limits.page.max_bytes <= 0 ||
+  limits.page.max_nodes <= 0 ||
+  limits.page.max_depth <= 0 ||
+  limits.page.max_rows <= 0 ||
+  limits.retention.max_nodes < 0 ||
+  limits.retention.max_text_bytes < 0 ||
+  limits.retention.max_depth < 0 ||
+  limits.retention.max_work < 0 ||
+  limits.wire.max_columns < 0 ||
+  limits.wire.max_order_work < 0 ||
+  limits.wire.max_bytes < 0 ||
+  limits.wire.max_nodes < 0 ||
+  limits.wire.max_depth < 0)
+}
+
+///|
 pub fn prepare_row_input_acquisition(
   original : @sourcequery.SourceAcquisition,
   program : @context.ProgramSourceIdentity,
@@ -75,20 +93,7 @@ pub fn prepare_row_input_acquisition(
   limits : RowInputLimits,
   listing_policy? : @capacity.Policy? = None,
 ) -> Result[RowInputAcquisition, RowHostIssue] {
-  if limits.max_rows < 0 ||
-    limits.page.max_bytes <= 0 ||
-    limits.page.max_nodes <= 0 ||
-    limits.page.max_depth <= 0 ||
-    limits.page.max_rows <= 0 ||
-    limits.retention.max_nodes < 0 ||
-    limits.retention.max_text_bytes < 0 ||
-    limits.retention.max_depth < 0 ||
-    limits.retention.max_work < 0 ||
-    limits.wire.max_columns < 0 ||
-    limits.wire.max_order_work < 0 ||
-    limits.wire.max_bytes < 0 ||
-    limits.wire.max_nodes < 0 ||
-    limits.wire.max_depth < 0 {
+  if !row_input_limits_valid(limits) {
     return Err(InvalidSpecification)
   }
   if !@query.source_input_capture_preparation_matches(
@@ -101,13 +106,88 @@ pub fn prepare_row_input_acquisition(
     view.view_cid == facts.source_contract_cid else {
     return Err(Source(UndeclaredSource))
   }
-  let mode = @sourcequery.source_acquisition_mode(original)
-  let source = @sourcequery.mode_input(mode)
-  let declared = @sourcequery.declaration(source)
+  let declared = @sourcequery.declaration(
+    @sourcequery.mode_input(@sourcequery.source_acquisition_mode(original)),
+  )
   if declared.connector != declaration.connector_id ||
     declared.resource != view.resource {
     return Err(Source(ForeignSource))
   }
+  prepare_row_input_acquisition_original(
+    original,
+    program,
+    sequence,
+    contracts,
+    Some(view),
+    declaration.connector_registration,
+    limits,
+    listing_policy~,
+  )
+}
+
+///|
+/// An installed native source already has a checked Catalog SourceView. Keep
+/// that same original and schema; no regenerated declaration or Query exists.
+pub fn prepare_catalog_row_input_acquisition(
+  original : @sourcequery.SourceAcquisition,
+  program : @context.ProgramSourceIdentity,
+  sequence : @lower.PreparedSequence,
+  contracts : @execution.RegisteredRelationContracts,
+  limits : RowInputLimits,
+  listing_policy? : @capacity.Policy? = None,
+) -> Result[RowInputAcquisition, RowHostIssue] {
+  let source = @sourcequery.mode_input(
+    @sourcequery.source_acquisition_mode(original),
+  )
+  let declared = @sourcequery.declaration(source)
+  let catalog = @environment.reference_catalog(
+    @environment.source_request_reference(
+      @sourcequery.selected_contract(source),
+    ),
+  )
+  let (connector_id, _, _) = @environment.catalog_identity(catalog)
+  if declared.connector != connector_id {
+    return Err(Source(ForeignSource))
+  }
+  // This entry is the known installed DuckDB implementation, never a caller's
+  // proposed registration name. The Host separately retains its real entry.
+  prepare_row_input_acquisition_original(
+    original,
+    program,
+    sequence,
+    contracts,
+    None,
+    "builtin_source",
+    limits,
+    listing_policy~,
+  )
+}
+
+///|
+fn prepare_row_input_acquisition_original(
+  original : @sourcequery.SourceAcquisition,
+  program : @context.ProgramSourceIdentity,
+  sequence : @lower.PreparedSequence,
+  contracts : @execution.RegisteredRelationContracts,
+  declared_view : RowDeclaredView?,
+  registration_name : String,
+  limits : RowInputLimits,
+  listing_policy? : @capacity.Policy? = None,
+) -> Result[RowInputAcquisition, RowHostIssue] {
+  if !row_input_limits_valid(limits) {
+    return Err(InvalidSpecification)
+  }
+  if !@query.source_input_capture_preparation_matches(
+      sequence, original, program,
+    ) {
+    return Err(Source(ForeignSource))
+  }
+  guard @planning.source_acquisition_evidence_facts(original) is Some(facts) else {
+    return Err(Source(UndeclaredSource))
+  }
+  let mode = @sourcequery.source_acquisition_mode(original)
+  let source = @sourcequery.mode_input(mode)
+  let declared = @sourcequery.declaration(source)
   let file_listing = @environment.source_request_file_listing(
     @sourcequery.selected_contract(source),
   )
@@ -141,7 +221,7 @@ pub fn prepare_row_input_acquisition(
   }
   let width = @schema.field_count(schema)
   if width == 0 ||
-    width != view.fields.length() ||
+    (declared_view is Some(view) && width != view.fields.length()) ||
     width > limits.wire.max_columns {
     return Err(Source(InvalidInputSchema))
   }
@@ -150,11 +230,21 @@ pub fn prepare_row_input_acquisition(
     let name = @schema.field_reference_name(
       @schema.field_at(schema, index).unwrap(),
     )
-    if !view.fields.contains(name) || columns.contains(name) {
+    if (declared_view is Some(view) && !view.fields.contains(name)) ||
+      columns.contains(name) {
       return Err(Source(InvalidInputSchema))
     }
     columns.push(name)
   }
+  let view = declared_view.unwrap_or_else(() => {
+    resource: declared.resource,
+    source_ref: facts.source_ref,
+    view_cid: facts.source_contract_cid,
+    fields: columns.copy(),
+    carrier_schema_cid: facts.carrier_schema_contract_cid,
+    data_policy_cid: facts.source_data_policy_cid,
+    classification: facts.data_classification,
+  })
   let members = match @planning.source_acquisition_evidence_members(original) {
     Ok(value) => value
     Err(issue) => return Err(SourceEvidence(Member(issue)))
@@ -178,7 +268,7 @@ pub fn prepare_row_input_acquisition(
   guard @connector.prepare_capability_registry(
       [
         {
-          name: declaration.connector_registration,
+          name: registration_name,
           acquisition: true,
           fixed_compute: false,
           effect: false,
@@ -660,4 +750,12 @@ pub fn start_accounted_row_input_acquisition(
     provider_capacity=provider,
   )
   Ok(run)
+}
+
+///|
+/// Borrow the exact checked input schema for the installed native value codec.
+pub fn row_input_acquisition_schema(
+  value : RowInputAcquisition,
+) -> @schema.Schema {
+  value.preparation.schema
 }

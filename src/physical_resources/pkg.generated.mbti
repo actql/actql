@@ -238,6 +238,8 @@ pub fn create_ledger(LedgerLimits) -> Result[Ledger, LedgerIssue]
 
 pub fn[I, P] discard_unbound_preparation_capacity_inventory(PreparationCapacity[I, P], I) -> Result[Unit, PreparationCapacityIssue]
 
+pub fn ensure_transfer_reservation_capacity(Ledger, Reservation, Int64) -> Result[Unit, LedgerIssue]
+
 pub fn[T] enter_funded_read_consumer(FundedReadConsumer[T], T, Int64, Int64) -> Result[Unit, OriginalReadIssue]
 
 pub fn execution_delegation_limits(ExecutionDelegation) -> LedgerLimits

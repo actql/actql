@@ -319,7 +319,7 @@
     {
       "module": "src/connectors_builtin_node/client_relation_document_bridge.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "87f954d791984e7faeafad31301efce244c0ae5dd72e3b0de037b96375f27a9a",
+      "sha256": "11bf7485951f0ad3420ff301ebaebf62db98d3271a8d9ca2e923b66f30fb0461",
       "role": "generated-binding",
       "owner": "Existing Common original declared relation DATA, nominal row capture and installed Host lifetime owners; Node and RelA project the same ports",
       "exports": [],
@@ -327,6 +327,10 @@
         {
           "name": "client_program_relation_accept_charged_document",
           "declaration": "client_program_relation_accept_charged_document ( run : @ client_row_source_host . RowRun , charge : @ client_row_source_host . RowPageCharge , acquisition : @ client_row_source_host . RowAcquisition , document : @ client_row_source_host . RelationTargetDocument , max_work : Int , ) - > Result [ Int , @ client_row_source_host . RowHostIssue ]"
+        },
+        {
+          "name": "client_program_relation_accept_charged_input_document",
+          "declaration": "client_program_relation_accept_charged_input_document ( run : @ client_row_source_host . RowRun , charge : @ client_row_source_host . RowPageCharge , acquisition : @ client_row_source_host . RowInputAcquisition , document : @ client_row_source_host . RelationTargetDocument , max_work : Int , ) - > Result [ Int , @ client_row_source_host . RowHostIssue ]"
         },
         {
           "name": "client_program_relation_admit_document",
@@ -386,6 +390,7 @@
           "operations": [
             "<module>",
             "client_program_relation_accept_charged_document",
+            "client_program_relation_accept_charged_input_document",
             "client_program_relation_admit_document",
             "client_program_relation_admit_target_document",
             "client_program_relation_document_usage",
@@ -469,7 +474,7 @@
     {
       "module": "src/connectors_builtin_node_rela/client_relation_document_bridge.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "c8cc95711ab11c49f60512f3e7b5c5a8f5fcd6898dc858b5b0eb6b0d6a235499",
+      "sha256": "f74b2e7c1a7041bcdabcac4c732b52c735c4f9eb9c1857ffafb7739b08fb3ac8",
       "role": "generated-binding",
       "owner": "Existing Common original declared relation DATA, nominal row capture and installed Host lifetime owners; Node and RelA project the same ports",
       "exports": [],
@@ -477,6 +482,10 @@
         {
           "name": "client_program_relation_accept_charged_document",
           "declaration": "client_program_relation_accept_charged_document ( run : @ client_row_source_host . RowRun , charge : @ client_row_source_host . RowPageCharge , acquisition : @ client_row_source_host . RowAcquisition , document : @ client_row_source_host . RelationTargetDocument , max_work : Int , ) - > Result [ Int , @ client_row_source_host . RowHostIssue ]"
+        },
+        {
+          "name": "client_program_relation_accept_charged_input_document",
+          "declaration": "client_program_relation_accept_charged_input_document ( run : @ client_row_source_host . RowRun , charge : @ client_row_source_host . RowPageCharge , acquisition : @ client_row_source_host . RowInputAcquisition , document : @ client_row_source_host . RelationTargetDocument , max_work : Int , ) - > Result [ Int , @ client_row_source_host . RowHostIssue ]"
         },
         {
           "name": "client_program_relation_admit_document",
@@ -536,6 +545,7 @@
           "operations": [
             "<module>",
             "client_program_relation_accept_charged_document",
+            "client_program_relation_accept_charged_input_document",
             "client_program_relation_admit_document",
             "client_program_relation_admit_target_document",
             "client_program_relation_document_usage",

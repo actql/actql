@@ -82,8 +82,12 @@ pub fn local_parameter_input_limits() -> (@source.ParseLimits, @decode.Limits) {
 pub fn[T] admit_captured_local_parameters(
   input : T,
   reader : @source.JsonDataReader[T],
+  limits? : (@source.ParseLimits, @decode.Limits)? = None,
 ) -> Result[@decode.Cursor, LocalProgramInputIssue] {
-  let (source_limits, tree_limits) = local_parameter_input_limits()
+  let (source_limits, tree_limits) = match limits {
+    Some(selected) => selected
+    None => local_parameter_input_limits()
+  }
   let parsed = match
     @source.admit_captured_json(
       input,

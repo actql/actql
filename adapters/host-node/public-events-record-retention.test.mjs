@@ -9,8 +9,8 @@ import {connectEmbeddedLocal} from './embedded-local.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 
 const names = ['published', 'consumed_a', 'consumed_b'];
-// Stay inside the installed 10,000-byte record ceiling. Both unused values
-// belong to the record; their combined wire walk crosses a Host quantum.
+// Both unused values belong to the 8193-byte-payload record; their combined
+// wire walk crosses a Host quantum.
 const payload = 'p'.repeat(8193);
 const unused = Array.from({length: 129}, () => 1);
 const baseRow = {event_id: 1, occurred_at: 12, payload, zz_unused: unused};
@@ -35,11 +35,11 @@ const cases = {
     rows: nameRows, clock: longClock, prefixWork: 1364, prefixProgress: 31,
     expected: nameRows.map(row => ({...row, session_start_ms: 12, session_end_ms: 22,
       session_id: `session:12:v:${String(row.event_id).length}:${row.event_id}:v:${String(row.event_id).length}:${row.event_id}`}))},
-  projection_limit_session: {step: {session: {by: ['event_id'], gap: 10}},
+  projection_text_session: {step: {session: {by: ['event_id'], gap: 10}},
     rows: projectionRows, clock: projectionClock,
-    row: {...projectionRows[0], session_start_ms: 12, session_end_ms: 22,
-      session_id: 'session:12:v:1:1:v:1:1'},
-    projectionLimit: true, prefixWork: 4819, prefixProgress: 61},
+    expected: projectionRows.map(row => ({...row, session_start_ms: 12, session_end_ms: 22,
+      session_id: `session:12:v:${String(row.event_id).length}:${row.event_id}:v:${String(row.event_id).length}:${row.event_id}`})),
+    aggregateProjection: true, prefixWork: 4819, prefixProgress: 61},
 };
 
 function program(id, kind) {
@@ -167,13 +167,14 @@ async function runEventsRecordBoundary(t, kind, {cancelBridge = false} = {}) {
     assert.fail(inspect(cause, {depth: 8}));
   });
   const state = await execution.wait({signal: AbortSignal.timeout(30_000)});
-  if (cases[kind].projectionLimit) {
+  if (cases[kind].aggregateProjection) {
     // Logical row text includes field names on every occurrence, not just
     // schema metadata. Nine rows cost 591 bytes and fifty-two cost 593:
-    // 36,155 exceeds the installed aggregate 10,000-byte Relation allowance.
-    // The paired core test pins the exact CaptureLimit rather than inferring
-    // the limit from this public wrapper's generic execution failure.
-    assert.equal(state.status, 'failed', inspect({state, diagnostics, trace}, {depth: 6}));
+    // 36,155 is a legitimate complete output under the original finite
+    // Task/Run growth policy. It is not bounded by a private startup cap.
+    // The paired Core fixture separately exercises exact CaptureLimit refusal;
+    // this public case qualifies complete publication and original replay.
+    assert.equal(state.status, 'succeeded', inspect({state, diagnostics, trace}, {depth: 6}));
     let bridgeWork = 0;
     let bridgeProgress = 0;
     let bridgeEnd = -1;
@@ -184,23 +185,10 @@ async function runEventsRecordBoundary(t, kind, {cancelBridge = false} = {}) {
       if (bridgeWork === 4819) { bridgeEnd = index; break; }
       assert.ok(bridgeWork < 4819, 'input bridge must not overcharge');
     }
-    assert.notEqual(bridgeEnd, -1, 'input bridge must finish before rejection');
+    assert.notEqual(bridgeEnd, -1, 'input bridge must finish before publication');
     assert.equal(bridgeProgress, 61);
     assert.ok(trace.slice(bridgeEnd + 1).some(detail => detail.task === 1
-      && detail.progress !== '0'), 'session must make positive progress before rejection');
-    assert.equal(completions, 0);
-    for (const name of names) {
-      assert.equal(state.result_availability[name].state, 'unavailable');
-      await assert.rejects(execution.result(name).all());
-    }
-    const failedAdvances = advances;
-    const repeated = await client.startSource(source, options);
-    assert.deepEqual(repeated.ref, execution.ref);
-    assert.equal((await repeated.wait()).status, 'failed');
-    assert.equal(advances, failedAdvances);
-    assert.equal(dispatches, 1);
-    assert.deepEqual(await readdir(join(directory, 'carrier-snapshots')), []);
-    return;
+      && detail.progress !== '0'), 'session must make positive progress before publication');
   }
   assert.equal(state.status, 'succeeded', inspect({state, diagnostics, trace}, {depth: 6}));
   trace.length = 0;
@@ -217,6 +205,19 @@ async function runEventsRecordBoundary(t, kind, {cancelBridge = false} = {}) {
   assert.equal(advances, completedAdvances);
   assert.equal(dispatches, 1);
   assert.deepEqual(await readdir(join(directory, 'carrier-snapshots')), []);
+
+  if (cases[kind].aggregateProjection) {
+    assert.equal((await repeated.wait()).status, 'succeeded');
+    for (const name of names) assert.deepEqual(await repeated.result(name).all(), cases[kind].expected);
+    assert.equal(advances, completedAdvances);
+    assert.equal(dispatches, 1);
+    // The first close must settle this same owner; no new submission or
+    // process exit stands in for its cleanup acknowledgement.
+    await client.close();
+    client = undefined;
+    assert.deepEqual(await readdir(join(directory, 'carrier-snapshots')), []);
+    return;
+  }
 
   cancelling = true;
   const cancel = await client.startSource(JSON.stringify(program(fixtureId + '-cancel', kind)),
@@ -260,8 +261,8 @@ test('public retained session publishes and cancels inside record emission',
   {timeout: 45_000}, t => runEventsRecordBoundary(t, 'session'));
 test('public retained session publishes and cancels inside input-name matching',
   {timeout: 45_000}, t => runEventsRecordBoundary(t, 'name_session'));
-test('public retained session rejects aggregate projection text without publication',
-  {timeout: 45_000}, t => runEventsRecordBoundary(t, 'projection_limit_session'));
+test('public retained session publishes complete aggregate projection text without replay',
+  {timeout: 45_000}, t => runEventsRecordBoundary(t, 'projection_text_session'));
 test('public retained Events bridge stops during unused Array recheck',
   {timeout: 45_000}, t => runEventsRecordBoundary(t, 'watermark', {cancelBridge: true}));
 test('public retained Events projection stops inside unused Array admission',

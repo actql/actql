@@ -20,7 +20,7 @@ import {
 }
 
 // Values
-pub fn[T] admit_captured_local_parameters(T, @source_value.JsonDataReader[T]) -> Result[@decode_core.Cursor, LocalProgramInputIssue]
+pub fn[T] admit_captured_local_parameters(T, @source_value.JsonDataReader[T], limits? : (@source_value.ParseLimits, @decode_core.Limits)?) -> Result[@decode_core.Cursor, LocalProgramInputIssue]
 
 pub fn admit_local_parameter_document(String, @source_value.ParseLimits, @decode_core.Limits) -> Result[@decode_core.Cursor, LocalProgramInputIssue]
 

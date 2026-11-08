@@ -73,6 +73,30 @@ test "one original Request Plan captures whole unfiltered Source and leaves auth
     },
     Some(provider),
   ).unwrap()
+  let catalog_source = prepare_installed_catalog_whole_source_capacity(
+    prepared,
+    original,
+    contracts,
+    @row_source_host.row_input_acquisition_limits(source.acquisition),
+  ).unwrap()
+  assert_true(physical_equal(catalog_source.original, source.original))
+  let expected_sql = "SELECT \"id\" FROM \"ma\"\"in\".\"récords\""
+  let sql_bytes = @utf8.encode(expected_sql).length()
+  assert_eq(
+    render_installed_catalog_source_sql(
+      catalog_source, "ma\"in", "récords", sql_bytes,
+    ).unwrap(),
+    expected_sql,
+  )
+  assert_true(
+    render_installed_catalog_source_sql(
+      catalog_source,
+      "ma\"in",
+      "récords",
+      sql_bytes - 1,
+    )
+    is Err(_),
+  )
   let plan = prepare_installed_managed_whole_source_plan(
     prepared,
     request,
@@ -133,6 +157,20 @@ test "one original Request Plan captures whole unfiltered Source and leaves auth
     { max_bytes: 4096, max_nodes: 1000, max_depth: 20, max_rows: 128, },
     128,
   ).unwrap()
+  @row_source_host.check_native_row_input_original(run, acquisition).unwrap()
+  assert_true(
+    @row_source_host.check_native_row_input_original(
+      run,
+      catalog_source.acquisition,
+    )
+    is Err(_),
+  )
+  assert_true(
+    begin_installed_managed_catalog_whole_source_read(
+      owner, prepared, request, catalog_source,
+    )
+    is Err(ForeignOriginal),
+  )
   let responses = @row_source_host.borrow_row_input_run_responses(
     run, acquisition,
   ).unwrap()

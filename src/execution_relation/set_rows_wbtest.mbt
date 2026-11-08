@@ -272,7 +272,7 @@ test "row set operations preserve every relation value domain and NULL" {
         2,
         { remaining: 100000, max_frames: 100, },
         value_budget(run_limits().output_values).unwrap(),
-        { limit: 10000, live: 0, peak: 0, },
+        row_workspace(10000),
       ).unwrap()
       assert_eq(result.rows.length(), 1)
       if operation == "except" {
@@ -321,7 +321,7 @@ test "row set operations reject foreign inputs and tight budgets atomically" {
         1,
         { remaining: work, max_frames: 100, },
         value_budget(run_limits().output_values).unwrap(),
-        { limit: 100, live: 0, peak: 0, },
+        row_workspace(100),
       )
     }
     assert_true(run(left, right, 0) is Err(RowLimit))
@@ -469,7 +469,7 @@ test "row set execution accepts every pair of retained input layouts" {
           4,
           { remaining: 100000, max_frames: 100, },
           value_budget(run_limits().output_values).unwrap(),
-          { limit: 10000, live: 0, peak: 0, },
+          row_workspace(10000),
         ).unwrap()
         assert_eq(
           result.rows.length(),

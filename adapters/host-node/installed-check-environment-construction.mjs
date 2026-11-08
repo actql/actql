@@ -82,6 +82,21 @@ function addCanonical(workspace, measured, calls = 1n, hashes = 0n) {
   workspace.wire += hashes * (3n * measured.output + 128n);
 }
 
+// The composer invokes these synchronous canonical/hash constructors in
+// sequence. Their returned keys/CIDs may coexist; their private entries,
+// sorting, recursive text and hash buffers do not survive each return.
+function addSequentialCanonical(workspace, largest, measured, calls = 1n, hashes = 0n) {
+  const current = zero();
+  addCanonical(current, measured, 1n, hashes === 0n ? 0n : 1n);
+  for (const field of ['nodes', 'text', 'wire']) {
+    if (current[field] > largest[field]) largest[field] = current[field];
+  }
+  // Conservatively keep ALL complete returned encodings, even those consumed
+  // by hashing or released selector/dedup Maps. No coalescing discounts them.
+  workspace.text += 2n * calls * measured.output + 2n * hashes * (64n + 71n);
+  workspace.nodes += 4n * hashes;
+}
+
 /** Before the one actual JSON.parse and recursive freeze, including a partial
  * malformed parse, decoder backing, Object.values arrays/slots and frames.
  * The borrowed String is not copied here. No admission or validity is inferred. */
@@ -116,7 +131,7 @@ export function installedEnvironmentDocumentConstructionGeometry(frozenDocument)
 export function installedEnvironmentCompositionConstructionGeometry(
   frozenBaseBody, frozenSourceBody = undefined, frozenEffectBody = undefined,
 ) {
-  const base = shape(frozenBaseBody), workspace = zero();
+  const base = shape(frozenBaseBody), workspace = zero(), canonical = zero();
   // Allowed-key Set, keys/validation arrays, body/member wrappers and control.
   workspace.nodes += 4n * base.nodes + 16n;
   const basePolicy = own(frozenBaseBody, 'host_policy_profile');
@@ -127,9 +142,9 @@ export function installedEnvironmentCompositionConstructionGeometry(
     const bodyShape = shape(body);
     workspace.nodes += 3n * bodyShape.nodes + 8n;
     // Original validation canonicalizes both policy bodies per supplied input.
-    if (basePolicy !== undefined) addCanonical(workspace, shape(basePolicy));
+    if (basePolicy !== undefined) addSequentialCanonical(workspace, canonical, shape(basePolicy));
     const policy = own(body, 'host_policy_profile');
-    if (policy !== undefined) addCanonical(workspace, shape(policy));
+    if (policy !== undefined) addSequentialCanonical(workspace, canonical, shape(policy));
     if (frozenSourceBody === undefined || frozenEffectBody === undefined) continue;
     for (const section of sections) {
       const values = own(body, section);
@@ -138,7 +153,7 @@ export function installedEnvironmentCompositionConstructionGeometry(
         const member = own(values, String(index)), measured = shape(member);
         // Selector conflict canonicalization (at most once), dedup canonical
         // key, and CID sort hash. Count all3 even sections without selectors.
-        addCanonical(workspace, measured, 3n, 1n);
+        addSequentialCanonical(workspace, canonical, measured, 3n, 1n);
         members++; memberNodes += measured.nodes; memberOutput += measured.output;
         memberRecursive += measured.recursive; memberNormalized += measured.normalized;
         // Composite source_ref + NUL + read_mode selector may retain text.
@@ -150,13 +165,14 @@ export function installedEnvironmentCompositionConstructionGeometry(
       const measured = shape(manifest);
       // Conflict/dedup/sort families for its connectors; whole manifest bounds
       // the disjoint connector forest, with fixed version/array vocabulary.
-      addCanonical(workspace, measured, 3n, measured.nodes);
+      addSequentialCanonical(workspace, canonical, measured, 3n, measured.nodes);
       manifestNodes += measured.nodes; memberNodes += measured.nodes;
       memberOutput += measured.output; memberRecursive += measured.recursive;
       memberNormalized += measured.normalized;
     }
   }
   if (frozenSourceBody === undefined || frozenEffectBody === undefined) {
+    for (const field of ['nodes', 'text', 'wire']) workspace[field] += canonical[field];
     return stage({nodes: 2n + 40n, text: 0n, wire: 0n}, workspace,
       {merged: false, nativeAdmissionIncluded: false});
   }
@@ -169,13 +185,14 @@ export function installedEnvironmentCompositionConstructionGeometry(
   // Merged body hash and final {..body,evidence_bundle_cid} canonical encoding.
   const envelope = {...merged, nodes: merged.nodes + 2n, output: output + 100n,
     recursive: merged.recursive + 100n, normalized: merged.normalized + 96n};
-  addCanonical(workspace, merged, 1n, 1n);
-  addCanonical(workspace, envelope);
+  addSequentialCanonical(workspace, canonical, merged, 1n, 1n);
+  addSequentialCanonical(workspace, canonical, envelope);
   // Spread arrays, Maps/entries, retained-values arrays, sort records/CIDs,
   // map results, selector Maps and all callback/control/freeze frame overlap.
   workspace.nodes += 24n * (members + manifestNodes) + 6n * merged.nodes + 64n;
   workspace.text += 2n * 71n * members;
   workspace.nodes += 4n; // Three original references and their temporary array.
+  for (const field of ['nodes', 'text', 'wire']) workspace[field] += canonical[field];
   return stage({// New merged census (record +14 fields), pre-admission candidate (record
     // +4 fields), and original index (record +4 fields +entry) coexist.
     // Scoped range/finish/release closures, six range/phase scalars, original

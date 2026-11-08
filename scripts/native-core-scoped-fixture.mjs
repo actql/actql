@@ -82,6 +82,7 @@ export function nativeCoreScopedFixture(namespace, {cryptoLibrary, sqliteLibrary
   const {root, backing} = backingFixture(namespace);
   backing('backing', backingPages);
   for (const probe of [0, 3, 4]) backing('backing-' + probe, 256);
+  for (const probe of [0, 1, 2]) backing('extent-backing-' + probe, 256);
   for (const name of namedBackingFiles) backing(name, 64);
   mkdirSync(join(root, 'store'), {mode: 0o700});
   assert.equal(statSync(join(root, 'store')).mode & 0o777, 0o700);
@@ -122,4 +123,31 @@ export function nativeRelationFileCaptureFixture(namespace) {
   // This namespace owns files after the test closes its actual physical owner.
   // An interrupted test retains the namespace for diagnosis, never resets it.
   return {ACTQL_TEST_INSTALLED_PROCESS_ROOT: root};
+}
+
+// Each selected target case owns its original input and never reopens another
+// case's initialized Arena backing. The sparse file is the authored 384 MiB
+// physical-component fixture, not an ordinary Host capacity or permission.
+export function nativeRelationTargetIOFixture(namespace, index) {
+  assert(Number.isInteger(index) && index >= 0 && index <= 2,
+    'An exact original Native target I/O case index is required');
+  const root = join(realpathSync(namespace), 'target-io');
+  mkdirSync(root, {mode: 0o700});
+  const suffix = ['update', 'cancel', 'sync'][index];
+  const input = Buffer.from(' {"items":[{"id":"first","value":1},{"id":"second","value":2}],"keep":"untouched"}\n');
+  for (const [name, content] of [
+    ['target-' + suffix + '.json', input],
+    ['target-backing-' + suffix, 384 * 1024 ** 2],
+  ]) {
+    const fd = openSync(join(root, name), 'wx', 0o600);
+    try {
+      if (typeof content === 'number') ftruncateSync(fd, content);
+      else writeFileSync(fd, content);
+      const stat = fstatSync(fd);
+      assert(stat.isFile() && stat.nlink === 1, 'Exclusive regular target fixture required');
+      assert.equal(stat.mode & 0o777, 0o600);
+      assert.equal(stat.size, typeof content === 'number' ? content : content.length);
+    } finally { closeSync(fd); }
+  }
+  return {ACTQL_TEST_NATIVE_TARGET_IO_ROOT: root};
 }

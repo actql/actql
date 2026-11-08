@@ -211,7 +211,11 @@ fn profile_prepared_layout(
               count,
               invocation.control,
               invocation.output_budget,
-              { limit: invocation.limits.operation_entries, live: 0, peak: 0, },
+              {
+                ..row_workspace(invocation.limits.operation_entries),
+                live: 0,
+                peak: 0,
+              },
               physical,
               logical,
             )

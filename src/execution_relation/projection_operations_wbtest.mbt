@@ -137,7 +137,7 @@ test "rename and drop preserve every relation value domain and NULL" {
           max_depth: 10,
           max_work: 100000,
         }).unwrap(),
-        { limit: 10000, live: 0, peak: 0, },
+        row_workspace(10000),
         None,
       ).unwrap()
       guard result is AdmittedTable(projected) else {
@@ -182,7 +182,7 @@ fn projection_operation_scale(count : Int, rename : Bool) -> Unit raise {
     100,
     10,
   ).unwrap()
-  let workspace = { limit: count * 10 + 100, live: 0, peak: 0, }
+  let workspace = { ..row_workspace(count * 10 + 100), live: 0, peak: 0, }
   let result = evaluate_rows_with_workspace(
     row_kernel(owner, 1),
     input,

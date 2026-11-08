@@ -182,6 +182,39 @@ pub fn read_client_source_capture_descriptor(
 }
 
 ///|
+/// Read-only geometry of the SAME original Query capture. Equal requirements
+/// or an unrelated schema cannot enlarge the installed Source identity path.
+/// This grants no read, publication, stop or restoration authority.
+pub fn client_source_capture_schema_columns(
+  source : @query.CapturedInputSource,
+  requirement : @planning.QueryRequirement,
+) -> Int? {
+  let original = @planning.query_material_owner(
+    @planning.query_requirement_material(requirement),
+  )
+  if !@query.captured_source_matches_query(source, original) {
+    return None
+  }
+  query_source_capture_schema_columns(requirement)
+}
+
+///|
+// Only the original checked Query requirement supplies receiving geometry.
+// Descriptor DATA and row contents cannot enlarge it.
+fn query_source_capture_schema_columns(
+  requirement : @planning.QueryRequirement,
+) -> Int? {
+  let original = @planning.query_material_owner(
+    @planning.query_requirement_material(requirement),
+  )
+  let query = @query.query_sequence_requirement(original)
+  @lower.preparation_schema_at(
+    @lower.bound_preparation(@query.query_sequence_owner(original)),
+    @sourceviews.query_acquisition_capture(query),
+  ).map(schema => @schema.field_count(schema))
+}
+
+///|
 /// The Host binds Run/request, occurrence, selected configuration, physical
 /// Source, original attempt and authority in its immutable private record.
 /// This string is not an authorization grant. The source/requirement pair is
@@ -191,12 +224,11 @@ pub fn export_client_source_capture(
   requirement : @planning.QueryRequirement,
   binding : String,
 ) -> Result[ClientSourceCaptureExport, ClientSourceCaptureIssue] {
-  let query = @planning.query_material_owner(
-    @planning.query_requirement_material(requirement),
-  )
-  if binding.is_empty() ||
-    binding.length() > 262144 ||
-    !@query.captured_source_matches_query(source, query) {
+  if binding.is_empty() || binding.length() > 262144 {
+    return Err(BindingMismatch)
+  }
+  guard client_source_capture_schema_columns(source, requirement)
+    is Some(columns) else {
     return Err(BindingMismatch)
   }
   let stream = match
@@ -204,9 +236,14 @@ pub fn export_client_source_capture(
       source,
       100,
       source_capture_values(),
-      source_capture_wire(),
-      source_capture_wire(),
-      { max_fields: 100, max_bytes: 100000, max_nodes: 10000, max_depth: 100, },
+      { ..source_capture_wire(), max_columns: columns, },
+      { ..source_capture_wire(), max_columns: columns, },
+      {
+        max_fields: columns,
+        max_bytes: 100000,
+        max_nodes: 10000,
+        max_depth: 100,
+      },
       1000000,
     ) {
     Ok(value) => value
@@ -252,7 +289,7 @@ pub fn export_client_source_capture(
     }
   }
   let evidence = match
-    @execution.retain_completion_evidence(retained, 100, 100) {
+    @execution.retain_completion_evidence(retained, 100, columns) {
     Ok(value) => value
     Err(issue) => return Err(Evidence(issue))
   }
@@ -331,6 +368,9 @@ pub fn restore_client_source_capture(
   if !custody_available() {
     return Err(CustodyUnavailable)
   }
+  guard query_source_capture_schema_columns(requirement) is Some(columns) else {
+    return Err(BindingMismatch)
+  }
   let rows = supplied_rows.copy()
   let query = @planning.query_material_owner(
     @planning.query_requirement_material(requirement),
@@ -344,7 +384,7 @@ pub fn restore_client_source_capture(
       descriptor,
       100,
       source_capture_values(),
-      source_capture_wire(),
+      { ..source_capture_wire(), max_columns: columns, },
       1000000,
     ) {
     Ok(value) => value
@@ -381,7 +421,7 @@ pub fn restore_client_source_capture(
     @execution.prepare_trusted_retained_readmission(
       preparation,
       descriptor,
-      100,
+      Int::max(100, columns),
       10000,
       fn(proof : @execution.AdmittedOutputStreamReceipt) {
         if available() &&
@@ -408,7 +448,7 @@ pub fn restore_client_source_capture(
       restored,
       100,
       source_capture_values(),
-      source_capture_wire(),
+      { ..source_capture_wire(), max_columns: columns, },
       1000000,
     ) {
     Ok(value) => value
@@ -513,9 +553,21 @@ pub fn restore_accounted_client_source_capture(
     Ok(value) => value
     Err(issue) => return Err(Physical(issue))
   }
-  let sized = source_capture_restoration_capacity(
-    descriptor_wire, rows, original_input,
-  )
+  let original_capacity = match original_input {
+    None => Some((0L, 0L))
+    Some(_) => @row_source_host.row_original_input_query_capacity(requirement)
+  }
+  let sized = original_capacity.bind(original_capacity => {
+    query_source_capture_schema_columns(requirement).bind(columns => {
+      source_capture_restoration_capacity(
+        descriptor_wire,
+        rows,
+        original_input,
+        input_columns=columns,
+        original_capacity~,
+      )
+    })
+  })
   // Only the returned two-scalar quote remains after sizing. Its caller's
   // original closed control frame precedes the represented-body reservation.
   match @resources.settle_capacity(ledger, quote_reservation) {

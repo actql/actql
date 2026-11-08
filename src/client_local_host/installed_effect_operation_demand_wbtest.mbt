@@ -362,7 +362,9 @@ fn effect_operation_source_plan_fixture(
   ).unwrap()
   let document =
     #|{"version":"actql/0.1","id":"source-effect-operation-plan","stages":[{"id":"acquire","inputs":{"remote":{"connector":"operation-source","resource":"r"}},"steps":[{"filter":"id > 0"},{"select":["id"],"as":"captured"}],"results":{"rows":{"from":"captured","fields":["id"]}}},{"id":"apply","inputs":{"input":{"result":{"stage":"acquire","result":"rows"}}},"steps":[{"filter":"id > 2","as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}},"effects":{"save":{"update":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"rows"},"id":"id","set":{"Name":{"field":"id"}}}}}}],"results":{"rows":{"from":{"stage":"apply","result":"rows"}}}}
-  let document = if source_width == 1 {
+  // Whole's two-input join rewrite below retains all declared input fields;
+  // do not first replace its exact one-column Query-pattern anchor.
+  let document = if source_width == 1 || whole_inputs {
     document
   } else {
     let names = fields

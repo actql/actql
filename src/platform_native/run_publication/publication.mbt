@@ -10,6 +10,7 @@ pub(all) enum NativeRunPublicationIssue {
   CommitFenceUnavailable
   Store(@store.NativePublicationStoreIssue)
   Issuance(@publication.PublicationCommitIssuanceIssue)
+  Preparation(@local.ClientProgramValidationIssue)
   Commit(@publication.PublicationCommitIssue)
   Projection(@publication.DeliveryIssuanceIssue)
 }
@@ -20,6 +21,7 @@ pub(all) enum NativeRunPublicationIssue {
 /// physical cleanup observation.
 pub(all) enum NativePublicationOutputIssue {
   InvalidOutputConfiguration
+  Preparation(@local.ClientClosedValuesPreparationIssue)
   Output(@publication_host.PublicationOutputExportIssue)
   Payload(@payload.PublicationPayloadIssue)
   Store(@store.NativePublicationStoreIssue)
@@ -75,6 +77,7 @@ pub(all) struct NativePublishedOutput {
 ///|
 pub(all) enum NativeRunPublicationAssemblyIssue {
   InvalidAssembly
+  Preparation(@local.ClientClosedValuesPreparationIssue)
   Manifest(@publication.ResultManifestIssuanceIssue)
   Receipt(@publication.RunReceiptIssuanceIssue)
   Capture(@publication.CapturedRunIssuanceIssue)
@@ -304,6 +307,7 @@ pub fn persist_publication_output_native(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  publication? : @local.ClientProgramPublication? = None,
 ) -> Result[NativePublishedOutput, NativePublicationOutputIssue] {
   if max_wire_bytes < 1 ||
     max_nodes < 1 ||
@@ -380,12 +384,43 @@ pub fn persist_publication_output_native(
     output.cancel()
     return Err(InvalidOutputConfiguration)
   }
-  let snapshot = match
-    output.admit_captured_snapshot(max_wire_bytes, max_nodes, max_depth) {
+  let snapshot_result = match publication {
+    None =>
+      output
+      .admit_captured_snapshot(max_wire_bytes, max_nodes, max_depth)
+      .map_err(issue => NativePublicationOutputIssue::Output(issue))
+    Some(original) => {
+      // The same adopted preparation funds and retains the full Result copy;
+      // service B/N/depth continue to bound only metadata issuers below.
+      let cursor = match @local.begin_program_snapshot(original, output) {
+        Ok(value) => value
+        Err(issue) => {
+          output.cancel()
+          return Err(Preparation(issue))
+        }
+      }
+      let mut done = false
+      while !done {
+        match @local.advance_program_snapshot(cursor, 256) {
+          Ok((ready, _)) => done = ready
+          Err(issue) => {
+            @local.cancel_program_snapshot(cursor)
+            output.cancel()
+            return Err(Preparation(issue))
+          }
+        }
+      }
+      @local.finish_program_snapshot(cursor).map_err(issue => {
+        @local.cancel_program_snapshot(cursor)
+        NativePublicationOutputIssue::Preparation(issue)
+      })
+    }
+  }
+  let snapshot = match snapshot_result {
     Ok(value) => value
     Err(issue) => {
       output.cancel()
-      return Err(Output(issue))
+      return Err(issue)
     }
   }
   let payload_request = match
@@ -528,8 +563,31 @@ pub fn assemble_native_effect_free_publication(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  publication? : @local.ClientProgramPublication? = None,
 ) -> Result[
   NativeEffectFreePublicationEvidence,
+  NativeRunPublicationAssemblyIssue,
+] {
+  assemble_native_effect_free_publication_owned(
+    context,
+    outputs,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    publication~,
+  ).map(value => value.0)
+}
+
+///|
+fn assemble_native_effect_free_publication_owned(
+  context : NativeEffectFreeRunContext,
+  outputs : Array[NativePublishedOutput],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  publication? : @local.ClientProgramPublication? = None,
+) -> Result[
+  (NativeEffectFreePublicationEvidence, @local.ClientProgramCapture?),
   NativeRunPublicationAssemblyIssue,
 ] {
   if outputs.is_empty() || max_wire_bytes < 1 || max_nodes < 1 || max_depth < 1 {
@@ -578,39 +636,91 @@ pub fn assemble_native_effect_free_publication(
     Ok(value) => value
     Err(issue) => return Err(Receipt(issue))
   }
-  let captured_run = match
-    @publication.issue_effect_free_captured_run(
-      context.run_definition,
-      context.invocation,
-      definitions,
-      artifacts,
-      manifest,
-      receipt,
-      snapshots,
-      context.source_advances,
-      context.authoring,
-      context.model_evidence,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Capture(issue))
+  let mut original_capture : @local.ClientProgramCapture? = None
+  let captured_result = match publication {
+    Some(original) => {
+      if !context.source_advances.is_empty() {
+        return Err(InvalidAssembly)
+      }
+      let capture = match
+        @local.prepare_program_capture(
+          original,
+          context.run_definition,
+          context.invocation,
+          definitions,
+          artifacts,
+          manifest,
+          receipt,
+          snapshots,
+          context.authoring,
+          context.model_evidence,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Preparation(issue))
+      }
+      original_capture = Some(capture)
+      match @local.start_program_capture(capture) {
+        Ok(_) => ()
+        Err(issue) => {
+          @local.cancel_program_capture(capture)
+          return Err(Preparation(issue))
+        }
+      }
+      let mut done = false
+      while !done {
+        match @local.advance_program_capture(capture, 256) {
+          Ok((ready, _)) => done = ready
+          Err(issue) => {
+            @local.cancel_program_capture(capture)
+            return Err(Preparation(issue))
+          }
+        }
+      }
+      @local.finish_program_capture(capture).map_err(issue => {
+        @local.cancel_program_capture(capture)
+        NativeRunPublicationAssemblyIssue::Preparation(issue)
+      })
+    }
+    None =>
+      @publication.issue_effect_free_captured_run(
+        context.run_definition,
+        context.invocation,
+        definitions,
+        artifacts,
+        manifest,
+        receipt,
+        snapshots,
+        context.source_advances,
+        context.authoring,
+        context.model_evidence,
+        max_wire_bytes,
+        max_nodes,
+        max_depth,
+      ).map_err(issue => Capture(issue))
   }
-  Ok({
-    run_definition: context.run_definition,
-    invocation: context.invocation,
-    definitions,
-    artifacts,
-    derivations,
-    orderings,
-    retentions,
-    bindings,
-    binding_schema_wires,
-    manifest,
-    receipt,
-    captured_run,
-  })
+  let captured_run = match captured_result {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok(
+    (
+      {
+        run_definition: context.run_definition,
+        invocation: context.invocation,
+        definitions,
+        artifacts,
+        derivations,
+        orderings,
+        retentions,
+        bindings,
+        binding_schema_wires,
+        manifest,
+        receipt,
+        captured_run,
+      },
+      original_capture,
+    ),
+  )
 }
 
 ///|
@@ -805,6 +915,7 @@ fn validate_existing_commit(
   evidence : NativeEffectFreePublicationEvidence,
   request : @publication.PublicationContract,
   index : @publication.PublicationContract,
+  capture? : @local.ClientProgramCapture? = None,
 ) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue] {
   let projected = match
     projection_result(@publication.project_public_index_read(index)) {
@@ -835,9 +946,10 @@ fn validate_existing_commit(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  match
-    commit_result(
-      @publication.validate_effect_free_publication_commit_with_result_evidence(
+  let checked = match capture {
+    Some(original) =>
+      @local.check_program_commit_validation(
+        original,
         evidence.run_definition,
         evidence.invocation,
         evidence.definitions,
@@ -852,11 +964,31 @@ fn validate_existing_commit(
         stored_request,
         stored_attempt,
         index,
-        service.max_wire_bytes,
-        service.max_nodes,
-        service.max_depth,
-      ),
-    ) {
+      ).map_err(issue => NativeRunPublicationIssue::Preparation(issue))
+    None =>
+      commit_result(
+        @publication.validate_effect_free_publication_commit_with_result_evidence(
+          evidence.run_definition,
+          evidence.invocation,
+          evidence.definitions,
+          evidence.artifacts,
+          evidence.derivations,
+          evidence.orderings,
+          evidence.retentions,
+          evidence.bindings,
+          evidence.manifest,
+          evidence.receipt,
+          evidence.captured_run,
+          stored_request,
+          stored_attempt,
+          index,
+          service.max_wire_bytes,
+          service.max_nodes,
+          service.max_depth,
+        ),
+      )
+  }
+  match checked {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
@@ -875,6 +1007,7 @@ fn inspect_existing_commit(
   evidence : NativeEffectFreePublicationEvidence,
   intent : NativeRunPublicationIntent,
   request : @publication.PublicationContract,
+  capture? : @local.ClientProgramCapture? = None,
 ) -> Result[NativeRunPublicationResult?, NativeRunPublicationIssue] {
   let existing = match
     store_result(
@@ -897,7 +1030,7 @@ fn inspect_existing_commit(
       // earlier attempt of this original request. Do not expose unvalidated
       // retained references to the Host publication callback.
       let validated = match
-        validate_existing_commit(service, evidence, request, index) {
+        validate_existing_commit(service, evidence, request, index, capture~) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
@@ -926,6 +1059,7 @@ fn commit_new_effect_free_run_native(
   request : @publication.PublicationContract,
   attempt : @publication.PublicationContract,
   committed_at : String,
+  capture? : @local.ClientProgramCapture? = None,
 ) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue] {
   let index = match
     issuance_result(
@@ -979,6 +1113,7 @@ fn commit_new_effect_free_run_native(
       service.max_wire_bytes,
       service.max_nodes,
       service.max_depth,
+      capture~,
     )
     match committed {
       Ok(value) =>
@@ -994,7 +1129,8 @@ fn commit_new_effect_free_run_native(
           idempotent: value.idempotent,
         })
       Err(@store.PublicationCommitConflict) =>
-        match inspect_existing_commit(service, evidence, intent, request) {
+        match
+          inspect_existing_commit(service, evidence, intent, request, capture~) {
           Ok(Some(value)) => Ok(value)
           Ok(None) => Err(CommitConflict)
           Err(issue) => Err(issue)
@@ -1014,6 +1150,7 @@ pub fn commit_prepared_effect_free_run_publication_native(
   intent : NativeRunPublicationIntent,
   occurrence : NativeRunPublicationOccurrence,
   preparation : NativeRunPublicationPreparation,
+  capture? : @local.ClientProgramCapture? = None,
 ) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue] {
   if evidence.bindings.length() != evidence.binding_schema_wires.length() {
     return Err(InvalidConfiguration)
@@ -1045,7 +1182,13 @@ pub fn commit_prepared_effect_free_run_publication_native(
     Err(issue) => return Err(issue)
   }
   match
-    inspect_existing_commit(service, evidence, intent, preparation.request) {
+    inspect_existing_commit(
+      service,
+      evidence,
+      intent,
+      preparation.request,
+      capture~,
+    ) {
     Ok(Some(value)) => return Ok(value)
     Ok(None) => ()
     Err(issue) => return Err(issue)
@@ -1078,6 +1221,7 @@ pub fn commit_prepared_effect_free_run_publication_native(
     preparation.request,
     preparation.attempt,
     occurrence.committed_at,
+    capture~,
   )
 }
 

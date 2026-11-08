@@ -5,11 +5,13 @@ fn evaluate_expression(
   slots : Array[Value],
   budget : ControlBudget,
 ) -> Result[Value, EvalIssue] {
-  evaluate_expression_with_workspace(root, input, slots, budget, {
-    limit: 100000,
-    live: 0,
-    peak: 0,
-  })
+  evaluate_expression_with_workspace(
+    root,
+    input,
+    slots,
+    budget,
+    row_workspace(100000),
+  )
 }
 
 ///|
@@ -117,7 +119,7 @@ test "nested expression views share row workspace and release on success" {
   // Outer coalesce retains two child references and one frame while the
   // inner coalesce retains its own two references and frame: six entries.
   let expr = lowered("\"coalesce(coalesce(NULL, 7), 1 / 0)\"")
-  let workspace = { limit: 11, live: 5, peak: 5, }
+  let workspace = { ..row_workspace(11), live: 5, peak: 5, }
   let value = evaluate_expression_with_workspace(
     expr,
     Map([]),
@@ -134,7 +136,7 @@ test "nested expression views share row workspace and release on success" {
       Map([]),
       [],
       { remaining: 1000, max_frames: 10, },
-      { limit: 10, live: 5, peak: 5, },
+      { ..row_workspace(10), live: 5, peak: 5, },
     )
     is Err({ kind: WorkspaceLimit, .. }),
   )
@@ -160,7 +162,7 @@ test "vector score is exact, eager, and resumable by component" {
     evaluate_expression(dot, values, [], { remaining: 1000, max_frames: 10, }).unwrap()
     is Number(20.0),
   )
-  let workspace = { limit: 100, live: 3, peak: 3, }
+  let workspace = { ..row_workspace(100), live: 3, peak: 3, }
   let frame = expression_frame(
     dot,
     values,
@@ -219,7 +221,7 @@ test "vector score failure releases its continuation workspace" {
     "left": runtime_vector([1.0, 2.0, 3.0, 4.0]),
     "right": runtime_vector([1.0, 2.0, 3.0]),
   }
-  let workspace = { limit: 100, live: 5, peak: 5, }
+  let workspace = { ..row_workspace(100), live: 5, peak: 5, }
   let frame = expression_frame(
     lowered_vector_score("dot"),
     values,
@@ -249,7 +251,7 @@ test "vector concat is eager, ordered, bounded, and resumable" {
     "left": runtime_vector([1.0, 2.0, 3.0, 4.0]),
     "right": runtime_vector([5.0, 6.0, 7.0, 8.0]),
   }
-  let workspace = { limit: 100, live: 5, peak: 5, }
+  let workspace = { ..row_workspace(100), live: 5, peak: 5, }
   let frame = expression_frame(
     expression,
     values,
@@ -291,7 +293,7 @@ test "vector concat is eager, ordered, bounded, and resumable" {
     is Null,
   )
 
-  let short_workspace = { limit: 19, live: 5, peak: 5, }
+  let short_workspace = { ..row_workspace(19), live: 5, peak: 5, }
   let short = expression_frame(
     expression,
     values,
@@ -313,7 +315,7 @@ test "vector concat is eager, ordered, bounded, and resumable" {
   }
   assert_eq(short_workspace.live, 5)
 
-  let short_control_workspace = { limit: 100, live: 5, peak: 5, }
+  let short_control_workspace = { ..row_workspace(100), live: 5, peak: 5, }
   let short_control = expression_frame(
     expression,
     values,
@@ -336,7 +338,7 @@ test "vector concat is eager, ordered, bounded, and resumable" {
   assert_eq(short_control_workspace.peak, 12)
   assert_eq(short_control_workspace.live, 5)
 
-  let cancelled_workspace = { limit: 100, live: 5, peak: 5, }
+  let cancelled_workspace = { ..row_workspace(100), live: 5, peak: 5, }
   let cancelled = expression_frame(
     expression,
     values,
@@ -428,7 +430,7 @@ test "expression workspace releases branch frames and case views" {
       "{\"case\":{\"when\":[{\"when\":{\"literal\":true},\"then\":{\"literal\":9}}]}}",
       "\"true AND false AND true\"",
     ] {
-    let workspace = { limit: 100, live: 5, peak: 5, }
+    let workspace = { ..row_workspace(100), live: 5, peak: 5, }
     let result = evaluate_expression_with_workspace(
       lowered(source),
       Map([]),

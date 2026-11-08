@@ -28,6 +28,8 @@ pub fn borrow_record_read(PreparedRecordRead, @client_row_source_host.RowRun, @c
 
 pub fn declare_records(@catalog.FormFieldCatalog, @catalog.AppNumberSettings?, Array[String], String, String, String, @catalog.RecordValueLimits, @client_row_source_host.RowDeclarationLimits) -> Result[RecordDeclaration, RecordReadIssue]
 
+pub fn finalize_record_update_request(RecordUpdateProposal, RecordUpdatePreview, @catalog.RecordMutationLimits) -> Result[@catalog.RecordUpdateRequest, RecordUpdateExecutionIssue]
+
 pub fn managed_record_column_count(RecordDeclaration) -> Int
 
 pub fn managed_record_columns(ManagedRecordRead) -> Array[String]
@@ -71,6 +73,10 @@ pub fn prepare_record_key_upsert_before(RecordDeclaration, @catalog.RecordLookup
 pub fn prepare_record_read(RecordDeclaration, @query_planning.QueryRequirement, String, String) -> Result[PreparedRecordRead, RecordReadIssue]
 
 pub fn prepare_record_update_mapping(RecordDeclaration, String, Array[@client_row_source_host.RowMappingSource], String, @client_row_source_host.RowDeclarationLimits) -> Result[RecordUpdateMapping, @client_row_source_host.RowMappingIssue]
+
+pub fn prepare_record_update_preview(RecordUpdateProposal, Bytes, @catalog.RecordPageLimits, @catalog.RecordValueLimits, @catalog.RecordMutationLimits) -> Result[RecordUpdatePreview, RecordUpdateExecutionIssue]
+
+pub fn prepare_record_update_proposal(RecordUpdateMapping, String, Bytes, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> Result[RecordUpdateProposal, RecordUpdateExecutionIssue]
 
 pub fn project_record_create_preview_outcome(RecordCreateMapping, @catalog.RecordCreateRequest, @catalog.RecordCreateAcknowledgement, @run_publication.EffectPreviewIdentity, Int, Int, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> Result[RecordCreatePreviewOutcome, RecordCreateOutcomeIssue]
 
@@ -172,15 +178,67 @@ pub fn record_read_page_ids(RecordRead) -> Result[Array[String], RecordReadIssue
 
 pub fn record_request_cursor(Array[String]) -> Result[String?, RecordReadIssue]
 
+pub fn record_update_execution_matches(RecordUpdateProposal, RecordUpdatePreview, @catalog.RecordUpdateRequest) -> Bool
+
+pub fn record_update_finalization_construction_capacity(RecordUpdateMapping, @catalog.RecordMutationLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn record_update_finalization_construction_inventory(RecordUpdateMapping, @catalog.RecordMutationLimits) -> RecordUpdateConstructionInventory?
+
+pub fn record_update_form_construction_capacity(RecordUpdateMapping, Int, @catalog.FormFieldLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn record_update_form_construction_inventory(RecordUpdateMapping, Int, @catalog.FormFieldLimits) -> RecordUpdateConstructionInventory?
+
+pub fn record_update_installation_construction_capacity(Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn record_update_mapping(RecordUpdateMapping) -> @client_row_source_host.RowMapping
+
+pub fn record_update_mapping_construction_capacity(RecordDeclaration, Int, Int64, @client_row_source_host.RowDeclarationLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn record_update_mapping_is_original(RecordUpdateMapping) -> Bool
 
 pub fn record_update_mapping_matches_declaration(RecordUpdateMapping, RecordDeclaration) -> Bool
 
 pub fn record_update_mapping_matches_request(RecordUpdateMapping, @catalog.RecordUpdateRequest) -> Bool
 
+pub fn record_update_mapping_recheck_form(RecordUpdateMapping, Bytes, @catalog.FormFieldLimits) -> Result[Unit, RecordUpdateExecutionIssue]
+
+pub fn record_update_preview_before_wire(RecordUpdatePreview) -> String
+
+pub fn record_update_preview_identity(RecordUpdatePreview) -> String
+
+pub fn record_update_preview_matches(RecordUpdatePreview, RecordUpdateProposal) -> Bool
+
+pub fn record_update_preview_revision(RecordUpdatePreview) -> String
+
+pub fn record_update_preview_version_cid(RecordUpdatePreview) -> String
+
+pub fn record_update_proposal_app_id(RecordUpdateProposal) -> String
+
+pub fn record_update_proposal_construction_capacity(RecordUpdateMapping, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn record_update_proposal_construction_inventory(RecordUpdateMapping, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> RecordUpdateConstructionInventory?
+
+pub fn record_update_proposal_identity(RecordUpdateProposal) -> String
+
+pub fn record_update_proposal_matches_mapping(RecordUpdateProposal, RecordUpdateMapping) -> Bool
+
+pub fn record_update_proposal_value_wire(RecordUpdateProposal) -> String
+
+pub fn record_update_response_construction_capacity(RecordUpdateMapping, Int, @catalog.RecordMutationLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn record_update_response_construction_inventory(RecordUpdateMapping, Int, @catalog.RecordMutationLimits) -> RecordUpdateConstructionInventory?
+
+pub fn record_update_target_construction_capacity(RecordUpdateMapping, Int, @catalog.RecordPageLimits, @catalog.RecordValueLimits, @catalog.RecordMutationLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn record_update_target_construction_inventory(RecordUpdateMapping, Int, @catalog.RecordPageLimits, @catalog.RecordValueLimits, @catalog.RecordMutationLimits) -> RecordUpdateConstructionInventory?
+
+pub fn record_update_target_read_body(RecordUpdateProposal, Int, Int, Int, Int) -> Result[String, RecordUpdateExecutionIssue]
+
 pub fn restore_record_create_execution_proposal(RecordCreateMapping, Bytes, String, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> Result[@catalog.RecordCreateRequest, RecordCreateExecutionIssue]
 
 pub fn restore_record_create_execution_request(RecordCreateMapping, Bytes, String, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> Result[@catalog.RecordCreateRequest, RecordCreateExecutionIssue]
+
+pub fn restore_record_update_execution(RecordUpdateMapping, String, Bytes, Bytes, String, Int, @catalog.RecordPageLimits, @catalog.RecordValueLimits, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits, preview_limits? : @catalog.RecordMutationLimits) -> Result[(RecordUpdateProposal, RecordUpdatePreview, @catalog.RecordUpdateRequest), RecordUpdateExecutionIssue]
 
 pub fn retire_managed_record(ManagedRecordRead) -> Unit
 
@@ -276,7 +334,30 @@ pub enum RecordReadIssue {
   Host(@client_row_source_host.RowHostIssue)
 }
 
+pub(all) struct RecordUpdateConstructionInventory {
+  retained : @execution_relation.PreparationRepresentationUnits
+  workspace : @execution_relation.PreparationRepresentationUnits
+}
+
+pub(all) enum RecordUpdateExecutionIssue {
+  InvalidLimits
+  MappingMismatch
+  TargetMismatch
+  Values(@catalog.RecordWriteJsonIssue)
+  Page(@catalog.RecordPageIssue)
+  Before(RecordReadIssue)
+  Request(@catalog.RecordMutationIssue)
+}
+
 pub struct RecordUpdateMapping {
+  // private fields
+}
+
+pub struct RecordUpdatePreview {
+  // private fields
+}
+
+pub struct RecordUpdateProposal {
   // private fields
 }
 

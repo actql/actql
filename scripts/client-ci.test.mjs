@@ -16,6 +16,8 @@ import './composition-release-input.test.mjs';
 import './table-ctas-result-controls.test.mjs';
 import './packed-original-submission-callers.test.mjs';
 import './record-approval-workflow.test.mjs';
+import './record-approval-ci-input.test.mjs';
+import './hubspot-oauth-operator.test.mjs';
 import {parse} from 'yaml';
 import {parse as parseJavaScript} from 'acorn';
 import {optionalEffectCases} from './fixtures/two-source-optional-effect.mjs';
@@ -781,6 +783,11 @@ test('each Client group retains its acceptance commands exactly once', () => {
   assert.deepEqual(runs('client-packed'), [
     'node scripts/test-packed-local-node-assets.mjs',
     'node scripts/test-packed-sheets.mjs',
+    'node scripts/test-packed-hubspot-source.mjs --ci --approval',
+    'node scripts/test-packed-hubspot-source.mjs --ci --kintone-approval',
+    'node scripts/test-packed-hubspot-source.mjs --ci --mock-salesforce-approval',
+    'node scripts/test-packed-hubspot-source.mjs --ci --mock-hubspot-approval',
+    'node scripts/test-packed-hubspot-source.mjs --ci --mock-kintone-approval',
     'npm run check:packed-embedded-checkpoint',
     'node scripts/test-packed-single-infer.mjs',
     'node scripts/test-packed-infer-evaluation.mjs',
@@ -788,6 +795,16 @@ test('each Client group retains its acceptance commands exactly once', () => {
     'node --test scripts/packed-query-evidence.test.mjs\nnode scripts/test-packed-public-query.mjs',
     'node scripts/test-packed-result-description.mjs',
   ]);
+  const approvalSteps = jobs['client-packed'].steps.filter(step =>
+    step.run?.startsWith('node scripts/test-packed-hubspot-source.mjs --ci '));
+  assert.equal(approvalSteps.length, 5, 'Each connector consumer is independently scheduled');
+  assert.equal(new Set(approvalSteps.map(step => step.name)).size, 5);
+  for (const step of approvalSteps) {
+    assert(step.name.startsWith('Test packed '));
+    assert.deepEqual(step.env, {ACTQL_TEST_PRESERVE_SCRATCH: '1'});
+    assert.equal(step.if, "${{ !cancelled() && steps.client-inputs.outcome == 'success' }}");
+    assert.equal(step['continue-on-error'], undefined);
+  }
   assert.deepEqual(runs('client-packed-composition'), ['node scripts/test-packed-salesforce-source.mjs']);
   assert.deepEqual(runs('client-salesforce'), [
     'node scripts/build-runtime-packages.mjs local-node',

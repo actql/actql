@@ -143,10 +143,15 @@ fn submitted_intent_body(
   run_admission? : NativeClientSubmittedRunAdmission? = None,
   run_state_original? : String? = None,
   run_state_observation? : (Int64, String?)? = None,
+  before_construction? : ((Int, Int, Int) -> Result[
+    Unit,
+    @host.ClientJournalEncodingIssue,
+  ])? = None,
 ) -> Result[Bytes, NativeClientRunJournalIssue] {
   @host.client_submitted_intent_journal_row_body(
     reference.wire,
     intent,
+    before_construction~,
     run_state_original~,
     run_state_observation~,
     run_admission=run_admission.map(admission => {
@@ -277,7 +282,11 @@ fn NativeClientRunJournal::inspect_submitted_intent_row_with_record(
   (@host.ClientSubmittedJournalEncoding, NativeClientSubmittedIntentRecord),
   NativeClientRunJournalIssue,
 ] {
-  let original = match @host.decode_client_submitted_journal_row(row.body) {
+  let original = match
+    @host.decode_client_submitted_journal_row(
+      row.body,
+      before_construction=submitted_decode_construction(self.database, reads),
+    ) {
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
@@ -444,6 +453,7 @@ fn NativeClientRunJournal::retained_submission_with_run(
       })
     },
     CustodyLost,
+    before_construction=submitted_decode_construction(self.database, reads),
   ).map(value => {
     value.map(snapshot => {
       let decoded = @host.client_saved_submission_record(snapshot)
@@ -590,13 +600,14 @@ fn NativeClientRunJournal::record_submitted_intent_locked(
         })
       },
       CustodyLost,
-      before_construction=operations.bind(original => {
-        if physical_equal(self.database, original.reads.database) {
-          original.before_construction
-        } else {
-          Some((_, _, _) => Err(@host.ClientJournalEncodingIssue::Encoding))
-        }
-      }),
+      before_decode_construction=submitted_decode_construction(
+        self.database,
+        reads,
+      ),
+      before_construction=submitted_encode_construction(
+        self.database,
+        operations,
+      ),
       usage=Some(() => {
         if self.append_schema != 1 {
           return Err(CustodyLost)

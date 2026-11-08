@@ -6,6 +6,7 @@ fn journal_test_read_access(
   calls : Array[String],
 ) -> NativeClientJournalReadAccess {
   {
+    before_submitted_decode: None,
     database,
     fenced: () => {
       calls.push("fenced")

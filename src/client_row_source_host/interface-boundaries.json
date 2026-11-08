@@ -358,7 +358,7 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "b36f060f611c870c005863a1c20f19f0cc80535cea4eb4da2aecffd58ec2042d",
+      "sha256": "a5bc2af4ef94245257fab3a8f19269be2da7cdd7568c62d72f26657b90fe5022",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
@@ -386,6 +386,7 @@
         "pub fn begin_declared_keyed_row_read(@lowering_relation.BoundPrepared, @sourceview_resolution.KeyedSourceFacts, @sourceview_resolution.KeyedRowRequest, String, RowDeclaredView, RowPageLimits, Int, @execution_relation.ValueLimits, @sourceview_resolution.RequestLimits, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[RowSourceRead, RowSourceIssue]",
         "pub fn begin_keyed_row_page(RowSourceRead, Bytes) -> Result[Unit, RowSourceIssue]",
         "pub fn begin_keyed_row_run(RowRun, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[Unit, RowHostIssue]",
+        "pub fn begin_keyed_row_run_response_attempt(RowRun, RowKeyedAcquisition) -> Result[Unit, RowHostIssue]",
         "pub fn begin_row_capture(RowRun) -> Result[Unit, RowHostIssue]",
         "pub fn begin_row_run(RowRun, Int, Int, Int, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[Unit, RowHostIssue]",
         "pub fn begin_row_run_keyed_page(RowRun, Bytes) -> Result[Unit, RowHostIssue]",
@@ -400,14 +401,17 @@
         "pub fn borrow_row_run_responses(RowRun, RowAcquisition) -> Result[RowRunResponseBorrow, RowHostIssue]",
         "pub fn cancel_keyed_row_read(RowSourceRead) -> Bool",
         "pub fn capture_row_run(RowRun) -> Result[RowSourceCapture, RowHostIssue]",
+        "pub fn charge_native_row_input_response(RowRun, Int64) -> Result[RowPageCharge, RowHostIssue]",
         "pub fn charge_row_run_page(RowRun, Bytes) -> Result[RowPageCharge, RowHostIssue]",
         "pub fn charge_row_run_response_body(RowRun, Bytes) -> Result[RowPageCharge, RowHostIssue]",
+        "pub fn check_native_row_input_original(RowRun, RowInputAcquisition) -> Result[Unit, RowHostIssue]",
         "pub fn check_row_acquisition_original(RowAcquisition, RowDeclaration, @query_planning.QueryRequirement) -> Result[Unit, RowHostIssue]",
         "pub fn check_row_capture_compute_binding(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Bool",
         "pub fn check_row_input_acquisition_declaration(RowInputAcquisition, RowDeclaration) -> Result[Unit, RowHostIssue]",
         "pub fn check_row_input_acquisition_original(RowInputAcquisition, RowDeclaration, @sourceview_resolution.SourceAcquisition) -> Result[Unit, RowHostIssue]",
         "pub fn check_row_input_capture_run(RowSourceCapture, RowRun) -> Result[Unit, RowHostIssue]",
         "pub fn check_row_input_compute_binding(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, RowHostIssue]",
+        "pub fn check_row_keyed_acquisition_original(RowKeyedAcquisition, RowDeclaration) -> Result[Unit, RowHostIssue]",
         "pub fn check_row_run_response_borrow_current(RowRunResponseBorrow) -> Result[Unit, RowHostIssue]",
         "pub fn cleanup_row_capture(RowRun) -> Result[Bool, RowHostIssue]",
         "pub fn close_accounted_row_run(RowRun) -> Result[Unit, RowHostIssue]",
@@ -420,6 +424,8 @@
         "pub fn discard_relation_document_original(RelationDocument) -> Bool",
         "pub fn discard_relation_target_document_original(RelationTargetDocument) -> Bool",
         "pub fn discard_relation_target_row_original(RelationTargetRow) -> Bool",
+        "pub fn ensure_row_run_response_transfer_capacity(RowRunResponseBorrow, Int64) -> Result[Unit, RowHostIssue]",
+        "pub fn export_query_row_original_read(@execution_relation.SuppliedRelationRead, @query_planning.QueryRequirement) -> Result[RowOriginalCaptureExport, RowOriginalCaptureIssue]",
         "pub fn export_row_input_original_read(RowInputAcquisition, @execution_relation.SuppliedRelationRead) -> Result[RowOriginalCaptureExport, RowOriginalCaptureIssue]",
         "pub fn export_row_original_read(@execution_relation.SuppliedRelationRead) -> Result[RowOriginalCaptureExport, RowOriginalCaptureIssue]",
         "pub fn extend_row_run_page_charge(RowRun, RowPageCharge, Bytes) -> Result[Unit, RowHostIssue]",
@@ -450,6 +456,7 @@
         "pub fn mock_churn_risk_update_alias_count(MockChurnRiskCatalogue) -> Int",
         "pub fn observe_mock_churn_risk_target(MockTargetDocument, RowDeclaration, String) -> Result[MockTargetRow, RowSourceIssue]",
         "pub fn observe_relation_target(RelationTargetDocument, RowDeclaration, String) -> Result[RelationTargetRow, RowSourceIssue]",
+        "pub fn prepare_catalog_row_input_acquisition(@sourceview_resolution.SourceAcquisition, @pipeline_check_context.ProgramSourceIdentity, @lowering_relation.PreparedSequence, @execution_relation.RegisteredRelationContracts, RowInputLimits, listing_policy? : @capacity_policy.Policy?) -> Result[RowInputAcquisition, RowHostIssue]",
         "pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]",
         "pub fn prepare_declared_row_acquisition(RowSourcePreparation, String, String, String, listing_policy? : @capacity_policy.Policy?) -> Result[RowAcquisition, RowHostIssue]",
         "pub fn prepare_declared_row_acquisition_with_contracts(RowSourcePreparation, String, @query_planning.QueryEvidenceContracts, listing_policy? : @capacity_policy.Policy?) -> Result[RowAcquisition, RowHostIssue]",
@@ -511,6 +518,7 @@
         "pub fn row_capture_input(RowSourceCapture) -> RowCapturedInput?",
         "pub fn row_capture_original_prefix_requirement(RowSourceCapture, @physical_resources.Ledger, prefix? : @physical_resources.Reservation?) -> @query_planning.QueryRequirement?",
         "pub fn row_capture_original_read(RowSourceCapture) -> @execution_relation.SuppliedRelationRead?",
+        "pub fn row_capture_schema_columns(RowSourceCapture, @execution_query.CapturedInputSource) -> Int?",
         "pub fn row_capture_source(RowSourceCapture) -> Result[@execution_query.CapturedInputSource, @execution_query.CapturedSourceIssue]",
         "pub fn row_captured_input_at(RowCapturedInputs, Int) -> RowSourceCapture?",
         "pub fn row_captured_input_requirement_at(RowCapturedInputs, Int) -> @query_planning.QueryRequirement?",
@@ -533,6 +541,7 @@
         "pub fn row_declaration_view(RowDeclaration, String) -> RowDeclaredView?",
         "pub fn row_input_acquisition_capacity(RowInputAcquisition, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?",
         "pub fn row_input_acquisition_column_contract(RowInputAcquisition, Int) -> @value_contract.Contract?",
+        "pub fn row_input_acquisition_column_count(RowInputAcquisition) -> Int",
         "pub fn row_input_acquisition_columns(RowInputAcquisition) -> Array[String]",
         "pub fn row_input_acquisition_facts(RowInputAcquisition) -> @query_planning.QuerySourceEvidenceFacts",
         "pub fn row_input_acquisition_is_listing(RowInputAcquisition) -> Bool",
@@ -540,15 +549,19 @@
         "pub fn row_input_acquisition_matches_source(RowInputAcquisition, @sourceview_resolution.SourceAcquisition) -> Bool",
         "pub fn row_input_acquisition_max_rows(RowInputAcquisition) -> Int",
         "pub fn row_input_acquisition_request_wire(RowInputAcquisition) -> Result[String, RowHostIssue]",
+        "pub fn row_input_acquisition_schema(RowInputAcquisition) -> @relation_schema.Schema",
         "pub fn row_input_acquisition_target(RowInputAcquisition) -> (String, Array[String])",
         "pub fn row_input_capture_identity(RowInputAcquisition) -> Array[String]?",
         "pub fn row_input_capture_schema_geometry(RowInputAcquisition) -> (Int, Int, Int, Int)?",
+        "pub fn row_keyed_acquisition_resource(RowKeyedAcquisition) -> String",
         "pub fn row_mapping_target_fields(RowMapping, RowDeclarationLimits) -> Result[Array[String], RowMappingIssue]",
         "pub fn row_observation_cid(RowObservation) -> String",
         "pub fn row_original_capture_export_facts(RowOriginalCaptureExport) -> (String, String, Array[String])",
         "pub fn row_original_input_capacity() -> (Int64, Int64)",
+        "pub fn row_original_input_query_capacity(@query_planning.QueryRequirement) -> (Int64, Int64)?",
         "pub fn row_run_attempt(RowRun) -> RowAttempt",
         "pub fn row_run_listing_complete(RowRun) -> Bool",
+        "pub fn row_run_normal_available(RowRun) -> Bool",
         "pub fn row_run_response_selection(RowRunResponseBorrow) -> Result[RowResponseSelection, RowHostIssue]",
         "pub fn row_source_columns(RowSourcePreparation) -> Array[String]",
         "pub fn row_source_json_page_has_next_cursor(RowSourceJsonPage) -> Bool",
@@ -563,7 +576,7 @@
         "pub fn row_source_typed_json_page_row_count(RowSourceProjectedJsonPage) -> Int",
         "pub fn single_relation_declaration_construction_inventory(Int, Int, Int, Int, Int, Int, Int, Int, RowDeclarationLimits) -> @execution_relation.PreparationRepresentationUnits?",
         "pub fn start_accounted_keyed_row_acquisition(RowKeyedAcquisition, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64, (RowAttempt) -> Bool) -> Result[RowRun, RowHostIssue]",
-        "pub fn start_accounted_listing_row_acquisition(RowAcquisition, @execution_relation.ExecutionCapacity?, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[RowRun, RowHostIssue]",
+        "pub fn start_accounted_listing_row_acquisition(RowAcquisition, @execution_relation.ExecutionCapacity?, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64, response_capacity? : Bool) -> Result[RowRun, RowHostIssue]",
         "pub fn start_accounted_provider_row_acquisition(RowAcquisition, @execution_relation.ExecutionCapacity?, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[RowRun, RowHostIssue]",
         "pub fn start_accounted_row_acquisition(RowAcquisition, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[RowRun, RowHostIssue]",
         "pub fn start_accounted_row_input_acquisition(RowInputAcquisition, @execution_relation.ExecutionCapacity?, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[RowRun, RowHostIssue]",
@@ -683,6 +696,10 @@
           "declaration": "pub fn begin_keyed_row_run(RowRun, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[Unit, RowHostIssue]"
         },
         {
+          "name": "begin_keyed_row_run_response_attempt",
+          "declaration": "pub fn begin_keyed_row_run_response_attempt(RowRun, RowKeyedAcquisition) -> Result[Unit, RowHostIssue]"
+        },
+        {
           "name": "begin_row_capture",
           "declaration": "pub fn begin_row_capture(RowRun) -> Result[Unit, RowHostIssue]"
         },
@@ -739,12 +756,20 @@
           "declaration": "pub fn capture_row_run(RowRun) -> Result[RowSourceCapture, RowHostIssue]"
         },
         {
+          "name": "charge_native_row_input_response",
+          "declaration": "pub fn charge_native_row_input_response(RowRun, Int64) -> Result[RowPageCharge, RowHostIssue]"
+        },
+        {
           "name": "charge_row_run_page",
           "declaration": "pub fn charge_row_run_page(RowRun, Bytes) -> Result[RowPageCharge, RowHostIssue]"
         },
         {
           "name": "charge_row_run_response_body",
           "declaration": "pub fn charge_row_run_response_body(RowRun, Bytes) -> Result[RowPageCharge, RowHostIssue]"
+        },
+        {
+          "name": "check_native_row_input_original",
+          "declaration": "pub fn check_native_row_input_original(RowRun, RowInputAcquisition) -> Result[Unit, RowHostIssue]"
         },
         {
           "name": "check_row_acquisition_original",
@@ -769,6 +794,10 @@
         {
           "name": "check_row_input_compute_binding",
           "declaration": "pub fn check_row_input_compute_binding(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, RowHostIssue]"
+        },
+        {
+          "name": "check_row_keyed_acquisition_original",
+          "declaration": "pub fn check_row_keyed_acquisition_original(RowKeyedAcquisition, RowDeclaration) -> Result[Unit, RowHostIssue]"
         },
         {
           "name": "check_row_run_response_borrow_current",
@@ -817,6 +846,14 @@
         {
           "name": "discard_relation_target_row_original",
           "declaration": "pub fn discard_relation_target_row_original(RelationTargetRow) -> Bool"
+        },
+        {
+          "name": "ensure_row_run_response_transfer_capacity",
+          "declaration": "pub fn ensure_row_run_response_transfer_capacity(RowRunResponseBorrow, Int64) -> Result[Unit, RowHostIssue]"
+        },
+        {
+          "name": "export_query_row_original_read",
+          "declaration": "pub fn export_query_row_original_read(@execution_relation.SuppliedRelationRead, @query_planning.QueryRequirement) -> Result[RowOriginalCaptureExport, RowOriginalCaptureIssue]"
         },
         {
           "name": "export_row_input_original_read",
@@ -937,6 +974,10 @@
         {
           "name": "observe_relation_target",
           "declaration": "pub fn observe_relation_target(RelationTargetDocument, RowDeclaration, String) -> Result[RelationTargetRow, RowSourceIssue]"
+        },
+        {
+          "name": "prepare_catalog_row_input_acquisition",
+          "declaration": "pub fn prepare_catalog_row_input_acquisition(@sourceview_resolution.SourceAcquisition, @pipeline_check_context.ProgramSourceIdentity, @lowering_relation.PreparedSequence, @execution_relation.RegisteredRelationContracts, RowInputLimits, listing_policy? : @capacity_policy.Policy?) -> Result[RowInputAcquisition, RowHostIssue]"
         },
         {
           "name": "prepare_churn_risk_mock_update_mapping",
@@ -1183,6 +1224,10 @@
           "declaration": "pub fn row_capture_original_read(RowSourceCapture) -> @execution_relation.SuppliedRelationRead?"
         },
         {
+          "name": "row_capture_schema_columns",
+          "declaration": "pub fn row_capture_schema_columns(RowSourceCapture, @execution_query.CapturedInputSource) -> Int?"
+        },
+        {
           "name": "row_capture_source",
           "declaration": "pub fn row_capture_source(RowSourceCapture) -> Result[@execution_query.CapturedInputSource, @execution_query.CapturedSourceIssue]"
         },
@@ -1271,6 +1316,10 @@
           "declaration": "pub fn row_input_acquisition_column_contract(RowInputAcquisition, Int) -> @value_contract.Contract?"
         },
         {
+          "name": "row_input_acquisition_column_count",
+          "declaration": "pub fn row_input_acquisition_column_count(RowInputAcquisition) -> Int"
+        },
+        {
           "name": "row_input_acquisition_columns",
           "declaration": "pub fn row_input_acquisition_columns(RowInputAcquisition) -> Array[String]"
         },
@@ -1299,6 +1348,10 @@
           "declaration": "pub fn row_input_acquisition_request_wire(RowInputAcquisition) -> Result[String, RowHostIssue]"
         },
         {
+          "name": "row_input_acquisition_schema",
+          "declaration": "pub fn row_input_acquisition_schema(RowInputAcquisition) -> @relation_schema.Schema"
+        },
+        {
           "name": "row_input_acquisition_target",
           "declaration": "pub fn row_input_acquisition_target(RowInputAcquisition) -> (String, Array[String])"
         },
@@ -1309,6 +1362,10 @@
         {
           "name": "row_input_capture_schema_geometry",
           "declaration": "pub fn row_input_capture_schema_geometry(RowInputAcquisition) -> (Int, Int, Int, Int)?"
+        },
+        {
+          "name": "row_keyed_acquisition_resource",
+          "declaration": "pub fn row_keyed_acquisition_resource(RowKeyedAcquisition) -> String"
         },
         {
           "name": "row_mapping_target_fields",
@@ -1327,12 +1384,20 @@
           "declaration": "pub fn row_original_input_capacity() -> (Int64, Int64)"
         },
         {
+          "name": "row_original_input_query_capacity",
+          "declaration": "pub fn row_original_input_query_capacity(@query_planning.QueryRequirement) -> (Int64, Int64)?"
+        },
+        {
           "name": "row_run_attempt",
           "declaration": "pub fn row_run_attempt(RowRun) -> RowAttempt"
         },
         {
           "name": "row_run_listing_complete",
           "declaration": "pub fn row_run_listing_complete(RowRun) -> Bool"
+        },
+        {
+          "name": "row_run_normal_available",
+          "declaration": "pub fn row_run_normal_available(RowRun) -> Bool"
         },
         {
           "name": "row_run_response_selection",
@@ -1392,7 +1457,7 @@
         },
         {
           "name": "start_accounted_listing_row_acquisition",
-          "declaration": "pub fn start_accounted_listing_row_acquisition(RowAcquisition, @execution_relation.ExecutionCapacity?, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[RowRun, RowHostIssue]"
+          "declaration": "pub fn start_accounted_listing_row_acquisition(RowAcquisition, @execution_relation.ExecutionCapacity?, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64, response_capacity? : Bool) -> Result[RowRun, RowHostIssue]"
         },
         {
           "name": "start_accounted_provider_row_acquisition",
@@ -1620,7 +1685,6 @@
             "pub fn row_source_requirement(RowSourcePreparation) -> @query_planning.QueryRequirement",
             "pub fn row_source_target(RowDeclaration, @query_planning.QueryRequirement) -> Result[(String, Array[String]), RowHostIssue]",
             "pub fn start_accounted_keyed_row_acquisition(RowKeyedAcquisition, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64, (RowAttempt) -> Bool) -> Result[RowRun, RowHostIssue]",
-            "pub fn start_accounted_listing_row_acquisition(RowAcquisition, @execution_relation.ExecutionCapacity?, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[RowRun, RowHostIssue]",
             "pub fn start_accounted_provider_row_acquisition(RowAcquisition, @execution_relation.ExecutionCapacity?, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[RowRun, RowHostIssue]",
             "pub fn start_accounted_row_acquisition(RowAcquisition, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[RowRun, RowHostIssue]",
             "pub fn start_keyed_row_acquisition(RowKeyedAcquisition, String, (RowAttempt) -> Bool) -> Result[RowRun, RowHostIssue]",
@@ -4453,6 +4517,339 @@
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Verification:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "accept_charged_relation_input_document",
+            "begin_keyed_row_run_response_attempt",
+            "borrow_row_captured_input_originals",
+            "check_row_keyed_acquisition_original",
+            "ensure_row_run_response_transfer_capacity",
+            "export_row_input_original_read",
+            "restore_row_input_capture",
+            "restore_row_input_original_read",
+            "restored_row_capture_input",
+            "retain_row_captured_input_originals",
+            "row_capture_input",
+            "row_captured_input_source",
+            "row_captured_input_source_original",
+            "row_captured_inputs_source_at",
+            "row_captured_inputs_source_original_at",
+            "row_input_acquisition_is_listing",
+            "row_input_acquisition_limits",
+            "row_input_capture_identity",
+            "row_input_capture_schema_geometry",
+            "row_keyed_acquisition_resource",
+            "row_run_normal_available"
+          ],
+          "exports": [
+            "pub fn accept_charged_relation_input_document(RowRun, RowPageCharge, RowInputAcquisition, RelationTargetDocument, Int) -> Result[Int, RowHostIssue]",
+            "pub fn begin_keyed_row_run_response_attempt(RowRun, RowKeyedAcquisition) -> Result[Unit, RowHostIssue]",
+            "pub fn borrow_row_captured_input_originals(Array[RowCapturedInput], @physical_resources.Ledger, Int) -> RowCapturedInputs?",
+            "pub fn charge_row_run_response_body(RowRun, Bytes) -> Result[RowPageCharge, RowHostIssue]",
+            "pub fn check_row_keyed_acquisition_original(RowKeyedAcquisition, RowDeclaration) -> Result[Unit, RowHostIssue]",
+            "pub fn ensure_row_run_response_transfer_capacity(RowRunResponseBorrow, Int64) -> Result[Unit, RowHostIssue]",
+            "pub fn export_row_input_original_read(RowInputAcquisition, @execution_relation.SuppliedRelationRead) -> Result[RowOriginalCaptureExport, RowOriginalCaptureIssue]",
+            "pub fn grow_row_run_response_construction_capacity(RowRunResponseBorrow, @execution_relation.ExecutionCapacity) -> Result[Unit, RowHostIssue]",
+            "pub fn restore_row_input_capture(RowInputAcquisition, String, String, Array[String], () -> Bool, reference_issuer? : @value_admission.ReferenceIssuer) -> Result[(RowRestoredOriginalInput, @execution_query.CapturedInputSource), RowOriginalCaptureIssue]",
+            "pub fn restore_row_input_original_read(RowInputAcquisition, String, String, Array[String], () -> Bool, reference_issuer? : @value_admission.ReferenceIssuer) -> Result[RowRestoredOriginalInput, RowOriginalCaptureIssue]",
+            "pub fn restored_row_capture_input(RowInputAcquisition, RowRestoredOriginalInput, @execution_query.CapturedInputSource, @physical_resources.Ledger, @physical_resources.Reservation, @physical_resources.Holding, @ref.Ref[Bool]) -> RowCapturedInput?",
+            "pub fn retain_row_captured_input_originals(Array[RowCapturedInput], @physical_resources.Ledger, Int) -> RowCapturedInputs?",
+            "pub fn row_capture_input(RowSourceCapture) -> RowCapturedInput?",
+            "pub fn row_captured_input_source(RowCapturedInput) -> @execution_query.CapturedInputSource?",
+            "pub fn row_captured_input_source_original(RowCapturedInput) -> @sourceview_resolution.SourceAcquisition?",
+            "pub fn row_captured_inputs_source_at(RowCapturedInputs, Int) -> @execution_query.CapturedInputSource?",
+            "pub fn row_captured_inputs_source_original_at(RowCapturedInputs, Int) -> @sourceview_resolution.SourceAcquisition?",
+            "pub fn row_input_acquisition_is_listing(RowInputAcquisition) -> Bool",
+            "pub fn row_input_acquisition_limits(RowInputAcquisition) -> RowInputLimits",
+            "pub fn row_input_capture_identity(RowInputAcquisition) -> Array[String]?",
+            "pub fn row_input_capture_schema_geometry(RowInputAcquisition) -> (Int, Int, Int, Int)?",
+            "pub fn row_keyed_acquisition_resource(RowKeyedAcquisition) -> String",
+            "pub fn row_run_normal_available(RowRun) -> Bool",
+            "pub fn start_accounted_listing_row_acquisition(RowAcquisition, @execution_relation.ExecutionCapacity?, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64, response_capacity? : Bool) -> Result[RowRun, RowHostIssue]"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "charge_native_row_input_response",
+            "check_native_row_input_original",
+            "prepare_catalog_row_input_acquisition",
+            "row_capture_schema_columns",
+            "row_input_acquisition_schema"
+          ],
+          "exports": [
+            "pub fn charge_native_row_input_response(RowRun, Int64) -> Result[RowPageCharge, RowHostIssue]",
+            "pub fn check_native_row_input_original(RowRun, RowInputAcquisition) -> Result[Unit, RowHostIssue]",
+            "pub fn prepare_catalog_row_input_acquisition(@sourceview_resolution.SourceAcquisition, @pipeline_check_context.ProgramSourceIdentity, @lowering_relation.PreparedSequence, @execution_relation.RegisteredRelationContracts, RowInputLimits, listing_policy? : @capacity_policy.Policy?) -> Result[RowInputAcquisition, RowHostIssue]",
+            "pub fn row_capture_schema_columns(RowSourceCapture, @execution_query.CapturedInputSource) -> Int?",
+            "pub fn row_input_acquisition_schema(RowInputAcquisition) -> @relation_schema.Schema"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "export_query_row_original_read",
+            "row_original_input_query_capacity"
+          ],
+          "exports": [
+            "pub fn export_query_row_original_read(@execution_relation.SuppliedRelationRead, @query_planning.QueryRequirement) -> Result[RowOriginalCaptureExport, RowOriginalCaptureIssue]",
+            "pub fn row_original_input_query_capacity(@query_planning.QueryRequirement) -> (Int64, Int64)?"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "row_input_acquisition_column_count"
+          ],
+          "exports": [
+            "pub fn row_input_acquisition_column_count(RowInputAcquisition) -> Int"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
               }
             ]
           }

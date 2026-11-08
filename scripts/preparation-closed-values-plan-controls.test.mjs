@@ -22,7 +22,7 @@ test('installed Values plan fixed inventory follows current nominal owner fields
   assert.deepEqual(await fields('client_local_host/capacity_plan.mbt','ClientLocalCapacityPlan'),[
     'sequences','admitted_rows','resource_policy','dispatch_entries','dispatch_name_bytes','graph',
     'graph_offset','_retained_result_envelope','publication','schema_inventory','demand_inventory',
-    'value_node_demand','scalar_demand','values','execution','measurement','imports','exports',
+    'value_node_demand','scalar_demand','values','execution','measurement','max_value_bytes','imports','exports',
     'metadata','metadata_retained_bytes','metadata_quote']);
   assert.deepEqual(await fields('run_publication_host/client_program.mbt','ClientFullSequence'),['task','limits','sequence']);
 });

@@ -10,11 +10,11 @@ test "all layouts share distinct and dedupe indices budgets and occurrence order
   for candidate in [RowLayout, ValueColumns, TypedColumns] {
     let input = layout_relation(captured, candidate).storage
     let dc = { remaining: 100000, max_frames: 0, }
-    let dw = { limit: 10000, live: 5, peak: 5, }
+    let dw = { ..row_workspace(10000), live: 5, peak: 5, }
     assert_eq(distinct_indices(input, [0], dc, dw).unwrap(), [0, 1])
     assert_eq(dw.live, 7)
     let gc = { remaining: 100000, max_frames: 0, }
-    let gw = { limit: 10000, live: 5, peak: 5, }
+    let gw = { ..row_workspace(10000), live: 5, peak: 5, }
     // Typed numeric key 1 precedes key 2, regardless of their CIDs.
     assert_eq(dedupe_indices(input, by, order, gc, gw).unwrap(), [3, 2])
     assert_eq(gw.live, 7)
@@ -29,7 +29,7 @@ test "all layouts share distinct and dedupe indices budgets and occurrence order
         (99999 - gc.remaining, gw.peak, false),
         (100000 - gc.remaining, gw.peak - 1, false),
       ] {
-      let workspace = { limit: slots, live: 5, peak: 5, }
+      let workspace = { ..row_workspace(slots), live: 5, peak: 5, }
       let result = dedupe_indices(
         input,
         by,
@@ -45,7 +45,7 @@ test "all layouts share distinct and dedupe indices budgets and occurrence order
         assert_eq(workspace.live, 5)
       }
     }
-    let failed = { limit: 10000, live: 5, peak: 5, }
+    let failed = { ..row_workspace(10000), live: 5, peak: 5, }
     assert_true(
       dedupe_indices(
         input,
@@ -63,11 +63,12 @@ test "all layouts share distinct and dedupe indices budgets and occurrence order
       layout_allocation(10000, 10000, 10000),
     ).unwrap()
     assert_eq(
-      distinct_indices(reversed, [0], { remaining: 100000, max_frames: 0, }, {
-        limit: 10000,
-        live: 0,
-        peak: 0,
-      }).unwrap(),
+      distinct_indices(
+        reversed,
+        [0],
+        { remaining: 100000, max_frames: 0, },
+        row_workspace(10000),
+      ).unwrap(),
       [0, 1],
     )
     assert_eq(
@@ -76,7 +77,7 @@ test "all layouts share distinct and dedupe indices budgets and occurrence order
         by,
         order,
         { remaining: 100000, max_frames: 0, },
-        { limit: 10000, live: 0, peak: 0, },
+        row_workspace(10000),
       ).unwrap(),
       [0, 1],
     )

@@ -14,7 +14,7 @@ fn check_watermark_scale(count : Int) -> Unit raise {
   }
   let allowance = count * 20 + 1000
   let control = { remaining: allowance, max_frames: 100, }
-  let workspace = { limit: count * 7 + 100, live: 0, peak: 0, }
+  let workspace = { ..row_workspace(count * 7 + 100), live: 0, peak: 0, }
   let result = match
     evaluate_watermark_rows(
       row_kernel(owner, 1),

@@ -11,6 +11,7 @@ fn request_model_module_container_bytes(
   provider_captures? : Int = 0,
   input_segments? : Int = 0,
   model_components? : Int = 0,
+  whole_inputs? : Bool = false,
 ) -> Int64? {
   // A captured Stage can also own the serialized Model continuation. Its
   // Compute tail is then empty, but the module's fixed containers still exist.
@@ -25,7 +26,11 @@ fn request_model_module_container_bytes(
     model_components <= tasks &&
     input_segments.to_int64() <= 2L * tasks.to_int64() &&
     @local.local_module_container_inventory(
-      tasks - captures,
+      if whole_inputs {
+        tasks
+      } else {
+        tasks - captures
+      },
       installed_providers,
     )
     is Some(containers) &&
@@ -101,6 +106,7 @@ fn[I] begin_request_model_module(
   query_time : @publication_host.ClientQueryTimePreparation?,
   provider_captures? : Int = 0,
   component_inputs? : Bool = false,
+  whole_inputs? : Bool = false,
 ) -> Result[
   @publication_host.PreparedClientProgram,
   ClientRequestProgramPlanIssue,
@@ -218,6 +224,7 @@ fn[I] begin_request_model_module(
       captures,
       installed_providers,
       provider_captures~,
+      whole_inputs~,
       input_segments=input_segments.to_int(),
       model_components=if component_inputs {
         retained_graphs.length()
@@ -624,6 +631,7 @@ pub fn[I] prepare_request_model_capture_module(
   ],
   query_time? : @publication_host.ClientQueryTimePreparation? = None,
   providers? : Array[@execution.ExecutionCapacity?]? = None,
+  whole_sources? : Array[ClientInstalledWholeSourceCapacity] = [],
   native_source_ref? : String? = None,
   native_database_schema? : String? = None,
   native_table? : String? = None,
@@ -641,7 +649,17 @@ pub fn[I] prepare_request_model_capture_module(
   ) -> @local.ManagedProvider)? = None,
 ) -> Result[ClientInstalledManagedCapturePlan, ClientRequestProgramPlanIssue] {
   let native = native_source_ref is Some(_)
-  let count = if native { 1 } else { declarations.length() }
+  let whole = !whole_sources.is_empty()
+  let count = if whole {
+    whole_sources.length()
+  } else if native {
+    1
+  } else {
+    declarations.length()
+  }
+  if whole && (native || !declarations.is_empty() || providers is Some(_)) {
+    return Err(Installed(Unsupported))
+  }
   if (
       native &&
       (
@@ -707,11 +725,14 @@ pub fn[I] prepare_request_model_capture_module(
           provider_captures=if providers is Some(_) { count } else { 0 },
           component_inputs=component_factory is Some(_) ||
             components_factory is Some(_),
+          whole_inputs=whole,
         ) {
         Err(issue) => return Err(issue)
         Ok(value) => value
       }
-      let protocol_bytes = if native {
+      let protocol_bytes = if whole {
+        0L
+      } else if native {
         match
           request_native_model_protocol_construction_bytes(
             owner,
@@ -737,14 +758,45 @@ pub fn[I] prepare_request_model_capture_module(
           Some(value) => value
         }
       }
-      guard request_local_query_construction_bytes() is Some(query_bytes) &&
-        @execution.checked_preparation_add_product(
-          protocol_bytes,
-          query_bytes,
-          count.to_int64(),
-        )
-        is Some(bytes) else {
-        return Err(Preparation(Policy))
+      let direct = match request_model_direct_occurrences_owned(owner, input) {
+        Ok(value) => value
+        Err(issue) => return Err(Installed(issue))
+      }
+      if @publication_host.client_direct_acquisition_occurrence_count(direct) !=
+        count {
+        return Err(Installed(ForeignOriginal))
+      }
+      let bytes = if whole {
+        // Complete inputs construct no Query; their same Request keeps the
+        // original Source capacities. Query paths retain measured demand.
+        protocol_bytes
+      } else {
+        let mut query_bytes = 0L
+        for index in 0..<count {
+          guard @publication_host.client_direct_acquisition_occurrence_at(
+              direct, index,
+            )
+            is Some((stage, source_input, task)) &&
+            task == index &&
+            request_local_original_query_construction_bytes(
+              prepared, stage, source_input,
+            )
+            is Some(original_bytes) &&
+            @execution.checked_preparation_add_product(
+              query_bytes, original_bytes, 1L,
+            )
+            is Some(total) else {
+            return Err(Preparation(Policy))
+          }
+          query_bytes = total
+        }
+        guard @execution.checked_preparation_add_product(
+            protocol_bytes, query_bytes, 1L,
+          )
+          is Some(bytes) else {
+          return Err(Preparation(Policy))
+        }
+        bytes
       }
       let model = compilation.infers[0]
       let input_calls = if components_factory is None &&
@@ -846,7 +898,7 @@ pub fn[I] prepare_request_model_capture_module(
       // are backed before the first parse/Query call on this SAME Request.
       // Every acquisition borrows these SAME admitted protocol originals. Do
       // not parse/check the identical installation bodies for a second Source.
-      let protocols = if native {
+      let protocols = if native || whole {
         None
       } else {
         match
@@ -857,14 +909,6 @@ pub fn[I] prepare_request_model_capture_module(
           Ok(value) => Some(value)
         }
       }
-      let direct = match request_model_direct_occurrences_owned(owner, input) {
-        Ok(value) => value
-        Err(issue) => return Err(Installed(issue))
-      }
-      if @publication_host.client_direct_acquisition_occurrence_count(direct) !=
-        count {
-        return Err(Installed(ForeignOriginal))
-      }
       let captures = []
       for index in 0..<count {
         guard @publication_host.client_direct_acquisition_occurrence_at(
@@ -873,6 +917,18 @@ pub fn[I] prepare_request_model_capture_module(
           is Some((stage, source_input, task)) &&
           task == index else {
           return Err(Installed(ForeignOriginal))
+        }
+        if whole {
+          let source = whole_sources[index]
+          if !@publication_host.client_source_acquisition_matches_program(
+              prepared,
+              stage,
+              source_input,
+              source.original,
+            ) {
+            return Err(Installed(ForeignOriginal))
+          }
+          continue
         }
         let requirement = match
           (match query_time {
@@ -1000,6 +1056,7 @@ pub fn[I] prepare_request_model_capture_module(
           query_time~,
           direct_occurrences=Some(direct),
           runtime_admission=true,
+          whole_sources~,
         ) {
         Err(issue) => return Err(Installed(issue))
         Ok(value) => value

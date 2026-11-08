@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {boundConstructionActualFixture} from './fixtures/bound-construction-actual.fixture.mjs';
+import './installed-configuration-json.actual.test.mjs';
+import './installed-hubspot-returned-capacity.actual.test.mjs';
 
 // These are installation components, not public Run/Result/Saved acceptance.
 // Every initialization, Resource, shared constructor and cleanup boundary is

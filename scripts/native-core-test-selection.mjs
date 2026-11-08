@@ -1,4 +1,4 @@
-// Discover cases through the pinned compiler's own Native driver metadata.
+// Discover cases through the pinned compiler's own test-driver metadata.
 // --outline builds every executable first; package selection avoids only wholly
 // testless packages. Moon still owns every driver, case, ordering and execution.
 import assert from 'node:assert/strict';
@@ -16,6 +16,9 @@ export const nativeNonModelEntryTestFile =
 
 export const nativeProjectMockContentTestFile =
   'src/cmd/native_client/local_project_mock_content_physical_scoped_wbtest.mbt';
+
+export const nativeRelationTargetIOTestFile =
+  'src/platform_native/row_source/target_io_physical_scoped_wbtest.mbt';
 
 // Both consume the same original file/Backing namespace constructor.
 export const nativeRelationCaptureTestFiles = Object.freeze([
@@ -75,6 +78,7 @@ export const nativeScopedTestFiles = Object.freeze([
   'src/platform_native/installed_arena_control/store_result_return_physical_scoped_wbtest.mbt',
   'src/platform_native/installed_arena_control/store_wal_original_physical_scoped_wbtest.mbt',
   ...nativeRelationCaptureTestFiles,
+  nativeRelationTargetIOTestFile,
   nativeRelationWorkTestFile,
   nativeNonModelEntryTestFile,
 ]);
@@ -219,21 +223,53 @@ function partitionProfiles(args, records, ordinaryPartitions, compilerDirectorie
   };
 }
 
-export function nativeCoreTestSelection(repository, args, {
+export function nativeCoreTestSelection(repository, args, options = {}) {
+  return compilerTestSelection(repository, args, options, 'native', false);
+}
+
+function runnableCompilerCase(record) {
+  return !record.benchmark && !record.entry[2].attrs?.includes('skip');
+}
+
+// Portable selection uses the same bounded compiler metadata reader. A driver
+// can contain only benchmarks or no cases; neither establishes test execution.
+export function portableMoonTestCount(repository, args, target, options = {}) {
+  assert(['js', 'wasm'].includes(target), 'Portable test metadata target required');
+  return compilerTestSelection(repository, args, options, target, true).runnableCases;
+}
+
+function compilerTestSelection(repository, args, {
   env = process.env, execute = execFileSync, partitionProfiles: splitProfiles = false,
-  ordinaryPartitions = false,
-} = {}) {
+  ordinaryPartitions = false, timeoutMs = 60_000, now = Date.now, executionPackages,
+} = {}, target, countOnly) {
+  assert(!countOnly || (!splitProfiles && !ordinaryPartitions && executionPackages === undefined));
   assert(!ordinaryPartitions || splitProfiles, 'Native partitions require original profile discovery');
+  assert(executionPackages === undefined || splitProfiles, 'Dependency selection requires original Native profiles');
+  assert(Number.isSafeInteger(timeoutMs) && timeoutMs > 0 && timeoutMs <= 2147483647,
+    'Native metadata timeout must be a finite positive timer duration');
+  assert.equal(typeof now, 'function');
   repository = realpathSync(repository);
-  const deadline = Date.now() + 60000;
-  const run = values => {
-    const timeout = deadline - Date.now();
+  let observed = now();
+  assert(Number.isSafeInteger(observed) && observed >= 0);
+  const deadline = observed + timeoutMs;
+  assert(Number.isSafeInteger(deadline));
+  const remaining = () => {
+    const current = now();
+    assert(Number.isSafeInteger(current) && current >= observed,
+      'Native metadata clock cannot move backwards');
+    observed = current;
+    const timeout = deadline - current;
     assert(timeout > 0, 'Native test metadata discovery deadline exhausted');
-    return execute('moon', values, {cwd: repository, env, encoding: 'utf8',
-      timeout, maxBuffer: 16 * 1024 ** 2});
+    return timeout;
+  };
+  const run = values => {
+    const result = execute('moon', values, {cwd: repository, env, encoding: 'utf8',
+      timeout: remaining(), maxBuffer: 16 * 1024 ** 2});
+    remaining();
+    return result;
   };
   const discover = paths => {
-    const plan = run(['test', '--target', 'native', ...args, ...paths, '--dry-run']);
+    const plan = run(['test', '--target', target, ...args, ...paths, '--dry-run']);
     const drivers = new Map();
     for (const line of plan.split('\n')) {
       if (!line.includes(' generate-test-driver ')) continue;
@@ -248,13 +284,13 @@ export function nativeCoreTestSelection(repository, args, {
         const result = command[command.indexOf(option) + 1];
         assert(result); return result;
       };
-      assert.equal(value('--target'), 'native');
+      assert.equal(value('--target'), target);
       const key = JSON.stringify([value('--pkg-name'), value('--driver-kind')]);
       assert(!drivers.has(key), 'Duplicate Native test driver');
       drivers.set(key, {command, metadata: resolve(repository, value('--output-metadata')),
         output: value('--output-driver')});
     }
-    assert(drivers.size > 0, 'No compiler-owned Native test drivers');
+    assert(countOnly || drivers.size > 0, 'No compiler-owned Native test drivers');
     return drivers;
   };
   const full = discover([]), packages = new Set(), cases = [], records = [], compilerDirectories = new Set();
@@ -310,6 +346,55 @@ export function nativeCoreTestSelection(repository, args, {
       }
       cases.push(...driver.cases);
     }
+    if (countOnly) {
+      // Keep case identities opaque. Only the compiler's existing benchmark
+      // class and explicit skip attribute are excluded from runnable counts.
+      const runnableCases = records.filter(runnableCompilerCase).length;
+      remaining(); complete = true;
+      return {runnableCases};
+    }
+    let executionScope;
+    if (executionPackages !== undefined) {
+      assert(Array.isArray(executionPackages) && executionPackages.length > 0 &&
+        new Set(executionPackages).size === executionPackages.length, 'Invalid Native dependency package inventory');
+      for (const path of executionPackages) {
+        assert(typeof path === 'string' && path.length > 0 && !path.startsWith('/') &&
+          !path.split('/').some(part => !part || part === '.' || part === '..'), 'Foreign Native dependency path');
+        const original = realpathSync(resolve(repository, path));
+        assert.equal(relative(repository, original).split(sep).join('/'), path, 'Aliased Native dependency package');
+      }
+      const requested = new Set(executionPackages);
+      const subset = records.filter(record => requested.has(record.directory));
+      const preview = partitionProfiles(args, subset, false, compilerDirectories);
+      const ordinaryPaths = preview.ordinary.args?.slice(args.length) ?? [];
+      const ordinaryPackages = new Set(subset.filter(record => runnableCompilerCase(record) &&
+        (ordinaryPaths.includes(record.directory) || ordinaryPaths.includes(record.source))).map(record => record.directory));
+      // A directory input includes nested packages. Keep the complete original
+      // plan if the closure cannot express that boundary without changing any
+      // compiler driver inputs or admitting an unrelated nested driver.
+      const nestedOutside = [...compilerDirectories].some(directory => !requested.has(directory) &&
+        executionPackages.some(parent => directory.startsWith(parent + '/')));
+      // Existing partition balancing counts original driver/case inventory.
+      // A skipped-only driver can win a partition even when two other packages
+      // have runnable cases; test the actual assigned inputs before narrowing.
+      const nonemptyPartitions = !ordinaryPartitions || ordinaryPackages.size >= 2 &&
+        partitionProfiles(args, subset, true, compilerDirectories).ordinary.partitions.every(partition =>
+          subset.some(record => runnableCompilerCase(record) &&
+            (partition.args.slice(args.length).includes(record.directory) ||
+              partition.args.slice(args.length).includes(record.source))));
+      const admitted = subset.some(runnableCompilerCase) && !nestedOutside && nonemptyPartitions;
+      executionScope = {packages:[...executionPackages].sort(), originalCases:cases.length,
+        mode:admitted ? 'subset' : 'full-fallback',
+        reason:admitted ? 'compiler-owned reverse dependency closure' : nestedOutside
+          ? 'retain original inputs for an unselected nested Native package'
+          : 'retain nonempty original Native cases and both ordinary partitions'};
+      if (admitted) {
+        records.splice(0, records.length, ...subset);
+        cases.splice(0, cases.length, ...subset.map(record => record.entry));
+        packages.clear(); for (const record of subset) packages.add(record.directory);
+      }
+      executionScope.selectedCases = cases.length;
+    }
     assert(cases.length > 0, 'No compiler-owned Native test cases');
     const paths = [...packages], selected = discover(paths), selectedCases = [];
     for (const [key, driver] of selected) {
@@ -322,6 +407,7 @@ export function nativeCoreTestSelection(repository, args, {
     assert.deepEqual(selectedCases, cases, 'Native selection changed case identity or order');
     const result = {args: [...args, ...paths], cases: cases.length, packages: paths.length,
       prunedDrivers: full.size - selected.size};
+    if (executionScope) result.executionScope = executionScope;
     const benchmarks = records.filter(record => record.benchmark).length;
     if (benchmarks) result.benchmarkDeclarations = benchmarks;
     if (splitProfiles) result.profiles = partitionProfiles(args, records, ordinaryPartitions, compilerDirectories);
@@ -351,6 +437,7 @@ export function nativeCoreTestSelection(repository, args, {
         partition.drivers = [...drivers.keys()];
       }
     }
+    remaining();
     complete = true;
     return result;
   } finally {

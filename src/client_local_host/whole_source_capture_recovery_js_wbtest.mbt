@@ -371,13 +371,19 @@ test "Whole Source snapshots restore exact original Inputs and execute the same 
 #cfg(target="js")
 fn whole_source_saved_input_fixture(
   rows_count? : Int = 128,
+  source_width? : Int = 1,
 ) -> (
   ClientInstalledEffectManagedPlan,
   (Array[String], String, String, Array[String]),
 ) raise {
-  let policy = installed_row_input_policy(128, 2097152, 10000, 32, 128)
+  let base = installed_row_input_policy(128, 2097152, 10000, 32, 128)
+  let policy = {
+    ..base,
+    wire: { ..base.wire, max_columns: Int::max(100, source_width), },
+  }
   let plan = effect_operation_source_plan_fixture(
     whole_inputs=true,
+    source_width~,
     whole_policy=Some(policy),
   )
   let declaration = plan.whole_sources[0].unwrap().0
@@ -428,9 +434,15 @@ fn whole_source_saved_input_fixture(
     let count = if over_rows { 129 } else { rows_count }
     let body = @utf8.encode(
       "[" +
-      Array::makei(count, index => "{\"id\":" + (index + 1).to_string() + "}").join(
-        ",",
-      ) +
+      Array::makei(count, index => {
+        let fields = ["\"id\":" + (index + 1).to_string()]
+        for column in 1..<source_width {
+          fields.push(
+            "\"field_" + column.to_string() + "\":" + column.to_string(),
+          )
+        }
+        "{" + fields.join(",") + "}"
+      }).join(",") +
       "]",
     )
     let charge = @row_source_host.charge_row_run_page(run, body).unwrap()
@@ -705,4 +717,70 @@ test "tiny Whole restore needs only actual demand under large finite policy ceil
     assert_eq(@resources.ledger_usage(ledger).holdings, 0)
     assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
   }
+}
+
+///|
+#cfg(target="js")
+test "Whole restored width follows its original acquisition above one hundred and refuses foreign capacity" {
+  let (plan, (identity, schema, rows_cid, rows)) = whole_source_saved_input_fixture(
+    rows_count=1,
+    source_width=102,
+  )
+  let selected = plan.whole_sources[0].unwrap().1
+  let foreign = plan.whole_sources[1].unwrap().1
+  assert_eq(
+    @row_source_host.row_input_acquisition_column_count(selected.acquisition),
+    102,
+  )
+  let receiving = whole_source_capture_restoration_capacity(selected, rows).unwrap()
+  let requirements = prepared_installed_effect_managed_requirements(plan)
+  requirements[4] += @execution.execution_capacity_retained_bytes(receiving)
+  requirements[5] += @execution.execution_capacity_execution_bytes(receiving)
+  let (input, initial, ledger, capacity) = effect_parent_test_preparation(
+    plan, requirements,
+  )
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial,
+    input,
+    capacity,
+    plan.prepared,
+    plan.request,
+    plan,
+  ).unwrap()
+  let current = Ref(true)
+  let restored = restore_accounted_client_whole_source_capture(
+    selected,
+    "same-cold-capture",
+    "same-cold-capture",
+    identity,
+    schema,
+    rows_cid,
+    rows,
+    ledger,
+    () => current.val,
+  ).unwrap()
+  let source = accounted_client_source_capture_source(restored).unwrap()
+  assert_eq(
+    client_whole_source_capture_schema_columns(source, selected),
+    Some(102),
+  )
+  assert_eq(client_whole_source_capture_schema_columns(source, foreign), None)
+  assert_eq(
+    export_client_whole_source_capture(source, selected, "same-cold-capture").unwrap(),
+    (identity, schema, rows_cid, rows),
+  )
+  current.val = false
+  assert_eq(client_whole_source_capture_schema_columns(source, selected), None)
+  let mut closed = false
+  for _ in 0..<10000 {
+    if close_accounted_client_source_capture(restored, quantum=64) {
+      closed = true
+      break
+    }
+  }
+  assert_true(closed)
+  retire_installed_managed_run(owner).unwrap()
+  let usage = @resources.ledger_usage(ledger)
+  assert_eq(usage.live_reservations, 0)
+  assert_eq(usage.held_bytes, 0L)
 }

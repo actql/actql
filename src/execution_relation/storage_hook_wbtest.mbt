@@ -2,18 +2,14 @@
 test "absent physical reservation hook preserves row accounting and explicit hooks still run" {
   let owner = row_owner("")
   let control = { remaining: 10000, max_frames: 100, }
-  let wiring = prepare_wiring(owner, ["values_0"], control, {
-    limit: 1000,
-    live: 0,
-    peak: 0,
-  }).unwrap()
+  let wiring = prepare_wiring(owner, ["values_0"], control, row_workspace(1000)).unwrap()
   let source = row_capture(owner)
-  let plain = table_store(wiring, { limit: 1000, live: 0, peak: 0, }).unwrap()
+  let plain = table_store(wiring, row_workspace(1000)).unwrap()
   assert_true(plain.reserve_storage is None)
   let calls = [0]
   let explicit = table_store(
     wiring,
-    { limit: 1000, live: 0, peak: 0, },
+    row_workspace(1000),
     reserve_storage=Some(fn(_, _, _) {
       calls[0] += 1
       true
@@ -29,7 +25,7 @@ test "absent physical reservation hook preserves row accounting and explicit hoo
   assert_eq(plain.workspace.peak, explicit.workspace.peak)
   let rejected = table_store(
     wiring,
-    { limit: 1000, live: 0, peak: 0, },
+    row_workspace(1000),
     reserve_storage=Some(fn(_, _, _) { false }),
   ).unwrap()
   assert_true(commit_table(rejected, 0, source, b) is Err(Limit))

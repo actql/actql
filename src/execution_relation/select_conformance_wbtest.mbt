@@ -107,7 +107,7 @@ test "select preserves every relation value domain and NULL" {
         max_depth: 10,
         max_work: 100000,
       }).unwrap(),
-      { limit: 10000, live: 0, peak: 0, },
+      row_workspace(10000),
       None,
     ).unwrap()
     guard result is AdmittedTable(projected) else {
@@ -168,7 +168,7 @@ test "select resolves qualified fields and keeps authored projection order" {
       max_depth: 2,
       max_work: 100,
     }).unwrap(),
-    { limit: 100, live: 0, peak: 0, },
+    row_workspace(100),
     None,
   ).unwrap()
   guard selected is AdmittedTable(table) else {

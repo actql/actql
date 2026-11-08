@@ -13,7 +13,7 @@ fn resume_test_expression(
     Map([]),
     [],
     { remaining: max_control, max_frames: 100, },
-    { limit: 10000, live: 0, peak: 0, },
+    row_workspace(10000),
     Some(expression_roots(logical, 100)),
   ).unwrap()
   while true {
@@ -87,7 +87,7 @@ test "drain after suspension detaches one result and preserves borrowed roots" {
     Map([]),
     [],
     { remaining: 10000, max_frames: 100, },
-    { limit: 10000, live: 0, peak: 0, },
+    row_workspace(10000),
     Some(expression_roots(b, 100)),
   ).unwrap()
   for _ in 0..<3 {
@@ -149,7 +149,7 @@ test "frame close releases retained operands without releasing caller roots" {
     Map([]),
     [],
     { remaining: 10000, max_frames: 100, },
-    { limit: 10000, live: 0, peak: 0, },
+    row_workspace(10000),
     Some(expression_roots(b, 100)),
   ).unwrap()
   // Enter binary, enter left literal, return left and retain it across RHS.
@@ -195,7 +195,7 @@ test "frame failure is terminal and preserves eager failure and budget priority"
     Map([]),
     [],
     { remaining: 10000, max_frames: 100, },
-    { limit: 10000, live: 0, peak: 0, },
+    row_workspace(10000),
     Some(expression_roots(b, 100)),
   ).unwrap()
   assert_true(advance_expression_frame(frame) is Ok(None))

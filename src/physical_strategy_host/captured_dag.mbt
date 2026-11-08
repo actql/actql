@@ -211,20 +211,25 @@ pub fn open_source_input_dag(
   source : @query.CapturedInputSource,
   ledger : @resources.Ledger,
 ) -> Result[CapturedDAG, RunIssue] {
-  guard graph.captured_prefix_value() == 0 &&
-    !graph.source_free_root_value() &&
-    graph.supplied_slots_count() == 1 &&
-    graph.owners_at(0) is Some(owner) &&
-    @query.captured_source_matches(
-      source,
-      @checked.source_identity(graph.program_value()),
-      owner,
-    ) &&
-    @query.captured_source_original_input_read(source) is Some(read) &&
-    @execution.supplied_relation_read_matches_input(read, owner, 0) else {
+  open_source_inputs_dag(graph, [source], ledger)
+}
+
+///|
+/// Complete input captures retain their checked task/input slots. The same
+/// checked runner owns their resources and retirement; none completes a task.
+pub fn open_source_inputs_dag(
+  graph : CheckedDAG,
+  sources : Array[@query.CapturedInputSource],
+  ledger : @resources.Ledger,
+) -> Result[CapturedDAG, RunIssue] {
+  let (reads, _) = match source_inputs_original_reads(graph, sources) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if reads.length() != graph.supplied_slots_count() {
     return Err(ForeignCapture)
   }
-  open_checked_dag(graph, [], ledger, [], supplied_reads=[(0, 0, read)])
+  open_checked_dag(graph, [], ledger, [], supplied_reads=reads)
 }
 
 ///|
@@ -2277,20 +2282,16 @@ pub fn captured_task_retirement_pending(run : CapturedDAG) -> Bool {
 }
 
 ///|
-/// Supply whole Source reads to the same checked Effect tasks. These input
-/// captures never enter completed task slots and keep their RowRun custody.
-pub fn open_source_inputs_effect_run_dag(
-  checked : CheckedEffectRunDAG,
+// Shared nominal input binding for Pure and Effect. Matching DATA cannot
+// replace the checked owner, live original read or exact Source input slot.
+fn source_inputs_original_reads(
   graph : CheckedDAG,
   sources : Array[@query.CapturedInputSource],
-  ledger : @resources.Ledger,
-  keyed? : (Int, Int, @execution.SuppliedRelationRead)? = None,
-  models? : Array[(Int, Int, @execution.CompletedOutput)] = [],
-) -> Result[CapturedEffectRunDAG, RunIssue] {
-  guard @graph.source_inputs_dag_matches_original(
-    graph,
-    checked.computation.graph_value(),
-  ) else {
+) -> Result[
+  (Array[(Int, Int, @execution.SuppliedRelationRead)], Array[(Int, Int)]),
+  RunIssue,
+] {
+  if graph.captured_prefix_value() != 0 || graph.source_free_root_value() {
     return Err(ForeignCapture)
   }
   let reads = []
@@ -2323,6 +2324,30 @@ pub fn open_source_inputs_effect_run_dag(
     }
     seen.push((slot.consumer, slot.input))
     reads.push((slot.consumer, slot.input, read))
+  }
+  Ok((reads, seen))
+}
+
+///|
+/// Supply whole Source reads to the same checked Effect tasks. These input
+/// captures never enter completed task slots and keep their RowRun custody.
+pub fn open_source_inputs_effect_run_dag(
+  checked : CheckedEffectRunDAG,
+  graph : CheckedDAG,
+  sources : Array[@query.CapturedInputSource],
+  ledger : @resources.Ledger,
+  keyed? : (Int, Int, @execution.SuppliedRelationRead)? = None,
+  models? : Array[(Int, Int, @execution.CompletedOutput)] = [],
+) -> Result[CapturedEffectRunDAG, RunIssue] {
+  guard @graph.source_inputs_dag_matches_original(
+    graph,
+    checked.computation.graph_value(),
+  ) else {
+    return Err(ForeignCapture)
+  }
+  let (reads, seen) = match source_inputs_original_reads(graph, sources) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
   let graph = match keyed {
     None => graph

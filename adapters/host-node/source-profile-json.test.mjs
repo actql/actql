@@ -74,6 +74,48 @@ test('Source profile reader joins UTF-8 across bounded chunks', async () => {
   assert.equal(observed.closes, 1);
 });
 
+test('Source profile reader stages the same decoded UTF8 original before its single native parse', async t => {
+  const wire = '{"x":"é😀\\u0041"}', bytes = Buffer.from(wire), observed = source(bytes, {step: 1});
+  const events = [], parse = JSON.parse;
+  t.mock.method(JSON, 'parse', value => {
+    assert.equal(value, wire); events.push('parse');
+    return parse(value);
+  });
+  assert.deepEqual(await readSourceProfileJson('/profile.json', {maxBytes: bytes.length,
+    openFile: observed.openFile,
+    beforeDecode(received) {assert.equal(received, bytes.length); events.push('decode');},
+    beforeParse(text) {assert.equal(text, wire); assert.equal(observed.closes, 0); events.push('geometry');}}),
+  {x: 'é😀A'});
+  assert.deepEqual(events, ['decode', 'geometry', 'parse']);
+  assert.equal(observed.opens, 1); assert.equal(observed.closes, 1);
+});
+
+test('Source profile reader preserves preparse refusal and the same pending physical close', async t => {
+  const primary = new Error('OriginalJSONConstructionRefused'), closeFailure = new Error('OriginalClosePending');
+  const observed = source(Buffer.from('{"x":1}'), {closeFailure});
+  let parses = 0;
+  t.mock.method(JSON, 'parse', () => {parses++; assert.fail('No parse before admission');});
+  await assert.rejects(readSourceProfileJson('/profile.json', {openFile: observed.openFile,
+    beforeParse() {throw primary;}}), error => {
+    assert.equal(error.cause, primary); assert.deepEqual(error.errors, [primary, closeFailure]);
+    assert.equal(error.cleanupHandle.status().pending, true);
+    return true;
+  });
+  assert.equal(parses, 0); assert.equal(observed.opens, 1); assert.equal(observed.closes, 1);
+});
+
+test('Source profile reader keeps native invalid-JSON refusal after geometry and rejects asynchronous admission', async () => {
+  const invalid = source(Buffer.from('{"x":'));
+  let calls = 0;
+  await assert.rejects(readSourceProfileJson('/profile.json', {openFile: invalid.openFile,
+    beforeParse(wire) {assert.equal(wire, '{"x":'); calls++;}}), SyntaxError);
+  assert.equal(calls, 1); assert.equal(invalid.closes, 1);
+  const asynchronous = source(Buffer.from('{}'));
+  await assert.rejects(readSourceProfileJson('/profile.json', {openFile: asynchronous.openFile,
+    beforeParse: async () => {}}), {message: 'InvalidInstalledConfigurationConstruction'});
+  assert.equal(asynchronous.closes, 1);
+});
+
 for (const [name, bytes] of [['empty', ''], ['malformed', '{"x":']]) {
   test(`Source profile reader preserves ${name} JSON failure and closes`, async () => {
     const observed = source(Buffer.from(bytes));
@@ -263,4 +305,23 @@ test('configuration reader selection refuses malformed original-bytes ports and 
   assert.equal(Object.hasOwn(selected, 'readOriginalBytes'), false);
   assert.equal(selected.readOriginalText('/text'), 'text');
   assert.equal(Object.hasOwn(captureConfigurationReaders(undefined, undefined, refuse), 'readOriginalBytes'), false);
+});
+
+test('profile construction ports retain original methods before reads await and reject accessors', async () => {
+  const events = [], receiver = {
+    readJson() {return {};}, readText() {return 'original';},
+    prepareProfile(...args) {assert.strictEqual(this, receiver); events.push(['prepare', ...args]);return 'prepared';},
+    readProfile(...args) {assert.strictEqual(this, receiver); events.push(['read', ...args]);return 'read';},
+  };
+  const selected = captureConfigurationReaders(receiver, undefined, () => assert.fail('Valid originals'));
+  receiver.prepareProfile = receiver.readProfile = () => assert.fail('Replaced method');
+  assert.equal(selected.prepareProfile('original', 1), 'prepared');
+  assert.equal(await selected.readProfile('/original', 2), 'read');
+  assert.deepEqual(events, [['prepare', 'original', 1], ['read', '/original', 2]]);
+  for (const name of ['prepareProfile', 'readProfile']) {
+    const refused = new Error('Original refusal');
+    const reader = {readJson() {}, readText() {}};
+    Object.defineProperty(reader, name, {get() {assert.fail('No getter execution');}});
+    assert.throws(() => captureConfigurationReaders(reader, undefined, () => {throw refused;}), error => error === refused);
+  }
 });

@@ -189,7 +189,7 @@ test "fixed producer workload retains both narrow and full width branches" {
         count,
         control,
         invocation.output_budget,
-        { limit: limits.operation_entries, live: 0, peak: 0, },
+        { ..row_workspace(limits.operation_entries), live: 0, peak: 0, },
         physical,
         logical,
       )

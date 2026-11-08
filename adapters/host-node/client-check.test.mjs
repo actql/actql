@@ -102,7 +102,7 @@ const configurations = Object.freeze({
 });
 
 async function installedSource(root, {readOutcome, aliases,
-  environment = sourceEnvironment, seedAuthoringRows = false}, hostEnvironmentWire) {
+  environment = sourceEnvironment, seedAuthoringRows = false, incompatiblePhysicalSchema = false}, hostEnvironmentWire) {
   // This is an adapter publication for the installed Host, not a standalone
   // checker profile. Preserve the Host's own policy when adding Source facts.
   const base = JSON.parse(hostEnvironmentWire ?? selectInstalledLocalMaterializationEnvironment(moon,
@@ -114,8 +114,10 @@ async function installedSource(root, {readOutcome, aliases,
   const instance = await DuckDBInstance.create(database);
   const connection = await instance.connect();
   try {
-    await connection.run('CREATE TABLE records(id DOUBLE, amount DOUBLE)');
-    if (seedAuthoringRows) await connection.run('INSERT INTO records VALUES (1, 23), (2, 5)');
+    await connection.run(incompatiblePhysicalSchema ? 'CREATE TABLE records(id VARCHAR, amount DOUBLE)' : 'CREATE TABLE records(id DOUBLE, amount DOUBLE)');
+    if (Number.isSafeInteger(seedAuthoringRows)) {
+      await connection.run('INSERT INTO records SELECT CAST(range + 1 AS DOUBLE), 0::DOUBLE FROM range(CAST(? AS BIGINT))', [seedAuthoringRows]);
+    } else if (seedAuthoringRows) await connection.run('INSERT INTO records VALUES (1, 23), (2, 5)');
   } finally {
     connection.closeSync();
     instance.closeSync();
@@ -6256,6 +6258,44 @@ for (const entrance of ['local', 'http']) {
     assertNamespaceCheckOnly(client);
   });
 }
+
+test('local: unfiltered DuckDB Whole source retains the original native input', async t => {
+  const client = await localClient(t, {...configurations.allowed, seedAuthoringRows: true});
+  client.permitExplicitExecution();
+  for (const text of [
+    'SELECT id FROM records',
+    'WITH records AS (SELECT id FROM records) SELECT id FROM records',
+    'WITH chosen AS (SELECT id FROM records), records AS (SELECT id FROM chosen) SELECT id FROM records',
+  ]) {
+    const run = await client.startSource(text, {format: 'sql'});
+    assert.equal((await run.wait()).status, 'succeeded', text);
+    assert.deepEqual(await run.result('main').all(), [{id: 1}, {id: 2}], text);
+  }
+});
+
+test('local: unfiltered DuckDB Whole input publishes every row beyond the old small fixture', async t => {
+  const client = await localClient(t, {...configurations.allowed, seedAuthoringRows: 128});
+  client.permitExplicitExecution();
+  const run = await client.startSource('SELECT id FROM records', {format: 'sql'});
+  assert.equal((await run.wait()).status, 'succeeded');
+  assert.deepEqual(await run.result('main').all(),
+    Array.from({length: 128}, (_, index) => ({id: index + 1})));
+});
+
+test('local: empty DuckDB Whole source checks its original native schema', async t => {
+  const client = await localClient(t, configurations.allowed);
+  client.permitExplicitExecution();
+  const run = await client.startSource('SELECT id FROM records', {format: 'sql'});
+  assert.equal((await run.wait()).status, 'succeeded');
+  assert.deepEqual(await run.result('main').all(), []);
+});
+
+test('local: empty DuckDB Whole source refuses a foreign physical schema', async t => {
+  const client = await localClient(t, {...configurations.allowed, incompatiblePhysicalSchema: true});
+  client.permitExplicitExecution();
+  const run = await client.startSource('SELECT id FROM records', {format: 'sql'});
+  assert.equal((await run.wait()).status, 'failed');
+});
 
 for (const [entrance, open] of Object.entries(entrances)) {
   test(`${entrance}: semantic query violations remain distinct from implementation limits`, async t => {

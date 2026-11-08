@@ -27,6 +27,7 @@ priv struct ClientLocalCapacityPlan {
   values : @execution.ValueLimits
   execution : @execution.SequenceExecutionLimits
   measurement : @execution.FixedInputGuardMeasureLimits
+  max_value_bytes : Int
   imports : @local.LocalImportLimits
   exports : @local.LocalExportLimits
   metadata : @local_driver.LocalManagedMetadataLimits
@@ -125,24 +126,38 @@ fn client_local_capacity_plan(
     scalar_demand~,
     value_node_demand~,
   )
+  let original_values_text = if scalar_demand is None {
+    value_node_demand.bind(demand => {
+      match client_local_original_values_text_bound(sequences, demand) {
+        Some(value) if value.0 > values.max_text_bytes => Some(value)
+        _ => None
+      }
+    })
+  } else {
+    None
+  }
   let value_node_demand = if scalar_demand is None &&
     value_node_demand is Some(original) {
     Some({
       ..original,
-      text_bound: match content {
-        Some(selected) =>
-          installed_content_text_bound(
-            selected,
-            sequences,
-            original,
-            values.max_text_bytes,
-          )
+      text_bound: match original_values_text {
+        Some((bytes, _, _)) => Some(bytes)
         None =>
-          client_local_decimal_text_bound(
-            sequences,
-            original,
-            values.max_text_bytes,
-          )
+          match content {
+            Some(selected) =>
+              installed_content_text_bound(
+                selected,
+                sequences,
+                original,
+                values.max_text_bytes,
+              )
+            None =>
+              client_local_decimal_text_bound(
+                sequences,
+                original,
+                values.max_text_bytes,
+              )
+          }
       },
     })
   } else {
@@ -197,6 +212,11 @@ fn client_local_capacity_plan(
   } else {
     execution
   }
+  let measurement = match original_values_text {
+    Some((_, wire, _)) =>
+      { ..measurement, max_bytes: Int::max(measurement.max_bytes, wire), }
+    None => measurement
+  }
   let original_imports = client_local_import_limits_for_rows(max_rows, values)
   let original_exports = client_local_export_limits(max_rows, values)
   let fields = dispatch_inventory.map(value => value.fields)
@@ -241,6 +261,52 @@ fn client_local_capacity_plan(
     },
     retained_bytes: 0L,
   }
+  // These are working/transport extents of the SAME checked Values, not new
+  // policy or capacity. Quote and provider construction consume them together;
+  // the original Ledger and operator facility still admit the resulting cost.
+  let imports = match original_values_text {
+    Some((text, wire, row_wire)) =>
+      {
+        ..imports,
+        wire: {
+          ..imports.wire,
+          max_bytes: Int::max(imports.wire.max_bytes, wire),
+        },
+        row: {
+          ..imports.row,
+          max_bytes: Int::max(
+            imports.row.max_bytes,
+            Int::min(row_wire, 16777216),
+          ),
+          max_text_bytes: Int::max(
+            imports.row.max_text_bytes,
+            Int::min(text, row_wire),
+          ),
+        },
+        max_batch_bytes: Int::max(
+          imports.max_batch_bytes,
+          Int::min(row_wire, 16777216),
+        ),
+      }
+    None => imports
+  }
+  let exports = match original_values_text {
+    Some((_, wire, row_wire)) =>
+      {
+        ..exports,
+        wire: {
+          ..exports.wire,
+          max_bytes: Int::max(exports.wire.max_bytes, wire),
+        },
+        // Keep the existing export constructor's 16MiB batch ceiling. Total
+        // wire demand is distinct; oversized actual rows still refuse there.
+        max_batch_bytes: Int::max(
+          exports.max_batch_bytes,
+          Int::min(row_wire, 16777216),
+        ),
+      }
+    None => exports
+  }
   // The same producer proof bounds every JSON node, including its opaque
   // reference envelope; arbitrary ContentRef still has no such proof. Use a
   // conservative punctuation/numeric envelope per node and escaped text.
@@ -272,6 +338,25 @@ fn client_local_capacity_plan(
         },
       }
     None => exports
+  }
+  // Value admission follows the selected finite value/measurement policy.
+  // Row framing keeps its small initial window: actual measured output grows
+  // the same Task workspace before allocating a larger export batch.
+  let max_value_bytes = if scalar_demand is Some(_) {
+    10000
+  } else {
+    Int::max(
+      10000,
+      Int::min(
+        // Total wire demand can exceed a single supported physical frame.
+        // Preserve the existing Local/framer 16MiB bound for one value.
+        Int::min(
+          16777216,
+          Int::max(imports.row.max_bytes, imports.wire.max_bytes),
+        ),
+        measurement.max_bytes,
+      ),
+    )
   }
   let result_envelope = match graph {
     Some(original) => client_local_result_envelope(original, max_rows)
@@ -325,6 +410,7 @@ fn client_local_capacity_plan(
         values,
         execution,
         measurement,
+        max_value_bytes,
         imports,
         exports,
         metadata: {
@@ -371,6 +457,7 @@ fn client_local_capacity_plan(
         values,
         execution,
         measurement,
+        max_value_bytes,
         imports: {
           ..imports,
           wire: {

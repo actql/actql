@@ -25,7 +25,7 @@ fn row_window_scale_sample(count : Int, sliding : Bool) -> (Int, Int) raise {
   let allowance = output_count * 20 + count * 10 + 1000
   let control = { remaining: allowance, max_frames: 100, }
   let workspace = {
-    limit: output_count * 8 + count * 4 + 100,
+    ..row_workspace(output_count * 8 + count * 4 + 100),
     live: 0,
     peak: 0,
   }

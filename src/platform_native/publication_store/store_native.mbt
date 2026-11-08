@@ -2630,12 +2630,29 @@ pub fn Store::commit_publication(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  capture? : @local.ClientProgramCapture? = None,
 ) -> Result[NativePublicationCommit, NativePublicationStoreIssue] {
   self.with_original_read(false, false, fn() {
     self.commit_publication_in_scope(
-      run_definition, invocation, definitions, artifacts, derivations, orderings,
-      retentions, bindings, binding_schema_wires, manifest, receipt, captured_run,
-      request, attempt, index, max_wire_bytes, max_nodes, max_depth,
+      run_definition,
+      invocation,
+      definitions,
+      artifacts,
+      derivations,
+      orderings,
+      retentions,
+      bindings,
+      binding_schema_wires,
+      manifest,
+      receipt,
+      captured_run,
+      request,
+      attempt,
+      index,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      capture~,
     )
   })
 }
@@ -2661,6 +2678,7 @@ fn Store::commit_publication_in_scope(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  capture? : @local.ClientProgramCapture? = None,
 ) -> Result[NativePublicationCommit, NativePublicationStoreIssue] {
   if self.closed {
     return Err(Closed)
@@ -2671,14 +2689,25 @@ fn Store::commit_publication_in_scope(
   if bindings.length() != binding_schema_wires.length() {
     return Err(InvalidConfiguration)
   }
-  match
-    publication_commit(
-      @publication.validate_effect_free_publication_commit_with_result_evidence(
-        run_definition, invocation, definitions, artifacts, derivations, orderings,
-        retentions, bindings, manifest, receipt, captured_run, request, attempt,
-        index, max_wire_bytes, max_nodes, max_depth,
-      ),
-    ) {
+  let checked = match capture {
+    Some(original) =>
+      @local.check_program_commit_validation(
+        original, run_definition, invocation, definitions, artifacts, derivations,
+        orderings, retentions, bindings, manifest, receipt, captured_run, request,
+        attempt, index,
+      ).map_err(issue => {
+        NativePublicationStoreIssue::PublicationPreparation(issue)
+      })
+    None =>
+      publication_commit(
+        @publication.validate_effect_free_publication_commit_with_result_evidence(
+          run_definition, invocation, definitions, artifacts, derivations, orderings,
+          retentions, bindings, manifest, receipt, captured_run, request, attempt,
+          index, max_wire_bytes, max_nodes, max_depth,
+        ),
+      )
+  }
+  match checked {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }

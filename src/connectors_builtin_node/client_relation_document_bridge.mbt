@@ -178,6 +178,20 @@ pub fn client_program_relation_accept_charged_document(
 }
 
 ///|
+#export_name("clientProgramRelationAcceptChargedInputDocument")
+pub fn client_program_relation_accept_charged_input_document(
+  run : @client_row_source_host.RowRun,
+  charge : @client_row_source_host.RowPageCharge,
+  acquisition : @client_row_source_host.RowInputAcquisition,
+  document : @client_row_source_host.RelationTargetDocument,
+  max_work : Int,
+) -> Result[Int, @client_row_source_host.RowHostIssue] {
+  @client_row_source_host.accept_charged_relation_input_document(
+    run, charge, acquisition, document, max_work,
+  )
+}
+
+///|
 #export_name("clientProgramRelationTargetRowCount")
 pub fn client_program_relation_target_row_count(
   document : @client_row_source_host.RelationTargetDocument,

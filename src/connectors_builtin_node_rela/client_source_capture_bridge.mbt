@@ -172,3 +172,48 @@ pub fn client_program_source_capture_usage(
     usage.reserved_execution_bytes,
   ]
 }
+
+///|
+#export_name("clientProgramExportQuerySourceOriginalRead")
+pub fn client_program_export_query_source_original_read(
+  read : @execution.SuppliedRelationRead,
+  requirement : @planning.QueryRequirement,
+) -> Result[
+  (String, String, Array[String]),
+  @client_row_source_host.RowOriginalCaptureIssue,
+] {
+  @client_row_source_host.export_query_row_original_read(read, requirement).map(value => {
+      @client_row_source_host.row_original_capture_export_facts(value)
+    },
+  )
+}
+
+///|
+#export_name("clientProgramIdentifyQueryCapturedSourceRelation")
+pub fn client_program_identify_query_captured_source_relation(
+  source : @query.CapturedInputSource,
+  requirement : @planning.QueryRequirement,
+) -> Result[@query.CapturedSourceRelationIdentity, @query.CapturedSourceIssue] {
+  guard @client_local_host.client_source_capture_schema_columns(
+      source, requirement,
+    )
+    is Some(columns) else {
+    return Err(@query.Unavailable)
+  }
+  identify_installed_captured_source(source, 0, columns~)
+}
+
+///|
+#export_name("clientProgramIdentifyQueryCapturedEffectSourceRelation")
+pub fn client_program_identify_query_captured_effect_source_relation(
+  source : @query.CapturedInputSource,
+  requirement : @planning.QueryRequirement,
+) -> Result[@query.CapturedSourceRelationIdentity, @query.CapturedSourceIssue] {
+  guard @client_local_host.client_source_capture_schema_columns(
+      source, requirement,
+    )
+    is Some(columns) else {
+    return Err(@query.Unavailable)
+  }
+  identify_installed_captured_source(source, 16777216, columns~)
+}

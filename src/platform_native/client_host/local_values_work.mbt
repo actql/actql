@@ -13,6 +13,12 @@ struct NativeClientValuesWork {
   mut requirements : @local.ClientLocalRequirements?
   current : () -> Bool
   original_access : NativeLocalValuesOriginalAccess?
+  managed : @local.ClientInstalledManagedRun?
+  mut publication_invocation : (
+    @publication.RunEvidenceValue,
+    @publication.PublicationContract,
+  )?
+  mut publication : @local.ClientProgramPublication?
 }
 
 ///|
@@ -307,6 +313,9 @@ fn open_native_client_local_values_work(
     requirements: Some(requirements),
     current,
     original_access,
+    managed,
+    publication_invocation: None,
+    publication: None,
   })
 }
 
@@ -390,7 +399,12 @@ pub fn NativeClientValuesWork::prepare_result_export(
   }
   let output = match
     self.execution.prepare_result_export(
-      result_index, row_limits, max_entries, max_name_bytes, limits,
+      result_index,
+      row_limits,
+      max_entries,
+      max_name_bytes,
+      limits,
+      publication=self.publication,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Export(issue))
@@ -467,4 +481,14 @@ pub fn NativeClientValuesWork::close(self : NativeClientValuesWork) -> Bool {
   }
   self.requirements = None
   true
+}
+
+///|
+/// Borrow the same Plan's bridge and evidence metadata limits separately from
+/// Result row workspace. This issues no Start, Read or publication authority.
+pub fn NativeClientValuesWork::publication_entry_limits(
+  self : NativeClientValuesWork,
+) -> (Int, Int)? {
+  guard self.requirements is Some(original) else { return None }
+  original.publication_entry_limits(self.prepared)
 }

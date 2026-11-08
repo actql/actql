@@ -69,8 +69,10 @@ import {
 
 options(
   targets: {
+    "original_values_text_working_js_wbtest.mbt": [ "js" ],
     "preparation_request_native_document_js_wbtest.mbt": [ "js" ],
     "preparation_request_native_intake_js_wbtest.mbt": [ "js" ],
+    "preparation_request_native_intake_retirement_js_wbtest.mbt": [ "js" ],
     "preparation_request_acquired_graph_js_wbtest.mbt": [ "js" ],
     "preparation_request_model_graph_js_wbtest.mbt": [ "js" ],
     "preparation_request_model_materials_js_wbtest.mbt": [ "js" ],
@@ -137,6 +139,8 @@ options(
     "preparation_request_intent_js_wbtest.mbt": [ "js" ],
     "preparation_request_plan_input_js_wbtest.mbt": [ "js" ],
     "preparation_request_compilation_handoff_js_wbtest.mbt": [ "js" ],
+    "preparation_request_artifact_retention_js_wbtest.mbt": [ "js" ],
+    "native_publication_workspace_js_wbtest.mbt": [ "js" ],
     "preparation_request_model_query_time_js_wbtest.mbt": [ "js" ],
     "preparation_request_invocation_js_wbtest.mbt": [ "js" ],
     "preparation_request_document_js_wbtest.mbt": [ "js" ],

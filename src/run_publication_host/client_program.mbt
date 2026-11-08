@@ -96,7 +96,9 @@ pub fn prepared_client_values_sequence_limits(
   value : PreparedClientProgram,
 ) -> @lower.SequenceLimits {
   {
-    ..client_standard_values_sequence_limits(),
+    ..client_sequence_limits_with_projection_demand(
+      value.sequence_preparation_demand,
+    ),
     max_rows: value.local_values_max_rows,
     max_cells: Int::max(
       client_standard_values_sequence_limits().max_cells,

@@ -56,10 +56,19 @@ function commands(name, target, raw = false) {
   const scratch = join(root, '_build', 'local-checks', name);
   const resolve = text => raw ? String(text) : String(text)
     .replaceAll('${{ matrix.target }}', target)
+    .replaceAll('${{ needs.select-targets.outputs.moon_test_selection }}', 'false')
     .replaceAll('${{ github.workspace }}', root.replace(/\/$/u, ''))
     .replaceAll('${{ runner.temp }}', scratch)
     .replaceAll('${{ github.sha }}', 'local');
   const environment = ([key, value]) => {
+    if (!raw && name === 'core' && key === 'CI_PLAN') {
+      if (value !== '${{ needs.select-targets.outputs.plan }}') {
+        fail('Unsupported Core selection expression; local CI must retain complete coverage');
+      }
+      // Local job execution has no authenticated PR plan. Keep full coverage,
+      // including when the developer's parent shell contains a CI_PLAN value.
+      return [key, ''];
+    }
     if (!raw && name === 'core' && key === 'ACTQL_TEST_NATIVE_CORE_PARTITION') {
       if (value !== "${{ matrix.target == 'native' && format('{0}/2', matrix.partition) || '' }}") {
         fail('Unsupported Native Core partition expression; local CI must retain complete coverage');

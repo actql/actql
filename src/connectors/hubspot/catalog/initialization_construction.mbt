@@ -12,6 +12,25 @@ fn initialization_collection_units(
 }
 
 ///|
+// One Catalog output model for both Source initialization and Effect metadata.
+// Parser/index/sort/schema-writer forests do not escape with these originals.
+fn property_catalog_retained_units(
+  body_bytes : Int,
+  object_units : Int,
+  limits : PropertyLimits,
+) -> @execution.PreparationRepresentationUnits {
+  let n = Int::min(Int::max(1, body_bytes), limits.max_nodes).to_int64()
+  let f = Int64::min(n, limits.max_properties.to_int64())
+  {
+    record_headers: 8L + 4L * f + n,
+    reference_slots: 16L + 8L * f + 2L * n,
+    scalar_words: 8L + 4L * f,
+    owned_utf16_units: body_bytes.to_int64() + object_units.to_int64() + 64L,
+    owned_wire_bytes: 0L,
+  }
+}
+
+///|
 // The preserving metadata parser and normalizing schema parser are distinct
 // original operations. This inventory neither parses nor admits their input.
 fn initialization_decoded_construction(
@@ -167,6 +186,59 @@ pub fn object_initialization_construction_capacity(
   max_schema_nodes : Int,
   max_schema_depth : Int,
 ) -> @execution.ExecutionCapacity? {
+  guard object_initialization_peak_capacity(
+      body_bytes, encoded_units, object_units, limits, max_columns, max_name_bytes,
+      max_schema_bytes, max_schema_nodes, max_schema_depth,
+    )
+    is Some((peak, schema_bytes)) else {
+    return None
+  }
+  let n = Int::min(Int::max(1, body_bytes), limits.max_nodes).to_int64()
+  let f = Int64::min(n, limits.max_properties.to_int64())
+  guard @execution.compose_preparation_representation([
+      property_catalog_retained_units(body_bytes, object_units, limits),
+      {
+        // Host result/view/Buffer records and the copied names Array escape.
+        // The Array and view borrow the Catalog names and schema String.
+        record_headers: 8L,
+        reference_slots: 24L + f,
+        scalar_words: 8L,
+        owned_utf16_units: schema_bytes.to_int64() + 71L,
+        owned_wire_bytes: body_bytes.to_int64(),
+      },
+    ])
+    is Some(output) &&
+    hubspot_effect_capacity(output, []) is Some(retained) &&
+    @execution.add_execution_capacity(
+      retained,
+      @execution.execution_capacity(
+        0L,
+        @execution.execution_capacity_execution_bytes(peak),
+      ).unwrap(),
+    )
+    is Some(result) else {
+    return None
+  }
+  // The existing parent composer holds this complete peak until the original
+  // successful-return cut selects retained-only. Failure never spends it.
+  Some(result)
+}
+
+///|
+// Preserve the complete old constructor peak, including malformed prefixes.
+// The schema extent is the same already-computed output bound, not another
+// parse, copied String or a maximum newly treated as initialized storage.
+fn object_initialization_peak_capacity(
+  body_bytes : Int,
+  encoded_units : Int,
+  object_units : Int,
+  limits : PropertyLimits,
+  max_columns : Int,
+  max_name_bytes : Int,
+  max_schema_bytes : Int,
+  max_schema_nodes : Int,
+  max_schema_depth : Int,
+) -> (@execution.ExecutionCapacity, Int)? {
   if body_bytes < 0 ||
     encoded_units < 0 ||
     object_units < 0 ||
@@ -278,5 +350,5 @@ pub fn object_initialization_construction_capacity(
       sb.to_int64(),
       owned_wire_bytes: hash.owned_wire_bytes + body_bytes.to_int64(),
     },
-  ])
+  ]).map(capacity => (capacity, sb))
 }

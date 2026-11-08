@@ -12,7 +12,7 @@ test "inner join indices preserve left major right minor duplicates and exact de
     Null,
     decimal_value("1.01", 2),
   ])
-  let workspace = { limit: 1000, live: 3, peak: 3, }
+  let workspace = { ..row_workspace(1000), live: 3, peak: 3, }
   let pairs = inner_join_indices(
     left,
     right,
@@ -41,7 +41,7 @@ test "decimal join corpus preserves scale equality and extreme inequality" {
     decimal_value("999999999999999999999999999999999999.99", 2),
     decimal_value("-10.01", 2),
   ])
-  let workspace = { limit: 1000, live: 0, peak: 0, }
+  let workspace = row_workspace(1000)
   assert_eq(
     inner_join_indices(
       left,
@@ -62,7 +62,7 @@ test "decimal join corpus preserves scale equality and extreme inequality" {
       false,
       10,
       { remaining: 10000, max_frames: 0, },
-      { limit: 1000, live: 0, peak: 0, },
+      row_workspace(1000),
     ).unwrap(),
     [],
   )
@@ -73,7 +73,7 @@ test "inner join indices bound intermediate output and release only their own sc
   let left = order_table([Number(1), Number(1)])
   let right = order_table([Number(1), Number(1)])
   for (rows, slots, work) in [(3, 100, 1000), (4, 5, 1000), (4, 100, 1)] {
-    let workspace = { limit: slots, live: 2, peak: 2, }
+    let workspace = { ..row_workspace(slots), live: 2, peak: 2, }
     let control = { remaining: work, max_frames: 0, }
     assert_true(
       inner_join_indices(left, right, [(0, 0)], false, rows, control, workspace)
@@ -82,7 +82,7 @@ test "inner join indices bound intermediate output and release only their own sc
     assert_eq(workspace.live, 2)
     assert_true(control.remaining < work)
   }
-  let workspace = { limit: 100, live: 2, peak: 2, }
+  let workspace = { ..row_workspace(100), live: 2, peak: 2, }
   assert_eq(
     inner_join_indices(
       left,
@@ -103,7 +103,7 @@ test "null fail scans both join inputs even opposite an empty relation" {
   for left_null in [true, false] {
     let empty = order_table([])
     let nullable = order_table([Number(1), Null])
-    let workspace = { limit: 100, live: 0, peak: 0, }
+    let workspace = row_workspace(100)
     let result = inner_join_indices(
       if left_null {
         nullable
@@ -139,7 +139,7 @@ test "inner join physical indices reject malformed coordinates and preserve inpu
         false,
         10,
         { remaining: 1000, max_frames: 0, },
-        { limit: 100, live: 0, peak: 0, },
+        row_workspace(100),
       )
       is Err(InvalidInput),
     )
@@ -151,7 +151,7 @@ test "inner join physical indices reject malformed coordinates and preserve inpu
     false,
     5,
     { remaining: 1000, max_frames: 0, },
-    { limit: 100, live: 0, peak: 0, },
+    row_workspace(100),
   ).unwrap()
   assert_eq(result, [(0, 0), (0, 2), (1, 1), (2, 0), (2, 2)])
   assert_true(IndexedRows::read_cell(table, 0, 0) is Text("a"))
@@ -180,7 +180,7 @@ test "composite equality uses every ordered pair and never matches a null compon
       false,
       3,
       { remaining: 10000, max_frames: 0, },
-      { limit: 100, live: 0, peak: 0, },
+      row_workspace(100),
     ).unwrap(),
     [(0, 1), (1, 0), (1, 2)],
   )
@@ -196,7 +196,7 @@ test "composite equality uses every ordered pair and never matches a null compon
       false,
       3,
       { remaining: 10000, max_frames: 0, },
-      { limit: 100, live: 0, peak: 0, },
+      row_workspace(100),
     ).unwrap(),
     [(0, 1), (1, 1), (2, 1)],
   )
@@ -212,7 +212,7 @@ test "join indices accept independently selected layouts without row materializa
       let left = layout_relation(captured, left_layout)
       let right = layout_relation(captured, right_layout)
       let control = { remaining: 10000, max_frames: 0, }
-      let workspace = { limit: 100, live: 0, peak: 0, }
+      let workspace = row_workspace(100)
       assert_eq(
         inner_join_indices(
           left,
@@ -238,7 +238,7 @@ test "join indices accept independently selected layouts without row materializa
 
 ///|
 test "join key validation precedes output construction and preserves scalar diagnostics" {
-  let workspace = { limit: 100, live: 2, peak: 2, }
+  let workspace = { ..row_workspace(100), live: 2, peak: 2, }
   // An empty permitted output does not remove the obligation to inspect a
   // declared fail-on-NULL key, even on the right of an empty left input.
   assert_true(
@@ -289,7 +289,7 @@ test "join key validation precedes output construction and preserves scalar diag
 test "join uniqueness validates nonmatching keys and reports the first duplicate input row" {
   let table = order_table([Number(9), Number(9), Number(1), Number(1)])
   for left in [true, false] {
-    let workspace = { limit: 100, live: 3, peak: 3, }
+    let workspace = { ..row_workspace(100), live: 3, peak: 3, }
     assert_true(
       validate_join_unique_indices(
         table,
@@ -308,7 +308,7 @@ test "join uniqueness validates nonmatching keys and reports the first duplicate
 ///|
 test "join cardinality comparison excludes null tuples and uses exact decimal equality" {
   let order = [{ column: 0, descending: false, nulls_first: true, }]
-  let workspace = { limit: 100, live: 2, peak: 2, }
+  let workspace = { ..row_workspace(100), live: 2, peak: 2, }
   assert_true(
     validate_join_unique_indices(
       order_table([Null, Number(1), Null]),
@@ -420,7 +420,7 @@ test "join indices accept every KeyComparable value domain" {
         false,
         2,
         { remaining: 100000, max_frames: 0, },
-        { limit: 1000, live: 0, peak: 0, },
+        row_workspace(1000),
       ).unwrap(),
       [(expected, 0)],
     )
@@ -432,7 +432,7 @@ test "join indices accept every KeyComparable value domain" {
 test "right join indices mirror left order and release scratch on failure" {
   let left = order_table([Number(1), Number(1), Null])
   let right = order_table([Number(1), Null, Number(2)])
-  let workspace = { limit: 1000, live: 2, peak: 2, }
+  let workspace = { ..row_workspace(1000), live: 2, peak: 2, }
   let pairs = non_inner_join_indices(
     @join.Right,
     left,
@@ -450,7 +450,7 @@ test "right join indices mirror left order and release scratch on failure" {
   ])
   assert_eq(workspace.live, 10)
   for work in [0, 1, 5, 15, 30] {
-    let scratch = { limit: 1000, live: 2, peak: 2, }
+    let scratch = { ..row_workspace(1000), live: 2, peak: 2, }
     assert_true(
       non_inner_join_indices(
         @join.Right,

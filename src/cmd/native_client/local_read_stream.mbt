@@ -42,6 +42,15 @@ fn local_same_read_request(
 }
 
 ///|
+// A row cannot exceed the selected total output ceiling. Keep the existing
+// durable framer's independent16MiB implementation limit. This is working
+// geometry only: the same original authority still admits max_output against
+// its actual grant before any delivery or payload read starts.
+fn local_result_row_frame_limit(max_output : Int) -> Int {
+  Int::min(max_output, 16777216)
+}
+
+///|
 // Payload and metadata lookup remain separate operations. An existing attempt
 // is never reopened, even after a lost start reply or uncertain sink ACK.
 fn local_result_stream(
@@ -364,7 +373,14 @@ fn local_admitted_result_stream(
     }),
   )
   let service = @local_result.install_native_result_access_service(
-    store, authority, local_utc_now, 65536, 8192, 64, 65536, 16384,
+    store,
+    authority,
+    local_utc_now,
+    65536,
+    8192,
+    64,
+    local_result_row_frame_limit(max_output),
+    16384,
   ).unwrap_or_else(() => stop("LocalReadServiceUnavailable"))
   if retained is Some(original) {
     original.result_service = Some(service)

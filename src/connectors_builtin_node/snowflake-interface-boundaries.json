@@ -282,9 +282,17 @@
       "responsibilityFacet": "primary",
       "role": "generated-binding",
       "owner": "Same-runtime wrappers of existing Common and Snowflake Owners",
-      "sha256": "59ea1fc2daf71a54c53d57962024e4f8b9a21a744884cf2a5dd3394d96fafd15",
+      "sha256": "9d1f9a3e255dbd92dec493e38d6e252d5b8d5caeb741764232b81e3d3b3be19a",
       "exports": [],
       "operations": [
+        {
+          "name": "client_program_identify_row_capture_effect_source_relation",
+          "declaration": "client_program_identify_row_capture_effect_source_relation ( source : @ query . CapturedInputSource , capture : @ client_row_source_host . RowSourceCapture , ) - > Result [ @ query . CapturedSourceRelationIdentity , @ query . CapturedSourceIssue ]"
+        },
+        {
+          "name": "client_program_identify_row_capture_source_relation",
+          "declaration": "client_program_identify_row_capture_source_relation ( source : @ query . CapturedInputSource , capture : @ client_row_source_host . RowSourceCapture , ) - > Result [ @ query . CapturedSourceRelationIdentity , @ query . CapturedSourceIssue ]"
+        },
         {
           "name": "client_program_installed_provider_row_capture_capacity",
           "declaration": "client_program_installed_provider_row_capture_capacity ( acquisition : @ client_row_source_host . RowAcquisition , capacity : @ execution . ExecutionCapacity ? , ) - > @ client_local_host . ClientInstalledCaptureCapacity ?"
@@ -320,6 +328,10 @@
         {
           "name": "client_program_row_source_check_original_acquisition",
           "declaration": "client_program_row_source_check_original_acquisition ( acquisition : @ client_row_source_host . RowAcquisition , declaration : @ client_row_source_host . RowDeclaration , requirement : @ planning . QueryRequirement , ) - > Result [ Unit , @ client_row_source_host . RowHostIssue ]"
+        },
+        {
+          "name": "client_program_row_source_ensure_response_transfer_capacity",
+          "declaration": "client_program_row_source_ensure_response_transfer_capacity ( value : @ client_row_source_host . RowRunResponseBorrow , bytes : Int64 , ) - > Result [ Unit , @ client_row_source_host . RowHostIssue ]"
         },
         {
           "name": "client_program_row_source_grow_response_capacity",
@@ -938,6 +950,143 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Announced IPC body construction"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_row_source_ensure_response_transfer_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_identify_row_capture_effect_source_relation",
+            "client_program_identify_row_capture_source_relation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
               }
             ]
           }

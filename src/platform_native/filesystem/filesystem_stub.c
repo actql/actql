@@ -279,14 +279,6 @@ static char *actql_copy_text(moonbit_bytes_t bytes, int32_t length) {
   return text;
 }
 
-static moonbit_bytes_t actql_copy_bytes(const char *text) {
-  size_t length = text == NULL ? 0 : strlen(text);
-  if (length > INT32_MAX) length = INT32_MAX;
-  moonbit_bytes_t bytes = moonbit_make_bytes_raw((int32_t)length);
-  if (length > 0) memcpy(bytes, text, length);
-  return bytes;
-}
-
 static moonbit_bytes_t actql_copy_diagnostic(const char *text, int32_t ceiling) {
   size_t length;
   if (!actql_diagnostic_length(text, ceiling, &length) || length > INT32_MAX)

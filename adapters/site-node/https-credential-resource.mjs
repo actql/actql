@@ -108,7 +108,7 @@ function ownAuthenticationRegistration(value) {
 
 export function openHttpsCredentialBinding({scope, control, journal,
   resolveSecret, maxSecretBytes, authentication, assertCurrent,
-  secretPresentation = 'bearer'}) {
+  secretPresentation = 'bearer', originalSecretBinding}) {
   const purpose = control === null || typeof control !== 'object' ? undefined
     : Object.getOwnPropertyDescriptor(control, 'kind');
   if (purpose !== undefined && (!Object.hasOwn(purpose, 'value') ||
@@ -145,8 +145,24 @@ export function openHttpsCredentialBinding({scope, control, journal,
         original.connectorRegistration !== 'kintone' || authentication !== undefined)) {
     fail('InvalidRemoteCredentialSecretPresentation');
   }
+  // Only the existing Credential owner can recognize this original. Separate
+  // Resource grants/current/physical children keep their own states, while one
+  // invocation's resolved material is pinned at the original parent binding.
+  const secretOriginal = originalSecretBinding === undefined ? undefined : bindings.get(originalSecretBinding);
+  if (originalSecretBinding !== undefined && (!secretOriginal || metadata || secretOriginal.metadata ||
+      secretOriginal.secretOriginal !== undefined || secretOriginal.control !== control ||
+      secretOriginal.journal !== journal || secretOriginal.resolveSecret !== resolveSecret ||
+      secretOriginal.authentication !== undefined || authentication !== undefined ||
+      typeof secretOriginal.assertCurrent !== 'function' || typeof assertCurrent !== 'function' ||
+      secretOriginal.maxSecretBytes !== maxSecretBytes || secretOriginal.secretPresentation !== secretPresentation ||
+      credentialInvocationBindingKeys.some(key => secretOriginal.original[key] !== original[key]) ||
+      secretOriginal.retiring || secretOriginal.closed || secretOriginal.borrow?.closing || secretOriginal.changed ||
+      secretOriginal.pendingOutcome !== undefined || !bindingQuiescent(secretOriginal) ||
+      (secretOriginal.secretChildren ?? 0) === Number.MAX_SAFE_INTEGER)) {
+    fail('ForeignRemoteCredentialSecretOriginal');
+  }
   const binding = Object.freeze(Object.create(null));
-  bindings.set(binding, {original, control, journal, resolveSecret,
+  const state = {original, control, journal, resolveSecret,
     metadata, assertCurrent,
     pendingOutcome: undefined, receivedResponse: undefined, unjoinedResponseCustody: undefined,
     maxSecretBytes, secretPresentation, secret: undefined, active: false, retiring: false,
@@ -154,7 +170,12 @@ export function openHttpsCredentialBinding({scope, control, journal,
     authentication: ownAuthenticationRegistration(authentication),
     authenticationAttempted: false, authenticationMaterial: undefined,
     authenticationExchangeAttempted: false, authenticationExchange: undefined,
-    authenticationToken: undefined});
+    authenticationToken: undefined};
+  if (secretOriginal !== undefined) {
+    state.secretOriginal = secretOriginal;
+    secretOriginal.secretChildren = (secretOriginal.secretChildren ?? 0) + 1;
+  }
+  bindings.set(binding, state);
   return binding;
 }
 
@@ -163,13 +184,19 @@ function bindingQuiescent(state) {
 }
 
 function retireBinding(state) {
-  if (state.retiring && state.borrow === undefined && bindingQuiescent(state)) {
+  if (state.retiring && state.borrow === undefined && !state.secretChildren && bindingQuiescent(state)) {
     state.secret = undefined;
     state.authenticationMaterial = undefined;
     state.authenticationExchange = undefined;
     state.authenticationToken = undefined;
     state.receivedResponse = undefined;
     state.closed = true;
+    const original = state.secretOriginal;
+    if (original !== undefined) {
+      state.secretOriginal = undefined;
+      original.secretChildren--;
+      retireBinding(original);
+    }
   }
 }
 
@@ -529,6 +556,14 @@ export function closeHttpsCredentialBinding(binding) {
   return state.closed ? 'closed' : 'pending';
 }
 
+function requireSecretOriginalCurrent(state) {
+  const original = state.secretOriginal;
+  if (original === undefined) return;
+  if (original.retiring || original.closed || original.borrow?.closing) fail('RemoteCredentialBindingRetiring');
+  if (original.changed) fail('RemoteCredentialBindingChanged');
+  if (original.pendingOutcome !== undefined) throw original.pendingOutcome;
+}
+
 function acquireBinding(binding, {scope, control, journal, resolveSecret, bindingBorrow}) {
   if (binding === undefined) {
     if (bindingBorrow !== undefined) fail('ForeignRemoteCredentialBindingBorrow');
@@ -549,6 +584,7 @@ function acquireBinding(binding, {scope, control, journal, resolveSecret, bindin
   } else if (credentialInvocationBindingKeys.some(key => scope?.[key] !== state.original[key])) {
     fail('ForeignRemoteCredentialBinding');
   }
+  requireSecretOriginalCurrent(state);
   if (state.retiring) fail('RemoteCredentialBindingRetiring');
   if (state.borrow === undefined ? bindingBorrow !== undefined : state.borrow.token !== bindingBorrow) {
     fail('ForeignRemoteCredentialBindingBorrow');
@@ -564,6 +600,7 @@ function acquireBinding(binding, {scope, control, journal, resolveSecret, bindin
 }
 
 function credentialBindingCurrent(binding, scope, signal) {
+  requireSecretOriginalCurrent(binding);
   if (binding.retiring) fail('RemoteCredentialBindingRetiring');
   if (binding.borrow?.closing) fail('RemoteCredentialBindingBorrowRetiring');
   if (binding.changed) fail('RemoteCredentialBindingChanged');
@@ -578,6 +615,7 @@ function credentialBindingCurrent(binding, scope, signal) {
     fail(binding.metadata ? 'InvalidInstallationMetadataCurrentFence'
       : 'InvalidRemoteCredentialCurrentFence');
   }
+  requireSecretOriginalCurrent(binding);
   if (binding.retiring) fail('RemoteCredentialBindingRetiring');
   if (binding.changed) fail('RemoteCredentialBindingChanged');
   signal?.throwIfAborted();
@@ -1014,8 +1052,10 @@ async function callCredentialResource({
       // retirement, cancellation or a replacement credential is already known.
       if (binding?.retiring) fail('RemoteCredentialBindingRetiring');
       if (binding?.borrow?.closing) fail('RemoteCredentialBindingBorrowRetiring');
-      if (binding?.secret !== undefined && binding.secret !== currentSecret) {
-        binding.changed = true;
+      if (binding) requireSecretOriginalCurrent(binding);
+      const originalSecret = binding?.secretOriginal ?? binding;
+      if (originalSecret?.secret !== undefined && originalSecret.secret !== currentSecret) {
+        originalSecret.changed = true;binding.changed = true;
         fail('RemoteCredentialBindingChanged');
       }
       signal?.throwIfAborted();
@@ -1023,8 +1063,10 @@ async function callCredentialResource({
     }
     if (binding?.retiring) fail('RemoteCredentialBindingRetiring');
     if (binding?.borrow?.closing) fail('RemoteCredentialBindingBorrowRetiring');
-    if (binding?.secret !== undefined && binding.secret !== currentSecret) {
-      binding.changed = true;
+    if (binding) requireSecretOriginalCurrent(binding);
+    const originalSecret = binding?.secretOriginal ?? binding;
+    if (originalSecret?.secret !== undefined && originalSecret.secret !== currentSecret) {
+      originalSecret.changed = true;binding.changed = true;
       fail('RemoteCredentialBindingChanged');
     }
     signal?.throwIfAborted();
@@ -1042,8 +1084,8 @@ async function callCredentialResource({
     // No await separates the current authority fence, retained-material
     // selection and physical request construction. A later resolver result
     // cannot replace the original acquisition's privately retained secret.
-    if (binding && binding.secret === undefined) binding.secret = currentSecret;
-    const secret = binding ? binding.secret : currentSecret;
+    if (originalSecret && originalSecret.secret === undefined) originalSecret.secret = currentSecret;
+    const secret = originalSecret ? originalSecret.secret : currentSecret;
     requestStarted = true;
     const response = await receive({
       ...operation,

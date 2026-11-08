@@ -33,7 +33,7 @@ test "typed selection charges entire backing capacity not just visible rows" {
   // One column handle + four doubles + four validity elements + one index.
   // This is a container/element ceiling, not an allocator-byte or RSS claim.
   for limit in [9, 10] {
-    let workspace = { limit, live: 0, peak: 0, }
+    let workspace = { ..row_workspace(limit), live: 0, peak: 0, }
     assert_eq(
       reserve_completed_storage(table, workspace, {
         remaining: 1,

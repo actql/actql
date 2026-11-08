@@ -62,6 +62,10 @@ function sourceMaterial(original) {
     InstalledSourceConstructionCapacity: original.moon.clientProgramInstalledSourceConstructionCapacity,
     ComposeInstalledSourceConstructionCapacity: original.moon.clientProgramComposeInstalledSourceConstructionCapacity,
     InstalledSourceRetainedConstructionCapacity: original.moon.clientProgramInstalledSourceRetainedConstructionCapacity,
+    InstalledSourceJsonConstructionCapacity: original.moon.clientProgramInstalledSourceJsonConstructionCapacity,
+    InstalledProfileConstructionCapacities: original.moon.clientProgramInstalledProfileConstructionCapacities,
+    InstalledSourceInspectionConstructionCapacity: original.moon.clientProgramInstalledSourceInspectionConstructionCapacity,
+    InstalledTableConstructionInventory: original.moon.clientProgramInstalledTableConstructionInventory,
     ReserveInstalledSourceConstruction: original.moon.clientProgramReserveInstalledSourceConstruction,
     ReconcileInstalledSourceConstruction: original.moon.clientProgramReconcileInstalledSourceConstruction,
     CompleteInstalledSourceMaterial: original.moon.clientProgramCompleteInstalledSourceMaterial,
@@ -76,7 +80,9 @@ function sourceMaterial(original) {
     FinishInstalledSourceIoAfterCleanup: original.moon.clientProgramFinishInstalledSourceIoAfterCleanup,
   });
   for (const [name, fn] of Object.entries(methods)) {
-    if ((name === 'ComposeInstalledSourceConstructionCapacity' || name === 'InstalledSourceRetainedConstructionCapacity') && fn === undefined) continue;
+    if ((name === 'ComposeInstalledSourceConstructionCapacity' || name === 'InstalledSourceRetainedConstructionCapacity' ||
+        name === 'InstalledSourceJsonConstructionCapacity' || name === 'InstalledProfileConstructionCapacities' ||
+        name === 'InstalledSourceInspectionConstructionCapacity' || name === 'InstalledTableConstructionInventory') && fn === undefined) continue;
     if (typeof fn !== 'function') fail('InstalledSourceInitializationRuntimeUnavailable');
   }
   const material = {methods, input: undefined, unit: undefined, capacity: undefined,
@@ -99,6 +105,7 @@ function sourceMaterial(original) {
 
 function sourceCall(original, material, name, args) {
   if (material.busy) fail('InstalledSourceInitializationReentry');
+  if (typeof material.methods?.[name] !== 'function') fail('InstalledSourceInitializationRuntimeUnavailable');
   material.busy = true;
   try {return checked(Reflect.apply(material.methods[name], original.moon, args));}
   finally {material.busy = false;}
@@ -346,6 +353,37 @@ function prepareSourceNativeInput(original, material, projection, attempts, vali
   return value;
 }
 
+// JSON uses the SAME typed constructor recipe and successful-output cut as
+// other native inputs. JS reports its original wire facts and physical return;
+// Core owns peak/retained arithmetic, currentness and the original reservation.
+function reserveSourceJsonConstruction(original, material, workspace, geometry, bufferBytes) {
+  const quantity = sourceCall(original, material, 'InstalledSourceJsonConstructionCapacity',
+    [geometry.nodes, geometry.units, bufferBytes, geometry.retained.nodes, geometry.retained.text]);
+  const providerIndex = material.providers.length, projectionIndex = material.inputs.length;
+  material.providers.push(quantity); material.inputs.push(geometry);
+  workspace.json = {providerIndex, projectionIndex, quantity, projection: geometry};
+  // The original recipe now includes this read's complete parser/buffer peak.
+  // Keep its physical pending marker, without charging those same buffers twice.
+  Object.assign(workspace, {nodes: 0n, text: 0n, wire: 0n, retained: undefined});
+  reserveSource(original, material);
+}
+
+function retainCompletedSourceJson(original, material, workspace, value) {
+  const input = material.inputs.length;
+  material.inputs.push(value);
+  // Reaching here follows the SAME awaited file close (or synchronous parse
+  // of retained text). A later current failure keeps the original provider
+  // peak, not a fictitious pending FD, until this Source actually retires.
+  material.workspaces.delete(workspace); workspace.keepFailed = true;
+  const {providerIndex, projectionIndex, quantity, projection} = workspace.json;
+  retainCompletedSourceNativeConstruction(original, material, providerIndex,
+    projectionIndex, quantity, projection, () => {
+      if (sourceMaterial(original) !== material || material.phase !== 'working' ||
+          material.inputs[input] !== value) fail('ForeignInstalledSourceInitialization');
+    });
+  return value;
+}
+
 // This reader is created only by the real initializer, before the first
 // configuration open. Its fixed Buffer peak is reserved before allocation;
 // actual received bytes fund native decoding BEFORE concat/text/JSON.parse.
@@ -355,7 +393,7 @@ export function installedSourceConfigurationReader(services) {
   const material = sourceMaterial(original);
   if (material === undefined) return undefined;
   if (material.configurationReader !== undefined) return material.configurationReader;
-  async function read(path, options, json, strictUtf8 = false) {
+  async function read(path, options, json, strictUtf8 = false, profile = false) {
     if (options !== undefined && (nodeTypes.isProxy(options) ||
         Reflect.ownKeys(options).some(name => name !== 'maxBytes'))) {
       fail('InvalidInstalledConfigurationReaderOptions');
@@ -376,10 +414,11 @@ export function installedSourceConfigurationReader(services) {
       const beforeDecode = bytes => {
         decoded = BigInt(bytes);
         if (json) {
-          // Native parsed input, checked profile/split projections and original
-          // identity preimages can coexist. Keep their complete JSON envelope.
-          reserveSource(original, material, 4n * decoded,
-            12n * decoded, 8n * decoded + BigInt(installedConfigurationChunkBytes), workspace);
+          // Only buffers and one lossy UTF8 String exist at this phase. Fund
+          // their complete overlap before concat/toString; JSON values do not
+          // exist yet. The same String funds the parser in beforeParse below.
+          reserveSource(original, material, 0n, 3n * decoded,
+            2n * decoded + BigInt(installedConfigurationChunkBytes), workspace);
         } else {
           // This constructor returns one String. Lossy decoding may replace
           // each invalid byte with three UTF8 bytes; strict decoding cannot.
@@ -392,21 +431,31 @@ export function installedSourceConfigurationReader(services) {
             {nodes: 0n, text, wire: decoded});
         }
       };
+      const beforeParse = text => {
+        // Preserve the existing parsed/checked/identity envelope, using its
+        // actual wire geometry rather than treating every byte as a node.
+        const geometry = sourceJsonWireGeometry(text);
+        reserveSourceJsonConstruction(original, material, workspace, geometry,
+          8n * decoded + BigInt(installedConfigurationChunkBytes));
+      };
       const value = await (json ? readSourceProfileJson
         : strictUtf8 ? readBoundedConfigurationUtf8 : readBoundedConfigurationText)(path,
-        {maxBytes, beforeDecode, io: sourceIo(original, material)});
-      // The original file has actually closed before retaining/reconciling.
+        {maxBytes, beforeDecode, ...(json ? {beforeParse} : {}), io: sourceIo(original, material)});
+      // Actual close precedes this successful-return cut. The native tree
+      // uses the already-observed retained geometry, with no second scan.
+      if (json) {
+        const completed = retainCompletedSourceJson(original, material, workspace, value);
+        if (!profile) return completed;
+        const {parse, ...construction} = profileConstruction(workspace.json.projection);
+        return Object.freeze({value: completed, ...construction});
+      }
       material.inputs.push(value);
-      material.nodes += json ? 4n * decoded : 0n;
-      // This SAME String is retained before reconciling its actual decoded
-      // bytes. A failed/pending close never reaches this successful-return cut.
-      material.text += json ? 12n * decoded : BigInt(Buffer.byteLength(value, 'utf8'));
-      // Text inputs can have an actual CA Buffer retained alongside the text.
-      material.wire += json ? 0n : decoded;
+      material.text += BigInt(Buffer.byteLength(value, 'utf8'));
+      material.wire += decoded;
       material.workspaces.delete(workspace);
       reconcileSource(original, material);
       return value;
-    } catch (cause) {retainSourceFailure(material, cause, workspace); throw cause;}
+    } catch (cause) {retainSourceFailure(material, cause, workspace.keepFailed ? undefined : workspace); throw cause;}
     finally {material.ioPending--;}
   }
   async function readOriginal(path, binary) {
@@ -444,11 +493,41 @@ export function installedSourceConfigurationReader(services) {
     }
   };
   const retainMetadataInput = () => {};
+  const profileConstruction = facts => {
+    const [parsed, projected] = sourceCall(original, material, 'InstalledProfileConstructionCapacities',
+      [facts.nodes, facts.units]);
+    const invoke = (capacity, project) => prepareSourceNativeInput(original, material,
+      Object.freeze({capacity: () => capacity, project}), metadataProjections,
+      validateMetadataInput, retainMetadataInput);
+    // Same original quantity/input, never a cached current/Account decision.
+    // Each fixed native call reserves on the existing parent before running.
+    return {parse: project => invoke(parsed, project),
+      construct: project => invoke(projected, project),
+      inspect(project) {
+        validateMetadataInput();
+        return invoke(sourceCall(original, material,
+          'InstalledSourceInspectionConstructionCapacity', [parsed]), project);
+      }};
+  };
   const reader = Object.freeze({
     prepareNativeInput(projection) {
       if (this !== reader) fail('ForeignInstalledConfigurationReader');
       return prepareSourceNativeInput(original, material, projection, metadataProjections,
         validateMetadataInput, retainMetadataInput);
+    },
+    prepareProfile(text, project) {
+      if (this !== reader || typeof text !== 'string' || !material.inputs.includes(text)) {
+        fail('ForeignInstalledConfigurationText');
+      }
+      const {parse, ...construction} = profileConstruction(sourceJsonWireGeometry(text, true));
+      return Object.freeze({value: parse(project), ...construction});
+    },
+    readProfile(path, options) {
+      if (this !== reader) fail('ForeignInstalledConfigurationReader');
+      // Preserve native JSON parse BEFORE its SAME actual FD close, including
+      // malformed-input versus pending-close failure order. The completed
+      // original also carries its wire facts into later checked constructors.
+      return read(path, options, true, false, true);
     },
     parseJsonText(text) {
       if (this !== reader || typeof text !== 'string' || !material.inputs.includes(text)) {
@@ -458,17 +537,19 @@ export function installedSourceConfigurationReader(services) {
       // The existing bounded text read owns the input. Reserve the parsed,
       // checked and identity views before JSON.parse, without another read.
       const geometry = sourceJsonWireGeometry(text);
-      const nodes = 4n * geometry.nodes, textBytes = 12n * geometry.units;
-      reserveSource(original, material, nodes, textBytes, 0n);
-      let value;
-      material.busy = true;
+      const workspace = {nodes: 0n, text: 0n, wire: 0n};
+      material.workspaces.add(workspace);
       try {
-        value = JSON.parse(text);
-        material.inputs.push(value);
-        material.nodes += nodes; material.text += textBytes;
-      } finally {material.busy = false;}
-      reconcileSource(original, material);
-      return value;
+        reserveSourceJsonConstruction(original, material, workspace, geometry, 0n);
+        let value;
+        material.busy = true;
+        try {value = JSON.parse(text);}
+        finally {material.busy = false;}
+        return retainCompletedSourceJson(original, material, workspace, value);
+      } catch (cause) {
+        retainSourceFailure(material, cause, workspace.keepFailed ? undefined : workspace);
+        throw cause;
+      }
     },
     readJson(path, options) {
       if (this !== reader) fail('ForeignInstalledConfigurationReader');
@@ -530,12 +611,9 @@ export function installedSourceConfigurationReader(services) {
   return reader;
 }
 
-// Only the existing Table factory needs catalog/target/frame snapshots. Its
-// exact checked profile is bound by the ordinary loader, never caller supplied.
-// The bounded configuration reader already retained four input-proportional
-// node views: parsed input, checked/split projection, and this descriptor/stack/
-// Set scan. No wire/decode copy is made to discover construction demand.
-function reserveInstalledTableConstruction(original, material, profile) {
+// The original profile constructor funds this SAME descriptor/stack/Set walk
+// before it allocates. No reader's completed parser workspace backs it.
+function inspectInstalledTableConstruction(profile) {
   let nodes = 0n, wire = 0n, strings = 0n, serializerText = 0n;
   const pending = [{value: profile, depth: 0n}], seen = new Set();
   while (pending.length !== 0) {
@@ -577,21 +655,14 @@ function reserveInstalledTableConstruction(original, material, profile) {
     // each ancestor. This sums actual input depths rather than maxDepth*wire.
     serializerText += syntax * (depth + 1n);
   }
-  // Actual pure Host construction families: checked profile snapshot, retained
-  // physical catalog snapshot, installed target snapshot, and exported target
-  // metadata. Catalog/targets are subtrees of this original profile. The
-  // canonical writer keeps entry/pair/sort arrays and a source traversal view;
-  // frame encoding owns body+framed Buffers and its decoded JSON text.
-  const checkedProfile = nodes, physicalCatalog = nodes, installedTargets = nodes,
-    exportedTargets = nodes, writerEntries = nodes, writerPairs = nodes, writerSort = nodes;
-  const retainedNodes = checkedProfile + physicalCatalog + installedTargets + exportedTargets;
-  const workspaceNodes = writerEntries + writerPairs + writerSort;
-  const retainedText = 2n * (strings + strings + strings + strings);
-  const workspaceText = 2n * (serializerText + wire + wire);
-  const framedBody = wire, framedPacket = wire + 4n, decodedFrame = wire;
-  const allNodes = retainedNodes + workspaceNodes;
-  const allText = retainedText + workspaceText;
-  const allWire = framedBody + framedPacket + decodedFrame;
+  return Object.freeze({nodes, wire, strings, serializerText});
+}
+
+function reserveInstalledTableConstruction(original, material, profile, construction) {
+  if (typeof construction?.inspect !== 'function') fail('InstalledSourceProfileConstructionUnavailable');
+  const facts = construction.inspect(() => inspectInstalledTableConstruction(profile));
+  const [allNodes, allText, allWire] = sourceCall(original, material,
+    'InstalledTableConstructionInventory', [facts.nodes, facts.wire, facts.strings, facts.serializerText]);
   reserveSource(original, material, allNodes, allText, allWire);
   // Keep the entire original construction peak for failed or escaped pure
   // projections; do not infer that a provider's return settled its aliases.
@@ -702,9 +773,14 @@ function createInstalledSourceContext(original, material, installation, connecto
   material.contexts.push(scope); material.constructors++;
   const inputProjections = new WeakSet();
   const nativeInputOriginals = new WeakSet();
-  const validateNativeInputContext = () => {
-    if (!scope.active || scope.prepared !== undefined || scope.source !== undefined ||
-        material.phase !== 'working') fail('ForeignInstalledSourceInitialization');
+  const validateNativeInputContext = prepared => {
+    if (!scope.active || scope.prepared !== prepared || scope.source !== undefined ||
+        material.phase !== 'working' || prepared !== undefined &&
+        (scope.role !== 'effect' || prepared.declaration === undefined ||
+          prepared.mappings !== undefined || prepared.commands !== undefined ||
+          scope.mappingsAttempted || scope.commandAttempted || scope.providerAttempted)) {
+      fail('ForeignInstalledSourceInitialization');
+    }
   };
   const retainNativeInput = value => nativeInputOriginals.add(value);
   function prepareSourceEnvironment(declared, mappings = []) {
@@ -940,8 +1016,12 @@ function createInstalledSourceContext(original, material, installation, connecto
     },
     prepareNativeInput(projection) {
       if (this !== context) fail('ForeignInstalledSourceInitialization');
+      // Mapping constructors need the original declaration CID. Pin this
+      // same tuple across every reservation and projection fence; Source and
+      // already-started Mapping/Command/driver paths remain closed.
+      const prepared = scope.prepared;
       return prepareSourceNativeInput(original, material, projection, inputProjections,
-        validateNativeInputContext, retainNativeInput);
+        () => validateNativeInputContext(prepared), retainNativeInput);
     },
     prepareProviderEffect(site, provider, mappingOriginals) {
       if (this !== context || scope.role !== 'effect' || !scope.active || scope.prepared !== undefined ||
@@ -1115,6 +1195,56 @@ function createInstalledSourceContext(original, material, installation, connecto
       scope.declarationBasis = source.scope.declarationBasis;
       scope.borrowedDeclaration = source.scope;
       return prepared;
+    },
+    // Native connector producers already own and fund complete canonical
+    // Mapping DATA. Retain those exact originals beside this SAME Common
+    // declaration; Common still admits every Mapping at Program preparation.
+    prepareNativeMappings(declared, mappingOriginals) {
+      if (this !== context || scope.role !== 'effect' || !scope.active ||
+          scope.prepared?.declaration === undefined || scope.source !== undefined ||
+          scope.prepared.declared !== declared ||
+          scope.mappingsAttempted || scope.prepared.mappings !== undefined ||
+          scope.prepared.commands !== undefined || material.phase !== 'working' || material.busy ||
+          !Array.isArray(mappingOriginals) || nodeTypes.isProxy(mappingOriginals) ||
+          !Object.isFrozen(mappingOriginals) || mappingOriginals.length === 0) {
+        fail('ForeignInstalledSourceInitialization');
+      }
+      const prepared = scope.prepared;
+      for (let index = 0; index < mappingOriginals.length; index++) {
+        const entry = Object.getOwnPropertyDescriptor(mappingOriginals, String(index));
+        const value = entry?.value;
+        if (!entry || !Object.hasOwn(entry, 'value') || !nativeInputOriginals.has(value) ||
+            !Object.isFrozen(value)) fail('ForeignInstalledSourceInitialization');
+        const fields = Object.getOwnPropertyDescriptors(value);
+        for (const key of ['resource', 'mappingRef', 'mappingCid', 'body']) {
+          const field = fields[key];
+          if (!field || !Object.hasOwn(field, 'value') || typeof field.value !== 'string') {
+            fail('InvalidInstalledEffectMappings');
+          }
+        }
+      }
+      scope.mappingsAttempted = true;
+      const mappingNodes = 1n + 6n * BigInt(mappingOriginals.length);
+      reserveSource(original, material, mappingNodes);
+      if (!scope.active || scope.prepared !== prepared || scope.source !== undefined ||
+          material.phase !== 'working') fail('ForeignInstalledSourceInitialization');
+      let mappings;
+      material.busy = true;
+      try {
+        mappings = Object.freeze(Array.prototype.map.call(mappingOriginals, value => Object.freeze({
+          resource: value.resource, mappingRef: value.mappingRef,
+          mappingCid: value.mappingCid, body: value.body})));
+        material.inputs.push(mappingOriginals, mappings);
+        material.nodes += mappingNodes;
+      } finally {material.busy = false;}
+      const environment = prepareSourceEnvironment(prepared.declared,
+        Array.prototype.map.call(mappingOriginals, value => value.body));
+      if (!scope.active || scope.prepared !== prepared || scope.source !== undefined ||
+          material.phase !== 'working') fail('ForeignInstalledSourceInitialization');
+      scope.prepared = Object.freeze({...prepared, mappings, environment});
+      material.inputs.push(scope.prepared);
+      reconcileSource(original, material);
+      return scope.prepared;
     },
     prepareMappings(writesJson, writes) {
       if (this !== context || !scope.active || scope.prepared === undefined ||
@@ -1413,7 +1543,7 @@ function createInstalledSourceContext(original, material, installation, connecto
 // The ordinary loader owns this one bound factory. Connector code supplies
 // domain inputs, never the initialization token or registration/retirement order.
 // Keep partial acquisitions in the existing initialization failure carrier.
-export function bindInstalledSourceConstruction(services, context, checkedProfile) {
+export function bindInstalledSourceConstruction(services, context, checkedProfile, profileConstruction) {
   const retained = sourceContexts.get(context), original = installations.get(services);
   if (retained === undefined || retained.original !== original) fail('ForeignInstalledSourceConstruction');
   if (boundConstructions.has(context)) fail('InstalledSourceConstructionAlreadyBound');
@@ -1502,6 +1632,7 @@ export function bindInstalledSourceConstruction(services, context, checkedProfil
     prepareAuthoredDeclaration: prepare('prepareAuthoredDeclaration'),
     prepareBorrowedDeclaration: prepare('prepareBorrowedDeclaration'),
     prepareMappings: prepare('prepareMappings'),
+    prepareNativeMappings: prepare('prepareNativeMappings'),
     prepareDeclaredCommands: prepare('prepareDeclaredCommands'),
     prepareAuthoredCommands: prepare('prepareAuthoredCommands'),
     prepareDerivedDeclaredCommands: prepare('prepareDerivedDeclaredCommands'),
@@ -1612,7 +1743,7 @@ export function bindInstalledSourceConstruction(services, context, checkedProfil
           nodeTypes.isAsyncFunction(createBridge)) fail('InvalidInstalledTableBridgeConstructor');
       owned.attempted = true; owned.constructing = true;
       try {
-        const profileCapacity = reserveInstalledTableConstruction(original, material, checkedProfile);
+        const profileCapacity = reserveInstalledTableConstruction(original, material, checkedProfile, profileConstruction);
         const bridge = requireSynchronousSourceConstruction(material, Reflect.apply(createBridge, undefined, []));
         owned.bridge = bridge; material.inputs.push(bridge);
         if (!bridge || typeof bridge !== 'object' || nodeTypes.isProxy(bridge) ||
@@ -1689,7 +1820,7 @@ export function bindInstalledSourceConstruction(services, context, checkedProfil
       const prepared = scope.prepared;
       owned.attempted = true; owned.constructing = true;
       try {
-        reserveInstalledTableConstruction(original, material, checkedProfile);
+        reserveInstalledTableConstruction(original, material, checkedProfile, profileConstruction);
         const bridge = requireSynchronousSourceConstruction(material, Reflect.apply(createBridge, undefined, []));
         owned.bridge = bridge; material.inputs.push(bridge);
         if (!bridge || typeof bridge !== 'object' || nodeTypes.isProxy(bridge) ||
@@ -2160,9 +2291,12 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       if (typeof sourcePolicy !== 'function' || readSequenceConstruction === undefined &&
           typeof (requestConstruction === undefined ? sourceCapacity : selectedRequestCapacity) !== 'function') fail('InstalledSourceReaderRuntimeUnavailable');
       const policy = Reflect.apply(sourcePolicy, moon, []);
+      // The Values cells-per-row default is not Source schema eligibility.
+      // Source columns retain their declared bounds and typed RowRun capacity;
+      // this bridge still requires the original Core Int representation.
       if (!Array.isArray(policy) || policy.length !== 3 || policy.some(value =>
         !Number.isSafeInteger(value) || value < 1 || value > 2147483647) ||
-        !Number.isSafeInteger(columns) || columns < 1 || columns > policy[2] ||
+        !Number.isSafeInteger(columns) || columns < 1 || columns > 2147483647 ||
         supplied.maxSecretBytes.value > policy[0]) fail('InstalledSourceReaderPolicyUnavailable');
       const limits = Object.freeze(Object.fromEntries(names.map(name => [name, supplied[name].value])));
       const previous = sourceImplementations.get(selection);
@@ -2252,6 +2386,7 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
           propertyPages: undefined, propertyOccurrences: undefined,
           maxResponseBytes: limits.maxResponseBytes, maxNodes: limits.maxNodes, maxDepth: limits.maxDepth,
           maxRows: limits.maxRows, maxTotalRows: limits.maxTotalRows,
+          transferUnitBytes: BigInt(limits.maxResponseBytes),
           transferBytes: sequence === undefined || all < prefix ? all : prefix});
       }
       return factory;

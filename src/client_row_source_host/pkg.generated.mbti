@@ -15,6 +15,7 @@ import {
   "actql/actql/physical_strategy_host",
   "actql/actql/pipeline_check_context",
   "actql/actql/query_planning",
+  "actql/actql/relation_schema",
   "actql/actql/run_publication",
   "actql/actql/sourceview_resolution",
   "actql/actql/value_admission",
@@ -102,9 +103,13 @@ pub fn cancel_keyed_row_read(RowSourceRead) -> Bool
 
 pub fn capture_row_run(RowRun) -> Result[RowSourceCapture, RowHostIssue]
 
+pub fn charge_native_row_input_response(RowRun, Int64) -> Result[RowPageCharge, RowHostIssue]
+
 pub fn charge_row_run_page(RowRun, Bytes) -> Result[RowPageCharge, RowHostIssue]
 
 pub fn charge_row_run_response_body(RowRun, Bytes) -> Result[RowPageCharge, RowHostIssue]
+
+pub fn check_native_row_input_original(RowRun, RowInputAcquisition) -> Result[Unit, RowHostIssue]
 
 pub fn check_row_acquisition_original(RowAcquisition, RowDeclaration, @query_planning.QueryRequirement) -> Result[Unit, RowHostIssue]
 
@@ -143,6 +148,10 @@ pub fn discard_relation_document_original(RelationDocument) -> Bool
 pub fn discard_relation_target_document_original(RelationTargetDocument) -> Bool
 
 pub fn discard_relation_target_row_original(RelationTargetRow) -> Bool
+
+pub fn ensure_row_run_response_transfer_capacity(RowRunResponseBorrow, Int64) -> Result[Unit, RowHostIssue]
+
+pub fn export_query_row_original_read(@execution_relation.SuppliedRelationRead, @query_planning.QueryRequirement) -> Result[RowOriginalCaptureExport, RowOriginalCaptureIssue]
 
 pub fn export_row_input_original_read(RowInputAcquisition, @execution_relation.SuppliedRelationRead) -> Result[RowOriginalCaptureExport, RowOriginalCaptureIssue]
 
@@ -203,6 +212,8 @@ pub fn mock_churn_risk_update_alias_count(MockChurnRiskCatalogue) -> Int
 pub fn observe_mock_churn_risk_target(MockTargetDocument, RowDeclaration, String) -> Result[MockTargetRow, RowSourceIssue]
 
 pub fn observe_relation_target(RelationTargetDocument, RowDeclaration, String) -> Result[RelationTargetRow, RowSourceIssue]
+
+pub fn prepare_catalog_row_input_acquisition(@sourceview_resolution.SourceAcquisition, @pipeline_check_context.ProgramSourceIdentity, @lowering_relation.PreparedSequence, @execution_relation.RegisteredRelationContracts, RowInputLimits, listing_policy? : @capacity_policy.Policy?) -> Result[RowInputAcquisition, RowHostIssue]
 
 pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]
 
@@ -326,6 +337,8 @@ pub fn row_capture_original_prefix_requirement(RowSourceCapture, @physical_resou
 
 pub fn row_capture_original_read(RowSourceCapture) -> @execution_relation.SuppliedRelationRead?
 
+pub fn row_capture_schema_columns(RowSourceCapture, @execution_query.CapturedInputSource) -> Int?
+
 pub fn row_capture_source(RowSourceCapture) -> Result[@execution_query.CapturedInputSource, @execution_query.CapturedSourceIssue]
 
 pub fn row_captured_input_at(RowCapturedInputs, Int) -> RowSourceCapture?
@@ -370,6 +383,8 @@ pub fn row_input_acquisition_capacity(RowInputAcquisition, @execution_relation.E
 
 pub fn row_input_acquisition_column_contract(RowInputAcquisition, Int) -> @value_contract.Contract?
 
+pub fn row_input_acquisition_column_count(RowInputAcquisition) -> Int
+
 pub fn row_input_acquisition_columns(RowInputAcquisition) -> Array[String]
 
 pub fn row_input_acquisition_facts(RowInputAcquisition) -> @query_planning.QuerySourceEvidenceFacts
@@ -383,6 +398,8 @@ pub fn row_input_acquisition_matches_source(RowInputAcquisition, @sourceview_res
 pub fn row_input_acquisition_max_rows(RowInputAcquisition) -> Int
 
 pub fn row_input_acquisition_request_wire(RowInputAcquisition) -> Result[String, RowHostIssue]
+
+pub fn row_input_acquisition_schema(RowInputAcquisition) -> @relation_schema.Schema
 
 pub fn row_input_acquisition_target(RowInputAcquisition) -> (String, Array[String])
 
@@ -399,6 +416,8 @@ pub fn row_observation_cid(RowObservation) -> String
 pub fn row_original_capture_export_facts(RowOriginalCaptureExport) -> (String, String, Array[String])
 
 pub fn row_original_input_capacity() -> (Int64, Int64)
+
+pub fn row_original_input_query_capacity(@query_planning.QueryRequirement) -> (Int64, Int64)?
 
 pub fn row_run_attempt(RowRun) -> RowAttempt
 

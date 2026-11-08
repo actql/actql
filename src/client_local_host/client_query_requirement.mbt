@@ -173,12 +173,10 @@ fn prepare_local_query_requirement_owned(
 }
 
 ///|
-// The same checked acquisition borrows two schemas. The installed collection
-// bound of 100 still bounds each schema and the actual request-field array.
-// QueryRequirement consumes their sum as a traversal inventory: a 71-field
-// input captured unchanged traverses 142 fields without a larger collection.
-// No checker/acquisition is repeated here and no wire/node/work/row policy or
-// constructor array bound grows. Query/schema originals remain borrowed.
+// The same checked acquisition borrows the input/output schemas and request
+// already admitted by this Program's Source/Environment. Their actual shape,
+// not the private standard collection default, supplies the traversal bound.
+// Other material policies and the full original issuers remain unchanged.
 fn installed_local_query_requirement_limits(
   query : @sourceviews.QueryAcquisition,
 ) -> Result[@planning.QueryMaterialLimits, @planning.QueryRequirementIssue] {
@@ -198,17 +196,33 @@ fn installed_local_query_requirement_limits(
     is Some(@sourceviews.Direct(_, request)) else {
     return Err(InvalidQuery)
   }
-  let input_count = @schema.field_count(input)
-  let output_count = @schema.field_count(output)
-  if input_count > limits.max_fields ||
-    output_count > limits.max_fields ||
-    @sourceviews.parameterized_request_field_count(request) > limits.max_fields {
+  guard installed_local_query_field_bound(
+      @schema.field_count(input),
+      @schema.field_count(output),
+      @sourceviews.parameterized_request_field_count(request),
+    )
+    is Some(fields) else {
     return Err(FieldLimit)
   }
-  // Both counts already fit the installed bound of 100, so this sum cannot
-  // overflow. It only quotes two original immutable schema traversals.
-  Ok({
-    ..limits,
-    max_fields: Int::max(limits.max_fields, input_count + output_count),
-  })
+  Ok({ ..limits, max_fields: fields, })
+}
+
+///|
+// Scalar geometry only. A caller cannot issue a Query, Source or permission
+// from these counts. Both schema traversals coexist; a request collection may
+// be wider. Keep the former default as a conservative floor, not eligibility.
+fn installed_local_query_field_bound(
+  input : Int,
+  output : Int,
+  request : Int,
+) -> Int? {
+  guard input >= 0 && output >= 0 && request >= 0 else { return None }
+  let schemas = input.to_int64() + output.to_int64()
+  guard schemas <= 2147483647L else { return None }
+  Some(
+    Int::max(
+      installed_local_query_material_limits().max_fields,
+      Int::max(schemas.to_int(), request),
+    ),
+  )
 }

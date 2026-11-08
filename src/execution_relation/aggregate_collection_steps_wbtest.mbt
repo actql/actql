@@ -52,7 +52,7 @@ test "distinct steps match the atomic distinct in values, charge and space" {
     Text("x"),
   ]
   let reference : ControlBudget = { remaining: 100000, max_frames: 0, }
-  let reference_space = { limit: 10000, live: 0, peak: 0, }
+  let reference_space = row_workspace(10000)
   let expected = atomic_distinct_aggregate_values(
     values,
     reference,
@@ -60,7 +60,7 @@ test "distinct steps match the atomic distinct in values, charge and space" {
     step_collection_limits(),
   ).unwrap()
   let control : ControlBudget = { remaining: 100000, max_frames: 0, }
-  let space = { limit: 10000, live: 0, peak: 0, }
+  let space = row_workspace(10000)
   let state = start_aggregate_distinct(
     values,
     control,
@@ -82,7 +82,7 @@ test "distinct steps match the atomic distinct in values, charge and space" {
   let failing = start_aggregate_distinct(
     values,
     short,
-    { limit: 10000, live: 0, peak: 0, },
+    row_workspace(10000),
     step_collection_limits(),
   )
   let (failed, _, _) = drain_counting(
@@ -102,7 +102,7 @@ test "ordered value steps match the atomic collection" {
   }
   let order = [{ column: 1, descending: true, nulls_first: true, }]
   let reference : ControlBudget = { remaining: 1000, max_frames: 0, }
-  let reference_space = { limit: 100, live: 0, peak: 0, }
+  let reference_space = row_workspace(100)
   let expected = atomic_ordered_aggregate_values(
     table,
     [0, 1, 2, 3],
@@ -113,7 +113,7 @@ test "ordered value steps match the atomic collection" {
     reference_space,
   ).unwrap()
   let control : ControlBudget = { remaining: 1000, max_frames: 0, }
-  let space = { limit: 100, live: 0, peak: 0, }
+  let space = row_workspace(100)
   let state = start_aggregate_ordered_values(
     { input: table, indices: [0, 1, 2, 3], start: 0, end: 4, },
     order,
@@ -143,7 +143,7 @@ test "array steps charge one unit per item and row Text bytes" {
   // Four items, then "é𐀀" is 2 + 4 UTF-8 bytes.
   let charge = 4 + 6
   let exact : ControlBudget = { remaining: charge, max_frames: 0, }
-  let space = { limit: 100, live: 0, peak: 0, }
+  let space = row_workspace(100)
   let state = start_aggregate_array(values, exact, space)
   let (value, at_most_one, _) = drain_counting(
     () => advance_aggregate_array(state),
@@ -154,11 +154,7 @@ test "array steps charge one unit per item and row Text bytes" {
   assert_true(at_most_one)
   assert_eq(space.live, 4)
   let short : ControlBudget = { remaining: charge - 1, max_frames: 0, }
-  let failing = start_aggregate_array(values, short, {
-    limit: 100,
-    live: 0,
-    peak: 0,
-  })
+  let failing = start_aggregate_array(values, short, row_workspace(100))
   let (failed, _, _) = drain_counting(
     () => advance_aggregate_array(failing),
     short,
@@ -167,7 +163,7 @@ test "array steps charge one unit per item and row Text bytes" {
   let nulls = start_aggregate_array(
     [Number(1), Null],
     { remaining: 100, max_frames: 0, },
-    { limit: 100, live: 0, peak: 0, },
+    row_workspace(100),
   )
   let (rejected, _, _) = drain_counting(() => advance_aggregate_array(nulls), {
     remaining: 100,

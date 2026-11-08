@@ -417,13 +417,15 @@ test('Native partition caller passes the complete compiler inventory before sele
     let discoveries = 0;
     const args = ['--release', '--strip'], env = {original: true};
     const selected = runInNewContext(source.slice(start, end) + '\nselection;', {
-      full: true, root: '/original', args, compilerEnvironment: env, partition,
+      full: true, root: '/original', args, compilerEnvironment: env, partition, executionPackages: undefined,
       nativeCorePartitionProfiles,
       nativeCoreTestSelection(root, originalArgs, options) {
         discoveries++;
         assert.equal(root, '/original'); assert.equal(originalArgs, args);
         assert.equal(options.env, env); assert.equal(options.partitionProfiles, true);
         assert.equal(options.ordinaryPartitions, true);
+        assert.equal(options.timeoutMs, 300_000);
+        assert.equal(options.executionPackages, undefined, 'Unscoped local fixture retains the complete inventory');
         return {profiles};
       }, console: {log() {}},
     });
@@ -807,7 +809,8 @@ test('common Core stack prerequisite is confined to Linux Native children', t =>
     });
     assert.equal(hardLimit.status, 0, hardLimit.stderr);
     const script = 'ulimit -S -s 8192\n' +
-      coreStep.run.replaceAll('${{ matrix.target }}', target);
+      coreStep.run.replaceAll('${{ matrix.target }}', target)
+        .replaceAll('${{ needs.select-targets.outputs.moon_test_selection }}', 'false');
     const result = spawnSync('bash', ['-eo', 'pipefail', '-c', script], {
       cwd: root, encoding: 'utf8', timeout: 5000,
       env: {...process.env, PATH: bin + ':' + process.env.PATH},
@@ -824,7 +827,7 @@ test('common Core stack prerequisite is confined to Linux Native children', t =>
   }
 });
 
-function fixture(t, {scoped = false, http = false, sourcePeers = false, relationWork = false} = {}) {
+function fixture(t, {scoped = false, http = false, sourcePeers = false, relationWork = false, effectTargets = false} = {}) {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-native-namespace-test-')));
   t.after(() => rmSync(root, {recursive: true, force: true}));
   const checkout = join(root, 'checkout');
@@ -947,6 +950,11 @@ process.exitCode=process.env.ACTQL_FIXTURE_SOURCE_FAILED==='1'?9:0;
     mkdirSync(join(checkout, 'src/platform_native/row_source'), {recursive: true});
     writeFileSync(join(checkout, 'src/platform_native/row_source/capture_physical_scoped_wbtest.mbt'),
       'Original compiler-input fixture\n');
+    if (effectTargets) {
+      for (const path of ['src/cmd/native_client/local_project_mock_content_physical_scoped_wbtest.mbt',
+        'src/platform_native/row_source/target_io_physical_scoped_wbtest.mbt'])
+        writeFileSync(join(checkout, path), 'Original compiler-input fixture\n');
+    }
     // This test observes routing only. Physical compilation is covered by the
     // selected-provider helper and actual Native cases, not this explicit port.
     writeFileSync(join(checkout, 'scripts/native-core-scoped-profile.mjs'), `
@@ -1020,7 +1028,9 @@ if (process.argv[2] === 'generate-test-driver') {
   require('node:fs').mkdirSync(require('node:path').dirname(metadata), {recursive:true});
   const tests = Object.fromEntries(args.filter(value => value.startsWith('src/') && value.endsWith('.mbt'))
     .map(value => [require('node:path').basename(value), value.startsWith('src/fixture-empty/') ? [] :
-      Array.from({length: value.endsWith('/root_control_physical_scoped_wbtest.mbt') ? 3 : 1},
+      Array.from({length: value.endsWith('/root_control_physical_scoped_wbtest.mbt') ||
+          value.endsWith('/target_io_physical_scoped_wbtest.mbt') ? 3 :
+          value.endsWith('/local_project_mock_content_physical_scoped_wbtest.mbt') ? 4 : 1},
         (_, index) => ({index,name:'original fixture case '+index,attrs:[],line_number:index+1}))]));
   writeFileSync(metadata, JSON.stringify({tests}));
   process.exit(0);
@@ -1041,6 +1051,7 @@ if (process.argv.includes('--dry-run')) {
       '--output-driver _build/native/release/test/cmd/native_client/driver.mbt ' +
       '--output-metadata _build/native/release/test/cmd/native_client/info.json ' +
       ['ordinary_wbtest.mbt','local_command_business_wbtest.mbt','local_command_business_cleanup_wbtest.mbt']
+        .concat(process.env.ACTQL_FIXTURE_CORE_EFFECT_TARGETS === '1' ? ['local_project_mock_content_physical_scoped_wbtest.mbt'] : [])
         .map(name => 'src/cmd/native_client/' + name).join(' ') +
       ' --target native --pkg-name fixture/native_client --driver-kind whitebox');
     console.log('moon generate-test-driver ' +
@@ -1058,6 +1069,8 @@ if (process.argv.includes('--dry-run')) {
       '--output-driver _build/native/release/test/platform_native/row_source/driver.mbt ' +
       '--output-metadata _build/native/release/test/platform_native/row_source/info.json ' +
       'src/platform_native/row_source/capture_physical_scoped_wbtest.mbt ' +
+      (process.env.ACTQL_FIXTURE_CORE_EFFECT_TARGETS === '1'
+        ? 'src/platform_native/row_source/target_io_physical_scoped_wbtest.mbt ' : '') +
       '--target native --pkg-name fixture/row_source --driver-kind whitebox');
     if (process.env.ACTQL_FIXTURE_CORE_RELATION_WORK === '1') console.log('moon generate-test-driver ' +
       '--output-driver _build/native/release/test/platform_native/relation_file_work_tests/driver.mbt ' +
@@ -1083,12 +1096,40 @@ if (process.env.ACTQL_FIXTURE_NATIVE_COMMANDS) {
       relationRoot:process.env.ACTQL_TEST_RELATION_ORIGINAL_ROOT,
       relationRuntime:process.env.ACTQL_TEST_RELATION_RUNTIME_ROOT,
       installedProcess:process.env.ACTQL_TEST_INSTALLED_PROCESS_ROOT,
+      targetRoot:process.env.ACTQL_TEST_NATIVE_TARGET_IO_ROOT,
+      contentStore:process.env.ACTQL_TEST_NATIVE_STORE_ROOT,
+      contentLookups:process.env.ACTQL_TEST_NATIVE_CONTENT_LOOKUPS,
+      modelSourceClosure:process.env.ACTQL_TEST_NATIVE_MODEL_SOURCE_CLOSURE,
+      effectPlanOnly:process.env.ACTQL_TEST_NATIVE_EFFECT_PLAN_ONLY,
       sqliteComponent:process.env.ACTQL_TEST_SQLITE_COMPONENT,cryptoComponent:process.env.ACTQL_TEST_CRYPTO_COMPONENT}) + '\\n');
 }
 if (['runtime-values','scoped-review-values'].includes(process.env.ACTQL_FIXTURE_PROFILE)) {
   assert(process.argv.includes('--target-dir'));
   assert(process.env.ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT);
   assert(process.env.ACTQL_TEST_NATIVE_UNCLOSED_SQLITE_FIXTURE);
+  if (process.argv.includes('src/platform_native/row_source/target_io_physical_scoped_wbtest.mbt')) {
+    assert.equal(process.env.ACTQL_FIXTURE_PROFILE, 'scoped-review-values');
+    assert.equal(process.env.ACTQL_TEST_INSTALLED_PROCESS_ROOT, undefined);
+    assert.equal(process.env.ACTQL_TEST_NATIVE_EFFECT_PLAN_ONLY, undefined);
+    const index = Number(process.argv[process.argv.indexOf('--index') + 1]);
+    const suffix = ['update', 'cancel', 'sync'][index]; assert(suffix);
+    const root = process.env.ACTQL_TEST_NATIVE_TARGET_IO_ROOT;
+    assert.equal(statSync(root).mode & 0o777, 0o700);
+    assert.equal(statSync(join(root, 'target-backing-' + suffix)).size, 384 * 1024 ** 2);
+    assert.equal(require('node:fs').readFileSync(join(root, 'target-' + suffix + '.json'), 'utf8'),
+      ' {"items":[{"id":"first","value":1},{"id":"second","value":2}],"keep":"untouched"}\\n');
+    if (process.env.ACTQL_FIXTURE_TARGET_ZERO === '1') console.log('Total tests: 0, passed: 0, failed: 0.');
+    else console.log('Total tests: 1, passed: 1, failed: 0.');
+    process.exit(0);
+  }
+  assert.equal(process.env.ACTQL_TEST_NATIVE_TARGET_IO_ROOT, undefined);
+  if (process.argv.includes('src/cmd/native_client/local_project_mock_content_physical_scoped_wbtest.mbt')) {
+    const index = Number(process.argv[process.argv.indexOf('--index') + 1]);
+    assert.equal(process.env.ACTQL_TEST_NATIVE_CONTENT_LOOKUPS, index === 0 ? '1' : '2');
+    assert.equal(process.env.ACTQL_TEST_NATIVE_MODEL_SOURCE_CLOSURE, index === 2 ? '1' : undefined);
+    assert.equal(process.env.ACTQL_TEST_NATIVE_EFFECT_PLAN_ONLY, index === 3 ? '1' : undefined);
+    assert.equal(statSync(process.env.ACTQL_TEST_NATIVE_STORE_ROOT).mode & 0o777, 0o700);
+  } else assert.equal(process.env.ACTQL_TEST_NATIVE_EFFECT_PLAN_ONLY, undefined);
   if (process.argv.includes('src/platform_native/relation_file_work_tests/relation_file_original_physical_scoped_test.mbt')) {
     assert.equal(process.env.ACTQL_FIXTURE_PROFILE, 'scoped-review-values');
     const relation = process.env.ACTQL_TEST_RELATION_ORIGINAL_ROOT;
@@ -1292,6 +1333,7 @@ process.exit(result.status ?? 1);
   const env = {...process.env, PATH: `${bin}:${process.env.PATH}`,
     ...(scoped ? {ACTQL_FIXTURE_CORE_SCOPED: '1'} : {}),
     ...(relationWork ? {ACTQL_FIXTURE_CORE_RELATION_WORK: '1'} : {}),
+    ...(effectTargets ? {ACTQL_FIXTURE_CORE_EFFECT_TARGETS: '1'} : {}),
     ...(http ? {ACTQL_FIXTURE_CORE_HTTP: '1'} : {}),
     ...(sourcePeers ? {ACTQL_FIXTURE_CORE_SOURCE:'1'} : {}),
     HOME: root, RUNNER_TEMP: join(root, 'runner'), ACTQL_TEST_NATIVE_SQLITE_ROOT: parent,
@@ -1562,7 +1604,8 @@ if(process.env.ACTQL_FIXTURE_FAIL_FULL==='1'&&process.argv.includes('--strip'))p
   writeFileSync(join(bin,'getconf'),'#!/bin/sh\nprintf "3\\n"\n');
   chmodSync(join(bin,'getconf'),0o755);
   for(const target of ['native','js','wasm']){
-    const command=coreStep.run.replaceAll('${{ matrix.target }}',target);
+    const command=coreStep.run.replaceAll('${{ matrix.target }}',target)
+      .replaceAll('${{ needs.select-targets.outputs.moon_test_selection }}','false');
     const result=spawnSync('bash',['-eo','pipefail','-c',command],{
       cwd:root,encoding:'utf8',timeout:5000,env:{...process.env,PATH:bin+':'+process.env.PATH,MOONBIT_NEW_NATIVE:'1'},
     });
@@ -1587,6 +1630,54 @@ if(process.env.ACTQL_FIXTURE_FAIL_FULL==='1'&&process.argv.includes('--strip'))p
       assert.deepEqual(calls[0],['test','--target',target,'--deny-warn','-j','3']);
     }
   }
+});
+
+test('failed Native compiler forwarding drains original pipe tails before its unchanged failure', async () => {
+  const source = readFileSync(new URL('test-native-salesforce-effect-preview.mjs', import.meta.url), 'utf8');
+  const spawnAt = source.indexOf("child = spawn(process.execPath, ['--input-type=module', '-e',");
+  const start = source.indexOf('  if (compilerDriver) {', spawnAt);
+  const end = source.indexOf('  // This observer', start);
+  const settled = source.indexOf("  const [code, signal] = await once(child, 'close');", end);
+  const failure = source.indexOf('  if (code !== 0 && compilerDriver)', settled);
+  assert(spawnAt >= 0 && start > spawnAt && end > start && settled > end && failure > settled);
+  const bytes = 2 * 1024 * 1024, stdout = 'O'.repeat(bytes) + '\nFINAL_NATIVE_SUMMARY\n',
+    stderr = 'E'.repeat(bytes) + '\nORIGINAL_CHILD_FAILURE_END\n';
+  const producer = `process.stdout.write('O'.repeat(${bytes})+'\\nFINAL_NATIVE_SUMMARY\\n');` +
+    `process.stderr.write('E'.repeat(${bytes})+'\\nORIGINAL_CHILD_FAILURE_END\\n');process.exitCode=7;`;
+  const script = `import {spawn} from 'node:child_process';import {once} from 'node:events';import assert from 'node:assert/strict';
+const compilerDriver={write(){}},stopProgress=()=>{};
+let child=spawn(process.execPath,['--input-type=module','-e',${JSON.stringify(producer)}],{stdio:['ignore','pipe','pipe']});
+${source.slice(start, end)}
+${source.slice(settled, failure)}
+assert.equal(code,0,\`Native target observation failed: \${signal??code}\`);`;
+  const env = {...process.env}; delete env.NODE_TEST_CONTEXT;
+  const child = spawn(process.execPath, ['--input-type=module', '-e', script],
+    {env, stdio:['ignore', 'pipe', 'pipe']});
+  const output = [], errors = [];
+  let delayed = false, resume;
+  const collect = (target, chunk) => {
+    target.push(chunk);
+    if (!delayed) {
+      delayed = true; child.stdout.pause(); child.stderr.pause();
+      resume = setTimeout(() => {child.stdout.resume(); child.stderr.resume();}, 1000);
+    }
+  };
+  child.stdout.on('data', chunk => collect(output, chunk));
+  child.stderr.on('data', chunk => collect(errors, chunk));
+  const timeout = setTimeout(() => child.kill('SIGKILL'), 10000);
+  let status, signal;
+  try {
+    [status, signal] = await new Promise((resolve, reject) => {
+      child.once('error', reject); child.once('close', (code, signal) => resolve([code, signal]));
+    });
+  } finally {clearTimeout(timeout); clearTimeout(resume);}
+  assert.equal(signal, null); assert.equal(status, 1, 'the original failed child must still fail its wrapper');
+  const observed = Buffer.concat(output), diagnostic = Buffer.concat(errors);
+  assert.equal(observed.length, Buffer.byteLength(stdout), 'queued stdout tail was lost');
+  assert.equal(observed.toString(), stdout);
+  assert(diagnostic.length >= Buffer.byteLength(stderr), 'queued stderr tail was lost');
+  assert(diagnostic.toString().startsWith(stderr));
+  assert.match(diagnostic.toString(), /Native target observation failed: 7/u);
 });
 
 test('Native target child keeps a finite cold Core budget without widening ordinary fixture timeouts', () => {
@@ -1984,6 +2075,52 @@ test('Core Native prepares existing scoped producer dependencies before expensiv
   for (const target of ['js', 'wasm', 'native']) {
     assert.equal(runInNewContext(dependencies.if.slice(3, -2), {matrix: {target}}, {timeout: 100}),
       target === 'native');
+  }
+});
+
+test('Native Core routes four Content and three target I/O originals with nonzero selected execution', t => {
+  const contentFile = 'src/cmd/native_client/local_project_mock_content_physical_scoped_wbtest.mbt';
+  const targetFile = 'src/platform_native/row_source/target_io_physical_scoped_wbtest.mbt';
+  for (const zero of [false, true]) {
+    const f = fixture(t, {scoped: true, effectTargets: true});
+    const commands = join(f.root, 'effect-target-commands.jsonl');
+    const result = spawnSync(process.execPath, ['scripts/test-native-core.mjs', '--deny-warn'], {
+      cwd: f.checkout, encoding: 'utf8', timeout: 20000,
+      env: {...f.env, ACTQL_FIXTURE_NATIVE_COMMANDS: commands,
+        ACTQL_FIXTURE_TARGET_ZERO: zero ? '1' : '0',
+        ACTQL_TEST_NATIVE_EFFECT_PLAN_ONLY: 'ambient-plan',
+        ACTQL_TEST_NATIVE_MODEL_SOURCE_CLOSURE: 'ambient-closure',
+        ACTQL_TEST_NATIVE_CONTENT_LOOKUPS: 'ambient-count',
+        ACTQL_TEST_NATIVE_TARGET_IO_ROOT: f.parent},
+    });
+    assert.ifError(result.error); assert.equal(result.signal, null);
+    assert.equal(result.status === 0, !zero, result.stdout + result.stderr);
+    const calls = readFileSync(commands, 'utf8').trim().split('\n').map(JSON.parse);
+    const selected = calls.filter(call => call.profile !== 'ordinary');
+    const content = selected.filter(call => call.args.includes(contentFile));
+    assert.deepEqual(content.map(call => call.args[call.args.indexOf('--index') + 1]), ['0', '1', '2', '3']);
+    assert.deepEqual(content.map(call => call.effectPlanOnly), [undefined, undefined, undefined, '1']);
+    assert.deepEqual(content.map(call => call.modelSourceClosure), [undefined, undefined, '1', undefined]);
+    assert.deepEqual(content.map(call => call.contentLookups), ['1', '2', '2', '2']);
+    assert.equal(new Set(content.map(call => call.contentStore)).size, 4);
+    assert(content.every(call => call.profile === 'runtime-values'));
+    const targets = selected.filter(call => call.args.includes(targetFile));
+    assert.deepEqual(targets.map(call => call.args[call.args.indexOf('--index') + 1]), zero ? ['0'] : ['0', '1', '2']);
+    assert.equal(new Set(targets.map(call => call.targetRoot)).size, targets.length);
+    for (const call of targets) {
+      assert.equal(call.profile, 'scoped-review-values');
+      assert.notEqual(call.targetRoot, f.parent);
+      assert.equal(call.installedProcess, undefined);
+      assert.equal(call.effectPlanOnly, undefined);
+      assert.equal(existsSync(call.targetRoot), zero, 'failed execution retains its exact original fixture');
+    }
+    for (const call of selected.filter(call => !targets.includes(call))) assert.equal(call.targetRoot, undefined);
+    for (const call of selected.filter(call => !content.includes(call))) assert.equal(call.effectPlanOnly, undefined);
+    if (!zero) {
+      assert.equal(calls.length, 17, 'all existing cases remain alongside the seven newly routed originals');
+      assert.match(result.stdout, /"scoped":14,"physical":13,"repeatedGeometry":1/u);
+    } else assert.match(result.stderr + result.stdout, /no successfully executed test cases|expected tests=1/u);
+    f.verifyExternal();
   }
 });
 

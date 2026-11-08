@@ -11,6 +11,10 @@ The `client` required check remains the aggregate result for all Client
 acceptance. The workflow now schedules these independent workloads:
 
 - `client-packages` packs the same five Client distributions once
+- `client-supported-versions` installs the same run's normal tarballs in fresh
+  external consumers for the minimum and latest supported Node versions. SDK
+  cases check import and a fixture HTTP round trip; Local cases check open, query and
+  close. These consumers cannot rebuild packages or resolve checkout runtime.
 - `client-distribution` runs the source-backed distribution contract tests
 - `client-distribution-callers` runs the existing Host preparation and resource callers
 - `client-distribution-mutations` runs the four original mutation commands
@@ -29,7 +33,9 @@ The package consumers and source-backed distribution jobs depend on the exact
 package producer. Native Client transport and Salesforce start independently.
 Salesforce's source-backed recovery imports require the Local runtime bridges;
 it prepares these in its own checkout before the existing gates.
-Each workload retains the previous 30-minute limit. Source composition has its
+The existing distribution and installed-query workloads retain their 30-minute
+limits. Each supported-version case has a separate 10-minute limit and does not
+multiply the Native, proof or mutation campaigns. Source composition has its
 own runner so the other installed-query consumers cannot consume that budget.
 Its complete command is unchanged and remains required by `client`.
 The old 53-command
@@ -43,6 +49,56 @@ cancellation and unexpected skip. The existing global `check` still requires
 `client`. Performance and diagnostic-probe modes retain their original
 conditional behavior, as does
 the optional macOS gate.
+
+## Change-scoped PR verification
+
+Main integration retains all runtime families. Ready PRs may use the existing
+maintenance/focused profiles or a compiler-owned Moon test plan; a failed or
+unavailable diff never authorizes omission.
+
+- Reviewed modifications to contribution/CI prose and the standalone performance
+  report assessor retain lint and spec, including their actual synthetic tests,
+  without starting unrelated product, Native, wheel or proof producers. New,
+  deleted, renamed, executable or aliased files stay full. The list is explicit
+  in `scripts/ci-targets.mjs`, not every Markdown or JavaScript file.
+- `docs/development.md` is also an executable input: packed acceptance reads its
+  Quickstart through `readmeQuickstart`. A prose-only edit may stay maintenance;
+  changed or missing Program, client, expected output or shell blocks restore
+  normal product verification.
+- For a regular Moon-only PR modification, the pinned compiler supplies
+  `moon tree --package --json`. Selection includes the changed packages and all
+  reverse source, whitebox-test and blackbox-test imports. The graph must cover
+  every tracked package manifest. Selected direct files avoid accidentally
+  executing unrelated nested packages.
+- JS/Wasm consumers independently reproduce the normalized graph digest and
+  original file inventory at the tested checkout before calling the existing
+  nonzero test wrapper. Every Core target still runs whole-module
+  `moon check --deny-warn`. Native receives the same checked package closure
+  inside its existing full-classification entrance. Its compiler first discovers
+  the complete original case inventory, then checks the selected drivers against
+  those exact inputs/case identities. Original HTTP, Source, ordinary and scoped
+  provider profiles remain distinct; physical cases never move to an ordinary
+  or unfunded invocation. Both ordinary partitions remain nonempty/disjoint,
+  with auxiliary profiles owned once by partition 1.
+  If a backend has no runnable selected compiler cases (including testless or
+  benchmark-only inputs, or a JS-only package on Wasm), that backend retains its complete nonzero suite.
+  The reason is printed; zero discovery never becomes a successful test result.
+  Native also prints an explicit full fallback when the requested closure lacks
+  two nonempty ordinary packages, has no runnable original cases, or would admit
+  an unselected nested package through a directory input. Neither the metadata
+  deadline nor the original execution/compiler budgets are extended or reduced.
+- FFI/platform, generator/build, JS bridge/distribution and proof-snapshot
+  relationships are declared in `ci-moon-test-plan.mjs`. They are not inferred
+  from Moon imports. Their existing product jobs remain required. In particular,
+  the proof snapshot still includes all `src`/`vendor`, so a selected Moon test
+  plan does not narrow the registered three-target proof campaign.
+
+Manifest, toolchain, CI infrastructure, structural and unfamiliar target/ownership
+changes retain broad verification. Unsupported/malformed compiler metadata or an
+oversized plan produces an explained full fallback. The same final gate still
+rejects failed, cancelled, missing and unexpectedly skipped required jobs. An
+unselected family supplies no execution evidence. Graph acquisition is metadata
+only and never substitutes a new package/runtime build for an existing producer.
 
 ## Immutable package handoff
 
@@ -245,6 +301,35 @@ only 26–35s. Different source/runner/load and failed/incomplete runs are not
 controlled successful comparisons. Independent retry scope and reduced per-job
 timeout exposure are the immediate goals. Pipeline evidence remains a separate,
 longer critical path; this split does not establish a whole-workflow speedup.
+
+## Source-backed preparation observation
+
+The existing `ci-evidence` / `ci-timing` collector read completed run
+[42410011597](https://github.com/actql/actql/actions/runs/42410011597), attempt 1,
+reported head `3930886d10d1b0a50ee9a77bae376c196b078b87`. All three selected
+Client jobs and their preparation steps passed; the overall run failed.
+
+| Preparation step | Distribution | Callers | Mutations |
+| --- | ---: | ---: | ---: |
+| Runtime build | 73 s | 74 s | 70 s |
+| Adapter build | 4 s | 3 s | 3 s |
+| Each wire freshness check | 0 s | 0 s | 0 s |
+| Existing normal-tar download | 2 s | 2 s | 2 s |
+
+These are API timestamp differences at whole-second precision: a zero-second
+wire observation is not zero work. The normal-tar download does not measure
+transfer of a new runtime-output artifact. The runtime stages total 217 runner
+seconds; replacing them with one hypothetical 70–74-second build would remove
+143–147 seconds before upload, transfer and dependency waiting. That arithmetic
+is not measured savings, and the preparation stages already overlap in time.
+
+Do not introduce another shared runtime artifact from this observation alone.
+Adapter and freshness work is small, while runtime sharing still lacks a
+same-source relocated consumer and mutation-private-copy qualification plus a
+net timing comparison. Keep the measured boundaries and private builds until
+those requirements justify the extra producer and dependency. The failed run's
+35,501 total job-seconds and 4,532-second final-check interval remain separate
+observations, never a successful optimization comparison.
 
 ## Main performance observations
 

@@ -96,6 +96,7 @@ test "physical JSON allocation limits are exact and cumulative within the frame"
 
 ///|
 test "physical JSON rejects nested values numbers and malformed syntax without recursive tree traversal" {
+  assert_eq(transport_column_frame_depth(), 2)
   for text in ["[[[]]]", "[[{}]]", "[[1]]", "[null]", "null"] {
     assert_true(
       decode_transport_columns(text, transport_column_limits())

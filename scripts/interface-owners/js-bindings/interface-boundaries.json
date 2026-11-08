@@ -17805,6 +17805,9 @@
             "publicationControl/init:bindTableInput/init:bindTableInput",
             "publicationControl/init:bindTablePreview/init:bindTablePreview",
             "publicationControl/init:cancelDurableResultRowFrames/init:cancelDurableResultRowFrames",
+            "publicationControl/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt",
+            "publicationControl/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt",
+            "publicationControl/init:captureOriginalClientRunPlan/init:captureOriginalClientRunPlan",
             "publicationControl/init:capturedContentGenerationCount/init:capturedContentGenerationCount",
             "publicationControl/init:capturedContentGenerationStorage/init:capturedContentGenerationStorage",
             "publicationControl/init:capturedContentGenerationStorage/init:capturedContentGenerationStorage/init:capturedContentGenerationStorage",
@@ -17835,15 +17838,15 @@
             "publicationControl/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid#2",
             "publicationControl/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid#3",
             "publicationControl/init:capturedEffectSourceStoreAuthorityCid/init:capturedEffectSourceStoreAuthorityCid",
-            "publicationControl/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt",
-            "publicationControl/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt",
-            "publicationControl/init:captureOriginalClientRunPlan/init:captureOriginalClientRunPlan",
             "publicationControl/init:checkCheckedClientInferOriginalParkedStorageOrigin/init:checkCheckedClientInferOriginalParkedStorageOrigin",
             "publicationControl/init:checkCheckedClientInferOriginalPreRestoreOrigin/init:checkCheckedClientInferOriginalPreRestoreOrigin",
             "publicationControl/init:checkClientCompiledEffectRunOwner/init:checkClientCompiledEffectRunOwner",
             "publicationControl/init:checkClientCompiledRunDefinition/init:checkClientCompiledRunDefinition",
             "publicationControl/init:checkClientCompiledRunOwner/init:checkClientCompiledRunOwner",
             "publicationControl/init:checkClientRunDefinitionBinding/init:checkClientRunDefinitionBinding",
+            "publicationControl/init:checkRecoveredTableSchemaWire/init:checkRecoveredTableSchemaWire",
+            "publicationControl/init:checkSourceFreeLocalEffectPreviewIdentities/init:checkSourceFreeLocalEffectPreviewIdentities",
+            "publicationControl/init:checkSourceFreeLocalEffectPreviewIdentities/init:checkSourceFreeLocalEffectPreviewIdentities/owned/owned",
             "publicationControl/init:checkedClientCompiledEffectProgram/init:checkedClientCompiledEffectProgram",
             "publicationControl/init:checkedClientEffectInferInvocation/init:checkedClientEffectInferInvocation",
             "publicationControl/init:checkedClientInferOriginalReadScopeLive/init:checkedClientInferOriginalReadScopeLive",
@@ -17859,9 +17862,6 @@
             "publicationControl/init:checkedClientSerializationRecoveryBindings/init:checkedClientSerializationRecoveryBindings",
             "publicationControl/init:checkedClientSerializationRecoveryBindings/init:checkedClientSerializationRecoveryBindings/init:checkedClientSerializationRecoveryBindings",
             "publicationControl/init:checkedClientStoredRunCapturedContentCandidate/init:checkedClientStoredRunCapturedContentCandidate",
-            "publicationControl/init:checkRecoveredTableSchemaWire/init:checkRecoveredTableSchemaWire",
-            "publicationControl/init:checkSourceFreeLocalEffectPreviewIdentities/init:checkSourceFreeLocalEffectPreviewIdentities",
-            "publicationControl/init:checkSourceFreeLocalEffectPreviewIdentities/init:checkSourceFreeLocalEffectPreviewIdentities/owned/owned",
             "publicationControl/init:claimCheckedClientInferNodePreparationLayout/init:claimCheckedClientInferNodePreparationLayout",
             "publicationControl/init:committedPublicationFinalizationAction/init:committedPublicationFinalizationAction",
             "publicationControl/init:compiledInferEvaluationPolicy/init:compiledInferEvaluationPolicy",
@@ -17870,6 +17870,7 @@
             "publicationControl/init:compiledSerializationPolicy/init:compiledSerializationPolicy",
             "publicationControl/init:completeCheckedClientContentStep/init:completeCheckedClientContentStep",
             "publicationControl/init:completeCheckedClientSerializationGeneration/init:completeCheckedClientSerializationGeneration",
+            "publicationControl/init:composedInferSourcesFor/init:composedInferSourcesFor",
             "publicationControl/init:defineCheckedClientCompiledRun/init:defineCheckedClientCompiledRun",
             "publicationControl/init:deliveryFailureTerminalAction/init:deliveryFailureTerminalAction",
             "publicationControl/init:deliveryRecordRetryAction/init:deliveryRecordRetryAction",
@@ -17884,10 +17885,6 @@
             "publicationControl/init:effectComputationRecordHoldingCid/init:effectComputationRecordHoldingCid",
             "publicationControl/init:effectFreeChainValid/init:effectFreeChainValid",
             "publicationControl/init:effectFreeCommitValid/init:effectFreeCommitValid",
-            "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid",
-            "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid/init:effectfulCommitValid",
-            "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid/init:effectfulCommitValid#2",
-            "publicationControl/init:effectfulComputationEvidenceChainValid/init:effectfulComputationEvidenceChainValid",
             "publicationControl/init:effectPrivateEvidenceBinding/init:effectPrivateEvidenceBinding",
             "publicationControl/init:effectReconciliationRunState/init:effectReconciliationRunState",
             "publicationControl/init:effectReconciliationRunState/init:effectReconciliationRunState/init:effectReconciliationRunState",
@@ -17896,6 +17893,10 @@
             "publicationControl/init:effectSetReceiptRunDisposition/init:effectSetReceiptRunDisposition/init:effectSetReceiptRunDisposition",
             "publicationControl/init:effectSourceArtifactPreviewBinding/init:effectSourceArtifactPreviewBinding",
             "publicationControl/init:effectTableSourceArtifactPreviewBinding/init:effectTableSourceArtifactPreviewBinding",
+            "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid",
+            "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid/init:effectfulCommitValid",
+            "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid/init:effectfulCommitValid#2",
+            "publicationControl/init:effectfulComputationEvidenceChainValid/init:effectfulComputationEvidenceChainValid",
             "publicationControl/init:encodeModelOriginalResourceDocument/init:encodeModelOriginalResourceDocument",
             "publicationControl/init:encodeModelOriginalResourceDocument/init:encodeModelOriginalResourceDocument/init:encodeModelOriginalResourceDocument",
             "publicationControl/init:existingDeliveryAttemptAction/init:existingDeliveryAttemptAction",
@@ -17915,6 +17916,10 @@
             "publicationControl/init:issueCheckedAcquiredEffectEvidence/init:issueCheckedAcquiredEffectEvidence/value/value#2",
             "publicationControl/init:issueCheckedAcquiredLocalEffectInvocation/init:issueCheckedAcquiredLocalEffectInvocation",
             "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation",
+            "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/originalArguments/originalArguments",
+            "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/originalArguments/originalArguments#2",
+            "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/originalArguments/originalArguments#3",
+            "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/originals/originals",
             "publicationControl/init:issueCheckedClientEffectCapturedInvocation/init:issueCheckedClientEffectCapturedInvocation",
             "publicationControl/init:issueCheckedClientEffectMultiCapturedInvocation/init:issueCheckedClientEffectMultiCapturedInvocation",
             "publicationControl/init:issueCheckedClientEffectMultiCapturedInvocation/init:issueCheckedClientEffectMultiCapturedInvocation/issued/issued",
@@ -17933,12 +17938,6 @@
             "publicationControl/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt",
             "publicationControl/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt",
             "publicationControl/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt#2",
-            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun",
-            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun",
-            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation",
-            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation#2",
-            "publicationControl/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt",
-            "publicationControl/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt",
             "publicationControl/init:issueEffectResultImportObservation/init:issueEffectResultImportObservation",
             "publicationControl/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers",
             "publicationControl/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers",
@@ -17946,6 +17945,12 @@
             "publicationControl/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers#3",
             "publicationControl/init:issueEffectSourceArtifactFromExport/init:issueEffectSourceArtifactFromExport",
             "publicationControl/init:issueEffectTableSourceArtifactFromExport/init:issueEffectTableSourceArtifactFromExport",
+            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun",
+            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun",
+            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation",
+            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation#2",
+            "publicationControl/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt",
+            "publicationControl/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt",
             "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence",
             "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/owned/owned",
             "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/value/value",
@@ -17953,10 +17958,10 @@
             "publicationControl/init:issueLocalEffectResultManifest/init:issueLocalEffectResultManifest",
             "publicationControl/init:issueLocalEffectResultManifest/init:issueLocalEffectResultManifest/owned/owned",
             "publicationControl/init:issueManifestReadGrant/init:issueManifestReadGrant",
+            "publicationControl/init:issuePublicIndexEntry/init:issuePublicIndexEntry",
             "publicationControl/init:issuePublicationAttempt/init:issuePublicationAttempt",
             "publicationControl/init:issuePublicationRecord/init:issuePublicationRecord",
             "publicationControl/init:issuePublicationRequest/init:issuePublicationRequest",
-            "publicationControl/init:issuePublicIndexEntry/init:issuePublicIndexEntry",
             "publicationControl/init:issueResultArtifact/init:issueResultArtifact",
             "publicationControl/init:issueResultDeliveryReceipt/init:issueResultDeliveryReceipt",
             "publicationControl/init:issueResultManifest/init:issueResultManifest",
@@ -18004,6 +18009,7 @@
             "publicationControl/init:prepareLocalEffectDependencyInventory/init:prepareLocalEffectDependencyInventory/init:prepareLocalEffectDependencyInventory",
             "publicationControl/init:prepareResultDeliverySerializer/init:prepareResultDeliverySerializer",
             "publicationControl/init:projectCommittedPublicationState/init:projectCommittedPublicationState",
+            "publicationControl/init:publicIndexSameCommittedContent/init:publicIndexSameCommittedContent",
             "publicationControl/init:publicationAttemptAction/init:publicationAttemptAction",
             "publicationControl/init:publicationCancellationAction/init:publicationCancellationAction",
             "publicationControl/init:publicationCleanupOwnerAction/init:publicationCleanupOwnerAction",
@@ -18017,7 +18023,6 @@
             "publicationControl/init:publicationPreparedReleaseAction/init:publicationPreparedReleaseAction",
             "publicationControl/init:publicationSetupAction/init:publicationSetupAction",
             "publicationControl/init:publicationUnknownRetryAction/init:publicationUnknownRetryAction",
-            "publicationControl/init:publicIndexSameCommittedContent/init:publicIndexSameCommittedContent",
             "publicationControl/init:readCheckedClientComposedInferSavedInputScope/init:readCheckedClientComposedInferSavedInputScope",
             "publicationControl/init:readCheckedClientInferSavedInputScope/init:readCheckedClientInferSavedInputScope",
             "publicationControl/init:readCheckedClientInferSlotReplay/init:readCheckedClientInferSlotReplay",
@@ -18026,10 +18031,10 @@
             "publicationControl/init:readInstalledModelResponseProfile/init:readInstalledModelResponseProfile",
             "publicationControl/init:readInstalledModelResponseProfile/init:readInstalledModelResponseProfile/init:readInstalledModelResponseProfile",
             "publicationControl/init:readIssuedDeliveryAttempt/init:readIssuedDeliveryAttempt",
-            "publicationControl/init:readmitCheckedClientSerializationGeneration/init:readmitCheckedClientSerializationGeneration",
             "publicationControl/init:readModelOriginalResourceDocument/init:readModelOriginalResourceDocument",
             "publicationControl/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal",
             "publicationControl/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal",
+            "publicationControl/init:readmitCheckedClientSerializationGeneration/init:readmitCheckedClientSerializationGeneration",
             "publicationControl/init:recordAllowsCommit/init:recordAllowsCommit",
             "publicationControl/init:recordResultAccessGrant/init:recordResultAccessGrant",
             "publicationControl/init:recordResultAccessInitialAvailability/init:recordResultAccessInitialAvailability",
@@ -18080,6 +18085,9 @@
             "publicationControl/init:startCheckedClientRestoredGeneratedInferInputs/init:startCheckedClientRestoredGeneratedInferInputs",
             "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix",
             "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix",
+            "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix#2",
+            "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix#3",
+            "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix#4",
             "publicationControl/init:startOriginalComposedKeyedPrefix/init:startOriginalComposedKeyedPrefix",
             "publicationControl/init:startOriginalComposedKeyedPrefix/init:startOriginalComposedKeyedPrefix/init:startOriginalComposedKeyedPrefix",
             "publicationControl/init:stopCheckedClientInferNodeReadState/init:stopCheckedClientInferNodeReadState",
@@ -18109,11 +18117,7 @@
             "publicationControl/prepareSerializationGraph/prepareSerializationGraph/prepareSerializationGraph",
             "publicationControl/snapshotToken/snapshotToken",
             "publicationControl/sourceAdvanceToken/sourceAdvanceToken",
-            "publicationControl/token/token",
-            "publicationControl/init:composedInferSourcesFor/init:composedInferSourcesFor",
-            "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix#2",
-            "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix#3",
-            "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix#4"
+            "publicationControl/token/token"
           ],
           "exports": [],
           "attributes": {
@@ -18793,16 +18797,16 @@
           "operations": [
             "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources",
             "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources",
+            "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#10",
             "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#2",
             "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#3",
             "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#4",
-            "publicationControl/init:admitInferCapturedInput/init:admitInferCapturedInput",
-            "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#10",
             "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#5",
             "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#6",
             "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#7",
             "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#8",
-            "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#9"
+            "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#9",
+            "publicationControl/init:admitInferCapturedInput/init:admitInferCapturedInput"
           ],
           "exports": [],
           "attributes": {
@@ -19483,11 +19487,11 @@
         },
         {
           "operations": [
+            "publicationControl/init:checkRestoredClientInferRunOwner/init:checkRestoredClientInferRunOwner",
             "publicationControl/init:checkedClientCompiledInferOriginal/init:checkedClientCompiledInferOriginal",
             "publicationControl/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals",
             "publicationControl/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals",
-            "publicationControl/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals#2",
-            "publicationControl/init:checkRestoredClientInferRunOwner/init:checkRestoredClientInferRunOwner"
+            "publicationControl/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals#2"
           ],
           "exports": [],
           "attributes": {
@@ -20492,10 +20496,6 @@
           "operations": [
             "remoteBundleControl",
             "remoteBundleControl/remoteBundleControl",
-            "remoteBundleControl/remoteBundleControl/remoteBundleControl",
-            "remoteBundleControl/remoteBundleControl/remoteBundleControl#2",
-            "remoteBundleControl/remoteBundleControl/remoteBundleControl#3",
-            "remoteBundleControl/remoteBundleControl/remoteBundleControl#4",
             "remoteBundleControl/remoteBundleControl#10",
             "remoteBundleControl/remoteBundleControl#11",
             "remoteBundleControl/remoteBundleControl#12",
@@ -20538,7 +20538,11 @@
             "remoteBundleControl/remoteBundleControl#6",
             "remoteBundleControl/remoteBundleControl#7",
             "remoteBundleControl/remoteBundleControl#8",
-            "remoteBundleControl/remoteBundleControl#9"
+            "remoteBundleControl/remoteBundleControl#9",
+            "remoteBundleControl/remoteBundleControl/remoteBundleControl",
+            "remoteBundleControl/remoteBundleControl/remoteBundleControl#2",
+            "remoteBundleControl/remoteBundleControl/remoteBundleControl#3",
+            "remoteBundleControl/remoteBundleControl/remoteBundleControl#4"
           ],
           "exports": [],
           "attributes": {
@@ -21171,9 +21175,6 @@
             "remoteTransferControl",
             "remoteTransferControl/int64/int64",
             "remoteTransferControl/remoteTransferControl",
-            "remoteTransferControl/remoteTransferControl/remoteTransferControl",
-            "remoteTransferControl/remoteTransferControl/remoteTransferControl#2",
-            "remoteTransferControl/remoteTransferControl/remoteTransferControl#3",
             "remoteTransferControl/remoteTransferControl#10",
             "remoteTransferControl/remoteTransferControl#11",
             "remoteTransferControl/remoteTransferControl#12",
@@ -21211,6 +21212,9 @@
             "remoteTransferControl/remoteTransferControl#7",
             "remoteTransferControl/remoteTransferControl#8",
             "remoteTransferControl/remoteTransferControl#9",
+            "remoteTransferControl/remoteTransferControl/remoteTransferControl",
+            "remoteTransferControl/remoteTransferControl/remoteTransferControl#2",
+            "remoteTransferControl/remoteTransferControl/remoteTransferControl#3",
             "remoteTransferControl/requestFields/requestFields",
             "remoteTransferControl/requestFields/requestFields/requestFields",
             "remoteTransferControl/requestFields/requestFields/requestFields#2",
@@ -21780,9 +21784,9 @@
           "operations": [
             "siteControl",
             "siteControl/siteControl",
-            "siteControl/siteControl/siteControl",
             "siteControl/siteControl#2",
-            "siteControl/siteControl#3"
+            "siteControl/siteControl#3",
+            "siteControl/siteControl/siteControl"
           ],
           "exports": [],
           "attributes": {
@@ -22013,11 +22017,12 @@
             "publicationControl/init:prepareCheckedClientRequestModelDuckDBComponentCaptureModule/init:prepareCheckedClientRequestModelDuckDBComponentCaptureModule",
             "publicationControl/init:prepareCheckedClientRequestModelProviderCaptureModule/init:prepareCheckedClientRequestModelProviderCaptureModule",
             "publicationControl/init:prepareCheckedClientRequestModelProviderComponentCaptureModule/init:prepareCheckedClientRequestModelProviderComponentCaptureModule",
-            "publicationControl/init:prepareCheckedClientRequestModelsCapturePlan/init:prepareCheckedClientRequestModelsCapturePlan",
-            "publicationControl/init:prepareCheckedClientRequestModelsDuckDBComponentCaptureModule/init:prepareCheckedClientRequestModelsDuckDBComponentCaptureModule",
             "publicationControl/init:prepareCheckedClientRequestModelSourceFreeComponentModule/init:prepareCheckedClientRequestModelSourceFreeComponentModule",
             "publicationControl/init:prepareCheckedClientRequestModelSourceFreeModule/init:prepareCheckedClientRequestModelSourceFreeModule",
             "publicationControl/init:prepareCheckedClientRequestModelSourceFreePlan/init:prepareCheckedClientRequestModelSourceFreePlan",
+            "publicationControl/init:prepareCheckedClientRequestModelWholeInputsComponentCaptureModule/init:prepareCheckedClientRequestModelWholeInputsComponentCaptureModule",
+            "publicationControl/init:prepareCheckedClientRequestModelsCapturePlan/init:prepareCheckedClientRequestModelsCapturePlan",
+            "publicationControl/init:prepareCheckedClientRequestModelsDuckDBComponentCaptureModule/init:prepareCheckedClientRequestModelsDuckDBComponentCaptureModule",
             "publicationControl/init:prepareCheckedClientRequestModelsProviderComponentCaptureModule/init:prepareCheckedClientRequestModelsProviderComponentCaptureModule",
             "publicationControl/init:prepareCheckedClientRequestModelsSourceFreeComponentModule/init:prepareCheckedClientRequestModelsSourceFreeComponentModule",
             "publicationControl/init:prepareCheckedClientRequestModelsSourceFreePlan/init:prepareCheckedClientRequestModelsSourceFreePlan",
@@ -23368,9 +23373,9 @@
         {
           "operations": [
             "publicationControl/init:openCheckedClientInstalledRestoredModelEffectHost/init:openCheckedClientInstalledRestoredModelEffectHost",
+            "publicationControl/init:openCheckedClientInstalledRestoredModelsEffectHost/init:openCheckedClientInstalledRestoredModelsEffectHost",
             "publicationControl/init:restoredInferSourceOriginals/init:restoredInferSourceOriginals",
-            "publicationControl/init:restoredInferSourceOriginals/init:restoredInferSourceOriginals/init:restoredInferSourceOriginals",
-            "publicationControl/init:openCheckedClientInstalledRestoredModelsEffectHost/init:openCheckedClientInstalledRestoredModelsEffectHost"
+            "publicationControl/init:restoredInferSourceOriginals/init:restoredInferSourceOriginals/init:restoredInferSourceOriginals"
           ],
           "exports": [],
           "attributes": {
@@ -26806,6 +26811,34 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/originalArguments/originalArguments",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/originalArguments/originalArguments#2",
+          "parameters": [
+            "sourceEvidence"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/originalArguments/originalArguments#3",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/originals/originals",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:issueCheckedClientEffectCapturedInvocation/init:issueCheckedClientEffectCapturedInvocation",
           "parameters": [
             "checkedEffect",
@@ -28013,6 +28046,27 @@
             "occurrences",
             "graphs",
             "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCheckedClientRequestModelWholeInputsComponentCaptureModule/init:prepareCheckedClientRequestModelWholeInputsComponentCaptureModule",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "compiled",
+            "definition",
+            "compilation",
+            "wholeSources",
+            "query",
+            "evidence",
+            "transport",
+            "scratch",
+            "contracts",
+            "retainedOutput",
+            "queryTime",
+            "construct"
           ],
           "async": false
         },
@@ -31572,7 +31626,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "edb9198d33a377555b52e923b6f2ad31b16af1d3da7279a7d1a62d1584d6a564"
+      "sha256": "973930487203ba35390e0a7973566df631feca497cf699d0539f9dc94f2f4852"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -33502,7 +33556,7 @@
     {
       "module": "adapters/host-node/acquired-effect-continuation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "37a6bbf7b292b86bdc9783672050b62b2016feba63eeb5a6410fa6433c8cbad3",
+      "sha256": "d3edabedbaf259facd3fb106e1d5c5a4979247ab7dbfd0c9e16162c0c307b0c9",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -36525,44 +36579,51 @@
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#12",
-          "parameters": [],
+          "parameters": [
+            "value"
+          ],
           "async": false
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#13",
-          "parameters": [],
+          "parameters": [
+            "value"
+          ],
           "async": false
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#14",
           "parameters": [
-            "task"
+            "source"
           ],
           "async": false
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#15",
           "parameters": [
-            "task"
+            "value"
           ],
           "async": false
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#16",
           "parameters": [
-            "task"
+            "value"
           ],
           "async": false
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#17",
-          "parameters": [
-            "task"
-          ],
+          "parameters": [],
           "async": false
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#18",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/start/start/start/start#19",
           "parameters": [
             "task"
           ],
@@ -36572,6 +36633,34 @@
           "name": "installNodeClientDispatchOwner/start/start/start/start#2",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/start/start/start/start#20",
+          "parameters": [
+            "task"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/start/start/start/start#21",
+          "parameters": [
+            "task"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/start/start/start/start#22",
+          "parameters": [
+            "task"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/start/start/start/start#23",
+          "parameters": [
+            "task"
           ],
           "async": false
         },
@@ -36620,7 +36709,7 @@
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#9",
           "parameters": [
-            "source"
+            "value"
           ],
           "async": false
         },
@@ -37405,7 +37494,7 @@
             "installNodeClientDispatchOwner/start/start/start/result/init:retainExecution/init:retainExecution",
             "installNodeClientDispatchOwner/start/start/start/result/result",
             "installNodeClientDispatchOwner/start/start/start/result/result#2",
-            "installNodeClientDispatchOwner/start/start/start/start#9",
+            "installNodeClientDispatchOwner/start/start/start/start",
             "installNodeClientDispatchOwner/start/start/start/start#10",
             "installNodeClientDispatchOwner/start/start/start/start#11",
             "installNodeClientDispatchOwner/start/start/start/start#12",
@@ -37413,14 +37502,19 @@
             "installNodeClientDispatchOwner/start/start/start/start#14",
             "installNodeClientDispatchOwner/start/start/start/start#15",
             "installNodeClientDispatchOwner/start/start/start/start#18",
-            "installNodeClientDispatchOwner/start/start/start/start",
+            "installNodeClientDispatchOwner/start/start/start/start#19",
             "installNodeClientDispatchOwner/start/start/start/start#2",
+            "installNodeClientDispatchOwner/start/start/start/start#20",
+            "installNodeClientDispatchOwner/start/start/start/start#21",
+            "installNodeClientDispatchOwner/start/start/start/start#22",
+            "installNodeClientDispatchOwner/start/start/start/start#23",
             "installNodeClientDispatchOwner/start/start/start/start#3",
             "installNodeClientDispatchOwner/start/start/start/start#4",
             "installNodeClientDispatchOwner/start/start/start/start#5",
             "installNodeClientDispatchOwner/start/start/start/start#6",
             "installNodeClientDispatchOwner/start/start/start/start#7",
             "installNodeClientDispatchOwner/start/start/start/start#8",
+            "installNodeClientDispatchOwner/start/start/start/start#9",
             "installNodeClientDispatchOwner/step/step",
             "installNodeClientDispatchOwner/track/track",
             "installNodeClientDispatchOwner/track/track/track",
@@ -38840,7 +38934,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "0e903606e4b22f1aa09c8d512ed530dae48e8362fc2232d12eea236844845868",
+      "sha256": "d7fcf1d90056c91d8a9ecb61b3934df9eb7e62110d0108bf06b09631d7f97ca8",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {
@@ -47749,9 +47843,9 @@
             "openPreparedInstalledHost/preparation/init:effectManagedRun/init:effectManagedRun",
             "openPreparedInstalledHost/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun",
             "openPreparedInstalledHost/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun/current/current",
+            "openPreparedInstalledHost/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun/modelFor/modelFor",
             "readSourceManagedEffectRunRequirements/readSourceManagedEffectRunRequirements",
-            "readSourceManagedEffectRunRequirements/readSourceManagedEffectRunRequirements#2",
-            "openPreparedInstalledHost/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun/modelFor/modelFor"
+            "readSourceManagedEffectRunRequirements/readSourceManagedEffectRunRequirements#2"
           ],
           "exports": [],
           "attributes": {
@@ -48813,9 +48907,15 @@
         },
         {
           "operations": [
+            "installedDirectSourceCoordinates",
+            "installedDirectSourceCoordinates/installedDirectSourceCoordinates",
+            "installedDirectSourceCoordinates/installedDirectSourceCoordinates/installedDirectSourceCoordinates",
             "openPreparedInstalledHost/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/funded/funded",
             "openPreparedInstalledHost/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/init:prepareManagedComputeRun#2",
             "prepareManagedComputeCapturePlan",
+            "prepareManagedComputeCapturePlan/args/args",
+            "prepareManagedComputeCapturePlan/args/args#2",
+            "prepareManagedComputeCapturePlan/args/args#3",
             "retainedManagedCaptureInventory"
           ],
           "exports": [],
@@ -51369,9 +51469,9 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareCapturedSubmission/prepareCapturedSubmission",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/prepareInferSelection",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/prepareInferSelection#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/prepareInferSelection/prepareInferSelection",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture/recoverEffectCapture#3",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/init:assertContinuationCurrent/init:assertContinuationCurrent",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/prepareInferSelection/prepareInferSelection"
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/init:assertContinuationCurrent/init:assertContinuationCurrent"
           ],
           "exports": [],
           "attributes": {
@@ -51941,6 +52041,9 @@
           "operations": [
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/observeAccount/observeAccount#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/selection/init:currentProvider/init:currentProvider",
+            "prepareRequestMockModelPlan/prepareRequestMockModelPlan#17",
+            "prepareRequestMockModelPlan/prepareRequestMockModelPlan#18",
+            "prepareRequestMockModelPlan/prepareRequestMockModelPlan#19",
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan#2",
             "readLocalMockModelRunRequirements",
             "readLocalMockModelRunRequirements/asset/asset",
@@ -53028,6 +53131,7 @@
             "prepareManagedComputeCapturePlan/prepareManagedComputeCapturePlan#2",
             "prepareManagedComputeCapturePlan/prepareManagedComputeCapturePlan#3",
             "prepareManagedComputeCapturePlan/prepareManagedComputeCapturePlan#4",
+            "prepareManagedComputeCapturePlan/prepareManagedComputeCapturePlan#5",
             "readManagedComputeRunRequirements/readManagedComputeRunRequirements#6"
           ],
           "exports": [],
@@ -57309,6 +57413,7 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/checkpointOperations/init:resolve/init:resolve",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/continueAcceptedCancellation/continueAcceptedCancellation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/definitionOf/definitionOf",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/directSourceOccurrence/directSourceOccurrence",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#3",
@@ -57325,9 +57430,11 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#5",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#6",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/records/records",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/sourceContinuation/sourceContinuation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/sourceContinuation/sourceContinuation#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/taskIndices/taskIndices",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/nextJournal/nextJournal",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/nextJournal/nextJournal#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/sourceCheckpoints/sourceCheckpoints",
@@ -57364,8 +57471,16 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/port/port/port",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareAcquisition/prepareAcquisition",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareAcquisitions/prepareAcquisitions",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareComposedInferSelection/prepareComposedInferSelection",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareComposedInferSelection/prepareComposedInferSelection/components/components",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareComposedInferSelection/prepareComposedInferSelection/graph/graph",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareComposedInferSelection/prepareComposedInferSelection/prepareComposedInferSelection",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareComposedInferSelection/prepareComposedInferSelection/prepareComposedInferSelection#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareEffectInferSelection/prepareEffectInferSelection",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareEffectInferSelection/prepareEffectInferSelection/occurrences/occurrences",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/observeAccount/observeAccount",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/prepareInferSelection#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/providerBinding/providerBinding",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/providerBinding/providerBinding#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/requestModelMaterials/requestModelMaterials",
@@ -57387,6 +57502,7 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture/recoverEffectCapture#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture/recoverEffectCapture#4",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/requestOf/requestOf",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/requestOf/requestOf/init:onUnsupportedSelection/init:onUnsupportedSelection",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/resultAuthority/resultAuthority",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/resultAuthority/resultAuthority#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld",
@@ -57487,18 +57603,7 @@
             "openInstalledHost/retireModelRuntime",
             "openInstalledHost/runtimeOriginals/runtimeOriginals",
             "openInstalledHost/runtimeTarget/runtimeTarget",
-            "openInstalledHost/selectedInstalledEffect",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/requestOf/requestOf/init:onUnsupportedSelection/init:onUnsupportedSelection",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#6",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/taskIndices/taskIndices",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareComposedInferSelection/prepareComposedInferSelection",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareComposedInferSelection/prepareComposedInferSelection/components/components",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareComposedInferSelection/prepareComposedInferSelection/graph/graph",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareComposedInferSelection/prepareComposedInferSelection/prepareComposedInferSelection",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareComposedInferSelection/prepareComposedInferSelection/prepareComposedInferSelection#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareEffectInferSelection/prepareEffectInferSelection",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareEffectInferSelection/prepareEffectInferSelection/occurrences/occurrences",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/prepareInferSelection#3"
+            "openInstalledHost/selectedInstalledEffect"
           ],
           "exports": [],
           "attributes": {
@@ -58763,6 +58868,7 @@
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan#7",
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan#8",
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan#9",
+            "prepareRequestMockModelPlan/whole/whole",
             "retainRequestModelBoundsAndBudget",
             "retainRequestModelBoundsAndBudget/retainRequestModelBoundsAndBudget",
             "retainRequestModelBoundsAndBudget/retainRequestModelBoundsAndBudget#2"
@@ -59394,6 +59500,29 @@
           "async": false
         },
         {
+          "name": "installedDirectSourceCoordinates",
+          "parameters": [
+            "moon",
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedDirectSourceCoordinates/installedDirectSourceCoordinates",
+          "parameters": [
+            "value",
+            "slot"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedDirectSourceCoordinates/installedDirectSourceCoordinates/installedDirectSourceCoordinates",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
           "name": "installedManagedRunContracts",
           "parameters": [
             "originals"
@@ -59942,6 +60071,14 @@
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/definitionOf/definitionOf",
           "parameters": [
             "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/directSourceOccurrence/directSourceOccurrence",
+          "parameters": [
+            "prepared",
+            "index"
           ],
           "async": false
         },
@@ -62950,6 +63087,27 @@
           "async": false
         },
         {
+          "name": "prepareManagedComputeCapturePlan/args/args",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareManagedComputeCapturePlan/args/args#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareManagedComputeCapturePlan/args/args#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareManagedComputeCapturePlan/prepareManagedComputeCapturePlan",
           "parameters": [
             "value"
@@ -62972,6 +63130,13 @@
         },
         {
           "name": "prepareManagedComputeCapturePlan/prepareManagedComputeCapturePlan#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareManagedComputeCapturePlan/prepareManagedComputeCapturePlan#5",
           "parameters": [
             "value"
           ],
@@ -63064,6 +63229,27 @@
         {
           "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#16",
           "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#17",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#18",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#19",
+          "parameters": [
             "_capacity",
             "prefix",
             "bindSuffix"
@@ -63126,6 +63312,13 @@
           "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#9",
           "parameters": [
             "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRequestMockModelPlan/whole/whole",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -63614,7 +63807,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "c0a847a253d4d3db8350b8612e4a60a55e323f5c490e68bf97f31329d9915dd9"
+      "sha256": "823faf2739409d44e42f1c1c555bd593e2db5331e1435dfb753f154afb63b2df"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -71553,7 +71746,7 @@
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "65d9022cbf04d7104f667b92dad41cb34a917636c786a8d2f002d33fdc25d950",
+      "sha256": "cc4e4370d5c8e5ea65f8f53a07967fa40ce3545b1c13cc4357b34410ed3560a3",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -71615,6 +71808,13 @@
           "async": false
         },
         {
+          "name": "installNodeInferRun/installNodeInferRun/installNodeInferRun#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "installNodeInferRun/installNodeInferRun/ledger/ledger",
           "parameters": [
             "value"
@@ -71630,6 +71830,34 @@
         },
         {
           "name": "installNodeInferRun/installNodeInferRun/ledger/ledger#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeInferRun/installNodeInferRun/ledger/ledger#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeInferRun/installNodeInferRun/ledger/ledger#5",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeInferRun/installNodeInferRun/ledger/ledger#6",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeInferRun/installNodeInferRun/whole/whole",
           "parameters": [
             "value"
           ],
@@ -72114,9 +72342,14 @@
             "installNodeInferRun/installNodeInferRun#3",
             "installNodeInferRun/installNodeInferRun/installNodeInferRun",
             "installNodeInferRun/installNodeInferRun/installNodeInferRun#2",
+            "installNodeInferRun/installNodeInferRun/installNodeInferRun#3",
             "installNodeInferRun/installNodeInferRun/ledger/ledger",
             "installNodeInferRun/installNodeInferRun/ledger/ledger#2",
             "installNodeInferRun/installNodeInferRun/ledger/ledger#3",
+            "installNodeInferRun/installNodeInferRun/ledger/ledger#4",
+            "installNodeInferRun/installNodeInferRun/ledger/ledger#5",
+            "installNodeInferRun/installNodeInferRun/ledger/ledger#6",
+            "installNodeInferRun/installNodeInferRun/whole/whole",
             "installNodeInferRun/run/run",
             "installNodeInferRun/run/run/assertOriginalRuntime/assertOriginalRuntime",
             "installNodeInferRun/run/run/cleanup/cleanup",
@@ -77482,7 +77715,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "3ecfe7ba11a760c4b8dadc3bc145da31248371d50443b1fb34538f5278c8c7f1",
+      "sha256": "db576b698fcb9b2fe39fa62ea0ee06262321368fd5411ebfa7d03b66359c48a5",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -78075,6 +78308,7 @@
             "inputs",
             "context",
             "requestScope",
+            "limits",
             "members",
             "rowsOf",
             "capabilities",
@@ -78104,7 +78338,8 @@
             "effects",
             "members",
             "requestScope",
-            "keys"
+            "keys",
+            "limits"
           ],
           "async": false
         },
@@ -78639,6 +78874,7 @@
           "name": "createRowEffectStage/describeMember/describeMember",
           "parameters": [
             "member",
+            "maxRows",
             "physicalOperations",
             "operationPhase",
             "runInvocationCid",
@@ -78678,7 +78914,8 @@
             "runInvocationCid",
             "dispatchRequestCid",
             "assertCurrent",
-            "signal"
+            "signal",
+            "originalTargetAuthorization"
           ],
           "async": false
         },
@@ -78693,9 +78930,7 @@
         {
           "name": "createRowEffectStage/managedReadChild/managedReadChild/managedReadChild",
           "parameters": [
-            "originalAuthorization",
-            "input",
-            "rowIndex"
+            "entry"
           ],
           "async": false
         },
@@ -78706,17 +78941,21 @@
             "credential",
             "callResource"
           ],
-          "async": false
+          "async": true
         },
         {
-          "name": "createRowEffectStage/managedReadChild/managedReadChild/ownedRead/ownedRead",
+          "name": "createRowEffectStage/managedReadChild/managedReadChild/managedReadChild#2",
           "parameters": [
-            "entry"
+            "authorization",
+            "input",
+            "rowIndex",
+            "slot",
+            "project"
           ],
           "async": false
         },
         {
-          "name": "createRowEffectStage/managedReadChild/managedReadChild/selected/selected",
+          "name": "createRowEffectStage/managedReadChild/managedReadChild/ownedRead/ownedRead",
           "parameters": [
             "entry"
           ],
@@ -78776,15 +79015,6 @@
             "dispatchRequestCid"
           ],
           "async": true
-        },
-        {
-          "name": "createRowEffectStage/observeRows/observeRows/observed/observed",
-          "parameters": [
-            "authorization",
-            "input",
-            "rowIndex"
-          ],
-          "async": false
         },
         {
           "name": "createRowEffectStage/observeRows/observeRows/observeRows",
@@ -79067,7 +79297,8 @@
             "assertCurrent",
             "signal",
             "maxResponseBytes",
-            "constructChild"
+            "constructChild",
+            "credentialSlot"
           ],
           "async": true
         },
@@ -79096,13 +79327,6 @@
         {
           "name": "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation#3",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/selected/selected",
-          "parameters": [
-            "entry"
-          ],
           "async": false
         },
         {
@@ -79433,6 +79657,7 @@
             "body",
             "durable",
             "recorded",
+            "maxRows",
             "previewWire",
             "runInvocationCid",
             "dispatches",
@@ -79627,6 +79852,21 @@
           "name": "createRowEffectStage/routeOf/routeOf",
           "parameters": [
             "capability"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/runLimits/runLimits",
+          "parameters": [
+            "managed"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/runLimits/runLimits/maxRows/maxRows",
+          "parameters": [
+            "bound",
+            "owner"
           ],
           "async": false
         },
@@ -80758,7 +80998,6 @@
             "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation",
             "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation#3",
             "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation",
-            "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/selected/selected",
             "createRowEffectStage/prepareManagedPlan/prepareManagedPlan",
             "deriveInstalledRowWrite/init:checkRequest/init:checkRequest"
           ],
@@ -81852,7 +82091,6 @@
             "createRowEffectStage/managedReadChild/managedReadChild/managedReadChild",
             "createRowEffectStage/managedReadChild/managedReadChild/managedReadChild/managedReadChild",
             "createRowEffectStage/managedReadChild/managedReadChild/ownedRead/ownedRead",
-            "createRowEffectStage/managedReadChild/managedReadChild/selected/selected",
             "createRowEffectStage/memberDispatch/memberDispatch",
             "createRowEffectStage/membersOf/membersOf",
             "createRowEffectStage/membersOf/membersOf/members/members",
@@ -81860,7 +82098,6 @@
             "createRowEffectStage/membersOf/membersOf/membersOf#2",
             "createRowEffectStage/observeRows/observeRows",
             "createRowEffectStage/observeRows/observeRows/observeRows",
-            "createRowEffectStage/observeRows/observeRows/observed/observed",
             "createRowEffectStage/openLedger/openLedger",
             "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes",
             "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes/orderedSourceIndexes",
@@ -81934,7 +82171,9 @@
             "createRowEffectStage/scopes/scopes/scopes",
             "createRowEffectStage/selectOwner/selectOwner",
             "createRowEffectStage/selectOwner/selectOwner/route/route",
-            "createRowEffectStage/settle/settle"
+            "createRowEffectStage/settle/settle",
+            "createRowEffectStage/runLimits/runLimits",
+            "createRowEffectStage/runLimits/runLimits/maxRows/maxRows"
           ],
           "exports": [],
           "attributes": {
@@ -86875,6 +87114,74 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "createRowEffectStage/managedReadChild/managedReadChild/managedReadChild#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -86914,7 +87221,7 @@
     {
       "module": "adapters/host-node/installed-row-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "cff855a1acdc644d58ef47151b820b79305df3ac15896236a0d51c97b1cd1313",
+      "sha256": "8f32c823d22d04bce6b6bfd71e628811147296f578d1b44797f24c9d06faabc1",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -87114,6 +87421,13 @@
           "parameters": [
             "capacity",
             "phase"
+          ],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/readProvider/reserveTransferCapacity/reserveTransferCapacity",
+          "parameters": [
+            "bytes"
           ],
           "async": false
         },
@@ -88647,6 +88961,74 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "startInstalledRowRun/readProvider/reserveTransferCapacity/reserveTransferCapacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -88662,7 +89044,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "4aa0fb3ecb6deb62338837e4475f89afba01a82cc4e2cbba0041f55df74566be",
+      "sha256": "b197713798f4448e478790d326b2004333100355e636515532bcf9c3833653b2",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -95973,7 +96355,7 @@
     {
       "module": "adapters/host-node/local-values-plan.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "5cc5b4ee41d3ec48ab5fadf4597a9c90fa3db55a2b2453804dd9d75b2793f739",
+      "sha256": "7541355f2c2d0812db859afd0dc992eac91a40f1e39d6f5e24aab87b94214cb8",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -96055,6 +96437,7 @@
             "control",
             "acquired",
             "preparedProgram",
+            "publicationOriginal",
             "captured",
             "sourceEvidence",
             "keyedObservation",
@@ -96124,6 +96507,7 @@
             "control",
             "acquired",
             "preparedProgram",
+            "publicationOriginal",
             "sources",
             "authorityScopeCid",
             "effectiveDataPolicyCid",
@@ -96159,12 +96543,20 @@
           "async": false
         },
         {
+          "name": "acquiredMultiTaskPublicationPlan/whole/whole",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
           "name": "acquiredTaskPublicationPlan",
           "parameters": [
             "moon",
             "control",
             "acquired",
             "preparedProgram",
+            "publicationOriginal",
             "captured",
             "sourceEvidence",
             "authorityScopeCid",
@@ -97364,7 +97756,8 @@
             "acquiredMultiTaskPublicationPlan",
             "acquiredMultiTaskPublicationPlan/acquiredMultiTaskPublicationPlan",
             "acquiredMultiTaskPublicationPlan/acquiredMultiTaskPublicationPlan#2",
-            "acquiredMultiTaskPublicationPlan/acquiredMultiTaskPublicationPlan#3"
+            "acquiredMultiTaskPublicationPlan/acquiredMultiTaskPublicationPlan#3",
+            "acquiredMultiTaskPublicationPlan/whole/whole"
           ],
           "exports": [
             "acquiredMultiTaskPublicationPlan"

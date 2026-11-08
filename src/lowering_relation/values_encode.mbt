@@ -25,6 +25,22 @@ pub fn node_values_row_count(node : PreparedNode) -> Int? {
 }
 
 ///|
+/// Borrow the original literal admission's cached charged text envelope.
+/// Parameters are not measured as their later bound values; callers retain
+/// their independent policy. This neither scans rows nor grants capacity.
+pub fn node_values_literal_text_bytes(node : PreparedNode) -> Int? {
+  match node.payload {
+    Values(values) =>
+      if @values.pending_binding_cell_at(values, 1) is Some(_) {
+        None
+      } else {
+        Some(@values.usage(values).text_bytes)
+      }
+    _ => None
+  }
+}
+
+///|
 /// Resolve a literal/parameter once through its exact bound owner. Local and
 /// canonical emission share this cell interpretation, not a frontend payload.
 pub fn bound_values_cell(

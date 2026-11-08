@@ -77,6 +77,73 @@ fn original_capture_wire_limits() -> @execution.RowWireLimits {
 }
 
 ///|
+// The checked Query owner supplies the INPUT schema, never the capture port.
+fn original_query_input_schema(
+  requirement : @planning.QueryRequirement,
+) -> @schema.Schema? {
+  let query = @planning.query_material_owner(
+    @planning.query_requirement_material(requirement),
+  )
+  @lower.preparation_input_schema(
+    @lower.bound_preparation(@query.query_sequence_owner(query)),
+    @query.query_receipt_input_index(query),
+  )
+}
+
+///|
+/// Same existing receiver allocation, including original checked INPUT metadata.
+/// Shared representation units add no physical quota or execution permission.
+pub fn row_original_input_query_capacity(
+  requirement : @planning.QueryRequirement,
+) -> (Int64, Int64)? {
+  guard original_query_input_schema(requirement) is Some(schema) &&
+    row_schema_measurement_capacity(schema) is Some((workspace, retained)) else {
+    return None
+  }
+  let (base_retained, base_execution) = row_original_input_capacity()
+  guard @execution.checked_preparation_add_product(base_retained, retained, 1L)
+    is Some(retained) &&
+    @execution.checked_preparation_add_product(base_execution, workspace, 1L)
+    is Some(execution) &&
+    @execution.checked_preparation_add_product(
+      execution,
+      retained - base_retained,
+      1L,
+    )
+    is Some(execution) else {
+    return None
+  }
+  Some((retained, execution))
+}
+
+///|
+/// Export only the SAME checked Query's live original input binding. Legacy
+/// generic export policy remains separate; equal schema DATA is not a binding.
+pub fn export_query_row_original_read(
+  read : @execution.SuppliedRelationRead,
+  requirement : @planning.QueryRequirement,
+) -> Result[RowOriginalCaptureExport, RowOriginalCaptureIssue] {
+  let query = @planning.query_material_owner(
+    @planning.query_requirement_material(requirement),
+  )
+  guard @execution.supplied_relation_read_matches_input(
+      read,
+      @query.query_sequence_owner(query),
+      @query.query_receipt_input_index(query),
+    ) &&
+    original_query_input_schema(requirement) is Some(schema) else {
+    return Err(InvalidBinding)
+  }
+  let columns = @schema.field_count(schema)
+  export_original_read_with_limits(
+    read,
+    100,
+    { ..original_capture_wire_limits(), max_columns: columns, },
+    { ..original_capture_schema_limits(), max_fields: columns, },
+  )
+}
+
+///|
 pub fn export_row_original_read(
   read : @execution.SuppliedRelationRead,
 ) -> Result[RowOriginalCaptureExport, RowOriginalCaptureIssue] {
@@ -149,6 +216,10 @@ pub fn restore_row_original_read(
   let query = @planning.query_material_owner(
     @planning.query_requirement_material(requirement),
   )
+  guard original_query_input_schema(requirement) is Some(schema) else {
+    return Err(InvalidBinding)
+  }
+  let columns = @schema.field_count(schema)
   restore_original_read_with_limits(
     @query.query_sequence_owner(query),
     @query.query_receipt_input_index(query),
@@ -162,8 +233,8 @@ pub fn restore_row_original_read(
       max_depth: 64,
       max_work: 20000000,
     },
-    original_capture_wire_limits(),
-    original_capture_schema_limits(),
+    { ..original_capture_wire_limits(), max_columns: columns, },
+    { ..original_capture_schema_limits(), max_fields: columns, },
     available,
     reference_issuer?,
   )

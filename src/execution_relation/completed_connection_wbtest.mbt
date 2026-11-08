@@ -35,7 +35,7 @@ fn try_typed_completion(
     invocation,
     captured => {
       table_from_capture_bounded(captured, control, {
-        limit: limits.operation_entries,
+        ..row_workspace(limits.operation_entries),
         live: 0,
         peak: 0,
       }).map(table => RowTable(table))
@@ -48,12 +48,16 @@ fn try_typed_completion(
           limits.max_rows,
           control,
           invocation.output_budget,
-          { limit: limits.operation_entries, live: 0, peak: 0, },
+          { ..row_workspace(limits.operation_entries), live: 0, peak: 0, },
           logical,
         )
       }
       guard input is RowTable(table) else { return Err(InvalidRows) }
-      let slots = { limit: limits.operation_entries, live: 0, peak: 0, }
+      let slots = {
+        ..row_workspace(limits.operation_entries),
+        live: 0,
+        peak: 0,
+      }
       let plan = match ext_prepare_batch(kernel, control, slots) {
         Ok(Some(plan)) => plan
         Ok(None) => return Err(InvalidRows)
@@ -64,7 +68,7 @@ fn try_typed_completion(
       }
       let ledger : LayoutLedger = {
         slots,
-        bytes: { limit: 1000000, live: 0, peak: 0, },
+        bytes: row_workspace(1000000),
         work: control,
         traffic: None,
       }

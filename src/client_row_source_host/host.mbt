@@ -144,6 +144,9 @@ priv struct RowHostConfiguration {
   ]
   limits : RowCompletionLimits
   listing_rows : RowListingRows?
+  measurement_workspace : Int64
+  record_fields_retained : Int64
+  capture_columns : Int
 }
 
 ///|
@@ -307,6 +310,17 @@ fn prepare_row_acquisition_owned(
     Ok(value) => value
     Err(issue) => return Err(SourceEvidence(issue))
   }
+  guard row_capture_measurement_geometry(preparation)
+    is Some(
+      (
+        measurement_columns,
+        measurement_workspace,
+        record_fields_retained,
+        capture_columns,
+      )
+    ) else {
+    return Err(Physical(InvalidLimits))
+  }
   // The residual filter and capture measure every captured value; the
   // capture holds at most 500 KB of text, what the standard Host's Local
   // fragments evaluate at once.
@@ -324,6 +338,9 @@ fn prepare_row_acquisition_owned(
       choice,
       candidate,
       listing_rows,
+      measurement_workspace,
+      record_fields_retained,
+      capture_columns,
       limits: {
         execution: {
           rows: {
@@ -347,7 +364,7 @@ fn prepare_row_acquisition_owned(
           received_wire_bytes: 4000000,
           retained_wire_bytes: 4000000,
           measurement: {
-            max_columns: 100,
+            max_columns: measurement_columns,
             max_order_work: 100000,
             max_bytes: 4000000,
             max_nodes: 100000,
@@ -356,7 +373,7 @@ fn prepare_row_acquisition_owned(
         },
         records: {
           max_work: 1000000,
-          max_fields: 100,
+          max_fields: preparation.columns.length(),
           max_parameters: 100,
           max_bytes: 1000000,
           max_nodes: 100000,
@@ -396,7 +413,9 @@ pub fn row_acquisition_request_wire(
 /// bound for the simultaneously retained scan and output, not a heap estimate.
 pub fn row_acquisition_retained_capacity(value : RowAcquisition) -> Int64 {
   let (original, _) = row_original_input_capacity()
-  value.configuration.limits.retention.retained_wire_bytes.to_int64() + original
+  value.configuration.limits.retention.retained_wire_bytes.to_int64() +
+  value.configuration.record_fields_retained +
+  original
 }
 
 ///|
@@ -411,6 +430,7 @@ pub fn row_acquisition_execution_capacity(value : RowAcquisition) -> Int64 {
   limits.records.max_bytes +
   limits.records.max_bytes +
   limits.capture.max_bytes).to_int64() +
+  value.configuration.measurement_workspace +
   (if value.configuration.listing_rows is Some(rows) {
     // The immutable witness/limit records, parsed claims and admission writer
     // can overlap. Reserve their bounded representations before transport.

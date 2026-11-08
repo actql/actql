@@ -917,7 +917,9 @@ fn cleanup_bounded_binding_rows_state(state : BoundedBindingRowsState) -> Bool {
     clear_stepped_measure(cursor)
     state.capture_charge_measure = None
   }
-  state.workspace.live = 0
+  if state.workspace.live >= 0 {
+    release_slots(state.workspace, state.workspace.live)
+  }
   if !state.accepted.val {
     state.rows.val = None
     state.live.val = false
@@ -3796,7 +3798,8 @@ fn start_bounded_binding_rows_with_input(
       if logical is Some(_) {
         return Err(InvalidExecution)
       }
-      logical = match fragment_runtime_for_kernel(context, kernel) {
+      logical = match
+        fragment_runtime_for_kernel(context, kernel, growth=generated.working) {
         Ok(value) => Some(value)
         Err(_) => return Err(InvalidExecution)
       }
@@ -4106,7 +4109,7 @@ fn start_bounded_binding_rows_with_input(
     }
   }
   let control : ControlBudget = { remaining: max_work, max_frames, }
-  let workspace = row_workspace(max_entries)
+  let workspace = working_row_workspace(generated, max_entries)
   if !reserve_slots(workspace, metadata_entries) ||
     (
       watermark_kind &&

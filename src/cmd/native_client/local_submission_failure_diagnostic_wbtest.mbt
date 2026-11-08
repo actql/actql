@@ -76,3 +76,48 @@ test "submission diagnostic tags preserve Core funding refusal and plain Unknown
   assert_eq(fields.get(14), Some(1L))
   assert_eq(fields.length(), 3)
 }
+
+///|
+test "submission diagnostic tags distinguish closed Journal refusal from SQL status" {
+  for
+    (issue, expected) in [
+      (@local_host.CapacityExceeded, 5001L),
+      (@local_host.Encoding, 5002L),
+      (@local_host.CustodyLost, 5003L),
+    ] {
+    let fields : Map[Int, Int64] = Map([])
+    local_submission_failure_tags(@local_host.Journal(issue), (tag, value) => {
+      fields[tag] = value
+    })
+    assert_eq(fields.get(10), Some(7L))
+    assert_eq(fields.get(11), Some(expected))
+    assert_eq(fields.get(14), None)
+    assert_eq(fields.get(15), None)
+  }
+  let fields : Map[Int, Int64] = Map([])
+  local_submission_failure_tags(
+    @local_host.Journal(@local_host.Physical(@local_sqlite.BodyTooLarge)),
+    (tag, value) => fields[tag] = value,
+  )
+  assert_eq(fields.get(10), Some(7L))
+  assert_eq(fields.get(11), Some(5000L))
+  assert_eq(fields.get(15), Some(10L))
+}
+
+///|
+test "Journal diagnostic projection never includes physical message content" {
+  let one : Map[Int, Int64] = Map([])
+  let two : Map[Int, Int64] = Map([])
+  for
+    (message, fields) in [
+      ("private-SQL-key-and-path", one),
+      ("different-original-private-data", two),
+    ] {
+    local_submission_failure_tags(
+      @local_host.Journal(@local_host.Physical(@local_sqlite.Physical(message))),
+      (tag, value) => fields[tag] = value,
+    )
+  }
+  assert_eq(one, two)
+  assert_eq(one.get(15), Some(12L))
+}

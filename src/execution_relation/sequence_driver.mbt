@@ -410,6 +410,7 @@ fn[T : RelationRows] prepare_sequence_with_importers(
           match
             validate_captured_keys(captured, control, {
               limit: limits.operation_entries,
+              growth: None,
               live: 0,
               peak: 0,
             }) {
@@ -419,6 +420,7 @@ fn[T : RelationRows] prepare_sequence_with_importers(
           match
             validate_captured_scores(captured, control, {
               limit: limits.operation_entries,
+              growth: None,
               live: 0,
               peak: 0,
             }) {

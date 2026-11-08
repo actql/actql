@@ -118,6 +118,7 @@ fn property(cursor : @decode.Cursor) -> Result[PropertyMetadata, PropertyIssue] 
   let writable = if archived == Some(true) ||
     calculated == Some(true) ||
     field_type == "calculation_equation" ||
+    field_type == "calculation_rollup" ||
     native_type == "object_coordinates" ||
     native_type == "json" ||
     read_only == Some(true) {
@@ -269,8 +270,11 @@ pub fn property_contract(
         }
       }
       match property.field_type {
-        "select" | "radio" | "booleancheckbox" | "calculation_equation" =>
-          @contract.StringType
+        "select"
+        | "radio"
+        | "booleancheckbox"
+        | "calculation_equation"
+        | "calculation_rollup" => @contract.StringType
         _ => return Err(UnsupportedProperty(name))
       }
     }

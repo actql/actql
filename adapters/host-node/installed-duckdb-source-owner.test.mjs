@@ -284,6 +284,10 @@ test('native capture-only entry forwards the same original Ledger and acquisitio
     contentCid, duckDBPhysicalTarget,
     openCapturedDuckDBSource(options) {calls.push(options); return completion;}});
   const adapter = await construct(profile, moon, {root: '/UNOPENED/original', principalId: 'fixture'});
+  assert.throws(() => adapter.managedWholeSourceCapacity({}), /InstalledSourceRegistrationMismatch/);
+  const foreign = await construct(profile, moon, {root: '/UNOPENED/original', principalId: 'fixture',
+    installation: {registration: 'duckdb', revision: 'duckdb/0.1'}});
+  assert.throws(() => foreign.managedWholeSourceCapacity({}), /InstalledSourceRegistrationMismatch/);
   const ledger = {}, preparedProgram = {}, preparedSource = {}, signal = new AbortController().signal;
   const options = {preparedProgram, preparedSource, sourceAccess: profile.sourceAccess, ledger, signal};
   assert.strictEqual(adapter.openCapture(options), completion);

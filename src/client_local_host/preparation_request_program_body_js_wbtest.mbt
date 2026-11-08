@@ -192,6 +192,14 @@ test "funded artifact grow retains original module and measurement across both o
     let installed = parent.program_source_free.unwrap()
     let geometry = parent.program_artifact_geometry.unwrap()
     let quote = parent.program_artifact_quote.unwrap()
+    let (artifact_retained, constructor_scratch) = program_artifact_construction_extents(
+      geometry,
+    ).unwrap()
+    // Returned artifact storage stays in R; only the completed constructor's
+    // scratch leaves E. Neither one-byte-short grow boundary is relaxed.
+    assert_eq(quote.0, measurement.0 + artifact_retained)
+    assert_eq(quote.1, measurement.1 + artifact_retained + constructor_scratch)
+    assert_eq(quote.2, constructor_scratch)
     assert_true(quote.0 > measurement.0 && quote.1 > measurement.1)
     assert_true(installed.compilation is None)
     assert_true(borrow_request_program_preparation(parent) is Err(WrongPhase))
@@ -286,7 +294,7 @@ test "funded artifact grow retains original module and measurement across both o
     let body = borrow_request_program_preparation(parent).unwrap()
     assert_eq(
       @resources.preparation_body_borrow_reserved_extents(body),
-      Ok((quote.0 - quote.2, quote.1 - quote.2)),
+      Ok((measurement.0 + artifact_retained, measurement.1 + artifact_retained)),
     )
     // False reports that the ORIGINAL owner remains live; the borrow has
     // still returned. Retirement below proves its separate release boundary.
@@ -1923,16 +1931,23 @@ test "successful Request artifact retires returned compiler scratch before runti
     provider_factory=factory,
   ).unwrap()
   let constructor_peak = parent.program_artifact_quote.unwrap()
+  let measurement = parent.program_measurement_quote.unwrap()
+  let (artifact_retained, constructor_scratch) = program_artifact_construction_extents(
+    parent.program_artifact_geometry.unwrap(),
+  ).unwrap()
+  assert_eq(constructor_peak.0, measurement.0 + artifact_retained)
+  assert_eq(
+    constructor_peak.1,
+    measurement.1 + artifact_retained + constructor_scratch,
+  )
+  assert_eq(constructor_peak.2, constructor_scratch)
   let after = @resources.preparation_capacity_working_extents(
     original_capacity, input,
   ).unwrap()
   assert_true(constructor_peak.2 > 0L)
   assert_eq(
     after,
-    (
-      constructor_peak.0 - constructor_peak.2,
-      constructor_peak.1 - constructor_peak.2,
-    ),
+    (measurement.0 + artifact_retained, measurement.1 + artifact_retained),
   )
   assert_true(physical_equal(parent.program_compilation.unwrap(), artifact))
   assert_true(physical_equal(parent.compiled_program.unwrap(), prepared))

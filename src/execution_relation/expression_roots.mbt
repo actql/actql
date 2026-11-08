@@ -171,6 +171,10 @@ fn grow_object_root(
     budget.failed = true
     return Err(ValueMeasure(WireMeasureFailure))
   }
+  if root.root.text_capacity is None && !reserve_logical_working(budget, bytes) {
+    budget.failed = true
+    return Err(LiveValueLimit)
+  }
   root.root.bytes += bytes
   budget.live += bytes
   budget.peak = Int64::max(budget.peak, budget.live)

@@ -128,6 +128,7 @@ pub(all) struct NativeRelationFileSelection {
 type NativeRelationFileTargetIO
 pub fn NativeRelationFileTargetIO::advance(Self) -> Result[Bool, NativeRelationFileIssue]
 pub fn NativeRelationFileTargetIO::byte_counts(Self) -> (Int64, Int64)
+pub fn NativeRelationFileTargetIO::check_update(Self, String) -> Result[Unit, NativeRelationFileIssue]
 pub fn NativeRelationFileTargetIO::close(Self) -> Result[Bool, NativeRelationFileIssue]
 pub fn NativeRelationFileTargetIO::snapshot(Self) -> (String, String)?
 

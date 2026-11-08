@@ -1,4 +1,22 @@
 ///|
+/// Read-only width from the SAME checked Whole acquisition. An equal or
+/// foreign capacity cannot rebind a Source or extend its current lifetime.
+pub fn client_whole_source_capture_schema_columns(
+  source : @query.CapturedInputSource,
+  capacity : ClientInstalledWholeSourceCapacity,
+) -> Int? {
+  guard @query.captured_source_matches_input_acquisition(
+    source,
+    capacity.original,
+  ) else {
+    return None
+  }
+  Some(
+    @row_source_host.row_input_acquisition_column_count(capacity.acquisition),
+  )
+}
+
+///|
 /// Snapshot facts for existing private Source custody. No Query completion or
 /// requirement is synthesized for the original checked Input.
 pub fn export_client_whole_source_capture(

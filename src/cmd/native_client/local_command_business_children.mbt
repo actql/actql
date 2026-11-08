@@ -70,6 +70,9 @@ fn LocalCommandBusinessPreparation::open_values_work(
   let installed = run.source_free.unwrap_or_else(() => {
     stop("LocalValuesInstallationRequired")
   })
+  let finalization_rounds = requirements
+    .finalization_round_limit(prepared)
+    .unwrap_or_else(() => stop("LocalValuesExecutionProfileNotSupported"))
   match
     self.host.open_original_values_work(
       operation,
@@ -84,7 +87,7 @@ fn LocalCommandBusinessPreparation::open_values_work(
       installed.fragment_body,
       installed.ordered_body,
       16,
-      1000,
+      finalization_rounds,
       requirements=Some(requirements),
       managed=business.request_run,
     ) {
@@ -93,6 +96,10 @@ fn LocalCommandBusinessPreparation::open_values_work(
       work
     }
     Err(failure) => {
+      local_values_failure_tags(
+        @local_host.native_client_values_work_failure_issue(failure),
+        native_timing_amount,
+      )
       business.values_failure = Some(failure)
       stop("LocalOriginalValuesWorkUnavailable")
     }

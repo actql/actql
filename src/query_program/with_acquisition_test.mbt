@@ -54,7 +54,7 @@ test "WITH preserves the requested capture Result and complete schema" {
   // That same complete captured Result can serve another WITH consumer.
   let expected = @program.parse(
     (
-      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"capture","inputs":{"orders":{"carrier":"relation","schema":{"id":{"type":"string","nullable":false},"customer_id":{"type":"string","nullable":false},"status":{"type":"string","nullable":false},"amount":{"type":"number","nullable":false}},"primary_key":["id"]}},"steps":[{"from":"orders","filter":{"literal":true}},{"select":["id","customer_id","status","amount"],"as":"aql_capture_0"}],"results":{"source":{"from":"aql_capture_0","fields":["id","customer_id","status","amount"]}}},{"id":"main","inputs":{"orders":{"result":{"stage":"capture","result":"source"}}},"steps":[{"from":"orders","select":["id"],"as":"aql_script_cte_1"},{"from":"aql_script_cte_1","select":["id"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"capture","inputs":{"orders":{"carrier":"relation","schema":{"id":{"type":"string","nullable":false},"customer_id":{"type":"string","nullable":false},"status":{"type":"string","nullable":false},"amount":{"type":"number","nullable":false}},"primary_key":["id"]}},"steps":[{"from":"orders","select":["id","customer_id","status","amount"],"as":"aql_capture_0"}],"results":{"source":{"from":"aql_capture_0","fields":["id","customer_id","status","amount"]}}},{"id":"main","inputs":{"orders":{"result":{"stage":"capture","result":"source"}}},"steps":[{"from":"orders","select":["id"],"as":"aql_script_cte_1"},{"from":"aql_script_cte_1","select":["id"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
     ),
     construction_limits().program,
     format=Json,
@@ -116,7 +116,12 @@ test "WITH set and constructor references reuse one captured input" {
     assert_eq(@program.export_count(program), 1)
     assert_eq(body.split("\"carrier\":\"relation\"").length(), 2)
     assert_eq(body.split("\"stage\":\"capture\"").length(), 2)
-    assert_true(body.contains("\"filter\":{\"literal\":true}"))
+    assert_false(body.contains("\"filter\":{\"literal\":true}"))
+    assert_true(
+      body.contains(
+        "\"from\":\"orders\",\"select\":[\"id\",\"customer_id\",\"status\",\"amount\"]",
+      ),
+    )
     match
       @check.check_parsed(
         program,

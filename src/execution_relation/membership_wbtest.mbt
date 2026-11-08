@@ -104,7 +104,7 @@ test "membership shared frame distinguishes NULL arrays empty sets and NULL elem
           {},
           [],
           { remaining: 10000, max_frames: 100, },
-          { limit: 1000, live: 0, peak: 0, },
+          row_workspace(1000),
           Some(expression_roots(logical, 100)),
         ).unwrap()
         while true {
@@ -221,7 +221,7 @@ test "membership cancellation and control failure release only owned roots" {
       {},
       [],
       { remaining: 1000, max_frames: 100, },
-      { limit: 1000, live: 0, peak: 0, },
+      row_workspace(1000),
       Some(expression_roots(logical, 100)),
     ).unwrap()
     for _ in 0..<advances {
@@ -511,7 +511,7 @@ test "conditional ARRAY membership cancellation releases owned roots" {
       {},
       [],
       { remaining: 10000, max_frames: 100, },
-      { limit: 1000, live: 0, peak: 0, },
+      row_workspace(1000),
       Some(expression_roots(logical, 100)),
     ).unwrap()
     for _ in 0..<advances {

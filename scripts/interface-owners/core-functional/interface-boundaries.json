@@ -1788,6 +1788,9 @@
             "publicationControl/init:bindTableInput/init:bindTableInput",
             "publicationControl/init:bindTablePreview/init:bindTablePreview",
             "publicationControl/init:cancelDurableResultRowFrames/init:cancelDurableResultRowFrames",
+            "publicationControl/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt",
+            "publicationControl/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt",
+            "publicationControl/init:captureOriginalClientRunPlan/init:captureOriginalClientRunPlan",
             "publicationControl/init:capturedContentGenerationCount/init:capturedContentGenerationCount",
             "publicationControl/init:capturedContentGenerationStorage/init:capturedContentGenerationStorage",
             "publicationControl/init:capturedContentGenerationStorage/init:capturedContentGenerationStorage/init:capturedContentGenerationStorage",
@@ -1818,15 +1821,15 @@
             "publicationControl/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid#2",
             "publicationControl/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid#3",
             "publicationControl/init:capturedEffectSourceStoreAuthorityCid/init:capturedEffectSourceStoreAuthorityCid",
-            "publicationControl/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt",
-            "publicationControl/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt",
-            "publicationControl/init:captureOriginalClientRunPlan/init:captureOriginalClientRunPlan",
             "publicationControl/init:checkCheckedClientInferOriginalParkedStorageOrigin/init:checkCheckedClientInferOriginalParkedStorageOrigin",
             "publicationControl/init:checkCheckedClientInferOriginalPreRestoreOrigin/init:checkCheckedClientInferOriginalPreRestoreOrigin",
             "publicationControl/init:checkClientCompiledEffectRunOwner/init:checkClientCompiledEffectRunOwner",
             "publicationControl/init:checkClientCompiledRunDefinition/init:checkClientCompiledRunDefinition",
             "publicationControl/init:checkClientCompiledRunOwner/init:checkClientCompiledRunOwner",
             "publicationControl/init:checkClientRunDefinitionBinding/init:checkClientRunDefinitionBinding",
+            "publicationControl/init:checkRecoveredTableSchemaWire/init:checkRecoveredTableSchemaWire",
+            "publicationControl/init:checkSourceFreeLocalEffectPreviewIdentities/init:checkSourceFreeLocalEffectPreviewIdentities",
+            "publicationControl/init:checkSourceFreeLocalEffectPreviewIdentities/init:checkSourceFreeLocalEffectPreviewIdentities/owned/owned",
             "publicationControl/init:checkedClientCompiledEffectProgram/init:checkedClientCompiledEffectProgram",
             "publicationControl/init:checkedClientEffectInferInvocation/init:checkedClientEffectInferInvocation",
             "publicationControl/init:checkedClientInferOriginalReadScopeLive/init:checkedClientInferOriginalReadScopeLive",
@@ -1842,9 +1845,6 @@
             "publicationControl/init:checkedClientSerializationRecoveryBindings/init:checkedClientSerializationRecoveryBindings",
             "publicationControl/init:checkedClientSerializationRecoveryBindings/init:checkedClientSerializationRecoveryBindings/init:checkedClientSerializationRecoveryBindings",
             "publicationControl/init:checkedClientStoredRunCapturedContentCandidate/init:checkedClientStoredRunCapturedContentCandidate",
-            "publicationControl/init:checkRecoveredTableSchemaWire/init:checkRecoveredTableSchemaWire",
-            "publicationControl/init:checkSourceFreeLocalEffectPreviewIdentities/init:checkSourceFreeLocalEffectPreviewIdentities",
-            "publicationControl/init:checkSourceFreeLocalEffectPreviewIdentities/init:checkSourceFreeLocalEffectPreviewIdentities/owned/owned",
             "publicationControl/init:claimCheckedClientInferNodePreparationLayout/init:claimCheckedClientInferNodePreparationLayout",
             "publicationControl/init:committedPublicationFinalizationAction/init:committedPublicationFinalizationAction",
             "publicationControl/init:compiledInferEvaluationPolicy/init:compiledInferEvaluationPolicy",
@@ -1853,6 +1853,7 @@
             "publicationControl/init:compiledSerializationPolicy/init:compiledSerializationPolicy",
             "publicationControl/init:completeCheckedClientContentStep/init:completeCheckedClientContentStep",
             "publicationControl/init:completeCheckedClientSerializationGeneration/init:completeCheckedClientSerializationGeneration",
+            "publicationControl/init:composedInferSourcesFor/init:composedInferSourcesFor",
             "publicationControl/init:defineCheckedClientCompiledRun/init:defineCheckedClientCompiledRun",
             "publicationControl/init:deliveryFailureTerminalAction/init:deliveryFailureTerminalAction",
             "publicationControl/init:deliveryRecordRetryAction/init:deliveryRecordRetryAction",
@@ -1867,10 +1868,6 @@
             "publicationControl/init:effectComputationRecordHoldingCid/init:effectComputationRecordHoldingCid",
             "publicationControl/init:effectFreeChainValid/init:effectFreeChainValid",
             "publicationControl/init:effectFreeCommitValid/init:effectFreeCommitValid",
-            "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid",
-            "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid/init:effectfulCommitValid",
-            "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid/init:effectfulCommitValid#2",
-            "publicationControl/init:effectfulComputationEvidenceChainValid/init:effectfulComputationEvidenceChainValid",
             "publicationControl/init:effectPrivateEvidenceBinding/init:effectPrivateEvidenceBinding",
             "publicationControl/init:effectReconciliationRunState/init:effectReconciliationRunState",
             "publicationControl/init:effectReconciliationRunState/init:effectReconciliationRunState/init:effectReconciliationRunState",
@@ -1879,6 +1876,10 @@
             "publicationControl/init:effectSetReceiptRunDisposition/init:effectSetReceiptRunDisposition/init:effectSetReceiptRunDisposition",
             "publicationControl/init:effectSourceArtifactPreviewBinding/init:effectSourceArtifactPreviewBinding",
             "publicationControl/init:effectTableSourceArtifactPreviewBinding/init:effectTableSourceArtifactPreviewBinding",
+            "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid",
+            "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid/init:effectfulCommitValid",
+            "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid/init:effectfulCommitValid#2",
+            "publicationControl/init:effectfulComputationEvidenceChainValid/init:effectfulComputationEvidenceChainValid",
             "publicationControl/init:encodeModelOriginalResourceDocument/init:encodeModelOriginalResourceDocument",
             "publicationControl/init:encodeModelOriginalResourceDocument/init:encodeModelOriginalResourceDocument/init:encodeModelOriginalResourceDocument",
             "publicationControl/init:existingDeliveryAttemptAction/init:existingDeliveryAttemptAction",
@@ -1898,6 +1899,10 @@
             "publicationControl/init:issueCheckedAcquiredEffectEvidence/init:issueCheckedAcquiredEffectEvidence/value/value#2",
             "publicationControl/init:issueCheckedAcquiredLocalEffectInvocation/init:issueCheckedAcquiredLocalEffectInvocation",
             "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation",
+            "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/originalArguments/originalArguments",
+            "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/originalArguments/originalArguments#2",
+            "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/originalArguments/originalArguments#3",
+            "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/originals/originals",
             "publicationControl/init:issueCheckedClientEffectCapturedInvocation/init:issueCheckedClientEffectCapturedInvocation",
             "publicationControl/init:issueCheckedClientEffectMultiCapturedInvocation/init:issueCheckedClientEffectMultiCapturedInvocation",
             "publicationControl/init:issueCheckedClientEffectMultiCapturedInvocation/init:issueCheckedClientEffectMultiCapturedInvocation/issued/issued",
@@ -1916,12 +1921,6 @@
             "publicationControl/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt",
             "publicationControl/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt",
             "publicationControl/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt#2",
-            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun",
-            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun",
-            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation",
-            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation#2",
-            "publicationControl/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt",
-            "publicationControl/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt",
             "publicationControl/init:issueEffectResultImportObservation/init:issueEffectResultImportObservation",
             "publicationControl/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers",
             "publicationControl/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers",
@@ -1929,6 +1928,12 @@
             "publicationControl/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers#3",
             "publicationControl/init:issueEffectSourceArtifactFromExport/init:issueEffectSourceArtifactFromExport",
             "publicationControl/init:issueEffectTableSourceArtifactFromExport/init:issueEffectTableSourceArtifactFromExport",
+            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun",
+            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun",
+            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation",
+            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation#2",
+            "publicationControl/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt",
+            "publicationControl/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt",
             "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence",
             "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/owned/owned",
             "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/value/value",
@@ -1936,10 +1941,10 @@
             "publicationControl/init:issueLocalEffectResultManifest/init:issueLocalEffectResultManifest",
             "publicationControl/init:issueLocalEffectResultManifest/init:issueLocalEffectResultManifest/owned/owned",
             "publicationControl/init:issueManifestReadGrant/init:issueManifestReadGrant",
+            "publicationControl/init:issuePublicIndexEntry/init:issuePublicIndexEntry",
             "publicationControl/init:issuePublicationAttempt/init:issuePublicationAttempt",
             "publicationControl/init:issuePublicationRecord/init:issuePublicationRecord",
             "publicationControl/init:issuePublicationRequest/init:issuePublicationRequest",
-            "publicationControl/init:issuePublicIndexEntry/init:issuePublicIndexEntry",
             "publicationControl/init:issueResultArtifact/init:issueResultArtifact",
             "publicationControl/init:issueResultDeliveryReceipt/init:issueResultDeliveryReceipt",
             "publicationControl/init:issueResultManifest/init:issueResultManifest",
@@ -1987,6 +1992,7 @@
             "publicationControl/init:prepareLocalEffectDependencyInventory/init:prepareLocalEffectDependencyInventory/init:prepareLocalEffectDependencyInventory",
             "publicationControl/init:prepareResultDeliverySerializer/init:prepareResultDeliverySerializer",
             "publicationControl/init:projectCommittedPublicationState/init:projectCommittedPublicationState",
+            "publicationControl/init:publicIndexSameCommittedContent/init:publicIndexSameCommittedContent",
             "publicationControl/init:publicationAttemptAction/init:publicationAttemptAction",
             "publicationControl/init:publicationCancellationAction/init:publicationCancellationAction",
             "publicationControl/init:publicationCleanupOwnerAction/init:publicationCleanupOwnerAction",
@@ -2000,7 +2006,6 @@
             "publicationControl/init:publicationPreparedReleaseAction/init:publicationPreparedReleaseAction",
             "publicationControl/init:publicationSetupAction/init:publicationSetupAction",
             "publicationControl/init:publicationUnknownRetryAction/init:publicationUnknownRetryAction",
-            "publicationControl/init:publicIndexSameCommittedContent/init:publicIndexSameCommittedContent",
             "publicationControl/init:readCheckedClientComposedInferSavedInputScope/init:readCheckedClientComposedInferSavedInputScope",
             "publicationControl/init:readCheckedClientInferSavedInputScope/init:readCheckedClientInferSavedInputScope",
             "publicationControl/init:readCheckedClientInferSlotReplay/init:readCheckedClientInferSlotReplay",
@@ -2009,10 +2014,10 @@
             "publicationControl/init:readInstalledModelResponseProfile/init:readInstalledModelResponseProfile",
             "publicationControl/init:readInstalledModelResponseProfile/init:readInstalledModelResponseProfile/init:readInstalledModelResponseProfile",
             "publicationControl/init:readIssuedDeliveryAttempt/init:readIssuedDeliveryAttempt",
-            "publicationControl/init:readmitCheckedClientSerializationGeneration/init:readmitCheckedClientSerializationGeneration",
             "publicationControl/init:readModelOriginalResourceDocument/init:readModelOriginalResourceDocument",
             "publicationControl/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal",
             "publicationControl/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal",
+            "publicationControl/init:readmitCheckedClientSerializationGeneration/init:readmitCheckedClientSerializationGeneration",
             "publicationControl/init:recordAllowsCommit/init:recordAllowsCommit",
             "publicationControl/init:recordResultAccessGrant/init:recordResultAccessGrant",
             "publicationControl/init:recordResultAccessInitialAvailability/init:recordResultAccessInitialAvailability",
@@ -2063,6 +2068,9 @@
             "publicationControl/init:startCheckedClientRestoredGeneratedInferInputs/init:startCheckedClientRestoredGeneratedInferInputs",
             "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix",
             "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix",
+            "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix#2",
+            "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix#3",
+            "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix#4",
             "publicationControl/init:startOriginalComposedKeyedPrefix/init:startOriginalComposedKeyedPrefix",
             "publicationControl/init:startOriginalComposedKeyedPrefix/init:startOriginalComposedKeyedPrefix/init:startOriginalComposedKeyedPrefix",
             "publicationControl/init:stopCheckedClientInferNodeReadState/init:stopCheckedClientInferNodeReadState",
@@ -2095,10 +2103,6 @@
             "publicationControl/token/token",
             "remoteBundleControl",
             "remoteBundleControl/remoteBundleControl",
-            "remoteBundleControl/remoteBundleControl/remoteBundleControl",
-            "remoteBundleControl/remoteBundleControl/remoteBundleControl#2",
-            "remoteBundleControl/remoteBundleControl/remoteBundleControl#3",
-            "remoteBundleControl/remoteBundleControl/remoteBundleControl#4",
             "remoteBundleControl/remoteBundleControl#10",
             "remoteBundleControl/remoteBundleControl#11",
             "remoteBundleControl/remoteBundleControl#12",
@@ -2142,6 +2146,10 @@
             "remoteBundleControl/remoteBundleControl#7",
             "remoteBundleControl/remoteBundleControl#8",
             "remoteBundleControl/remoteBundleControl#9",
+            "remoteBundleControl/remoteBundleControl/remoteBundleControl",
+            "remoteBundleControl/remoteBundleControl/remoteBundleControl#2",
+            "remoteBundleControl/remoteBundleControl/remoteBundleControl#3",
+            "remoteBundleControl/remoteBundleControl/remoteBundleControl#4",
             "remoteCredentialControl",
             "remoteCredentialControl/grantFields/grantFields",
             "remoteCredentialControl/init:authorizeUse/init:authorizeUse",
@@ -2286,9 +2294,6 @@
             "remoteTransferControl",
             "remoteTransferControl/int64/int64",
             "remoteTransferControl/remoteTransferControl",
-            "remoteTransferControl/remoteTransferControl/remoteTransferControl",
-            "remoteTransferControl/remoteTransferControl/remoteTransferControl#2",
-            "remoteTransferControl/remoteTransferControl/remoteTransferControl#3",
             "remoteTransferControl/remoteTransferControl#10",
             "remoteTransferControl/remoteTransferControl#11",
             "remoteTransferControl/remoteTransferControl#12",
@@ -2326,6 +2331,9 @@
             "remoteTransferControl/remoteTransferControl#7",
             "remoteTransferControl/remoteTransferControl#8",
             "remoteTransferControl/remoteTransferControl#9",
+            "remoteTransferControl/remoteTransferControl/remoteTransferControl",
+            "remoteTransferControl/remoteTransferControl/remoteTransferControl#2",
+            "remoteTransferControl/remoteTransferControl/remoteTransferControl#3",
             "remoteTransferControl/requestFields/requestFields",
             "remoteTransferControl/requestFields/requestFields/requestFields",
             "remoteTransferControl/requestFields/requestFields/requestFields#2",
@@ -2359,16 +2367,12 @@
             "runtimeCore/runtimeCore#9",
             "siteControl",
             "siteControl/siteControl",
-            "siteControl/siteControl/siteControl",
             "siteControl/siteControl#2",
             "siteControl/siteControl#3",
+            "siteControl/siteControl/siteControl",
             "tuplePair/tuplePair",
             "usageKeys/usageKeys",
-            "usageKeys/usageKeys/usageKeys",
-            "publicationControl/init:composedInferSourcesFor/init:composedInferSourcesFor",
-            "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix#2",
-            "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix#3",
-            "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix#4"
+            "usageKeys/usageKeys/usageKeys"
           ],
           "exports": [
             "contentCaptureControl",
@@ -3220,16 +3224,16 @@
           "operations": [
             "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources",
             "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources",
+            "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#10",
             "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#2",
             "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#3",
             "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#4",
-            "publicationControl/init:admitInferCapturedInput/init:admitInferCapturedInput",
-            "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#10",
             "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#5",
             "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#6",
             "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#7",
             "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#8",
-            "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#9"
+            "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#9",
+            "publicationControl/init:admitInferCapturedInput/init:admitInferCapturedInput"
           ],
           "exports": [],
           "attributes": {
@@ -3910,11 +3914,11 @@
         },
         {
           "operations": [
+            "publicationControl/init:checkRestoredClientInferRunOwner/init:checkRestoredClientInferRunOwner",
             "publicationControl/init:checkedClientCompiledInferOriginal/init:checkedClientCompiledInferOriginal",
             "publicationControl/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals",
             "publicationControl/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals",
-            "publicationControl/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals#2",
-            "publicationControl/init:checkRestoredClientInferRunOwner/init:checkRestoredClientInferRunOwner"
+            "publicationControl/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals#2"
           ],
           "exports": [],
           "attributes": {
@@ -5216,11 +5220,12 @@
             "publicationControl/init:prepareCheckedClientRequestModelDuckDBComponentCaptureModule/init:prepareCheckedClientRequestModelDuckDBComponentCaptureModule",
             "publicationControl/init:prepareCheckedClientRequestModelProviderCaptureModule/init:prepareCheckedClientRequestModelProviderCaptureModule",
             "publicationControl/init:prepareCheckedClientRequestModelProviderComponentCaptureModule/init:prepareCheckedClientRequestModelProviderComponentCaptureModule",
-            "publicationControl/init:prepareCheckedClientRequestModelsCapturePlan/init:prepareCheckedClientRequestModelsCapturePlan",
-            "publicationControl/init:prepareCheckedClientRequestModelsDuckDBComponentCaptureModule/init:prepareCheckedClientRequestModelsDuckDBComponentCaptureModule",
             "publicationControl/init:prepareCheckedClientRequestModelSourceFreeComponentModule/init:prepareCheckedClientRequestModelSourceFreeComponentModule",
             "publicationControl/init:prepareCheckedClientRequestModelSourceFreeModule/init:prepareCheckedClientRequestModelSourceFreeModule",
             "publicationControl/init:prepareCheckedClientRequestModelSourceFreePlan/init:prepareCheckedClientRequestModelSourceFreePlan",
+            "publicationControl/init:prepareCheckedClientRequestModelWholeInputsComponentCaptureModule/init:prepareCheckedClientRequestModelWholeInputsComponentCaptureModule",
+            "publicationControl/init:prepareCheckedClientRequestModelsCapturePlan/init:prepareCheckedClientRequestModelsCapturePlan",
+            "publicationControl/init:prepareCheckedClientRequestModelsDuckDBComponentCaptureModule/init:prepareCheckedClientRequestModelsDuckDBComponentCaptureModule",
             "publicationControl/init:prepareCheckedClientRequestModelsProviderComponentCaptureModule/init:prepareCheckedClientRequestModelsProviderComponentCaptureModule",
             "publicationControl/init:prepareCheckedClientRequestModelsSourceFreeComponentModule/init:prepareCheckedClientRequestModelsSourceFreeComponentModule",
             "publicationControl/init:prepareCheckedClientRequestModelsSourceFreePlan/init:prepareCheckedClientRequestModelsSourceFreePlan",
@@ -6963,9 +6968,9 @@
         {
           "operations": [
             "publicationControl/init:openCheckedClientInstalledRestoredModelEffectHost/init:openCheckedClientInstalledRestoredModelEffectHost",
+            "publicationControl/init:openCheckedClientInstalledRestoredModelsEffectHost/init:openCheckedClientInstalledRestoredModelsEffectHost",
             "publicationControl/init:restoredInferSourceOriginals/init:restoredInferSourceOriginals",
-            "publicationControl/init:restoredInferSourceOriginals/init:restoredInferSourceOriginals/init:restoredInferSourceOriginals",
-            "publicationControl/init:openCheckedClientInstalledRestoredModelsEffectHost/init:openCheckedClientInstalledRestoredModelsEffectHost"
+            "publicationControl/init:restoredInferSourceOriginals/init:restoredInferSourceOriginals/init:restoredInferSourceOriginals"
           ],
           "exports": [],
           "attributes": {
@@ -10401,6 +10406,34 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/originalArguments/originalArguments",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/originalArguments/originalArguments#2",
+          "parameters": [
+            "sourceEvidence"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/originalArguments/originalArguments#3",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/originals/originals",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:issueCheckedClientEffectCapturedInvocation/init:issueCheckedClientEffectCapturedInvocation",
           "parameters": [
             "checkedEffect",
@@ -11608,6 +11641,27 @@
             "occurrences",
             "graphs",
             "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCheckedClientRequestModelWholeInputsComponentCaptureModule/init:prepareCheckedClientRequestModelWholeInputsComponentCaptureModule",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "compiled",
+            "definition",
+            "compilation",
+            "wholeSources",
+            "query",
+            "evidence",
+            "transport",
+            "scratch",
+            "contracts",
+            "retainedOutput",
+            "queryTime",
+            "construct"
           ],
           "async": false
         },
@@ -15167,7 +15221,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "edb9198d33a377555b52e923b6f2ad31b16af1d3da7279a7d1a62d1584d6a564"
+      "sha256": "973930487203ba35390e0a7973566df631feca497cf699d0539f9dc94f2f4852"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -19250,7 +19304,7 @@
     },
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
-      "sha256": "65d9022cbf04d7104f667b92dad41cb34a917636c786a8d2f002d33fdc25d950",
+      "sha256": "cc4e4370d5c8e5ea65f8f53a07967fa40ce3545b1c13cc4357b34410ed3560a3",
       "role": "physical-io",
       "exports": [
         "installNodeInferRun"
@@ -19311,6 +19365,13 @@
           "async": false
         },
         {
+          "name": "installNodeInferRun/installNodeInferRun/installNodeInferRun#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "installNodeInferRun/installNodeInferRun/ledger/ledger",
           "parameters": [
             "value"
@@ -19326,6 +19387,34 @@
         },
         {
           "name": "installNodeInferRun/installNodeInferRun/ledger/ledger#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeInferRun/installNodeInferRun/ledger/ledger#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeInferRun/installNodeInferRun/ledger/ledger#5",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeInferRun/installNodeInferRun/ledger/ledger#6",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeInferRun/installNodeInferRun/whole/whole",
           "parameters": [
             "value"
           ],
@@ -19812,9 +19901,14 @@
             "installNodeInferRun/installNodeInferRun#3",
             "installNodeInferRun/installNodeInferRun/installNodeInferRun",
             "installNodeInferRun/installNodeInferRun/installNodeInferRun#2",
+            "installNodeInferRun/installNodeInferRun/installNodeInferRun#3",
             "installNodeInferRun/installNodeInferRun/ledger/ledger",
             "installNodeInferRun/installNodeInferRun/ledger/ledger#2",
             "installNodeInferRun/installNodeInferRun/ledger/ledger#3",
+            "installNodeInferRun/installNodeInferRun/ledger/ledger#4",
+            "installNodeInferRun/installNodeInferRun/ledger/ledger#5",
+            "installNodeInferRun/installNodeInferRun/ledger/ledger#6",
+            "installNodeInferRun/installNodeInferRun/whole/whole",
             "installNodeInferRun/run/run",
             "installNodeInferRun/run/run/assertOriginalRuntime/assertOriginalRuntime",
             "installNodeInferRun/run/run/cleanup/cleanup",
@@ -33392,7 +33486,7 @@
     },
     {
       "module": "src/client_local_host/installed_capture_plan.mbt",
-      "sha256": "5ffdab121ffdd3866dad47f895aeaedcc3078ea329f5a1ede806be4ef1ce065e",
+      "sha256": "b33cebf5ee2c68aca5d0904d1e9ea4d92e64896b8603be08914742846a7e47f9",
       "exports": [],
       "operations": [
         {
@@ -33402,6 +33496,10 @@
         {
           "name": "bind_retained_installed_capture_host",
           "declaration": "bind_retained_installed_capture_host ( value : ClientInstalledManagedRun , plan : ClientInstalledManagedCapturePlan , ledger : @ resources . Ledger , run : @ strategy . CapturedDAG , ) - > Result [ ( @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , @ strategy . CapturedDAG , Array [ @ execution . GeneratedSequence ] , ) , ClientInstalledCaptureHostIssue , ]"
+        },
+        {
+          "name": "installed_managed_capture_parent_fits",
+          "declaration": "installed_managed_capture_parent_fits ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , ledger : @ resources . Ledger , limits : @ resources . LedgerLimits , ) - > Bool"
         },
         {
           "name": "installed_managed_capture_plan",
@@ -33453,6 +33551,7 @@
           "operations": [
             "<module>",
             "begin_installed_managed_capture_read",
+            "installed_managed_capture_parent_fits",
             "installed_managed_capture_plan",
             "open_installed_managed_capture_host",
             "open_installed_managed_capture_host_owned",
@@ -33978,7 +34077,7 @@
     },
     {
       "module": "src/client_local_host/installed_compute_preparation.mbt",
-      "sha256": "5c384bfd127de6684ff16e443c56d1607ed2a0a3fc568012b6eaaa4911bfb846",
+      "sha256": "ff71f406707f1d6de973f69c91f359ca697e209f68484e9fd01c398825972a29",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing installed Compute preparation and original capacity Plan; no new runtime or Resource owner",
@@ -35887,6 +35986,8 @@
             "[P]check_installed_managed_run_admission",
             "begin_installed_managed_run",
             "begin_installed_managed_run_source_read",
+            "begin_installed_managed_run_source_read_at",
+            "begin_installed_managed_run_source_read_owned",
             "begin_prepared_installed_managed_source_free_run",
             "check_installed_managed_run",
             "check_installed_managed_run_binding",
@@ -35900,8 +36001,8 @@
             "installed_managed_run_accounting",
             "installed_managed_run_accounting_values",
             "installed_managed_run_compilation_original",
-            "installed_managed_run_model_input_prefix",
             "installed_managed_run_invocation_original",
+            "installed_managed_run_model_input_prefix",
             "installed_managed_run_owner",
             "installed_managed_run_purpose_supported",
             "installed_managed_run_requirements",
@@ -35919,12 +36020,10 @@
             "prepare_installed_managed_source_free_with_contracts",
             "prepared_installed_managed_publication_limits",
             "prepared_installed_managed_source_free_requirements",
+            "quiesce_installed_managed_run",
             "require_installed_managed_run",
             "retire_installed_managed_run",
-            "source_free_installed_managed_preparation_owned",
-            "quiesce_installed_managed_run",
-            "begin_installed_managed_run_source_read_at",
-            "begin_installed_managed_run_source_read_owned"
+            "source_free_installed_managed_preparation_owned"
           ],
           "exports": [],
           "attributes": {
@@ -36450,11 +36549,11 @@
           "declaration": "source_free_installed_managed_preparation_owned ( owner : ClientLocalSequenceOwner , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , mock_model : Bool , model ? : @ publication_host . ClientInferPlanGraph ?"
         }
       ],
-      "sha256": "1cf4fb93f0edf1a2dde5bf87654afcf746e13d26c794f3ca042f4ed99d39324b"
+      "sha256": "eed678f29df8223287110f2e58c16ce06a7c97eba0c4ed246d4773d64891f5fe"
     },
     {
       "module": "src/client_local_host/installed_mock_model_plan.mbt",
-      "sha256": "ce6af926d1bb34ee72929a67e8eb87ffe23a050ab95b9665d0fdf7448407dc94",
+      "sha256": "91862175dbae4af12f399a981e9286c677360f1500b17ebe795753fd5bfbbb0c",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing configured Local module and same original Request Model owners",
@@ -36618,7 +36717,7 @@
     },
     {
       "module": "src/client_local_host/installed_source_material.mbt",
-      "sha256": "26e84b6b4ce061e329265e3fcbbf52e76ef34a8b4ec4580e83a0e86866b7355d",
+      "sha256": "7bde20784c824fdf298b8d1758a5e382a0bbcde00773e545a21478c608561a50",
       "exports": [],
       "operations": [
         {
@@ -36646,8 +36745,24 @@
           "declaration": "compose_installed_source_construction_capacity ( original : @ execution . ExecutionCapacity , providers : Array [ @ execution . ExecutionCapacity ] , ) - > @ execution . ExecutionCapacity ?"
         },
         {
+          "name": "installed_profile_construction_capacities",
+          "declaration": "installed_profile_construction_capacities ( nodes : Int64 , units : Int64 , ) - > Array [ @ execution . ExecutionCapacity ] ?"
+        },
+        {
           "name": "installed_source_construction_capacity",
           "declaration": "installed_source_construction_capacity ( retained_nodes : Int64 , retained_text_bytes : Int64 , retained_wire_bytes : Int64 , workspace_nodes : Int64 , workspace_text_bytes : Int64 , workspace_wire_bytes : Int64 , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "installed_source_inspection_construction_capacity",
+          "declaration": "installed_source_inspection_construction_capacity ( original : @ execution . ExecutionCapacity , ) - > @ execution . ExecutionCapacity"
+        },
+        {
+          "name": "installed_source_json_construction_capacity",
+          "declaration": "installed_source_json_construction_capacity ( wire_nodes : Int64 , wire_units : Int64 , buffer_bytes : Int64 , returned_nodes : Int64 , returned_text_bytes : Int64 , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "installed_table_construction_inventory",
+          "declaration": "installed_table_construction_inventory ( nodes : Int64 , wire : Int64 , strings : Int64 , serializer_text : Int64 , ) - > Array [ Int64 ] ?"
         },
         {
           "name": "retained_installed_source_construction_capacity",
@@ -36666,7 +36781,11 @@
             "[I,S]reserve_installed_source_construction",
             "[I,S]retire_installed_source_material",
             "[S]borrowed_installed_source_environment",
-            "installed_source_construction_capacity"
+            "installed_profile_construction_capacities",
+            "installed_source_construction_capacity",
+            "installed_source_inspection_construction_capacity",
+            "installed_source_json_construction_capacity",
+            "installed_table_construction_inventory"
           ],
           "exports": [],
           "attributes": {
@@ -36969,7 +37088,10 @@
             "bind_installed_source_read_owner",
             "bind_installed_source_read_program",
             "check_installed_source_read_current",
+            "check_installed_source_read_frame",
+            "check_installed_source_read_frame_retained",
             "check_installed_source_read_ledger",
+            "check_installed_source_read_retained_ledger",
             "claim_installed_source_read_start",
             "require_installed_source_read_current",
             "require_installed_source_read_original",
@@ -37976,12 +38098,24 @@
     },
     {
       "module": "src/client_local_host/installed_whole_source_plan.mbt",
-      "sha256": "fbced7b66830e168287f5bb9bbaa8be0aa365f40b9b160260616f3806e5c6dd9",
+      "sha256": "32b5e7a94ed8f1b9eba8c946d3d8d599a9cc43b745fa5b4ed49927402151ea0b",
       "exports": [],
       "operations": [
         {
+          "name": "begin_installed_managed_catalog_whole_source_read",
+          "declaration": "begin_installed_managed_catalog_whole_source_read ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , source : ClientInstalledWholeSourceCapacity , ) - > Result [ ( ClientInstalledSourceRead , @ sourceviews . SourceAcquisition , @ row_source_host . RowInputAcquisition , ClientInstalledWholeSourceCapacity , ) , ClientInstalledManagedRunIssue , ]"
+        },
+        {
           "name": "begin_installed_managed_whole_source_read",
           "declaration": "begin_installed_managed_whole_source_read ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , declaration : @ row_source_host . RowDeclaration , ) - > Result [ ( ClientInstalledSourceRead , @ sourceviews . SourceAcquisition , @ row_source_host . RowInputAcquisition , ClientInstalledWholeSourceCapacity , ) , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "begin_installed_managed_whole_source_read_at",
+          "declaration": "begin_installed_managed_whole_source_read_at ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , declaration : @ row_source_host . RowDeclaration , occurrence : Int , ) - > Result [ ( ClientInstalledSourceRead , @ sourceviews . SourceAcquisition , @ row_source_host . RowInputAcquisition , ClientInstalledWholeSourceCapacity , ) , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "begin_installed_managed_whole_source_read_original",
+          "declaration": "begin_installed_managed_whole_source_read_original ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , declaration : @ row_source_host . RowDeclaration ? , expected : ClientInstalledWholeSourceCapacity ? , occurrence : Int , ) - > Result [ ( ClientInstalledSourceRead , @ sourceviews . SourceAcquisition , @ row_source_host . RowInputAcquisition , ClientInstalledWholeSourceCapacity , ) , ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "check_installed_whole_source_capacity",
@@ -37998,6 +38132,10 @@
         {
           "name": "installed_managed_whole_source_ledger",
           "declaration": "installed_managed_whole_source_ledger ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , capacity : ClientInstalledWholeSourceCapacity , transfer : Int64 , scratch : Int64 , ) - > Result [ @ resources . Ledger , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "installed_managed_whole_sources_ledger",
+          "declaration": "installed_managed_whole_sources_ledger ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , capacities : Array [ ClientInstalledWholeSourceCapacity ] , transfer : Array [ Int64 ] , scratch : Array [ Int64 ] , ) - > Result [ @ resources . Ledger , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "installed_row_input_policy",
@@ -38024,6 +38162,10 @@
           "declaration": "installed_whole_source_read_capacity_matches ( read : ClientInstalledSourceRead , value : ClientInstalledWholeSourceCapacity , acquisition : @ row_source_host . RowInputAcquisition , provider : @ execution . ExecutionCapacity , ) - > Bool"
         },
         {
+          "name": "prepare_installed_catalog_whole_source_capacity",
+          "declaration": "prepare_installed_catalog_whole_source_capacity ( prepared : @ publication_host . PreparedClientProgram , original : @ sourceviews . SourceAcquisition , contracts : ClientInstalledSequenceContracts , limits : @ row_source_host . RowInputLimits , ) - > Result [ ClientInstalledWholeSourceCapacity , ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "prepare_installed_managed_whole_source_plan",
           "declaration": "prepare_installed_managed_whole_source_plan ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , source : ClientInstalledWholeSourceCapacity , transport_bytes : Int64 , transport_execution_bytes : Int64 , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , ) - > Result [ ClientInstalledManagedCapturePlan , ClientInstalledManagedRunIssue ]"
         },
@@ -38036,8 +38178,24 @@
           "declaration": "prepare_installed_managed_whole_source_plan_owned ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , source : ClientInstalledWholeSourceCapacity , transport_bytes : Int64 , transport_execution_bytes : Int64 , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , query_time : @ publication_host . ClientQueryTimePreparation ? , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , ) - > Result [ ClientInstalledManagedCapturePlan , ClientInstalledManagedRunIssue ]"
         },
         {
+          "name": "prepare_installed_managed_whole_sources_plan",
+          "declaration": "prepare_installed_managed_whole_sources_plan ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , sources : Array [ ClientInstalledWholeSourceCapacity ] , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , query_time ? : @ publication_host . ClientQueryTimePreparation ?"
+        },
+        {
+          "name": "prepare_installed_managed_whole_sources_plan_at_query_time",
+          "declaration": "prepare_installed_managed_whole_sources_plan_at_query_time ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , sources : Array [ ClientInstalledWholeSourceCapacity ] , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , invocation : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , @ publication_host . ClientCompiledRun , @ publication . PublicationContract , ) ? , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , ) - > Result [ ClientInstalledManagedCapturePlan , ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "prepare_installed_whole_source_capacity",
           "declaration": "prepare_installed_whole_source_capacity ( prepared : @ publication_host . PreparedClientProgram , original : @ sourceviews . SourceAcquisition , declaration : @ row_source_host . RowDeclaration , contracts : ClientInstalledSequenceContracts , limits : @ row_source_host . RowInputLimits , provider : @ execution . ExecutionCapacity ? , ) - > Result [ ClientInstalledWholeSourceCapacity , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "prepare_installed_whole_source_capacity_original",
+          "declaration": "prepare_installed_whole_source_capacity_original ( prepared : @ publication_host . PreparedClientProgram , original : @ sourceviews . SourceAcquisition , declaration : @ row_source_host . RowDeclaration ? , contracts : ClientInstalledSequenceContracts , limits : @ row_source_host . RowInputLimits , provider : @ execution . ExecutionCapacity ? , ) - > Result [ ClientInstalledWholeSourceCapacity , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "render_installed_catalog_source_sql",
+          "declaration": "render_installed_catalog_source_sql ( capacity : ClientInstalledWholeSourceCapacity , database_schema : String , table : String , max_bytes : Int , ) - > Result [ String , @ row_source_host . RowHostIssue ]"
         },
         {
           "name": "select_installed_effect_source_input",
@@ -38063,23 +38221,31 @@
         {
           "operations": [
             "<module>",
+            "begin_installed_managed_catalog_whole_source_read",
             "begin_installed_managed_whole_source_read",
+            "begin_installed_managed_whole_source_read_at",
+            "begin_installed_managed_whole_source_read_original",
             "check_installed_whole_source_capacity",
             "installed_managed_acquisition_result_publication",
             "installed_managed_source_input_kind",
             "installed_managed_whole_source_ledger",
+            "installed_managed_whole_sources_ledger",
+            "installed_row_input_policy",
+            "installed_source_listing_policy",
             "installed_whole_source_acquisition",
             "installed_whole_source_capture_capacity",
             "installed_whole_source_original",
+            "installed_whole_source_read_capacity_matches",
+            "prepare_installed_catalog_whole_source_capacity",
             "prepare_installed_managed_whole_source_plan",
             "prepare_installed_managed_whole_source_plan_owned",
+            "prepare_installed_managed_whole_sources_plan",
             "prepare_installed_whole_source_capacity",
+            "prepare_installed_whole_source_capacity_original",
+            "render_installed_catalog_source_sql",
             "select_installed_effect_source_input",
             "select_installed_source_input_graph",
-            "start_installed_whole_source_read_rows",
-            "installed_row_input_policy",
-            "installed_source_listing_policy",
-            "installed_whole_source_read_capacity_matches"
+            "start_installed_whole_source_read_rows"
           ],
           "exports": [],
           "attributes": {
@@ -38327,7 +38493,8 @@
         },
         {
           "operations": [
-            "prepare_installed_managed_whole_source_plan_at_query_time"
+            "prepare_installed_managed_whole_source_plan_at_query_time",
+            "prepare_installed_managed_whole_sources_plan_at_query_time"
           ],
           "exports": [],
           "attributes": {
@@ -42792,7 +42959,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_model_module.mbt",
-      "sha256": "c4cd75cdd16118cbc4101cb3b7a90cb85ef2e455119d534f2e5dc4737dffd5db",
+      "sha256": "541b71caee759be78804fad939e4e42876241c3e7a0f3246ba8321633e6c3853",
       "operations": [
         {
           "name": "[I]begin_request_model_module",
@@ -42852,14 +43019,14 @@
             "[I]construct_request_model_input",
             "[I]prepare_request_model_capture_module",
             "[I]prepare_request_model_source_free_module",
+            "[I]reconcile_request_native_model_construction",
             "[I]request_model_direct_occurrences",
             "[I]request_model_direct_occurrences_owned",
+            "[I]request_native_model_protocol_construction_bytes",
             "prepared_request_model_input_prefix",
             "prepared_request_model_input_suffix",
             "request_model_module_container_bytes",
-            "request_model_provider_count",
-            "[I]request_native_model_protocol_construction_bytes",
-            "[I]reconcile_request_native_model_construction"
+            "request_model_provider_count"
           ],
           "exports": [],
           "attributes": {
@@ -46356,7 +46523,7 @@
     },
     {
       "module": "src/client_local_host/preparation_whole_source_invocation.mbt",
-      "sha256": "6bf4e3f5faf7255425e204eff9f67f9ae0189a57d043ba85644c645557c36c8a",
+      "sha256": "309d6badaed687350304d7feee7cf83c5f93523812179fcb47bf6a1e436a401a",
       "role": "common-semantics",
       "owner": "Existing adopted publication/Source capture owners; no separate current, resource or cleanup owner",
       "responsibilityFacet": "primary",
@@ -46370,8 +46537,12 @@
           "declaration": "issue_program_whole_source_publication_invocation ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , capture : @ row_source_host . RowSourceCapture , identity : @ query . CapturedSourceRelationIdentity , source : @ publication . RunEvidenceValue , input : @ publication . RunEvidenceValue , authority_scope_cid : String , data_policy_cid : String , capture_started_at : String , capture_completed_at : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( @ publication . RunEvidenceValue , @ publication . PublicationContract ) , ClientClosedValuesPreparationIssue , ]"
         },
         {
+          "name": "issue_program_whole_sources_publication_invocation",
+          "declaration": "issue_program_whole_sources_publication_invocation ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , captures : Array [ @ row_source_host . RowSourceCapture ] , identities : Array [ @ query . CapturedSourceRelationIdentity ] , sources : Array [ @ publication . RunEvidenceValue ] , inputs : Array [ @ publication . RunEvidenceValue ] , authority_scope_cid : String , data_policy_cid : String , capture_started_at : String , capture_completed_at : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( @ publication . RunEvidenceValue , @ publication . PublicationContract ) , ClientClosedValuesPreparationIssue , ]"
+        },
+        {
           "name": "whole_source_publication_capture_matches",
-          "declaration": "whole_source_publication_capture_matches ( owner : ClientInstalledManagedRun , plan : ClientInstalledManagedCapturePlan , capture : @ row_source_host . RowSourceCapture , ) - > Bool"
+          "declaration": "whole_source_publication_capture_matches ( owner : ClientInstalledManagedRun , plan : ClientInstalledManagedCapturePlan , capture : @ row_source_host . RowSourceCapture , index ? : Int"
         }
       ],
       "exports": [],
@@ -46381,6 +46552,7 @@
             "<module>",
             "installed_managed_publication_source_kind",
             "issue_program_whole_source_publication_invocation",
+            "issue_program_whole_sources_publication_invocation",
             "whole_source_publication_capture_matches"
           ],
           "exports": [],
@@ -48097,7 +48269,7 @@
     },
     {
       "module": "src/client_row_source_host/host.mbt",
-      "sha256": "2b86e1ce1aedbd319da2ba8731fc2927d98e97312d9067cb5f5364c4bfdb5f47",
+      "sha256": "e3fe283b75d7f786e24c52bf78c061ecda3d291153738ccebb2d7d15a4dbe8e0",
       "exports": [],
       "operations": [
         {
@@ -48259,6 +48431,10 @@
         {
           "name": "row_run_listing_complete",
           "declaration": "row_run_listing_complete ( run : RowRun ) - > Bool"
+        },
+        {
+          "name": "row_run_normal_available",
+          "declaration": "row_run_normal_available ( run : RowRun ) - > Bool"
         },
         {
           "name": "row_source_target",
@@ -51297,7 +51473,7 @@
     },
     {
       "module": "src/connectors/kintone/host/record_create_construction.mbt",
-      "sha256": "7424ce8052dd2d7fa203a7979c5f086ed729a6ca370dfe2b731f5475b16038ab",
+      "sha256": "ef7db00d1a9843778ac6482253b79e688a841b6e4cc06eb66d5941f1e5b6c687",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
@@ -51327,6 +51503,14 @@
         {
           "name": "record_create_mapped_request_construction_inventory",
           "declaration": "record_create_mapped_request_construction_inventory ( mapping : RecordCreateMapping , max_input_bytes : Int , write : @ catalog . RecordWriteLimits , request : @ catalog . RecordMutationLimits , ) - > RecordCreateRequestConstructionInventory ?"
+        },
+        {
+          "name": "record_write_admission_construction_inventory",
+          "declaration": "record_write_admission_construction_inventory ( original : RecordDeclaration , written_fields : Int , max_input_bytes : Int , write : @ catalog . RecordWriteLimits , request : @ catalog . RecordMutationLimits , ) - > RecordCreateRequestConstructionInventory ?"
+        },
+        {
+          "name": "record_write_value_construction_extents",
+          "declaration": "record_write_value_construction_extents ( original : RecordDeclaration , write : @ catalog . RecordWriteLimits , ) - > ( @ shape . CollectionConstructionExtent , @ shape . CollectionConstructionExtent ) ?"
         }
       ],
       "contracts": [
@@ -51473,6 +51657,75 @@
               {
                 "path": "src/connectors/kintone/host/record_create_construction_wbtest.mbt",
                 "anchor": "test \"proposal constructor envelope refuses invalid selection and covers supplied root width before refusal\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "record_write_admission_construction_inventory",
+            "record_write_value_construction_extents"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities verification:"
               }
             ]
           }
@@ -51878,7 +52131,7 @@
     },
     {
       "module": "src/connectors/local/driver/managed_dispatch.mbt",
-      "sha256": "7c5820bf20e08dab31eead0f4cfc2434e516e8432c85da244c9d4371138a43d3",
+      "sha256": "9c103bc52a7160daa40d4bec7f770c474e064d05f19becd39ed82d6ec003ed35",
       "role": "common-semantics",
       "owner": "Existing Local managed task/Source/resource owners; native supplied lifetime and imported producer custody remain distinct",
       "responsibilityFacet": "primary",
@@ -54522,7 +54775,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_installed_source_material_bridge.mbt",
-      "sha256": "f8f21a0cfa8d0cf7d779cdd87a80ec8e19147ad1b8f0e44701f854c7938ae7d3",
+      "sha256": "eecb9ca778b375a66d5f569db5e5315c396ae6cfb38dffcc949352d9aee09470",
       "exports": [],
       "operations": [
         {
@@ -54562,12 +54815,28 @@
           "declaration": "client_program_finish_installed_source_io_after_cleanup ( operation : @ resources . PreparationIo , ) - > Result [ Unit , @ resources . PreparationCapacityIssue ]"
         },
         {
+          "name": "client_program_installed_profile_construction_capacities",
+          "declaration": "client_program_installed_profile_construction_capacities ( nodes : Int64 , units : Int64 , ) - > Result [ Array [ @ execution . ExecutionCapacity ? ] , @ resources . PreparationCapacityIssue , ]"
+        },
+        {
           "name": "client_program_installed_source_construction_capacity",
           "declaration": "client_program_installed_source_construction_capacity ( retained_nodes : Int64 , retained_text_bytes : Int64 , retained_wire_bytes : Int64 , workspace_nodes : Int64 , workspace_text_bytes : Int64 , workspace_wire_bytes : Int64 , ) - > Result [ @ execution . ExecutionCapacity , @ resources . PreparationCapacityIssue ]"
         },
         {
+          "name": "client_program_installed_source_inspection_construction_capacity",
+          "declaration": "client_program_installed_source_inspection_construction_capacity ( original : @ execution . ExecutionCapacity ? , ) - > Result [ @ execution . ExecutionCapacity ? , @ resources . PreparationCapacityIssue ]"
+        },
+        {
+          "name": "client_program_installed_source_json_construction_capacity",
+          "declaration": "client_program_installed_source_json_construction_capacity ( wire_nodes : Int64 , wire_units : Int64 , buffer_bytes : Int64 , returned_nodes : Int64 , returned_text_bytes : Int64 , ) - > Result [ @ execution . ExecutionCapacity ? , @ resources . PreparationCapacityIssue ]"
+        },
+        {
           "name": "client_program_installed_source_retained_construction_capacity",
           "declaration": "client_program_installed_source_retained_construction_capacity ( original : @ execution . ExecutionCapacity ? , ) - > Result [ @ execution . ExecutionCapacity ? , @ resources . PreparationCapacityIssue ]"
+        },
+        {
+          "name": "client_program_installed_table_construction_inventory",
+          "declaration": "client_program_installed_table_construction_inventory ( nodes : Int64 , wire : Int64 , strings : Int64 , serializer_text : Int64 , ) - > Result [ Array [ Int64 ] , @ resources . PreparationCapacityIssue ]"
         },
         {
           "name": "client_program_mark_installed_source_io_transfer_uncertain",
@@ -54609,7 +54878,11 @@
             "client_program_complete_installed_source_material",
             "client_program_continue_installed_source_material",
             "client_program_finish_installed_source_io_after_cleanup",
+            "client_program_installed_profile_construction_capacities",
             "client_program_installed_source_construction_capacity",
+            "client_program_installed_source_inspection_construction_capacity",
+            "client_program_installed_source_json_construction_capacity",
+            "client_program_installed_table_construction_inventory",
             "client_program_mark_installed_source_io_transfer_uncertain",
             "client_program_reconcile_installed_source_construction",
             "client_program_reserve_installed_source_construction",
@@ -57140,7 +57413,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
-      "sha256": "f43ce4f02bcf23a0cffce85945545ffa96f24a1a31cd04186e12841012072281",
+      "sha256": "1bb3afef8f3858148fb886635276bae1b281e48fb493796f62ec5f68c44ec95c",
       "exports": [],
       "operations": [
         {
@@ -59253,7 +59526,7 @@
         },
         {
           "name": "identify_installed_captured_source",
-          "declaration": "identify_installed_captured_source ( source : @ query . CapturedInputSource , retain_body_bytes : Int , ) - > Result [ @ query . CapturedSourceRelationIdentity , @ query . CapturedSourceIssue ]"
+          "declaration": "identify_installed_captured_source ( source : @ query . CapturedInputSource , retain_body_bytes : Int , columns ? : Int"
         },
         {
           "name": "issue_captured_source_logical_graph",
@@ -60933,7 +61206,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_whole_source_capture_bridge.mbt",
-      "sha256": "9d2db9f85221d80a652b75856ecc93b3f0cb879e687d0f69621749272f644913",
+      "sha256": "3b89a2e2c441a0f4195df72dd6a29a8876a667fe4104610d6f43fa66b060e808",
       "exports": [],
       "operations": [
         {
@@ -60943,6 +61216,34 @@
         {
           "name": "client_program_admit_composed_infer_whole_sources",
           "declaration": "client_program_admit_composed_infer_whole_sources ( occurrence : @ publication_host . ClientInferOccurrence , captures : Array [ @ query . CapturedInputSource ] , identities : Array [ @ query . CapturedSourceRelationIdentity ] , capacities : Array [ @ client_local_host . ClientInstalledWholeSourceCapacity ] , logicals : Array [ @ publication . RunEvidenceValue ] , evidence : Array [ @ publication . RunEvidenceValue ] , authority_scope_cid : String , started_at : String , completed_at : String , keyed : @ publication_host . ClientKeyedLookupObservation ? , ) - > Result [ @ publication_host . ClientInferComposedSources , @ publication_host . ClientInferCallScopeIssue , ]"
+        },
+        {
+          "name": "client_program_direct_source_coordinates",
+          "declaration": "client_program_direct_source_coordinates ( prepared : @ publication_host . PreparedClientProgram , ) - > Result [ Array [ Array [ Int ] ] , @ publication_host . ClientDirectAcquisitionOccurrenceIssue , ]"
+        },
+        {
+          "name": "client_program_duckdb_whole_source_accept_page",
+          "declaration": "client_program_duckdb_whole_source_accept_page ( run : @ client_row_source_host . RowRun , acquisition : @ client_row_source_host . RowInputAcquisition , charge : @ client_row_source_host . RowPageCharge , fields_wire : String , columns_wire : String , rows : Int , ) - > Result [ Int , @ client_row_source_host . RowHostIssue ]"
+        },
+        {
+          "name": "client_program_duckdb_whole_source_begin_transport",
+          "declaration": "client_program_duckdb_whole_source_begin_transport ( borrow : @ client_row_source_host . RowRunResponseBorrow , ) - > Result [ Unit , @ client_row_source_host . RowHostIssue ]"
+        },
+        {
+          "name": "client_program_duckdb_whole_source_charge_response",
+          "declaration": "client_program_duckdb_whole_source_charge_response ( run : @ client_row_source_host . RowRun , bytes : Int64 , ) - > Result [ @ client_row_source_host . RowPageCharge , @ client_row_source_host . RowHostIssue , ]"
+        },
+        {
+          "name": "client_program_duckdb_whole_source_connector",
+          "declaration": "client_program_duckdb_whole_source_connector ( capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , ) - > String"
+        },
+        {
+          "name": "client_program_duckdb_whole_source_page_depth",
+          "declaration": "client_program_duckdb_whole_source_page_depth ( ) - > Int"
+        },
+        {
+          "name": "client_program_duckdb_whole_source_sql",
+          "declaration": "client_program_duckdb_whole_source_sql ( capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , database_schema : String , table : String , max_bytes : Int , ) - > Result [ String , @ client_row_source_host . RowHostIssue ]"
         },
         {
           "name": "client_program_effect_direct_source_coordinates",
@@ -60955,6 +61256,14 @@
         {
           "name": "client_program_export_whole_source_capture",
           "declaration": "client_program_export_whole_source_capture ( source : @ query . CapturedInputSource , capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , binding : String , ) - > Result [ ( Array [ String ] , String , String , Array [ String ] ) , @ client_local_host . ClientSourceCaptureIssue , ]"
+        },
+        {
+          "name": "client_program_identify_whole_captured_effect_source_relation",
+          "declaration": "client_program_identify_whole_captured_effect_source_relation ( source : @ query . CapturedInputSource , capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , ) - > Result [ @ query . CapturedSourceRelationIdentity , @ query . CapturedSourceIssue ]"
+        },
+        {
+          "name": "client_program_identify_whole_captured_source_relation",
+          "declaration": "client_program_identify_whole_captured_source_relation ( source : @ query . CapturedInputSource , capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , ) - > Result [ @ query . CapturedSourceRelationIdentity , @ query . CapturedSourceIssue ]"
         },
         {
           "name": "client_program_installed_effect_managed_plan_whole_source",
@@ -60971,6 +61280,10 @@
         {
           "name": "client_program_installed_effect_managed_whole_source_read",
           "declaration": "client_program_installed_effect_managed_whole_source_read ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declaration : @ client_row_source_host . RowDeclaration , occurrence : Int , ) - > Result [ ( @ client_local_host . ClientInstalledSourceRead , @ acquisition . SourceAcquisition , @ client_row_source_host . RowInputAcquisition , @ client_local_host . ClientInstalledWholeSourceCapacity , ) , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_managed_duckdb_whole_source_read",
+          "declaration": "client_program_installed_managed_duckdb_whole_source_read ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , ) - > Result [ ( @ client_local_host . ClientInstalledSourceRead , @ acquisition . SourceAcquisition , @ client_row_source_host . RowInputAcquisition , @ client_local_host . ClientInstalledWholeSourceCapacity , ) , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_installed_managed_publication_source_kind",
@@ -60993,6 +61306,14 @@
           "declaration": "client_program_installed_managed_whole_source_read ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , declaration : @ client_row_source_host . RowDeclaration , ) - > Result [ ( @ client_local_host . ClientInstalledSourceRead , @ acquisition . SourceAcquisition , @ client_row_source_host . RowInputAcquisition , @ client_local_host . ClientInstalledWholeSourceCapacity , ) , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
+          "name": "client_program_installed_managed_whole_source_read_at",
+          "declaration": "client_program_installed_managed_whole_source_read_at ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , declaration : @ client_row_source_host . RowDeclaration , occurrence : Int , ) - > Result [ ( @ client_local_host . ClientInstalledSourceRead , @ acquisition . SourceAcquisition , @ client_row_source_host . RowInputAcquisition , @ client_local_host . ClientInstalledWholeSourceCapacity , ) , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_managed_whole_sources_ledger",
+          "declaration": "client_program_installed_managed_whole_sources_ledger ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , capacities : Array [ @ client_local_host . ClientInstalledWholeSourceCapacity ] , transfer : Array [ Int64 ] , scratch : Array [ Int64 ] , ) - > Result [ @ resources . Ledger , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
           "name": "client_program_installed_row_input_policy",
           "declaration": "client_program_installed_row_input_policy ( max_rows : Int , max_page_bytes : Int , max_page_nodes : Int , max_page_depth : Int , max_page_rows : Int , ) - > @ client_row_source_host . RowInputLimits"
         },
@@ -61013,6 +61334,10 @@
           "declaration": "client_program_issue_whole_source_publication_invocation ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , capture : @ client_row_source_host . RowSourceCapture , identity : @ query . CapturedSourceRelationIdentity , source : @ publication . RunEvidenceValue , input : @ publication . RunEvidenceValue , authority_scope_cid : String , data_policy_cid : String , capture_started_at : String , capture_completed_at : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( @ publication . RunEvidenceValue , @ publication . PublicationContract ) , @ client_local_host . ClientClosedValuesPreparationIssue , ]"
         },
         {
+          "name": "client_program_issue_whole_sources_publication_invocation",
+          "declaration": "client_program_issue_whole_sources_publication_invocation ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , captures : Array [ @ client_row_source_host . RowSourceCapture ] , identities : Array [ @ query . CapturedSourceRelationIdentity ] , sources : Array [ @ publication . RunEvidenceValue ] , inputs : Array [ @ publication . RunEvidenceValue ] , authority_scope_cid : String , data_policy_cid : String , capture_started_at : String , capture_completed_at : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( @ publication . RunEvidenceValue , @ publication . PublicationContract ) , @ client_local_host . ClientClosedValuesPreparationIssue , ]"
+        },
+        {
           "name": "client_program_open_installed_managed_capture_host",
           "declaration": "client_program_open_installed_managed_capture_host ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , sources : Array [ @ query . CapturedInputSource ] , ) - > Result [ @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , @ client_local_host . ClientInstalledCaptureHostIssue , ]"
         },
@@ -61021,12 +61346,28 @@
           "declaration": "client_program_open_installed_managed_keyed_capture_host ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , lookup : @ publication_host . ClientKeyedLookupInput , ) - > Result [ @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , @ client_local_host . ClientInstalledCaptureHostIssue , ]"
         },
         {
+          "name": "client_program_prepare_duckdb_whole_source_capacity",
+          "declaration": "client_program_prepare_duckdb_whole_source_capacity ( prepared : @ publication_host . PreparedClientProgram , selection : @ acquisition . SourceAcquisitionRoute , contracts : @ client_local_host . ClientInstalledSequenceContracts , max_rows : Int , max_page_bytes : Int , max_page_nodes : Int , max_page_depth : Int , max_page_rows : Int , ) - > Result [ @ client_local_host . ClientInstalledWholeSourceCapacity , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
           "name": "client_program_prepare_installed_managed_whole_source_plan",
           "declaration": "client_program_prepare_installed_managed_whole_source_plan ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , transfer : Int64 , scratch : Int64 , contracts : @ client_local_host . ClientInstalledSequenceContracts , values : String , fragment : String ? , ordered : String ? , retained_output : Bool , ) - > Result [ @ client_local_host . ClientInstalledManagedCapturePlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_prepare_installed_managed_whole_source_plan_at_query_time",
           "declaration": "client_program_prepare_installed_managed_whole_source_plan_at_query_time ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , transfer : Int64 , scratch : Int64 , contracts : @ client_local_host . ClientInstalledSequenceContracts , values : String , fragment : String ? , ordered : String ? , retained_output : Bool , invocation : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , @ publication_host . ClientCompiledRun , @ publication . PublicationContract , ) ? , ) - > Result [ @ client_local_host . ClientInstalledManagedCapturePlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_installed_managed_whole_sources_plan",
+          "declaration": "client_program_prepare_installed_managed_whole_sources_plan ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , capacities : Array [ @ client_local_host . ClientInstalledWholeSourceCapacity ] , transfer : Array [ Int64 ] , scratch : Array [ Int64 ] , contracts : @ client_local_host . ClientInstalledSequenceContracts , values : String , fragment : String ? , ordered : String ? , retained_output : Bool , ) - > Result [ @ client_local_host . ClientInstalledManagedCapturePlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_installed_managed_whole_sources_plan_at_query_time",
+          "declaration": "client_program_prepare_installed_managed_whole_sources_plan_at_query_time ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , capacities : Array [ @ client_local_host . ClientInstalledWholeSourceCapacity ] , transfer : Array [ Int64 ] , scratch : Array [ Int64 ] , contracts : @ client_local_host . ClientInstalledSequenceContracts , values : String , fragment : String ? , ordered : String ? , retained_output : Bool , invocation : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , @ publication_host . ClientCompiledRun , @ publication . PublicationContract , ) ? , ) - > Result [ @ client_local_host . ClientInstalledManagedCapturePlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_request_model_whole_inputs_component_capture_module",
+          "declaration": "client_program_prepare_request_model_whole_inputs_component_capture_module ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , compilation : @ publication_host . ClientTaskCompilation , whole_sources : Array [ @ client_local_host . ClientInstalledWholeSourceCapacity ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , contracts : @ client_local_host . ClientInstalledSequenceContracts , retained_output : Bool , query_time : @ publication_host . ClientQueryTimePreparation ? , construct : ( @ execution . ExecutionCapacity , @ execution . GeneratedSequence , ( @ infer_host . Execution ) - > Result [ Unit , @ infer_host . Issue ] , ) - > @ local . ManagedProvider , ) - > Result [ @ client_local_host . ClientInstalledManagedCapturePlan , @ client_local_host . ClientRequestProgramPlanIssue , ]"
         },
         {
           "name": "client_program_prepare_whole_source_capacity",
@@ -61124,43 +61465,55 @@
         {
           "operations": [
             "<module>",
-            "client_program_installed_managed_requires_acquisition_result_publication",
-            "client_program_installed_managed_source_input_kind",
-            "client_program_installed_managed_whole_source_ledger",
-            "client_program_installed_managed_whole_source_read",
-            "client_program_installed_whole_source_read_start_rows",
-            "client_program_issue_whole_source_input_logical",
-            "client_program_open_installed_managed_capture_host",
-            "client_program_prepare_installed_managed_whole_source_plan",
-            "client_program_prepare_whole_source_capacity",
-            "client_program_prepared_installed_whole_source_requirements",
-            "client_program_select_installed_effect_source_input",
-            "client_program_whole_source_borrow_responses",
-            "client_program_whole_source_capacity_acquisition",
-            "client_program_whole_source_capacity_matches",
-            "client_program_whole_source_check_compute_binding",
-            "client_program_whole_source_facts",
-            "client_program_whole_source_input_identity",
-            "client_program_whole_source_issue_source_evidence",
-            "client_program_whole_source_issue_source_evidence_wire",
-            "client_program_whole_source_request_wire",
-            "client_program_whole_source_target",
+            "check_client_infer_original_evidence",
+            "client_program_admit_composed_infer_whole_sources",
+            "client_program_duckdb_whole_source_accept_page",
+            "client_program_duckdb_whole_source_begin_transport",
+            "client_program_duckdb_whole_source_charge_response",
+            "client_program_duckdb_whole_source_connector",
+            "client_program_duckdb_whole_source_page_depth",
+            "client_program_duckdb_whole_source_sql",
             "client_program_effect_whole_source_input_identity",
+            "client_program_export_whole_source_capture",
             "client_program_installed_effect_managed_plan_whole_source",
             "client_program_installed_effect_managed_source_input_kind",
             "client_program_installed_effect_managed_sources_ledger",
             "client_program_installed_effect_managed_whole_source_read",
+            "client_program_installed_managed_duckdb_whole_source_read",
+            "client_program_installed_managed_requires_acquisition_result_publication",
+            "client_program_installed_managed_source_input_kind",
+            "client_program_installed_managed_whole_source_ledger",
+            "client_program_installed_managed_whole_source_read",
+            "client_program_installed_managed_whole_source_read_at",
+            "client_program_installed_managed_whole_sources_ledger",
             "client_program_installed_row_input_policy",
+            "client_program_installed_whole_source_read_start_rows",
             "client_program_issue_effect_whole_source_input_logical",
-            "client_program_export_whole_source_capture",
+            "client_program_issue_whole_source_input_logical",
+            "client_program_open_installed_managed_capture_host",
+            "client_program_prepare_duckdb_whole_source_capacity",
+            "client_program_prepare_installed_managed_whole_source_plan",
+            "client_program_prepare_installed_managed_whole_sources_plan",
+            "client_program_prepare_request_model_whole_inputs_component_capture_module",
+            "client_program_prepare_whole_source_capacity",
+            "client_program_prepared_installed_whole_source_requirements",
             "client_program_restore_whole_source_capture",
-            "client_program_source_capture_retain_input",
-            "client_program_whole_source_is_listing",
-            "check_client_infer_original_evidence",
-            "client_program_admit_composed_infer_whole_sources",
             "client_program_restored_whole_source_capture_input",
+            "client_program_select_installed_effect_source_input",
+            "client_program_source_capture_retain_input",
             "client_program_start_installed_original_composed_keyed_input_prefix",
-            "client_program_whole_source_capture_input"
+            "client_program_whole_source_borrow_responses",
+            "client_program_whole_source_capacity_acquisition",
+            "client_program_whole_source_capacity_matches",
+            "client_program_whole_source_capture_input",
+            "client_program_whole_source_check_compute_binding",
+            "client_program_whole_source_facts",
+            "client_program_whole_source_input_identity",
+            "client_program_whole_source_is_listing",
+            "client_program_whole_source_issue_source_evidence",
+            "client_program_whole_source_issue_source_evidence_wire",
+            "client_program_whole_source_request_wire",
+            "client_program_whole_source_target"
           ],
           "exports": [],
           "attributes": {
@@ -61228,10 +61581,11 @@
         },
         {
           "operations": [
+            "client_program_direct_source_coordinates",
+            "client_program_effect_direct_source_coordinates",
             "client_program_select_installed_source_input",
             "client_program_selected_source_input_kind",
-            "client_program_selected_source_input_ref",
-            "client_program_effect_direct_source_coordinates"
+            "client_program_selected_source_input_ref"
           ],
           "exports": [],
           "attributes": {
@@ -61300,7 +61654,8 @@
         {
           "operations": [
             "client_program_installed_managed_publication_source_kind",
-            "client_program_issue_whole_source_publication_invocation"
+            "client_program_issue_whole_source_publication_invocation",
+            "client_program_issue_whole_sources_publication_invocation"
           ],
           "exports": [],
           "attributes": {
@@ -61372,7 +61727,8 @@
         },
         {
           "operations": [
-            "client_program_prepare_installed_managed_whole_source_plan_at_query_time"
+            "client_program_prepare_installed_managed_whole_source_plan_at_query_time",
+            "client_program_prepare_installed_managed_whole_sources_plan_at_query_time"
           ],
           "exports": [],
           "attributes": {
@@ -61506,6 +61862,75 @@
               {
                 "path": "src/client_local_host/installed_keyed_capture_parent_js_wbtest.mbt",
                 "anchor": "test \"managed keyed Host retains the original configuration and rejects a foreign Ledger\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_identify_whole_captured_effect_source_relation",
+            "client_program_identify_whole_captured_source_relation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
               }
             ]
           }
@@ -61961,7 +62386,7 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/client_whole_source_capture_bridge.mbt",
-      "sha256": "ae9e2aac04519fa1cd1ea60ceacd767d57212254d3e0a862219032f7c6b36914",
+      "sha256": "abd187949210877f3051fc67aec797781f67190f2318677f37c0b8cc9c101dab",
       "exports": [],
       "operations": [
         {
@@ -61971,6 +62396,34 @@
         {
           "name": "client_program_admit_composed_infer_whole_sources",
           "declaration": "client_program_admit_composed_infer_whole_sources ( occurrence : @ publication_host . ClientInferOccurrence , captures : Array [ @ query . CapturedInputSource ] , identities : Array [ @ query . CapturedSourceRelationIdentity ] , capacities : Array [ @ client_local_host . ClientInstalledWholeSourceCapacity ] , logicals : Array [ @ publication . RunEvidenceValue ] , evidence : Array [ @ publication . RunEvidenceValue ] , authority_scope_cid : String , started_at : String , completed_at : String , keyed : @ publication_host . ClientKeyedLookupObservation ? , ) - > Result [ @ publication_host . ClientInferComposedSources , @ publication_host . ClientInferCallScopeIssue , ]"
+        },
+        {
+          "name": "client_program_direct_source_coordinates",
+          "declaration": "client_program_direct_source_coordinates ( prepared : @ publication_host . PreparedClientProgram , ) - > Result [ Array [ Array [ Int ] ] , @ publication_host . ClientDirectAcquisitionOccurrenceIssue , ]"
+        },
+        {
+          "name": "client_program_duckdb_whole_source_accept_page",
+          "declaration": "client_program_duckdb_whole_source_accept_page ( run : @ client_row_source_host . RowRun , acquisition : @ client_row_source_host . RowInputAcquisition , charge : @ client_row_source_host . RowPageCharge , fields_wire : String , columns_wire : String , rows : Int , ) - > Result [ Int , @ client_row_source_host . RowHostIssue ]"
+        },
+        {
+          "name": "client_program_duckdb_whole_source_begin_transport",
+          "declaration": "client_program_duckdb_whole_source_begin_transport ( borrow : @ client_row_source_host . RowRunResponseBorrow , ) - > Result [ Unit , @ client_row_source_host . RowHostIssue ]"
+        },
+        {
+          "name": "client_program_duckdb_whole_source_charge_response",
+          "declaration": "client_program_duckdb_whole_source_charge_response ( run : @ client_row_source_host . RowRun , bytes : Int64 , ) - > Result [ @ client_row_source_host . RowPageCharge , @ client_row_source_host . RowHostIssue , ]"
+        },
+        {
+          "name": "client_program_duckdb_whole_source_connector",
+          "declaration": "client_program_duckdb_whole_source_connector ( capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , ) - > String"
+        },
+        {
+          "name": "client_program_duckdb_whole_source_page_depth",
+          "declaration": "client_program_duckdb_whole_source_page_depth ( ) - > Int"
+        },
+        {
+          "name": "client_program_duckdb_whole_source_sql",
+          "declaration": "client_program_duckdb_whole_source_sql ( capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , database_schema : String , table : String , max_bytes : Int , ) - > Result [ String , @ client_row_source_host . RowHostIssue ]"
         },
         {
           "name": "client_program_effect_direct_source_coordinates",
@@ -61983,6 +62436,14 @@
         {
           "name": "client_program_export_whole_source_capture",
           "declaration": "client_program_export_whole_source_capture ( source : @ query . CapturedInputSource , capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , binding : String , ) - > Result [ ( Array [ String ] , String , String , Array [ String ] ) , @ client_local_host . ClientSourceCaptureIssue , ]"
+        },
+        {
+          "name": "client_program_identify_whole_captured_effect_source_relation",
+          "declaration": "client_program_identify_whole_captured_effect_source_relation ( source : @ query . CapturedInputSource , capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , ) - > Result [ @ query . CapturedSourceRelationIdentity , @ query . CapturedSourceIssue ]"
+        },
+        {
+          "name": "client_program_identify_whole_captured_source_relation",
+          "declaration": "client_program_identify_whole_captured_source_relation ( source : @ query . CapturedInputSource , capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , ) - > Result [ @ query . CapturedSourceRelationIdentity , @ query . CapturedSourceIssue ]"
         },
         {
           "name": "client_program_installed_effect_managed_plan_whole_source",
@@ -61999,6 +62460,10 @@
         {
           "name": "client_program_installed_effect_managed_whole_source_read",
           "declaration": "client_program_installed_effect_managed_whole_source_read ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declaration : @ client_row_source_host . RowDeclaration , occurrence : Int , ) - > Result [ ( @ client_local_host . ClientInstalledSourceRead , @ acquisition . SourceAcquisition , @ client_row_source_host . RowInputAcquisition , @ client_local_host . ClientInstalledWholeSourceCapacity , ) , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_managed_duckdb_whole_source_read",
+          "declaration": "client_program_installed_managed_duckdb_whole_source_read ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , ) - > Result [ ( @ client_local_host . ClientInstalledSourceRead , @ acquisition . SourceAcquisition , @ client_row_source_host . RowInputAcquisition , @ client_local_host . ClientInstalledWholeSourceCapacity , ) , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_installed_managed_publication_source_kind",
@@ -62021,6 +62486,14 @@
           "declaration": "client_program_installed_managed_whole_source_read ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , declaration : @ client_row_source_host . RowDeclaration , ) - > Result [ ( @ client_local_host . ClientInstalledSourceRead , @ acquisition . SourceAcquisition , @ client_row_source_host . RowInputAcquisition , @ client_local_host . ClientInstalledWholeSourceCapacity , ) , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
+          "name": "client_program_installed_managed_whole_source_read_at",
+          "declaration": "client_program_installed_managed_whole_source_read_at ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , declaration : @ client_row_source_host . RowDeclaration , occurrence : Int , ) - > Result [ ( @ client_local_host . ClientInstalledSourceRead , @ acquisition . SourceAcquisition , @ client_row_source_host . RowInputAcquisition , @ client_local_host . ClientInstalledWholeSourceCapacity , ) , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_managed_whole_sources_ledger",
+          "declaration": "client_program_installed_managed_whole_sources_ledger ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , capacities : Array [ @ client_local_host . ClientInstalledWholeSourceCapacity ] , transfer : Array [ Int64 ] , scratch : Array [ Int64 ] , ) - > Result [ @ resources . Ledger , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
           "name": "client_program_installed_row_input_policy",
           "declaration": "client_program_installed_row_input_policy ( max_rows : Int , max_page_bytes : Int , max_page_nodes : Int , max_page_depth : Int , max_page_rows : Int , ) - > @ client_row_source_host . RowInputLimits"
         },
@@ -62041,6 +62514,10 @@
           "declaration": "client_program_issue_whole_source_publication_invocation ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , capture : @ client_row_source_host . RowSourceCapture , identity : @ query . CapturedSourceRelationIdentity , source : @ publication . RunEvidenceValue , input : @ publication . RunEvidenceValue , authority_scope_cid : String , data_policy_cid : String , capture_started_at : String , capture_completed_at : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( @ publication . RunEvidenceValue , @ publication . PublicationContract ) , @ client_local_host . ClientClosedValuesPreparationIssue , ]"
         },
         {
+          "name": "client_program_issue_whole_sources_publication_invocation",
+          "declaration": "client_program_issue_whole_sources_publication_invocation ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , captures : Array [ @ client_row_source_host . RowSourceCapture ] , identities : Array [ @ query . CapturedSourceRelationIdentity ] , sources : Array [ @ publication . RunEvidenceValue ] , inputs : Array [ @ publication . RunEvidenceValue ] , authority_scope_cid : String , data_policy_cid : String , capture_started_at : String , capture_completed_at : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( @ publication . RunEvidenceValue , @ publication . PublicationContract ) , @ client_local_host . ClientClosedValuesPreparationIssue , ]"
+        },
+        {
           "name": "client_program_open_installed_managed_capture_host",
           "declaration": "client_program_open_installed_managed_capture_host ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , sources : Array [ @ query . CapturedInputSource ] , ) - > Result [ @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , @ client_local_host . ClientInstalledCaptureHostIssue , ]"
         },
@@ -62049,12 +62526,28 @@
           "declaration": "client_program_open_installed_managed_keyed_capture_host ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , lookup : @ publication_host . ClientKeyedLookupInput , ) - > Result [ @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , @ client_local_host . ClientInstalledCaptureHostIssue , ]"
         },
         {
+          "name": "client_program_prepare_duckdb_whole_source_capacity",
+          "declaration": "client_program_prepare_duckdb_whole_source_capacity ( prepared : @ publication_host . PreparedClientProgram , selection : @ acquisition . SourceAcquisitionRoute , contracts : @ client_local_host . ClientInstalledSequenceContracts , max_rows : Int , max_page_bytes : Int , max_page_nodes : Int , max_page_depth : Int , max_page_rows : Int , ) - > Result [ @ client_local_host . ClientInstalledWholeSourceCapacity , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
           "name": "client_program_prepare_installed_managed_whole_source_plan",
           "declaration": "client_program_prepare_installed_managed_whole_source_plan ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , transfer : Int64 , scratch : Int64 , contracts : @ client_local_host . ClientInstalledSequenceContracts , values : String , fragment : String ? , ordered : String ? , retained_output : Bool , ) - > Result [ @ client_local_host . ClientInstalledManagedCapturePlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_prepare_installed_managed_whole_source_plan_at_query_time",
           "declaration": "client_program_prepare_installed_managed_whole_source_plan_at_query_time ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , transfer : Int64 , scratch : Int64 , contracts : @ client_local_host . ClientInstalledSequenceContracts , values : String , fragment : String ? , ordered : String ? , retained_output : Bool , invocation : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , @ publication_host . ClientCompiledRun , @ publication . PublicationContract , ) ? , ) - > Result [ @ client_local_host . ClientInstalledManagedCapturePlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_installed_managed_whole_sources_plan",
+          "declaration": "client_program_prepare_installed_managed_whole_sources_plan ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , capacities : Array [ @ client_local_host . ClientInstalledWholeSourceCapacity ] , transfer : Array [ Int64 ] , scratch : Array [ Int64 ] , contracts : @ client_local_host . ClientInstalledSequenceContracts , values : String , fragment : String ? , ordered : String ? , retained_output : Bool , ) - > Result [ @ client_local_host . ClientInstalledManagedCapturePlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_installed_managed_whole_sources_plan_at_query_time",
+          "declaration": "client_program_prepare_installed_managed_whole_sources_plan_at_query_time ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , capacities : Array [ @ client_local_host . ClientInstalledWholeSourceCapacity ] , transfer : Array [ Int64 ] , scratch : Array [ Int64 ] , contracts : @ client_local_host . ClientInstalledSequenceContracts , values : String , fragment : String ? , ordered : String ? , retained_output : Bool , invocation : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , @ publication_host . ClientCompiledRun , @ publication . PublicationContract , ) ? , ) - > Result [ @ client_local_host . ClientInstalledManagedCapturePlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_request_model_whole_inputs_component_capture_module",
+          "declaration": "client_program_prepare_request_model_whole_inputs_component_capture_module ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , compilation : @ publication_host . ClientTaskCompilation , whole_sources : Array [ @ client_local_host . ClientInstalledWholeSourceCapacity ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , contracts : @ client_local_host . ClientInstalledSequenceContracts , retained_output : Bool , query_time : @ publication_host . ClientQueryTimePreparation ? , construct : ( @ execution . ExecutionCapacity , @ execution . GeneratedSequence , ( @ infer_host . Execution ) - > Result [ Unit , @ infer_host . Issue ] , ) - > @ local . ManagedProvider , ) - > Result [ @ client_local_host . ClientInstalledManagedCapturePlan , @ client_local_host . ClientRequestProgramPlanIssue , ]"
         },
         {
           "name": "client_program_prepare_whole_source_capacity",
@@ -62152,43 +62645,55 @@
         {
           "operations": [
             "<module>",
-            "client_program_installed_managed_requires_acquisition_result_publication",
-            "client_program_installed_managed_source_input_kind",
-            "client_program_installed_managed_whole_source_ledger",
-            "client_program_installed_managed_whole_source_read",
-            "client_program_installed_whole_source_read_start_rows",
-            "client_program_issue_whole_source_input_logical",
-            "client_program_open_installed_managed_capture_host",
-            "client_program_prepare_installed_managed_whole_source_plan",
-            "client_program_prepare_whole_source_capacity",
-            "client_program_prepared_installed_whole_source_requirements",
-            "client_program_select_installed_effect_source_input",
-            "client_program_whole_source_borrow_responses",
-            "client_program_whole_source_capacity_acquisition",
-            "client_program_whole_source_capacity_matches",
-            "client_program_whole_source_check_compute_binding",
-            "client_program_whole_source_facts",
-            "client_program_whole_source_input_identity",
-            "client_program_whole_source_issue_source_evidence",
-            "client_program_whole_source_issue_source_evidence_wire",
-            "client_program_whole_source_request_wire",
-            "client_program_whole_source_target",
+            "check_client_infer_original_evidence",
+            "client_program_admit_composed_infer_whole_sources",
+            "client_program_duckdb_whole_source_accept_page",
+            "client_program_duckdb_whole_source_begin_transport",
+            "client_program_duckdb_whole_source_charge_response",
+            "client_program_duckdb_whole_source_connector",
+            "client_program_duckdb_whole_source_page_depth",
+            "client_program_duckdb_whole_source_sql",
             "client_program_effect_whole_source_input_identity",
+            "client_program_export_whole_source_capture",
             "client_program_installed_effect_managed_plan_whole_source",
             "client_program_installed_effect_managed_source_input_kind",
             "client_program_installed_effect_managed_sources_ledger",
             "client_program_installed_effect_managed_whole_source_read",
+            "client_program_installed_managed_duckdb_whole_source_read",
+            "client_program_installed_managed_requires_acquisition_result_publication",
+            "client_program_installed_managed_source_input_kind",
+            "client_program_installed_managed_whole_source_ledger",
+            "client_program_installed_managed_whole_source_read",
+            "client_program_installed_managed_whole_source_read_at",
+            "client_program_installed_managed_whole_sources_ledger",
             "client_program_installed_row_input_policy",
+            "client_program_installed_whole_source_read_start_rows",
             "client_program_issue_effect_whole_source_input_logical",
-            "client_program_export_whole_source_capture",
+            "client_program_issue_whole_source_input_logical",
+            "client_program_open_installed_managed_capture_host",
+            "client_program_prepare_duckdb_whole_source_capacity",
+            "client_program_prepare_installed_managed_whole_source_plan",
+            "client_program_prepare_installed_managed_whole_sources_plan",
+            "client_program_prepare_request_model_whole_inputs_component_capture_module",
+            "client_program_prepare_whole_source_capacity",
+            "client_program_prepared_installed_whole_source_requirements",
             "client_program_restore_whole_source_capture",
-            "client_program_source_capture_retain_input",
-            "client_program_whole_source_is_listing",
-            "check_client_infer_original_evidence",
-            "client_program_admit_composed_infer_whole_sources",
             "client_program_restored_whole_source_capture_input",
+            "client_program_select_installed_effect_source_input",
+            "client_program_source_capture_retain_input",
             "client_program_start_installed_original_composed_keyed_input_prefix",
-            "client_program_whole_source_capture_input"
+            "client_program_whole_source_borrow_responses",
+            "client_program_whole_source_capacity_acquisition",
+            "client_program_whole_source_capacity_matches",
+            "client_program_whole_source_capture_input",
+            "client_program_whole_source_check_compute_binding",
+            "client_program_whole_source_facts",
+            "client_program_whole_source_input_identity",
+            "client_program_whole_source_is_listing",
+            "client_program_whole_source_issue_source_evidence",
+            "client_program_whole_source_issue_source_evidence_wire",
+            "client_program_whole_source_request_wire",
+            "client_program_whole_source_target"
           ],
           "exports": [],
           "attributes": {
@@ -62256,10 +62761,11 @@
         },
         {
           "operations": [
+            "client_program_direct_source_coordinates",
+            "client_program_effect_direct_source_coordinates",
             "client_program_select_installed_source_input",
             "client_program_selected_source_input_kind",
-            "client_program_selected_source_input_ref",
-            "client_program_effect_direct_source_coordinates"
+            "client_program_selected_source_input_ref"
           ],
           "exports": [],
           "attributes": {
@@ -62328,7 +62834,8 @@
         {
           "operations": [
             "client_program_installed_managed_publication_source_kind",
-            "client_program_issue_whole_source_publication_invocation"
+            "client_program_issue_whole_source_publication_invocation",
+            "client_program_issue_whole_sources_publication_invocation"
           ],
           "exports": [],
           "attributes": {
@@ -62400,7 +62907,8 @@
         },
         {
           "operations": [
-            "client_program_prepare_installed_managed_whole_source_plan_at_query_time"
+            "client_program_prepare_installed_managed_whole_source_plan_at_query_time",
+            "client_program_prepare_installed_managed_whole_sources_plan_at_query_time"
           ],
           "exports": [],
           "attributes": {
@@ -62534,6 +63042,75 @@
               {
                 "path": "src/client_local_host/installed_keyed_capture_parent_js_wbtest.mbt",
                 "anchor": "test \"managed keyed Host retains the original configuration and rejects a foreign Ledger\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_identify_whole_captured_effect_source_relation",
+            "client_program_identify_whole_captured_source_relation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
               }
             ]
           }
@@ -66153,7 +66730,7 @@
     },
     {
       "module": "src/physical_strategy_host/captured_dag.mbt",
-      "sha256": "d0d821431792a5320363750e08b7a3d7582e28f59f9de52b12ae49dfc4d4d6d6",
+      "sha256": "27d141e81d1c583083bc6831e9e3e707b7b52272024813d85d19219cb6871e1c",
       "exports": [],
       "operations": [
         {
@@ -66429,6 +67006,10 @@
           "declaration": "open_source_input_dag ( graph : CheckedDAG , source : @ query . CapturedInputSource , ledger : @ resources . Ledger , ) - > Result [ CapturedDAG , RunIssue ]"
         },
         {
+          "name": "open_source_inputs_dag",
+          "declaration": "open_source_inputs_dag ( graph : CheckedDAG , sources : Array [ @ query . CapturedInputSource ] , ledger : @ resources . Ledger , ) - > Result [ CapturedDAG , RunIssue ]"
+        },
+        {
           "name": "open_source_inputs_effect_run_dag",
           "declaration": "open_source_inputs_effect_run_dag ( checked : CheckedEffectRunDAG , graph : CheckedDAG , sources : Array [ @ query . CapturedInputSource ] , ledger : @ resources . Ledger , keyed ? : ( Int , Int , @ execution . SuppliedRelationRead ) ?"
         },
@@ -66443,6 +67024,10 @@
         {
           "name": "source_input_dag_matches_read_at",
           "declaration": "source_input_dag_matches_read_at ( run : CapturedDAG , read : @ execution . SuppliedRelationRead , task : Int , ) - > Bool"
+        },
+        {
+          "name": "source_inputs_original_reads",
+          "declaration": "source_inputs_original_reads ( graph : CheckedDAG , sources : Array [ @ query . CapturedInputSource ] , ) - > Result [ ( Array [ ( Int , Int , @ execution . SuppliedRelationRead ) ] , Array [ ( Int , Int ) ] ) , RunIssue , ]"
         },
         {
           "name": "stop_captured_dag",
@@ -66532,13 +67117,15 @@
             "open_source_free_dag",
             "open_source_free_effect_run_dag",
             "open_source_input_dag",
+            "open_source_inputs_dag",
+            "open_source_inputs_effect_run_dag",
             "select_captured_managed_registration",
             "source_input_dag_matches_read",
+            "source_input_dag_matches_read_at",
+            "source_inputs_original_reads",
             "stop_captured_dag",
             "task_done",
-            "valid_source_free_root",
-            "open_source_inputs_effect_run_dag",
-            "source_input_dag_matches_read_at"
+            "valid_source_free_root"
           ],
           "exports": [],
           "attributes": {
@@ -73142,7 +73729,7 @@
     },
     {
       "module": "src/run_publication_host/client_whole_source_invocation.mbt",
-      "sha256": "714ec426ef5eae216c2bebe25bdeabe7c944c944ab60d5da4a81103d4c0a1460",
+      "sha256": "1194191073d98dd800f190ab1af65f519cc89147808eab3b26a525880b99b95e",
       "role": "common-semantics",
       "owner": "Existing adopted publication/Source capture owners; no separate current, resource or cleanup owner",
       "responsibilityFacet": "primary",
@@ -73150,6 +73737,10 @@
         {
           "name": "issue_client_compiled_whole_source_invocation",
           "declaration": "issue_client_compiled_whole_source_invocation ( run : ClientCompiledRun , definition : @ publication . PublicationContract , capture : @ query . CapturedInputSource , identity : @ query . CapturedSourceRelationIdentity , acquisition : @ acquisition . SourceAcquisition , source : @ publication . RunEvidenceValue , input : @ publication . RunEvidenceValue , authority_scope_cid : String , data_policy_cid : String , capture_started_at : String , capture_completed_at : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( @ publication . RunEvidenceValue , @ publication . PublicationContract ) , @ publication . RunEvidenceValueIssue , ]"
+        },
+        {
+          "name": "issue_client_compiled_whole_sources_invocation",
+          "declaration": "issue_client_compiled_whole_sources_invocation ( run : ClientCompiledRun , definition : @ publication . PublicationContract , captures : Array [ @ query . CapturedInputSource ] , identities : Array [ @ query . CapturedSourceRelationIdentity ] , acquisitions : Array [ @ acquisition . SourceAcquisition ] , sources : Array [ @ publication . RunEvidenceValue ] , inputs : Array [ @ publication . RunEvidenceValue ] , authority_scope_cid : String , data_policy_cid : String , capture_started_at : String , capture_completed_at : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( @ publication . RunEvidenceValue , @ publication . PublicationContract ) , @ publication . RunEvidenceValueIssue , ]"
         }
       ],
       "exports": [],
@@ -73157,7 +73748,8 @@
         {
           "operations": [
             "<module>",
-            "issue_client_compiled_whole_source_invocation"
+            "issue_client_compiled_whole_source_invocation",
+            "issue_client_compiled_whole_sources_invocation"
           ],
           "exports": [],
           "attributes": {
@@ -80063,7 +80655,7 @@
     },
     {
       "module": "src/client_local_host/installed_described_effect_recipe.mbt",
-      "sha256": "d7b7550030bb464f9044107270ae8c8ab5744732037d6afcb75bab225223c7af",
+      "sha256": "9f19220c914939b21b435ceb9304829a4c4bb196cdc7a7228c66804945f14e9d",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Salesforce Catalog/driver, run_publication identity and shared Core constructor/Plan Owners; no authority transfer",
@@ -83384,6 +83976,1244 @@
               {
                 "path": "src/physical_resources/backed_child_window_wbtest.mbt",
                 "anchor": "test \"acquired child window observation preserves usage and rejects foreign closing and retired originals\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node_rela/client_kintone_update_bridge.mbt",
+      "responsibilityFacet": "primary",
+      "role": "generated-binding",
+      "owner": "E — same-original kintone UPDATE Mapping installed Host projection",
+      "referenceQualification": "Same-runtime synchronous Mapping DATA and selected compiler consumers only; no new current authority, normal Effect or provider outcome",
+      "exports": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_kintone_original_update_mapping",
+            "client_program_kintone_prepare_update_mapping",
+            "client_program_kintone_update_mapping_body",
+            "client_program_kintone_update_mapping_cid",
+            "client_program_kintone_update_mapping_matches_declaration",
+            "client_program_kintone_update_mapping_matches_request",
+            "client_program_kintone_update_mapping_ref"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Kintone UPDATE Mapping originals"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The kintone UPDATE Node binding passes the original `RecordDeclaration`, bounded"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "complete before/write/omit inventories. Equal copied private fields do not"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "normal current, authorization, cancellation and physical cleanup duties remain"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "These are synchronous DATA checks, not current authority, a target observation,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "establish that correspondence. Body/ref/CID projections refuse copied Mappings."
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous DATA only; this binding performs no I/O, issues no permission and returns no cancellation or retirement acknowledgement."
+            },
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "reserves constructor work before invocation and retains the resulting material;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "with their existing owners. The RelA bridge is generated from the same body."
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors_builtin_node/client_kintone_update_bridge_wbtest.mbt",
+                "anchor": "test \"kintone UPDATE Node bridge refuses a copied private Mapping before exposing material\""
+              },
+              {
+                "path": "src/connectors/kintone/host/record_update_original_wbtest.mbt",
+                "anchor": "test \"kintone UPDATE Mapping refuses copied DATA with the same retained declaration\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_kintone_finalize_update_request",
+            "client_program_kintone_prepare_update_preview",
+            "client_program_kintone_prepare_update_proposal",
+            "client_program_kintone_restore_update_execution",
+            "client_program_kintone_update_effect_outcome",
+            "client_program_kintone_update_effect_outcome_matches_request",
+            "client_program_kintone_update_effect_outcome_response_sha256",
+            "client_program_kintone_update_effect_outcome_wire",
+            "client_program_kintone_update_execution_matches",
+            "client_program_kintone_update_mapping_recheck_form",
+            "client_program_kintone_update_preview_before_wire",
+            "client_program_kintone_update_preview_identity",
+            "client_program_kintone_update_preview_revision",
+            "client_program_kintone_update_preview_version_cid",
+            "client_program_kintone_update_proposal_app",
+            "client_program_kintone_update_proposal_identity",
+            "client_program_kintone_update_proposal_value_wire",
+            "client_program_kintone_update_target_read_body"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE verification:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_kintone_update_finalization_construction_capacity",
+            "client_program_kintone_update_form_construction_capacity",
+            "client_program_kintone_update_proposal_construction_capacity",
+            "client_program_kintone_update_response_construction_capacity",
+            "client_program_kintone_update_target_construction_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities verification:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_kintone_update_add_construction_capacity",
+            "client_program_kintone_update_installation_construction_capacity",
+            "client_program_kintone_update_mapping_construction_capacity",
+            "client_program_kintone_update_recipe_capacities"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Installation responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Installation inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Installation identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Installation ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Installation synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Installation failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Installation cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Installation resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Installation extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Installation verification:"
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "312216e5d7fd9a73d0de9e8275fee0b8d40e887cf5cb1a4914ef06f28636e0df",
+      "operations": [
+        {
+          "name": "client_kintone_original_update_mapping",
+          "declaration": "client_kintone_original_update_mapping ( mapping : @ kintone_host . RecordUpdateMapping , ) - > Result [ @ client_row_source_host . RowMapping , @ client_row_source_host . RowMappingIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_finalize_update_request",
+          "declaration": "client_program_kintone_finalize_update_request ( proposal : @ kintone_host . RecordUpdateProposal , preview : @ kintone_host . RecordUpdatePreview , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordUpdateRequest , @ kintone_host . RecordUpdateExecutionIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_prepare_update_mapping",
+          "declaration": "client_program_kintone_prepare_update_mapping ( original : @ kintone_host . RecordDeclaration , resource : String , sources : Array [ @ client_row_source_host . RowMappingSource ] , approval : String , limits : @ client_row_source_host . RowDeclarationLimits , ) - > Result [ @ kintone_host . RecordUpdateMapping , @ client_row_source_host . RowMappingIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_prepare_update_preview",
+          "declaration": "client_program_kintone_prepare_update_preview ( proposal : @ kintone_host . RecordUpdateProposal , bytes : Bytes , pages : @ kintone_catalog . RecordPageLimits , values : @ kintone_catalog . RecordValueLimits , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_host . RecordUpdatePreview , @ kintone_host . RecordUpdateExecutionIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_prepare_update_proposal",
+          "declaration": "client_program_kintone_prepare_update_proposal ( mapping : @ kintone_host . RecordUpdateMapping , identity : String , bytes : Bytes , max_input_bytes : Int , write_limits : @ kintone_catalog . RecordWriteLimits , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_host . RecordUpdateProposal , @ kintone_host . RecordUpdateExecutionIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_restore_update_execution",
+          "declaration": "client_program_kintone_restore_update_execution ( mapping : @ kintone_host . RecordUpdateMapping , identity : String , value_bytes : Bytes , target_bytes : Bytes , original_body : String , max_input_bytes : Int , pages : @ kintone_catalog . RecordPageLimits , values : @ kintone_catalog . RecordValueLimits , write_limits : @ kintone_catalog . RecordWriteLimits , limits : @ kintone_catalog . RecordMutationLimits , before_limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ ( @ kintone_host . RecordUpdateProposal , @ kintone_host . RecordUpdatePreview , @ kintone_catalog . RecordUpdateRequest , ) , @ kintone_host . RecordUpdateExecutionIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_update_add_construction_capacity",
+          "declaration": "client_program_kintone_update_add_construction_capacity ( native : @ execution . ExecutionCapacity , host : @ execution . ExecutionCapacity , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_update_effect_outcome",
+          "declaration": "client_program_kintone_update_effect_outcome ( request : @ kintone_catalog . RecordUpdateRequest , response : @ kintone_catalog . RecordUpdateAcknowledgement , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordUpdateEffectOutcome , @ kintone_catalog . RecordMutationIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_update_effect_outcome_matches_request",
+          "declaration": "client_program_kintone_update_effect_outcome_matches_request ( value : @ kintone_catalog . RecordUpdateEffectOutcome , request : @ kintone_catalog . RecordUpdateRequest , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_update_effect_outcome_response_sha256",
+          "declaration": "client_program_kintone_update_effect_outcome_response_sha256 ( value : @ kintone_catalog . RecordUpdateEffectOutcome , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_update_effect_outcome_wire",
+          "declaration": "client_program_kintone_update_effect_outcome_wire ( value : @ kintone_catalog . RecordUpdateEffectOutcome , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_update_execution_matches",
+          "declaration": "client_program_kintone_update_execution_matches ( proposal : @ kintone_host . RecordUpdateProposal , preview : @ kintone_host . RecordUpdatePreview , request : @ kintone_catalog . RecordUpdateRequest , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_update_finalization_construction_capacity",
+          "declaration": "client_program_kintone_update_finalization_construction_capacity ( mapping : @ kintone_host . RecordUpdateMapping , limits : @ kintone_catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_update_form_construction_capacity",
+          "declaration": "client_program_kintone_update_form_construction_capacity ( mapping : @ kintone_host . RecordUpdateMapping , body_bytes : Int , limits : @ kintone_catalog . FormFieldLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_update_installation_construction_capacity",
+          "declaration": "client_program_kintone_update_installation_construction_capacity ( fields : Int , text_units : Int , retained_text_units : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_update_mapping_body",
+          "declaration": "client_program_kintone_update_mapping_body ( mapping : @ kintone_host . RecordUpdateMapping , ) - > Result [ String , @ client_row_source_host . RowMappingIssue ]"
+        },
+        {
+          "name": "client_program_kintone_update_mapping_cid",
+          "declaration": "client_program_kintone_update_mapping_cid ( mapping : @ kintone_host . RecordUpdateMapping , ) - > Result [ String , @ client_row_source_host . RowMappingIssue ]"
+        },
+        {
+          "name": "client_program_kintone_update_mapping_construction_capacity",
+          "declaration": "client_program_kintone_update_mapping_construction_capacity ( original : @ kintone_host . RecordDeclaration , source_count : Int , input_units : Int64 , limits : @ client_row_source_host . RowDeclarationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_update_mapping_matches_declaration",
+          "declaration": "client_program_kintone_update_mapping_matches_declaration ( mapping : @ kintone_host . RecordUpdateMapping , original : @ kintone_host . RecordDeclaration , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_update_mapping_matches_request",
+          "declaration": "client_program_kintone_update_mapping_matches_request ( mapping : @ kintone_host . RecordUpdateMapping , request : @ kintone_catalog . RecordUpdateRequest , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_update_mapping_recheck_form",
+          "declaration": "client_program_kintone_update_mapping_recheck_form ( mapping : @ kintone_host . RecordUpdateMapping , bytes : Bytes , limits : @ kintone_catalog . FormFieldLimits , ) - > Result [ Unit , @ kintone_host . RecordUpdateExecutionIssue ]"
+        },
+        {
+          "name": "client_program_kintone_update_mapping_ref",
+          "declaration": "client_program_kintone_update_mapping_ref ( mapping : @ kintone_host . RecordUpdateMapping , ) - > Result [ String , @ client_row_source_host . RowMappingIssue ]"
+        },
+        {
+          "name": "client_program_kintone_update_preview_before_wire",
+          "declaration": "client_program_kintone_update_preview_before_wire ( preview : @ kintone_host . RecordUpdatePreview , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_update_preview_identity",
+          "declaration": "client_program_kintone_update_preview_identity ( preview : @ kintone_host . RecordUpdatePreview , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_update_preview_revision",
+          "declaration": "client_program_kintone_update_preview_revision ( preview : @ kintone_host . RecordUpdatePreview , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_update_preview_version_cid",
+          "declaration": "client_program_kintone_update_preview_version_cid ( preview : @ kintone_host . RecordUpdatePreview , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_update_proposal_app",
+          "declaration": "client_program_kintone_update_proposal_app ( proposal : @ kintone_host . RecordUpdateProposal , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_update_proposal_construction_capacity",
+          "declaration": "client_program_kintone_update_proposal_construction_capacity ( mapping : @ kintone_host . RecordUpdateMapping , max_input_bytes : Int , write : @ kintone_catalog . RecordWriteLimits , request : @ kintone_catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_update_proposal_identity",
+          "declaration": "client_program_kintone_update_proposal_identity ( proposal : @ kintone_host . RecordUpdateProposal , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_update_proposal_value_wire",
+          "declaration": "client_program_kintone_update_proposal_value_wire ( proposal : @ kintone_host . RecordUpdateProposal , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_update_recipe_capacities",
+          "declaration": "client_program_kintone_update_recipe_capacities ( original : Array [ @ execution . ExecutionCapacity ] , output_limits : Array [ Int ] , cold_original : @ execution . ExecutionCapacity ? , limits : Array [ Int ] , metadata_units : Int64 , response_read_quantum : Int , control_wire_bytes : Int , host_input_bytes : Int , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_update_response_construction_capacity",
+          "declaration": "client_program_kintone_update_response_construction_capacity ( mapping : @ kintone_host . RecordUpdateMapping , body_bytes : Int , limits : @ kintone_catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_update_target_construction_capacity",
+          "declaration": "client_program_kintone_update_target_construction_capacity ( mapping : @ kintone_host . RecordUpdateMapping , body_bytes : Int , pages : @ kintone_catalog . RecordPageLimits , values : @ kintone_catalog . RecordValueLimits , limits : @ kintone_catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_update_target_read_body",
+          "declaration": "client_program_kintone_update_target_read_body ( proposal : @ kintone_host . RecordUpdateProposal , max_fields : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ kintone_host . RecordUpdateExecutionIssue ]"
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node/client_kintone_update_bridge.mbt",
+      "responsibilityFacet": "primary",
+      "role": "generated-binding",
+      "owner": "E — same-original kintone UPDATE Mapping installed Host projection",
+      "referenceQualification": "Same-runtime synchronous Mapping DATA and selected compiler consumers only; no new current authority, normal Effect or provider outcome",
+      "exports": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_kintone_original_update_mapping",
+            "client_program_kintone_prepare_update_mapping",
+            "client_program_kintone_update_mapping_body",
+            "client_program_kintone_update_mapping_cid",
+            "client_program_kintone_update_mapping_matches_declaration",
+            "client_program_kintone_update_mapping_matches_request",
+            "client_program_kintone_update_mapping_ref"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Kintone UPDATE Mapping originals"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The kintone UPDATE Node binding passes the original `RecordDeclaration`, bounded"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "complete before/write/omit inventories. Equal copied private fields do not"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "normal current, authorization, cancellation and physical cleanup duties remain"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "These are synchronous DATA checks, not current authority, a target observation,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "establish that correspondence. Body/ref/CID projections refuse copied Mappings."
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous DATA only; this binding performs no I/O, issues no permission and returns no cancellation or retirement acknowledgement."
+            },
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "reserves constructor work before invocation and retains the resulting material;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "with their existing owners. The RelA bridge is generated from the same body."
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors_builtin_node/client_kintone_update_bridge_wbtest.mbt",
+                "anchor": "test \"kintone UPDATE Node bridge refuses a copied private Mapping before exposing material\""
+              },
+              {
+                "path": "src/connectors/kintone/host/record_update_original_wbtest.mbt",
+                "anchor": "test \"kintone UPDATE Mapping refuses copied DATA with the same retained declaration\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_kintone_finalize_update_request",
+            "client_program_kintone_prepare_update_preview",
+            "client_program_kintone_prepare_update_proposal",
+            "client_program_kintone_restore_update_execution",
+            "client_program_kintone_update_effect_outcome",
+            "client_program_kintone_update_effect_outcome_matches_request",
+            "client_program_kintone_update_effect_outcome_response_sha256",
+            "client_program_kintone_update_effect_outcome_wire",
+            "client_program_kintone_update_execution_matches",
+            "client_program_kintone_update_mapping_recheck_form",
+            "client_program_kintone_update_preview_before_wire",
+            "client_program_kintone_update_preview_identity",
+            "client_program_kintone_update_preview_revision",
+            "client_program_kintone_update_preview_version_cid",
+            "client_program_kintone_update_proposal_app",
+            "client_program_kintone_update_proposal_identity",
+            "client_program_kintone_update_proposal_value_wire",
+            "client_program_kintone_update_target_read_body"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE verification:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_kintone_update_finalization_construction_capacity",
+            "client_program_kintone_update_form_construction_capacity",
+            "client_program_kintone_update_proposal_construction_capacity",
+            "client_program_kintone_update_response_construction_capacity",
+            "client_program_kintone_update_target_construction_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities verification:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_kintone_update_add_construction_capacity",
+            "client_program_kintone_update_installation_construction_capacity",
+            "client_program_kintone_update_mapping_construction_capacity",
+            "client_program_kintone_update_recipe_capacities"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Installation responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Installation inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Installation identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Installation ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Installation synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Installation failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Installation cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Installation resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Installation extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Installation verification:"
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "53eb1b356816ab129e776b82da8cfce6a416b7596a1d2c9a2e365ddce74d6d83",
+      "operations": [
+        {
+          "name": "client_kintone_original_update_mapping",
+          "declaration": "client_kintone_original_update_mapping ( mapping : @ kintone_host . RecordUpdateMapping , ) - > Result [ @ client_row_source_host . RowMapping , @ client_row_source_host . RowMappingIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_finalize_update_request",
+          "declaration": "client_program_kintone_finalize_update_request ( proposal : @ kintone_host . RecordUpdateProposal , preview : @ kintone_host . RecordUpdatePreview , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordUpdateRequest , @ kintone_host . RecordUpdateExecutionIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_prepare_update_mapping",
+          "declaration": "client_program_kintone_prepare_update_mapping ( original : @ kintone_host . RecordDeclaration , resource : String , sources : Array [ @ client_row_source_host . RowMappingSource ] , approval : String , limits : @ client_row_source_host . RowDeclarationLimits , ) - > Result [ @ kintone_host . RecordUpdateMapping , @ client_row_source_host . RowMappingIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_prepare_update_preview",
+          "declaration": "client_program_kintone_prepare_update_preview ( proposal : @ kintone_host . RecordUpdateProposal , bytes : Bytes , pages : @ kintone_catalog . RecordPageLimits , values : @ kintone_catalog . RecordValueLimits , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_host . RecordUpdatePreview , @ kintone_host . RecordUpdateExecutionIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_prepare_update_proposal",
+          "declaration": "client_program_kintone_prepare_update_proposal ( mapping : @ kintone_host . RecordUpdateMapping , identity : String , bytes : Bytes , max_input_bytes : Int , write_limits : @ kintone_catalog . RecordWriteLimits , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_host . RecordUpdateProposal , @ kintone_host . RecordUpdateExecutionIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_restore_update_execution",
+          "declaration": "client_program_kintone_restore_update_execution ( mapping : @ kintone_host . RecordUpdateMapping , identity : String , value_bytes : Bytes , target_bytes : Bytes , original_body : String , max_input_bytes : Int , pages : @ kintone_catalog . RecordPageLimits , values : @ kintone_catalog . RecordValueLimits , write_limits : @ kintone_catalog . RecordWriteLimits , limits : @ kintone_catalog . RecordMutationLimits , before_limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ ( @ kintone_host . RecordUpdateProposal , @ kintone_host . RecordUpdatePreview , @ kintone_catalog . RecordUpdateRequest , ) , @ kintone_host . RecordUpdateExecutionIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_update_add_construction_capacity",
+          "declaration": "client_program_kintone_update_add_construction_capacity ( native : @ execution . ExecutionCapacity , host : @ execution . ExecutionCapacity , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_update_effect_outcome",
+          "declaration": "client_program_kintone_update_effect_outcome ( request : @ kintone_catalog . RecordUpdateRequest , response : @ kintone_catalog . RecordUpdateAcknowledgement , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordUpdateEffectOutcome , @ kintone_catalog . RecordMutationIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_update_effect_outcome_matches_request",
+          "declaration": "client_program_kintone_update_effect_outcome_matches_request ( value : @ kintone_catalog . RecordUpdateEffectOutcome , request : @ kintone_catalog . RecordUpdateRequest , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_update_effect_outcome_response_sha256",
+          "declaration": "client_program_kintone_update_effect_outcome_response_sha256 ( value : @ kintone_catalog . RecordUpdateEffectOutcome , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_update_effect_outcome_wire",
+          "declaration": "client_program_kintone_update_effect_outcome_wire ( value : @ kintone_catalog . RecordUpdateEffectOutcome , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_update_execution_matches",
+          "declaration": "client_program_kintone_update_execution_matches ( proposal : @ kintone_host . RecordUpdateProposal , preview : @ kintone_host . RecordUpdatePreview , request : @ kintone_catalog . RecordUpdateRequest , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_update_finalization_construction_capacity",
+          "declaration": "client_program_kintone_update_finalization_construction_capacity ( mapping : @ kintone_host . RecordUpdateMapping , limits : @ kintone_catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_update_form_construction_capacity",
+          "declaration": "client_program_kintone_update_form_construction_capacity ( mapping : @ kintone_host . RecordUpdateMapping , body_bytes : Int , limits : @ kintone_catalog . FormFieldLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_update_installation_construction_capacity",
+          "declaration": "client_program_kintone_update_installation_construction_capacity ( fields : Int , text_units : Int , retained_text_units : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_update_mapping_body",
+          "declaration": "client_program_kintone_update_mapping_body ( mapping : @ kintone_host . RecordUpdateMapping , ) - > Result [ String , @ client_row_source_host . RowMappingIssue ]"
+        },
+        {
+          "name": "client_program_kintone_update_mapping_cid",
+          "declaration": "client_program_kintone_update_mapping_cid ( mapping : @ kintone_host . RecordUpdateMapping , ) - > Result [ String , @ client_row_source_host . RowMappingIssue ]"
+        },
+        {
+          "name": "client_program_kintone_update_mapping_construction_capacity",
+          "declaration": "client_program_kintone_update_mapping_construction_capacity ( original : @ kintone_host . RecordDeclaration , source_count : Int , input_units : Int64 , limits : @ client_row_source_host . RowDeclarationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_update_mapping_matches_declaration",
+          "declaration": "client_program_kintone_update_mapping_matches_declaration ( mapping : @ kintone_host . RecordUpdateMapping , original : @ kintone_host . RecordDeclaration , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_update_mapping_matches_request",
+          "declaration": "client_program_kintone_update_mapping_matches_request ( mapping : @ kintone_host . RecordUpdateMapping , request : @ kintone_catalog . RecordUpdateRequest , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_update_mapping_recheck_form",
+          "declaration": "client_program_kintone_update_mapping_recheck_form ( mapping : @ kintone_host . RecordUpdateMapping , bytes : Bytes , limits : @ kintone_catalog . FormFieldLimits , ) - > Result [ Unit , @ kintone_host . RecordUpdateExecutionIssue ]"
+        },
+        {
+          "name": "client_program_kintone_update_mapping_ref",
+          "declaration": "client_program_kintone_update_mapping_ref ( mapping : @ kintone_host . RecordUpdateMapping , ) - > Result [ String , @ client_row_source_host . RowMappingIssue ]"
+        },
+        {
+          "name": "client_program_kintone_update_preview_before_wire",
+          "declaration": "client_program_kintone_update_preview_before_wire ( preview : @ kintone_host . RecordUpdatePreview , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_update_preview_identity",
+          "declaration": "client_program_kintone_update_preview_identity ( preview : @ kintone_host . RecordUpdatePreview , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_update_preview_revision",
+          "declaration": "client_program_kintone_update_preview_revision ( preview : @ kintone_host . RecordUpdatePreview , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_update_preview_version_cid",
+          "declaration": "client_program_kintone_update_preview_version_cid ( preview : @ kintone_host . RecordUpdatePreview , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_update_proposal_app",
+          "declaration": "client_program_kintone_update_proposal_app ( proposal : @ kintone_host . RecordUpdateProposal , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_update_proposal_construction_capacity",
+          "declaration": "client_program_kintone_update_proposal_construction_capacity ( mapping : @ kintone_host . RecordUpdateMapping , max_input_bytes : Int , write : @ kintone_catalog . RecordWriteLimits , request : @ kintone_catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_update_proposal_identity",
+          "declaration": "client_program_kintone_update_proposal_identity ( proposal : @ kintone_host . RecordUpdateProposal , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_update_proposal_value_wire",
+          "declaration": "client_program_kintone_update_proposal_value_wire ( proposal : @ kintone_host . RecordUpdateProposal , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_update_recipe_capacities",
+          "declaration": "client_program_kintone_update_recipe_capacities ( original : Array [ @ execution . ExecutionCapacity ] , output_limits : Array [ Int ] , cold_original : @ execution . ExecutionCapacity ? , limits : Array [ Int ] , metadata_units : Int64 , response_read_quantum : Int , control_wire_bytes : Int , host_input_bytes : Int , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_update_response_construction_capacity",
+          "declaration": "client_program_kintone_update_response_construction_capacity ( mapping : @ kintone_host . RecordUpdateMapping , body_bytes : Int , limits : @ kintone_catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_update_target_construction_capacity",
+          "declaration": "client_program_kintone_update_target_construction_capacity ( mapping : @ kintone_host . RecordUpdateMapping , body_bytes : Int , pages : @ kintone_catalog . RecordPageLimits , values : @ kintone_catalog . RecordValueLimits , limits : @ kintone_catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_update_target_read_body",
+          "declaration": "client_program_kintone_update_target_read_body ( proposal : @ kintone_host . RecordUpdateProposal , max_fields : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ kintone_host . RecordUpdateExecutionIssue ]"
+        }
+      ]
+    },
+    {
+      "module": "src/physical_resources/transfer_reservation.mbt",
+      "sha256": "20cc43f2b75747e02bce6bcdb693e4974fa882fad7b36f6246ece127947cb7e6",
+      "exports": [],
+      "operations": [
+        {
+          "name": "ensure_transfer_reservation_capacity",
+          "declaration": "ensure_transfer_reservation_capacity ( ledger : Ledger , reservation : Reservation , remaining : Int64 , ) - > Result [ Unit , LedgerIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Resource original reservation owner",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "ensure_transfer_reservation_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_row_source_host/response_transfer.mbt",
+      "sha256": "f53ec060a2dfda776a3da87905cf67cfaf02f122a758dfc47f2ddcc858589e48",
+      "exports": [],
+      "operations": [
+        {
+          "name": "ensure_row_run_response_transfer_capacity",
+          "declaration": "ensure_row_run_response_transfer_capacity ( value : RowRunResponseBorrow , bytes : Int64 , ) - > Result [ Unit , RowHostIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Source acquisition, RowRun and checked Compute owners; same original lifetime, no independent permission or resource owner",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "ensure_row_run_response_transfer_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_row_source_host/measurement_capacity.mbt",
+      "sha256": "2331a68467334ece4530c023355d2568db4b54ca01f9fdb3adb91f90c17b22f7",
+      "exports": [],
+      "operations": [
+        {
+          "name": "row_capture_measurement_geometry",
+          "declaration": "row_capture_measurement_geometry ( preparation : RowSourcePreparation , ) - > ( Int , Int64 , Int64 , Int ) ?"
+        },
+        {
+          "name": "row_capture_schema_columns",
+          "declaration": "row_capture_schema_columns ( capture : RowSourceCapture , source : @ query . CapturedInputSource , ) - > Int ?"
+        },
+        {
+          "name": "row_schema_measurement_capacity",
+          "declaration": "row_schema_measurement_capacity ( schema : @ schema . Schema ) - > ( Int64 , Int64 ) ?"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing Source acquisition, RowRun and checked Compute owners; same original lifetime, no independent permission or resource owner",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "row_capture_measurement_geometry",
+            "row_schema_measurement_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "row_capture_schema_columns"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
               }
             ]
           }

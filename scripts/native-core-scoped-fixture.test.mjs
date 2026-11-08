@@ -7,8 +7,9 @@ import {join} from 'node:path';
 import test from 'node:test';
 import {createHash} from 'node:crypto';
 import {nativeProjectConfigurationFixture} from './native-project-configuration-fixture.mjs';
-import {nativeCoreOrdinaryProcessFixture, nativeCoreScopedFixture, nativeRelationFileCaptureFixture, nativeCoreModelFrameFixture} from './native-core-scoped-fixture.mjs';
-import {nativeRelationCaptureTestFiles, nativeScopedTestFiles, nativeCoreScopedAllocationProfile} from './native-core-test-selection.mjs';
+import {nativeCoreOrdinaryProcessFixture, nativeCoreScopedFixture, nativeRelationFileCaptureFixture, nativeCoreModelFrameFixture,
+  nativeRelationTargetIOFixture} from './native-core-scoped-fixture.mjs';
+import {nativeRelationCaptureTestFiles, nativeRelationTargetIOTestFile, nativeScopedTestFiles, nativeCoreScopedAllocationProfile} from './native-core-test-selection.mjs';
 
 function fixture(t) {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-scoped-case-fixture-')));
@@ -16,6 +17,45 @@ function fixture(t) {
   return root;
 }
 const libraries = {cryptoLibrary: '/actual/crypto.dylib', sqliteLibrary: '/usr/lib/libsqlite3.dylib'};
+
+test('target I/O cases own exact original inputs and fresh backings without namespace reuse', t => {
+  assert.equal(nativeScopedTestFiles.filter(file => file === nativeRelationTargetIOTestFile).length, 1);
+  assert.equal(nativeCoreScopedAllocationProfile(nativeRelationTargetIOTestFile), 'scoped-review-values');
+  const roots = [];
+  for (const [index, suffix] of ['update', 'cancel', 'sync'].entries()) {
+    const namespace = fixture(t), environment = nativeRelationTargetIOFixture(namespace, index);
+    const root = join(namespace, 'target-io'); roots.push(root);
+    assert.deepEqual(environment, {ACTQL_TEST_NATIVE_TARGET_IO_ROOT: root});
+    assert.equal(statSync(root).mode & 0o777, 0o700);
+    assert.deepEqual(readdirSync(root).sort(), ['target-' + suffix + '.json', 'target-backing-' + suffix].sort());
+    const input = join(root, 'target-' + suffix + '.json');
+    assert.equal(readFileSync(input, 'utf8'),
+      ' {"items":[{"id":"first","value":1},{"id":"second","value":2}],"keep":"untouched"}\n');
+    for (const path of [input, join(root, 'target-backing-' + suffix)]) {
+      const stat = statSync(path);
+      assert(stat.isFile()); assert.equal(stat.nlink, 1); assert.equal(stat.mode & 0o777, 0o600);
+    }
+    const backing = join(root, 'target-backing-' + suffix);
+    assert.equal(statSync(backing).size, 384 * 1024 ** 2);
+    const fd = openSync(backing, 'r');
+    try {
+      const bytes = Buffer.alloc(128, 1);
+      assert.equal(readSync(fd, bytes, 0, bytes.length, 0), bytes.length);
+      assert.deepEqual(bytes, Buffer.alloc(128));
+    } finally {closeSync(fd);}
+    writeFileSync(backing, 'original initialized owner');
+    const before = statSync(backing);
+    assert.throws(() => nativeRelationTargetIOFixture(namespace, index), {code: 'EEXIST'});
+    assert.equal(statSync(backing).ino, before.ino);
+    assert.equal(readFileSync(backing, 'utf8'), 'original initialized owner');
+  }
+  assert.equal(new Set(roots).size, 3);
+  const namespace = fixture(t);
+  for (const index of [-1, 3, 0.5, '1', undefined]) {
+    assert.throws(() => nativeRelationTargetIOFixture(namespace, index), /exact original/u);
+  }
+  assert.deepEqual(readdirSync(namespace), []);
+});
 
 test('Model frame fixtures retain real private backings without selecting unused components', t => {
   const root = fixture(t), environment = nativeCoreModelFrameFixture(root);
@@ -52,6 +92,7 @@ test('selected physical case inputs use actual pages, exact private backing size
     assert.equal(statSync(path).mode & 0o777, 0o700);
     const expected = new Map([
       ['backing',backingPages],['backing-0',256],['backing-3',256],['backing-4',256],
+      ['extent-backing-0',256],['extent-backing-1',256],['extent-backing-2',256],
       ['initialization-original.backing',64],['initialization-budget-refused.backing',64],
       ['request-original.backing',64],['request-run-transfer.backing',64],['request-unstarted.backing',64],
       ['common-request-entrance.backing',64],
