@@ -30,10 +30,11 @@ pub fn source_read_construction_capacity(
   // No Set entry or future body-array element exists at installation. Before
   // decoding one charged body, its full extent bounds every possible new id
   // and cursor; keep every prior/failed prefix until original retirement.
-  let pages = Int64::min(limits[5].to_int64(), received.length().to_int64())
+  let possible_pages = Int::max(0, received.length() - 2).to_int64()
+  let pages = Int64::min(limits[5].to_int64(), possible_pages)
   let rows = Int64::min(
     limits[6].to_int64(),
-    received.length().to_int64() * limits[8].to_int64(),
+    possible_pages * limits[8].to_int64(),
   )
   let columns = limits[9].to_int64()
   // Original callbacks and receivers, returned request/projection records,
@@ -67,9 +68,36 @@ pub fn source_read_construction_capacity(
       owned_wire_bytes: 0L,
     },
   ]
-  for bytes in received {
+  let mut metadata_capacity = @execution.execution_capacity(0L, 0L).unwrap()
+  for index, bytes in received {
     if bytes < 0 || bytes > limits[0] {
       return None
+    }
+    // The selected protocol always receives Account then Properties before
+    // any object page. Final Properties may follow any number of pages, so
+    // later positions retain the existing metadata/page superset below.
+    if index < 2 {
+      let current = if index == 0 {
+        account_initialization_construction_capacity(
+          bytes,
+          0,
+          11,
+          limits[0],
+          limits[1],
+          limits[2],
+        )
+      } else {
+        source_property_recheck_construction_capacity(limits, bytes)
+      }
+      guard current is Some(current) &&
+        @execution.add_execution_capacity(metadata_capacity, current)
+        is Some(combined) else {
+        return None
+      }
+      // No successful/failed prefix is discarded by the next response. The
+      // same Reader retirement remains the only capacity-lifetime boundary.
+      metadata_capacity = combined
+      continue
     }
     let n = Int::min(bytes, limits[1])
     // Empty/malformed bodies still retain their constructor controls. Bounds
@@ -126,5 +154,58 @@ pub fn source_read_construction_capacity(
       owned_wire_bytes: b.to_int64(),
     })
   }
-  initialization_capacity(parts)
+  guard initialization_capacity(parts) is Some(common) else { return None }
+  @execution.add_execution_capacity(common, metadata_capacity)
+}
+
+///|
+// Same Properties parser, native projection and Catalog family as Source
+// initialization. This path only rechecks the original: no ObjectSchemaWire,
+// row ValueNode forest, row-wire writer or Host row JSON.parse is constructed.
+fn source_property_recheck_construction_capacity(
+  limits : Array[Int],
+  bytes : Int,
+) -> @execution.ExecutionCapacity? {
+  let b = Int::max(1, bytes)
+  let n = Int::min(b, limits[1])
+  let f = Int::min(n, limits[3])
+  guard initialization_decoded_construction(b, n, Int::min(n, limits[2]), true)
+    is Some(parsed) &&
+    property_projection_construction_extent(n, f) is Some(metadata) &&
+    @shape.collection_construction_extent({
+      // recheck_property_catalog indexes the original only after confirming
+      // equal field counts. Its names/PropertyMetadata remain borrowed.
+      records: 16L + 4L * f.to_int64(),
+      record_references: 24L + 8L * f.to_int64(),
+      record_words: 16L + 4L * f.to_int64(),
+      reference_arrays: 2L,
+      reference_items: f.to_int64(),
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 1L,
+      map_entries: f.to_int64(),
+    })
+    is Some(recheck) &&
+    @encode.hash_writer_live_key_inventory(0, 0) is Some(hash) else {
+    return None
+  }
+  initialization_capacity([
+    parsed,
+    initialization_collection_units(metadata),
+    property_catalog_retained_units(bytes, limits[4], {
+      max_bytes: limits[0],
+      max_nodes: limits[1],
+      max_depth: limits[2],
+      max_properties: limits[3],
+      max_name_units: limits[4],
+    }),
+    initialization_collection_units(recheck),
+    {
+      record_headers: hash.record_headers,
+      reference_slots: hash.reference_slots,
+      scalar_words: hash.scalar_words,
+      owned_utf16_units: hash.owned_utf16_units + 4L * b.to_int64() + 128L,
+      owned_wire_bytes: hash.owned_wire_bytes + bytes.to_int64(),
+    },
+  ])
 }
