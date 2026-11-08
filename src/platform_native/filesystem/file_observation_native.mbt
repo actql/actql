@@ -12,6 +12,51 @@ struct NativeFileObservation {
 }
 
 ///|
+#borrow(writer, root, name, stat, lock)
+extern "C" fn replace_observed_file_ffi(
+  writer : Writer,
+  root : Root,
+  name : Bytes,
+  length : Int,
+  stat : NativeObservedFileStat,
+  lock : Lock,
+) -> Int = "actql_native_filesystem_replace_observed_file"
+
+///|
+/// Replace the SAME observed ordinary file under its already held same-Root
+/// `<name>.actql-write.lock` original. This is physical I/O, not approval or a
+/// dispatch claim. The caller must enter its original durable claim before
+/// calling. An attempt is
+/// never replayed, including after an ambiguous sync failure; cleanup only
+/// retires the original staging writer and never removes the replaced target.
+pub fn Writer::replace_observed_file(
+  self : Writer,
+  original : NativeFileObservation,
+  lock : Lock,
+) -> Result[NativeFileGeneration, NativeFilesystemIssue] {
+  let name = @utf8.encode(original.name)
+  match
+    replace_observed_file_ffi(
+      self,
+      original.root,
+      name,
+      name.length(),
+      original.stat,
+      lock,
+    ) {
+    0 =>
+      Ok({
+        device: writer_device_ffi(self),
+        inode: writer_inode_ffi(self),
+        size: writer_written_ffi(self),
+      })
+    2 => Err(GenerationMismatch)
+    3 => Err(WriterClosed)
+    _ => Err(Write(writer_message(self)))
+  }
+}
+
+///|
 #borrow(root, name)
 extern "C" fn observe_file_ffi(
   root : Root,

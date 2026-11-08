@@ -110,6 +110,12 @@ typedef struct {
   char *close_error;
 } actql_native_filesystem_writer;
 
+/* The file-target adapter uses the existing Writer layout as a conservative
+ * upper for its simultaneously held lock. Keep that relation checked at the
+ * actual compiled Owner rather than inventing a native payload byte count. */
+_Static_assert(sizeof(actql_native_filesystem_lock) <=
+  sizeof(actql_native_filesystem_writer), "file target lock layout upper");
+
 typedef struct {
   ACTQL_FILESYSTEM_READ_CONTEXT_FIELDS
   actql_native_filesystem_root *root;
@@ -2016,6 +2022,115 @@ int32_t actql_native_filesystem_writer_seal(
       writer->root == NULL ? 0 : writer->root->diagnostic_ceiling, "committed generation was not retained");
     return 2;
   }
+  writer->sealed = true;
+  return 0;
+}
+
+static bool actql_observed_replacement_lock_matches(
+  actql_native_filesystem_root *root, const char *target,
+  actql_native_filesystem_lock *lock
+) {
+  if (lock == NULL || lock->root != root || !lock->ready ||
+      lock->fd < 0 || lock->close_result != 0) return false;
+  static const char suffix[] = ".actql-write.lock";
+  size_t length = strlen(target);
+  char *name = malloc(length + sizeof(suffix));
+  if (name == NULL) return false;
+  memcpy(name, target, length);
+  memcpy(name + length, suffix, sizeof(suffix));
+  struct stat held, named;
+  bool matches = fstat(lock->fd, &held) == 0 && S_ISREG(held.st_mode) &&
+    held.st_nlink == 1 && held.st_uid == geteuid() &&
+    (held.st_mode & 07777) == 0600 &&
+    actql_stat_regular_at(root, name, &named) &&
+    actql_observed_file_matches(&held, &named);
+  free(name);
+  return matches;
+}
+
+/* Physical replacement for the existing Mock file target. The same original
+ * observation and same-Root lock are required; neither is business authority.
+ * The caller owns the durable dispatch claim. There is no retry/rollback of a
+ * rename, and cleanup must never unlink a target after it has been replaced. */
+int32_t actql_native_filesystem_replace_observed_file(
+  actql_native_filesystem_writer *writer,
+  actql_native_filesystem_root *root,
+  moonbit_bytes_t name,
+  int32_t length,
+  actql_native_observed_file_stat *original,
+  actql_native_filesystem_lock *lock
+) {
+  if (writer == NULL || !writer->ready || writer->fd < 0 ||
+      writer->close_result < 0 || writer->cleanup_requested || writer->cancelled ||
+      writer->sealed || writer->final_name != NULL || !writer->staging_present)
+    return 3;
+  if (writer->root != root || lock == NULL || lock->root != root ||
+      !lock->ready || lock->fd < 0 || lock->close_result != 0 ||
+      !actql_observed_file_root_matches(root, original)) return 2;
+  char *text = actql_copy_text(name, length);
+  if (text == NULL || !actql_valid_file_component(text, (size_t)length) ||
+      strcmp(text, writer->staging_name) == 0) {
+    free(text);
+    return 2;
+  }
+  struct stat target, staging, named_staging;
+  if (!actql_stat_regular_at(root, text, &target) ||
+      !actql_observed_file_matches(&original->original, &target) ||
+      target.st_nlink != 1 || target.st_uid != geteuid() ||
+      (target.st_mode & S_IWUSR) == 0 ||
+      !actql_observed_replacement_lock_matches(root, text, lock) ||
+      fstat(writer->fd, &staging) != 0 || !S_ISREG(staging.st_mode) ||
+      staging.st_nlink != 1 || !actql_exact_generation(
+        &staging, writer->device, writer->inode, writer->written) ||
+      !actql_stat_regular_at(root, writer->staging_name, &named_staging) ||
+      !actql_exact_generation(
+        &named_staging, writer->device, writer->inode, writer->written)) {
+    free(text);
+    return 2;
+  }
+  /* Latch before the first mutation of the original writer. A failure from
+   * this point is retained by this writer, never retried as another write. */
+  writer->cleanup_requested = true;
+  if (fchmod(writer->fd, target.st_mode & 0777) != 0 || fsync(writer->fd) != 0) {
+    actql_replace_bounded_errno_error(&writer->error, root->diagnostic_ceiling,
+      "prepare observed file replacement", errno);
+    free(text);
+    return -1;
+  }
+  if (actql_close_writer_file(writer) != 0) {
+    free(text);
+    return -1;
+  }
+  /* The lock excludes cooperating writers. Recheck the full named target
+   * immediately before rename, including timestamps and ordinary mode. */
+  if (!actql_stat_regular_at(root, text, &target) ||
+      !actql_observed_file_matches(&original->original, &target) ||
+      !actql_observed_replacement_lock_matches(root, text, lock) ||
+      !actql_stat_regular_at(root, writer->staging_name, &named_staging) ||
+      !actql_exact_generation(
+        &named_staging, writer->device, writer->inode, writer->written)) {
+    free(text);
+    return 2;
+  }
+  if (renameat(root->fd, writer->staging_name, root->fd, text) != 0) {
+    actql_replace_bounded_errno_error(&writer->error, root->diagnostic_ceiling,
+      "replace observed file", errno);
+    free(text);
+    return -1;
+  }
+  /* The public target is now business state, not removable staging custody.
+   * Even a failed directory sync must leave these facts recorded first. */
+  writer->staging_present = false;
+  if (actql_sync_root(root) != 0) {
+    actql_replace_bounded_errno_error(&writer->error, root->diagnostic_ceiling,
+      "sync observed file replacement", errno);
+    free(text);
+    return -1;
+  }
+  bool matches = actql_stat_regular_at(root, text, &target) &&
+    actql_exact_generation(&target, writer->device, writer->inode, writer->written);
+  free(text);
+  if (!matches) return 2;
   writer->sealed = true;
   return 0;
 }

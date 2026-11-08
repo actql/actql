@@ -193,7 +193,7 @@ fn LocalCommandPreparationOriginal::close_business_children(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  if !business.model_work.is_empty() {
+  if !business.model_work.is_empty() || business.effect_model is Some(_) {
     guard self.host is Some(host) && business.execution is Some(execution) else {
       return Err(CommandBusinessChildren)
     }
@@ -211,6 +211,59 @@ fn LocalCommandPreparationOriginal::close_business_children(
     // Only actual child acknowledgements sever these references. Unknown or
     // partial Model/Store/Journal duties keep the same originals for cleanup.
     business.model_work.clear()
+    if business.effect_model is Some(state) {
+      for failure in state.source_failures {
+        match failure.retry_cleanup() {
+          Err(issue) => return Err(CommandBusinessSource(issue))
+          Ok(false) => return Err(CommandBusinessChildren)
+          Ok(true) => ()
+        }
+      }
+      state.source_failures.clear()
+      state.source_failures.shrink_to_fit()
+      for source in state.sources {
+        match source.close() {
+          Err(issue) => return Err(CommandBusinessSource(issue))
+          Ok(false) => return Err(CommandBusinessChildren)
+          Ok(true) => ()
+        }
+      }
+      for read in state.source_reads {
+        match @local_values.retire_installed_source_read(read) {
+          Err(_) => return Err(CommandBusinessChildren)
+          Ok(_) => ()
+        }
+      }
+      state.source_reads.clear()
+      state.source_reads.shrink_to_fit()
+      if business.request_run is Some(run) {
+        match @local_values.quiesce_installed_managed_run(run) {
+          Err(_) => return Err(CommandBusinessChildren)
+          Ok(_) => ()
+        }
+      }
+      state.sources.clear()
+      state.sources.shrink_to_fit()
+      state.captured_inputs.clear()
+      state.captured_inputs.shrink_to_fit()
+      state.input_originals.clear()
+      state.input_originals.shrink_to_fit()
+      if state.scope is Some(scope) {
+        match
+          @run_host.finish_client_model_read_scope(
+            scope,
+            state.first.model_compiled.unwrap(),
+            state.first.definition,
+            state.graph,
+            true,
+          ) {
+          Err(_) => return Err(CommandBusinessChildren)
+          Ok(false) => return Err(CommandBusinessChildren)
+          Ok(true) => state.scope = None
+        }
+      }
+      business.effect_model = None
+    }
     match host.leave_domain_retained_execution(execution) {
       Err(issue) => return Err(CommandRetainedExecution(issue))
       Ok(_) => business.active = false

@@ -14,6 +14,7 @@ import {
   "actql/actql/client_source_publication" @source_publication,
   "actql/actql/client_local_host" @local_values,
   "actql/actql/connectors/local" @local_compute,
+  "actql/actql/connector_sdk" @compute_sdk,
   "actql/actql/client_local_preparation" @preparation,
   "actql/actql/logical_request_scope" @request_scope,
   "actql/actql/platform_native/client_host" @local_host,
@@ -59,7 +60,6 @@ import {
   "actql/actql/publication_payload" @test_payload,
   "actql/actql/execution_query" @test_query,
   "actql/actql/query_planning" @test_planning,
-  "actql/actql/connector_sdk" @fixed_test,
 } for "wbtest"
 
 options(

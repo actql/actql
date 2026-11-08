@@ -72,6 +72,24 @@ fn command_preparation_cleanup_cause(
         StoreOperationSqlite(_) => "StoreOperationSqlite"
       }
     CommandBusinessChildren => "CommandBusinessChildren"
+    CommandBusinessSource(cause) =>
+      match cause {
+        InvalidInput => "SourceInvalidInput"
+        Unavailable => "SourceUnavailable"
+        ForeignOriginal => "SourceForeignOriginal"
+        Capacity => "SourceCapacity"
+        FileLimit => "SourceFileLimit"
+        Filesystem(_) => "SourceFilesystem"
+        Execution(_) => "SourceExecution"
+        Resource(_) => "SourceResource"
+        Row(_) => "SourceRow"
+        Document(_) => "SourceDocument"
+        Mapping(_) => "SourceMapping"
+        ManagedRead(_) => "SourceManagedRead"
+        Content(_) => "SourceContent"
+        Store(_) => "SourceStore"
+        Lookup(_) => "SourceLookup"
+      }
     CommandBusinessModel(cause) =>
       match cause {
         ForeignOriginal => "ModelForeignOriginal"
@@ -86,7 +104,18 @@ fn command_preparation_cleanup_cause(
         Evidence(_) => "ModelEvidence"
         Capture(_) => "ModelCapture"
         Store(_) => "ModelStore"
+        Start(_) => "ModelStart"
         Encoding => "ModelEncoding"
+      }
+    CommandBusinessEffectAcceptance(cause) =>
+      match cause {
+        Journal(_) => "EffectAcceptanceJournal"
+        MissingRunAdmission => "EffectAcceptanceMissingRunAdmission"
+        UnresolvedHistory => "EffectAcceptanceUnresolvedHistory"
+        ForeignPreparation => "EffectAcceptanceForeignPreparation"
+        ChangedIntent => "EffectAcceptanceChangedIntent"
+        ForeignRun => "EffectAcceptanceForeignRun"
+        Materials(_) => "EffectAcceptanceMaterials"
       }
     CommandBusinessPublication => "CommandBusinessPublication"
     CommandBusinessStore(cause) =>

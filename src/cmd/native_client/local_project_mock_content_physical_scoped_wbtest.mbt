@@ -42,6 +42,19 @@ test "Native README Source originals retain the keyed Model closure" {
 }
 
 ///|
+test "Native README original file Effect Plan admits actual operations before children" {
+  assert_eq(@env.get_env_var("ACTQL_TEST_NATIVE_EFFECT_PLAN_ONLY"), Some("1"))
+  native_project_mock_model_backed_read(
+    false,
+    readme_request=true,
+    effect_compilation=true,
+    effect_source_inputs=true,
+    content_join=true,
+    static_policy=true,
+  )
+}
+
+///|
 fn[T, E] Result::native_content_join_stage(
   self : Result[T, E],
   label : String,
@@ -66,6 +79,64 @@ fn native_mock_readme_content_join(
     "original prepared Model bounds",
   )
   let compiled = first.model_compiled.unwrap()
+  if @env.get_env_var("ACTQL_TEST_NATIVE_EFFECT_PLAN_ONLY") == Some("1") {
+    let provider = @infer.composed_local_provider(
+      occurrence,
+      limits,
+      _ => Err(@infer.InvalidAdvance),
+      _ => @compute_sdk.ComputeUnsupported,
+    )
+    let selected = native_mock_effect_managed_plan(
+      prepared, first, original, contracts, provider,
+    ) catch {
+      ClientStop(message) => fail(message)
+    }
+    let scope = @local_values.prepare_request_effect_model_read_scope(
+      facility.parent,
+      facility.input,
+      selected,
+    ).native_content_join_stage("actual Native file Plan Scope")
+    @local_values.complete_request_effect_preparation(
+      facility.parent,
+      facility.input,
+      selected,
+    ).native_content_join_stage("actual Native file Plan completion")
+    let run = @local_values.begin_request_effect_model_managed_run(
+      facility.parent,
+      first.request,
+      scope,
+    ).native_content_join_stage("actual Native file Plan adoption")
+    facility.run = Some(run)
+    for index in 0..<first._retained_sources.length() {
+      assert_eq(
+        @local_values.installed_effect_managed_source_input_kind(
+          run,
+          prepared,
+          first.request,
+          index,
+        ).native_content_join_stage("actual file Plan Source kind"),
+        "whole-input",
+      )
+    }
+    @local_values.quiesce_installed_managed_run(run).native_content_join_stage(
+      "quiesce same original file Effect Plan",
+    )
+    assert_true(
+      @run_host.finish_client_model_read_scope(
+        scope,
+        compiled,
+        first.definition,
+        graph,
+        true,
+      ).native_content_join_stage("actual file Plan Scope cleanup"),
+    )
+    match @local_values.retire_installed_managed_run(run) {
+      Err(@local_values.Resource(@initial_resources.Unavailable)) => ()
+      Err(_) => fail("unexpected file Plan retirement refusal")
+      Ok(_) => fail("Core cannot ACK a still-entered Native frame")
+    }
+    return
+  }
   // Explicit finite component read-window selection, not the ordinary Host's
   // as-yet-unqualified constructor backing. Its SAME Request must admit the
   // entire Plan/Scope and the Native capture reserves every actual child.
@@ -140,7 +211,7 @@ fn native_mock_readme_content_join(
           _,
           _,
           _,
-        ) => Err(@fixed_test.ComputeUnsupported)),
+        ) => Err(@compute_sdk.ComputeUnsupported)),
       ]
     },
   ).native_content_join_plan()

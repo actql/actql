@@ -59,6 +59,7 @@ priv struct LocalCommandBusinessOriginal {
   mut request_retiring : Bool
   mut operation : @local_host.NativeLocalStoreOperation?
   model_work : Array[@local_host.NativeClientMockModelWork]
+  mut effect_model : LocalNativeMockEffectPlan?
   mut values_work : @local_host.NativeClientValuesWork?
   mut values_failure : @local_host.NativeClientValuesWorkFailure?
   mut store : @local_store.Store?
