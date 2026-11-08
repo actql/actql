@@ -89,10 +89,15 @@ pub fn client_keyed_lookup_request_identity(
     Ok(hash) => "sha256:" + hash
     Err(_) => return Err(Assembly("static_request_encoding"))
   }
-  let scope = match @publication.issue_keyed_source_acquisition_scope(
-    @acquisition.selected_cid(selected), static_request_cid, keys,
-    max_bytes, max_nodes, max_depth,
-  ) {
+  let scope = match
+    @publication.issue_keyed_source_acquisition_scope(
+      @acquisition.selected_cid(selected),
+      static_request_cid,
+      keys,
+      max_bytes,
+      max_nodes,
+      max_depth,
+    ) {
     Ok(scope) => scope
     Err(issue) => return Err(Identity(issue))
   }
@@ -113,6 +118,11 @@ pub fn client_keyed_lookup_request_identity_matches(
 /// actual access and publication still require the original live capture.
 pub fn client_keyed_lookup_request_identity_parts(
   value : ClientKeyedLookupRequestIdentity,
-) -> (@publication.PublicationContract, String, String, @publication.PublicationContract) {
+) -> (
+  @publication.PublicationContract,
+  String,
+  String,
+  @publication.PublicationContract,
+) {
   (value.keys, value.static_request, value.static_request_cid, value.scope)
 }

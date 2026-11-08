@@ -5887,19 +5887,17 @@ for (const entrance of ['local', 'http']) {
     }
     await noExecution();
     client.permitExplicitExecution();
-    // Complete bound checking does not promise a physical Program backend.
-    // The ordinary execution Owner currently refuses this direct Source route.
-    await assert.rejects(client.start(getCheckInput(sourceBound, 'program').value, {parameters: {x: 7}}), error => {
-      // Original implementation selection precedes business admission.
-      assert.equal(error.code, 'SubmissionNotAccepted');
-      const outcome = sdk.getSubmissionOutcome(error);
-      assert.equal(outcome.kind, 'not_accepted');
-      assert.equal(Object.hasOwn(outcome, 'admission'), false);
-      assert.deepEqual(outcome.problem,
-        {code: 'ClientProgramUnsupported', classification: 'implementation_limit'});
-      return true;
-    });
-    client.assertNoExecution();
+    // Explicit start now uses the installed Whole input route for this same
+    // checked Program. Authoring above still creates no execution work.
+    const programRun = await client.start(getCheckInput(sourceBound, 'program').value, {parameters: {x: 7}});
+    const programStatus = await programRun.wait({signal: AbortSignal.timeout(20000)});
+    assert.equal(programStatus.status, 'succeeded', JSON.stringify(programStatus));
+    if (entrance === 'http') {
+      // The existing account permits result/main, not this separate name.
+      await assert.rejects(programRun.result('out').all(), {code: 'ResultAccessDenied'});
+    } else {
+      assert.deepEqual((await programRun.result('out').all()).toSorted((a, b) => a.n - b.n), [{n: 8}, {n: 9}]);
+    }
     assert.equal(client.executionCounts().submissions, 1);
     let run;
     try { run = await client.startSource(query, {format: 'sql',
@@ -5914,13 +5912,13 @@ for (const entrance of ['local', 'http']) {
     assert.deepEqual(await run.result('main').all(), [{id: 1}]);
     await flushObservations();
     const counts = client.executionCounts();
-    assert.equal(counts.runs, 1);
+    assert.equal(counts.runs, 2);
     assert.equal(counts.submissions, 2);
     assert.equal(counts.issuedSubmissions, 2);
-    assert.equal(counts.dispatchReservations, 1);
-    assert.equal(counts.physicalReservations, 1);
+    assert.equal(counts.dispatchReservations, 2);
+    assert.equal(counts.physicalReservations, 2);
     assert.ok(counts.sourceOpens > 0, 'the explicit Run exercises the same installed Source observer');
-    if (entrance === 'http') assert.equal(counts.dispatches, 1);
+    if (entrance === 'http') assert.equal(counts.dispatches, 2);
     assert.ok(records.some(record => record.operation === 'compute' && record.event === 'task_started'),
       'the explicit Run exercises the common task observation path');
     assert.deepEqual({modelCalls, effectCalls, resumes}, {modelCalls: 0, effectCalls: 0, resumes: 0});

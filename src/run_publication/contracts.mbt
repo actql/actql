@@ -130,12 +130,13 @@ fn common_grant_fields() -> Array[FieldSpec] {
 ///|
 fn contract_spec(name : String) -> ContractSpec? {
   match name {
-    "request_key_set" => Some({
-      name,
-      version: "actql-lookup-key-set/0.1",
-      identity: "self_cid",
-      fields: [],
-    })
+    "request_key_set" =>
+      Some({
+        name,
+        version: "actql-lookup-key-set/0.1",
+        identity: "self_cid",
+        fields: [],
+      })
     "compiled_plan" =>
       Some({
         name,
@@ -1297,7 +1298,9 @@ pub fn admit_publication_contract(
   } catch {
     _ => return Err(Encoding)
   }
-  if ["acquisition_relation", "acquisition_scope", "request_key_set"].contains(name) &&
+  if ["acquisition_relation", "acquisition_scope", "request_key_set"].contains(
+      name,
+    ) &&
     wire != complete_wire {
     return Err(InvalidWire)
   }

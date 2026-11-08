@@ -52,7 +52,9 @@ async function fixture({beginFailure, environment, observe, validate = () => {},
     clientProgramBindRequestPolicySubject(){assert.fail('No policy binding selected');},
     clientProgramFinishRequestPolicySubjects(){assert.fail('No policy supplement selected');},
     clientProgramPrepareRequestProgramModuleBody(){assert.fail('No module compilation selected');},
+    clientProgramReserveRequestEffectOriginalMaterial(){assert.fail('No Effect original projection selected');},
     clientProgramRequestProgramModuleIssueCode(){assert.fail('No module failure projection selected');},
+    clientProgramRequestPreparationIssueCode(){assert.fail('No typed Request refusal selected');},
     clientProgramBorrowRequestProgramPlanInput(){assert.fail('No constructor input borrow selected');},
     clientProgramComposedInferOccurrences: () => ok([]),
     clientProgramSerializationOccurrences: () => [],
@@ -1018,7 +1020,7 @@ test('ordinary Effect Plan adopts the same Request input and typed compiler borr
     {code: 'ForeignInstalledSourceProducer'});
 });
 
-async function originalEffectRequest({completeFailure, adoptFailure} = {}) {
+async function originalEffectRequest({completeFailure, adoptFailure, reserveFailure} = {}) {
   const f = await fixture(), moon = f.context.runtime, sdkRequest = {}, prepared = {}, holder = {}, identity = {}, plan = {}, parent = {};
   const receipt = f.view.beforeSourceSnapshot('program', input(), {}, connection);
   const body = f.view.captureSourceSnapshot(receipt, {kind: 'program', input: input()}, snapshotClientRequest);
@@ -1034,6 +1036,12 @@ async function originalEffectRequest({completeFailure, adoptFailure} = {}) {
   moon.clientProgramBorrowRequestEffectPlanInput = function(owner, original) {
     assert.equal(this, moon); assert.equal(owner, f.parent); assert.equal(original, receipt);
     events.push('borrow'); return ok(holder);
+  };
+  moon.clientProgramReserveRequestEffectOriginalMaterial = function(owner, original, value, count, at) {
+    assert.equal(this, moon); assert.equal(owner, f.parent); assert.equal(original, receipt);
+    assert.equal(value, prepared); assert.equal(count, 2);
+    assert.deepEqual([at(0), at(1)], ['complete original', 'original installation']);
+    events.push('original'); if (reserveFailure) throw reserveFailure; return ok(undefined);
   };
   moon.clientProgramEffectPreparationInputRead = function(value) {assert.equal(this, moon); assert.equal(value, holder); return returned ? undefined : prepared;};
   moon.clientProgramEffectPreparationInputSibling = function(value) {assert.equal(this, moon); assert.equal(value, holder); events.push('sibling'); return ok({});};
@@ -1060,6 +1068,25 @@ async function originalEffectRequest({completeFailure, adoptFailure} = {}) {
   return {...f, moon, sdkRequest, prepared, holder, identity, plan, parent, requestParent: f.parent, receipt, events,
     markRetiring() {retiring = true;}, finishPhysicalRetirement() {return Reflect.apply(abort, moon, [f.parent]);}, async failedCleanup() {f.view.finishSourceProducer(receipt, 'failed'); await f.view.close();}};
 }
+
+test('Effect original projection forwards only the same checked Request and keeps a failed reservation sticky', async () => {
+  for (const reserveFailure of [undefined, new Error('OriginalEnvelopeCapacityRefused')]) {
+    const f = await originalEffectRequest({reserveFailure});
+    await f.view.fundedPreparation(f.sdkRequest, undefined);
+    f.moon.clientProgramReserveRequestEffectOriginalMaterial = () => assert.fail('Do not replace captured Core method');
+    assert.throws(() => f.view.reserveEffectOriginal(f.prepared, {}, 'complete original',
+      [{wire: 'original installation'}]), {code: 'ForeignInstalledSourceProducer'});
+    const reserve = () => f.view.reserveEffectOriginal(f.prepared, f.sdkRequest, 'complete original',
+      [{wire: 'original installation'}]);
+    if (reserveFailure) {
+      assert.throws(reserve, error => error === reserveFailure);
+      assert.throws(reserve, error => error === reserveFailure);
+    } else reserve();
+    assert.deepEqual(f.events, ['check', 'compile', 'borrow', 'original']);
+    await f.failedCleanup();
+    assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
+  }
+});
 
 test('installed Effect caller consumes actual Request manager adoption and same Plan with no independent admission', async () => {
   const f = await originalEffectRequest();

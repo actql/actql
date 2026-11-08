@@ -1,7 +1,15 @@
 ///|
 // Bounded DATA conversion for the existing selection Owner. These constants
-// describe its original journal envelope, not a new allowance or wire domain.
+// bound selection/installation metadata, not the complete nested Run material.
 const CLIENT_EFFECT_TARGET_ORIGINAL_MAX_BYTES : Int = 65536
+
+///|
+// One complete existing material string can expand sixfold when JSON-quoted.
+// Its independent selection metadata keeps the original 64 KiB policy. This
+// physical conversion ceiling is not a resource grant or a larger inner codec.
+const CLIENT_EFFECT_TARGET_ORIGINAL_ENVELOPE_MAX_BYTES : Int = 6 *
+  @remote.REMOTE_RUN_MATERIALS_MAX_BYTES +
+  CLIENT_EFFECT_TARGET_ORIGINAL_MAX_BYTES
 
 ///|
 const CLIENT_EFFECT_TARGET_ORIGINAL_MAX_DEPTH : Int = 64
@@ -24,11 +32,17 @@ priv suberror ClientEffectTargetOriginalStop {
 ///|
 fn client_effect_target_original_cursor(
   wire : String,
+  envelope? : Bool = false,
 ) -> @decode.Cursor raise ClientEffectTargetOriginalStop {
+  let maximum = if envelope {
+    CLIENT_EFFECT_TARGET_ORIGINAL_ENVELOPE_MAX_BYTES
+  } else {
+    CLIENT_EFFECT_TARGET_ORIGINAL_MAX_BYTES
+  }
   let source = @source.parse_json_bytes(
     @utf8.encode(wire),
     {
-      max_input_bytes: CLIENT_EFFECT_TARGET_ORIGINAL_MAX_BYTES,
+      max_input_bytes: maximum,
       max_nodes: CLIENT_EFFECT_TARGET_ORIGINAL_MAX_BYTES,
       max_depth: CLIENT_EFFECT_TARGET_ORIGINAL_MAX_DEPTH,
     },
@@ -37,8 +51,8 @@ fn client_effect_target_original_cursor(
   @decode.admit(source, {
     max_nodes: CLIENT_EFFECT_TARGET_ORIGINAL_MAX_BYTES,
     max_depth: CLIENT_EFFECT_TARGET_ORIGINAL_MAX_DEPTH,
-    max_string_bytes: CLIENT_EFFECT_TARGET_ORIGINAL_MAX_BYTES,
-    max_total_string_bytes: CLIENT_EFFECT_TARGET_ORIGINAL_MAX_BYTES,
+    max_string_bytes: maximum,
+    max_total_string_bytes: maximum,
   }).unwrap_or_else(() => raise InvalidUpdateTargetOriginal)
 }
 
@@ -46,6 +60,7 @@ fn client_effect_target_original_cursor(
 fn client_effect_target_original_text(
   object : @decode.ObjectView,
   key : String,
+  material? : Bool = false,
 ) -> String raise ClientEffectTargetOriginalStop {
   let value = @decode.required(object, key).unwrap_or_else(() => {
     raise InvalidUpdateTargetOriginal
@@ -54,7 +69,12 @@ fn client_effect_target_original_text(
     raise InvalidUpdateTargetOriginal
   })
   if text.is_empty() ||
-    @utf8.encode(text).length() > CLIENT_EFFECT_TARGET_ORIGINAL_MAX_BYTES {
+    @utf8.encode(text).length() >
+    (if material {
+      @remote.REMOTE_RUN_MATERIALS_MAX_BYTES
+    } else {
+      CLIENT_EFFECT_TARGET_ORIGINAL_MAX_BYTES
+    }) {
     raise InvalidUpdateTargetOriginal
   }
   text
@@ -65,7 +85,7 @@ fn client_effect_target_original_canonical(
   wire : String,
 ) -> String raise ClientEffectTargetOriginalStop {
   let source = @source.parse_json_bytes(@utf8.encode(wire), {
-    max_input_bytes: CLIENT_EFFECT_TARGET_ORIGINAL_MAX_BYTES,
+    max_input_bytes: CLIENT_EFFECT_TARGET_ORIGINAL_ENVELOPE_MAX_BYTES,
     max_nodes: CLIENT_EFFECT_TARGET_ORIGINAL_MAX_BYTES,
     max_depth: CLIENT_EFFECT_TARGET_ORIGINAL_MAX_DEPTH,
   }).unwrap_or_else(() => raise InvalidUpdateTargetOriginal)
@@ -73,14 +93,14 @@ fn client_effect_target_original_canonical(
     source,
     CLIENT_EFFECT_TARGET_ORIGINAL_MAX_BYTES,
     CLIENT_EFFECT_TARGET_ORIGINAL_MAX_DEPTH,
-    CLIENT_EFFECT_TARGET_ORIGINAL_MAX_BYTES,
+    CLIENT_EFFECT_TARGET_ORIGINAL_ENVELOPE_MAX_BYTES,
     data_keys=true,
   ) catch {
     _ => raise InvalidUpdateTargetOriginal
   }
   @canonical.stringify_value(
     value,
-    CLIENT_EFFECT_TARGET_ORIGINAL_MAX_BYTES,
+    CLIENT_EFFECT_TARGET_ORIGINAL_ENVELOPE_MAX_BYTES,
     CLIENT_EFFECT_TARGET_ORIGINAL_MAX_BYTES,
     CLIENT_EFFECT_TARGET_ORIGINAL_MAX_DEPTH,
   ) catch {
@@ -93,13 +113,78 @@ fn client_effect_target_original_string_bytes(
   value : String,
 ) -> Int raise ClientEffectTargetOriginalStop {
   let wire = try {
-    let writer = @encode.writer(CLIENT_EFFECT_TARGET_ORIGINAL_MAX_BYTES, 1, 1)
+    let writer = @encode.measuring_writer(
+      CLIENT_EFFECT_TARGET_ORIGINAL_ENVELOPE_MAX_BYTES,
+      1,
+      1,
+    )
     @encode.string_value(writer, value)
-    @encode.finish(writer)
+    @encode.finish_measurement(writer)
   } catch {
     _ => raise InvalidUpdateTargetOriginal
   }
-  @utf8.encode(wire).length()
+  wire
+}
+
+///|
+/// Demand for one actual original-material envelope, before the Host converts
+/// it to nested JSON. The first borrowed string is the complete material; the
+/// remaining strings are the already-owned installation wires. Metadata keeps
+/// its independent limit. Measurement creates no second serialized material.
+/// This DATA quote authenticates nothing and grants no resource or authority.
+pub fn client_effect_target_original_envelope_capacity(
+  count : Int,
+  wire_at : (Int) -> String,
+) -> @execution.ExecutionCapacity? {
+  if count < 2 || count > 1025 {
+    return None
+  }
+  try {
+    let mut bytes = 256L
+    let mut metadata = 0L
+    let mut units = 0L
+    for index in 0..<count {
+      let wire = wire_at(index)
+      let maximum = if index == 0 {
+        @remote.REMOTE_RUN_MATERIALS_MAX_BYTES
+      } else {
+        CLIENT_EFFECT_TARGET_ORIGINAL_MAX_BYTES
+      }
+      if wire.is_empty() || @utf8.encode(wire).length() > maximum {
+        return None
+      }
+      let quoted = client_effect_target_original_string_bytes(wire).to_int64()
+      units += wire.length().to_int64()
+      if index == 0 {
+        bytes += quoted
+      } else {
+        // CID, two keys, record/array punctuation and original fixed slack.
+        metadata += 128L + quoted
+      }
+    }
+    bytes += metadata
+    if metadata > CLIENT_EFFECT_TARGET_ORIGINAL_MAX_BYTES.to_int64() ||
+      bytes > CLIENT_EFFECT_TARGET_ORIGINAL_ENVELOPE_MAX_BYTES.to_int64() {
+      return None
+    }
+    let nodes = 8L + 6L * (count - 1).to_int64()
+    @execution.execution_capacity_inventory(
+      [
+        // The captured original and its durable enclosing submission coexist.
+        { unit: CanonicalWireBytes, count: bytes, copies: 2, },
+        { unit: DecodedTextBytes, count: units, copies: 1, },
+        { unit: ValueNodeSlots, count: nodes, copies: 2, },
+      ],
+      [
+        // Active DATA admission/comparison is sequential constructor scratch.
+        { unit: CanonicalWireBytes, count: bytes, copies: 2, },
+        { unit: ValueNodeSlots, count: nodes, copies: 2, },
+      ],
+      RetainedAlongsideExecution,
+    )
+  } catch {
+    _ => None
+  }
 }
 
 ///|
@@ -231,10 +316,14 @@ pub fn client_effect_target_installations_shape(wire : String) -> Bool {
 pub fn client_effect_target_prepared_original_shape(wire : String) -> Bool {
   try {
     let object = @decode.closed_object(
-      client_effect_target_original_cursor(wire),
+      client_effect_target_original_cursor(wire, envelope=true),
       ["preparedWire", "compiledPlanCid", "installations"],
     ).unwrap_or_else(() => raise InvalidUpdateTargetOriginal)
-    let prepared = client_effect_target_original_text(object, "preparedWire")
+    let prepared = client_effect_target_original_text(
+      object,
+      "preparedWire",
+      material=true,
+    )
     if !valid_client_request_cid(
         client_effect_target_original_text(object, "compiledPlanCid"),
       ) {
@@ -246,7 +335,7 @@ pub fn client_effect_target_prepared_original_shape(wire : String) -> Bool {
       }),
     )
     256 + client_effect_target_original_string_bytes(prepared) + bytes <=
-    CLIENT_EFFECT_TARGET_ORIGINAL_MAX_BYTES
+    CLIENT_EFFECT_TARGET_ORIGINAL_ENVELOPE_MAX_BYTES
   } catch {
     _ => false
   }
@@ -260,21 +349,25 @@ pub fn client_effect_target_run_original_shape(
 ) -> Bool {
   try {
     let object = @decode.closed_object(
-      client_effect_target_original_cursor(wire),
+      client_effect_target_original_cursor(wire, envelope=true),
       ["materialsWire", "installations"],
     ).unwrap_or_else(() => raise InvalidUpdateTargetOriginal)
-    let materials = client_effect_target_original_text(object, "materialsWire")
+    let materials = client_effect_target_original_text(
+      object,
+      "materialsWire",
+      material=true,
+    )
     let (_, bytes) = client_effect_target_original_installations(
       @decode.required(object, "installations").unwrap_or_else(() => {
         raise InvalidUpdateTargetOriginal
       }),
     )
     if 256 + client_effect_target_original_string_bytes(materials) + bytes >
-      CLIENT_EFFECT_TARGET_ORIGINAL_MAX_BYTES {
+      CLIENT_EFFECT_TARGET_ORIGINAL_ENVELOPE_MAX_BYTES {
       raise InvalidUpdateTargetOriginal
     }
     let body = @decode.open_object(
-      client_effect_target_original_cursor(materials),
+      client_effect_target_original_cursor(materials, envelope=true),
     ).unwrap_or_else(() => raise InvalidUpdateTargetOriginal)
     if client_effect_target_original_text(body, "version") !=
       "actql-remote-run-materials/0.1" {

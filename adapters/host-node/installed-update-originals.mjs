@@ -55,7 +55,7 @@ export function installUpdateTargetOriginals({moon, control, installedEffect, li
     return Object.freeze({updateTargetSelections: selections,
       assertUpdateSelectionCurrent});
   };
-  const capturePrepared = (prepared, compilation) => {
+  const projectPrepared = (prepared, compilation, reserveOriginal) => {
     const selections = selectionsOf(prepared);
     if (selections === undefined) return undefined;
     const installations = current(selections);
@@ -63,6 +63,7 @@ export function installUpdateTargetOriginals({moon, control, installedEffect, li
       moon.clientProgramEffectCompilationCompiledPlanWire(compilation), limits);
     const original = {preparedWire: checked(moon.clientProgramIssueEffectPreparedOriginal(compilation)),
       compiledPlanCid: compiled.identity, installations: Object.freeze(installations)};
+    reserveOriginal?.(prepared, original.preparedWire, original.installations);
     if (!updateTargetPreparedOriginalShape(original, moon)) fail();
     return Object.freeze(original);
   };
@@ -73,7 +74,7 @@ export function installUpdateTargetOriginals({moon, control, installedEffect, li
     const prepared = moon.clientProgramEffectPreparedOriginalPrepared(restored);
     const compilation = moon.clientProgramEffectPreparedOriginalCompilation(restored);
     const bound = bind(selectionsOf(prepared), original.installations);
-    if (!same(capturePrepared(prepared, compilation), original)) fail();
+    if (!same(projectPrepared(prepared, compilation), original)) fail();
     compilations.set(prepared, compilation);
     return Object.freeze({prepared, compilation, ...bound});
   };
@@ -110,7 +111,7 @@ export function installUpdateTargetOriginals({moon, control, installedEffect, li
     compilations.set(prepared, compilation);
     return Object.freeze({...restored, ...bound});
   };
-  return Object.freeze({selectionsOf, capturePrepared, restorePrepared, restoreRun,
+  return Object.freeze({selectionsOf, capturePrepared: projectPrepared, restorePrepared, restoreRun,
     restoreEffectMaterials,
     validateRecoveredSelectionMembers({prepared, compilation, selections, preview, stageIndex}) {
       current(selections);
@@ -149,19 +150,20 @@ export function installUpdateTargetOriginals({moon, control, installedEffect, li
     validatePreparedOriginal(prepared, compilation, original) {
       if (compilations.get(prepared) !== compilation ||
           !updateTargetPreparedOriginalShape(original, moon) ||
-          !same(capturePrepared(prepared, compilation), original)) fail();
+          !same(projectPrepared(prepared, compilation), original)) fail();
     },
     validatePrepared(prepared) {
       const selections = selectionsOf(prepared);
       current(selections);
       return selections;
     },
-    captureRun({prepared, allowed, definition, identity}) {
+    captureRun({prepared, allowed, definition, identity}, reserveOriginal) {
       const selections = selectionsOf(prepared);
       if (selections === undefined) return undefined;
       if (!updateTargetSelectionMatchesRun(selections, prepared, definition)) fail();
       const original = {materialsWire: checked(moon.clientProgramIssuePreparedEffectRunMaterials(
         allowed, definition, identity ?? null)), installations: Object.freeze(current(selections))};
+      reserveOriginal?.(prepared, original.materialsWire, original.installations);
       if (!updateTargetRunOriginalShape(original, undefined, moon)) fail();
       return Object.freeze(original);
     },

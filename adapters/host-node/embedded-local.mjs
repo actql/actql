@@ -961,15 +961,41 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
         run.preparedSequences, run.request, model.compiled, model.runDefinition,
         model.occurrence, model.graph, model.selectedBounds, physical);
   } else {
-    const inventory = retainedManagedCaptureInventory(originals, run, contracts);
-    const whole = inventory.every(value => value.kind === 'whole-input');
-    if (!whole && inventory.some(value => value.kind !== 'query')) {
+    if (run.sourceProfile !== originals.installation.managedSourceProfile ||
+        typeof moon.clientProgramRequestModelDirectSourceCoordinates !== 'function' ||
+        typeof moon.clientProgramSelectInstalledSourceInput !== 'function' ||
+        typeof moon.clientProgramSelectedSourceInputKind !== 'function') {
+      throw clientOperationError('NodeManagedRunRuntimeUnavailable');
+    }
+    // Classify only checked Source-kind DATA from this SAME Request input.
+    // Query construction belongs inside its backed module below; a generic
+    // capacity inventory would construct those acquisitions before admission.
+    const coordinates = checked(moon.clientProgramRequestModelDirectSourceCoordinates(parent, input));
+    if (!Array.isArray(coordinates) || coordinates.length !== count) {
+      throw clientOperationError('InstalledSourcePreparationMismatch');
+    }
+    const kinds = coordinates.map(coordinate => {
+      const selected = checked(moon.clientProgramSelectInstalledSourceInput(
+        run.prepared, run.request, coordinate[0], coordinate[1]));
+      const kind = moon.clientProgramSelectedSourceInputKind(selected);
+      current();
+      return kind;
+    });
+    const whole = kinds.every(kind => kind === 'whole-input');
+    if (!whole && kinds.some(kind => kind !== 'query')) {
       throw clientOperationError('InstalledMockModelOperationalAdmissionUnavailable');
+    }
+    const inventory = whole ? retainedManagedCaptureInventory(originals, run, contracts) : undefined;
+    if (whole && (!Array.isArray(inventory) || inventory.length !== count ||
+        inventory.some(value => value.kind !== 'whole-input'))) {
+      throw clientOperationError('InstalledSourcePreparationMismatch');
     }
     const sources = whole ? inventory : readInstalledMockPreparation(originals).sources;
     const construct = whole ? model.control.prepareCheckedClientRequestModelWholeInputsComponentCaptureModule
       : model.control.prepareCheckedClientRequestModelComponentCaptureModule;
     if (sources.length !== 2 || model.selection?.graph !== model.graph || model.component !== undefined ||
+        typeof moon[whole ? 'clientProgramPrepareRequestModelWholeInputsComponentCaptureModule'
+          : 'clientProgramPrepareRequestModelComponentCaptureModule'] !== 'function' ||
         typeof construct !== 'function') {
       throw clientOperationError('InstalledMockModelOperationalAdmissionUnavailable');
     }
@@ -2608,7 +2634,8 @@ async function openInstalledHost(originalInstallation, preparation) {
   };
   const capturedUpdateOriginal = submission => {
     if (prepareSubmit.kindOf(submission.preparedProgram) !== 'effectful') return {};
-    const original = effectRun.capturePreparedOriginal(submission.preparedProgram);
+    const original = effectRun.capturePreparedOriginal(submission.preparedProgram,
+      submission.updateTargetPreparedOriginal);
     return original === undefined ? {} : {updateTargetPreparedOriginal: original};
   };
   const plan = installClientStaticPlan({moon, control, prepare: prepareSubmit,
@@ -4517,6 +4544,8 @@ async function openInstalledHost(originalInstallation, preparation) {
   };
   const effectRun = effectInstallation === undefined ? undefined :
     installNodeClientEffectRun({moon, publicationControl: control, journal,
+      reserveOriginal: (prepared, material, installations) =>
+        preparation.reserveManagedEffectOriginal(moon, prepared, material, installations),
       requestIdentityFor({prepared, authorityScopeCid: scope, requestId}) {
         if (scope !== authorityScopeCid) throw clientOperationError('ClientProgramNeedsInputs');
         return originalSourceFreeRequest(prepared, requestId, true);
@@ -7855,6 +7884,16 @@ async function openPreparedInstalledHost(options, initialEntry) {
       return manager.prepareContentCompilation(prepared, originalSourceManagedHostRequest(originals, prepared), graph,
         (parent, input, originalGraph, contracts) => control.prepareCheckedClientRequestSerializationCompilation(
           parent, input, originalGraph, contracts));
+    },
+    reserveManagedEffectOriginal(runtime, prepared, material, installations) {
+      const manager = sourceManaged ?? computeManaged;
+      if (runtime !== moon || manager === undefined || typeof manager.reserveEffectOriginal !== 'function') {
+        throw clientOperationError('NodeManagedRunCompilationUnavailable');
+      }
+      (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
+        : assertSourceManagedInstallationCurrent)(manager, originals);
+      return manager.reserveEffectOriginal(prepared,
+        originalSourceManagedHostRequest(originals, prepared), material, installations);
     },
     prepareManagedModelMaterials(runtime, prepared, count, wireAt, containers) {
       const manager = sourceManaged ?? computeManaged;

@@ -10,7 +10,7 @@ import {checked} from '../host-common/runtime-result.mjs';
 function binding(file,name,ports,{property=false}={}){
   const source=readFileSync(new URL(file,import.meta.url),'utf8');let node;
   const walk=n=>{if(!n||typeof n!=='object')return;
-    if(property?n.type==='Property'&&n.key?.name===name:n.type==='VariableDeclarator'&&n.id?.name===name){assert(!node);node=property?n:n.init;}
+    if(property?n.type==='Property'&&n.key?.name===name:(n.type==='VariableDeclarator'||n.type==='FunctionDeclaration')&&n.id?.name===name){assert(!node);node=property||n.type==='FunctionDeclaration'?n:n.init;}
     for(const v of Object.values(n)){if(Array.isArray(v))v.forEach(walk);else if(v&&typeof v==='object')walk(v);}};
   walk(parse(source,{ecmaVersion:'latest',sourceType:'module'}));assert(node,name);
   const helpers = file === './ordinary-source-managed.mjs' ? source.slice(source.indexOf('  function constructRequestDomain('), source.indexOf('  const view = Object.freeze({')) : '';
@@ -22,6 +22,7 @@ function fixture(family){
   const prepared={},identity={},keyed={},occurrence={},calls=[],selections=[],identities=new WeakMap();let issued=0,queries=0;
   const reference='connector://original/rows',adapter={prepareKeyed(){},managedWholeSourceCapacity(){}};
   const moon={clientProgramAcquisitionCount:p=>{assert.equal(p,prepared);return 2;},
+    clientProgramDirectSourceCoordinates:p=>{assert.equal(p,prepared);return ok([[0,0,0,0],[1,0,1,1]]);},
     clientProgramSelectSingleKeyedAcquisition:()=>ok(family==='content'?keyed:undefined),
     clientProgramKeyedDirectAcquisitionCoordinates:k=>{assert.equal(k,keyed);return{_0:0,_1:0};},
     clientProgramSourceFreeInputIntentCid:()=> 'intent',clientProgramRequestIdentity(p,a,id,intent){
@@ -46,6 +47,7 @@ function fixture(family){
     runtimeOptionalField:(v,n)=>v?.['_'+n],runtimeTag:()=>undefined,clientOperationError:(code,cause)=>Object.assign(new Error(code,{cause}),{code}),
     installedSourceFor:()=>adapter,installedSourceReadBindings:()=>[reference],prepareInferSelection(){},diagnostic(){},
     registry:'registry',values:'values',fragment:'fragment',ordered:'ordered'};
+  ports.installedDirectSourceCoordinates=binding('./embedded-local.mjs','installedDirectSourceCoordinates',ports);
   ports.originalSourceFreeRequest=binding('./embedded-local.mjs','originalSourceFreeRequest',ports);
   const request=binding('./embedded-local.mjs','requestOf',ports);
   return{prepared,identity,calls,selections,preparation,moon,request:()=>request({preparedProgram:prepared,requestId:'request'}),

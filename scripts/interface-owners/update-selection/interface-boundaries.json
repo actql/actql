@@ -4,7 +4,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/update-target-original-shape.mjs",
-      "sha256": "9697216ba4147a378d8eb6e8339988f6ca3cf77cc8296d37d9dd3b47890fad76",
+      "sha256": "22846265410615e5c19837b96c7669359390c867a2cec048bc82500566448151",
       "exports": [
         "assertUpdateTargetSelectionCurrent",
         "assertUpdateTargetSelectionMembersCurrent",
@@ -284,15 +284,46 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
+        "./update-target-data.generated.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/update-target-data.generated.mjs",
-      "sha256": "dcc9d0b8ea4a700b93d26db2f77ee40cc4f22eba450da0ceae2ee39ec62d2f17",
+      "sha256": "5f8b9ccc4bc276a8afe23a0935388f20932b5ba4db2df8d9fe5e9fafcf9139b3",
       "exports": [
-        "encodeUpdateTargetData"
+        "encodeUpdateTargetData",
+        "encodeUpdateTargetOriginalData"
       ],
       "operations": [
+        {
+          "name": "encode",
+          "parameters": [
+            "value",
+            "maximum"
+          ],
+          "async": false
+        },
+        {
+          "name": "encode/copy/copy",
+          "parameters": [
+            "value",
+            "depth"
+          ],
+          "async": false
+        },
+        {
+          "name": "encode/text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
         {
           "name": "encodeUpdateTargetData",
           "parameters": [
@@ -301,15 +332,7 @@
           "async": false
         },
         {
-          "name": "encodeUpdateTargetData/copy/copy",
-          "parameters": [
-            "value",
-            "depth"
-          ],
-          "async": false
-        },
-        {
-          "name": "encodeUpdateTargetData/text/text",
+          "name": "encodeUpdateTargetOriginalData",
           "parameters": [
             "value"
           ],
@@ -323,12 +346,15 @@
         {
           "operations": [
             "<module>",
+            "encode",
+            "encode/copy/copy",
+            "encode/text/text",
             "encodeUpdateTargetData",
-            "encodeUpdateTargetData/copy/copy",
-            "encodeUpdateTargetData/text/text"
+            "encodeUpdateTargetOriginalData"
           ],
           "exports": [
-            "encodeUpdateTargetData"
+            "encodeUpdateTargetData",
+            "encodeUpdateTargetOriginalData"
           ],
           "attributes": {
             "responsibility": [
@@ -339,6 +365,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Effect selection boundary"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
               }
             ],
             "inputsOutputs": [
@@ -349,6 +379,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Effect selection boundary"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
               }
             ],
             "identity": [
@@ -359,6 +393,10 @@
               {
                 "path": "src/run_publication_host/client_effect_target_original_data.mbt",
                 "anchor": "pub fn client_effect_target_selection_current("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
               }
             ],
             "ownership": [
@@ -369,6 +407,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Effect selection boundary"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
               }
             ],
             "synchronization": [
@@ -379,6 +421,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Effect selection boundary"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
               }
             ],
             "failure": [
@@ -389,6 +435,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Effect selection boundary"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
               }
             ],
             "cancellation": [
@@ -399,6 +449,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Effect selection boundary"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
               }
             ],
             "resources": [
@@ -409,6 +463,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Effect selection boundary"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
               }
             ],
             "extension": [
@@ -419,6 +477,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Effect selection boundary"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
               }
             ],
             "verification": [
@@ -429,15 +491,22 @@
               {
                 "path": "src/run_publication_host/client_effect_target_selections.mbt",
                 "anchor": "pub fn client_effect_target_selection_matches_prepared("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
               }
             ]
           }
         }
-      ]
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/installed-update-originals.mjs",
-      "sha256": "127ef5ef0b7ee47b690014698246a62b1fda6d7514c071672ef31a67d04fe0af",
+      "sha256": "969594f816a35b3c08145a2041484cdad7c89063639249e5c59fcb614f02a3c4",
       "exports": [
         "installUpdateTargetOriginals"
       ],
@@ -479,14 +548,6 @@
           "async": false
         },
         {
-          "name": "installUpdateTargetOriginals/capturePrepared/capturePrepared",
-          "parameters": [
-            "prepared",
-            "compilation"
-          ],
-          "async": false
-        },
-        {
           "name": "installUpdateTargetOriginals/current/current",
           "parameters": [
             "selections"
@@ -523,7 +584,8 @@
             "prepared",
             "allowed",
             "definition",
-            "identity"
+            "identity",
+            "reserveOriginal"
           ],
           "async": false
         },
@@ -594,6 +656,15 @@
           "async": false
         },
         {
+          "name": "installUpdateTargetOriginals/projectPrepared/projectPrepared",
+          "parameters": [
+            "prepared",
+            "compilation",
+            "reserveOriginal"
+          ],
+          "async": false
+        },
+        {
           "name": "installUpdateTargetOriginals/restoreEffectMaterials/restoreEffectMaterials",
           "parameters": [
             "wire",
@@ -648,7 +719,7 @@
             "installUpdateTargetOriginals/bind/bind",
             "installUpdateTargetOriginals/bind/bind/assertUpdateSelectionCurrent/assertUpdateSelectionCurrent",
             "installUpdateTargetOriginals/bind/bind/bind",
-            "installUpdateTargetOriginals/capturePrepared/capturePrepared",
+            "installUpdateTargetOriginals/projectPrepared/projectPrepared",
             "installUpdateTargetOriginals/current/current",
             "installUpdateTargetOriginals/current/current/current",
             "installUpdateTargetOriginals/init:captureRun/init:captureRun",
@@ -683,6 +754,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "`stopBefore`"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
               }
             ],
             "inputsOutputs": [
@@ -697,6 +772,10 @@
               {
                 "path": "spec/contracts/actql-client-host.json",
                 "anchor": "\"request_optional_fields\""
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
               }
             ],
             "identity": [
@@ -711,6 +790,10 @@
               {
                 "path": "src/run_publication_host/client_requested_effect_stop.mbt",
                 "anchor": "fn check_requested_effect_stop_original("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
               }
             ],
             "ownership": [
@@ -725,6 +808,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "originalSubmittedIntent("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
               }
             ],
             "synchronization": [
@@ -739,6 +826,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
               }
             ],
             "failure": [
@@ -753,6 +844,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
               }
             ],
             "cancellation": [
@@ -767,6 +862,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "options.signal?.throwIfAborted();"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
               }
             ],
             "resources": [
@@ -785,6 +884,10 @@
               {
                 "path": "adapters/host-node/installed-effect-site.mjs",
                 "anchor": "function cleanupCustody("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
               }
             ],
             "extension": [
@@ -799,6 +902,10 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "let expected_fields = 3 +"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
               }
             ],
             "verification": [
@@ -829,6 +936,10 @@
               {
                 "path": "adapters/host-node/requested-effect-host.integration.test.mjs",
                 "anchor": "test('requested first Effect pauses Account Allow"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
               }
             ]
           }
@@ -843,60 +954,100 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Retained Effect Request restoration"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Retained Effect Request restoration"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
               }
             ],
             "identity": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Retained Effect Request restoration"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Retained Effect Request restoration"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Retained Effect Request restoration"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
               }
             ],
             "failure": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Retained Effect Request restoration"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Retained Effect Request restoration"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
               }
             ],
             "resources": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Retained Effect Request restoration"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
               }
             ],
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Retained Effect Request restoration"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
               }
             ],
             "verification": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Retained Effect Request restoration"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
               }
             ]
           }

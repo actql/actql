@@ -51507,6 +51507,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "A held-submission caller supplies its complete saved prepared original"
               }
             ],
             "inputsOutputs": [
@@ -51541,6 +51545,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "A held-submission caller supplies its complete saved prepared original"
               }
             ],
             "identity": [
@@ -51575,6 +51583,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "A held-submission caller supplies its complete saved prepared original"
               }
             ],
             "ownership": [
@@ -51609,6 +51621,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "A held-submission caller supplies its complete saved prepared original"
               }
             ],
             "synchronization": [
@@ -51643,6 +51659,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "A held-submission caller supplies its complete saved prepared original"
               }
             ],
             "failure": [
@@ -51677,6 +51697,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "A held-submission caller supplies its complete saved prepared original"
               }
             ],
             "cancellation": [
@@ -51711,6 +51735,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "A held-submission caller supplies its complete saved prepared original"
               }
             ],
             "resources": [
@@ -51745,6 +51773,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "A held-submission caller supplies its complete saved prepared original"
               }
             ],
             "extension": [
@@ -51779,6 +51811,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "A held-submission caller supplies its complete saved prepared original"
               }
             ],
             "verification": [
@@ -51841,6 +51877,14 @@
               {
                 "path": "adapters/host-node/request-model-material-resources.test.mjs",
                 "anchor": "test('Effect Model actual Host reserves execution and dependency materials through its same Request before readers'"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "A held-submission caller supplies its complete saved prepared original"
+              },
+              {
+                "path": "adapters/host-node/installed-update-originals.test.mjs",
+                "anchor": "held caller reuses its complete original only after existing nominal current and full-byte validation"
               }
             ]
           }
@@ -52050,7 +52094,9 @@
             "readLocalMockModelRunRequirements/declarations/declarations",
             "readLocalMockModelRunRequirements/documentBytes/documentBytes",
             "readLocalMockModelRunRequirements/readLocalMockModelRunRequirements",
-            "readLocalMockModelRunRequirements/readLocalMockModelRunRequirements#2"
+            "readLocalMockModelRunRequirements/readLocalMockModelRunRequirements#2",
+            "prepareRequestMockModelPlan/kinds/kinds",
+            "prepareRequestMockModelPlan/prepareRequestMockModelPlan#20"
           ],
           "exports": [
             "readLocalMockModelRunRequirements"
@@ -56930,7 +56976,7 @@
         {
           "operations": [
             "openInstalledHost/assertMockEffectRunOriginal",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#6",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#7",
             "openInstalledHost/mockEffectResources/init:assertCurrent/init:assertCurrent",
             "openInstalledHost/mockEffectResources/init:bindRunOriginal/init:bindRunOriginal",
             "openInstalledHost/mockEffectResources/init:limits/init:limits",
@@ -57414,11 +57460,11 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/continueAcceptedCancellation/continueAcceptedCancellation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/definitionOf/definitionOf",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/directSourceOccurrence/directSourceOccurrence",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#4",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#5",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#6",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/init:validateInstallation/init:validateInstallation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation",
@@ -59340,6 +59386,115 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun",
+            "openPreparedInstalledHost/preparation/init:reserveManagedEffectOriginal/init:reserveManagedEffectOriginal"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_original.mbt",
+                "anchor": "reserve_request_effect_original_material"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_original.mbt",
+                "anchor": "reserve_request_effect_original_material"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_original.mbt",
+                "anchor": "reserve_request_effect_original_material"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_original.mbt",
+                "anchor": "reserve_request_effect_original_material"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_original.mbt",
+                "anchor": "reserve_request_effect_original_material"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_original.mbt",
+                "anchor": "reserve_request_effect_original_material"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_original.mbt",
+                "anchor": "reserve_request_effect_original_material"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_original.mbt",
+                "anchor": "reserve_request_effect_original_material"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_original.mbt",
+                "anchor": "reserve_request_effect_original_material"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "Effect original projection forwards only the same checked Request and keeps a failed reservation sticky"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_original_js_wbtest.mbt",
+                "anchor": "Effect original envelope refuses one-byte-short retained backing without spending prepaid execution twice"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
@@ -60085,7 +60240,9 @@
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun",
           "parameters": [
-            "prepared"
+            "prepared",
+            "material",
+            "installations"
           ],
           "async": false
         },
@@ -60099,19 +60256,26 @@
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#2",
           "parameters": [
-            "facts"
+            "prepared"
           ],
           "async": false
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#3",
           "parameters": [
-            "prepared"
+            "facts"
           ],
           "async": false
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#4",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#5",
           "parameters": [
             "actual",
             "connection"
@@ -60119,7 +60283,7 @@
           "async": true
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#5",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#6",
           "parameters": [
             "actual",
             "connection",
@@ -60128,7 +60292,7 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#6",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#7",
           "parameters": [
             "prepared",
             "compilation",
@@ -62831,6 +62995,16 @@
           "async": false
         },
         {
+          "name": "openPreparedInstalledHost/preparation/init:reserveManagedEffectOriginal/init:reserveManagedEffectOriginal",
+          "parameters": [
+            "runtime",
+            "prepared",
+            "material",
+            "installations"
+          ],
+          "async": false
+        },
+        {
           "name": "openPreparedInstalledHost/preparation/init:restoreManagedModelOriginal/init:restoreManagedModelOriginal",
           "parameters": [
             "runtime",
@@ -63173,6 +63347,13 @@
           "async": false
         },
         {
+          "name": "prepareRequestMockModelPlan/kinds/kinds",
+          "parameters": [
+            "coordinate"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan",
           "parameters": [
             "member",
@@ -63222,7 +63403,7 @@
         {
           "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#15",
           "parameters": [
-            "value"
+            "kind"
           ],
           "async": false
         },
@@ -63250,9 +63431,7 @@
         {
           "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#19",
           "parameters": [
-            "_capacity",
-            "prefix",
-            "bindSuffix"
+            "value"
           ],
           "async": false
         },
@@ -63260,6 +63439,15 @@
           "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#2",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#20",
+          "parameters": [
+            "_capacity",
+            "prefix",
+            "bindSuffix"
           ],
           "async": false
         },
@@ -63318,7 +63506,7 @@
         {
           "name": "prepareRequestMockModelPlan/whole/whole",
           "parameters": [
-            "value"
+            "kind"
           ],
           "async": false
         },
@@ -63807,7 +63995,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "823faf2739409d44e42f1c1c555bd593e2db5331e1435dfb753f154afb63b2df"
+      "sha256": "b6980a52271f3bb85d01c993a129974390395e97ba69777f32c56bb8f5203048"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",

@@ -992,29 +992,57 @@ fn original_composed_keyed_consumer(
   }
   let right = @publication_host.finish_client_keyed_lookup_input(lookup).unwrap()
   if publication_identity {
-    let keys = match @publication_host.client_keyed_lookup_request_identity(lookup, 16384, 1024, 20) {
+    let keys = match
+      @publication_host.client_keyed_lookup_request_identity(
+        lookup, 16384, 1024, 20,
+      ) {
       Ok(value) => value
-      Err(@publication_host.Identity(issue)) => fail("actual key-set contract: " + @debug.to_string(issue))
-      Err(@publication_host.Assembly(reason)) => fail("actual key-set assembly: " + reason)
+      Err(@publication_host.Identity(issue)) =>
+        fail("actual key-set contract: " + @debug.to_string(issue))
+      Err(@publication_host.Assembly(reason)) =>
+        fail("actual key-set assembly: " + reason)
       Err(_) => fail("actual key-set refused outside contract/assembly")
     }
-    assert_true(@publication_host.client_keyed_lookup_request_identity_matches(keys, lookup))
-    let parts = @publication_host.client_keyed_lookup_request_identity_parts(keys)
+    assert_true(
+      @publication_host.client_keyed_lookup_request_identity_matches(
+        keys, lookup,
+      ),
+    )
+    let parts = @publication_host.client_keyed_lookup_request_identity_parts(
+      keys,
+    )
     assert_eq(parts.1, "{}")
-    assert_eq(parts.2, "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a")
+    assert_eq(
+      parts.2,
+      "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    )
     let scope_wire = @publication.publication_contract_json(parts.3)
-    assert_true(scope_wire.contains("\"request_key_set_cid\":\"" + @publication.publication_contract_identity(parts.0) + "\""))
-    assert_true(scope_wire.contains("\"request_values_cid\":\"" + parts.2 + "\""))
+    assert_true(
+      scope_wire.contains(
+        "\"request_key_set_cid\":\"" +
+        @publication.publication_contract_identity(parts.0) +
+        "\"",
+      ),
+    )
+    assert_true(
+      scope_wire.contains("\"request_values_cid\":\"" + parts.2 + "\""),
+    )
     let wire = @publication.publication_contract_json(parts.0)
     assert_false(wire.contains("$actql_ref"))
     assert_false(wire.contains("issuer_evidence"))
-    guard @json.parse(wire) is Object(fields) && fields["tuples"] is Array(tuples) &&
-      tuples.length() == 1 && tuples[0] is Array(cells) && cells.length() == 2 else {
+    guard @json.parse(wire) is Object(fields) &&
+      fields["tuples"] is Array(tuples) &&
+      tuples.length() == 1 &&
+      tuples[0] is Array(cells) &&
+      cells.length() == 2 else {
       fail("actual Resource/version request tuple")
     }
-    assert_true(@publication.admit_publication_effect_dependency_body(
-      "request_key_set", wire, 16384, 1024, 20,
-    ) is Ok(_))
+    assert_true(
+      @publication.admit_publication_effect_dependency_body(
+        "request_key_set", wire, 16384, 1024, 20,
+      )
+      is Ok(_),
+    )
   }
   if whole {
     let original_graph = @strategy.checked_effect_computation_graph(
@@ -1538,9 +1566,12 @@ fn original_composed_keyed_consumer(
     @publication_host.cleanup_client_keyed_lookup_input(lookup, 10000).unwrap(),
   )
   if publication_identity {
-    assert_true(@publication_host.client_keyed_lookup_request_identity(
-      lookup, 16384, 1024, 20,
-    ) is Err(_))
+    assert_true(
+      @publication_host.client_keyed_lookup_request_identity(
+        lookup, 16384, 1024, 20,
+      )
+      is Err(_),
+    )
   }
   assert_true(cleanup_client_serialization_prefix(original.prefix).unwrap())
   for run in runs {

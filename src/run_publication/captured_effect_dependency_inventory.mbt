@@ -26,9 +26,9 @@ pub fn admit_captured_effect_dependency_body(
     admit_local_effect_dependency_body(
       kind, wire, max_bytes, max_nodes, max_depth,
     )
-  } else if ["source_contract", "source_view_contract", "data_policy", "request_schema"].contains(
-      kind,
-    ) {
+  } else if [
+      "source_contract", "source_view_contract", "data_policy", "request_schema",
+    ].contains(kind) {
     admit_catalog_effect_dependency_body(
       kind, wire, max_bytes, max_nodes, max_depth,
     )
