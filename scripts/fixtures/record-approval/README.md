@@ -75,6 +75,15 @@ configuration only for capture, approval or recovery, before connecting. It
 does not supply permission decisions or turn a secret reference into a grant.
 Do not copy a test callback that always allows access into a real installation.
 
+Keep the complete Account configuration identity consistent between the Host
+and its installed Source/Effect Site. A provider-only subset and a Host
+configuration with extra rules are different configurations, even when their
+provider rights agree. The Site checks the original Checkpoint dispatch facts
+against its actual configuration. For owned loopback tests,
+`host-account.fixture.mjs` preserves the explicit provider rules, adds only the
+named test principal's Host submit/read rules and returns one wire to share.
+It does not validate policy or issue any decision or grant.
+
 See the [kintone preparation checklist](../kintone-approval/README.md) for the
 original record/field contract and the inputs still needed from a real account.
 

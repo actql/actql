@@ -11,6 +11,7 @@ import {salesforceUpdateCase, hubspotUpdateCase, kintoneUpdateCase} from './fixt
 import {runRecordUpdateApprovalPhase} from './fixtures/record-approval/workflow.mjs';
 import {runRecordApprovalCommand} from './fixtures/record-approval/command.mjs';
 import {hubspotApprovalProvider} from './fixtures/hubspot-approval/provider.mjs';
+import {recordApprovalHostAccountConfiguration} from './fixtures/record-approval/host-account.fixture.mjs';
 import {mockProjectFiles as salesforceMock} from './fixtures/salesforce-approval/mock-project.mjs';
 import {mockProjectFiles as hubspotMock} from './fixtures/hubspot-approval/mock-project.mjs';
 import {runSalesforceApprovalPhase} from './fixtures/salesforce-approval/workflow.mjs';
@@ -453,4 +454,33 @@ test('HubSpot approval provider requires a credential-bearing request before tar
   assert.equal(f.value.snapshot().requests.length, 0);
   const response = read.handle(f.exchange(path, {inputs: [{id: selection.recordId}], properties: ['name']}));
   assert.equal(response.body.results[0].properties.name, selection.previousName);
+});
+
+test('shared record approval Account fixture preserves provider policy in one complete Host/Site wire', () => {
+  const provider = {version: 'actql-execution-account-config/0.1', account_id: 'fixture',
+    entries: [{entry_id: 'provider', outcome: 'delegate', principal: {all: true},
+      connection: {any_of: ['hubspot:hubspot']}, resource: {any_of: ['companies']},
+      operation: {any_of: ['effect']}, exclusions: []}]};
+  const original = JSON.stringify(provider);
+  const wire = recordApprovalHostAccountConfiguration(JSON.stringify, original,
+    'original-principal', 'row-source-acquired');
+  const actual = JSON.parse(wire);
+  assert.equal(actual.version, provider.version);
+  assert.equal(actual.account_id, provider.account_id);
+  assert.deepEqual(actual.entries.map(entry => entry.entry_id), ['host-read', 'host-submit', 'provider']);
+  assert.deepEqual(actual.entries[2], provider.entries[0]);
+  assert.deepEqual(actual.entries[0], {entry_id: 'host-read', outcome: 'allow', exclusions: [],
+    principal: {any_of: ['original-principal']}, connection: {any_of: ['actql-remote-host']},
+    resource: {any_of: ['result/main', 'result/updates', 'run']}, operation: {any_of: ['read']}});
+  assert.deepEqual(actual.entries[1].resource, {any_of: ['row-source-acquired']});
+  assert.notEqual(wire, original, 'A provider-only subset is a different complete configuration');
+  assert.equal(JSON.stringify(provider), original);
+});
+
+test('shared record approval Account fixture never overwrites an existing Host rule', () => {
+  for (const entry_id of ['host-read', 'host-submit']) {
+    assert.throws(() => recordApprovalHostAccountConfiguration(JSON.stringify,
+      JSON.stringify({entries: [{entry_id, outcome: 'deny'}]}), 'principal', 'row-source-acquired'),
+    /InvalidRecordApprovalAccountFixture/u);
+  }
 });
