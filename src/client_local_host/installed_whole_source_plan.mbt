@@ -660,6 +660,7 @@ pub fn prepare_installed_managed_whole_source_plan(
   provider_factory~ : (@execution.ExecutionCapacity) -> Array[
     @local.ManagedProvider,
   ],
+  runtime_admission? : Bool = false,
 ) -> Result[ClientInstalledManagedCapturePlan, ClientInstalledManagedRunIssue] {
   prepare_installed_managed_whole_source_plan_owned(
     prepared,
@@ -674,6 +675,7 @@ pub fn prepare_installed_managed_whole_source_plan(
     None,
     retained_output~,
     provider_factory~,
+    runtime_admission~,
   )
 }
 
@@ -701,6 +703,7 @@ pub fn prepare_installed_managed_whole_source_plan_at_query_time(
   provider_factory~ : (@execution.ExecutionCapacity) -> Array[
     @local.ManagedProvider,
   ],
+  runtime_admission? : Bool = false,
 ) -> Result[ClientInstalledManagedCapturePlan, ClientInstalledManagedRunIssue] {
   guard invocation is Some((original, original_request, compiled, definition)) &&
     physical_equal(original_request, request) else {
@@ -726,6 +729,7 @@ pub fn prepare_installed_managed_whole_source_plan_at_query_time(
     Some(original),
     retained_output~,
     provider_factory~,
+    runtime_admission~,
   )
 }
 
@@ -745,6 +749,7 @@ fn prepare_installed_managed_whole_source_plan_owned(
   provider_factory~ : (@execution.ExecutionCapacity) -> Array[
     @local.ManagedProvider,
   ],
+  runtime_admission? : Bool = false,
 ) -> Result[ClientInstalledManagedCapturePlan, ClientInstalledManagedRunIssue] {
   prepare_installed_managed_whole_sources_plan(
     prepared,
@@ -758,6 +763,7 @@ fn prepare_installed_managed_whole_source_plan_owned(
     ordered_body,
     retained_output~,
     provider_factory~,
+    runtime_admission~,
     query_time~,
   )
 }
@@ -825,6 +831,7 @@ pub fn prepare_installed_managed_whole_sources_plan_at_query_time(
   provider_factory~ : (@execution.ExecutionCapacity) -> Array[
     @local.ManagedProvider,
   ],
+  runtime_admission? : Bool = false,
 ) -> Result[ClientInstalledManagedCapturePlan, ClientInstalledManagedRunIssue] {
   guard invocation is Some((original, original_request, compiled, definition)) &&
     physical_equal(original_request, request) else {
@@ -850,6 +857,7 @@ pub fn prepare_installed_managed_whole_sources_plan_at_query_time(
     query_time=Some(original),
     retained_output~,
     provider_factory~,
+    runtime_admission~,
   )
 }
 

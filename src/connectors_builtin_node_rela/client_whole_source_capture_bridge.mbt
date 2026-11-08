@@ -261,6 +261,9 @@ pub fn client_program_whole_source_request_wire(
 }
 
 ///|
+// Like the Query capture entry, the Request invokes these constructors while
+// its original body is borrowed. Actual tasks reserve on that same finite
+// parent; whole-Run quote maxima neither fund work nor gate this entrance.
 #export_name("clientProgramPrepareInstalledManagedWholeSourcePlan")
 pub fn client_program_prepare_installed_managed_whole_source_plan(
   prepared : @publication_host.PreparedClientProgram,
@@ -289,6 +292,7 @@ pub fn client_program_prepare_installed_managed_whole_source_plan(
     ordered,
     retained_output~,
     provider_factory=installed_client_family_providers,
+    runtime_admission=true,
   )
 }
 
@@ -330,6 +334,7 @@ pub fn client_program_prepare_installed_managed_whole_source_plan_at_query_time(
     invocation,
     retained_output~,
     provider_factory=installed_client_family_providers,
+    runtime_admission=true,
   )
 }
 
@@ -1065,6 +1070,7 @@ pub fn client_program_prepare_installed_managed_whole_sources_plan(
     ordered,
     retained_output~,
     provider_factory=installed_client_family_providers,
+    runtime_admission=true,
   )
 }
 
@@ -1106,6 +1112,7 @@ pub fn client_program_prepare_installed_managed_whole_sources_plan_at_query_time
     invocation,
     retained_output~,
     provider_factory=installed_client_family_providers,
+    runtime_admission=true,
   )
 }
 

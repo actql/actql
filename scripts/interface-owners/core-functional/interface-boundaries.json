@@ -38106,7 +38106,7 @@
     },
     {
       "module": "src/client_local_host/installed_whole_source_plan.mbt",
-      "sha256": "32b5e7a94ed8f1b9eba8c946d3d8d599a9cc43b745fa5b4ed49927402151ea0b",
+      "sha256": "99ac90bf3596cbee74e6bdd0a0bd343987d75620dde08250187c04e99632b0d0",
       "exports": [],
       "operations": [
         {
@@ -38175,15 +38175,15 @@
         },
         {
           "name": "prepare_installed_managed_whole_source_plan",
-          "declaration": "prepare_installed_managed_whole_source_plan ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , source : ClientInstalledWholeSourceCapacity , transport_bytes : Int64 , transport_execution_bytes : Int64 , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , ) - > Result [ ClientInstalledManagedCapturePlan , ClientInstalledManagedRunIssue ]"
+          "declaration": "prepare_installed_managed_whole_source_plan ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , source : ClientInstalledWholeSourceCapacity , transport_bytes : Int64 , transport_execution_bytes : Int64 , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , runtime_admission ? : Bool"
         },
         {
           "name": "prepare_installed_managed_whole_source_plan_at_query_time",
-          "declaration": "prepare_installed_managed_whole_source_plan_at_query_time ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , source : ClientInstalledWholeSourceCapacity , transport_bytes : Int64 , transport_execution_bytes : Int64 , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , invocation : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , @ publication_host . ClientCompiledRun , @ publication . PublicationContract , ) ? , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , ) - > Result [ ClientInstalledManagedCapturePlan , ClientInstalledManagedRunIssue ]"
+          "declaration": "prepare_installed_managed_whole_source_plan_at_query_time ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , source : ClientInstalledWholeSourceCapacity , transport_bytes : Int64 , transport_execution_bytes : Int64 , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , invocation : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , @ publication_host . ClientCompiledRun , @ publication . PublicationContract , ) ? , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , runtime_admission ? : Bool"
         },
         {
           "name": "prepare_installed_managed_whole_source_plan_owned",
-          "declaration": "prepare_installed_managed_whole_source_plan_owned ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , source : ClientInstalledWholeSourceCapacity , transport_bytes : Int64 , transport_execution_bytes : Int64 , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , query_time : @ publication_host . ClientQueryTimePreparation ? , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , ) - > Result [ ClientInstalledManagedCapturePlan , ClientInstalledManagedRunIssue ]"
+          "declaration": "prepare_installed_managed_whole_source_plan_owned ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , source : ClientInstalledWholeSourceCapacity , transport_bytes : Int64 , transport_execution_bytes : Int64 , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , query_time : @ publication_host . ClientQueryTimePreparation ? , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , runtime_admission ? : Bool"
         },
         {
           "name": "prepare_installed_managed_whole_sources_plan",
@@ -38191,7 +38191,7 @@
         },
         {
           "name": "prepare_installed_managed_whole_sources_plan_at_query_time",
-          "declaration": "prepare_installed_managed_whole_sources_plan_at_query_time ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , sources : Array [ ClientInstalledWholeSourceCapacity ] , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , invocation : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , @ publication_host . ClientCompiledRun , @ publication . PublicationContract , ) ? , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , ) - > Result [ ClientInstalledManagedCapturePlan , ClientInstalledManagedRunIssue ]"
+          "declaration": "prepare_installed_managed_whole_sources_plan_at_query_time ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , sources : Array [ ClientInstalledWholeSourceCapacity ] , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , invocation : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , @ publication_host . ClientCompiledRun , @ publication . PublicationContract , ) ? , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , runtime_admission ? : Bool"
         },
         {
           "name": "prepare_installed_whole_source_capacity",
@@ -61214,7 +61214,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_whole_source_capture_bridge.mbt",
-      "sha256": "3b89a2e2c441a0f4195df72dd6a29a8876a667fe4104610d6f43fa66b060e808",
+      "sha256": "c48ceba0dcc9bb6ce5d06deb098032910066f96b0e0cbb9a0eef1648e11e1970",
       "exports": [],
       "operations": [
         {
@@ -62394,7 +62394,7 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/client_whole_source_capture_bridge.mbt",
-      "sha256": "abd187949210877f3051fc67aec797781f67190f2318677f37c0b8cc9c101dab",
+      "sha256": "a3e6868d2a16d3e301b951ad223960b97151fa743f9c846619c9107a0350841e",
       "exports": [],
       "operations": [
         {
