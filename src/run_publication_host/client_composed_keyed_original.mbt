@@ -663,7 +663,7 @@ pub fn client_composed_keyed_request_matches_model_parent(
   lookup.selected_request is Some(selected) &&
   physical_equal(selected, request) &&
   lookup.selected_index == Some(-1) &&
-  request.row == lookup.accepted &&
+  request.row == keyed_lookup_next_original_row(lookup) &&
   request.attempts == 0L &&
   !request.io_complete &&
   lookup.completed is None &&

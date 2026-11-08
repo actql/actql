@@ -292,11 +292,20 @@ fn LocalCommandBusinessPreparation::capture_mock_effect_content(
       },
     )
     |> ignore
+    @run_host.prepare_client_keyed_native_batch_plan(lookup, 16384, 1024, 20).unwrap_or_else(() => {
+        stop("LocalOriginalModelKeyedBatchPlanUnavailable")
+      },
+    )
+    |> ignore
   })
-  for row in 0..<rows {
+  for _ in 0..<rows {
     let (request, file, binding) = self.original.with_business_request(
       self.capture,
       () => {
+        let row = @run_host.client_keyed_lookup_next_planned_row(lookup).unwrap_or_else(() => {
+            stop("LocalOriginalModelKeyedBatchPlanUnavailable")
+          },
+        )
         let request = @run_host.client_keyed_lookup_planned_request(lookup, row).unwrap_or_else(() => {
             stop("LocalOriginalModelKeyedRequestUnavailable")
           },

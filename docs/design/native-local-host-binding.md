@@ -3195,3 +3195,14 @@ Content custody cleanup precedes severing both raw aliases; failed cleanup keeps
 them on the same owner. This physical identity is separate from logical rows
 and Content identity, and supplies neither durable lookup Artifact publication
 nor an attempt receipt or physical-cleanup acknowledgement.
+
+The same lookup freezes the Native singleton batch Plan from its original
+canonical key set, transport and compiled barrier before selecting a physical
+child. Its schedule holds original left-occurrence indices in canonical key
+order. Equal-key occurrences retain their original Requests and reuse the same
+response; the left input and its multiplicity remain unchanged. Parent checks
+read that same schedule rather than equating processed count with original row
+number. Responses already admitted in canonical dispatch order are sealed
+without applying the original-slot permutation again. The existing unplanned
+and non-Native publication paths retain their original ordering. Neither this
+immutable Plan nor its schedule supplies durable activation or attempt evidence.

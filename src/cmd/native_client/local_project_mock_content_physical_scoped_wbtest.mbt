@@ -37,6 +37,18 @@ test "Native README keyed capture preserves original raw snapshot after ContentR
 }
 
 ///|
+test "Native README dispatches original keyed requests in canonical batch order" {
+  assert_eq(@env.get_env_var("ACTQL_TEST_NATIVE_BATCH_PLAN"), Some("1"))
+  native_project_mock_model_backed_read(
+    false,
+    readme_request=true,
+    effect_compilation=true,
+    effect_source_inputs=true,
+    content_join=true,
+  )
+}
+
+///|
 test "Native README Source originals retain the keyed Model closure" {
   assert_eq(
     @env.get_env_var("ACTQL_TEST_NATIVE_MODEL_SOURCE_CLOSURE"),
@@ -601,20 +613,72 @@ fn native_mock_readme_content_join_adopt(
     "issuer_contract_cid": Json::string("sha256:" + "b".repeat(64)),
     "capture_authority_cid": Json::string("sha256:" + "c".repeat(64)),
   }).unwrap()
-  for row in 0..<requests {
-    let preparation = @run_host.start_client_keyed_lookup_request(lookup, row).unwrap()
-    let mut request = None
-    for _ in 0..<100000 {
-      match @run_host.advance_client_keyed_lookup_request(lookup, preparation) {
-        @run_host.ClientKeyedRequestContinue(..) => ()
-        @run_host.ClientKeyedRequestComplete(value, ..) => {
-          request = Some(value)
-          break
+  let planned_keys = if @env.get_env_var("ACTQL_TEST_NATIVE_BATCH_PLAN") ==
+    Some("1") {
+    @run_host.start_client_keyed_lookup_request_plan(
+      lookup,
+      native_read_profile=@run_host.client_infer_plan_native_keyed_read_profile(
+        graph,
+      ),
+    ).native_content_join_stage("same original Native request plan")
+    for row in 0..<requests {
+      let preparation = @run_host.start_client_keyed_lookup_request(lookup, row).unwrap()
+      let mut request = None
+      for _ in 0..<100000 {
+        match
+          @run_host.advance_client_keyed_lookup_request(lookup, preparation) {
+          @run_host.ClientKeyedRequestContinue(..) => ()
+          @run_host.ClientKeyedRequestComplete(value, ..) => {
+            request = Some(value)
+            break
+          }
+          _ => fail("same original Native planned Request")
         }
-        _ => fail("original keyed request did not complete")
       }
+      @run_host.retain_client_keyed_lookup_planned_request(
+        lookup,
+        request.unwrap(),
+      ).unwrap()
     }
-    let request = request.unwrap()
+    let identity = @run_host.finish_client_keyed_lookup_request_plan(
+      lookup, 16384, 1024, 20,
+    ).native_content_join_stage("same original Native key set")
+    let batch = @run_host.prepare_client_keyed_native_batch_plan(
+      lookup, 16384, 1024, 20,
+    ).native_content_join_stage("same original Native canonical batch Plan")
+    assert_true(
+      @publication.publication_contract_json(batch).contains(
+        "\"batch_index\":1,\"key_indices\":[1]",
+      ),
+    )
+    Some(@run_host.client_keyed_lookup_request_identity_parts(identity).0)
+  } else {
+    None
+  }
+  for row in 0..<requests {
+    let request = if planned_keys is Some(_) {
+      let original_row = @run_host.client_keyed_lookup_next_planned_row(lookup).native_mock_journal_required(
+        "same original Native next occurrence",
+      )
+      @run_host.client_keyed_lookup_planned_request(lookup, original_row).native_content_join_stage(
+        "same original Native scheduled Request",
+      )
+    } else {
+      let preparation = @run_host.start_client_keyed_lookup_request(lookup, row).unwrap()
+      let mut request = None
+      for _ in 0..<100000 {
+        match
+          @run_host.advance_client_keyed_lookup_request(lookup, preparation) {
+          @run_host.ClientKeyedRequestContinue(..) => ()
+          @run_host.ClientKeyedRequestComplete(value, ..) => {
+            request = Some(value)
+            break
+          }
+          _ => fail("original keyed request did not complete")
+        }
+      }
+      request.unwrap()
+    }
     // Select the original assembly's cache slot BEFORE opening a new read.
     // -1 is this fresh request's real miss; it is not a guessed permission.
     assert_eq(
@@ -622,6 +686,26 @@ fn native_mock_readme_content_join_adopt(
       -1,
     )
     let request_value = @run_host.client_keyed_request_value(request, keyed).unwrap()
+    if planned_keys is Some(keys) {
+      guard @json.parse(@publication.publication_contract_json(keys))
+        is Object(fields) &&
+        fields.get("tuples") is Some(Array(tuples)) &&
+        tuples[row] is Array(expected) &&
+        expected.length() == 2 &&
+        @sourceviews.keyed_row_request_field(request_value, "resource")
+        is Some(resource) &&
+        resource.value is @admitted.Reference(reference) &&
+        @sourceviews.keyed_row_request_field(request_value, "version")
+        is Some(version) &&
+        version.value is @admitted.Text(version) else {
+        fail("same original typed canonical request tuple")
+      }
+      assert_eq(
+        expected[0],
+        Json::string(@admitted.reference_identity_cid(reference)),
+      )
+      assert_eq(expected[1], Json::string(version))
+    }
     let file = original.file_sources.unwrap()[0]
     let binding = file._retained_listings[0].1
     let physical = binding._retained_provider
@@ -837,9 +921,17 @@ fn native_mock_readme_content_join_adopt(
     }
   }
   if requests == 2 {
-    let complete = @run_host.finish_client_keyed_lookup_input(lookup).native_content_join_stage(
-      "both original keyed responses",
-    )
+    let complete = (if planned_keys is Some(_) {
+      @run_host.finish_client_keyed_lookup_publication_input(
+        lookup,
+        16384,
+        1024,
+        20,
+        retain_body=true,
+      )
+    } else {
+      @run_host.finish_client_keyed_lookup_input(lookup)
+    }).native_content_join_stage("both original keyed responses")
     assert_eq(@execution.supplied_relation_read_row_count(complete), 2)
     let mut content_values = 0
     for row in 0..<2 {

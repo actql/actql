@@ -577,6 +577,8 @@ pub fn issue_model_raw_response(BoundModelRawCapturePolicy, BoundModelInvocation
 
 pub fn issue_model_run_invocation(RunEvidenceValue, RunEvidenceValue, Array[BoundModelSlotCapture], Int, Int, Int) -> Result[PublicationContract, RunEvidenceValueIssue]
 
+pub fn issue_native_file_lookup_batch_plan(String, PublicationContract, PublicationContract, Int, Int, Int) -> Result[PublicationContract, PublicationContractIssue]
+
 pub fn issue_native_file_lookup_transport(PublicationContract, @encode_core.EncodedDocument, Int, Int, Int) -> Result[PublicationContract, PublicationContractIssue]
 
 pub fn issue_pre_checkpoint_unpublished_run_state_wire(String, String, Array[String], Bool, Bool, Int, Int, Int, cancelled_before_start? : Bool, observed_terminal_outcome? : RunOutcomeStatus?, execution_unknown? : Bool) -> Result[String, RunStateIssue]

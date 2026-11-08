@@ -831,6 +831,8 @@ pub fn client_keyed_lookup_input_work(ClientKeyedLookupInput) -> Int64
 
 pub fn client_keyed_lookup_native_transport(ClientKeyedLookupInput) -> @run_publication.PublicationContract?
 
+pub fn client_keyed_lookup_next_planned_row(ClientKeyedLookupInput) -> Int?
+
 pub fn client_keyed_lookup_observation_dependency_bodies(ClientKeyedLookupObservation) -> (String, String)?
 
 pub fn client_keyed_lookup_observation_originals(ClientKeyedLookupObservation) -> (@run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String)?
@@ -1986,6 +1988,8 @@ pub fn prepare_client_keyed_acquisition(PreparedClientProgram, Int, Int, Int, jo
 pub fn prepare_client_keyed_capture_left_read(ClientKeyedAcquisition, @execution_query.CapturedInputSource, Int, Int) -> Result[ClientKeyedLeftRead, ClientKeyedRequestIssue]
 
 pub fn prepare_client_keyed_lookup_join_inputs(ClientKeyedLookupInput, @execution_relation.GeneratedSequence) -> Result[(@execution_relation.GeneratedSequence, @execution_relation.ProducerRead, @execution_relation.SuppliedRelationRead), ClientKeyedRequestIssue]
+
+pub fn prepare_client_keyed_native_batch_plan(ClientKeyedLookupInput, Int, Int, Int) -> Result[@run_publication.PublicationContract, ClientKeyedRequestIssue]
 
 pub fn prepare_client_keyed_serialization_inputs(PreparedClientProgram, ClientKeyedLookupInput, @execution_query.CapturedInputSource, @physical_resources.Ledger, @execution_relation.GeneratedSequence) -> Result[(@execution_relation.ProducerRead, @execution_relation.SuppliedRelationRead), ClientKeyedRequestIssue]
 
