@@ -277,3 +277,29 @@ test "Native keyed activation Source live reentry preserves the first returned o
     native_transport=true,
   )
 }
+
+///|
+#cfg(target="js")
+test "Native original left identity Source live reentry preserves the first returned original" {
+  original_composed_keyed_consumer(
+    whole=true,
+    restored=true,
+    left_identity_reentry=true,
+    native_activation=true,
+    pre_dispatch_plan=true,
+    native_transport=true,
+  )
+}
+
+///|
+#cfg(target="js")
+test "Native original left identity Source live planning reentry preserves the original plan" {
+  original_composed_keyed_consumer(
+    whole=true,
+    restored=true,
+    left_plan_reentry=true,
+    native_activation=true,
+    pre_dispatch_plan=true,
+    native_transport=true,
+  )
+}

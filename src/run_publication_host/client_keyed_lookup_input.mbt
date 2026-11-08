@@ -28,6 +28,9 @@ struct ClientKeyedLookupInput {
   mut identity_output : @execution.CompletedOutput?
   mut identity_receipt : @execution.CompletedRelationExportReceipt?
   mut identity_bodies : (String, String)?
+  mut native_left_receipt : @execution.CompletedRelationExportReceipt?
+  mut native_left_identity : ClientKeyedNativeLeftIdentity?
+  mut native_left_work : Int64
   mut identity_work : Int64
   rows : Int
   mut input : @execution.AdmittedInput?
@@ -75,7 +78,19 @@ fn keyed_lookup_layout_capacity(
   // Initial controls and empty append buffers only. Policy ceilings and the
   // complete left row count allocate no payload here. The original request
   // cursor and each actual response grow this SAME reservation below.
-  Some((4096L, 4096L))
+  guard @execution.preparation_representation_cost({
+      // Two original left receipt/identity fields and consumed identity work.
+      // Their later Some/token payloads are funded before construction below.
+      record_headers: 0L,
+      reference_slots: 2L,
+      scalar_words: 1L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(controls) else {
+    return None
+  }
+  Some((4096L + controls, 4096L + controls))
 }
 
 ///|
@@ -211,6 +226,9 @@ fn start_client_keyed_lookup_input_owned(
     identity_output: None,
     identity_receipt: None,
     identity_bodies: None,
+    native_left_receipt: None,
+    native_left_identity: None,
+    native_left_work: 0L,
     identity_work: 0L,
     rows,
     input: Some(input),
@@ -982,6 +1000,7 @@ fn keyed_lookup_supplied_read(
 pub fn client_keyed_lookup_input_work(state : ClientKeyedLookupInput) -> Int64 {
   state.work.to_int64() +
   state.identity_work +
+  state.native_left_work +
   state.input
   .map(input => @execution.admitted_input_work(input).to_int64())
   .unwrap_or(state.retired_row_work)

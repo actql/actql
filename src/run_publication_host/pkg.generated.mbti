@@ -853,6 +853,8 @@ pub fn client_keyed_lookup_usage(ClientKeyedLeftRead) -> (Int64, Int64, Int64, I
 
 pub fn client_keyed_native_activation_matches(ClientKeyedNativeActivation, ClientRequestIdentity, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> Bool
 
+pub fn client_keyed_native_left_identity(ClientKeyedLookupInput) -> ClientKeyedNativeLeftIdentity?
+
 pub fn client_keyed_request_matches_acquisition(ClientKeyedRequest, ClientKeyedAcquisition) -> Bool
 
 pub fn client_keyed_request_preparation_work(ClientKeyedRequestPreparation) -> Int
@@ -1994,6 +1996,8 @@ pub fn prepare_client_keyed_lookup_join_inputs(ClientKeyedLookupInput, @executio
 pub fn prepare_client_keyed_native_activation(ClientKeyedLookupInput, ClientKeyedRequest, ClientRequestIdentity, String, String, Int64, Int, Int, Int) -> Result[ClientKeyedNativeActivation, ClientKeyedRequestIssue]
 
 pub fn prepare_client_keyed_native_batch_plan(ClientKeyedLookupInput, Int, Int, Int) -> Result[@run_publication.PublicationContract, ClientKeyedRequestIssue]
+
+pub fn prepare_client_keyed_native_left_identity(ClientKeyedLookupInput, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int, Int) -> Result[ClientKeyedNativeLeftIdentity, ClientKeyedRequestIssue]
 
 pub fn prepare_client_keyed_native_raw_response(ClientCompiledRun, @run_publication.PublicationContract, ClientKeyedRequest, @run_publication.PublicationContract, String, String, Int, String, Int64, @value_admission.ReferenceLimits) -> Result[ClientKeyedNativeRawResponse, ClientKeyedRequestIssue]
 
@@ -3368,6 +3372,17 @@ pub struct ClientKeyedNativeActivation {
   // private fields
 }
 
+pub struct ClientKeyedNativeLeftIdentity {
+  logical_value_cid : String
+  relation_schema_cid : String
+  producer_contract_cid : String
+  computation_contract_cid : String
+  body : String
+  schema_wire : String
+  rows : Int
+  // private fields
+}
+
 pub struct ClientKeyedNativeRawResponse {
   metadata : @run_publication.PublicationContract
   retention : @run_publication.PublicationContract
@@ -3391,6 +3406,7 @@ pub(all) enum ClientKeyedRequestIssue {
   Physical(@physical_resources.LedgerIssue)
   Row(@execution_relation.AdmittedOutputRowIssue)
   InputCapture(@execution_relation.CaptureIssue)
+  CompletedIdentity(@execution_relation.CompletedExportIssue)
 }
 
 pub enum ClientKeyedRequestPoll {

@@ -348,6 +348,7 @@ pub(all) enum ClientKeyedRequestIssue {
   Physical(@resources.LedgerIssue)
   Row(@execution.AdmittedOutputRowIssue)
   InputCapture(@execution.CaptureIssue)
+  CompletedIdentity(@execution.CompletedExportIssue)
 }
 
 ///|

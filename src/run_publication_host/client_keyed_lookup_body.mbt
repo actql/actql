@@ -274,6 +274,11 @@ fn clear_keyed_lookup_identity_bodies(lookup : ClientKeyedLookupInput) -> Unit {
     @execution.cancel_completed_relation_identity_scan(scan) |> ignore
   }
   lookup.identity_scan = None
+  lookup.native_left_identity = None
+  if lookup.native_left_receipt is Some(receipt) {
+    @execution.cancel_completed_relation_export_receipt(receipt)
+  }
+  lookup.native_left_receipt = None
   lookup.identity_bodies = None
   if lookup.identity_receipt is Some(receipt) {
     @execution.cancel_completed_relation_export_receipt(receipt)
