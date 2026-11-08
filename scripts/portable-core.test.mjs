@@ -235,6 +235,22 @@ test('actual explicitly rooted product closure passes', () => {
   assert.ok(Object.keys(result.external).every(key => !key.endsWith('/env')));
 });
 
+test('actual Text sizing target files survive the audited production copy', t => {
+  const f = fixture(t), root = new URL('../', import.meta.url).pathname;
+  const isolated = join(f.root, 'isolated-text-sizing');
+  copyProductionCore(root, isolated, ['execution_relation']);
+  const copied = readFileSync(join(isolated, 'src/execution_relation/moon.pkg'), 'utf8');
+  assert.match(copied, /"text_workspace_growth_js\.mbt": \["js"\]/u);
+  assert.match(copied, /"text_workspace_growth_nonjs\.mbt": \["not","js"\]/u);
+  for (const file of ['text_workspace_growth.mbt', 'text_workspace_growth_js.mbt',
+    'text_workspace_growth_nonjs.mbt']) {
+    assert.equal(readFileSync(join(isolated, 'src/execution_relation', file), 'utf8'),
+      readFileSync(join(root, 'src/execution_relation', file), 'utf8'));
+  }
+  assert.equal(existsSync(join(isolated, 'src/execution_relation/text_workspace_growth_wbtest.mbt')), false);
+  assert.ok(inspectCore(isolated, ['execution_relation']).packages.includes('execution_relation'));
+});
+
 
 test('isolated build retains production aliases and excludes test-only packages and files', t => {
   const f = fixture(t);
