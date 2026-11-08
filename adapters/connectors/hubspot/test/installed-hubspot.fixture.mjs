@@ -21,7 +21,7 @@ export const objectBody = JSON.stringify({results: [{id: expected.id, archived: 
   properties: {amount: '9007199254740993.01', tags: 'a;b'}}]});
 
 export async function installedHubSpotFixture(t, {account = 'allow', propertyRead = 'allow',
-  propertyDefinitions = properties, sourceLimits = {}} = {}) {
+  propertyDefinitions = properties, sourceLimits = {}, objectResponseBody = objectBody} = {}) {
   const captures = [], dependentCleanup = [];
   let loaderParent;
   // Capture originals before any fallible child opens. Teardown retires
@@ -112,7 +112,7 @@ export async function installedHubSpotFixture(t, {account = 'allow', propertyRea
   f.state.onRequest = async (request, response) => {
     if (request.url === '/account-info/v3/details') return false;
     const body = request.url === '/crm/v3/properties/companies' ? JSON.stringify(propertyDefinitions)
-      : request.url.startsWith('/crm/v3/objects/companies?') ? objectBody
+      : request.url.startsWith('/crm/v3/objects/companies?') ? objectResponseBody
       : assert.fail(`Unexpected request ${request.url}`);
     requestBodies.push(Buffer.from(body));
     response.writeHead(200, {'content-type': 'application/json'}); response.end(body); return true;
