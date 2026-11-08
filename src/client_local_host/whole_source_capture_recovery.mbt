@@ -6,9 +6,9 @@ pub fn client_whole_source_capture_schema_columns(
   capacity : ClientInstalledWholeSourceCapacity,
 ) -> Int? {
   guard @query.captured_source_matches_input_acquisition(
-      source,
-      capacity.original,
-    ) else {
+    source,
+    capacity.original,
+  ) else {
     return None
   }
   Some(
