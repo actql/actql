@@ -5,7 +5,8 @@ import {verifyIdentity} from './check-canonical-json.mjs';
 import {finishSourceFreeObservations} from './test-native-cli-source-free-install.mjs';
 import {observeFreshSubmissionFailureDiagnostic, preserveOrdinaryFailureWithDiagnostic,
   observeNativeNumericScale, verifyNativeNumericRows, prepareNativeNumericOperator,
-  observeNativeNumericOperatorScale}
+  observeNativeNumericOperatorScale, nativeResourceShapeFixtures, verifyNativeResourceRows,
+  observeNativeResourceOperatorShapes}
   from './test-native-cli-source-free-install.mjs';
 
 test('fresh submission diagnostic uses one independent project and restores its environment', async t => {
@@ -522,3 +523,118 @@ test('Native numeric operator harness uses one selected install and preserves di
   assert.equal(report.operator.lowPolicyRefused, true);
   assert.equal(report.operator.maxRows, 100000);
 });
+
+test('Native resource fixtures separate long scalars, Unicode escapes and small-input expansion', () => {
+  const [long, unicode, expanded] = nativeResourceShapeFixtures();
+  assert.deepEqual([long.id, unicode.id, expanded.id],
+    ['few-long-strings', 'unicode-escapes', 'small-input-large-output']);
+  assert.deepEqual(long.expectedRows, [{id: 0, text: 'a'.repeat(16384)}, {id: 1, text: 'b'.repeat(16384)}]);
+  assert.equal(unicode.expectedRows[0].text, '日本語😀'.repeat(128));
+  assert.equal(unicode.expectedRows[1].text, 'e\u0301'.repeat(128));
+  assert.notEqual(unicode.expectedRows[1].text, unicode.expectedRows[1].text.normalize('NFC'));
+  assert.equal(unicode.expectedRows[3].text, '"\\\b\f\n\r\t\u0000\u001f'.repeat(128));
+  assert.equal(unicode.expectedRows[4].text, '\u2028\u2029'.repeat(128));
+  for (const fixture of [long, unicode, expanded]) {
+    assert(Buffer.byteLength(JSON.stringify(fixture.program)) < 65536);
+    assert.equal(fixture.program.stages[0].steps[0].values.rows[0].text.literal, fixture.expectedRows[0].text);
+  }
+  assert.equal(expanded.program.stages[0].steps[0].values.rows.length, 1);
+  assert.equal(expanded.program.stages[0].steps[1].values.rows.length, 512);
+  assert.deepEqual(expanded.program.stages[0].steps[2].cross_join,
+    {with: 'right_rows', select: {text: 'left.text', copy: 'right.copy'}});
+  assert.equal(expanded.expectedRows.length, 512);
+  assert.deepEqual(expanded.expectedRows.at(-1), {text: 'expand:'.repeat(585), copy: 511});
+  const inputBytes = Buffer.byteLength(JSON.stringify(expanded.program));
+  const outputBytes = expanded.expectedRows.reduce((total, row) => total + Buffer.byteLength(JSON.stringify(row)) + 1, 0);
+  assert(inputBytes < 16384); assert(outputBytes > 1048576); assert(outputBytes > 100 * inputBytes);
+});
+
+test('Native resource oracle reads full scalars and rejects truncation, normalization, extra rows and fields', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-native-resource-oracle-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const path = join(root, 'rows.jsonl');
+  const expected = [{id: 0, text: 'e\u0301日本語😀"\\\n\u0000'}, {id: 1, text: 'z'.repeat(16384)}];
+  const writeRows = rows => writeFile(path, rows.map(row => JSON.stringify(row)).join('\n') + '\n');
+  await writeRows(expected);
+  const complete = await verifyNativeResourceRows(path, expected);
+  assert.equal(complete.rows, 2); assert.match(complete.contentSha256, /^[0-9a-f]{64}$/u);
+  assert.equal(complete.wireBytes, (await readFile(path)).length);
+  for (const rows of [expected.slice(0, 1), [...expected, expected[1]],
+    [expected[0], {...expected[1], text: expected[1].text.slice(0, -1)}],
+    [{...expected[0], text: expected[0].text.normalize('NFC')}, expected[1]],
+    [expected[0], {...expected[1], extra: true}],
+    [expected[0], {id: 1}]]) {
+    await writeRows(rows);
+    await assert.rejects(verifyNativeResourceRows(path, expected));
+  }
+});
+
+// Synthetic replies qualify only this consumer/oracle orchestration. The
+// normal Linux job executes these same fixtures through the installed entry.
+async function resourceHarness(t, failure) {
+  const parent = await mkdtemp(join(tmpdir(), 'actql-native-resource-harness-'));
+  t.after(() => rm(parent, {recursive: true, force: true}));
+  const project = join(parent, 'operator'), calls = [];
+  const fixtures = nativeResourceShapeFixtures(), inputs = numericOperatorInputs();
+  const originalInputs = structuredClone(inputs);
+  let fixture;
+  const cli = async (all, cwd) => {
+    assert.equal(cwd, project);
+    assert.deepEqual(all.slice(0, 6), ['--mode', 'local', '--config-root', project, '--config-file', 'operator.json']);
+    const args = all.slice(6); calls.push(args);
+    const capacity = JSON.parse(await readFile(join(project, 'environment.json'), 'utf8')).host_policy_profile.capacity;
+    assert.equal(capacity.max_relation_output_rows, 1024);
+    assert.equal(capacity.max_artifact_rows, 1024); assert.equal(capacity.max_artifact_bytes, 16777216);
+    assert.deepEqual(inputs, originalInputs);
+    if (args[0] === 'adopt') return {code: 0, signal: null, stdout: '{"kind":"local_host_adopted"}'};
+    if (args[0] === 'run') {
+      fixture = fixtures.find(value => args[1] === value.id + '.json');
+      assert(fixture);
+      assert.deepEqual(JSON.parse(await readFile(join(project, args[1]), 'utf8')), fixture.program);
+      if (failure === 'run') throw new Error('OriginalResourceRunFailure');
+    } else {
+      assert.equal(args[1], fixture.id + '-original');
+      const saved = args[0] === 'status' || args.at(-1).endsWith('-saved.jsonl');
+      assert.equal(existsSync(join(project, fixture.id + '.json')), !saved);
+      if (args[0] === 'result') {
+        assert.equal(dirname(args.at(-1)), project + '-output');
+        const rows = structuredClone(fixture.expectedRows);
+        if (saved && failure === 'saved-content') rows.at(-1).text += '!';
+        await writeFile(args.at(-1), rows.map(row => JSON.stringify(row)).join('\n') + '\n', {flag: 'wx'});
+        if (saved && failure === 'saved-cleanup') return {code: 1, signal: null, stdout: '', stderr: 'OriginalCleanupFailure'};
+      }
+      if (args[0] === 'status' && failure === 'foreign-run') {
+        return {code: 0, signal: null, stdout: JSON.stringify({version: 'actql-run-state/0.1',
+          run_id: 'foreign', status: 'succeeded'})};
+      }
+    }
+    return {code: 0, signal: failure === 'signal' ? 'SIGTERM' : null, stdout: JSON.stringify({
+      version: 'actql-run-state/0.1', run_id: fixture.id + '-original', status: 'succeeded'})};
+  };
+  return {calls, project, observe: () => observeNativeResourceOperatorShapes({project, cli, ...inputs})};
+}
+
+test('Native resource consumer submits each shape once then reads full SAME Saved after input removal', async t => {
+  const actor = await resourceHarness(t), report = await actor.observe();
+  assert.deepEqual(actor.calls.map(args => args[0]),
+    ['adopt', ...Array.from({length: 3}, () => ['run', 'result', 'status', 'result']).flat()]);
+  assert.equal(report.observations.length, 3);
+  assert.deepEqual(report.observations.map(value => value.first.rows), [2, 5, 512]);
+  for (const observed of report.observations) {
+    assert.equal(observed.inputRemovedBeforeSaved, true);
+    assert.deepEqual(observed.saved, observed.first);
+    assert.equal(existsSync(join(actor.project, observed.id + '.json')), false);
+  }
+  assert.equal(report.independentFdInspection, false);
+  assert.equal(report.operator.maxRows, 1024);
+});
+
+for (const failure of ['run', 'signal', 'saved-content', 'saved-cleanup', 'foreign-run']) {
+test(`Native resource ${failure} cannot become acceptance or trigger another submission`, async t => {
+  const actor = await resourceHarness(t, failure);
+  await assert.rejects(actor.observe());
+  assert.equal(actor.calls.filter(args => args[0] === 'run').length, 1);
+  assert.equal(actor.calls.some(args => args[1] === 'unicode-escapes.json'), false);
+  assert.equal(existsSync(join(actor.project, 'few-long-strings.json')), ['run', 'signal'].includes(failure));
+});
+}
