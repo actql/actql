@@ -409,13 +409,14 @@ fn native_mock_readme_request_payload(
               assets.ordered,
             ).unwrap()
             try {
-              let infers = original.prepare_effect_graphs(
+              let models = original.prepare_effect_models(
                 facility.parent,
                 facility.input,
                 prepared,
                 environment,
                 contracts,
               )
+              let infers = models.map(value => value.graph)
               if infers.length() != 1 {
                 stop("LocalOriginalModelGraphCount")
               }
@@ -516,6 +517,7 @@ fn native_mock_readme_request_payload(
                 "2026-10-10T00:00:00.000Z",
                 "2099-01-01T00:00:00.000Z",
                 infers~,
+                models~,
                 request=Some(request),
                 source_inputs~,
               )
@@ -527,6 +529,31 @@ fn native_mock_readme_request_payload(
                 ) {
                 stop("LocalOriginalEffectCompilationChanged")
               }
+              // The first compiler retains the exact early provider/bounds
+              // selection. Later execution must not reselect either object.
+              assert_true(physical_equal(compiled._retained_models, models))
+              let selected = models[0]
+              assert_true(physical_equal(selected.graph, infers[0]))
+              assert_true(
+                physical_equal(
+                  selected._retained_profile,
+                  original.model_profile.unwrap(),
+                ),
+              )
+              assert_true(
+                physical_equal(
+                  selected._retained_provider,
+                  original
+                  .model_provider(
+                    @run_host.client_infer_plan_graph_execution_contract(
+                      selected.graph,
+                    ),
+                  )
+                  .unwrap(),
+                ),
+              )
+              assert_true(selected._retained_limits.model.max_items > 0)
+              assert_true(selected._retained_limits.model.ledger.attempts > 0)
               if effect_source_inputs &&
                 !physical_equal(compiled._retained_sources, source_inputs) {
                 stop("LocalOriginalSourceInputsChanged")
@@ -785,6 +812,16 @@ test "Native original whole README compiles its first Effect Task with the same 
 
 ///|
 test "Native original whole README retains its two distinct checked Source readers before first Effect Task" {
+  native_project_mock_model_backed_read(
+    false,
+    readme_request=true,
+    effect_compilation=true,
+    effect_source_inputs=true,
+  )
+}
+
+///|
+test "Native README first compiler retains the same prepared Model provider profile and bounds" {
   native_project_mock_model_backed_read(
     false,
     readme_request=true,

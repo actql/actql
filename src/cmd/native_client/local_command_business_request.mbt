@@ -265,14 +265,14 @@ fn LocalCommandBusinessPreparation::compile_effect_first(
     let occurrences = @run_host.prepared_client_effect_infer_occurrences(
       prepared,
     ).unwrap_or_else(() => stop("LocalOriginalModelUnavailable"))
-    let infers = if occurrences.is_empty() {
+    let models = if occurrences.is_empty() {
       []
     } else {
       guard self.original.project is Some(project) &&
         project.mock_declarations is Some(mock) else {
         stop("LocalOriginalModelUnavailable")
       }
-      mock.prepare_effect_graphs(
+      mock.prepare_effect_models(
         parent,
         input,
         prepared,
@@ -303,7 +303,8 @@ fn LocalCommandBusinessPreparation::compile_effect_first(
       request_id,
       now,
       until,
-      infers~,
+      infers=models.map(value => value.graph),
+      models~,
       request=Some(request),
       source_inputs~,
     )
