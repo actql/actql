@@ -27,13 +27,18 @@ test('Source owner covers the exact current module and every operation', async (
   const {assertInterfaceCoverage} = await import('./interface-inventory.mjs');
   const module = 'src/client_local_host/installed_source_read.mbt';
   const source = readFileSync(new URL('../' + module, import.meta.url));
-  const inventory = JSON.parse(readFileSync(new URL('../src/client_local_host/ordered-direct-inputs-interface-boundaries.json', import.meta.url)));
-  const declaration = inventory.declarations.find(value => value.module === module);
-  assert.equal(declaration.responsibilityFacet, 'primary');
-  assertInterfaceCoverage({root: new URL('../', import.meta.url).pathname,
-    modules: [{module, sha256: createHash('sha256').update(source).digest('hex'),
-      exports: [], operations: moonOperations(source.toString())}],
-    declarations: [declaration]});
+  // Validate both existing owners independently: merging their declarations
+  // must not hide a stale hash in one behind the other's current operation.
+  for (const path of ['src/client_local_host/ordered-direct-inputs-interface-boundaries.json',
+    'scripts/interface-owners/core-functional/interface-boundaries.json']) {
+    const inventory = JSON.parse(readFileSync(new URL('../' + path, import.meta.url)));
+    const declaration = inventory.declarations.find(value => value.module === module);
+    assert.equal(declaration.responsibilityFacet, 'primary');
+    assertInterfaceCoverage({root: new URL('../', import.meta.url).pathname,
+      modules: [{module, sha256: createHash('sha256').update(source).digest('hex'),
+        exports: [], operations: moonOperations(source.toString())}],
+      declarations: [declaration]});
+  }
 });
 
 test('hosted lint always runs the Source current controls without weakening failure handling', async () => {

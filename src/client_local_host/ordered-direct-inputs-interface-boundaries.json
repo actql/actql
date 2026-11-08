@@ -931,7 +931,7 @@
     {
       "module": "src/client_local_host/installed_source_read.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "b5cba89a2f8368413643839b25c52dc594071827b39c2aa4507a399ad98139d7",
+      "sha256": "a520b0ea48be6ad30e15a0556858660a08f0b3410ee69e4f0ea3578860575cec",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -998,7 +998,7 @@
         },
         {
           "name": "start_installed_source_read_listing_rows",
-          "declaration": "start_installed_source_read_listing_rows ( value : ClientInstalledSourceRead , acquisition : @ row_source_host . RowAcquisition , capacity : @ execution . ExecutionCapacity ? , nonce : String , original_stop : ( @ row_source_host . RowAttempt ) - > Bool , transfer_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ @ row_source_host . RowRun , ClientInstalledSourceReadIssue ]"
+          "declaration": "start_installed_source_read_listing_rows ( value : ClientInstalledSourceRead , acquisition : @ row_source_host . RowAcquisition , capacity : @ execution . ExecutionCapacity ? , nonce : String , original_stop : ( @ row_source_host . RowAttempt ) - > Bool , transfer_bytes : Int64 , execution_bytes : Int64 , response_capacity ? : Bool"
         },
         {
           "name": "start_installed_source_read_provider_rows",
