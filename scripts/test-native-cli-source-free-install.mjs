@@ -201,6 +201,114 @@ export async function observeNativeNumericOperatorScale({project, cli, assets, l
     lowPolicyRows: low.maxRows, lowPolicyRefused: true}};
 }
 
+export function nativeResourceShapeFixtures() {
+  const values = (schema, rows) => ({schema, rows: rows.map(row => Object.fromEntries(
+    Object.entries(row).map(([key, value]) => [key, typeof value === 'string' ? {literal: value} : value])))});
+  const program = (id, steps, fields) => ({version: 'actql/0.1', id,
+    stages: [{id: 'main', inputs: {}, steps, results: {rows: {from: 'output', fields}}}],
+    results: {answer0: {from: {stage: 'main', result: 'rows'}}}});
+  const textSchema = {id: {type: 'number', nullable: false}, text: {type: 'string', nullable: false}};
+  const longRows = [{id: 0, text: 'a'.repeat(524288)}, {id: 1, text: 'b'.repeat(524288)}];
+  const unicodeRows = ['日本語😀', 'e\u0301', 'é', '"\\\b\f\n\r\t\u0000\u001f', '\u2028\u2029']
+    .map((text, id) => ({id, text: text.repeat(128)}));
+  const payload = 'expand:'.repeat(585), copies = Array.from({length: 512}, (_, copy) => ({copy}));
+  return [
+    {id: 'few-long-strings', key: 'id', expectedRows: longRows,
+      program: program('few-long-strings', [{as: 'output', values: values(textSchema, longRows)}], ['id', 'text'])},
+    {id: 'unicode-escapes', key: 'id', expectedRows: unicodeRows,
+      program: program('unicode-escapes', [{as: 'output', values: values(textSchema, unicodeRows)}], ['id', 'text'])},
+    {id: 'small-input-large-output', key: 'copy', expectedRows: copies.map(({copy}) => ({text: payload, copy})),
+      program: program('small-input-large-output', [
+        {as: 'left_rows', values: values({text: {type: 'string', nullable: false}}, [{text: payload}])},
+        {as: 'right_rows', values: values({copy: {type: 'number', nullable: false}}, copies)},
+        {as: 'output', from: 'left_rows', cross_join: {
+          with: 'right_rows', select: {text: 'left.text', copy: 'right.copy'}}},
+      ], ['text', 'copy'])},
+  ];
+}
+
+// Compare every actual delivered scalar, including Unicode normalization and
+// escaped controls. Neither a preview nor a digest alone is this oracle.
+export async function verifyNativeResourceRows(path, expectedRows, keyField = 'id') {
+  const expected = new Map(), seen = new Set();
+  for (const row of expectedRows) {
+    const key = row[keyField];
+    assert(Number.isSafeInteger(key)); assert(!expected.has(key), 'Unique expected resource key required');
+    expected.set(key, row);
+  }
+  const input = createReadStream(path), lines = createInterface({input, crlfDelay: Infinity});
+  const closed = new Promise(resolve => input.once('close', resolve));
+  let rows = 0;
+  try {
+    for await (const line of lines) {
+      assert(rows < expectedRows.length, 'Unexpected extra resource Result row');
+      const row = JSON.parse(line);
+      assert(row !== null && typeof row === 'object' && !Array.isArray(row), 'Resource Result object required');
+      const key = row[keyField];
+      assert(expected.has(key), 'Unexpected resource Result key');
+      assert(!seen.has(key), 'Duplicate resource Result key');
+      assert.deepEqual(row, expected.get(key), `Resource Result key ${key}`);
+      seen.add(key); rows++;
+    }
+  } finally {lines.close(); input.destroy(); await closed;}
+  assert.equal(rows, expectedRows.length, 'Complete resource Result required');
+  // Every keyed row above has now been compared in full. Hash that verified
+  // content in key order, not unspecified product traversal or delivery order.
+  const content = createHash('sha256');
+  for (const key of [...expected.keys()].sort((a, b) => a - b)) {
+    content.update(canonicalText(expected.get(key)) + '\n');
+  }
+  return {rows, contentSha256: content.digest('hex'), wireBytes: (await lstat(path)).size};
+}
+
+export async function observeNativeResourceOperatorShapes({project, cli, assets, libraries, runtimeWire}) {
+  const selected = await prepareNativeNumericOperator({project, assets, libraries, runtimeWire, maxRows: 1024});
+  const command = async args => {
+    const reply = await cli([...selected.configuration, ...args], project);
+    assert.equal(reply.code, 0); assert.equal(reply.signal, null);
+    return reply;
+  };
+  assert.equal(JSON.parse((await command(['adopt', '--initialize-signing', '--json'])).stdout).kind,
+    'local_host_adopted');
+  const outputDirectory = project + '-output';
+  await mkdir(outputDirectory, {mode: 0o700});
+  const observations = [];
+  for (const fixture of nativeResourceShapeFixtures()) {
+    const inputName = fixture.id + '.json', input = join(project, inputName);
+    const wire = JSON.stringify(fixture.program), inputWireBytes = Buffer.byteLength(wire);
+    if (fixture.id === 'few-long-strings') assert(inputWireBytes > 1048576);
+    const first = join(outputDirectory, fixture.id + '-first.jsonl');
+    const saved = join(outputDirectory, fixture.id + '-saved.jsonl');
+    await writeFile(input, wire, {flag: 'wx', mode: 0o600});
+    const original = JSON.parse((await command(['run', inputName, '--format', 'json', '--json'])).stdout);
+    assert.equal(original.version, 'actql-run-state/0.1');
+    assert.equal(original.status, 'succeeded');
+    assert.equal(typeof original.run_id, 'string'); assert(original.run_id.length > 0);
+    await command(['result', original.run_id, '--result', 'answer0', '--format', 'jsonl', '--output', first]);
+    const firstRows = await verifyNativeResourceRows(first, fixture.expectedRows, fixture.key);
+    if (fixture.id === 'few-long-strings') {
+      assert.equal(firstRows.rows, 2); assert(firstRows.wireBytes > 1048576);
+    }
+    await unlink(input);
+    const restored = JSON.parse((await command(['status', original.run_id, '--json'])).stdout);
+    assert.deepEqual([restored.version, restored.run_id, restored.status],
+      [original.version, original.run_id, original.status]);
+    await command(['result', original.run_id, '--result', 'answer0', '--format', 'jsonl', '--output', saved]);
+    const savedRows = await verifyNativeResourceRows(saved, fixture.expectedRows, fixture.key);
+    assert.equal(savedRows.contentSha256, firstRows.contentSha256);
+    if (fixture.id === 'small-input-large-output') {
+      assert(inputWireBytes < 16384); assert(firstRows.wireBytes > 1048576);
+      assert(firstRows.wireBytes > 100 * inputWireBytes);
+    }
+    observations.push({id: fixture.id, runId: original.run_id, inputWireBytes,
+      first: firstRows, saved: savedRows, inputRemovedBeforeSaved: true});
+  }
+  return {scope: 'installed-native-json-source-resource-shapes', observations,
+    operator: {environmentCid: selected.environmentCid, maxRows: selected.maxRows},
+    cleanup: 'successful Native command cleanup before reply and process exit',
+    independentFdInspection: false};
+}
+
 // Registry close permits provisional observations only. The consumer must still
 // exit and complete owned-scratch cleanup before the parent can publish success.
 export async function finishSourceFreeObservations(receipt, primaryFailure,
@@ -513,12 +621,15 @@ async function observeInstalledSourceFree(input, observationPath) {
     const numericScale = await observeNativeNumericOperatorScale({project: join(root, 'numeric-operator'),
       cli, assets: numericAssets, libraries: numericLibraries,
       runtimeWire: await readFile(join(platformRoot, artifact.localRuntime.path), 'utf8')});
+    const resourceShapes = await observeNativeResourceOperatorShapes({project: join(root, 'resource-operator'),
+      cli, assets: numericAssets, libraries: numericLibraries,
+      runtimeWire: await readFile(join(platformRoot, artifact.localRuntime.path), 'utf8')});
     receipt = {version: 'actql-native-cli-install-acceptance/0.1', scope: 'source-free-local',
       cliSourceSha: manifest.sourceSha, platform, node: process.version, glibc: glibc ?? null,
       artifact, scriptSha256: createHash('sha256').update(await readFile(fileURLToPath(import.meta.url))).digest('hex'),
       cliPackages: manifest.packages.map(({name, version, sha256}) => ({name, version, sha256})),
       registry: 'private-loopback-fixed-RC', registryRequests: registry.requested,
-      mockInitialization, catalogOnlyMockRefusal, plainInitialization, numericScale,
+      mockInitialization, catalogOnlyMockRefusal, plainInitialization, numericScale, resourceShapes,
       publicRegistryPublication: 'not-tested', records,
       unverified: ['Mock or live Connector bindings', 'Model inference', 'Effect approval', 'other platforms']};
   } catch (error) {
