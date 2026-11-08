@@ -10,6 +10,7 @@ import {tmpdir} from 'node:os';
 import {salesforceUpdateCase, hubspotUpdateCase, kintoneUpdateCase} from './fixtures/record-approval/cases.mjs';
 import {runRecordUpdateApprovalPhase} from './fixtures/record-approval/workflow.mjs';
 import {runRecordApprovalCommand} from './fixtures/record-approval/command.mjs';
+import {hubspotApprovalProvider} from './fixtures/hubspot-approval/provider.mjs';
 import {mockProjectFiles as salesforceMock} from './fixtures/salesforce-approval/mock-project.mjs';
 import {mockProjectFiles as hubspotMock} from './fixtures/hubspot-approval/mock-project.mjs';
 import {runSalesforceApprovalPhase} from './fixtures/salesforce-approval/workflow.mjs';
@@ -400,4 +401,56 @@ test('shared command rejects an incompatible operator module before connection',
   await assert.rejects(runRecordApprovalCommand(f.options), /InvalidRecordApprovalOperatorModule/u);
   assert.deepEqual(f.events, []);
   assert.deepEqual(f.log, []);
+});
+
+function hubspotProviderFixture() {
+  const value = hubspotApprovalProvider({...selection, controlId: 'untouched-control'});
+  const exchange = (pathname, body, authorized = true) => ({method: 'POST', pathname,
+    authorized, body: JSON.stringify(body)});
+  const apply = body => value.routes.find(route => route.pathname.endsWith('/batch/update'))
+    .handle(exchange('/crm/v3/objects/companies/batch/update', body));
+  const body = {inputs: [{id: selection.recordId, objectWriteTraceId: cid('a'),
+    properties: {name: selection.nextName, actql_request_id: cid('b')}}]};
+  return {value, exchange, apply, body};
+}
+
+test('HubSpot approval provider retains independent original records and accepts one exact marked update', () => {
+  const f = hubspotProviderFixture(), before = f.value.snapshot();
+  assert.equal(before.target.name, selection.previousName);
+  assert.equal(before.writes, 0);
+  const response = f.apply(f.body);
+  assert.equal(response.body.status, 'COMPLETE');
+  assert.equal(response.body.results[0].id, selection.recordId);
+  const after = f.value.snapshot();
+  assert.equal(after.writes, 1);
+  assert.equal(after.target.name, selection.nextName);
+  assert.equal(after.target.marker, cid('b'));
+  assert.deepEqual(after.control, before.control);
+  assert.throws(() => f.apply(f.body));
+  assert.equal(f.value.snapshot().writes, 1);
+});
+
+test('HubSpot approval provider refuses wrong targets, values and markers without writing', () => {
+  for (const mutate of [body => {body.inputs[0].id = 'other';},
+    body => {body.inputs[0].properties.name = 'other';},
+    body => {delete body.inputs[0].properties.actql_request_id;},
+    body => {body.inputs[0].properties.actql_request_id = 'not-a-cid';},
+    body => {body.inputs[0].extra = 'unapproved';}]) {
+    const f = hubspotProviderFixture();
+    mutate(f.body);
+    assert.throws(() => f.apply(f.body));
+    assert.equal(f.value.snapshot().writes, 0);
+    assert.equal(f.value.snapshot().target.name, selection.previousName);
+  }
+});
+
+test('HubSpot approval provider requires a credential-bearing request before target observation', () => {
+  const f = hubspotProviderFixture();
+  const path = '/crm/v3/objects/companies/batch/read';
+  const read = f.value.routes.find(route => route.pathname === path);
+  assert.throws(() => read.handle(f.exchange(path, {inputs: [{id: selection.recordId}], properties: ['name']}, false)));
+  assert.equal(f.value.snapshot().writes, 0);
+  assert.equal(f.value.snapshot().requests.length, 0);
+  const response = read.handle(f.exchange(path, {inputs: [{id: selection.recordId}], properties: ['name']}));
+  assert.equal(response.body.results[0].properties.name, selection.previousName);
 });
