@@ -65,7 +65,7 @@ fn native_mock_readme_content_join(
   let limits = @infer.prepared_composed_bounds(occurrence, graph).native_content_join_stage(
     "original prepared Model bounds",
   )
-  let compiled = @run_host.client_effect_allowed_infer_run(first.allowed).unwrap()
+  let compiled = first.model_compiled.unwrap()
   // Explicit finite component read-window selection, not the ordinary Host's
   // as-yet-unqualified constructor backing. Its SAME Request must admit the
   // entire Plan/Scope and the Native capture reserves every actual child.

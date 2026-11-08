@@ -33,6 +33,7 @@ priv enum LocalCommandPreparationIssue {
   CommandRetainedExecution(@initial_arena.InstalledArenaRetainedExecutionIssue)
   CommandStoreOperation(@local_host.NativeLocalStoreOperationIssue)
   CommandBusinessChildren
+  CommandBusinessModel(@local_host.NativeClientMockModelIssue)
   CommandBusinessPublication
   CommandBusinessStore(@local_store.NativePublicationStoreIssue)
   CommandRunObservationPending
@@ -210,6 +211,7 @@ fn prepare_local_command_preparation_original(
       request_body: None,
       request_run: None,
       request_retiring: false,
+      model_work: [],
       values_work: None,
       values_failure: None,
       store: None,

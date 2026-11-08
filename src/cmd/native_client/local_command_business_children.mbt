@@ -186,6 +186,29 @@ fn LocalCommandPreparationOriginal::close_business_children(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  if !business.model_work.is_empty() {
+    guard self.host is Some(host) && business.execution is Some(execution) else {
+      return Err(CommandBusinessChildren)
+    }
+    match business.enter_children_cleanup(host) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+    for work in business.model_work {
+      match work.close() {
+        Err(issue) => return Err(CommandBusinessModel(issue))
+        Ok(false) => return Err(CommandBusinessChildren)
+        Ok(true) => ()
+      }
+    }
+    // Only actual child acknowledgements sever these references. Unknown or
+    // partial Model/Store/Journal duties keep the same originals for cleanup.
+    business.model_work.clear()
+    match host.leave_domain_retained_execution(execution) {
+      Err(issue) => return Err(CommandRetainedExecution(issue))
+      Ok(_) => business.active = false
+    }
+  }
   if business.values_work is Some(_) || business.values_failure is Some(_) {
     guard self.host is Some(host) &&
       business.execution is Some(execution) &&

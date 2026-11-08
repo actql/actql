@@ -15,6 +15,7 @@ priv struct LocalEffectFirstCompilation {
   allowed : @run_host.ClientEffectAllowedRun
   definition : @publication.PublicationContract
   issued : @run_host.ClientEffectIssuedNormalizationMaterials
+  model_compiled : @run_host.ClientCompiledRun?
   _retained_sources : Array[LocalProjectMockEffectSourceInput]
   _retained_models : Array[LocalProjectMockEffectModelInput]
 }
@@ -113,11 +114,23 @@ fn local_effect_first_compilation(
     normalization,
     request=Some(request),
   ).unwrap_or_else(() => stop("LocalEffectOriginalMaterialsUnavailable"))
+  // This returns a new checked component view, not a getter alias. Retain
+  // it ONCE for the original Work, Plan and Model Scope to share later.
+  let model_compiled = if infers.is_empty() {
+    None
+  } else {
+    Some(
+      @run_host.client_effect_allowed_infer_run(allowed).unwrap_or_else(() => {
+        stop("LocalOriginalModelWorkUnavailable")
+      }),
+    )
+  }
   {
     request,
     allowed,
     definition,
     issued,
+    model_compiled,
     _retained_sources: source_inputs,
     _retained_models: models,
   }
@@ -249,6 +262,7 @@ fn local_effect_prepare_start_with_clocks(
         now,
         run_text(retention, "available_until"),
         request,
+        utc_now,
       )
   }
   // These same original bindings are consumed by the actual preflight, in

@@ -62,3 +62,38 @@ pub fn acknowledge_saved_model_call_entry(
   entry.acknowledgement = Some(acknowledgement)
   Some(acknowledgement)
 }
+
+///|
+/// Borrow the exact finite call inventory and its admitted evidence for the
+/// installed persistence operation. This checks ownership, not a fresh current
+/// permission: a late original save remains observable after stop/revocation.
+/// It creates no acknowledgement, dispatch authority or replacement Entry.
+pub fn model_call_entry_persistence_originals(
+  entry : ModelCallEntry,
+  prepared : ModelPreparedCallSet,
+  admission : @publication_host.ClientInferDispatchAdmission,
+) -> (
+  Int,
+  Int,
+  @publication.RunEvidenceValue,
+  @publication.RunEvidenceValue,
+  @publication.RunEvidenceValue,
+  @publication.BoundModelInvocationScope,
+)? {
+  if !model_call_entry_persistence_owned(entry, prepared) ||
+    !physical_equal(entry.admission, admission) ||
+    entry.send_started {
+    return None
+  }
+  guard prepared.scope is Some(scope) else { return None }
+  Some(
+    (
+      prepared.owner.state.requests.length(),
+      entry.slot,
+      entry.trace.call,
+      entry.trace.attempt,
+      entry.trace.authority,
+      scope,
+    ),
+  )
+}

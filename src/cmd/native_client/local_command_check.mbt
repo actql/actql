@@ -46,6 +46,7 @@ fn command_preparation_cleanup_kind(
     CommandRetainedExecution(_) => "business-execution"
     CommandStoreOperation(_) => "business-operation"
     CommandBusinessChildren => "business-children"
+    CommandBusinessModel(_) => "business-model"
     CommandBusinessPublication => "business-publication"
     CommandBusinessStore(_) => "business-store"
     CommandRunObservationPending => "run-observation-pending"

@@ -11,6 +11,7 @@ fn entry_gate_fixture(
   asynchronous? : Bool = false,
   start_original? : (() -> Execution)? = None,
   slots? : Int = 2,
+  current_observations? : Ref[Int]? = None,
 ) -> (
   Execution,
   @model.ModelPreparedCallSet,
@@ -155,7 +156,12 @@ fn entry_gate_fixture(
     "fixture-principal",
     now.val,
     model_scope=Some(bound),
-    observe_current=() => Ok((current.val, now.val)),
+    observe_current=() => {
+      if current_observations is Some(counter) {
+        counter.val += 1
+      }
+      Ok((current.val, now.val))
+    },
   ).unwrap()
   assert_eq(calls.val, 0)
   (active, prepared, admission, prefix_work)

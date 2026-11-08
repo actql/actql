@@ -412,7 +412,7 @@ fn native_mock_readme_request_payload(
               let models = original.prepare_effect_models(
                 facility.parent,
                 facility.input,
-                prepared,
+                @run_host.prepared_client_effect_infer_occurrences(prepared).unwrap(),
                 environment,
                 contracts,
               )
@@ -532,6 +532,14 @@ fn native_mock_readme_request_payload(
               // The first compiler retains the exact early provider/bounds
               // selection. Later execution must not reselect either object.
               assert_true(physical_equal(compiled._retained_models, models))
+              assert_true(
+                compiled.model_compiled is Some(model_run) &&
+                @run_host.check_client_compiled_run_definition(
+                  model_run,
+                  compiled.definition,
+                )
+                is Ok(_),
+              )
               let selected = models[0]
               assert_true(physical_equal(selected.graph, infers[0]))
               assert_true(
