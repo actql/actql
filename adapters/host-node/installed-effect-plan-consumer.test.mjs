@@ -1341,6 +1341,7 @@ test('retained Host reuses its live Plan without cold material and refuses missi
 function ordinaryEffectDefinitionFixture({target = false, stop = false} = {}) {
   const prepared = {}, identity = {}, compilation = {}, allowed = {}, definition = {}, targetOriginal = {};
   const calls = [], runDefinition = {identity: 'original-definition'}, wire = 'original-full-materials';
+  const reserveOriginal = () => assert.fail('Only the original converter owns reservation');
   const moon = {
     clientProgramIssueAllowedEffectRun(c) {assert.strictEqual(c, compilation); return ok(allowed);},
     clientProgramIssueEffectRunDefinition(a) {assert.strictEqual(a, allowed); return ok(definition);},
@@ -1351,14 +1352,15 @@ function ordinaryEffectDefinitionFixture({target = false, stop = false} = {}) {
     clientProgramAllowedEffectRunAuthorization: a => {assert.strictEqual(a, allowed); return 'authorization-evidence';},
     strategyRunEvidenceJson: value => value,
   };
-  const ports = {moon, checked, prepared, identity, limits: {}, requiresQueryTime: false, requestedStop: stop,
+  const ports = {moon, checked, prepared, identity, reserveOriginal, limits: {}, requiresQueryTime: false, requestedStop: stop,
     assertRequestedStopAvailable() {calls.push('requested-stop');},
     policy: {createdAt: 'original-time', expiresAt: 'original-expiry'}, namespaceId: 'original-scope',
     randomUUID: () => 'original-run', now: () => 'current-time', expired: () => new Error('expired'),
     compiled: () => compilation, contentPolicies: new WeakMap(), resultPolicyOriginalFor: undefined,
     inferPlanFor: undefined, control: {admit(kind, original) {
       assert.equal(kind, 'run_definition'); assert.equal(original, 'original-definition-wire'); return runDefinition;
-    }}, updateTargetOriginals: {captureRun(facts) {
+    }}, updateTargetOriginals: {captureRun(facts, reserve) {
+      assert.strictEqual(reserve, reserveOriginal);
       assert.strictEqual(facts.prepared, prepared); assert.strictEqual(facts.allowed, allowed);
       assert.strictEqual(facts.definition, definition); assert.strictEqual(facts.identity, identity);
       calls.push('capture-target'); return target ? targetOriginal : undefined;
