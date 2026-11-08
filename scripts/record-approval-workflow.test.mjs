@@ -142,6 +142,47 @@ for (const connector of ['salesforce', 'hubspot', 'kintone']) {
   });
 }
 
+test('shared capture retains the exact first returned failed observation before its assertion and close', async () => {
+  const value = await definition('hubspot'), f = publicDouble(value);
+  const state = {status: 'failed', run_id: 'same-run',
+    terminal_error: {code: 'ACTQL_E_AUTHORED_PUBLIC_FIXTURE', message: 'Original public diagnostic'}};
+  Object.defineProperty(state, 'unselectedInput', {enumerable: true,
+    get() {assert.fail('Do not enumerate or retain unselected reply data');}});
+  f.effect.wait = async () => {f.events.push('effect:wait'); return state;};
+  await assert.rejects(phase('capture', value, f), {code: 'ERR_ASSERTION'});
+  assert.deepEqual(f.saved.get('capture-wait'), {ref: f.effect.ref, status: 'failed',
+    terminal_error: {code: 'ACTQL_E_AUTHORED_PUBLIC_FIXTURE', message: 'Original public diagnostic'}, terminal_error_truncated: false});
+  assert(f.events.indexOf('save:submitted') < f.events.indexOf('effect:wait'));
+  assert(f.events.indexOf('effect:wait') < f.events.indexOf('save:capture-wait'));
+  assert.equal(f.events.at(-1), 'close');
+  assert(!f.events.includes('effect:status')); assert(!f.events.includes('approve'));
+  assert(!f.saved.has('captured'));
+});
+
+test('shared capture bounds only the retained public diagnostic without changing the first reply', async () => {
+  const value = await definition('hubspot'), f = publicDouble(value);
+  const state = {status: 'failed', terminal_error: {
+    code: 'ACTQL_E_' + 'A'.repeat(1100), message: 'M'.repeat(1100)}};
+  f.effect.wait = async () => state;
+  await assert.rejects(phase('capture', value, f), {code: 'ERR_ASSERTION'});
+  const retained = f.saved.get('capture-wait');
+  assert.equal(retained.terminal_error.code.length, 1024);
+  assert.equal(retained.terminal_error.message.length, 1024);
+  assert.equal(retained.terminal_error_truncated, true);
+  assert.equal(state.terminal_error.code.length, 1108);
+  assert.equal(state.terminal_error.message.length, 1100);
+  assert.equal(f.events.at(-1), 'close');
+});
+
+test('shared capture keeps a thrown first wait primary and never invents a returned observation', async () => {
+  const value = await definition('hubspot'), f = publicDouble(value), primary = new Error('OriginalWaitFailure');
+  f.effect.wait = async () => {f.events.push('effect:wait'); throw primary;};
+  await assert.rejects(phase('capture', value, f), error => error === primary);
+  assert(f.saved.has('submitted')); assert(!f.saved.has('capture-wait'));
+  assert.equal(f.events.filter(event => event === 'effect:wait').length, 1);
+  assert.equal(f.events.at(-1), 'close');
+});
+
 for (const primary of [undefined, null, false, 0, '']) {
   test(`shared fixture preserves original falsy rejection ${String(primary)} through cleanup`, async () => {
     const value = await definition('salesforce');let closed = 0, rejected = false;

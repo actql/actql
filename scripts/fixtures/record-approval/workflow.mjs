@@ -92,6 +92,13 @@ export async function runRecordUpdateApprovalPhase({phase, client,
       // Persist the actual public reference before the first wait can fail.
       await save('submitted', {binding: originalBinding, ref: run.ref});
       const state = await run.wait();
+      // Retain only this admitted reply's public status/terminal diagnostic.
+      // No extra read, private cause, row/input dump or observer is selected.
+      const issue = state.terminal_error;
+      await save('capture-wait', {ref: run.ref, status: state.status,
+        ...(issue === undefined ? {} : {terminal_error: {
+          code: issue.code.slice(0, 1024), message: issue.message.slice(0, 1024)},
+          terminal_error_truncated: issue.code.length > 1024 || issue.message.length > 1024})});
       assert.equal(state.status, 'waiting_checkpoint');
       const page = await client.checkpoints({checkpointId: state.checkpoint.id});
       assert.equal(page.items.length, 1);
