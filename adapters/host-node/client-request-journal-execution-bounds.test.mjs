@@ -463,6 +463,172 @@ test('WAL reuse needs no new preparation after its original finite statement env
   scratch.passed();
 });
 
+test('a new small transaction reclaims prior WAL work before entering its original body', async () => {
+  const {scratch} = await fixture();
+  const path = join(scratch.path, 'transaction-boundary.sqlite');
+  const database = new DatabaseSync(path);
+  database.exec('PRAGMA journal_mode = WAL; CREATE TABLE sample(n INTEGER); INSERT INTO sample VALUES (0)');
+  const page = database.prepare('PRAGMA page_size').get().page_size;
+  const pages = database.prepare('PRAGMA page_count').get().page_count;
+  const sourceBytes = readFileSync(path).length + readFileSync(path + '-wal').length;
+  const charge = 2 * pages + Math.ceil(65536 / (page + 24));
+  const wal = boundedOriginalWal(Math.floor(sourceBytes / 536) + 5 * charge, sourceBytes, page * pages);
+  wal.configure(page);
+  const prepare = database.prepare, checkpoints = [];
+  let checkpointPreparations = 0;
+  database.prepare = function(sql) {
+    const statement = Reflect.apply(prepare, this, [sql]);
+    if (sql === 'PRAGMA wal_checkpoint(TRUNCATE)') {
+      checkpointPreparations++;
+      const get = statement.get;
+      statement.get = function() {
+        assert.equal(database.isTransaction, false);
+        const result = Reflect.apply(get, this, []);
+        checkpoints.push({...result});
+        assert.equal(readFileSync(path + '-wal').length, 0);
+        return result;
+      };
+    }
+    return statement;
+  };
+  const port = boundedOriginalSql(database, primarySqlLimits, execution, undefined, wal);
+  try {
+    port.prepareWalCheckpoint();
+    const write = port.database.prepare('UPDATE sample SET n = ?');
+    write.run(1); write.run(2);
+    assert.equal(checkpoints.length, 0);
+    const transaction = createSqliteTransaction(port.database, 'ClientRequestJournal');
+    assert.doesNotThrow(() => transaction.run(() => {
+      assert.deepEqual(checkpoints, [{busy: 0, log: 0, checkpointed: 0}]);
+      write.run(3); write.run(4);
+    }));
+    assert.equal(checkpoints.length, 1, 'Neither body writes nor COMMIT run another checkpoint');
+    assert.equal(checkpointPreparations, 1);
+    assert.equal(database.isTransaction, false);
+    assert.equal(transaction.connectionUsable, true);
+    assert.equal(port.database.prepare('SELECT n FROM sample').get().n, 4);
+  } finally {database.close(); port.retireClosedNativeAliases();}
+  scratch.passed();
+});
+
+for (const readerKind of ['busy external', 'active owned']) {
+test(`a transaction preserves ${readerKind} WAL debt and uses only its remaining support`, async () => {
+  const {scratch} = await fixture();
+  const path = join(scratch.path, 'transaction-reader.sqlite');
+  const database = new DatabaseSync(path);
+  database.exec('PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 0; CREATE TABLE sample(n INTEGER); INSERT INTO sample VALUES (0)');
+  const page = database.prepare('PRAGMA page_size').get().page_size;
+  const pages = database.prepare('PRAGMA page_count').get().page_count;
+  const sourceBytes = readFileSync(path).length + readFileSync(path + '-wal').length;
+  const charge = 2 * pages + Math.ceil(65536 / (page + 24));
+  const wal = boundedOriginalWal(Math.floor(sourceBytes / 536) + 6 * charge, sourceBytes, page * pages);
+  wal.configure(page);
+  const prepare = database.prepare, checkpoints = [];
+  database.prepare = function(sql) {
+    const statement = Reflect.apply(prepare, this, [sql]);
+    if (sql === 'PRAGMA wal_checkpoint(TRUNCATE)') {
+      const get = statement.get;
+      statement.get = function() {
+        assert.equal(database.isTransaction, false);
+        const result = Reflect.apply(get, this, []);
+        checkpoints.push({...result});
+        return result;
+      };
+    }
+    return statement;
+  };
+  const port = boundedOriginalSql(database, primarySqlLimits, execution, undefined, wal);
+  const reader = new DatabaseSync(path);
+  const readerPort = readerKind === 'active owned' ?
+    boundedOriginalSql(reader, primarySqlLimits, execution, undefined, wal) : undefined;
+  try {
+    port.prepareWalCheckpoint(); readerPort?.prepareWalCheckpoint();
+    const write = port.database.prepare('UPDATE sample SET n = ?');
+    const transaction = createSqliteTransaction(port.database, 'ClientRequestJournal');
+    reader.exec('BEGIN');
+    assert.equal(reader.prepare('SELECT n FROM sample').get().n, 0);
+    write.run(1);
+    assert.doesNotThrow(() => transaction.run(() => {write.run(2); write.run(3);}));
+    assert.equal(database.isTransaction, false);
+    assert.equal(checkpoints.length, readerPort === undefined ? 1 : 0);
+    assert(checkpoints.every(result => result.busy === 1));
+    assert.throws(() => write.run(4), {code: 'ClientRequestJournalWalUnavailable'});
+    assert.equal(port.database.prepare('SELECT n FROM sample').get().n, 3);
+    assert.equal(checkpoints.length, readerPort === undefined ? 2 : 0);
+    reader.exec('ROLLBACK');
+    transaction.run(() => {write.run(4); write.run(5);});
+    assert.deepEqual(checkpoints.at(-1), {busy: 0, log: 0, checkpointed: 0});
+    assert.equal(port.database.prepare('SELECT n FROM sample').get().n, 5);
+    assert.equal(transaction.connectionUsable, true);
+  } finally {
+    reader.close(); readerPort?.retireClosedNativeAliases();
+    database.close(); port.retireClosedNativeAliases();
+  }
+  scratch.passed();
+});
+}
+
+for (const boundary of ['native', 'current']) {
+test(`a failed ${boundary} transaction-boundary checkpoint preserves prior charge before BEGIN`, async () => {
+  const {scratch} = await fixture();
+  const path = join(scratch.path, 'transaction-checkpoint-failure.sqlite');
+  const database = new DatabaseSync(path);
+  database.exec('PRAGMA journal_mode = WAL; CREATE TABLE sample(n INTEGER); INSERT INTO sample VALUES (0)');
+  const page = database.prepare('PRAGMA page_size').get().page_size;
+  const pages = database.prepare('PRAGMA page_count').get().page_count;
+  const sourceBytes = readFileSync(path).length + readFileSync(path + '-wal').length;
+  const charge = 2 * pages + Math.ceil(65536 / (page + 24));
+  const wal = boundedOriginalWal(Math.floor(sourceBytes / 536) + 5 * charge, sourceBytes, page * pages);
+  wal.configure(page);
+  const prepare = database.prepare, exec = database.exec;
+  const original = new Error('OriginalBoundaryCheckpointFailure');
+  let selected = false, currentFailure, checkpoints = 0, preparations = 0, begins = 0, bodies = 0;
+  database.prepare = function(sql) {
+    const statement = Reflect.apply(prepare, this, [sql]);
+    if (sql === 'PRAGMA wal_checkpoint(TRUNCATE)') {
+      preparations++;
+      const get = statement.get;
+      statement.get = function() {
+        checkpoints++;
+        if (selected) {
+          selected = false;
+          if (boundary === 'native') throw original;
+          currentFailure = original;
+        }
+        return Reflect.apply(get, this, []);
+      };
+    }
+    return statement;
+  };
+  database.exec = function(sql) {
+    if (sql === 'BEGIN IMMEDIATE') begins++;
+    return Reflect.apply(exec, this, [sql]);
+  };
+  const port = boundedOriginalSql(database, primarySqlLimits, execution, () => {
+    if (currentFailure !== undefined) {const cause = currentFailure; currentFailure = undefined; throw cause;}
+  }, wal);
+  try {
+    port.prepareWalCheckpoint();
+    const write = port.database.prepare('UPDATE sample SET n = ?');
+    write.run(1); write.run(2);
+    const transaction = createSqliteTransaction(port.database, 'ClientRequestJournal');
+    selected = true;
+    assert.throws(() => transaction.run(() => {bodies++;}), cause => cause === original);
+    assert.equal(begins, 0); assert.equal(bodies, 0);
+    assert.equal(database.isTransaction, false);
+    assert.equal(transaction.connectionUsable, true);
+    assert.equal(checkpoints, 1);
+    write.run(3); write.run(4);
+    assert.equal(checkpoints, 1);
+    write.run(5);
+    assert.equal(checkpoints, 2, 'The failed BEGIN checkpoint never refunded its prior charge');
+    assert.equal(preparations, 1, 'The original retained statement owns both attempts');
+    assert.equal(port.database.prepare('SELECT n FROM sample').get().n, 5);
+  } finally {database.close(); port.retireClosedNativeAliases();}
+  scratch.passed();
+});
+}
+
 for (const boundary of ['native', 'current']) {
 test(`failed ${boundary} checkpoint keeps its original charge and retries only the retained native statement`, async () => {
   const {scratch} = await fixture();

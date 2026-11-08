@@ -225,21 +225,26 @@ function boundedJournalWalFrames(maxFrames, sourceBytes, maxDatabaseBytes) {
   let originalPage, transactionFrames;
   const amount = units => transactionFrames === undefined ? 0n :
     integer(units) * transactionFrames;
-  const check = units => {
+  const reclaim = () => {
+    // Never checkpoint an original active transaction or infer release from
+    // a failed COMMIT/ROLLBACK. A busy/failed checkpoint keeps every charge.
+    if (connections.length === 0 || connections.some(original => original.inTransaction() !== false)) {
+      return false;
+    }
+    const result = connections[0].checkpoint();
+    if (result?.busy !== 0 || result.log !== 0 || result.checkpointed !== 0 ||
+        connections.some(original => original.inTransaction() !== false)) return false;
+    reserved = 0n;
+    return true;
+  };
+  const check = (units, transactionStart = false) => {
     const frames = amount(units);
     if (frames > maximum) fail('ClientRequestJournalWalUnavailable');
-    if (frames > maximum - reserved) {
-      // Never checkpoint an original active transaction or infer release from
-      // a failed COMMIT/ROLLBACK. A busy/failed checkpoint keeps every charge.
-      if (connections.length === 0 || connections.some(original => original.inTransaction() !== false)) {
-        fail('ClientRequestJournalWalUnavailable');
-      }
-      const result = connections[0].checkpoint();
-      if (result?.busy !== 0 || result.log !== 0 || result.checkpointed !== 0 ||
-          connections.some(original => original.inTransaction() !== false)) {
-        fail('ClientRequestJournalWalUnavailable');
-      }
-      reserved = 0n;
+    // A transaction cannot reclaim prior work in its body. Try once at its
+    // original BEGIN boundary, without refunding busy or concurrent work or
+    // refusing an otherwise supported transaction just because reuse is busy.
+    if ((transactionStart && reserved > 0n) || frames > maximum - reserved) {
+      if (!reclaim() && frames > maximum - reserved) fail('ClientRequestJournalWalUnavailable');
     }
     return frames;
   };
@@ -287,7 +292,7 @@ function boundedJournalWalFrames(maxFrames, sourceBytes, maxDatabaseBytes) {
       for (let index = 0; index < sql.length; index++) {
         if (applyOriginal(character, sql, [index]) === 59) statements++;
       }
-      check(statements + (sql === 'COMMIT' ? 0 : 1));
+      check(statements + (sql === 'COMMIT' ? 0 : 1), sql === 'BEGIN IMMEDIATE');
       reserved += amount(statements);
     },
   });
