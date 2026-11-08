@@ -186,6 +186,43 @@ test('packed cause observer inspection failure resumes and preserves the origina
   assert.equal(reports[0].available, false);
 });
 
+test('packed cause observer never sends a private inspection exception to Inspector formatting', async t => {
+  const target = await diagnosticTarget(t), reports = [];
+  let reads = 0;
+  const privateFailure = new Error('private-inspection-failure');
+  for (const name of ['stack', 'message', 'name']) Object.defineProperty(privateFailure, name,
+    {get() {reads++;throw new Error('private-inspection-getter');}});
+  const primary = new Proxy(new Error('original'), {
+    getOwnPropertyDescriptor() {throw privateFailure;},
+  });
+  const observer = await observePackedSubmissionCause({sourceURL:target.sourceURL,
+    report:value=>reports.push(value)});
+  try {assert.throws(() => target.originalIngress(primary), error => error === primary);}
+  finally {await observer.close();}
+  assert.equal(reads, 0, 'Reflection failure must stay inside the bounded inspection expression');
+  assert.equal(reports.length, 1);
+  assert.equal(reports[0].available, false);
+  assert.deepEqual(reports[0].originalCauseTypes, []);
+  assert.doesNotMatch(JSON.stringify(reports), /private-|message|stack/u);
+});
+
+test('packed cause observer discards partial DATA when nested reflection fails', async t => {
+  const target = await diagnosticTarget(t), reports = [];
+  let reads = 0;
+  const privateFailure = new Error('private-nested-inspection-failure');
+  Object.defineProperty(privateFailure, 'stack', {get() {reads++;throw new Error('private-getter');}});
+  const primary = Object.assign(new Error('original'), {code:'ClientProgramUnsupported',
+    cause:new Proxy({}, {getOwnPropertyDescriptor() {throw privateFailure;}})});
+  const observer = await observePackedSubmissionCause({sourceURL:target.sourceURL,
+    report:value=>reports.push(value)});
+  try {assert.throws(() => target.originalIngress(primary), error => error === primary);}
+  finally {await observer.close();}
+  assert.equal(reads, 0);
+  assert.equal(reports[0].available, false);
+  assert.deepEqual(reports[0].originalCauseTypes, [], 'The earlier original row is not a complete observation');
+  assert.doesNotMatch(JSON.stringify(reports), /private-|ClientProgramUnsupported|message|stack/u);
+});
+
 test('packed cause observer retains a closed Node failure code without collecting its message', async t => {
   const target = await diagnosticTarget(t), reports = [];
   const primary = Object.assign(new Error('private-SQL-never-reported'), {code:'ERR_SQLITE_ERROR'});
