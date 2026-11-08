@@ -312,3 +312,54 @@ test "record ids and positively enforced custom keys remain available for API ta
     Err(UniqueKeyUnconfirmed("label")),
   )
 }
+
+///|
+test "enumeration rollup keeps its result carrier through schema and row projection" {
+  let original = catalog(
+    (
+      #|{"results":[{"name":"rollup","type":"enumeration","fieldType":"calculation_rollup","calculated":false,"options":[],"modificationMetadata":{"readOnlyValue":true}},{"name":"name","type":"string","fieldType":"text"}]}
+    ),
+  )
+  assert_true(
+    same_contract(
+      property_contract(original, "rollup").unwrap(),
+      @contract.primitive(@contract.StringType, nullable=true),
+    ),
+  )
+  assert_eq(
+    object_schema_wire(original, ["rollup", "name"], 3, 100, 4096, 100, 10),
+    Ok(
+      "{\"id\":{\"nullable\":false,\"type\":\"string\"},\"name\":{\"nullable\":true,\"type\":\"string\"},\"rollup\":{\"nullable\":true,\"type\":\"string\"}}",
+    ),
+  )
+  let observed = project_object_page(
+    @utf8.encode(
+      (
+        #|{"results":[{"id":"9007199254740993","archived":false,"properties":{"rollup":"internal_7","name":"ordinary"}},{"id":"2","archived":false,"properties":{"rollup":"","name":"other"}}]}
+      ),
+    ),
+    original,
+    ["rollup", "name"],
+    page_limits(),
+  ).unwrap()
+  let rows = object_page_rows(observed)
+  assert_eq(rows[0].id, "9007199254740993")
+  assert_true(
+    object_row_values(rows[0])[0].value is @admitted.Text("internal_7"),
+  )
+  assert_true(object_row_values(rows[1])[0].value is @admitted.Null)
+}
+
+///|
+test "enumeration rollup cannot acquire write eligibility from false provider flags" {
+  let original = catalog(
+    (
+      #|{"results":[{"name":"rollup","type":"enumeration","fieldType":"calculation_rollup","calculated":false,"options":[],"modificationMetadata":{"readOnlyValue":false}},{"name":"ordinary","type":"enumeration","fieldType":"select","calculated":false,"options":[{"value":"internal"}],"modificationMetadata":{"readOnlyValue":false}}]}
+    ),
+  )
+  assert_eq(
+    require_property_write(original, "rollup"),
+    Err(ReadOnlyProperty("rollup")),
+  )
+  assert_eq(require_property_write(original, "ordinary"), Ok(()))
+}
