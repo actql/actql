@@ -270,6 +270,7 @@ fn file_capture_provider_capacity(
   contract : @contract.Contract,
   prepared_contract? : @rows.RelationDocumentPreparedContract? = None,
   response_bytes? : Int? = None,
+  writable_fields? : Int = 0,
 ) -> @execution.ExecutionCapacity? {
   let page = match
     file_capture_response_backing_page(limits.page, response_bytes) {
@@ -288,7 +289,7 @@ fn file_capture_provider_capacity(
     original: contract,
     items_path_depth: selection.items_path.length(),
     key_path_depth: selection.key_path.map(path => path.length()),
-    writable_fields: 0,
+    writable_fields,
   }
   let document = match prepared_contract {
     None =>

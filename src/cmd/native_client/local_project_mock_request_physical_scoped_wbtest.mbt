@@ -605,7 +605,9 @@ fn native_mock_readme_request_payload(
       @local_values.abort_request_preparation_after_cleanup(facility.parent),
     )
   }
-  facility.arena.leave_domain_retained_execution(facility.physical).unwrap()
+  facility.arena
+  .leave_domain_retained_execution(facility.physical)
+  .native_content_join_stage("leave same original Native Request frame")
   issue
 }
 
@@ -690,7 +692,9 @@ fn native_mock_readme_request_in_metadata_read(
     check_policy=static_policy,
     authored_predicate~,
   )
-  facility.arena.close_domain_retained_execution(facility.physical).unwrap()
+  facility.arena
+  .close_domain_retained_execution(facility.physical)
+  .native_content_join_stage("close same original Native Request frame")
   match facility.run {
     Some(run) => {
       @local_values.retire_installed_managed_run(run).native_content_join_stage(
@@ -701,8 +705,12 @@ fn native_mock_readme_request_in_metadata_read(
     None =>
       @local_values.abort_request_preparation_after_cleanup(facility.parent).unwrap()
   }
-  facility.arena.close_domain_after_owner_ack(facility.domain).unwrap()
-  facility.arena.try_close().unwrap()
+  facility.arena
+  .close_domain_after_owner_ack(facility.domain)
+  .native_content_join_stage("close same original Native Request domain")
+  facility.arena
+  .try_close()
+  .native_content_join_stage("close same original Native Request host")
   metadata.enter_domain_original_read(read).unwrap()
   original.retire_originals().unwrap() |> ignore
   issue

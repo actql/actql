@@ -15,6 +15,7 @@ struct NativeClientMockModelWork {
   principal : String
   namespace_id : String
   current_time : () -> String
+  mut first_start : NativeClientWorkFirstStart?
   mut active : @infer.Execution?
   mut prepared : @model.ModelPreparedCallSet?
   mut admission : @host.ClientInferDispatchAdmission?
@@ -46,6 +47,7 @@ pub(all) enum NativeClientMockModelIssue {
   Evidence(@publication.RunEvidenceValueIssue)
   Capture(@model.ModelExecutionIssue)
   Store(@publication_store.NativePublicationStoreIssue)
+  Start(NativeClientSourceWorkIssue)
   Encoding
 }
 
@@ -90,6 +92,7 @@ pub fn prepare_native_client_mock_model_work(
     principal,
     namespace_id,
     current_time,
+    first_start: None,
     active: None,
     prepared: None,
     admission: None,
@@ -106,6 +109,111 @@ pub fn prepare_native_client_mock_model_work(
     closing: false,
     closed: false,
   })
+}
+
+///|
+/// Claim the accepted original exactly once in its captured Journal Read.
+/// The retained token, not a replay of durable flags, gates subsequent reads.
+pub fn NativeClientMockModelWork::claim_start_in_original_read(
+  self : Self,
+  connection : String,
+) -> Result[Unit, NativeClientMockModelIssue] {
+  if self.first_start is Some(_) ||
+    self.open_attempted ||
+    self.closing ||
+    self.closed {
+    return Err(ForeignOriginal)
+  }
+  let result = self.capture.with_current_adoption_material_in_original_read((
+    host,
+    material,
+    operations,
+  ) => {
+    let current = () => {
+      !self.closing &&
+      !self.closed &&
+      self.capture.operation_scope(host, material, self.principal, connection)
+      is Ok(scope) &&
+      scope == @host.client_request_authority_scope_cid(self.request) &&
+      self.capture.operation_account(host, material, {
+        principal: self.principal,
+        connection,
+        resource: "run",
+        operation: "submit",
+      })
+      is Ok(@authorization.Allow(_))
+    }
+    let token = match
+      claim_native_client_retained_work_first_start_with_operations(
+        host.journal,
+        self.request,
+        current,
+        operations=Some(operations),
+      ) {
+      Ok(value) => value
+      Err(issue) => return Ok(Err(NativeClientMockModelIssue::Start(issue)))
+    }
+    self.first_start = Some(token)
+    Ok(Ok(()))
+  })
+  match result {
+    Ok(value) => value
+    Err(issue) => Err(Original(issue))
+  }
+}
+
+///|
+/// Check the original start and actual Source permission at each physical
+/// boundary. No Source name, checked catalogue or retained token is an Allow.
+pub fn NativeClientMockModelWork::require_source_in_original_read(
+  self : Self,
+  connection : String,
+  source_ref : String,
+) -> Result[Unit, NativeClientMockModelIssue] {
+  guard self.first_start is Some(first) && !self.closing && !self.closed else {
+    return Err(ForeignOriginal)
+  }
+  let result = self.capture.with_current_adoption_material_in_original_read((
+    host,
+    material,
+    operations,
+  ) => {
+    let current = () => {
+      !self.closing &&
+      !self.closed &&
+      self.capture.operation_scope(host, material, self.principal, connection)
+      is Ok(scope) &&
+      scope == @host.client_request_authority_scope_cid(self.request) &&
+      self.capture.operation_account(host, material, {
+        principal: self.principal,
+        connection,
+        resource: "run",
+        operation: "submit",
+      })
+      is Ok(@authorization.Allow(_)) &&
+      self.capture.operation_account(host, material, {
+        principal: self.principal,
+        connection,
+        resource: source_ref,
+        operation: "read",
+      })
+      is Ok(@authorization.Allow(_))
+    }
+    Ok(
+      first
+      .require_current(
+        host.journal,
+        self.request,
+        current,
+        reads=Some(operations.reads),
+      )
+      .map_err(issue => NativeClientMockModelIssue::Start(issue)),
+    )
+  })
+  match result {
+    Ok(value) => value
+    Err(issue) => Err(Original(issue))
+  }
 }
 
 ///|
@@ -547,6 +655,21 @@ pub fn NativeClientMockModelWork::needs_entry_persistence(self : Self) -> Bool {
 }
 
 ///|
+/// Borrow only this already opened component for its SAME configured Local
+/// family. This neither opens a read nor reissues a Model execution/permission.
+pub fn NativeClientMockModelWork::borrow_opened_original_model(
+  self : Self,
+) -> Result[@infer.Execution, NativeClientMockModelIssue] {
+  guard !self.closing &&
+    !self.closed &&
+    self.open_attempted &&
+    self.active is Some(active) else {
+    return Err(NotOpened)
+  }
+  Ok(active)
+}
+
+///|
 /// One bounded Core work batch. Its just-observed Account snapshot is
 /// spent on return; even a Waiting/failed step must refresh before another.
 /// Actual save and subsequent ACK are separated by this outer return boundary.
@@ -600,6 +723,7 @@ pub fn NativeClientMockModelWork::close(
     self.observation_time = None
     match self.active {
       None => {
+        self.first_start = None
         self.closed = true
         Ok(true)
       }
@@ -650,6 +774,7 @@ pub fn NativeClientMockModelWork::close(
           self.scope = None
           self.entry = None
           self.settlement = None
+          self.first_start = None
           self.closed = true
         }
         Ok(closed)
@@ -681,9 +806,9 @@ fn[T] mock_model_require(
 /// this through the SAME Request before preparing this existing Native Work.
 pub fn native_client_mock_model_work_construction() -> @execution.PreparationRepresentationUnits {
   {
-    record_headers: 2L,
-    reference_slots: 21L,
-    scalar_words: 7L,
+    record_headers: 3L,
+    reference_slots: 25L,
+    scalar_words: 8L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }

@@ -359,8 +359,9 @@ fn local_submission_start(
         AlreadyAccepted => return observe_original()
         AuthoritySupplierUnavailable => ()
       }
-      // No accepted Run or physical Source work is created until the selected
-      // Local capture/reviewer supplier is connected. Compilation is not approval.
+      // A Native Model original may already own accepted/started Source work.
+      // Its remaining continuation is still unavailable; never report that
+      // partial work as a completed Run, checkpoint, write or retry permit.
       stop("LocalEffectAuthoritySupplierUnavailable")
     }
     let source_free = @run_host.prepared_client_acquisition_count(prepared) == 0

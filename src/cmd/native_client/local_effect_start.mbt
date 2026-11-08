@@ -1,6 +1,7 @@
 ///|
-// Only actual CLI outcomes: an accepted original can be observed, or successful
-// preflight still lacks the installed authority supplier and must refuse.
+// Only actual CLI outcomes: a saved original can be observed. The Native
+// Model route can accept/start/capture Sources, but still refuses until its
+// remaining Model/Effect continuation is connected. Neither is approval.
 priv enum LocalEffectPreflightStatus {
   AlreadyAccepted
   AuthoritySupplierUnavailable
@@ -140,8 +141,9 @@ fn local_effect_first_compilation(
 // AlreadyAccepted means only authenticated retained acceptance requiring lookup.
 // AuthoritySupplierUnavailable records completed preflight, never admission or
 // a retry permit; other unsupported/refused conditions still raise.
-// Called by the actual CLI Effect preparation branch. It has no journal accept,
-// physical Source open, approval, grant issuance or Provider side effect.
+// Called by the actual CLI Effect preparation branch. The installed Native
+// Model path accepts the same originals and captures its actual file Sources.
+// Other profiles remain preflight-only. No branch issues approval or a grant.
 fn local_effect_prepare_start(
   host : @local_host.NativeLocalHostConnection,
   settings : LocalHostSettings,
@@ -292,15 +294,32 @@ fn local_effect_prepare_start_with_clocks(
       is Some(_)
     None => false
   }
-  if original.request != request ||
-    (
-      !values_supported &&
-      !@source_owner.resident_effect_source_compute_shape_supported(bound)
-    ) {
+  if original.request != request {
+    stop("LocalEffectSourceExecutionProfileNotSupported")
+  }
+  let native_model = match business {
+    Some(selected) if original._retained_models.length() == 1 => {
+      selected.prepare_mock_effect_plan(original)
+      true
+    }
+    _ => false
+  }
+  if !values_supported &&
+    !native_model &&
+    !@source_owner.resident_effect_source_compute_shape_supported(bound) {
     stop("LocalEffectSourceExecutionProfileNotSupported")
   }
   if !local_submit_allowed(host, settings, crypto, scope) {
     stop("LocalSubmissionAuthorizationDenied")
+  }
+  if native_model && business is Some(selected) && policy is Some(binding) {
+    selected.capture_mock_effect_sources(
+      reference,
+      binding,
+      run.retention,
+      now,
+      epoch_now(),
+    )
   }
   AuthoritySupplierUnavailable
 }

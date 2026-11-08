@@ -47,6 +47,105 @@ struct NativeRelationFileTargetIO {
 }
 
 ///|
+/// Same file/typed-document implementation bounds, before its physical child
+/// exists. Reuse Common's original parser/projection and JSON Effect envelope;
+/// fixed child controls use the existing file caller census. No new budget,
+/// policy ceiling, physical attempt or permission is selected here.
+pub fn native_relation_file_target_io_capacity(
+  provider : NativeRelationFilePreparedProvider,
+  writable_fields : Int,
+) -> @execution.ExecutionCapacity? {
+  let limits = provider.limits
+  let selection = provider.selection
+  guard writable_fields > 0 &&
+    writable_fields <= limits.page.max_nodes &&
+    file_capture_provider_capacity(
+      selection,
+      limits,
+      @rows.relation_document_prepared_contract(provider.prepared_contract),
+      prepared_contract=Some(provider.prepared_contract),
+      writable_fields~,
+    )
+    is Some(document) &&
+    @local.installed_file_effect_constructor_capacity(
+      document,
+      limits.page.max_bytes,
+      limits.page.max_nodes,
+      limits.page.max_depth,
+    )
+    is Ok(construction) &&
+    file_capture_metadata_capacity(
+      selection,
+      limits,
+      prepared_provider=Some(provider),
+    )
+    is Some(controls) &&
+    @files.native_filesystem_write_layout() is Some(writer) &&
+    @encode.text_writer_construction_inventory(
+      limits.page.max_bytes,
+      limits.page.max_nodes,
+      limits.page.max_depth,
+    )
+    is Some(before) &&
+    @encode.hash_writer_construction_inventory(
+      limits.page.max_nodes,
+      limits.page.max_depth,
+    )
+    is Some(version) &&
+    @execution.preparation_array_representation(
+      1L,
+      writable_fields.to_int64(),
+      false,
+    )
+    is Some(writable) &&
+    @execution.compose_preparation_representation([
+      {
+        record_headers: before.record_headers,
+        reference_slots: before.reference_slots,
+        scalar_words: before.scalar_words,
+        owned_utf16_units: before.owned_utf16_units,
+        owned_wire_bytes: 0L,
+      },
+      {
+        record_headers: version.record_headers,
+        reference_slots: version.reference_slots,
+        scalar_words: version.scalar_words,
+        owned_utf16_units: version.owned_utf16_units,
+        owned_wire_bytes: version.owned_wire_bytes,
+      },
+      writable,
+    ])
+    is Some(observation) &&
+    @execution.preparation_representation_cost(observation) is Some(observation) else {
+    return None
+  }
+  // Original receive/document storage is already in `construction`. Add the
+  // submitted replacement and actual Writer+lock native storage beside it.
+  // The FS Owner statically proves its lock payload fits its Writer layout.
+  // Target/lock UTF8 copies, the terminated lock suffix, and the original
+  // <=64-unit staging name. Additional diagnostics retain C error/close-error,
+  // the returned Bytes and decoded refusal text beside existing read storage.
+  let names = 16L * selection.name.length().to_int64() +
+    8L * 64L +
+    10L * 17L +
+    8L
+  let native = 2L *
+    (writer.writer_payload_bytes + writer.external_object_overhead_bytes) +
+    names +
+    16L * limits.diagnostic_ceiling.to_int64() +
+    6L +
+    limits.page.max_bytes.to_int64()
+  guard @execution.execution_capacity(
+      controls + observation + native,
+      controls + observation + native,
+    )
+    is Some(extra) else {
+    return None
+  }
+  @execution.add_execution_capacity(construction, extra)
+}
+
+///|
 /// Retain this child before advancing it. `update` contains the SAME expected
 /// row version, checked changes wire and unique staging basename. It supplies
 /// no approval or permission. The prepared provider retains the original full

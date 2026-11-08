@@ -110,6 +110,12 @@ typedef struct {
   char *close_error;
 } actql_native_filesystem_writer;
 
+/* The file-target adapter uses the existing Writer layout as a conservative
+ * upper for its simultaneously held lock. Keep that relation checked at the
+ * actual compiled Owner rather than inventing a native payload byte count. */
+_Static_assert(sizeof(actql_native_filesystem_lock) <=
+  sizeof(actql_native_filesystem_writer), "file target lock layout upper");
+
 typedef struct {
   ACTQL_FILESYSTEM_READ_CONTEXT_FIELDS
   actql_native_filesystem_root *root;
