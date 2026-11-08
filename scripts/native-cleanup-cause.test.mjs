@@ -104,6 +104,12 @@ test('cleanup category never serializes payloads and keeps public error code', {
   const effectProposals = functionSource.slice(proposalStart, proposalEnd);
   assert.equal(effectProposals, `    CommandBusinessEffectProposals(cause) =>
       match cause {
+        Source(original) =>
+          match original {
+            Invocation(_) => "EffectProposalsSourceInvocation"
+            Relation(_) => "EffectProposalsSourceRelation"
+            Dependency(_) => "EffectProposalsSourceDependency"
+          }
         Keyed(original) =>
           match original {
             Identity(_) => "EffectProposalsKeyedContract"
@@ -290,12 +296,18 @@ test('cleanup category never serializes payloads and keeps public error code', {
       tags: {Identity: 'EffectProposalsKeyedContract', Wire: 'EffectProposalsKeyedWire'},
       fallback: 'EffectProposalsKeyedIdentity',
     },
+    Source: {
+      path: 'src/run_publication_host/client_effect_acquired_evidence.mbt', name: 'ClientEffectAcquiredEvidenceIssue',
+      tags: {Invocation: 'EffectProposalsSourceInvocation', Relation: 'EffectProposalsSourceRelation',
+        Dependency: 'EffectProposalsSourceDependency'},
+    },
   };
   assert.deepEqual(proposalIssues, Object.keys(proposalFamilies).map(name => ({name, arity: 1})));
   const proposalTypes = {};
   for (const [family, owner] of Object.entries(proposalFamilies)) {
     const cases = enumCases(owner.path, owner.name);
     assert(Object.keys(owner.tags).every(name => cases.some(item => item.name === name)));
+    if (owner.fallback === undefined) assert.deepEqual(Object.keys(owner.tags), cases.map(item => item.name));
     const type = 'ProbeEffectProposals' + family;
     declare(type, cases);
     proposalTypes[family] = [type];
