@@ -3295,6 +3295,28 @@ fn bounded_binding_rows_step(
         guard state.output is Some(output) else {
           return fail_bounded_binding_rows(InvalidExecution, progress, used)
         }
+        // These direct paths already charged their complete original output
+        // usage. Fund that same cumulative DATA before persistent row transfer;
+        // the small checked-cell append below funds at its existing commit.
+        if state.preserve_presence || state.output_requires_steps {
+          let usage = if state.preserve_presence {
+            state.output_values
+          } else {
+            output.buffer.budget
+          }
+          if !fund_output_retention(
+              output.buffer.budget,
+              usage.nodes,
+              usage.text,
+            ) ||
+            !output.buffer.open {
+            return fail_bounded_binding_rows(
+              Capture(CaptureLimit),
+              progress,
+              used,
+            )
+          }
+        }
         if state.preserve_presence {
           guard state.presence_usage_start is Some(start) &&
             output.buffer.open &&

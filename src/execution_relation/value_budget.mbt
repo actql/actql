@@ -42,6 +42,8 @@ priv struct ValueBudget {
   mut text : Int
   mut work : Int
   mut external_work : Int
+  mut retention : WorkspaceGrowth?
+  mut retention_funded : Int64
 }
 
 ///|
@@ -52,7 +54,15 @@ fn value_budget(limits : ValueLimits) -> Result[ValueBudget, CaptureIssue] {
     limits.max_work < 0 {
     Err(InvalidCaptureLimits)
   } else {
-    Ok({ limits, nodes: 0, text: 0, work: 0, external_work: 0, })
+    Ok({
+      limits,
+      nodes: 0,
+      text: 0,
+      work: 0,
+      external_work: 0,
+      retention: None,
+      retention_funded: 0L,
+    })
   }
 }
 

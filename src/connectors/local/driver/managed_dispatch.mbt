@@ -52,6 +52,7 @@ struct LocalManagedDispatchConfiguration[T] {
   installation : LocalDispatchModule
   metadata : LocalManagedMetadataLimits
   capacity : @connector.ExecutionCapacity
+  metered_output_retention : Bool
   join_output_ceilings : Array[(Int, Int64)]
   interval_search_ceilings : Array[(Int, Int64)]
   asof_search_ceilings : Array[(Int, Int64)]
@@ -547,19 +548,28 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
   if provider is None {
     return Ok(None)
   }
-  let base = match provider {
-    Some(_) =>
-      @local.local_module_capacity_for_sequence(
-        installed.implementation,
-        local_task_slot(installed, task),
-        sequence,
-      )
+  let metered_start = @local.local_module_metered_output_start_capacity(
+    installed.implementation,
+    local_task_slot(installed, task),
+    sequence,
+  )
+  let base = match metered_start {
+    Some(value) => Some(value)
     None =>
-      @execution.generated_sequence_capacity(
-        sequence,
-        @local.local_module_execution_limits(installed.implementation),
-        @local.local_module_measurement_limits(installed.implementation),
-      )
+      match provider {
+        Some(_) =>
+          @local.local_module_capacity_for_sequence(
+            installed.implementation,
+            local_task_slot(installed, task),
+            sequence,
+          )
+        None =>
+          @execution.generated_sequence_capacity(
+            sequence,
+            @local.local_module_execution_limits(installed.implementation),
+            @local.local_module_measurement_limits(installed.implementation),
+          )
+      }
   }
   guard base is Some(base) &&
     @local.local_import_retention_capacity(imports) is Some(per_input) else {
@@ -654,6 +664,7 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
       imports,
       installation: installed,
       metadata,
+      metered_output_retention: metered_start is Some(_),
       capacity: {
         transfer_bytes: count * imports.wire.max_bytes.to_int64(),
         retained_bytes: retained_with_metadata,
@@ -1390,6 +1401,7 @@ pub fn[T] start_local_managed_dispatch(
                   @strategy.captured_dag_ledger(setup.run),
                 ).execution_bytes,
                 reserve_working,
+                meter_retained_outputs=setup.metered_output_retention,
               ) {
               Ok(value) => value
               Err(issue) => return Err(Configuration(Execution(issue)))

@@ -14,6 +14,9 @@ priv struct WorkspaceGrowth {
   mut slot_peak : Int
   mut logical_peak : Int64
   mut funded : Int64
+  // None preserves the full prepaid output recipe. Some meters cumulative
+  // retained output DATA on this same task, without returning prior charges.
+  mut retained_outputs : Int64?
   mut busy : Bool
   mut failed : Bool
 }
@@ -29,9 +32,16 @@ fn grow_workspace(
   slots : Int,
   logical : Int64,
   text? : Int64? = None,
+  retained? : Int64? = None,
 ) -> Bool {
   let text = text.unwrap_or(growth.text)
-  if growth.failed || growth.busy || slots < 0 || logical < 0L || text < 0L {
+  let retained = retained.unwrap_or(growth.retained_outputs.unwrap_or(0L))
+  if growth.failed ||
+    growth.busy ||
+    slots < 0 ||
+    logical < 0L ||
+    text < 0L ||
+    retained < growth.retained_outputs.unwrap_or(0L) {
     growth.failed = true
     return false
   }
@@ -60,6 +70,8 @@ fn grow_workspace(
     )
     is Some(generic) &&
     execution_capacity_inventory_add(generic, QuotedBytes, text_peak, 1)
+    is Some(transient) &&
+    execution_capacity_inventory_add(transient, QuotedBytes, retained, 1)
     is Some(extra) else {
     growth.failed = true
     return false
@@ -73,6 +85,9 @@ fn grow_workspace(
       return false
     }
     growth.funded = extra
+  }
+  if growth.retained_outputs is Some(_) {
+    growth.retained_outputs = Some(retained)
   }
   growth.slots = slots
   growth.logical = logical
@@ -93,6 +108,7 @@ pub fn bind_generated_workspace_growth(
   limits : SequenceExecutionLimits,
   live_ceiling : Int64,
   reserve : (Int64) -> Result[Unit, WorkspaceGrowthIssue],
+  meter_retained_outputs? : Bool = false,
 ) -> Result[GeneratedSequence, SequenceRunIssue] {
   let initial_slots = limits.rows.operation_entries
   if initial_slots < 0 || live_ceiling < 0L || generated.working is Some(_) {
@@ -135,6 +151,11 @@ pub fn bind_generated_workspace_growth(
       slot_peak: 0,
       logical_peak: 0L,
       funded: 0L,
+      retained_outputs: if meter_retained_outputs {
+        Some(0L)
+      } else {
+        None
+      },
       busy: false,
       failed: false,
     }),
@@ -158,4 +179,31 @@ fn working_row_workspace(
     }
   }
   { ..row_workspace(maximum), growth: generated.working, }
+}
+
+///|
+// Existing output budgets supply complete cumulative usage before a row is
+// transferred into persistent storage. Each budget retains its funded peak;
+// all buffers compose on the same task attachment through original cleanup.
+fn fund_output_retention(budget : ValueBudget, nodes : Int, text : Int) -> Bool {
+  guard budget.retention is Some(growth) &&
+    growth.retained_outputs is Some(total) else {
+    return true
+  }
+  guard execution_capacity_inventory_bytes([
+      { unit: ValueNodeSlots, count: nodes.to_int64(), copies: 1, },
+      { unit: DecodedTextBytes, count: text.to_int64(), copies: 1, },
+    ])
+    is Some(required) &&
+    required >= budget.retention_funded &&
+    required - budget.retention_funded <= 9223372036854775807L - total else {
+    growth.failed = true
+    return false
+  }
+  let next = total + required - budget.retention_funded
+  if !grow_workspace(growth, growth.slots, growth.logical, retained=Some(next)) {
+    return false
+  }
+  budget.retention_funded = required
+  true
 }
