@@ -82,9 +82,12 @@ test('wide Source reads the complete declared schema through its original funded
   // Same-process Host component custody only: the exact original export remains
   // retained here. This is no durable Saved/receiving permission acceptance.
   let retained = saved;
+  // Receiving reconstruction has its own original finite allowance. The
+  // producer's spent attempt remains spent after close; it is never refunded.
+  const receivingLedger = f.ledger();
   const restored = checked(common.clientProgramRestoreSourceCapture(saved.requirement,
     saved.requirementCid, saved.binding, saved.binding, saved.descriptor, saved.rows,
-    ledger, receiving.capacity, () => retained === saved && saved.requirement === opened.requirement,
+    receivingLedger, receiving.capacity, () => retained === saved && saved.requirement === opened.requirement,
     undefined, undefined));
   try {
     const receivingSource = common.clientProgramSourceCaptureSource(restored);
@@ -96,6 +99,7 @@ test('wide Source reads the complete declared schema through its original funded
     assert.equal(common.clientProgramCloseSourceCapture(restored), true);
     retained = undefined;
   }
+  assert.deepEqual(held(receivingLedger), [0n, 0n, 0n, 0n]);
   assert.deepEqual(held(ledger), [0n, 0n, 0n, 0n]);
   } catch (error) {
     const enums = [];
