@@ -97,6 +97,7 @@ priv struct NativeRelationFileContent {
   mut raw_retention : @publication.PublicationContract?
   mut raw_response : @publication_host.ClientKeyedNativeRawResponse?
   mut raw_custody : @store.CapturedContentCustody?
+  mut captured_page : @publication_host.ClientKeyedNativeCapturedPage?
   mut candidate : @publication_host.ClientCapturedContent?
   mut custody : @store.CapturedContentCustody?
   mut value : @admitted.CheckedValue?
@@ -119,6 +120,7 @@ fn native_relation_file_content(
     raw_retention: None,
     raw_response: None,
     raw_custody: None,
+    captured_page: None,
     candidate: None,
     custody: None,
     value: None,
@@ -213,7 +215,10 @@ fn native_relation_file_content_capacity(
         // reference and actual Some carrier on this same Content reservation.
         // Raw retention/response/custody: three field refs, three Some
         // carriers H3/R3/W3, and bind/advance Result/clock frames H4/R5/W4.
-        record_headers: 7L +
+        // Captured-page field+Some adds1H2R1W. Its fixed pre-entry
+        // call frame6R6W and two Result carriers add3H8R8W. Dynamic
+        // identity/protocol bodies are backed by the original lookup.
+        record_headers: 11L +
         page.record_headers +
         1L +
         8L +
@@ -222,7 +227,7 @@ fn native_relation_file_content_capacity(
         24L +
         9L +
         (if input.read_profile is Some(_) { 1L } else { 0L }),
-        reference_slots: 11L +
+        reference_slots: 21L +
         page.reference_slots +
         8L +
         8L +
@@ -231,7 +236,7 @@ fn native_relation_file_content_capacity(
         5L +
         1L +
         (if input.read_profile is Some(_) { 1L } else { 0L }),
-        scalar_words: 7L +
+        scalar_words: 16L +
         page.scalar_words +
         4L +
         8L +

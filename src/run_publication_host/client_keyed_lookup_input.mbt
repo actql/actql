@@ -7,6 +7,7 @@ priv struct ClientKeyedResponseHistory {
   request : ClientKeyedRequest
   mut _retained_capture : @row_host.RowKeyedSourceCapture?
   mut _retained_activation : ClientKeyedNativeActivation?
+  mut _retained_native_page : ClientKeyedNativePageState?
 }
 
 ///|
@@ -690,7 +691,7 @@ pub fn begin_client_keyed_lookup_response(
     is Some(layout) &&
     @execution.preparation_representation_cost({
       // Request execution wrapper: 1H/3R/4W + its original accounting
-      // Some: 1H/1R/1W; history: 1H with request + capture option.
+      // Some: 1H/1R/1W; history: 1H with request/capture/activation/page options.
       // Optional capture/Some is 2H/3R/1W.
       // The previous request Some and existing tuple/read carriers remain;
       // the same typed request payload is not charged a second time.
@@ -707,7 +708,7 @@ pub fn begin_client_keyed_lookup_response(
         4L + (if capture is Some(_) { 3L } else { 0L })
       } else {
         request_layout.reference_slots +
-        9L +
+        10L +
         (if capture is Some(_) { 9L } else { 5L })
       }),
       scalar_words: layout.scalar_words +
@@ -766,7 +767,12 @@ pub fn begin_client_keyed_lookup_response(
     history._retained_capture = capture
     state.known[planned_slot].2
   } else {
-    Some({ request, _retained_capture: capture, _retained_activation: None, })
+    Some({
+      request,
+      _retained_capture: capture,
+      _retained_activation: None,
+      _retained_native_page: None,
+    })
   }
   state.pending_slot = planned_slot
   let cursor = match

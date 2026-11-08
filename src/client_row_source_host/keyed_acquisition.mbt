@@ -681,3 +681,12 @@ pub fn keyed_row_capture_matches_request(
   keyed_retention_live(capture.run, capture.retention) &&
   physical_equal(capture.retention.requirement.request, request)
 }
+
+///|
+/// Constructor DATA of borrowing this actual admitted page as an input. The
+/// existing capture quote owns its real schema width; no rows or authority escape.
+pub fn keyed_row_capture_export_construction_capacity(
+  capture : RowKeyedSourceCapture,
+) -> @execution.ExecutionCapacity? {
+  @execution.supplied_source_input_capture_capacity(capture.retention.rows)
+}

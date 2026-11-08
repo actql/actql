@@ -73,9 +73,11 @@ pub fn NativeRelationFileCapture::capture(Self) -> Result[@client_row_source_hos
 pub fn NativeRelationFileCapture::close(Self) -> Result[Bool, NativeRelationFileIssue]
 pub fn NativeRelationFileCapture::complete_keyed_content_page(Self, @client_row_source_host.RelationDocument, Bytes) -> Result[Unit, NativeRelationFileFailure]
 pub fn NativeRelationFileCapture::keyed_capture(Self) -> Result[@client_row_source_host.RowKeyedSourceCapture, NativeRelationFileIssue]
+pub fn NativeRelationFileCapture::keyed_captured_page_matches(Self, @run_publication_host.ClientKeyedNativeCapturedPage, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph) -> Bool
 pub fn NativeRelationFileCapture::keyed_content_document(Self) -> Result[@client_row_source_host.RelationDocument, NativeRelationFileIssue]
 pub fn NativeRelationFileCapture::keyed_raw_response(Self) -> Result[@run_publication_host.ClientKeyedNativeRawResponse, NativeRelationFileIssue]
 pub fn NativeRelationFileCapture::keyed_raw_snapshot_identity(Self) -> Result[(String, Int), NativeRelationFileIssue]
+pub fn NativeRelationFileCapture::prepare_keyed_page_original(Self, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int, Int, Int, Int, Int) -> Result[@run_publication_host.ClientKeyedNativeCapturedPage, NativeRelationFileFailure]
 
 type NativeRelationFileContentInput
 

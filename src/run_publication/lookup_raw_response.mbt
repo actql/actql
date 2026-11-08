@@ -12,3 +12,17 @@ pub fn lookup_raw_response_content(
   }
   Some((cid, count))
 }
+
+///|
+/// Original admitted raw metadata fields; no new observation or Store ACK.
+pub fn lookup_raw_response_attempt(
+  original : PublicationContract,
+) -> (String, Int64, String)? {
+  guard original.name == "native_file_lookup_raw_response" &&
+    contract_string(original, "call_slot_cid") is Some(slot) &&
+    contract_count(original, "network_attempt") is Some(attempt) &&
+    contract_string(original, "captured_at") is Some(at) else {
+    return None
+  }
+  Some((slot, attempt, at))
+}

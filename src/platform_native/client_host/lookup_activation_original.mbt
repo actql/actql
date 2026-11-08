@@ -6,6 +6,11 @@ priv struct NativeMockLookupJournalEntry {
   mut _retained_original : @host.ClientKeyedNativeActivation?
   mut attempted : Bool
   mut recorded : Bool
+  mut activation_body : Bytes?
+  mut activation_revision : Int64?
+  mut _retained_page : @host.ClientKeyedNativeCapturedPage?
+  mut page_attempted : Bool
+  mut page_recorded : Bool
 }
 
 ///|
@@ -125,13 +130,14 @@ pub fn NativeClientMockModelWork::persist_lookup_activation_in_original_read(
       array,
       fields,
       {
-        // Entry H1/R2/W2 plus original Some H1/R1/W1, six (name,contract)
+        // Entry H1/R5/W4 plus original/body Some H2/R2/W2 and revision
+        // Some H1/W1, six (name,contract)
         // and five (name,count) pairs,
         // and current-Read (3Refs+bound Int) / transaction (9Refs) closures.
         // Both final scope/key Strings and their concatenation intermediates.
-        record_headers: 19L,
-        reference_slots: 32L,
-        scalar_words: 11L,
+        record_headers: 21L,
+        reference_slots: 36L,
+        scalar_words: 15L,
         owned_utf16_units: 4L *
         @publication.publication_contract_identity(self.definition)
         .length()
@@ -163,6 +169,11 @@ pub fn NativeClientMockModelWork::persist_lookup_activation_in_original_read(
     _retained_original: Some(original),
     attempted: false,
     recorded: false,
+    activation_body: None,
+    activation_revision: None,
+    _retained_page: None,
+    page_attempted: false,
+    page_recorded: false,
   }
   entries.push(entry)
   let result = self.capture.with_current_adoption_material_in_original_read((
@@ -196,6 +207,9 @@ pub fn NativeClientMockModelWork::persist_lookup_activation_in_original_read(
       Ok(value) => value
       Err(issue) => return Err(Journal(issue))
     }
+    // Preserve the exact already encoded original for the later adoption
+    // transaction; compare its stored bytes, never reconstruct an activation.
+    entry.activation_body = Some(body)
     let table = "client_lookup_activation_originals"
     let run = @publication.publication_contract_identity(self.definition)
     let scope = run +
@@ -281,7 +295,7 @@ pub fn NativeClientMockModelWork::persist_lookup_activation_in_original_read(
           body,
           Some(operations),
         )
-        .map(_ => ())
+        .map(revision => entry.activation_revision = Some(revision))
         .map_err(issue => Physical(issue))
       },
       reads=Some(operations.reads),

@@ -568,6 +568,35 @@ fn LocalCommandBusinessPreparation::capture_mock_effect_content(
         }
       })
     }
+    let page = self.original.with_business_request(self.capture, () => {
+      match
+        content.prepare_keyed_page_original(
+          limits.identity.rows,
+          limits.output_values,
+          limits.identity.wire,
+          limits.identity.logical_wire,
+          limits.identity.schema,
+          limits.identity.work,
+          limits.identity.workspace,
+          native_mock_effect_record_bytes(installation),
+          limits.identity.wire.max_nodes,
+          limits.identity.wire.max_depth,
+        ) {
+        Ok(value) => value
+        Err(issue) => {
+          state.source_failures.push(issue)
+          self.original.retain_primary(CommandBusinessSource(issue.issue()))
+          stop("LocalOriginalLookupPageUnavailable")
+        }
+      }
+    })
+    match work.persist_lookup_page_in_original_read(content, page) {
+      Ok(_) => ()
+      Err(issue) => {
+        self.original.retain_primary(CommandBusinessModel(issue))
+        stop("LocalOriginalLookupPageAdoptionUnavailable")
+      }
+    }
     self.original.with_business_request(self.capture, () => {
       let captured = content
         .keyed_capture()
