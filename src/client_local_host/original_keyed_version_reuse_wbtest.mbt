@@ -752,11 +752,12 @@ fn original_keyed_version_history(
         // Actual schema has three required cells. The response/cache carrier
         // is6H33R4W; this Request adds8H29R5W (two field pairs/two checked
         // wrappers/fields Array/original record). Retained original execution,
-        // accounting Some, history and capture/Some add5H9R6W. Request payloads
-        // and the physical RowRun/retention remain borrowed once.
+        // accounting Some, history (including its vacant activation slot) and
+        // capture/Some add5H10R6W. Request payloads and the physical RowRun/
+        // retention remain borrowed once.
         let expected = @execution.preparation_representation_cost({
           record_headers: 19L,
-          reference_slots: 71L,
+          reference_slots: 33L + 29L + 10L,
           scalar_words: 15L,
           owned_utf16_units: wire.length().to_int64(),
           owned_wire_bytes: 0L,
