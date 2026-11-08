@@ -306,3 +306,22 @@ test('configuration reader selection refuses malformed original-bytes ports and 
   assert.equal(selected.readOriginalText('/text'), 'text');
   assert.equal(Object.hasOwn(captureConfigurationReaders(undefined, undefined, refuse), 'readOriginalBytes'), false);
 });
+
+test('profile construction ports retain original methods before reads await and reject accessors', async () => {
+  const events = [], receiver = {
+    readJson() {return {};}, readText() {return 'original';},
+    prepareProfile(...args) {assert.strictEqual(this, receiver); events.push(['prepare', ...args]);return 'prepared';},
+    readProfile(...args) {assert.strictEqual(this, receiver); events.push(['read', ...args]);return 'read';},
+  };
+  const selected = captureConfigurationReaders(receiver, undefined, () => assert.fail('Valid originals'));
+  receiver.prepareProfile = receiver.readProfile = () => assert.fail('Replaced method');
+  assert.equal(selected.prepareProfile('original', 1), 'prepared');
+  assert.equal(await selected.readProfile('/original', 2), 'read');
+  assert.deepEqual(events, [['prepare', 'original', 1], ['read', '/original', 2]]);
+  for (const name of ['prepareProfile', 'readProfile']) {
+    const refused = new Error('Original refusal');
+    const reader = {readJson() {}, readText() {}};
+    Object.defineProperty(reader, name, {get() {assert.fail('No getter execution');}});
+    assert.throws(() => captureConfigurationReaders(reader, undefined, () => {throw refused;}), error => error === refused);
+  }
+});

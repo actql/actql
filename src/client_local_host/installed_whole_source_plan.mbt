@@ -200,9 +200,15 @@ fn prepare_installed_whole_source_capacity_original(
   limits : @row_source_host.RowInputLimits,
   provider : @execution.ExecutionCapacity?,
 ) -> Result[ClientInstalledWholeSourceCapacity, ClientInstalledManagedRunIssue] {
-  if !@publication_host.client_source_acquisition_matches_program(
-      prepared, 0, 0, original,
-    ) {
+  let stage = @sourceviews.declaration(
+      @sourceviews.mode_input(@sourceviews.source_acquisition_mode(original)),
+    ).stage_index
+  let ordinal = @sourceviews.source_acquisition_source_index(original)
+  let graph = @publication_host.prepared_client_graph(prepared)
+  guard @publication_host.client_source_acquisition_matches_program(
+      prepared, stage, ordinal, original,
+    ) &&
+    @strategy.graph_stage_operation_task(graph, stage, 0) is Some(task) else {
     return Err(ForeignOriginal)
   }
   // The same nominal Source original already attests a bounded snapshot and
@@ -212,7 +218,7 @@ fn prepare_installed_whole_source_capacity_original(
   let sequence = match
     @publication_host.prepare_prepared_client_full_sequence(
       prepared,
-      0,
+      task,
       @publication_host.prepared_client_values_sequence_limits(prepared),
     ) {
     Ok(value) => value
@@ -336,7 +342,7 @@ pub fn installed_managed_source_input_kind(
     physical_equal(plan.request, request) else {
     return Err(ForeignOriginal)
   }
-  Ok(if plan.whole_input is Some(_) { "whole-input" } else { "query" })
+  Ok(if !plan.whole_sources.is_empty() { "whole-input" } else { "query" })
 }
 
 ///|
@@ -383,6 +389,25 @@ pub fn installed_managed_whole_source_ledger(
   transfer : Int64,
   scratch : Int64,
 ) -> Result[@resources.Ledger, ClientInstalledManagedRunIssue] {
+  installed_managed_whole_sources_ledger(
+    value,
+    prepared,
+    request,
+    [capacity],
+    [transfer],
+    [scratch],
+  )
+}
+
+///|
+pub fn installed_managed_whole_sources_ledger(
+  value : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  capacities : Array[ClientInstalledWholeSourceCapacity],
+  transfer : Array[Int64],
+  scratch : Array[Int64],
+) -> Result[@resources.Ledger, ClientInstalledManagedRunIssue] {
   match check_installed_managed_run_binding(value, prepared, request) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
@@ -394,23 +419,27 @@ pub fn installed_managed_whole_source_ledger(
   guard value.captured_preparation is Some(plan) &&
     physical_equal(plan.prepared, prepared) &&
     physical_equal(plan.request, request) &&
-    plan.whole_input is Some(selected) &&
-    physical_equal(selected, capacity) &&
-    plan.transport_bytes.length() == 1 &&
-    plan.transport_bytes[0] == transfer &&
-    plan.transport_execution_bytes.length() == 1 &&
-    plan.transport_execution_bytes[0] == scratch &&
-    value.reads.length() == 1 &&
-    value.reads[0] is Some(read) &&
-    read.original is Some(original) &&
-    physical_equal(original, read) &&
-    read.ledger is Some(original_ledger) &&
-    physical_equal(original_ledger, ledger) &&
-    read.managed_run is Some((original_run, 0)) &&
-    physical_equal(original_run, value) &&
-    read.whole_input is Some(original_capacity) &&
-    physical_equal(original_capacity, selected) else {
+    !plan.whole_sources.is_empty() &&
+    capacities.length() == plan.whole_sources.length() &&
+    transfer == plan.transport_bytes &&
+    scratch == plan.transport_execution_bytes &&
+    value.reads.length() == capacities.length() else {
     return Err(ForeignOriginal)
+  }
+  for index, capacity in capacities {
+    guard physical_equal(plan.whole_sources[index], capacity) &&
+      value.reads[index] is Some(read) &&
+      read.original is Some(original) &&
+      physical_equal(original, read) &&
+      read.ledger is Some(original_ledger) &&
+      physical_equal(original_ledger, ledger) &&
+      read.managed_run is Some((original_run, slot)) &&
+      slot == index &&
+      physical_equal(original_run, value) &&
+      read.whole_input is Some(original_capacity) &&
+      physical_equal(original_capacity, capacity) else {
+      return Err(ForeignOriginal)
+    }
   }
   if !installed_managed_capture_parent_fits(
       value,
@@ -463,6 +492,7 @@ pub fn begin_installed_managed_whole_source_read(
     request,
     Some(declaration),
     None,
+    0,
   )
 }
 
@@ -487,6 +517,33 @@ pub fn begin_installed_managed_catalog_whole_source_read(
     request,
     None,
     Some(source),
+    0,
+  )
+}
+
+///|
+pub fn begin_installed_managed_whole_source_read_at(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  declaration : @row_source_host.RowDeclaration,
+  occurrence : Int,
+) -> Result[
+  (
+    ClientInstalledSourceRead,
+    @sourceviews.SourceAcquisition,
+    @row_source_host.RowInputAcquisition,
+    ClientInstalledWholeSourceCapacity,
+  ),
+  ClientInstalledManagedRunIssue,
+] {
+  begin_installed_managed_whole_source_read_original(
+    owner,
+    prepared,
+    request,
+    Some(declaration),
+    None,
+    occurrence,
   )
 }
 
@@ -497,6 +554,7 @@ fn begin_installed_managed_whole_source_read_original(
   request : @publication_host.ClientRequestIdentity,
   declaration : @row_source_host.RowDeclaration?,
   expected : ClientInstalledWholeSourceCapacity?,
+  occurrence : Int,
 ) -> Result[
   (
     ClientInstalledSourceRead,
@@ -512,7 +570,7 @@ fn begin_installed_managed_whole_source_read_original(
     owner.captured_preparation is Some(plan) &&
     physical_equal(plan.prepared, prepared) &&
     physical_equal(plan.request, request) &&
-    plan.whole_input is Some(source) else {
+    plan.whole_sources.get(occurrence) is Some(source) else {
     return Err(ForeignOriginal)
   }
   if expected is Some(actual) && !physical_equal(actual, source) {
@@ -529,7 +587,7 @@ fn begin_installed_managed_whole_source_read_original(
       Err(_) => return Err(ForeignOriginal)
     }
   }
-  let read = match begin_installed_managed_run_source_read(owner, 0) {
+  let read = match begin_installed_managed_run_source_read(owner, occurrence) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -688,135 +746,111 @@ fn prepare_installed_managed_whole_source_plan_owned(
     @local.ManagedProvider,
   ],
 ) -> Result[ClientInstalledManagedCapturePlan, ClientInstalledManagedRunIssue] {
-  let identity = @publication_host.prepared_client_identity(prepared)
-  if identity.program_definition_cid !=
-    @publication_host.client_request_program_cid(request) ||
-    identity.parameter_values_cid !=
-    @publication_host.client_request_parameters_cid(request) ||
-    !@publication_host.client_source_acquisition_matches_program(
-      prepared,
-      0,
-      0,
-      source.original,
-    ) ||
-    transport_bytes < 0L ||
-    transport_execution_bytes < 0L ||
-    !installed_managed_run_purpose_supported(prepared) {
-    return Err(ForeignOriginal)
-  }
-  let graph = match
-    @strategy.prepare_source_input_dag(
-      @publication_host.prepared_client_graph(prepared),
-      source.original,
-    ) {
-    Ok(value) => value
-    Err(_) => return Err(Unsupported)
-  }
-  let sequences = match
-    prepare_client_local_sequences_owned(
-      Pure(prepared),
-      installed_contracts,
-      values_body,
-      fragment_body,
-      ordered_body,
-      query_time=query_time.map(original => (original, request)),
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  let max_rows = Int::max(
-    @publication_host.prepared_client_values_max_rows(prepared),
-    @row_source_host.row_input_acquisition_max_rows(source.acquisition),
-  )
-  let capacity_plan = client_local_capacity_plan(
-    sequences,
-    max_rows,
-    scalar_values=true,
-    graph=Some(graph),
-  )
-  let inputs = Array::makei(sequences.length(), task => {
-    @strategy.graph_task_input_count(graph, task).unwrap_or(0)
-  })
-  guard client_local_sequence_capacity_original(
-      sequences,
-      @strategy.graph_task_count(graph),
-      capacity_plan=Some(capacity_plan),
-      retained_inputs=Some(inputs),
-      max_rows~,
-      retained_output~,
-      include_simultaneous=true,
-      simultaneous_graph=Some(graph),
-    )
-    is Some(local_capacity) else {
-    return Err(Unsupported)
-  }
-  guard prepare_client_local_configuration(
-      graph,
-      capacity_plan,
-      ExecutionRows,
-      local_capacity.provider_retained,
-      local_capacity.provider_execution,
-      retained_output,
-      provider_factory,
-    )
-    is Some(configuration) &&
-    client_prepared_local_configuration_capacity(
-      configuration,
-      local_capacity.limits,
-    )
-    is Some(actual) else {
-    return Err(Unsupported)
-  }
-  let retained = @execution.execution_capacity_retained_bytes(source.complete)
-  let execution = @execution.execution_capacity_execution_bytes(source.complete)
-  guard local_capacity.simultaneous
-    is Some((compute_retained, compute_execution)) else {
-    return Err(Unsupported)
-  }
-  let base = actual.limits
-  if retained > 9223372036854775807L - compute_retained ||
-    execution > 9223372036854775807L - compute_execution ||
-    execution + compute_execution >
-    9223372036854775807L - transport_execution_bytes ||
-    transport_bytes > 9223372036854775807L - base.transfer_bytes ||
-    base.attempts == 2147483647 ||
-    base.holdings == 2147483647 {
-    return Err(InsufficientCapacity)
-  }
-  let limits : @resources.LedgerLimits = {
-    ..base,
-    attempts: base.attempts + 1,
-    holdings: base.holdings + 1,
-    transfer_bytes: base.transfer_bytes + transport_bytes,
-    retained_bytes: Int64::max(base.retained_bytes, compute_retained + retained),
-    execution_bytes: Int64::max(
-      base.execution_bytes,
-      compute_execution + execution + transport_execution_bytes,
-    ),
-  }
-  Ok({
+  prepare_installed_managed_whole_sources_plan(
     prepared,
     request,
-    _observed_query_time: query_time,
-    captures: [],
-    whole_input: Some(source),
-    direct_occurrences: None,
-    model_input_prefix: None,
-    model_input_suffix: None,
-    graph,
-    transport_bytes: [transport_bytes],
-    transport_execution_bytes: [transport_execution_bytes],
+    [source],
+    [transport_bytes],
+    [transport_execution_bytes],
     installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
-    sequences,
-    compute_sequences: sequences,
-    capacity_plan,
-    configuration,
-    compilation: None,
-    limits,
-  })
+    retained_output~,
+    provider_factory~,
+    query_time~,
+  )
+}
+
+///|
+/// Complete checked inputs use the same captured Plan/Compute engine. Every
+/// occurrence retains its real Source original; no completed task is invented.
+pub fn prepare_installed_managed_whole_sources_plan(
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  sources : Array[ClientInstalledWholeSourceCapacity],
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  installed_contracts : ClientInstalledSequenceContracts,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  retained_output~ : Bool,
+  provider_factory~ : (@execution.ExecutionCapacity) -> Array[
+    @local.ManagedProvider,
+  ],
+  query_time? : @publication_host.ClientQueryTimePreparation? = None,
+  runtime_admission? : Bool = false,
+) -> Result[ClientInstalledManagedCapturePlan, ClientInstalledManagedRunIssue] {
+  if sources.is_empty() {
+    return Err(Unsupported)
+  }
+  prepare_installed_managed_capture_plan_owned(
+    prepared,
+    request,
+    [],
+    transport_bytes,
+    transport_execution_bytes,
+    installed_contracts,
+    values_body,
+    fragment_body,
+    ordered_body,
+    false,
+    retained_output~,
+    provider_factory~,
+    query_time~,
+    runtime_admission~,
+    whole_sources=sources,
+  )
+}
+
+///|
+pub fn prepare_installed_managed_whole_sources_plan_at_query_time(
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  sources : Array[ClientInstalledWholeSourceCapacity],
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  installed_contracts : ClientInstalledSequenceContracts,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  invocation : (
+    @publication_host.ClientQueryTimePreparation,
+    @publication_host.ClientRequestIdentity,
+    @publication_host.ClientCompiledRun,
+    @publication.PublicationContract,
+  )?,
+  retained_output~ : Bool,
+  provider_factory~ : (@execution.ExecutionCapacity) -> Array[
+    @local.ManagedProvider,
+  ],
+) -> Result[ClientInstalledManagedCapturePlan, ClientInstalledManagedRunIssue] {
+  guard invocation is Some((original, original_request, compiled, definition)) &&
+    physical_equal(original_request, request) else {
+    return Err(ForeignOriginal)
+  }
+  match
+    @publication_host.client_query_time_preparation_context_for_run(
+      original, prepared, compiled, definition, request,
+    ) {
+    Err(_) => return Err(ForeignOriginal)
+    Ok(_) => ()
+  }
+  prepare_installed_managed_whole_sources_plan(
+    prepared,
+    request,
+    sources,
+    transport_bytes,
+    transport_execution_bytes,
+    installed_contracts,
+    values_body,
+    fragment_body,
+    ordered_body,
+    query_time=Some(original),
+    retained_output~,
+    provider_factory~,
+  )
 }
 
 ///|

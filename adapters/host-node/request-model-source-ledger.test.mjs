@@ -372,7 +372,7 @@ test('actual complete Model dispatcher retains its original Run before borrowing
   let selected;
   const visit = node => {
     if (!node || typeof node !== 'object') return;
-    if (node.type === 'IfStatement' && source.slice(node.test.start, node.test.end).startsWith('capacities.some(')) {
+    if (node.type === 'IfStatement' && source.slice(node.test.start, node.test.end).startsWith('capacities.some(value => value.managedRun !== undefined)')) {
       assert(!selected); selected = node;
     }
     for (const child of Object.values(node)) {if (Array.isArray(child)) child.forEach(visit); else if (child && typeof child === 'object') visit(child);}

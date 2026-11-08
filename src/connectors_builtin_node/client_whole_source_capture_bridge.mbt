@@ -96,8 +96,14 @@ pub fn client_program_whole_source_input_identity(
   prepared : @publication_host.PreparedClientProgram,
   original : @acquisition.SourceAcquisition,
 ) -> Array[String]? {
+  let stage = @acquisition.declaration(
+      @acquisition.mode_input(@acquisition.source_acquisition_mode(original)),
+    ).stage_index
   if !@publication_host.client_source_acquisition_matches_program(
-      prepared, 0, 0, original,
+      prepared,
+      stage,
+      @acquisition.source_acquisition_source_index(original),
+      original,
     ) {
     return None
   }
@@ -429,11 +435,26 @@ pub fn client_program_issue_whole_source_input_logical(
   @publication.RunEvidenceValue,
   @publication_host.ClientCapturedSourceLogicalIssue,
 ] {
+  let graph = @publication_host.prepared_client_graph(prepared)
+  let original = @client_local_host.installed_whole_source_original(capacity)
+  let stage = @acquisition.declaration(
+      @acquisition.mode_input(@acquisition.source_acquisition_mode(original)),
+    ).stage_index
+  guard @publication_host.client_source_acquisition_matches_program(
+      prepared,
+      stage,
+      @acquisition.source_acquisition_source_index(original),
+      original,
+    ) &&
+    @strategy.graph_stage_operation_task(graph, stage, 0) is Some(task) else {
+    return Err(@publication_host.ForeignPrepared)
+  }
   @publication_host.issue_captured_whole_source_input_logical(
-    @publication_host.prepared_client_graph(prepared),
+    graph,
     source,
     identity,
-    @client_local_host.installed_whole_source_original(capacity),
+    original,
+    task~,
   )
 }
 
@@ -1011,4 +1032,226 @@ pub fn client_program_duckdb_whole_source_connector(
   @acquisition.declaration(
     @acquisition.mode_input(@acquisition.source_acquisition_mode(original)),
   ).connector
+}
+
+///|
+#export_name("clientProgramPrepareInstalledManagedWholeSourcesPlan")
+pub fn client_program_prepare_installed_managed_whole_sources_plan(
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  capacities : Array[@client_local_host.ClientInstalledWholeSourceCapacity],
+  transfer : Array[Int64],
+  scratch : Array[Int64],
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+  values : String,
+  fragment : String?,
+  ordered : String?,
+  retained_output : Bool,
+) -> Result[
+  @client_local_host.ClientInstalledManagedCapturePlan,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_installed_managed_whole_sources_plan(
+    prepared,
+    request,
+    capacities,
+    transfer,
+    scratch,
+    contracts,
+    values,
+    fragment,
+    ordered,
+    retained_output~,
+    provider_factory=installed_client_family_providers,
+  )
+}
+
+///|
+/// The caller forwards the SAME opaque Option from the existing pre-module
+/// invocation getter. Core checks all originals; no JS tuple is constructed.
+#export_name("clientProgramPrepareInstalledManagedWholeSourcesPlanAtQueryTime")
+pub fn client_program_prepare_installed_managed_whole_sources_plan_at_query_time(
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  capacities : Array[@client_local_host.ClientInstalledWholeSourceCapacity],
+  transfer : Array[Int64],
+  scratch : Array[Int64],
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+  values : String,
+  fragment : String?,
+  ordered : String?,
+  retained_output : Bool,
+  invocation : (
+    @publication_host.ClientQueryTimePreparation,
+    @publication_host.ClientRequestIdentity,
+    @publication_host.ClientCompiledRun,
+    @publication.PublicationContract,
+  )?,
+) -> Result[
+  @client_local_host.ClientInstalledManagedCapturePlan,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_installed_managed_whole_sources_plan_at_query_time(
+    prepared,
+    request,
+    capacities,
+    transfer,
+    scratch,
+    contracts,
+    values,
+    fragment,
+    ordered,
+    invocation,
+    retained_output~,
+    provider_factory=installed_client_family_providers,
+  )
+}
+
+///|
+#export_name("clientProgramDirectSourceCoordinates")
+pub fn client_program_direct_source_coordinates(
+  prepared : @publication_host.PreparedClientProgram,
+) -> Result[
+  Array[Array[Int]],
+  @publication_host.ClientDirectAcquisitionOccurrenceIssue,
+] {
+  @publication_host.select_client_direct_acquisition_occurrences(
+    prepared, 1000000,
+  ).map(value => {
+    Array::makei(
+      @publication_host.client_direct_acquisition_occurrence_count(value),
+      slot => {
+        let (stage, input, task) = @publication_host.client_direct_acquisition_occurrence_at(
+          value, slot,
+        ).unwrap()
+        [stage, input, slot, task]
+      },
+    )
+  })
+}
+
+///|
+#export_name("clientProgramInstalledManagedWholeSourceReadAt")
+pub fn client_program_installed_managed_whole_source_read_at(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  declaration : @client_row_source_host.RowDeclaration,
+  occurrence : Int,
+) -> Result[
+  (
+    @client_local_host.ClientInstalledSourceRead,
+    @acquisition.SourceAcquisition,
+    @client_row_source_host.RowInputAcquisition,
+    @client_local_host.ClientInstalledWholeSourceCapacity,
+  ),
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.begin_installed_managed_whole_source_read_at(
+    owner, prepared, request, declaration, occurrence,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledManagedWholeSourcesLedger")
+pub fn client_program_installed_managed_whole_sources_ledger(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  capacities : Array[@client_local_host.ClientInstalledWholeSourceCapacity],
+  transfer : Array[Int64],
+  scratch : Array[Int64],
+) -> Result[
+  @resources.Ledger,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.installed_managed_whole_sources_ledger(
+    owner, prepared, request, capacities, transfer, scratch,
+  )
+}
+
+///|
+#export_name("clientProgramIssueWholeSourcesPublicationInvocation")
+pub fn client_program_issue_whole_sources_publication_invocation(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  captures : Array[@client_row_source_host.RowSourceCapture],
+  identities : Array[@query.CapturedSourceRelationIdentity],
+  sources : Array[@publication.RunEvidenceValue],
+  inputs : Array[@publication.RunEvidenceValue],
+  authority_scope_cid : String,
+  data_policy_cid : String,
+  capture_started_at : String,
+  capture_completed_at : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (@publication.RunEvidenceValue, @publication.PublicationContract),
+  @client_local_host.ClientClosedValuesPreparationIssue,
+] {
+  @client_local_host.issue_program_whole_sources_publication_invocation(
+    owner, prepared, compiled, definition, captures, identities, sources, inputs,
+    authority_scope_cid, data_policy_cid, capture_started_at, capture_completed_at,
+    max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramPrepareRequestModelWholeInputsComponentCaptureModule")
+pub fn client_program_prepare_request_model_whole_inputs_component_capture_module(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  compilation : @publication_host.ClientTaskCompilation,
+  whole_sources : Array[@client_local_host.ClientInstalledWholeSourceCapacity],
+  query_contract_body : String,
+  evidence_contract_body : String,
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+  retained_output : Bool,
+  query_time : @publication_host.ClientQueryTimePreparation?,
+  construct : (
+    @execution.ExecutionCapacity,
+    @execution.GeneratedSequence,
+    (@infer_host.Execution) -> Result[Unit, @infer_host.Issue],
+  ) -> @local.ManagedProvider,
+) -> Result[
+  @client_local_host.ClientInstalledManagedCapturePlan,
+  @client_local_host.ClientRequestProgramPlanIssue,
+] {
+  @client_local_host.prepare_request_model_capture_module(
+    parent,
+    input,
+    request,
+    compiled,
+    definition,
+    compilation,
+    [],
+    query_contract_body,
+    evidence_contract_body,
+    transport_bytes,
+    transport_execution_bytes,
+    contracts,
+    retained_output,
+    installed_client_family_provider_count() + 1,
+    installed_client_family_providers,
+    query_time~,
+    whole_sources~,
+    component_factory=Some((capacity, prefix, suffix) => {
+      construct(capacity, prefix, active => {
+        match suffix {
+          None => Ok(())
+          Some(original) => @infer_host.bind_compute_suffix(active, original)
+        }
+      })
+    }),
+  )
 }

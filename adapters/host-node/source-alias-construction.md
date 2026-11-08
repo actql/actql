@@ -4,7 +4,9 @@
 
 The existing installed Source metadata reader funds Host alias parse, immutable
 request snapshots, exact identity encoding and aggregate alias collection.
-`source-alias-construction.mjs` quotes these JavaScript constructors;
+The shared MoonBit installed-profile recipe quotes profile parsing and checked
+snapshot construction through the original metadata reader. The remaining
+`source-alias-construction.mjs` recipes cover identity and collection;
 `source-alias-request.mjs` validates and snapshots constant request DATA.
 Neither module resolves Sources, admits native Catalogs, grants authority or
 creates another Resource owner. Installed alias identity and publication reuse
@@ -69,8 +71,13 @@ retry is not permission to re-read or replace a failed construction owner.
 
 ## Resources
 
-Profile geometry covers parse backing, provider spread, alias rows, request
-snapshots, descriptor/key scans, sorting, recursion and serialization overlap.
+The shared MoonBit profile recipe covers parse backing, provider spread, alias
+rows, request snapshots, descriptor/key scans, sorting, recursion and
+serialization overlap. Its decoded parse output is distinct from later checked
+projections: those retain their own containers while borrowing the original
+immutable String leaves, without charging another decoded text body. The
+existing bound reader still reserves before each native constructor, and only
+a successful original current fence permits the retained-only cut.
 Immutable DATA geometry scans without serializing the whole request. Identity
 geometry includes exact identity row construction, stringify and hash-related
 backing; collection geometry covers the retained list, duplicate-name Set and

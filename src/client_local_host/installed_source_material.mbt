@@ -69,6 +69,145 @@ pub fn installed_source_construction_capacity(
 }
 
 ///|
+/// Native JSON's original construction peak and one returned tree. The fixed
+/// Host supplies facts from its existing wire scan, never a budget or a close
+/// acknowledgement. Keep the full parsed/checked/identity envelope until that
+/// SAME native parser and physical file owner have completed. The existing
+/// provider fold retains this peak on failure; its retained-only projection
+/// is selected only by the original successful constructor caller.
+pub fn installed_source_json_construction_capacity(
+  wire_nodes : Int64,
+  wire_units : Int64,
+  buffer_bytes : Int64,
+  returned_nodes : Int64,
+  returned_text_bytes : Int64,
+) -> @execution.ExecutionCapacity? {
+  if wire_nodes < 0L ||
+    wire_units < 0L ||
+    buffer_bytes < 0L ||
+    returned_nodes < 0L ||
+    returned_text_bytes < 0L ||
+    wire_nodes > 9223372036854775807L / 4L ||
+    wire_units > 9223372036854775807L / 12L {
+    return None
+  }
+  guard installed_source_construction_capacity(
+      4L * wire_nodes,
+      12L * wire_units,
+      buffer_bytes,
+      4L * wire_nodes,
+      12L * wire_units,
+      buffer_bytes,
+    )
+    is Some(workspace) &&
+    installed_source_construction_capacity(
+      returned_nodes, returned_text_bytes, 0L, 0L, 0L, 0L,
+    )
+    is Some(returned) else {
+    return None
+  }
+  @execution.execution_capacity(
+    @execution.execution_capacity_retained_bytes(returned),
+    @execution.execution_capacity_execution_bytes(workspace),
+  )
+}
+
+///|
+/// Shared native profile parse/snapshot/alias inventory. Wire facts come from
+/// the already owned original String; neither this recipe nor its retained
+/// projection parses, validates a connector, authenticates or acknowledges IO.
+/// Source and Effect use the SAME quantity owner before their native callbacks.
+pub fn installed_profile_construction_capacities(
+  nodes : Int64,
+  units : Int64,
+) -> Array[@execution.ExecutionCapacity]? {
+  if nodes < 0L ||
+    units < 0L ||
+    nodes > 9223372036854775807L / 100L ||
+    units > (9223372036854775807L - 50L) / 26L {
+    return None
+  }
+  let workspace_text = 100L * nodes
+  let decoded_workspace = 26L * units
+  if decoded_workspace > 9223372036854775807L - workspace_text {
+    return None
+  }
+  // Same inventory as the original Source profile constructor: parsed input,
+  // provider root, alias rows and request snapshots; key/descriptor/ancestor,
+  // prototype, sorting and serializer workspace. Strings remain borrowed.
+  guard installed_source_construction_capacity(
+      4L * nodes + 6L,
+      2L * (units + 25L),
+      0L,
+      21L * nodes,
+      decoded_workspace + workspace_text,
+      0L,
+    )
+    is Some(parsed) &&
+    installed_source_construction_capacity(4L * nodes + 6L, 0L, 0L, 0L, 0L, 0L)
+    is Some(owned_containers) else {
+    return None
+  }
+  // Split/checked profile projections retain their own arrays/records but
+  // borrow the parsed original's immutable String leaves. Their temporary
+  // serializer/check overlap is unchanged; do not retain another text copy.
+  guard @execution.execution_capacity(
+      @execution.execution_capacity_retained_bytes(owned_containers),
+      @execution.execution_capacity_execution_bytes(parsed),
+    )
+    is Some(projected) else {
+    return None
+  }
+  Some([parsed, projected])
+}
+
+///|
+/// A fixed native inspection has no escaping variable output. The SAME
+/// original profile recipe bounds its descriptor/stack/Set scan. Its caller
+/// still retains that profile separately; selecting this DATA does not prove
+/// that the inspection ran or that any physical child closed.
+pub fn installed_source_inspection_construction_capacity(
+  original : @execution.ExecutionCapacity,
+) -> @execution.ExecutionCapacity {
+  @execution.execution_capacity(
+    0L,
+    @execution.execution_capacity_execution_bytes(original),
+  ).unwrap()
+}
+
+///|
+/// Existing Table snapshot/writer/frame inventory from its single funded
+/// inspection. These are quantities for the original Source reservation, not
+/// an admission or a second budget. No tree is walked to price it in Core.
+pub fn installed_table_construction_inventory(
+  nodes : Int64,
+  wire : Int64,
+  strings : Int64,
+  serializer_text : Int64,
+) -> Array[Int64]? {
+  if nodes < 0L ||
+    wire < 0L ||
+    strings < 0L ||
+    serializer_text < 0L ||
+    nodes > 9223372036854775807L / 7L ||
+    wire > (9223372036854775807L - 4L) / 4L ||
+    strings > 9223372036854775807L / 8L ||
+    serializer_text > 9223372036854775807L / 2L {
+    return None
+  }
+  let retained_text = 8L * strings
+  let recursive_text = 2L * serializer_text
+  let frame_text = 4L * wire
+  if recursive_text > 9223372036854775807L - retained_text ||
+    frame_text > 9223372036854775807L - retained_text - recursive_text {
+    return None
+  }
+  // Four retained profile/catalog/target views, three writer arrays; original
+  // UTF16 strings, recursive canonical text, and body/framed/decoded bytes.
+  Some([7L * nodes, retained_text + recursive_text + frame_text, 3L * wire + 4L])
+}
+
+///|
 /// Same Source constructor aggregate with selected original native recipes.
 /// Each supplied native peak remains conservatively retained. Only the
 /// original caller of a closed synchronous constructor may replace its entry
@@ -157,6 +296,10 @@ pub fn[I, S] reconcile_installed_source_construction(
   if @execution.execution_capacity_execution_bytes(retained) !=
     @execution.execution_capacity_retained_bytes(retained) {
     return Err(@resources.InvalidExtent)
+  }
+  match @resources.check_working_preparation_capacity_current(owner, input) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
   @resources.reconcile_working_preparation_phase(
     owner,

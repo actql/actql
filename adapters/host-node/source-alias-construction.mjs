@@ -5,7 +5,6 @@
 import {types} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
 import {aliasRequestGeometry} from './source-alias-request.mjs';
-import {sourceJsonWireGeometry} from './installed-source-construction-geometry.mjs';
 
 const invalid = () => {throw new TypeError('InvalidSourceAliasConstruction');};
 const stage = (retained, workspace, bounds) => ({
@@ -39,36 +38,6 @@ export function captureSourceAliasConstruction(configurationReader, moon) {
     });
     return Reflect.apply(prepare, configurationReader, [projection]);
   };
-}
-
-// The original text is already owned by readText. No parse, snapshot, sort or
-// stringify runs to discover this bound. A successful projection retains both
-// the parsed original and its independently owned alias request snapshots.
-export function sourceAliasProfileConstructionGeometry(profileWire) {
-  const input = sourceJsonWireGeometry(profileWire, true);
-  const n = input.nodes, u = input.units;
-  const parsed = n, providerSpread = 1n + n;
-  const aliasArrayAndRows = 1n + n, requestSnapshots = n, result = 4n;
-  // Two request validations (split and snapshot), direct-slot validation,
-  // alias closed-schema validation, sorted snapshot keys and recursion frames.
-  const requestKeys = n + n, requestDescriptors = n + n;
-  const ancestorStacks = n + n, prototypeChecks = 3n * (n + n);
-  const directSlotKeys = n + n, aliasKeysAndFilter = n + n;
-  const aliasSort = n, snapshotKeys = n, snapshotSort = n, frames = n;
-  const serializerFrames = n;
-  const scalarQuoteTokenUnits = 25n;
-  const aliasWireUnits = 6n * u + 25n * n;
-  return stage({nodes: parsed + providerSpread + aliasArrayAndRows + requestSnapshots + result,
-    // Retain the bounded numeric-token scratch for downstream scalar alias
-    // geometry scans on this same material (at most one 25-unit token live).
-    text: 2n * (u + scalarQuoteTokenUnits), wire: 0n}, {
-    nodes: requestKeys + requestDescriptors + ancestorStacks + prototypeChecks +
-      directSlotKeys + aliasKeysAndFilter + aliasSort + snapshotKeys + snapshotSort +
-      frames + serializerFrames,
-    // Parsed decoder overlap and stringify's builder/final text. Snapshot
-    // strings borrow the decoded original; Buffer.byteLength creates no copy.
-    text: 2n * (u + aliasWireUnits + aliasWireUnits), wire: 0n,
-  }, {input, aliasWireUnits});
 }
 
 // Only an already owned immutable DATA graph may cross the quote callback.

@@ -761,8 +761,10 @@ export function validateSourceInventory(wire) {
         canonical !== wire ||
         !Array.isArray(value.acquisitions) || value.acquisitions.length !== 2 ||
         !value.acquisitions.every(validBoundSourceOccurrence) ||
-        value.acquisitions[0].checkedSource.requirementCid ===
-          value.acquisitions[1].checkedSource.requirementCid) fail('InvalidClientSourceInventory');
+        (value.acquisitions.every(item => item.checkedSource.requirementCid !== undefined)
+          ? value.acquisitions[0].checkedSource.requirementCid === value.acquisitions[1].checkedSource.requirementCid
+          : value.acquisitions[0].stage === value.acquisitions[1].stage &&
+            value.acquisitions[0].input === value.acquisitions[1].input)) fail('InvalidClientSourceInventory');
     return wire;
   }
   if (value?.version === 'actql-client-keyed-source-inventory/0.1') {

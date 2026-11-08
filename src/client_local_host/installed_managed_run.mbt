@@ -1678,7 +1678,7 @@ pub fn installed_managed_publication_limits(
     if !physical_equal(plan.prepared, prepared) {
       return None
     }
-    if plan.whole_input is Some(_) {
+    if !plan.whole_sources.is_empty() {
       guard plan.capacity_plan.graph is Some(graph) &&
         physical_equal(graph, plan.graph) else {
         return None

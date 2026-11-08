@@ -522,6 +522,21 @@ export function readLocalPreparationContext(originals) {
   return context;
 }
 
+// Checked Source-slot coordinates are DATA from the original Core inventory.
+// A slot indexes Source custody; its Compute task remains a separate field.
+function installedDirectSourceCoordinates(moon, prepared) {
+  if (typeof moon.clientProgramDirectSourceCoordinates !== 'function') {
+    throw clientOperationError('NodeManagedRunRuntimeUnavailable');
+  }
+  const coordinates = checked(moon.clientProgramDirectSourceCoordinates(prepared));
+  if (!Array.isArray(coordinates) || coordinates.length !== moon.clientProgramAcquisitionCount(prepared) ||
+      coordinates.some((value, slot) => !Array.isArray(value) || value.length !== 4 || value[2] !== slot ||
+        value.some(item => !Number.isSafeInteger(item) || item < 0))) {
+    throw clientOperationError('InstalledSourcePreparationMismatch');
+  }
+  return coordinates;
+}
+
 // Same original Source inventory serves its retained Plan and legacy purpose
 // quote. A Source capacity is immutable DATA; it grants neither a read nor a
 // second Resource Run. Actual source readers retain their existing authority.
@@ -539,16 +554,17 @@ function retainedManagedCaptureInventory(originals, run, contracts) {
     }
     const inventory = [];
     const installed = prepareInstalledSequenceContractOriginal(originals);
-    for (let stage = 0; stage < count; stage++) {
+    const coordinates = installedDirectSourceCoordinates(moon, checkedPrepared);
+    for (const [stage, input] of coordinates) {
       if (typeof moon.clientProgramSelectInstalledSourceInput !== 'function' ||
           typeof moon.clientProgramSelectedSourceInputKind !== 'function' ||
           typeof moon.clientProgramSelectedSourceInputRef !== 'function') {
         throw clientOperationError('NodeManagedRunRuntimeUnavailable');
       }
       const selection = checked(moon.clientProgramSelectInstalledSourceInput(
-        checkedPrepared, run.request, stage, 0));
+        checkedPrepared, run.request, stage, input));
       const kind = moon.clientProgramSelectedSourceInputKind(selection);
-      if (kind !== 'query' && kind !== 'whole-input' || kind === 'whole-input' && count !== 1) {
+      if (kind !== 'query' && kind !== 'whole-input') {
         throw clientOperationError('InstalledSourcePreparationMismatch');
       }
       const adapter = installedSourceFor(run.sourceProfile,
@@ -564,10 +580,10 @@ function retainedManagedCaptureInventory(originals, run, contracts) {
       } else {
         requirement = checked(run.queryTimePreparation === undefined
           ? moon.clientProgramPrepareLocalQueryRequirement(
-            checkedPrepared, stage, 0, installed.admission,
+            checkedPrepared, stage, input, installed.admission,
             contracts.values, contracts.expression, contracts.ordered)
           : moon.clientProgramPrepareLocalQueryRequirementAtQueryTime(
-            checkedPrepared, stage, 0, run.queryTimePreparation, run.request,
+            checkedPrepared, stage, input, run.queryTimePreparation, run.request,
             installed.admission, contracts.values, contracts.expression, contracts.ordered));
         selected = adapter.managedCaptureCapacity(requirement);
       }
@@ -603,14 +619,18 @@ function prepareManagedComputeCapturePlan(originals, run, invocationOriginal) {
   let plan;
   if (inventory[0].kind === 'whole-input') {
     const timed = run.queryTimePreparation !== undefined;
-    const construct = timed ? moon.clientProgramPrepareInstalledManagedWholeSourcePlanAtQueryTime
-      : moon.clientProgramPrepareInstalledManagedWholeSourcePlan;
-    if (inventory.length !== 1 || typeof construct !== 'function') {
+    const plural = inventory.length > 1;
+    const construct = moon[timed
+      ? plural ? 'clientProgramPrepareInstalledManagedWholeSourcesPlanAtQueryTime' : 'clientProgramPrepareInstalledManagedWholeSourcePlanAtQueryTime'
+      : plural ? 'clientProgramPrepareInstalledManagedWholeSourcesPlan' : 'clientProgramPrepareInstalledManagedWholeSourcePlan'];
+    if (inventory.some(value => value.kind !== 'whole-input') || typeof construct !== 'function') {
       throw clientOperationError('NodeManagedRunRuntimeUnavailable');
     }
-    const original = inventory[0];
     const args = [
-      run.prepared, run.request, original.capacity, original.transferBytes, original.executionBytes,
+      run.prepared, run.request,
+      plural ? inventory.map(value => value.capacity) : inventory[0].capacity,
+      plural ? inventory.map(value => value.transferBytes) : inventory[0].transferBytes,
+      plural ? inventory.map(value => value.executionBytes) : inventory[0].executionBytes,
       installed.admission, contracts.values, contracts.expression, contracts.ordered, retainedRelationOutput];
     // Same temporary Core Option as ModuleBody. The typed constructor checks
     // it; no additional projection, retained carrier or legacy timed fallback.
@@ -941,10 +961,16 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
         run.preparedSequences, run.request, model.compiled, model.runDefinition,
         model.occurrence, model.graph, model.selectedBounds, physical);
   } else {
-    const sources = readInstalledMockPreparation(originals).sources;
+    const inventory = retainedManagedCaptureInventory(originals, run, contracts);
+    const whole = inventory.every(value => value.kind === 'whole-input');
+    if (!whole && inventory.some(value => value.kind !== 'query')) {
+      throw clientOperationError('InstalledMockModelOperationalAdmissionUnavailable');
+    }
+    const sources = whole ? inventory : readInstalledMockPreparation(originals).sources;
+    const construct = whole ? model.control.prepareCheckedClientRequestModelWholeInputsComponentCaptureModule
+      : model.control.prepareCheckedClientRequestModelComponentCaptureModule;
     if (sources.length !== 2 || model.selection?.graph !== model.graph || model.component !== undefined ||
-        typeof moon.clientProgramPrepareRequestModelComponentCaptureModule !== 'function' ||
-        typeof model.control.prepareCheckedClientRequestModelComponentCaptureModule !== 'function') {
+        typeof construct !== 'function') {
       throw clientOperationError('InstalledMockModelOperationalAdmissionUnavailable');
     }
     const query = readInitialControlInstallationAsset(initialControl, originals,
@@ -954,10 +980,11 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
     // Same fixed Mock document limits as its real original reader. These
     // supply demand to Core; no row, Source observation or ACK is fabricated.
     const documentBytes = Object.freeze([1048576n, 1048576n]);
-    run.preparedSequences = model.control.prepareCheckedClientRequestModelComponentCaptureModule(
+    run.preparedSequences = Reflect.apply(construct, model.control, [
       parent, input, run.request, model.compiled, model.runDefinition, compilation,
-      sources.map(value => value.declaration), query, evidence,
-      documentBytes, documentBytes, installed.admission, retainedRelationOutput, run.queryTimePreparation,
+      sources.map(value => whole ? value.capacity : value.declaration), query, evidence,
+      whole ? inventory.map(value => value.transferBytes) : documentBytes,
+      whole ? inventory.map(value => value.executionBytes) : documentBytes, installed.admission, retainedRelationOutput, run.queryTimePreparation,
       (_capacity, prefix, bindSuffix) => {
         current();
         if (model.component !== undefined || typeof bindSuffix !== 'function') {
@@ -972,7 +999,7 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
         model.component = component;
         current();
         return component.provider;
-      });
+      }]);
     current();
     run.modelPlan = model.control.bindCheckedClientMockModelCapturePlan(run.preparedSequences,
       model.compiled, model.runDefinition, model.occurrence, model.graph, model.selectedBounds);
@@ -3451,14 +3478,15 @@ async function openInstalledHost(originalInstallation, preparation) {
       if (modelCoordinates !== undefined && modelCoordinates.length !== acquisitionCount) {
         throw clientOperationError('InstalledSourcePreparationMismatch');
       }
+      const directCoordinates = installedDirectSourceCoordinates(moon, preparedProgram);
       // Every occurrence is selected by its checked requirement before any I/O.
       for (let task = 0; task < acquisitionCount; task++) {
         let unsupportedWholeSource;
         try {
           const coordinates = keyedAcquisition === undefined ? undefined
             : moon.clientProgramKeyedDirectAcquisitionCoordinates(keyedAcquisition);
-          const stage = modelCoordinates?.[task][0] ?? runtimeOptionalField(coordinates, 0) ?? task;
-          const input = modelCoordinates?.[task][1] ?? runtimeOptionalField(coordinates, 1) ?? 0;
+          const stage = modelCoordinates?.[task][0] ?? runtimeOptionalField(coordinates, 0) ?? directCoordinates[task][0];
+          const input = modelCoordinates?.[task][1] ?? runtimeOptionalField(coordinates, 1) ?? directCoordinates[task][1];
           const selectDomain = preparation?.selectManagedDomainSourceInput;
           if (preparation !== undefined && typeof selectDomain !== 'function') {
             throw clientOperationError('NodeManagedRunRuntimeUnavailable');
@@ -3470,7 +3498,7 @@ async function openInstalledHost(originalInstallation, preparation) {
             : domainSelection;
           const kind = moon.clientProgramSelectedSourceInputKind(selected);
           if (kind !== 'query' && kind !== 'whole-input' ||
-              kind === 'whole-input' && (acquisitionCount !== 1 || keyedAcquisition !== undefined)) {
+              kind === 'whole-input' && keyedAcquisition !== undefined) {
             throw new Error('InstalledSourcePreparationMismatch');
           }
           const sourceRef = moon.clientProgramSelectedSourceInputRef(selected);
@@ -3547,8 +3575,14 @@ async function openInstalledHost(originalInstallation, preparation) {
     return coordinates === undefined ? undefined
       : Object.freeze({stage: coordinates[0], input: coordinates[1], task: coordinates[2]});
   };
+  const directSourceOccurrence = (prepared, index) => {
+    const value = installedDirectSourceCoordinates(moon, prepared)[index];
+    if (value === undefined) throw clientOperationError('InstalledSourcePreparationMismatch');
+    const [stage, input, task, computeTask] = value;
+    return Object.freeze({stage, input, task, ...(computeTask === task ? {} : {computeTask})});
+  };
   const prepareAcquisition = async (preparedProgram, sourceAccess, occurrence, preparedSource) => {
-    occurrence ??= modelSourceOccurrence(preparedProgram, 0) ?? {stage: 0, input: 0, task: 0};
+    occurrence ??= modelSourceOccurrence(preparedProgram, 0) ?? directSourceOccurrence(preparedProgram, 0);
     const requestIdentity = sourceFreeRequestIdentities.get(preparedProgram)?.requested;
     if (requestIdentity === undefined) throw clientOperationError('ClientProgramNeedsInputs');
     const selected = checked(moon.clientProgramSelectInstalledSourceInput(
@@ -3582,7 +3616,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   const prepareAcquisitions = async preparedProgram => {
     const result = [];
     for (let task = 0; task < moon.clientProgramAcquisitionCount(preparedProgram); task++) {
-      const occurrence = modelSourceOccurrence(preparedProgram, task) ?? Object.freeze({stage: task, input: 0, task});
+      const occurrence = modelSourceOccurrence(preparedProgram, task) ?? directSourceOccurrence(preparedProgram, task);
       const prepared = await prepareAcquisition(preparedProgram, undefined, occurrence);
       // A held read has no selection before approval. Once authorized, keep
       // either typed acquisition owner; shared ledger admission happens before

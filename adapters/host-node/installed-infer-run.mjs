@@ -1025,9 +1025,17 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
     const original = managed.value, request = managed.request;
     model.sourceLedgerAttempted = true;
     try {
-      const ledger = checked(moon.clientProgramInstalledManagedRunPrepareLedger(original,
-        preparedProgram, request, capacities.map(value => value.capacity), capacities.map(value => value.transferBytes),
-        capacities.map(value => value.executionBytes), registry, values, fragment, ordered));
+      const whole = capacities.some(value => value.wholeInput === true);
+      if (whole && (capacities.some(value => value.wholeInput !== true) ||
+          typeof moon.clientProgramInstalledManagedWholeSourcesLedger !== 'function')) {
+        throw new TypeError('InstalledModelSourcePreparationUnavailable');
+      }
+      const ledger = checked(whole
+        ? moon.clientProgramInstalledManagedWholeSourcesLedger(original, preparedProgram, request,
+          capacities.map(value => value.capacity), capacities.map(value => value.transferBytes), capacities.map(value => value.executionBytes))
+        : moon.clientProgramInstalledManagedRunPrepareLedger(original,
+          preparedProgram, request, capacities.map(value => value.capacity), capacities.map(value => value.transferBytes),
+          capacities.map(value => value.executionBytes), registry, values, fragment, ordered));
       // This is the original parent's Ledger getter, with no new child. A
       // callback that retires/replaces its record cannot resurrect that alias.
       if (model.closed || model.scopeFinished || model.managed !== managed || managed.closed ||

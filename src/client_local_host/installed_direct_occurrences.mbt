@@ -37,8 +37,8 @@ fn installed_direct_occurrences_match_owner(
 }
 
 ///|
-/// Callback-free lookup into the same funded Plan. Whole-input legacy plans
-/// do not claim a Query capture occurrence and deliberately return None.
+/// Callback-free lookup into the same funded Plan. Complete inputs retain
+/// their checked Source slots without claiming completed Query task outputs.
 fn installed_managed_run_direct_occurrence(
   run : ClientInstalledManagedRun,
   task : Int,

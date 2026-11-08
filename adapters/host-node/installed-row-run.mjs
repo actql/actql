@@ -20,6 +20,11 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
   if (keyed && ledger === undefined) fail('InstalledKeyedSourceLedgerRequired');
   const reportCapacity = capacity?.listingReport;
   const providerCapacity = capacity?.provider;
+  const transferUnitBytes = capacity?.transferUnitBytes;
+  if (transferUnitBytes !== undefined &&
+      (typeof transferUnitBytes !== 'bigint' || transferUnitBytes < 1n || transferUnitBytes > 9223372036854775807n)) {
+    fail('InvalidInstalledSourceTransferUnit');
+  }
   if (originalKeyedRead !== undefined) {
     if (!keyed || ledger === undefined || originalRead !== undefined ||
         reportCapacity !== undefined || providerCapacity !== undefined) {
@@ -66,6 +71,8 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
   const settled = new Set();
   let transportStopped = false;
   let transportRecovery;
+  // Ordinary provider transfer is funded per native request through the SAME
+  // response borrow below. Other profiles retain their explicit envelope.
   const run = checked(wholeInput
     ? moon.clientProgramInstalledWholeSourceReadStartRows(originalRead, acquisition,
       nonce, attempt => settled.has(attempt), capacity.transferBytes, capacity.executionBytes)
@@ -84,11 +91,11 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
     : providerCapacity !== undefined && originalRead !== undefined
     ? moon.clientProgramInstalledSourceReadStartProviderRows(originalRead, acquisition,
       providerCapacity, nonce, attempt => settled.has(attempt),
-      capacity.transferBytes, capacity.executionBytes)
+      transferUnitBytes === undefined ? capacity.transferBytes : 0n, capacity.executionBytes)
     : providerCapacity !== undefined
     ? moon.clientProgramRowSourceStartProviderAccounted(acquisition,
       providerCapacity, nonce, attempt => settled.has(attempt), ledger,
-      capacity.transferBytes, capacity.executionBytes)
+      transferUnitBytes === undefined ? capacity.transferBytes : 0n, capacity.executionBytes)
     : originalRead !== undefined
     ? moon.clientProgramInstalledSourceReadStartRows(originalRead, acquisition,
       nonce, attempt => settled.has(attempt), capacity.transferBytes, capacity.executionBytes)
@@ -193,6 +200,19 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
     // borrow; no extra retained carrier or second reader owner is introduced.
     readerPrepared = borrow;
     checked(moon.clientProgramRowSourceBindResponseCleanup(borrow, readerRetired));
+    // Ordinary provider reads fund the next bounded physical request, not all
+    // possible future pages. Whole-input retains its existing owned envelope.
+    const growTransfer = wholeInput || transferUnitBytes === undefined ? undefined
+      : moon.clientProgramRowSourceEnsureResponseTransferCapacity;
+    const reserveTransferCapacity = wholeInput || transferUnitBytes === undefined ? undefined : bytes => {
+      if (closed || !readerReadPending || readerStopRequested) fail('InstalledSourceClosed');
+      signal?.throwIfAborted();
+      if (bytes !== transferUnitBytes) fail('ForeignInstalledSourceTransferUnit');
+      if (typeof growTransfer !== 'function') fail('InstalledSourceTransferCapacityUnavailable');
+      checked(Reflect.apply(growTransfer, moon, [borrow, bytes]));
+      if (closed || !readerReadPending || readerStopRequested) fail('InstalledSourceClosed');
+      signal?.throwIfAborted();
+    };
     const grow = moon.clientProgramRowSourceGrowResponseCapacity;
     const growConstruction = moon.clientProgramRowSourceGrowResponseConstructionCapacity;
     const reserveResponseCapacity = typeof grow !== 'function' ? undefined
@@ -230,7 +250,7 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
       readerRetry = retire.value;
     };
     const preparedReader = Reflect.apply(prepare, receiver,
-      [options, retainPreparation, reserveResponseCapacity, borrow]);
+      [options, retainPreparation, reserveResponseCapacity, borrow, reserveTransferCapacity]);
     // Suppliers without the early port keep their old conservative custody.
     // An early original must survive every fallible returned-method getter.
     if (reader === undefined) reader = preparedReader;

@@ -19,12 +19,22 @@ export function validInstallationBinding(binding) {
 }
 export function validBoundSourceOccurrence(item, index) {
   const source = item?.checkedSource;
-  return keys(item, 'stage,input,task,checkedSource,readTuple,physicalBinding,installationBinding') &&
-    item.stage === index && item.input === 0 && item.task === index &&
-    keys(source, 'requirementCid,sourceRef,sourceContractCid,carrierSchemaContractCid,sourceDataPolicyCid,dataClassification,sourceViewContractCid,inputContractCid,outputContractCid') &&
-    [source.requirementCid, source.sourceContractCid, source.carrierSchemaContractCid,
-      source.sourceDataPolicyCid, source.sourceViewContractCid, source.inputContractCid,
-      source.outputContractCid].every(cid) && ordinaryText(source.sourceRef) &&
+  const whole = Object.hasOwn(source ?? {}, 'sourceInput');
+  const coordinates = whole
+    ? keys(item, 'stage,input,task,checkedSource,readTuple,physicalBinding,installationBinding' +
+        (Object.hasOwn(item ?? {}, 'computeTask') ? ',computeTask' : '')) &&
+      [item.stage, item.input, item.task, item.computeTask ?? item.task].every(value => Number.isSafeInteger(value) && value >= 0) &&
+      item.task === index
+    : keys(item, 'stage,input,task,checkedSource,readTuple,physicalBinding,installationBinding') &&
+      item.stage === index && item.input === 0 && item.task === index;
+  const identity = whole
+    ? keys(source, 'sourceInput,sourceRef,sourceContractCid,carrierSchemaContractCid,sourceDataPolicyCid,dataClassification,sourceViewContractCid') &&
+      Array.isArray(source.sourceInput) && source.sourceInput.length === 2 && source.sourceInput.every(cid)
+    : keys(source, 'requirementCid,sourceRef,sourceContractCid,carrierSchemaContractCid,sourceDataPolicyCid,dataClassification,sourceViewContractCid,inputContractCid,outputContractCid') &&
+      [source.requirementCid, source.inputContractCid, source.outputContractCid].every(cid);
+  return coordinates && identity &&
+    [source.sourceContractCid, source.carrierSchemaContractCid,
+      source.sourceDataPolicyCid, source.sourceViewContractCid].every(cid) && ordinaryText(source.sourceRef) &&
     ['public', 'internal', 'confidential', 'restricted', 'unknown'].includes(source.dataClassification) &&
     keys(item.readTuple, 'connection,resource,operation') &&
     [item.readTuple.connection, item.readTuple.resource].every(ordinaryText) && item.readTuple.operation === 'read' &&

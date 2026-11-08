@@ -168,3 +168,14 @@ pub fn client_program_row_source_charge_response_body(
 ] {
   @client_row_source_host.charge_row_run_response_body(run, body)
 }
+
+///|
+#export_name("clientProgramRowSourceEnsureResponseTransferCapacity")
+pub fn client_program_row_source_ensure_response_transfer_capacity(
+  value : @client_row_source_host.RowRunResponseBorrow,
+  bytes : Int64,
+) -> Result[Unit, @client_row_source_host.RowHostIssue] {
+  @client_row_source_host.ensure_row_run_response_transfer_capacity(
+    value, bytes,
+  )
+}

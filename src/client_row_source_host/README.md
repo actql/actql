@@ -110,6 +110,16 @@ After successful settlement the closed RowRun detaches that observer and
 provider declaration; repeated close cannot re-enter the retired reader.
 No numeric profile or transport implementation follows from this primitive.
 
+The selected ordinary installed Credential provider starts without future-page
+transfer prepayment; Table/IPC and other explicit profiles retain their envelope.
+Before each serial native request, `ensure_row_run_response_transfer_capacity`
+backs that request's selected response bound on the SAME cleanup-bound borrow
+and reservation. Received and uncertain bytes plus all outstanding reservations
+still consume the original cumulative Ledger limit. The original current/stop
+fence precedes this mutation and physical I/O; actual body charging still
+precedes projection. An unused remainder is not a refund or another attempt.
+Whole-input and other explicitly funded profiles retain their existing envelope.
+
 An installed native decoder may grow this SAME reservation through
 `grow_row_run_response_capacity` after its original response is charged and
 before projection. The selected native quote owns all prior outputs plus the

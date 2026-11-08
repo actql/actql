@@ -92,3 +92,16 @@ test('final Environment composition separates scalar text from actual tree occur
     assert.throws(() => sourceEnvironmentCompositionGeometry(invalid));
   }
 });
+
+test('returned JSON geometry uses the same scan without detached String punctuation becoming nodes', () => {
+  const payload = '[]{}:,\\"'.repeat(1000), wire = JSON.stringify(payload);
+  const measured = sourceJsonWireGeometry(wire);
+  assert(measured.nodes > 1000n, 'the full original preparse envelope remains conservative');
+  assert.equal(measured.retained.nodes, 1n);
+  assert(measured.retained.text >= BigInt(Buffer.byteLength(payload)));
+  const value = {a: [null, 1, true, 'é😀'], b: {x: '[]{}:,\\"'}};
+  const full = sourceJsonWireGeometry(JSON.stringify(value));
+  assert(full.retained.nodes >= count(value));
+  assert(full.retained.text >= BigInt(Buffer.byteLength('abxé😀[]{}:,\\"')));
+  assert.equal(full.retained.wire, 0n);
+});

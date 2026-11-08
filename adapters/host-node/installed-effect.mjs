@@ -73,6 +73,25 @@ async function readProfile(path, read = readProfileJson) {
   return profile;
 }
 
+// The retained original text selects the same shared profile recipe as
+// Source. Split/snapshot and the later checked profile are distinct native
+// constructors; neither borrows a finished JSON reader's parser workspace.
+async function readConstructedProfile(path, readers, configurationReader) {
+  if (configurationReader === undefined) {
+    const profile = await readProfile(path, (path, options) => readProfileJson(path, options, readers.readJson));
+    return {profile, ...splitUpdateTargetProfile(profile)};
+  }
+  const construction = await readProfile(path, selected => {
+    if (typeof readers.readProfile !== 'function') refuse('InstalledConfigurationReaderUnavailable');
+    return readers.readProfile(selected, {maxBytes: 8 * 1024 * 1024});
+  });
+  // Only read/parse/FD-close belongs to that wrapper. Preserve the original
+  // later split or constructor/current refusal rather than relabeling it.
+  const value = construction.construct(() => Object.freeze({
+    profile: construction.value, ...splitUpdateTargetProfile(construction.value)}));
+  return Object.freeze({...value, construction});
+}
+
 // Select the installed connector of an Effect profile. An unknown version
 // is refused before any Site or provider I/O; an explicit table never falls
 // back to the standard installation.
@@ -126,10 +145,10 @@ export async function installedEffectIdentity(path, {connectorTable, configurati
   const readers = captureConfigurationReaders(configurationReader, undefined,
     () => refuse('InstalledConfigurationReaderUnavailable'));
   const read = (path, options) => readProfileJson(path, options, readers.readJson);
-  const profile = await readProfile(path, read);
-  const {providerProfile, queryUpdateTargets} = splitUpdateTargetProfile(profile);
+  const {profile, providerProfile, queryUpdateTargets, construction} = await readConstructedProfile(path, readers, configurationReader);
   const {entry, module} = await selectInstallation(profile, connectorTable);
-  module.check(providerProfile);
+  if (construction === undefined) module.check(providerProfile);
+  else construction.construct(() => module.check(providerProfile));
   const parts = await module.identityParts(providerProfile, read, entry, {configurationReader});
   if (!Array.isArray(parts) || parts.length === 0) {
     refuse('InvalidInstalledEffectProfile');
@@ -182,10 +201,10 @@ async function loadEffect(path, {root, principalId, moon,
       : installedSourceConfigurationReader(installationServices);
     const readers = captureConfigurationReaders(configurationReader, undefined,
       () => refuse('InstalledConfigurationReaderUnavailable'));
-    const profile = await readProfile(path, (path, options) => readProfileJson(path, options, readers.readJson));
-    const {providerProfile, queryUpdateTargets} = splitUpdateTargetProfile(profile);
+    const {profile, providerProfile, queryUpdateTargets, construction} = await readConstructedProfile(path, readers, configurationReader);
     const {entry, module} = await selectInstallation(profile, connectorTable);
-    const checked = module.check(providerProfile);
+    const checked = construction === undefined ? module.check(providerProfile)
+      : construction.construct(() => module.check(providerProfile));
     const readRuntimeIdentity = installationServices === undefined ? undefined
       : reserveInstalledSourceRuntimeIdentity(installationServices);
     const runtime = await providerRuntime(entry, runtimeUrl, readRuntimeIdentity);
@@ -199,7 +218,7 @@ async function loadEffect(path, {root, principalId, moon,
         ledgerRoot: join(root, 'state', 'effects', 'ledger'),
         ...(installationServices === undefined ? {} : {installationServices}),
         ...(sourceInitialization === undefined ? {} : {sourceInitialization,
-          construction: bindInstalledSourceConstruction(installationServices, sourceInitialization, checked)}),
+          construction: bindInstalledSourceConstruction(installationServices, sourceInitialization, checked, construction)}),
         ...(configurationReader === undefined ? {} : {configurationReader}), ...runtime});
       own(installed);
       verifyInstalledConnectorRegistration(entry, installed);

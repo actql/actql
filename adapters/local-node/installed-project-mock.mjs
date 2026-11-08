@@ -280,10 +280,19 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
         const original = run.value, request = run.request;
         model.sourceLedgerAttempted = true;
         try {
-          const ledger = checked(moon.clientProgramInstalledManagedRunPrepareLedger(original,
-            prepared, request, capacities.map(value => value.capacity),
-            capacities.map(value => value.transferBytes), capacities.map(value => value.executionBytes),
-            registry, values, fragment, ordered));
+          const whole = capacities.some(value => value.wholeInput === true);
+          if (whole && (capacities.some(value => value.wholeInput !== true) ||
+              typeof moon.clientProgramInstalledManagedWholeSourcesLedger !== 'function')) {
+            fail('InvalidInstalledMockModelPreparation');
+          }
+          const ledger = checked(whole
+            ? moon.clientProgramInstalledManagedWholeSourcesLedger(original, prepared, request,
+              capacities.map(value => value.capacity), capacities.map(value => value.transferBytes),
+              capacities.map(value => value.executionBytes))
+            : moon.clientProgramInstalledManagedRunPrepareLedger(original,
+              prepared, request, capacities.map(value => value.capacity),
+              capacities.map(value => value.transferBytes), capacities.map(value => value.executionBytes),
+              registry, values, fragment, ordered));
           if (sameRun(prepared) !== run || run.model !== model || run.value !== original ||
               run.request !== request || model.closed || model.scopeFinished) fail('ForeignInstalledModelPreparation');
           model.sourceLedger = ledger;

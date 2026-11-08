@@ -173,3 +173,70 @@ test "public unfiltered JOIN selects both original Whole inputs and refuses Quer
     ),
   )
 }
+
+///|
+test "plural Whole Plan binds checked Source order and refuses equal foreign or swapped inputs" {
+  let (prepared, _) = unfiltered_join_requirement_program()
+  let request = @publication_host.prepare_source_free_client_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "plural-whole-plan",
+  ).unwrap()
+  let contracts = prepare_installed_sequence_contracts(
+    source_query_original_registry,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+  ).unwrap()
+  let limits = installed_row_input_policy(4, 4096, 256, 16, 4)
+  let sources = [0, 1].map(stage => {
+    prepare_installed_catalog_whole_source_capacity(
+      prepared,
+      unfiltered_join_whole_input(prepared, request, stage),
+      contracts,
+      limits,
+    ).unwrap()
+  })
+  let construct = sources => {
+    prepare_installed_managed_whole_sources_plan(
+      prepared,
+      request,
+      sources,
+      [4096L, 4096L],
+      [4096L, 4096L],
+      contracts,
+      source_query_original_values,
+      Some(source_query_original_fragment),
+      None,
+      retained_output=true,
+      provider_factory=_ => [],
+      runtime_admission=true,
+    )
+  }
+  let plan = construct(sources).unwrap()
+  assert_eq(@strategy.graph_captured_prefix(plan.graph), 0)
+  assert_eq(plan.captures.length(), 0)
+  assert_eq(plan.whole_sources.length(), 2)
+  let direct = plan.direct_occurrences.unwrap()
+  for slot in 0..<2 {
+    assert_true(physical_equal(plan.whole_sources[slot], sources[slot]))
+    assert_eq(
+      @publication_host.client_direct_acquisition_occurrence_at(direct, slot),
+      Some((slot, 0, slot)),
+    )
+  }
+  assert_true(construct([sources[1], sources[0]]) is Err(ForeignOriginal))
+  let (foreign, _) = unfiltered_join_requirement_program()
+  let foreign_request = @publication_host.prepare_source_free_client_request_identity(
+    foreign,
+    "sha256:" + "a".repeat(64),
+    "plural-whole-plan",
+  ).unwrap()
+  let copied = prepare_installed_catalog_whole_source_capacity(
+    foreign,
+    unfiltered_join_whole_input(foreign, foreign_request, 1),
+    contracts,
+    limits,
+  ).unwrap()
+  assert_true(construct([sources[0], copied]) is Err(ForeignOriginal))
+}

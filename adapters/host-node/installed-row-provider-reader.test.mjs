@@ -36,7 +36,7 @@ function fixture({read = () => 'rows', stop = () => {}, observe,
     clientProgramRowSourceStartProviderAccounted(...args) {
       assert.equal(args[0], acquisition); assert.equal(args[1], capacity);
       assert.equal(args[2], 'original-nonce'); assert.equal(args[3]({}), false);
-      assert.deepEqual(args.slice(4), [ledger, 17n, 23n]);
+      assert.deepEqual(args.slice(4), [ledger, 0n, 23n]);
       calls.push('start'); return ok(run);
     },
     clientProgramRowSourceBorrowResponses(actualRun, actualAcquisition) {
@@ -62,7 +62,7 @@ function fixture({read = () => 'rows', stop = () => {}, observe,
   };
   const start = overrides => startInstalledRowRun({moon, acquisition,
     nonce: 'original-nonce', ledger, capacity: {provider: capacity,
-      transferBytes: 17n, executionBytes: 23n}, ...overrides});
+      transferBytes: 17n, executionBytes: 23n, transferUnitBytes: 8192n}, ...overrides});
   return {moon, start, calls, reader, supplier, options, capacity, acquisition, run, ledger, borrow,
     readBegan: began.promise,
     read: session => session.readProvider({prepare: supplier.prepare,
@@ -585,4 +585,36 @@ test('WholeInput forwards announced and charged growth through its same original
   assert.equal(await session.readProvider({prepare:supplier.prepare,receiver:supplier,options:f.options}), 'rows');
   assert.deepEqual(phases, ['announced', 'charged']);
   f.retire(); assert.equal(await session.cleanup(), true);
+});
+
+
+test('next transfer callback keeps the same borrow and original method only during the live read', async () => {
+  let fund, count = 0;
+  const f = fixture({read() {assert.throws(() => fund(8191n), {code:'ForeignInstalledSourceTransferUnit'});fund(8192n);return 'rows';}});
+  f.moon.clientProgramRowSourceEnsureResponseTransferCapacity = function(borrow, bytes) {
+    assert.equal(this,f.moon);assert.equal(borrow,f.borrow);assert.equal(bytes,8192n);count++;return ok();
+  };
+  const session = f.start();
+  const supplier = {prepare(options, retain, capacity, borrow, reserveTransfer) {
+    assert.equal(borrow,f.borrow);fund = reserveTransfer;
+    assert.throws(() => fund(8192n), {code:'InstalledSourceClosed'});
+    f.moon.clientProgramRowSourceEnsureResponseTransferCapacity = () => assert.fail('changed method');
+    return f.reader;
+  }};
+  assert.equal(await session.readProvider({prepare:supplier.prepare,receiver:supplier,options:f.options}), 'rows');
+  assert.equal(count,1);
+  assert.throws(() => fund(8192n), {code:'InstalledSourceClosed'});
+  f.retire();assert.equal(await session.cleanup(), true);
+});
+
+test('next transfer refuses a missing runtime port instead of falling back to prepaid pages', async () => {
+  let fund;
+  const f = fixture({read() {fund(8192n);assert.fail('unfunded read');}});
+  const session = f.start();
+  const supplier = {prepare(options, retain, capacity, borrow, reserveTransfer) {
+    fund = reserveTransfer;return f.reader;
+  }};
+  await assert.rejects(session.readProvider({prepare:supplier.prepare,receiver:supplier,options:f.options}),
+    {code:'InstalledSourceTransferCapacityUnavailable'});
+  f.retire();assert.equal(await session.cleanup(), true);
 });

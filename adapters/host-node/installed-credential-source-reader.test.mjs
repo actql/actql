@@ -12,7 +12,7 @@ const deferred = () => {let resolve; const promise = new Promise(r => {resolve =
 // Real shared page-reader lifecycle with explicit Site/charge/schema ports.
 // A returned opaque page is DATA; these ports establish no normal authority,
 // numerical backing or compiled row-schema acceptance.
-function projectedReaderFixture({page, chargeFailure, consumeFailure, consumePending, acceptedCount = 2} = {}) {
+function projectedReaderFixture({page, chargeFailure, consumeFailure, consumePending, acceptedCount = 2, reserveTransfer} = {}) {
   const events = [], projectedPage = Object.freeze({}), charge = Object.freeze({});
   const response = Object.freeze({accepted: true, statusCode: 200, body: Buffer.from('original provider bytes')});
   const original = Object.freeze({grant: {}, useId: 'original', scope: Object.freeze({operation: 'read'})});
@@ -52,7 +52,7 @@ function projectedReaderFixture({page, chargeFailure, consumeFailure, consumePen
       if (consumeFailure !== undefined) throw consumeFailure;
       return acceptedCount;
     }});
-  const reader = factory.prepare(options);
+  const reader = factory.prepare(options, undefined, undefined, undefined, reserveTransfer);
   return {reader, factory, events, projectedPage, consumed: consumed.promise,
     counts: () => ({sends, charges, consumes, closes})};
 }
@@ -171,6 +171,7 @@ function fixture({pendingRead, pendingBinding = false, responseGrowth = false, g
   const run = {}, source = {}, ledger = {}, responseBorrow = {};
   const moon = {
     clientProgramRowSourceStartProviderAccounted() {events.push('reserve'); return ok(run);},
+    clientProgramRowSourceEnsureResponseTransferCapacity(borrow, bytes) {assert.equal(borrow,responseBorrow);assert.equal(bytes,128n);return ok();},
     clientProgramRowSourceBorrowResponses() {events.push('borrow'); return ok(responseBorrow);},
     clientProgramRowSourceGrowResponseCapacity(borrow, actual) {
       assert.equal(borrow,responseBorrow);assert.equal(actual,capacity);events.push('grow-response');
@@ -208,7 +209,7 @@ function fixture({pendingRead, pendingBinding = false, responseGrowth = false, g
     clientProgramRowSourceCaptureCleanupAdvance() {return ok(captureCleanupReady);},
   });
   const session = startInstalledRowRun({moon, acquisition: source, nonce: 'one', ledger,
-    capacity: {provider: capacity, transferBytes: 100n, executionBytes: 100n}});
+    capacity: {provider: capacity, transferBytes: 100n, executionBytes: 100n, transferUnitBytes:128n}});
   return {factory, options, events, session, response, readBegan: began.promise, providerReadPending: providerReadPending.promise,
     // Observe the exact returned original; read/stop/observe are never wrapped
     // or replaced. This is fixture custody, not an installed supplier overlay.
@@ -274,13 +275,16 @@ test('same pending Source read cannot retire through stop or a copied factory', 
   assert.equal(f.events.filter(x => x === 'provider-read').length, 1);
 });
 
-function directFixture({gate, pendingBinding = false, failCharge = false} = {}) {
+function directFixture({gate, pendingBinding = false, failCharge = false, beforeSend = false, transferFailure} = {}) {
   const events = [], raw = {grant:{},scope:{operation:'read'}}, credential = {}, capacity = {}, began = deferred();
   const bodies = ['account', 'schema', 'page', 'final-schema'].map(value => Object.freeze({body: Buffer.from(value)}));
   let cleanup, bindingClosed = !pendingBinding, retired = false, sent = 0;
   const originalSite = Object.freeze({site: Object.freeze({}), callResource(input) {
-    const response = bodies[sent++];input.responseCustody.retain(response);
-    events.push('retain-' + response.body.toString());return response;
+    const receive = () => {
+      const response = bodies[sent++];input.responseCustody.retain(response);
+      events.push('retain-' + response.body.toString());return response;
+    };
+    return beforeSend ? input.currentBeforeSend().then(receive) : receive();
   }, readChildCredential(_acquisition, authorization) {assert.equal(authorization,raw);return credential;},
     referenceCurrent() {return true;}, authorizationPurpose(value) {assert.equal(value, raw); return {kind: 'read'};},
     bindRunAcquisition(value, callbacks) {
@@ -309,13 +313,14 @@ function directFixture({gate, pendingBinding = false, failCharge = false} = {}) 
     },consumePage() {},consumeObservation() {},
     chargePage(body) {events.push('charge-' + body.toString());if(failCharge) throw new Error('original charge refused');return {};}});
   const moon = {clientProgramRowSourceStartProviderAccounted() {events.push('reserve'); return ok({});},
+    clientProgramRowSourceEnsureResponseTransferCapacity(_borrow, bytes) {assert.equal(bytes,128n);events.push('fund-next');if(transferFailure !== undefined)throw transferFailure;return ok();},
     clientProgramRowSourceBorrowResponses() {return ok({});},
     clientProgramRowSourceBindResponseCleanup(_borrow, value) {cleanup = value; events.push('retain-reader'); return ok(undefined);},
     clientProgramRowSourceRetireResponseWorkspace() {assert.fail('no Source completion in this control');},
     clientProgramRowSourceCloseAccounted() {if (!cleanup()) return error('original read/binding pending'); retired = true; return ok(undefined);},
     clientProgramRowSourceCaptureCleanup() {return ok(true);}};
   const session = startInstalledRowRun({moon, acquisition: {}, nonce: 'original-read', ledger: {},
-    capacity: {provider: capacity, transferBytes: 100n, executionBytes: 100n}});
+    capacity: {provider: capacity, transferBytes: 100n, executionBytes: 100n, transferUnitBytes:128n}});
   return {events, bodies, session, began: began.promise,
     read() {return session.readProvider({prepare: factory.prepare, receiver: factory, options});},
     retireBinding() {bindingClosed = true;}, inspect() {return {retired, sent};}};
@@ -716,4 +721,47 @@ test('native adoption refusal stays with the original factory and does not enter
   await assert.rejects(f.reader.read(),error=>error===failure);
   f.reader.requestStop();assert.equal(f.reader.observe().cleanupConfirmed,true);
   assert.equal(f.factory.retire(),true);assert.equal(f.counts().sends,0);
+});
+
+
+test('next response transfer is backed before native I/O and actual charge precedes projection', async () => {
+  let f, reservations = 0;
+  f = projectedReaderFixture({reserveTransfer(bytes) {
+    assert.equal(bytes, 128n);reservations++;f.events.push('fund-next');
+    assert.equal(f.counts().charges, 0);
+  }});
+  await f.reader.read();
+  assert.equal(reservations, 1);
+  assert.deepEqual(f.events, ['fund-next', 'receive', 'charge', 'decode', 'consume']);
+  f.reader.requestStop();assert.equal(f.factory.retire(), true);
+});
+
+test('next response transfer refusal never reaches native response or projection', async () => {
+  const refusal = Object.assign(new Error('same cumulative transfer limit'), {code:'Physical.TransferLimit'});
+  const f = projectedReaderFixture({reserveTransfer() {throw refusal;}});
+  await assert.rejects(f.reader.read(), error => error === refusal);
+  assert.deepEqual(f.events, []);
+  assert.equal(f.counts().charges, 0);assert.equal(f.counts().consumes, 0);
+  f.reader.requestStop();assert.equal(f.factory.retire(), true);
+});
+
+
+test('managed native children fund each next unit before I/O without funding future children', async () => {
+  const f = directFixture({beforeSend:true});
+  await f.read();
+  const observed = f.events.filter(value => value === 'fund-next' || value.startsWith('retain-') || value.startsWith('charge-'));
+  assert.deepEqual(observed, ['retain-reader', ...f.bodies.flatMap(response =>
+    ['fund-next', 'retain-' + response.body.toString(), 'charge-' + response.body.toString()])]);
+  assert.equal(f.inspect().sent,4);
+  assert.equal(await f.session.cleanup(),true);
+});
+
+test('managed next-unit transfer refusal sends no request and retains original cleanup', async () => {
+  const refusal = Object.assign(new Error('original transfer capacity'), {code:'Physical.TransferLimit'});
+  const f = directFixture({beforeSend:true,transferFailure:refusal,pendingBinding:true});
+  await assert.rejects(f.read(), error => error === refusal);
+  assert.equal(f.inspect().sent,0);
+  assert.deepEqual(f.events.filter(value => value.startsWith('charge-')),[]);
+  assert.equal(await f.session.cleanup(),false);
+  f.retireBinding();assert.equal(await f.session.cleanup(),true);
 });

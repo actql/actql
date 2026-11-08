@@ -282,7 +282,7 @@
       "responsibilityFacet": "primary",
       "role": "generated-binding",
       "owner": "Same-runtime wrappers of existing Common and Snowflake Owners",
-      "sha256": "59ea1fc2daf71a54c53d57962024e4f8b9a21a744884cf2a5dd3394d96fafd15",
+      "sha256": "66d2f7357dd654941ca25d72f1f2f5d9edd26d0b5cb91c5b3a119328a58a4f09",
       "exports": [],
       "operations": [
         {
@@ -320,6 +320,10 @@
         {
           "name": "client_program_row_source_check_original_acquisition",
           "declaration": "client_program_row_source_check_original_acquisition ( acquisition : @ client_row_source_host . RowAcquisition , declaration : @ client_row_source_host . RowDeclaration , requirement : @ planning . QueryRequirement , ) - > Result [ Unit , @ client_row_source_host . RowHostIssue ]"
+        },
+        {
+          "name": "client_program_row_source_ensure_response_transfer_capacity",
+          "declaration": "client_program_row_source_ensure_response_transfer_capacity ( value : @ client_row_source_host . RowRunResponseBorrow , bytes : Int64 , ) - > Result [ Unit , @ client_row_source_host . RowHostIssue ]"
         },
         {
           "name": "client_program_row_source_grow_response_capacity",
@@ -938,6 +942,74 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Announced IPC body construction"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_row_source_ensure_response_transfer_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
               }
             ]
           }

@@ -60,3 +60,33 @@ test('JSON configuration construction still refuses genuinely excessive structur
   assert.equal(f.secretReads(), 0);
   await f.close(); assert.equal(f.pending(), false); assert.equal(f.retire(), true);
 });
+
+test('completed JSON current failure keeps its full original workspace on the same parent', async t => {
+  const events = [], f = await boundConstructionActualFixture(t, {capacityEvents: events});
+  const reader = installedSourceConfigurationReader(f.services);
+  const wire = JSON.stringify({payload: 'A'.repeat(482480)}), path = join(f.root, 'current-json.json');
+  await writeFile(path, wire);
+  let fault; const parse = JSON.parse;
+  t.mock.method(JSON, 'parse', (input, ...args) => {
+    const value = Reflect.apply(parse, JSON, [input, ...args]);
+    if (input === wire) fault = f.failCurrentOnNextReserve();
+    return value;
+  });
+  await assert.rejects(reader.readJson(path, {maxBytes: Buffer.byteLength(wire)}), error => error.code === 'MoonBitHostFailure' && fault.calls === 1 &&
+    /PreparationCapacityIssue.*Resource$/u.test(error.cause?.constructor?.name ?? ''));
+  assert.equal(fault.calls, 1);
+  const original = events.findLast(event => event.operation === 'clientProgramReserveInstalledSourceConstruction' && event.accepted);
+  assert.equal(original.accepted, true);
+  const failed = events.at(-1); assert.equal(failed.operation, 'clientProgramReserveInstalledSourceConstruction');
+  assert.equal(events.some(event => event.operation === 'clientProgramReconcileInstalledSourceConstruction'), false);
+  const next = join(f.root, 'next-current.txt'); await writeFile(next, 'x');
+  await assert.rejects(reader.readText(next, {maxBytes: 1}), error =>
+    error.code === 'MoonBitHostFailure' &&
+    /PreparationCapacityIssue.*Resource$/u.test(error.cause?.constructor?.name ?? ''));
+  const later = events.at(-1);
+  assert.equal(later.operation, 'clientProgramReserveInstalledSourceConstruction');
+  assert(later.retained >= original.retained && later.peak >= original.peak,
+    'a later sibling cannot spend the failed original completion debt');
+  assert.equal(f.secretReads(), 0);
+  await f.close(); assert.equal(f.pending(), false); assert.equal(f.retire(), true);
+});

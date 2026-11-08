@@ -26,6 +26,8 @@ export function captureConfigurationReaders(reader, readJson, unavailable) {
   const originalText = Object.getOwnPropertyDescriptor(reader, 'readOriginalText');
   const originalBytes = Object.getOwnPropertyDescriptor(reader, 'readOriginalBytes');
   const parseText = Object.getOwnPropertyDescriptor(reader, 'parseJsonText');
+  const prepareProfile = Object.getOwnPropertyDescriptor(reader, 'prepareProfile');
+  const readProfile = Object.getOwnPropertyDescriptor(reader, 'readProfile');
   if (!json || !Object.hasOwn(json, 'value') || typeof json.value !== 'function' ||
       !text || !Object.hasOwn(text, 'value') || typeof text.value !== 'function' ||
       originalText !== undefined && (!Object.hasOwn(originalText, 'value') ||
@@ -33,12 +35,18 @@ export function captureConfigurationReaders(reader, readJson, unavailable) {
       originalBytes !== undefined && (!Object.hasOwn(originalBytes, 'value') ||
         typeof originalBytes.value !== 'function') ||
       parseText !== undefined && (!Object.hasOwn(parseText, 'value') ||
-        typeof parseText.value !== 'function')) refuse();
+        typeof parseText.value !== 'function') ||
+      prepareProfile !== undefined && (!Object.hasOwn(prepareProfile, 'value') ||
+        typeof prepareProfile.value !== 'function') ||
+      readProfile !== undefined && (!Object.hasOwn(readProfile, 'value') ||
+        typeof readProfile.value !== 'function')) refuse();
   // Capture the initializer's optional actual-FD text method before any read awaits.
   // Its absence cannot substitute a bounded reader or manufacture a byte ceiling.
   return Object.freeze({
     readJson: readJson ?? ((...args) => Reflect.apply(json.value, reader, args)),
     readText: (...args) => Reflect.apply(text.value, reader, args),
+    ...(prepareProfile === undefined ? {} : {prepareProfile: (...args) => Reflect.apply(prepareProfile.value, reader, args)}),
+    ...(readProfile === undefined ? {} : {readProfile: (...args) => Reflect.apply(readProfile.value, reader, args)}),
     ...(parseText === undefined ? {} : {
       parseJsonText: (...args) => Reflect.apply(parseText.value, reader, args),
     }),

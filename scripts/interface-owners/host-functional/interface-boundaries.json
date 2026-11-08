@@ -28950,7 +28950,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a3a5757c4695714ee0c70c58effc3668ff61406c300f4d43112795766e1f968a",
+      "sha256": "3ab5df70d1c1e3aa508e587d0f0082a6c41b66a7686253d574c454a7345b0698",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -31201,6 +31201,13 @@
           "async": false
         },
         {
+          "name": "validateSourceInventory/validateSourceInventory",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
           "name": "validateSourceInventory/validPhysicalBinding/validPhysicalBinding",
           "parameters": [
             "binding"
@@ -31472,7 +31479,8 @@
             "validateSourceInventory/validPhysicalBinding/validPhysicalBinding/validPhysicalBinding#2",
             "validateSourceInventory/validPhysicalBinding/validPhysicalBinding/validPhysicalBinding#3",
             "validateSourceInventory/validPhysicalBinding/validPhysicalBinding/validPhysicalBinding#4",
-            "validateSourceInventory/validPhysicalBinding/validPhysicalBinding/validPhysicalBinding#5"
+            "validateSourceInventory/validPhysicalBinding/validPhysicalBinding/validPhysicalBinding#5",
+            "validateSourceInventory/validateSourceInventory"
           ],
           "exports": [
             "openClientRequestJournal",
@@ -32576,6 +32584,13 @@
             "boundedJournalWalFrames/init:beforePrepare/init:beforePrepare",
             "boundedJournalWalFrames/init:beforeStatement/init:beforeStatement",
             "boundedJournalWalFrames/init:configure/init:configure",
+            "boundedJournalWalFrames/init:enter/init:enter",
+            "boundedJournalWalFrames/init:leave/init:leave",
+            "boundedJournalWalFrames/init:register/init:register",
+            "boundedJournalWalFrames/init:register/init:register/init:register",
+            "boundedJournalWalFrames/reclaim/reclaim",
+            "boundedJournalWalFrames/reclaim/reclaim/reclaim",
+            "boundedJournalWalFrames/reclaim/reclaim/reclaim#2",
             "boundedPrimarySql",
             "boundedPrimarySql/beginOperation/beginOperation",
             "boundedPrimarySql/boundedPrimarySql",
@@ -32583,8 +32598,13 @@
             "boundedPrimarySql/endOperation/endOperation",
             "boundedPrimarySql/init:exec/init:exec",
             "boundedPrimarySql/init:prepare/init:prepare",
+            "boundedPrimarySql/init:prepareWalCheckpoint/init:prepareWalCheckpoint",
             "boundedPrimarySql/init:retireClosedNativeAliases/init:retireClosedNativeAliases",
             "boundedPrimarySql/operands/operands",
+            "boundedPrimarySql/prepareWalCheckpoint/prepareWalCheckpoint",
+            "boundedPrimarySql/prepareWalCheckpoint/prepareWalCheckpoint/prepareWalCheckpoint",
+            "boundedPrimarySql/retireWal/init:checkpoint/init:checkpoint",
+            "boundedPrimarySql/retireWal/retireWal",
             "boundedPrimarySql/wrap/wrap",
             "boundedPrimarySql/wrap/wrap/init:all/init:all",
             "boundedPrimarySql/wrap/wrap/init:get/init:get",
@@ -32607,19 +32627,7 @@
             "snapshotPrimaryExecutionLimits",
             "snapshotPrimaryExecutionLimits/snapshotPrimaryExecutionLimits",
             "snapshotPrimarySqlLimits",
-            "snapshotPrimarySqlLimits/snapshotPrimarySqlLimits",
-            "boundedJournalWalFrames/init:enter/init:enter",
-            "boundedJournalWalFrames/init:leave/init:leave",
-            "boundedJournalWalFrames/init:register/init:register",
-            "boundedJournalWalFrames/init:register/init:register/init:register",
-            "boundedPrimarySql/init:prepareWalCheckpoint/init:prepareWalCheckpoint",
-            "boundedPrimarySql/prepareWalCheckpoint/prepareWalCheckpoint",
-            "boundedPrimarySql/prepareWalCheckpoint/prepareWalCheckpoint/prepareWalCheckpoint",
-            "boundedPrimarySql/retireWal/init:checkpoint/init:checkpoint",
-            "boundedPrimarySql/retireWal/retireWal",
-            "boundedJournalWalFrames/reclaim/reclaim",
-            "boundedJournalWalFrames/reclaim/reclaim/reclaim",
-            "boundedJournalWalFrames/reclaim/reclaim/reclaim#2"
+            "snapshotPrimarySqlLimits/snapshotPrimarySqlLimits"
           ],
           "exports": [
             "assertOriginalClientRequestJournalFacilityCurrent",
@@ -34211,6 +34219,7 @@
         "../../packages/sdk/host-port.mjs",
         "../host-common/observation.mjs",
         "../host-common/run-state-observation.mjs",
+        "../host-common/runtime-result.mjs",
         "../host-common/sqlite-format-inspection.mjs",
         "../host-common/sqlite-schema-resource-bounds.mjs",
         "../host-common/sqlite-transaction.mjs",
@@ -66409,7 +66418,7 @@
     {
       "module": "adapters/host-node/installed-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "395812a98563f0e0d874af18536cfeb1e6838714f27a3833750be892f42961ad",
+      "sha256": "39ee3a4482d815d3db3220757731cfd56e9f93fc9e7e4916099b1d0c208a8bf0",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -66435,6 +66444,11 @@
           "parameters": [
             "entry"
           ],
+          "async": false
+        },
+        {
+          "name": "installedEffectIdentity/installedEffectIdentity",
+          "parameters": [],
           "async": false
         },
         {
@@ -66486,11 +66500,8 @@
           "async": false
         },
         {
-          "name": "loadEffect/loadEffect/profile/profile",
-          "parameters": [
-            "path",
-            "options"
-          ],
+          "name": "loadEffect/loadEffect/checked/checked",
+          "parameters": [],
           "async": false
         },
         {
@@ -66546,6 +66557,35 @@
           "async": true
         },
         {
+          "name": "readConstructedProfile",
+          "parameters": [
+            "path",
+            "readers",
+            "configurationReader"
+          ],
+          "async": true
+        },
+        {
+          "name": "readConstructedProfile/construction/construction",
+          "parameters": [
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "readConstructedProfile/profile/profile",
+          "parameters": [
+            "path",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "readConstructedProfile/value/value",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "readProfile",
           "parameters": [
             "path",
@@ -66598,19 +66638,24 @@
           "operations": [
             "installedEffectIdentity",
             "installedEffectIdentity/exact/exact",
+            "installedEffectIdentity/installedEffectIdentity",
             "installedEffectIdentity/read/read",
             "installedEffectIdentity/readers/readers",
             "installedEffectPaths",
             "loadEffect",
             "loadEffect/loadEffect",
             "loadEffect/loadEffect/adapter/adapter",
-            "loadEffect/loadEffect/profile/profile",
+            "loadEffect/loadEffect/checked/checked",
             "loadEffect/loadEffect/readers/readers",
             "loadInstalledEffect",
             "loadInstalledEffect/loadInstalledEffect",
             "loadInstalledEffects",
             "providerRuntime",
             "publishInstalledEffectProfile",
+            "readConstructedProfile",
+            "readConstructedProfile/construction/construction",
+            "readConstructedProfile/profile/profile",
+            "readConstructedProfile/value/value",
             "readProfile",
             "readProfileJson",
             "refuse/refuse",
@@ -66795,6 +66840,14 @@
               {
                 "path": "adapters/host-node/installed-effect-profile-cleanup.test.mjs",
                 "anchor": "Effect load pins one original runtime"
+              },
+              {
+                "path": "adapters/host-node/installed-profile-construction.actual.test.mjs",
+                "anchor": "funded Effect profile split preserves exact invalid update-target cause outside the read wrapper"
+              },
+              {
+                "path": "adapters/host-node/installed-profile-construction.actual.test.mjs",
+                "anchor": "funded Effect profile constructor preserves exact current refusal after the original read returns"
               }
             ]
           }
@@ -72172,7 +72225,7 @@
     },
     {
       "module": "adapters/local-node/installed-project-mock.mjs",
-      "sha256": "5a86326375ee561500b7c79a1dfb8f211d9253ba2de8519794e59e6f8a8d5be3",
+      "sha256": "3ac7d64d7941b65ef915b2bfa5659c5f9a59c77f0cddf4ac92d05c6b83006e77",
       "exports": [
         "inspectProjectMockDeclarations",
         "installPreparedProjectMockSources",
@@ -72530,6 +72583,13 @@
           "async": false
         },
         {
+          "name": "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger/init:prepareAcquiredLedger#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger/ledger/ledger",
           "parameters": [
             "value"
@@ -72545,6 +72605,34 @@
         },
         {
           "name": "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger/ledger/ledger#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger/ledger/ledger#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger/ledger/ledger#5",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger/ledger/ledger#6",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger/whole/whole",
           "parameters": [
             "value"
           ],
@@ -73205,9 +73293,14 @@
             "installPreparedProjectMockSources/modelPreparation/init:openCapturedHost/init:openCapturedHost/init:openCapturedHost",
             "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger",
             "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger/init:prepareAcquiredLedger",
+            "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger/init:prepareAcquiredLedger#2",
             "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger/ledger/ledger",
             "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger/ledger/ledger#2",
             "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger/ledger/ledger#3",
+            "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger/ledger/ledger#4",
+            "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger/ledger/ledger#5",
+            "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger/ledger/ledger#6",
+            "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger/whole/whole",
             "installPreparedProjectMockSources/modelPreparation/init:prepareRead/init:prepareRead",
             "installPreparedProjectMockSources/modelPreparation/init:retain/init:retain",
             "installPreparedProjectMockSources/modelPreparation/init:retire/init:retire",
@@ -76124,7 +76217,7 @@
     {
       "module": "adapters/host-node/installed-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "84f1236f127c95aadd012ebc631a892bf560a0875890df5a47132d2b403a2ab1",
+      "sha256": "3c5448618b08a4cb9f996ea11457a7be1735bb3c474c8f6918c821732b116370",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -76306,6 +76399,11 @@
           "async": true
         },
         {
+          "name": "loadInstalledSourceMember/checked/checked",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "loadInstalledSourceMember/loadInstalledSourceMember",
           "parameters": [
             "selected"
@@ -76430,13 +76528,12 @@
           "parameters": [
             "path",
             "readers",
-            "construct",
             "configurationReader"
           ],
           "async": true
         },
         {
-          "name": "readAliasProfile/readAliasProfile",
+          "name": "readAliasProfile/construction/construction",
           "parameters": [],
           "async": false
         },
@@ -76500,6 +76597,7 @@
             "installedSourceReadAccesses",
             "installedSourceReadBindings",
             "loadInstalledSource",
+            "loadInstalledSourceMember/checked/checked",
             "loadInstalledSources",
             "loadInstalledSources/close/close",
             "loadInstalledSources/combinedOriginal/combinedOriginal",
@@ -76509,6 +76607,7 @@
             "loadInstalledSources/loadInstalledSources/loadInstalledSources",
             "providerRuntime",
             "publishInstalledSourceProfile",
+            "readAliasProfile/construction/construction",
             "readProfile",
             "selectInstallation",
             "sourceIdentityFromParts",
@@ -77228,7 +77327,6 @@
             "loadInstalledSources/loadInstalledSources/loadInstalledSources#2",
             "loadInstalledSources/loadInstalledSources/queryAliases/queryAliases",
             "readAliasProfile",
-            "readAliasProfile/readAliasProfile",
             "readAliasProfile/snapshot/snapshot"
           ],
           "exports": [],
@@ -89441,7 +89539,7 @@
     {
       "module": "adapters/host-node/ordinary-source-binding.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f59f35d4a0787e8962de8b4f4531f289182b322a779e2db373f042e69de64f07",
+      "sha256": "ddd1d8e0b658182ed4b41c0afa565099aaa077cedaf402cf458cf8fc320e5a06",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -89519,6 +89617,13 @@
           "async": false
         },
         {
+          "name": "validBoundSourceOccurrence/coordinates/coordinates",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "validInstallationBinding",
           "parameters": [
             "binding"
@@ -89547,6 +89652,7 @@
             "ordinaryText/ordinaryText",
             "text/text",
             "validBoundSourceOccurrence",
+            "validBoundSourceOccurrence/coordinates/coordinates",
             "validInstallationBinding",
             "verifyOrdinarySourceBinding"
           ],
@@ -94434,7 +94540,7 @@
     {
       "module": "adapters/host-node/source-profile-json.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2ea02bf624efd029a978125809b48d019250c86363ae378d8efb47b80e10212a",
+      "sha256": "d8841433cb763b5a2996ccf853cc88f7e83f0ed2728ee55b23c05bc60896154c",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -94489,6 +94595,20 @@
         },
         {
           "name": "captureConfigurationReaders/captureConfigurationReaders#5",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureConfigurationReaders/captureConfigurationReaders#6",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureConfigurationReaders/captureConfigurationReaders#7",
           "parameters": [
             "args"
           ],
@@ -94775,6 +94895,8 @@
       "contracts": [
         {
           "operations": [
+            "captureConfigurationReaders/captureConfigurationReaders#6",
+            "captureConfigurationReaders/captureConfigurationReaders#7",
             "readBoundedConfigurationText",
             "readBoundedConfigurationText/readBoundedConfigurationText",
             "readBoundedConfigurationUtf8",
@@ -125651,7 +125773,7 @@
     },
     {
       "module": "adapters/host-node/installed-credential-source-reader.mjs",
-      "sha256": "536000de4ea4495ead7ea93e73619a306a3438fce97da23fb0ad5118db2225b4",
+      "sha256": "bef7f94a57eaca3d498f61f91cea9b4157e2a896953992292fe512c88af9bc61",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -125681,7 +125803,8 @@
             "options",
             "retainPreparation",
             "reserveResponseCapacity",
-            "responseBorrow"
+            "responseBorrow",
+            "reserveTransferCapacity"
           ],
           "async": false
         },
@@ -125693,6 +125816,13 @@
             "args"
           ],
           "async": false
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/beforeSourceSend",
+          "parameters": [
+            "verifyCurrent"
+          ],
+          "async": true
         },
         {
           "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/callProjection",
@@ -125860,6 +125990,11 @@
           "async": false
         },
         {
+          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:readChild/init:readChild/init:readChild/received/received/received/received",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/current/current",
           "parameters": [],
           "async": false
@@ -125908,6 +126043,11 @@
           "parameters": [
             "input"
           ],
+          "async": false
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/readStandard/readStandard/readStandard/readStandard",
+          "parameters": [],
           "async": false
         },
         {
@@ -126053,7 +126193,7 @@
               },
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow)"
+                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
               }
             ],
             "inputsOutputs": [
@@ -126083,7 +126223,7 @@
               },
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow)"
+                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
               }
             ],
             "identity": [
@@ -126113,7 +126253,7 @@
               },
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow)"
+                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
               }
             ],
             "ownership": [
@@ -126143,7 +126283,7 @@
               },
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow)"
+                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
               }
             ],
             "synchronization": [
@@ -126173,7 +126313,7 @@
               },
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow)"
+                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
               }
             ],
             "failure": [
@@ -126203,7 +126343,7 @@
               },
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow)"
+                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
               }
             ],
             "cancellation": [
@@ -126233,7 +126373,7 @@
               },
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow)"
+                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
               }
             ],
             "resources": [
@@ -126263,7 +126403,7 @@
               },
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow)"
+                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
               }
             ],
             "extension": [
@@ -126293,7 +126433,7 @@
               },
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow)"
+                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
               }
             ],
             "verification": [
@@ -126644,7 +126784,7 @@
             "responsibility": [
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow)"
+                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
               },
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",
@@ -126658,7 +126798,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow)"
+                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
               },
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",
@@ -126672,7 +126812,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow)"
+                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
               },
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",
@@ -126686,7 +126826,7 @@
             "ownership": [
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow)"
+                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
               },
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",
@@ -126700,7 +126840,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow)"
+                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
               },
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",
@@ -126714,7 +126854,7 @@
             "failure": [
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow)"
+                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
               },
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",
@@ -126728,7 +126868,7 @@
             "cancellation": [
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow)"
+                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
               },
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",
@@ -126742,7 +126882,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow)"
+                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
               },
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",
@@ -126756,7 +126896,7 @@
             "extension": [
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow)"
+                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
               },
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",
@@ -126783,6 +126923,76 @@
               {
                 "path": "adapters/connectors/kintone/test/kintone-public-client.integration.test.mjs",
                 "anchor": "{entrance: 'LocalJSON', format: 'json', program: wholeSource}"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledCredentialSourceReader/init:prepare/init:prepare/beforeSourceSend",
+            "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:readChild/init:readChild/init:readChild/received/received/received/received",
+            "createInstalledCredentialSourceReader/init:prepare/init:prepare/readStandard/readStandard/readStandard/readStandard"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Next bounded response transfer"
               }
             ]
           }
@@ -127868,7 +128078,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "6e3e57ae439cbc165c3d11c7b02e5f639b78f55b018b281fee218727f71578d9",
+      "sha256": "33324bf6c54620aaaac321f859ee708d6788f241affaa12fed8b8be2fccc6e24",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -127951,7 +128161,8 @@
           "parameters": [
             "services",
             "context",
-            "checkedProfile"
+            "checkedProfile",
+            "profileConstruction"
           ],
           "async": false
         },
@@ -128705,6 +128916,13 @@
           "async": false
         },
         {
+          "name": "inspectInstalledTableConstruction",
+          "parameters": [
+            "profile"
+          ],
+          "async": false
+        },
+        {
           "name": "installedSourceConfigurationReader",
           "parameters": [
             "services"
@@ -128727,12 +128945,54 @@
           "async": false
         },
         {
+          "name": "installedSourceConfigurationReader/profileConstruction/profileConstruction",
+          "parameters": [
+            "facts"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedSourceConfigurationReader/profileConstruction/profileConstruction/init:inspect/init:inspect",
+          "parameters": [
+            "project"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedSourceConfigurationReader/profileConstruction/profileConstruction/invoke/invoke",
+          "parameters": [
+            "capacity",
+            "project"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedSourceConfigurationReader/profileConstruction/profileConstruction/invoke/invoke/invoke",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installedSourceConfigurationReader/profileConstruction/profileConstruction/profileConstruction",
+          "parameters": [
+            "project"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedSourceConfigurationReader/profileConstruction/profileConstruction/profileConstruction#2",
+          "parameters": [
+            "project"
+          ],
+          "async": false
+        },
+        {
           "name": "installedSourceConfigurationReader/read",
           "parameters": [
             "path",
             "options",
             "json",
-            "strictUtf8"
+            "strictUtf8",
+            "profile"
           ],
           "async": true
         },
@@ -128772,6 +129032,14 @@
           "async": false
         },
         {
+          "name": "installedSourceConfigurationReader/reader/init:prepareProfile/init:prepareProfile",
+          "parameters": [
+            "text",
+            "project"
+          ],
+          "async": false
+        },
+        {
           "name": "installedSourceConfigurationReader/reader/init:readJson/init:readJson",
           "parameters": [
             "path",
@@ -128792,6 +129060,14 @@
             "path"
           ],
           "async": true
+        },
+        {
+          "name": "installedSourceConfigurationReader/reader/init:readProfile/init:readProfile",
+          "parameters": [
+            "path",
+            "options"
+          ],
+          "async": false
         },
         {
           "name": "installedSourceConfigurationReader/reader/init:readText/init:readText",
@@ -128985,8 +129261,14 @@
           "parameters": [
             "original",
             "material",
-            "profile"
+            "profile",
+            "construction"
           ],
+          "async": false
+        },
+        {
+          "name": "reserveInstalledTableConstruction/facts/facts",
+          "parameters": [],
           "async": false
         },
         {
@@ -129003,6 +129285,17 @@
           "async": false
         },
         {
+          "name": "reserveSourceJsonConstruction",
+          "parameters": [
+            "original",
+            "material",
+            "workspace",
+            "geometry",
+            "bufferBytes"
+          ],
+          "async": false
+        },
+        {
           "name": "retainBoundInstalledSourceFailure",
           "parameters": [
             "context",
@@ -129010,6 +129303,21 @@
             "adapter"
           ],
           "async": true
+        },
+        {
+          "name": "retainCompletedSourceJson",
+          "parameters": [
+            "original",
+            "material",
+            "workspace",
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainCompletedSourceJson/retainCompletedSourceJson",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "retainCompletedSourceNativeConstruction",
@@ -129214,7 +129522,20 @@
             "createInstalledHostServices/services/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile#3",
             "createInstalledHostServices/services/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile/value/value",
             "fail/fail",
+            "inspectInstalledTableConstruction",
+            "installedSourceConfigurationReader/profileConstruction/profileConstruction",
+            "installedSourceConfigurationReader/profileConstruction/profileConstruction/init:inspect/init:inspect",
+            "installedSourceConfigurationReader/profileConstruction/profileConstruction/invoke/invoke",
+            "installedSourceConfigurationReader/profileConstruction/profileConstruction/invoke/invoke/invoke",
+            "installedSourceConfigurationReader/profileConstruction/profileConstruction/profileConstruction",
+            "installedSourceConfigurationReader/profileConstruction/profileConstruction/profileConstruction#2",
+            "installedSourceConfigurationReader/reader/init:prepareProfile/init:prepareProfile",
+            "installedSourceConfigurationReader/reader/init:readProfile/init:readProfile",
             "readInstalledSourceAcquisitionContract",
+            "reserveInstalledTableConstruction/facts/facts",
+            "reserveSourceJsonConstruction",
+            "retainCompletedSourceJson",
+            "retainCompletedSourceJson/retainCompletedSourceJson",
             "retainInstalledHostServiceInstallation"
           ],
           "exports": [
@@ -129337,6 +129658,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Source reader schema bounds"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "That same wire scan also records a conservative single returned-tree extent:"
               }
             ],
             "extension": [
@@ -129389,6 +129714,14 @@
               {
                 "path": "adapters/connectors/hubspot/test/installed-hubspot-wide-source.actual.test.mjs",
                 "anchor": "declared Source column bounds still reject a complete wide schema before Site IO"
+              },
+              {
+                "path": "adapters/host-node/installed-hubspot-returned-capacity.actual.test.mjs",
+                "anchor": "completed configuration JSON retains its actual tree before the next real HubSpot constructor"
+              },
+              {
+                "path": "adapters/host-node/installed-configuration-json.actual.test.mjs",
+                "anchor": "completed JSON current failure keeps its full original workspace on the same parent"
               }
             ]
           }
@@ -133942,7 +134275,7 @@
     },
     {
       "module": "adapters/host-node/installed-source-construction-geometry.mjs",
-      "sha256": "056d594f70d7f6076a1c75ed75b3e27ea8b082837656df2c74de56ff34343c05",
+      "sha256": "31864bfc355d454ddadcfea409c8474699291937dc99887ae49fa6c9bb2056ce",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Host constructor input geometry; quantities confer no admission or lifecycle authority",
@@ -134076,6 +134409,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Bound connector construction"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "That same wire scan also records a conservative single returned-tree extent:"
               }
             ],
             "extension": [
@@ -134091,11 +134428,19 @@
               },
               {
                 "path": "adapters/host-node/source-alias-construction.test.mjs",
-                "anchor": "test('profile payload demand omits only outer RFC JSON whitespace while the full wire stays distinct'"
+                "anchor": "test('profile wire facts preserve payload whitespace escapes numbers and malformed prefixes'"
               },
               {
-                "path": "adapters/host-node/source-alias-construction.test.mjs",
-                "anchor": "test('profile payload demand retains escapes numbers nested JSON and malformed-prefix allocation'"
+                "path": "adapters/host-node/installed-source-construction-geometry.test.mjs",
+                "anchor": "test('wire geometry bounds actual JSON value occurrences including escaped detached syntax'"
+              },
+              {
+                "path": "adapters/host-node/installed-hubspot-returned-capacity.actual.test.mjs",
+                "anchor": "completed configuration JSON retains its actual tree before the next real HubSpot constructor"
+              },
+              {
+                "path": "adapters/host-node/installed-configuration-json.actual.test.mjs",
+                "anchor": "completed JSON current failure keeps its full original workspace on the same parent"
               }
             ]
           }
@@ -134628,14 +134973,13 @@
     },
     {
       "module": "adapters/host-node/source-alias-construction.mjs",
-      "sha256": "caa3c3cd90c6b76bb0673ad0c652798af79a66dd6a5974bed0f908bae6443e3c",
+      "sha256": "67d79fc18c0dc2fbe4b576e83a5bfe37f7502c451313dfeb173e612d0a726bff",
       "exports": [
         "captureSourceAliasConstruction",
         "sourceAliasBorrowedGeometry",
         "sourceAliasCollectionConstructionGeometry",
         "sourceAliasDataGeometry",
-        "sourceAliasIdentityConstructionGeometry",
-        "sourceAliasProfileConstructionGeometry"
+        "sourceAliasIdentityConstructionGeometry"
       ],
       "operations": [
         {
@@ -134731,13 +135075,6 @@
           "async": false
         },
         {
-          "name": "sourceAliasProfileConstructionGeometry",
-          "parameters": [
-            "profileWire"
-          ],
-          "async": false
-        },
-        {
           "name": "stage/stage",
           "parameters": [
             "retained",
@@ -134749,7 +135086,6 @@
       ],
       "imports": [
         "../host-common/runtime-result.mjs",
-        "./installed-source-construction-geometry.mjs",
         "./source-alias-request.mjs",
         "node:util"
       ],
@@ -134764,8 +135100,8 @@
             "<module>",
             "captureSourceAliasConstruction",
             "captureSourceAliasConstruction/captureSourceAliasConstruction",
-            "captureSourceAliasConstruction/captureSourceAliasConstruction/projection/init:capacity/init:capacity",
             "captureSourceAliasConstruction/captureSourceAliasConstruction#2",
+            "captureSourceAliasConstruction/captureSourceAliasConstruction/projection/init:capacity/init:capacity",
             "invalid/invalid",
             "jsonStringBytes",
             "ownMethod/ownMethod",
@@ -134775,7 +135111,6 @@
             "sourceAliasDataGeometry",
             "sourceAliasDataGeometry/visit",
             "sourceAliasIdentityConstructionGeometry",
-            "sourceAliasProfileConstructionGeometry",
             "stage/stage"
           ],
           "exports": [
@@ -134783,8 +135118,7 @@
             "sourceAliasBorrowedGeometry",
             "sourceAliasCollectionConstructionGeometry",
             "sourceAliasDataGeometry",
-            "sourceAliasIdentityConstructionGeometry",
-            "sourceAliasProfileConstructionGeometry"
+            "sourceAliasIdentityConstructionGeometry"
           ],
           "attributes": {
             "responsibility": [
@@ -134848,11 +135182,11 @@
               },
               {
                 "path": "adapters/host-node/source-alias-construction.test.mjs",
-                "anchor": "test('profile payload demand omits only outer RFC JSON whitespace while the full wire stays distinct'"
+                "anchor": "test('profile wire facts preserve payload whitespace escapes numbers and malformed prefixes'"
               },
               {
-                "path": "adapters/host-node/source-alias-construction.test.mjs",
-                "anchor": "test('profile payload demand retains escapes numbers nested JSON and malformed-prefix allocation'"
+                "path": "adapters/host-node/installed-source-construction-geometry.test.mjs",
+                "anchor": "test('wire geometry bounds actual JSON value occurrences including escaped detached syntax'"
               }
             ]
           }

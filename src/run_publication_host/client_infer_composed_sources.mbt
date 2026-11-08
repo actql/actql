@@ -211,14 +211,19 @@ fn admit_client_infer_composed_sources_owned(
         } else {
           guard source_task != occurrence.task &&
             ports.length() == 1 &&
-            keyed is Some(observed) &&
-            client_composed_keyed_lookup_has_source_producer(
+            @pipeline.input_at(pipeline, ports[0].1) is Some((name, _)) else {
+            return Err(ForeignInput)
+          }
+          // An ordinary checked Stage edge names this exact producer. A keyed
+          // prefix adds its existing completed lookup proof to the same edge;
+          // the direct path retains its separate no-keyed-obligation check.
+          if keyed is Some(observed) &&
+            !client_composed_keyed_lookup_has_source_producer(
               observed.lookup,
               occurrence,
               captures,
               task,
-            ) &&
-            @pipeline.input_at(pipeline, ports[0].1) is Some((name, _)) else {
+            ) {
             return Err(ForeignInput)
           }
           name

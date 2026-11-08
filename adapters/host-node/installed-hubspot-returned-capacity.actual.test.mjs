@@ -67,3 +67,34 @@ test('actual HubSpot Source still refuses an overlapping native peak before ente
   assert.equal(f.secretReads(), 0);
   await f.close(); assert.equal(f.pending(), false); assert.equal(f.retire(), true);
 });
+
+// The same constructor that failed at the real Effect boundary, preceded by
+// distinct retained configuration originals. No whole-install budget override.
+test('completed configuration JSON retains its actual tree before the next real HubSpot constructor', async t => {
+  const events = [], f = await boundConstructionActualFixture(t, {capacityEvents: events});
+  const reader = installedSourceConfigurationReader(f.services), payload = 'A'.repeat(482480);
+  const originals = [];
+  for (let index = 0; index < 6; index++) {
+    const path = join(f.root, `metadata-${index}.json`);
+    const wire = JSON.stringify({payload, unicode: 'é😀', ordinal: index});
+    await writeFile(path, wire);
+    const value = await reader.readJson(path, {maxBytes: Buffer.byteLength(wire)});
+    assert.equal(value.payload, payload); assert.equal(value.unicode, 'é😀'); assert.equal(value.ordinal, index);
+    originals.push(value);
+  }
+  const quantity = quote(f.moon); let entered = 0;
+  const output = reader.prepareNativeInput(Object.freeze({capacity: () => quantity, project() {
+    entered++;
+    const body = input();
+    const catalog = checked(provider.hubspotProjectProperties(body, 'companies', 524288, 65536, 32, 256, 6003));
+    const names = provider.hubspotPropertyCatalogNames(catalog);
+    const wire = checked(provider.hubspotObjectSchemaWire(catalog, names, 256, 6003, 65536, 8000, 32));
+    return Object.freeze({body, catalog, names, wire, view: Object.freeze({resource: 'companies', schema_wire: wire})});
+  }}));
+  assert.equal(entered, 1); assert.equal(output.names.length, 245);
+  assert.equal(Object.keys(JSON.parse(output.wire)).length, 246);
+  assert.equal(originals.length, 6); assert.equal(originals[0].payload, payload);
+  assert(events.at(-1).retained < 100000000n, 'completed parser/identity peaks do not remain in this original prefix');
+  assert.equal(f.secretReads(), 0);
+  await f.close(); assert.equal(f.pending(), false); assert.equal(f.retire(), true);
+});
