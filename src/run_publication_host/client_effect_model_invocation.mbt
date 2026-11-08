@@ -24,20 +24,27 @@ pub fn issue_single_model_client_effect_local_invocation(
   }
   let owner = allowed.compilation.owner
   let unit = occurrence.stage
-  let program = @checked.effect_program_static_checked_computation(owner.candidate)
+  let program = @checked.effect_program_static_checked_computation(
+    owner.candidate,
+  )
   guard @checked.unit_definition_cid(program, unit) is Some(definition) &&
     @checked.unit_used_values_cid(program, unit) is Some(values) &&
     @checked.unit_contracts_cid(program, unit) is Some(contracts) &&
     @checked.unit_result_import_count(program, unit) == Some(0) &&
     @checked.unit_import_cid_count(program, unit) == Some(0) &&
     @publication.local_model_observation_matches_input(
-      model, definition, occurrence.step, scope.artifact,
+      model,
+      definition,
+      occurrence.step,
+      scope.artifact,
     ) else {
     return Err(ForeignSourceObservation)
   }
   let observations = [@publication.captured_effect_dependency_body_cid(model)]
   for source in client_infer_call_scope_source_observations(scope) {
-    let (evidence, _, _, _) = @publication.model_source_observation_originals(source)
+    let (evidence, _, _, _) = @publication.model_source_observation_originals(
+      source,
+    )
     let cid = @publication.run_evidence_value_identity(evidence)
     if !observations.contains(cid) {
       observations.push(cid)
@@ -45,8 +52,15 @@ pub fn issue_single_model_client_effect_local_invocation(
   }
   observations.sort_by(@canonical_value.compare_utf16)
   issue_client_effect_local_invocation_body(
-    owner, unit, definition, values, contracts,
-    @checked.checked_local_policy_cid(program), observations,
-    max_wire_bytes, max_nodes, max_depth,
+    owner,
+    unit,
+    definition,
+    values,
+    contracts,
+    @checked.checked_local_policy_cid(program),
+    observations,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
   )
 }

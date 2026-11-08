@@ -12,7 +12,7 @@ function actual(name, ports) {
     node.declaration?.type === 'FunctionDeclaration' && node.declaration.id.name === name);
   assert(node, name);
   const helpers = ast.body.flatMap(node => node.type === 'ExportNamedDeclaration' ? [node.declaration] : [node]).filter(node => node?.type === 'FunctionDeclaration' &&
-    ['installedManagedRunContracts','prepareInstalledSequenceContractOriginal','retainedManagedCaptureInventory'].includes(node.id.name) && node.id.name !== name);
+    ['installedManagedRunContracts','prepareInstalledSequenceContractOriginal','retainedManagedCaptureInventory','installedDirectSourceCoordinates'].includes(node.id.name) && node.id.name !== name);
   return new Function(...Object.keys(ports),
     helpers.map(node => source.slice(node.start, node.end)).join('\n') + '\n' +
     source.slice(node.declaration.start, node.declaration.end) + `;return ${name};`)(...Object.values(ports));
@@ -418,6 +418,9 @@ test('installed Source demand retains actual checked occurrence capacities befor
   const run = {runtime: f.moon, prepared: f.prepared, request: f.request, sourceProfile: profile};
   Object.assign(f.originals.installation, {managedSourceProfile: profile, computeRuns: new WeakMap([[f.prepared, run]])});
   f.moon.clientProgramAcquisitionCount = value => {assert.strictEqual(value, f.prepared); return 2;};
+  f.moon.clientProgramDirectSourceCoordinates = value => {
+    assert.strictEqual(value, f.prepared); return [[0, 0, 0, 0], [1, 0, 1, 1]];
+  };
   f.moon.clientProgramSelectInstalledSourceInput = (value, request, stage, input) => {
     assert.strictEqual(value,f.prepared);assert.strictEqual(request,f.request);assert.equal(input,0);
     return requirements[stage];

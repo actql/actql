@@ -1,28 +1,4 @@
 ///|
-#cfg(target="js")
-fn measured_text_payload_bytes(utf16_units : Int) -> Int64 {
-  utf16_units.to_int64() * 2L
-}
-
-///|
-#cfg(not(target="js"))
-fn measured_text_payload_bytes(utf16_units : Int) -> Int64 {
-  Int::max(1, utf16_units).to_int64() * 2L
-}
-
-///|
-#cfg(target="js")
-fn measured_text_payload_copies() -> Int {
-  2
-}
-
-///|
-#cfg(not(target="js"))
-fn measured_text_payload_copies() -> Int {
-  1
-}
-
-///|
 // The sizing pass has already established both quantities. Wire bytes remain
 // a logical/value guard, not a count of nodes or an allocated wire buffer.
 fn measured_text_capacity(utf16_units : Int, wire_bytes : Int) -> Int64? {

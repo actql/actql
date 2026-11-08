@@ -52,6 +52,10 @@ for (const [name, path, from, to] of [
   ['unreviewed constructor allocation', 'src/connectors/local/selected_relation_provider.mbt', 'fn selected_relation_provider(', 'fn selected_relation_provider(\n  extra : String,'],
   ['changed same-original refinement', 'src/execution_relation/generated_sequence.mbt',
     '!physical_equal(original.contracts, candidate.contracts)', 'false'],
+  ['prebound workspace growth at preparation', 'src/execution_relation/generated_sequence.mbt',
+    'working: None,', 'working: Some(foreign),'],
+  ['rebound workspace growth in refinement', 'src/execution_relation/generated_sequence.mbt',
+    '!physical_equal(original.working, candidate.working)', 'false'],
 ]) test(`current source correspondence rejects ${name}`, () => {
   const source = read(path).toString();
   assert(source.includes(from));

@@ -1350,6 +1350,9 @@ function capturePlanConstructor({queryTime, count, retained}) {
     clientProgramSelectedSourceInputKind(selection) {assert.ok(requirements.includes(selection)); return 'query';},
     clientProgramSelectedSourceInputRef(selection) {assert.ok(requirements.includes(selection)); return selection.source;},
     clientProgramAcquisitionCount(p) {assert.equal(p, prepared); calls.push('inventory'); return count;},
+    clientProgramDirectSourceCoordinates(p) {
+      assert.equal(p, prepared); return requirements.map((_, index) => [index, 0, index, index]);
+    },
     clientProgramPrepareLocalQueryRequirement(...args) {
       assert.equal(queryTime, undefined, 'retained QueryTime must not select the context-free requirement');
       return requirementAt(...args.slice(0, 3), undefined, undefined, ...args.slice(3));
@@ -1376,11 +1379,11 @@ function capturePlanConstructor({queryTime, count, retained}) {
     prepareInstalledSequenceContractOriginal(value) {assert.equal(value, originals); return {admission};},
     installedSourceFor(value, ref) {assert.equal(value, profile); return adapters[requirements.findIndex(x => x.source === ref)];},
     clientOperationError: code => Object.assign(new Error(code), {code}), checked: value => value};
-  const prepare = new Function(...Object.keys(ports), text(declared('retainedManagedCaptureInventory')) +
+  const prepare = new Function(...Object.keys(ports), text(declared('installedDirectSourceCoordinates')) + '\n' + text(declared('retainedManagedCaptureInventory')) +
     '\n' + text(declared('prepareManagedComputeCapturePlan')) + '\nreturn prepareManagedComputeCapturePlan;')(...Object.values(ports));
   assert.equal(prepare(originals, run), plan);
   assert.equal(Object.isFrozen(run.sourceCapacities), true);
-  assert.equal(calls.filter(value => value === 'inventory').length, 1);
+  assert.equal(calls.filter(value => value === 'inventory').length, 2, 'Scalar count and checked coordinate validation');
   assert.equal(calls.filter(value => value === 'plan').length, 1);
   for (let index = 0; index < count; index++) {
     assert.equal(calls.filter(value => value === `requirement-${index}`).length, 1);
@@ -1499,6 +1502,7 @@ function wholeSourcePlanConstructor({capacityFailure, invalidate = false} = {}) 
   const run = {prepared, request, sourceProfile: profile, closed: false};
   const runtime = {
     clientProgramAcquisitionCount(value) {assert.equal(value, prepared); calls.push('original-prefix'); return 1;},
+    clientProgramDirectSourceCoordinates(value) {assert.equal(value, prepared); return [[0, 0, 0, 0]];},
     clientProgramSelectInstalledSourceInput(value, identity, stage, input) {
       assert.equal(value, prepared); assert.equal(identity, request); assert.equal(stage, 0); assert.equal(input, 0);
       calls.push('select-original'); return selection;
@@ -1529,7 +1533,7 @@ function wholeSourcePlanConstructor({capacityFailure, invalidate = false} = {}) 
     prepareInstalledSequenceContractOriginal(value) {assert.equal(value, originals); return {admission};},
     installedSourceFor(value, ref) {assert.equal(value, profile); assert.equal(ref, 'same-source'); return adapter;},
     clientOperationError: code => Object.assign(new Error(code), {code}), checked: value => value};
-  const prepare = new Function(...Object.keys(ports), text(declared('retainedManagedCaptureInventory')) +
+  const prepare = new Function(...Object.keys(ports), text(declared('installedDirectSourceCoordinates')) + '\n' + text(declared('retainedManagedCaptureInventory')) +
     '\n' + text(declared('prepareManagedComputeCapturePlan')) + '\nreturn prepareManagedComputeCapturePlan;')(...Object.values(ports));
   return {prepare: invocation => prepare(originals, run, invocation), calls, plan, run, runtime,
     expectedArgs: [prepared,request,capacity,17n,29n,admission,contracts.values,contracts.expression,contracts.ordered,true]};
@@ -1538,7 +1542,7 @@ function wholeSourcePlanConstructor({capacityFailure, invalidate = false} = {}) 
 test('whole Source Host constructor retains the original typed input without a Query or zero-prefix classifier', () => {
   const f = wholeSourcePlanConstructor();
   assert.equal(f.prepare(), f.plan);
-  assert.deepEqual(f.calls, ['original-prefix', 'select-original', 'whole-capacity', 'whole-plan']);
+  assert.deepEqual(f.calls, ['original-prefix', 'original-prefix', 'select-original', 'whole-capacity', 'whole-plan']);
   assert.equal(Object.isFrozen(f.run.sourceCapacities), true);
   assert.equal(f.run.sourceCapacities[0].kind, 'whole-input');
 });
@@ -1863,7 +1867,7 @@ test('timed whole Source caller uses the exact transient Core Option at the matc
   };
   assert.equal(f.prepare(opaque),f.plan);assert.equal(f.run.queryTimePreparation,time);
   assert.equal(Object.values(f.run).includes(opaque),false);
-  assert.deepEqual(f.calls,['original-prefix','select-original','whole-capacity','timed-whole-plan']);
+  assert.deepEqual(f.calls,['original-prefix','original-prefix','select-original','whole-capacity','timed-whole-plan']);
 });
 
 test('timed whole Source caller refuses an absent typed port and retains exact Core refusal or retirement',()=>{

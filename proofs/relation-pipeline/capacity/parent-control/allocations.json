@@ -149,6 +149,10 @@
         {
           "name": "numeric",
           "type": "NumericAggregateExecution?"
+        },
+        {
+          "name": "working",
+          "type": "WorkspaceGrowth?"
         }
       ]
     },
@@ -431,13 +435,13 @@
     },
     {
       "id": "selected-step-context",
-      "objects": "fresh GeneratedSequence record, selected_steps Int array, retained_ids reference array and result/option wrappers for each selected child; traversal ceilings Array owner/backing and (step, paths, rows) tuples, plus Calendar output-ceiling Array owner/backing and (step, quota) tuples in the original checked configuration",
+      "objects": "fresh GeneratedSequence record, selected_steps Int array, retained_ids reference array and result/option wrappers for each selected child; traversal ceilings Array owner/backing and (step, paths, rows) tuples, plus Calendar output-ceiling Array owner/backing and (step, quota) tuples in the original checked configuration; nullable working reference borrows the same original Task workspace-growth state",
       "phases": [
         "startup",
         "handoff",
         "cleanup-pending"
       ],
-      "basis": "selected view copies shared context and ceiling references, but both newly constructed selection arrays and the record are separate allocations; traversal and Calendar output configuration each start with an empty Array, immutable updates copy their Array and tighten an existing occurrence or append one checked occurrence, and old/new overlap and retained configurations remain in the census; observing the Calendar field does not admit Calendar execution into the numeric/NULL unary pilot or discharge its referent size/lifetime obligations",
+      "basis": "selected view copies shared context and ceiling references, but both newly constructed selection arrays and the record are separate allocations; traversal and Calendar output configuration each start with an empty Array, immutable updates copy their Array and tighten an existing occurrence or append one checked occurrence, and old/new overlap and retained configurations remain in the census; observing the Calendar field does not admit Calendar execution into the numeric/NULL unary pilot or discharge its referent size/lifetime obligations; working starts None, is attached only after original Task execution admission to grow that same reservation, and same-original refinements preserve its physical identity; selected views borrow that state without adding its referent size/lifetime to the provider-construction or retained-parent-core component",
       "status": "complete source census; native size/lifetime bound pending"
     },
     {

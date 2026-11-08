@@ -315,7 +315,7 @@ test('whole Source publication forwards the same native capture and never a Quer
       if (!available) throw foreign;
       return nativeCapture;
     }});
-  const captured = {capture, identity, logicalInput: logical};
+  const captured = {inputKind: 'whole-input', capture, identity, logicalInput: logical};
   Object.defineProperty(captured, 'requirement', {get() {assert.fail('whole Source queried a Query requirement');}});
   const invoke = get('../host-common/runtime-core.mjs', 'issueCheckedClientCompiledInvocation', {
     compiledRunTokens: new WeakMap([[compiled, compiledOriginal]]), token: value => {
@@ -339,9 +339,9 @@ test('whole Source publication forwards the same native capture and never a Quer
   available = false;
   assert.throws(issue, error => error === foreign);
   available = true;
-  source.captured = {identity, logicalInput: logical, capture: {...capture}};
+  source.captured = {...captured, capture: {...capture}};
   assert.throws(issue, {code: 'ERR_ASSERTION'});
-  source.captured = {identity, logicalInput: logical, capture: {source: capture.source}};
+  source.captured = {...captured, capture: {source: capture.source}};
   assert.throws(issue, /Invalid original whole Source capture/);
   source.captured = captured;
   kind = 'unknown';
@@ -673,6 +673,7 @@ function sourceRouteCallerFixture({kind = 'whole-input', queryFailure, wrapAdapt
   const adapter = wrapAdapter === undefined ? originalAdapter : wrapAdapter(originalAdapter, prepared);
   const moon = {
     clientProgramAcquisitionCount(body) {assert.equal(body, prepared); return 1;},
+    clientProgramDirectSourceCoordinates(body) {assert.equal(body, prepared); return ok([[0, 0, 0, 0]]);},
     clientProgramSelectSingleKeyedAcquisition(body) {assert.equal(body, prepared); return ok(undefined);},
     clientProgramRequestIdentity(body, authority, id, intent) {
       assert.equal(body, prepared); assert.equal(authority, 'authority');
@@ -707,6 +708,8 @@ function sourceRouteCallerFixture({kind = 'whole-input', queryFailure, wrapAdapt
     diagnostic() {}, registry: 'registry', values: 'values', fragment: 'fragment', ordered: 'ordered',
     checkpoints: undefined, ExecutionAuthorizationError: class extends Error {},
   };
+  context.installedDirectSourceCoordinates = get('./embedded-local.mjs', 'installedDirectSourceCoordinates', context);
+  context.directSourceOccurrence = sourceRouteBinding('directSourceOccurrence', context);
   context.originalSourceFreeRequest = sourceRouteBinding('originalSourceFreeRequest', context, true);
   const retainRestored = sourceRouteBinding('retainRestoredSourceFreeRequest', context);
   context.modelSourceOccurrence = sourceRouteBinding('modelSourceOccurrence', context);

@@ -16,7 +16,7 @@ test('cleanup category never serializes payloads and keeps public error code', {
   const functionSource = source.slice(source.indexOf('fn command_preparation_cleanup_cause('), helperBoundary);
   const answerSource = source.slice(source.indexOf('fn local_project_mock_answer_cleanup_cause('));
   const outer = [], declarations = [], assertions = [];
-  // This one nested family has an explicit reviewed shape. Do not broaden the
+  // These nested families have explicit reviewed shapes. Do not broaden the
   // old literal-only matcher to accept arbitrary expressions or omit a family.
   const projectStart = functionSource.indexOf('    CommandProjectMock(cause) =>');
   const projectEnd = functionSource.indexOf('\n    CommandFilesystem(cause) =>', projectStart);
@@ -98,7 +98,44 @@ test('cleanup category never serializes payloads and keeps public error code', {
             Answers(cause) => local_project_mock_answer_cleanup_cause(cause)
           }
       }`);
-  let covered = functionSource.replace(projectMock, '');
+  const proposalStart = functionSource.indexOf('    CommandBusinessEffectProposals(cause) =>');
+  const proposalEnd = functionSource.indexOf('\n    CommandBusinessModel(cause) =>', proposalStart);
+  assert(proposalStart > 0 && proposalEnd > proposalStart);
+  const effectProposals = functionSource.slice(proposalStart, proposalEnd);
+  assert.equal(effectProposals, `    CommandBusinessEffectProposals(cause) =>
+      match cause {
+        Managed(original) =>
+          match original {
+            InsufficientCapacity => "EffectProposalsInsufficientCapacity"
+            Ledger(_) => "EffectProposalsLedger"
+            _ => "EffectProposalsManaged"
+          }
+        Capture(original) =>
+          match original {
+            ForeignCapture => "EffectProposalsForeignCapture"
+            Physical(_) => "EffectProposalsPhysical"
+            _ => "EffectProposalsCapture"
+          }
+        Proposal(original) =>
+          match original {
+            ForeignBinding => "EffectProposalsForeignBinding"
+            RowCountMismatch => "EffectProposalsRowCountMismatch"
+            _ => "EffectProposalsProjection"
+          }
+        Export(original) =>
+          match original {
+            ForeignOutput => "EffectProposalsForeignOutput"
+            Export(_) => "EffectProposalsExportBody"
+            _ => "EffectProposalsExport"
+          }
+        Completed(original) =>
+          match original {
+            ForeignMaterial => "EffectProposalsForeignMaterial"
+            Closed => "EffectProposalsClosed"
+            _ => "EffectProposalsCompleted"
+          }
+      }`);
+  let covered = functionSource.replace(projectMock, '').replace(effectProposals, '');
   const nested = [...covered.matchAll(/    (Command\w+)\(cause\) =>\s+match cause \{([\s\S]*?)\n      \}/g)];
   assert.ok(nested.length >= 20);
   for (const [block, variant, body] of nested) {
@@ -190,6 +227,48 @@ test('cleanup category never serializes payloads and keeps public error code', {
     Dependencies: ['ProbeMockDependencies'], Provider: ['ProbeMockProvider'],
   });
   outer.push('  CommandProjectMock(ProbeCommandProjectMock)');
+  const proposalIssues = enumCases('src/cmd/native_client/local_effect_mock_proposals.mbt',
+    'LocalNativeMockEffectProposalIssue');
+  const proposalFamilies = {
+    Managed: {
+      path: 'src/client_local_host/installed_managed_run.mbt', name: 'ClientInstalledManagedRunIssue',
+      tags: {InsufficientCapacity: 'EffectProposalsInsufficientCapacity', Ledger: 'EffectProposalsLedger'},
+      fallback: 'EffectProposalsManaged',
+    },
+    Capture: {
+      path: 'src/physical_strategy_host/captured_dag.mbt', name: 'RunIssue',
+      tags: {ForeignCapture: 'EffectProposalsForeignCapture', Physical: 'EffectProposalsPhysical'},
+      fallback: 'EffectProposalsCapture',
+    },
+    Proposal: {
+      path: 'src/physical_strategy_host/effect_plan_verify.mbt', name: 'CapturedEffectProposalIssue',
+      tags: {ForeignBinding: 'EffectProposalsForeignBinding', RowCountMismatch: 'EffectProposalsRowCountMismatch'},
+      fallback: 'EffectProposalsProjection',
+    },
+    Export: {
+      path: 'src/physical_strategy_host/effect_dependency_ports.mbt', name: 'CapturedEffectLocalResultExportIssue',
+      tags: {ForeignOutput: 'EffectProposalsForeignOutput', Export: 'EffectProposalsExportBody'},
+      fallback: 'EffectProposalsExport',
+    },
+    Completed: {
+      path: 'src/execution_relation/completed_output_export.mbt', name: 'CompletedExportIssue',
+      tags: {ForeignMaterial: 'EffectProposalsForeignMaterial', Closed: 'EffectProposalsClosed'},
+      fallback: 'EffectProposalsCompleted',
+    },
+  };
+  assert.deepEqual(proposalIssues, Object.keys(proposalFamilies).map(name => ({name, arity: 1})));
+  const proposalTypes = {};
+  for (const [family, owner] of Object.entries(proposalFamilies)) {
+    const cases = enumCases(owner.path, owner.name);
+    assert(Object.keys(owner.tags).every(name => cases.some(item => item.name === name)));
+    const type = 'ProbeEffectProposals' + family;
+    declare(type, cases);
+    proposalTypes[family] = [type];
+    for (const item of cases) assertions.push(
+      `  assert_eq(command_preparation_cleanup_cause(CommandBusinessEffectProposals(${family}(${value(item)}))), "${owner.tags[item.name] ?? owner.fallback}")`);
+  }
+  declare('ProbeCommandBusinessEffectProposals', proposalIssues, proposalTypes);
+  outer.push('  CommandBusinessEffectProposals(ProbeCommandBusinessEffectProposals)');
   const commands = enumCases('src/cmd/native_client/local_command_preparation.mbt', 'LocalCommandPreparationIssue');
   assert.deepEqual(new Set(outer.map(line => /Command\w+/u.exec(line)[0])), new Set(commands.map(entry => entry.name)));
   for (const [name, tag] of [['ForeignOriginal', 'ProjectMockForeignOriginal'],

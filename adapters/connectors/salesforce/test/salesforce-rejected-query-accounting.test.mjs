@@ -170,7 +170,7 @@ for (const refused of [true, false]) {
       currentRead: async () => ({basis: 'policy'}), directReadIdentity: undefined,
       moon: {clientProgramRowSourceColumns(actual) {assert.equal(actual, acquisition);return ['Id'];}},
       randomUUID: () => 'original-nonce', cid: () => 'original-cid', maxTransferBytes: 12n,
-      limits: {maxPageBytes: 4}, listingReportCapacity: undefined, preparingSourceReads: new Set(),
+      limits: {maxPageBytes: 4}, readerDemand: undefined, listingReportCapacity: undefined, preparingSourceReads: new Set(),
       closeSourceRead: undefined, fail,
       async prepareRead(input) {
         assert.equal(input.prepared, prepared);assert.equal(input.acquisition, acquisition);
