@@ -92,6 +92,15 @@ composer index. Neither a copied service nor a successful Promise is this ACK.
 
 ## Resources
 
+The configuration JSON entrance reserves buffer and decoded String overlap
+before concatenation and UTF8 decoding. The same decoded String then supplies
+the existing JSON wire geometry before its single native parse. Structural
+nodes and UTF16 units fund the existing parsed/checked/identity envelope;
+received bytes do not stand for that many value nodes. This observation is
+not a JSON validator and preserves native malformed-input refusal. Only the
+original successful file close permits removing its buffer workspace and
+reconciling retained output; failed or pending close keeps the original duty.
+
 Parse geometry bounds retained parsed nodes/text and parse/freeze workspace
 before JSON parsing, including malformed prefixes. Document geometry includes
 canonical comparison, body spread, hashing, native-original index and temporary
