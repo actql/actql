@@ -323,7 +323,7 @@
     },
     {
       "module": "src/connectors/hubspot/catalog/source_read_construction.mbt",
-      "sha256": "2427ba6fce06a0e88b9beb28eee7deaca4f1b832c174f9ef404208b9a4433157",
+      "sha256": "1ca1679961bafdd7936e28da8d32cbee15d744b8867270967974920be7f5b9df",
       "exports": [],
       "operations": [
         {
@@ -333,6 +333,10 @@
         {
           "name": "property_response_staging_capacity",
           "declaration": "property_response_staging_capacity ( ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "source_normalization_phase_capacity",
+          "declaration": "source_normalization_phase_capacity ( parsed : @ execution . PreparationRepresentationUnits , key_units : Int , fixed : @ execution . PreparationRepresentationUnits , later : Array [ @ execution . PreparationRepresentationUnits ] , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "source_property_recheck_capacity_with_geometry",
@@ -368,7 +372,8 @@
             "source_property_recheck_capacity_with_geometry",
             "source_property_recheck_construction_capacity",
             "source_read_capacity_with_geometry",
-            "source_read_observed_construction_capacity"
+            "source_read_observed_construction_capacity",
+            "source_normalization_phase_capacity"
           ],
           "exports": [],
           "attributes": {

@@ -252,6 +252,12 @@ test('actual HubSpot managed caller preserves all selected properties through fu
     hubspotRecheckPropertyCatalog(){return {$tag:1};},hubspotPropertyCatalogObjectType(){return 'companies';},
     hubspotProjectObjectPage(){return {$tag:1,_0:{}};},hubspotObjectPageRowsWire(){return {$tag:1,_0:'[]'};},
     hubspotObjectPageMetadataJson(){return '{"rowCount":0}';},
+    // This fixture exercises request construction only. The real generic
+    // response Reader owns these existing ports; no preflight is claimed here.
+    hubspotPreparePropertyResponseSource(){assert.fail('no response preflight in request-only fixture');},
+    hubspotPropertyResponseSourceGeometryData(){assert.fail('no response geometry in request-only fixture');},
+    hubspotConsumePropertyResponseSource(){assert.fail('no staged response consume in request-only fixture');},
+    hubspotRetirePropertyResponseSource(){assert.fail('no staged response retirement in request-only fixture');},
   };
   const sequence = prepareHubSpotManagedSequence({moon,originalPortalId:'7',originalCatalog,
     objectType:'companies',properties:names,limits:{maxColumns:245,maxNameUnits:10000,maxResponseBytes:100,
