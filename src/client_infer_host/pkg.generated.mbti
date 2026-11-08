@@ -125,6 +125,8 @@ pub fn finish_original_model_current_state_writer(Execution, @run_publication_ho
 
 pub fn finish_result_publication(ResultPublication) -> Result[@run_publication_host.PublicationOutputExport, ResultPublicationIssue]
 
+pub fn grow_original_infer_publication_capacity(Execution, @model_execution.OriginalModelPublicationCapacity, Int64, Int64) -> Result[Unit, Issue]
+
 pub fn handoff_pending(Execution) -> Bool
 
 pub fn identity_pending(Execution) -> Bool
