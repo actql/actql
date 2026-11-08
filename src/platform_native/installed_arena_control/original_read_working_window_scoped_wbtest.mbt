@@ -150,3 +150,62 @@ test "same original Native Read acquires its window before resize and constructo
   host.try_close().unwrap_or_else(() => abort("Native Read stage: close-host"))
   assert_true(host.closed && domain.closed)
 }
+
+///|
+fn result_delivery_window_construct(target : Int) -> Unit raise {
+  let output = @byte_buffer.Buffer(size_hint=target)
+  for _ in 0..<target {
+    output.write_byte(71)
+  }
+  let bytes = output.to_bytes()
+  assert_eq(output.length(), target)
+  assert_eq(bytes.length(), target)
+  assert_eq(bytes[0], 71)
+  assert_eq(bytes[target - 1], 71)
+}
+
+///|
+test "original Native Read funds delivery backing and copy beside its unchanged input basis" {
+  // The existing fresh Source-frame fixture declares this same64-page input.
+  let fixture = original_read_consumer_fixture("source-frame-original")
+  let host = fixture.host
+  let consumer = host
+    .prepare_domain_original_read_consumer(fixture.read, 8192L, 16384L)
+    .unwrap()
+  host.enter_domain_original_read_consumer(consumer).unwrap()
+  let target = 16384
+  let (retained, execution, contiguous) = @native_client.native_local_result_delivery_window_construction(
+    target,
+  ).unwrap()
+  // Independent fixed Buffer/data/Bytes tariff; no existing row/input amount
+  // is replaced by the new window, and the original claim stays the owner.
+  assert_eq(retained, 2L * target.to_int64() + 3L * 16L + 8L + 8L)
+  assert_eq(execution, retained)
+  let initial_retained = consumer.initial_retained_bytes
+  let initial_execution = consumer.initial_execution_bytes
+  host
+  .prepare_domain_original_read_construction(
+    fixture.read,
+    retained,
+    execution,
+    contiguous,
+  )
+  .unwrap()
+  assert_eq(consumer.retained_bytes, initial_retained + retained)
+  assert_eq(consumer.execution_bytes, initial_execution + execution)
+  assert_true(physical_equal(consumer.read, fixture.read))
+  let ledger = fixture.read.ledger.unwrap()
+  assert_true(
+    @resources.ledger_usage(ledger).reserved_retention_bytes >=
+    initial_retained + retained,
+  )
+  assert_true(
+    @resources.ledger_usage(ledger).reserved_execution_bytes >=
+    initial_execution + execution,
+  )
+  // The actual constructor follows its successful same-domain geometry entry.
+  // Both aliases retire inside this frame before the original Read is closed.
+  result_delivery_window_construct(target)
+  host.leave_domain_original_read_consumer(consumer).unwrap()
+  original_read_consumer_finish(fixture)
+}

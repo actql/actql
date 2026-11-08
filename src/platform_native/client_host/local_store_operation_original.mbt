@@ -69,7 +69,10 @@ extern "C" fn prepare_store_operation_ffi(
   route : FuncRef[
     (NativeLocalStoreOperationReceiver, @sqlite.Library, Int) -> Int,
   ],
-) -> @sqlite.NativeStoreOperationOriginal = "actql_native_sqlite_prepare_store_operation"
+  construction : FuncRef[
+    (NativeLocalStoreOperationReceiver, @sqlite.Library, Int) -> Int,
+  ],
+) -> @sqlite.NativeStoreOperationOriginal = "actql_native_sqlite_prepare_store_operation_with_delivery_construction"
 
 ///|
 extern "C" fn store_operation_control_clear_ffi() -> Int = "actql_bootstrap_control_scope_clear"
@@ -138,14 +141,93 @@ fn prepare_native_local_store_operation_for_domain(
     primary: None,
     cleanup_issue: None,
   }
-  let bridge = prepare_store_operation_ffi(library, receiver, fn(
-    original,
+  let bridge = prepare_store_operation_ffi(
     library,
-    tag,
-  ) {
-    original.route(library, tag)
-  })
+    receiver,
+    fn(original, library, tag) { original.route(library, tag) },
+    fn(original, library, target) {
+      original.prepare_delivery_window(library, target)
+    },
+  )
   Ok({ receiver, bridge: Some(bridge), })
+}
+
+///|
+/// Exact Buffer(size_hint=target) backing and its to_bytes copy coexist.
+/// The original Read's row/input basis is unchanged and remains additive.
+/// The selected ABI supplies contiguous requests independently of the tariff.
+pub fn native_local_result_delivery_window_construction(
+  target : Int,
+) -> (Int64, Int64, Int64)? {
+  if target < 1 || target > 16777216 {
+    return None
+  }
+  guard @execution.preparation_representation_cost({
+      // Buffer1H1R1W, its exact Byte array1H and returned Bytes1H.
+      record_headers: 3L,
+      reference_slots: 1L,
+      scalar_words: 1L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 2L * target.to_int64(),
+    })
+    is Some(bytes) else {
+    return None
+  }
+  let (header, _, _, _, pointer) = @bootstrap.native_managed_value_layout()
+  if header <= 0L || pointer <= 0L {
+    return None
+  }
+  Some(
+    (
+      bytes,
+      bytes,
+      Int64::max(header + target.to_int64() + 1L, header + pointer + 8L),
+    ),
+  )
+}
+
+///|
+fn NativeLocalStoreOperationReceiver::prepare_delivery_window(
+  self : NativeLocalStoreOperationReceiver,
+  library : @sqlite.Library,
+  target : Int,
+) -> Int {
+  let (_, original) = match self.originals(library, false) {
+    Ok(value) => value
+    Err(issue) => return self.refuse(issue)
+  }
+  guard self.ready &&
+    !self.cleanup &&
+    self.primary is None &&
+    self.phase == StoreRouteRead &&
+    self.origin is Some(_) &&
+    original.active_phase is Some(@arena.HostRead) &&
+    original.store_operation is Some(active) &&
+    physical_equal(active, self) &&
+    native_local_result_delivery_window_construction(target)
+    is Some((retained, execution, contiguous)) else {
+    return self.refuse(StoreOperationUnavailable)
+  }
+  match
+    original.host.prepare_domain_original_read_construction(
+      original.read,
+      retained,
+      execution,
+      contiguous,
+    ) {
+    Err(issue) => self.refuse(StoreOperationResources(@arena.Read(issue)))
+    Ok(_) =>
+      if self.closing ||
+        self.capture.closing ||
+        original.interrupted ||
+        !(original.active_phase is Some(@arena.HostRead)) ||
+        !(original.store_operation is Some(active) &&
+        physical_equal(active, self)) {
+        self.refuse(StoreOperationUnavailable)
+      } else {
+        0
+      }
+  }
 }
 
 ///|

@@ -175,6 +175,7 @@ pub fn NativeStoreOperationOriginal::enter_cleanup_work(Self) -> Result[Unit, Na
 pub fn NativeStoreOperationOriginal::enter_store(Self) -> Result[Unit, NativeSqliteIssue]
 pub fn NativeStoreOperationOriginal::leave_store(Self) -> Result[Unit, NativeSqliteIssue]
 pub fn NativeStoreOperationOriginal::pending_scope(Self) -> Result[Bool, NativeSqliteIssue]
+pub fn NativeStoreOperationOriginal::prepare_delivery_window(Self, Int) -> Result[Unit, NativeSqliteIssue]
 pub fn NativeStoreOperationOriginal::primary_code(Self) -> Int
 
 // Type aliases

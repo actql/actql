@@ -196,6 +196,50 @@ fn store_wal_payload_work(
   let same_bytes = reader.next(32).unwrap().bytes == b"same-original"
   reader.finish().unwrap()
   store.reclaim_payload(info.material_generation_cid).unwrap()
+  // This exact selected original uses the legacy three-argument constructor.
+  // It retains normal Read/SQL routing without opting into an unfunded chunk
+  // accumulator. Each requested64-byte delivery still yields one original row.
+  let delivery_request = @payload.prepare_publication_payload_request(
+    authority,
+    "sha256:" + "9".repeat(64),
+    "sha256:" + "a".repeat(64),
+    "sha256:" + "4".repeat(64),
+    "sha256:" + "5".repeat(64),
+    "sha256:" + "6".repeat(64),
+    "sha256:" + "7".repeat(64),
+    "sha256:" + "8".repeat(64),
+    32L,
+    2L,
+  ).unwrap()
+  let delivery_writer = store.begin_payload(delivery_request).unwrap()
+  delivery_writer.append(b"[{\"n\":0},{\"n\":1}]").unwrap()
+  let delivery_info = delivery_writer.seal().unwrap()
+  let delivery = store
+    .open_payload_delivery(
+      delivery_info.material_generation_cid,
+      "jsonl",
+      "{\"n\":{\"nullable\":false,\"type\":\"integer\"}}",
+      ["n"],
+      64,
+      64,
+      16,
+      4,
+      128L,
+    )
+    .unwrap()
+  let first_row = delivery.next(64).unwrap()
+  let second_row = delivery.next(64).unwrap()
+  let end = delivery.next(64).unwrap()
+  let summary = delivery.finish().unwrap()
+  let legacy_delivery = first_row.bytes == b"{\"n\":0}\n" &&
+    !first_row.eof &&
+    second_row.bytes == b"{\"n\":1}\n" &&
+    !second_row.eof &&
+    end.bytes.length() == 0 &&
+    end.eof &&
+    summary.rows == 2L &&
+    summary.bytes == 16L
+  store.reclaim_payload(delivery_info.material_generation_cid).unwrap()
   let usage = store.capacity_usage().unwrap()
   // Routing metadata cannot acknowledge the still-open original Database.
   let original_busy = original.close_checked() is Err(_)
@@ -227,6 +271,7 @@ fn store_wal_payload_work(
   busy_writer &&
   busy_reader &&
   same_bytes &&
+  legacy_delivery &&
   original_busy &&
   usage.reserved_bytes == 0L &&
   first_close_pending &&

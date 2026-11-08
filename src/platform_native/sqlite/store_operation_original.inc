@@ -5,6 +5,7 @@ struct actql_native_store_operation {
   actql_native_sqlite_library *library;
   void *receiver;
   actql_native_store_operation_route route;
+  actql_native_store_delivery_construction delivery_construction;
   pid_t process;
   pthread_t thread;
   void *bound_database;
@@ -69,6 +70,44 @@ MOONBIT_FFI_EXPORT void *actql_native_sqlite_prepare_store_operation(
   if (receiver != NULL) moonbit_incref(receiver);
   /* Return original partial custody BEFORE any callback or physical call. */
   return value;
+}
+/* Same retained receiver/Library, with one closed constructor purpose. The
+ * original three-argument entrance remains unchanged for existing callers. */
+MOONBIT_FFI_EXPORT void *actql_native_sqlite_prepare_store_operation_with_delivery_construction(
+    void *library, void *receiver, actql_native_store_operation_route route,
+    actql_native_store_delivery_construction construction) {
+  actql_native_store_operation *value =
+    actql_native_sqlite_prepare_store_operation(library, receiver, route);
+  value->delivery_construction = construction;
+  return value;
+}
+MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_store_operation_prepare_delivery_window(
+    actql_native_store_operation *value, int32_t target) {
+  if (!actql_store_operation_thread(value) || value->closed ||
+      !value->activated || value->failed || value->cleanup_only ||
+      !value->flight || value->sql || value->cleanup ||
+      value->receiver == NULL || value->delivery_construction == NULL ||
+      target < 1 || target > 16777216) return -1;
+  if (value->calling) return actql_store_operation_failed(value, -2);
+  value->callback_failed = false;
+  value->callback_code = 0;
+  value->calling = true;
+  int32_t code = value->delivery_construction(value->receiver, value->library, target);
+  value->calling = false;
+  if (code != 0) return actql_store_operation_failed(value, code);
+  if (value->callback_failed) return value->callback_code;
+  return 0;
+}
+/* Constructor custody is immutable after preparation. Legacy routing retains
+ * its one-row path only inside the same valid normal Read flight; an invalid
+ * or failed funded original cannot select that compatibility path. */
+MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_store_operation_delivery_constructor(
+    actql_native_store_operation *value) {
+  if (!actql_store_operation_thread(value) || value->closed ||
+      !value->activated || value->failed || value->cleanup_only ||
+      !value->flight || value->sql || value->cleanup || value->calling ||
+      value->receiver == NULL || value->route == NULL) return -1;
+  return value->delivery_construction == NULL ? 0 : 1;
 }
 /* Separate generated test signature: the compiler emits one typed C
  * declaration per imported symbol. Both finite callers use the SAME original

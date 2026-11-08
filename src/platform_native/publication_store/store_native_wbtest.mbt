@@ -1262,6 +1262,9 @@ test "native formal delivery durably binds attempt receipt and success" {
     )
     .unwrap()
   let delivered : Array[Byte] = []
+  // Explicit constructor port exercises chunk aggregation beneath the same
+  // durable attempt/confirmation/reopen protocol; this is not Read funding.
+  delivery.source.source.chunk_construction = Some(_ => Ok(()))
   while true {
     let chunk = delivery.next(3, "2026-09-20T01:00:01.000Z").unwrap()
     for byte in chunk.bytes {
@@ -1327,6 +1330,7 @@ test "native formal delivery durably binds attempt receipt and success" {
       64L,
     )
     .unwrap()
+  cancelled.source.source.chunk_construction = Some(_ => Ok(()))
   let exposed = cancelled.next(3, "2026-09-20T01:00:04.000Z").unwrap()
   assert_eq(exposed.bytes.length(), 3)
   let failure = cancelled

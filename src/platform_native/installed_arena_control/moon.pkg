@@ -14,6 +14,7 @@ import {
 
 import {
   "moonbitlang/core/env",
+  "moonbitlang/core/buffer" @byte_buffer,
   "actql/actql/run_publication_host" @host,
   "actql/actql/check_environment" @environment,
   "actql/actql/lowering_relation" @lower,
