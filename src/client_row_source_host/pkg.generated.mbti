@@ -383,6 +383,8 @@ pub fn row_input_acquisition_capacity(RowInputAcquisition, @execution_relation.E
 
 pub fn row_input_acquisition_column_contract(RowInputAcquisition, Int) -> @value_contract.Contract?
 
+pub fn row_input_acquisition_column_count(RowInputAcquisition) -> Int
+
 pub fn row_input_acquisition_columns(RowInputAcquisition) -> Array[String]
 
 pub fn row_input_acquisition_facts(RowInputAcquisition) -> @query_planning.QuerySourceEvidenceFacts

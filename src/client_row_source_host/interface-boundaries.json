@@ -358,7 +358,7 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "e84c059c086ce233551841870aef1984d9fd55b103ed837da3803a5252a0689f",
+      "sha256": "a5bc2af4ef94245257fab3a8f19269be2da7cdd7568c62d72f26657b90fe5022",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
@@ -541,6 +541,7 @@
         "pub fn row_declaration_view(RowDeclaration, String) -> RowDeclaredView?",
         "pub fn row_input_acquisition_capacity(RowInputAcquisition, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?",
         "pub fn row_input_acquisition_column_contract(RowInputAcquisition, Int) -> @value_contract.Contract?",
+        "pub fn row_input_acquisition_column_count(RowInputAcquisition) -> Int",
         "pub fn row_input_acquisition_columns(RowInputAcquisition) -> Array[String]",
         "pub fn row_input_acquisition_facts(RowInputAcquisition) -> @query_planning.QuerySourceEvidenceFacts",
         "pub fn row_input_acquisition_is_listing(RowInputAcquisition) -> Bool",
@@ -1313,6 +1314,10 @@
         {
           "name": "row_input_acquisition_column_contract",
           "declaration": "pub fn row_input_acquisition_column_contract(RowInputAcquisition, Int) -> @value_contract.Contract?"
+        },
+        {
+          "name": "row_input_acquisition_column_count",
+          "declaration": "pub fn row_input_acquisition_column_count(RowInputAcquisition) -> Int"
         },
         {
           "name": "row_input_acquisition_columns",
@@ -4715,6 +4720,76 @@
           "exports": [
             "pub fn export_query_row_original_read(@execution_relation.SuppliedRelationRead, @query_planning.QueryRequirement) -> Result[RowOriginalCaptureExport, RowOriginalCaptureIssue]",
             "pub fn row_original_input_query_capacity(@query_planning.QueryRequirement) -> (Int64, Int64)?"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "row_input_acquisition_column_count"
+          ],
+          "exports": [
+            "pub fn row_input_acquisition_column_count(RowInputAcquisition) -> Int"
           ],
           "attributes": {
             "responsibility": [

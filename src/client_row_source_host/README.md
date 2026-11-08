@@ -299,3 +299,9 @@ receiving quote retains its existing finite wire/tree envelope and adds the
 shared checked-input metadata inventory before allocation on the receiving
 Ledger. This issues no new Source observation or receiving permission; current
 custody and sliced physical backing cleanup remain required.
+
+Restored Whole Source identity likewise consumes its exact original
+ClientInstalledWholeSourceCapacity, checks that Source's nominal acquisition and
+liveness, then forwards the actual checked input width. Constructor max_columns
+and saved counts are not width evidence; a foreign equal-schema capacity refuses.
+The legacy unbound identity APIs keep their original defaults.

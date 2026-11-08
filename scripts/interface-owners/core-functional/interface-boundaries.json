@@ -61206,7 +61206,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_whole_source_capture_bridge.mbt",
-      "sha256": "f44bb8253b4f241ab012e25146d039946cc4d9d1226eb820ef28d8d7d530fa5c",
+      "sha256": "3b89a2e2c441a0f4195df72dd6a29a8876a667fe4104610d6f43fa66b060e808",
       "exports": [],
       "operations": [
         {
@@ -61256,6 +61256,14 @@
         {
           "name": "client_program_export_whole_source_capture",
           "declaration": "client_program_export_whole_source_capture ( source : @ query . CapturedInputSource , capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , binding : String , ) - > Result [ ( Array [ String ] , String , String , Array [ String ] ) , @ client_local_host . ClientSourceCaptureIssue , ]"
+        },
+        {
+          "name": "client_program_identify_whole_captured_effect_source_relation",
+          "declaration": "client_program_identify_whole_captured_effect_source_relation ( source : @ query . CapturedInputSource , capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , ) - > Result [ @ query . CapturedSourceRelationIdentity , @ query . CapturedSourceIssue ]"
+        },
+        {
+          "name": "client_program_identify_whole_captured_source_relation",
+          "declaration": "client_program_identify_whole_captured_source_relation ( source : @ query . CapturedInputSource , capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , ) - > Result [ @ query . CapturedSourceRelationIdentity , @ query . CapturedSourceIssue ]"
         },
         {
           "name": "client_program_installed_effect_managed_plan_whole_source",
@@ -61854,6 +61862,75 @@
               {
                 "path": "src/client_local_host/installed_keyed_capture_parent_js_wbtest.mbt",
                 "anchor": "test \"managed keyed Host retains the original configuration and rejects a foreign Ledger\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_identify_whole_captured_effect_source_relation",
+            "client_program_identify_whole_captured_source_relation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
               }
             ]
           }
@@ -62309,7 +62386,7 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/client_whole_source_capture_bridge.mbt",
-      "sha256": "0ffa345dce68e1f77ef0988d350f4d72925b68ccaf59dc2c36b089c792243b2d",
+      "sha256": "abd187949210877f3051fc67aec797781f67190f2318677f37c0b8cc9c101dab",
       "exports": [],
       "operations": [
         {
@@ -62359,6 +62436,14 @@
         {
           "name": "client_program_export_whole_source_capture",
           "declaration": "client_program_export_whole_source_capture ( source : @ query . CapturedInputSource , capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , binding : String , ) - > Result [ ( Array [ String ] , String , String , Array [ String ] ) , @ client_local_host . ClientSourceCaptureIssue , ]"
+        },
+        {
+          "name": "client_program_identify_whole_captured_effect_source_relation",
+          "declaration": "client_program_identify_whole_captured_effect_source_relation ( source : @ query . CapturedInputSource , capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , ) - > Result [ @ query . CapturedSourceRelationIdentity , @ query . CapturedSourceIssue ]"
+        },
+        {
+          "name": "client_program_identify_whole_captured_source_relation",
+          "declaration": "client_program_identify_whole_captured_source_relation ( source : @ query . CapturedInputSource , capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , ) - > Result [ @ query . CapturedSourceRelationIdentity , @ query . CapturedSourceIssue ]"
         },
         {
           "name": "client_program_installed_effect_managed_plan_whole_source",
@@ -62957,6 +63042,75 @@
               {
                 "path": "src/client_local_host/installed_keyed_capture_parent_js_wbtest.mbt",
                 "anchor": "test \"managed keyed Host retains the original configuration and rejects a foreign Ledger\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_identify_whole_captured_effect_source_relation",
+            "client_program_identify_whole_captured_source_relation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
               }
             ]
           }

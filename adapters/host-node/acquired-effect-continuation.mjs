@@ -354,8 +354,8 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
       if (pure && !wholeInput && moon.clientProgramCapturedTaskSourceMatches(acquired.prepared,
           capturedSource, source.occurrence.task) !== true) fail('HeldAcquisitionChanged');
       const identity = checked(wholeInput
-        ? (pure ? moon.clientProgramIdentifyCapturedSourceRelation
-          : moon.clientProgramIdentifyCapturedEffectSourceRelation)(capturedSource)
+        ? (pure ? moon.clientProgramIdentifyWholeCapturedSourceRelation
+          : moon.clientProgramIdentifyWholeCapturedEffectSourceRelation)(capturedSource, capacity)
         : (pure ? moon.clientProgramIdentifyQueryCapturedSourceRelation
           : moon.clientProgramIdentifyQueryCapturedEffectSourceRelation)(capturedSource, requirement));
       const logicalInput = checked(wholeInput

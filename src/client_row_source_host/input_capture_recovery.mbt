@@ -179,3 +179,9 @@ pub fn row_input_capture_schema_geometry(
     (value.preparation.columns.length(), measured.0, measured.1, measured.2)
   })
 }
+
+///|
+/// Width of the original checked input, independent of constructor ceilings.
+pub fn row_input_acquisition_column_count(value : RowInputAcquisition) -> Int {
+  value.preparation.columns.length()
+}

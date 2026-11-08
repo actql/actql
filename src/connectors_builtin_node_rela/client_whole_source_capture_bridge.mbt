@@ -1257,3 +1257,33 @@ pub fn client_program_prepare_request_model_whole_inputs_component_capture_modul
     }),
   )
 }
+
+///|
+#export_name("clientProgramIdentifyWholeCapturedSourceRelation")
+pub fn client_program_identify_whole_captured_source_relation(
+  source : @query.CapturedInputSource,
+  capacity : @client_local_host.ClientInstalledWholeSourceCapacity,
+) -> Result[@query.CapturedSourceRelationIdentity, @query.CapturedSourceIssue] {
+  guard @client_local_host.client_whole_source_capture_schema_columns(
+      source, capacity,
+    )
+    is Some(columns) else {
+    return Err(@query.Unavailable)
+  }
+  identify_installed_captured_source(source, 0, columns~)
+}
+
+///|
+#export_name("clientProgramIdentifyWholeCapturedEffectSourceRelation")
+pub fn client_program_identify_whole_captured_effect_source_relation(
+  source : @query.CapturedInputSource,
+  capacity : @client_local_host.ClientInstalledWholeSourceCapacity,
+) -> Result[@query.CapturedSourceRelationIdentity, @query.CapturedSourceIssue] {
+  guard @client_local_host.client_whole_source_capture_schema_columns(
+      source, capacity,
+    )
+    is Some(columns) else {
+    return Err(@query.Unavailable)
+  }
+  identify_installed_captured_source(source, 16777216, columns~)
+}

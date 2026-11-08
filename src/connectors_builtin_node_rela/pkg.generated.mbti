@@ -988,6 +988,10 @@ pub fn client_program_identify_row_capture_effect_source_relation(@execution_que
 
 pub fn client_program_identify_row_capture_source_relation(@execution_query.CapturedInputSource, @client_row_source_host.RowSourceCapture) -> Result[@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedSourceIssue]
 
+pub fn client_program_identify_whole_captured_effect_source_relation(@execution_query.CapturedInputSource, @client_local_host.ClientInstalledWholeSourceCapacity) -> Result[@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedSourceIssue]
+
+pub fn client_program_identify_whole_captured_source_relation(@execution_query.CapturedInputSource, @client_local_host.ClientInstalledWholeSourceCapacity) -> Result[@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedSourceIssue]
+
 pub fn client_program_imported_effect_invocation(@run_publication_host.ClientEffectImportedEvidence) -> @run_publication_host.ClientEffectLocalInvocation
 
 pub fn client_program_imported_effect_relation_bodies(@run_publication_host.ClientEffectImportedEvidence) -> Array[String]

@@ -55,8 +55,8 @@ function fixture() {
     clientProgramSourceCaptureSource(actual) {
       assert.strictEqual(actual, owner); return missingSource ? undefined : input;
     },
-    clientProgramIdentifyCapturedEffectSourceRelation(actual) {
-      assert.strictEqual(actual, input); return ok(identity);
+    clientProgramIdentifyWholeCapturedEffectSourceRelation(actual, selected) {
+      assert.strictEqual(actual, input); assert.strictEqual(selected, capacity); return ok(identity);
     },
     clientProgramIssueEffectWholeSourceInputLogical(actual, value, originalIdentity, selected) {
       assert.strictEqual(actual, prepared); assert.strictEqual(value, input);
