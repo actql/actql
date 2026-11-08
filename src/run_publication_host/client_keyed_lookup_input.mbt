@@ -562,12 +562,48 @@ pub fn begin_client_keyed_lookup_response(
     return Err(Assembly("unverified_response"))
   }
   guard state.input is Some(input) else { return Err(Assembly("closed_input")) }
-  let columns = @schema.field_count(
-    @execution.supplied_relation_read_schema(read),
-  )
-  // Fund the two row/presence pointer arrays and their growth overlap. Cells
-  // borrow immutable admitted payloads; they do not copy the child value tree.
-  let extra = 256L + columns.to_int64() * 32L + wire.length().to_int64() * 2L
+  let schema = @execution.supplied_relation_read_schema(read)
+  let columns = @schema.field_count(schema).to_int64()
+  let conditional = !@schema.all_fields_required(schema)
+  // The actual row layout precedes its cursor: required cells borrow Values;
+  // conditional cells additionally retain their original Some/presence slots.
+  // Use the collection owner's append/backing overlap, not a policy ceiling.
+  // Existing fixed controls cover the two outer array wrappers; their actual
+  // per-row slots, cached key/read carriers and key Text are retained here.
+  guard @shape.collection_construction_extent({
+      records: if conditional {
+        columns + 3L
+      } else {
+        2L
+      },
+      record_references: if conditional {
+        columns + 4L
+      } else {
+        3L
+      },
+      record_words: if conditional {
+        columns + 1L
+      } else {
+        1L
+      },
+      reference_arrays: 1L,
+      reference_items: columns,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(layout) &&
+    @execution.preparation_representation_cost({
+      record_headers: layout.record_headers,
+      reference_slots: layout.reference_slots + 6L,
+      scalar_words: layout.scalar_words,
+      owned_utf16_units: wire.length().to_int64(),
+      owned_wire_bytes: 0L,
+    })
+    is Some(extra) else {
+    return Err(Assembly("capacity_overflow"))
+  }
   if extra > 9223372036854775807L - state.retained_bytes {
     return Err(Assembly("capacity_overflow"))
   }
@@ -642,6 +678,15 @@ pub fn advance_client_keyed_lookup_input(
       guard state.pending_read is Some(read) &&
         @execution.supplied_relation_read_available(read) else {
         return Err(Assembly("response_closed"))
+      }
+      guard @execution.admitted_output_row_next_construction(cursor)
+        is Some(units) &&
+        @execution.preparation_representation_cost(units) is Some(construction) else {
+        return Err(Assembly("row_workspace_unavailable"))
+      }
+      match keyed_lookup_grow_execution(state, 4096L + construction) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
       }
       match @execution.advance_admitted_input_row(cursor) {
         Err(issue) => {

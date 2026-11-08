@@ -48,6 +48,8 @@ pub fn admitted_output_preparation_rows(AdmittedOutputPreparation) -> AdmittedOu
 
 pub fn admitted_output_row_count(AdmittedOutputRows) -> Int
 
+pub fn admitted_output_row_next_construction(AdmittedOutputRowCursor) -> PreparationRepresentationUnits?
+
 pub fn admitted_output_row_workspace_usage(AdmittedOutputRowCursor) -> (Int, Int)
 
 pub fn admitted_output_schema(AdmittedOutputRows) -> @relation_schema.Schema
