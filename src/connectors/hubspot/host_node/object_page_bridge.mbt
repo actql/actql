@@ -22,6 +22,53 @@ pub fn hubspot_project_properties(
 }
 
 ///|
+#export_name("hubspotPreparePropertyResponseSource")
+pub fn hubspot_prepare_property_response_source(
+  bytes : Bytes,
+  path : String,
+  object_type : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_properties : Int,
+  max_name_units : Int,
+) -> Result[@catalog.PropertyResponseSource, @catalog.PropertyIssue] {
+  @catalog.prepare_property_response_source(bytes, path, object_type, {
+    max_bytes,
+    max_nodes,
+    max_depth,
+    max_properties,
+    max_name_units,
+  })
+}
+
+///|
+#export_name("hubspotPropertyResponseSourceGeometryData")
+pub fn hubspot_property_response_source_geometry_data(
+  prepared : Result[@catalog.PropertyResponseSource, @catalog.PropertyIssue],
+) -> Array[Int] {
+  @catalog.property_response_source_geometry_data(prepared)
+}
+
+///|
+#export_name("hubspotConsumePropertyResponseSource")
+pub fn hubspot_consume_property_response_source(
+  prepared : Result[@catalog.PropertyResponseSource, @catalog.PropertyIssue],
+  path : String,
+  bytes : Bytes,
+) -> Result[@catalog.PropertyCatalog, @catalog.PropertyIssue] {
+  @catalog.consume_property_response_source(prepared, path, bytes)
+}
+
+///|
+#export_name("hubspotRetirePropertyResponseSource")
+pub fn hubspot_retire_property_response_source(
+  prepared : Result[@catalog.PropertyResponseSource, @catalog.PropertyIssue],
+) -> Unit {
+  @catalog.retire_property_response_source(prepared)
+}
+
+///|
 #export_name("hubspotRecheckPropertyCatalog")
 pub fn hubspot_recheck_property_catalog(
   original : @catalog.PropertyCatalog,

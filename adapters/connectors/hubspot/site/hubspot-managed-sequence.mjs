@@ -8,7 +8,9 @@ const segment = value => encodeURIComponent(value).replace(/[!'()*]/gu,
   unit => `%${unit.charCodeAt(0).toString(16).toUpperCase()}`);
 const names = ['hubspotRecheckAccountIdentityJson', 'hubspotProjectProperties',
   'hubspotRecheckPropertyCatalog', 'hubspotPropertyCatalogObjectType',
-  'hubspotProjectObjectPage', 'hubspotObjectPageRowsWire', 'hubspotObjectPageMetadataJson'];
+  'hubspotProjectObjectPage', 'hubspotObjectPageRowsWire', 'hubspotObjectPageMetadataJson',
+  'hubspotPreparePropertyResponseSource', 'hubspotPropertyResponseSourceGeometryData',
+  'hubspotConsumePropertyResponseSource', 'hubspotRetirePropertyResponseSource'];
 
 export function prepareHubSpotManagedSequence({moon, originalPortalId, originalCatalog,
   objectType, properties, limits, authorizeMetadata, responseCapacity}) {
@@ -26,6 +28,7 @@ export function prepareHubSpotManagedSequence({moon, originalPortalId, originalC
   const base = `/crm/v3/objects/${segment(objectType)}`;
   const schemaPath = `/crm/v3/properties/${segment(objectType)}`;
   let started = false, retired = false, requestCount = 0, pages = 0, rowCount = 0, sequence;
+  let propertySource, propertyGeometry = Object.freeze([]);
   const current = () => {if (retired) fail('HubSpotManagedSequenceClosed');};
   const request = (path, query = []) => Object.freeze({method: 'GET', path, query,
     headers: Object.freeze([Object.freeze(['accept', 'application/json'])]), responseHeaders: Object.freeze([])});
@@ -38,9 +41,17 @@ export function prepareHubSpotManagedSequence({moon, originalPortalId, originalC
       if (bodies.reduce((total, value) => total + BigInt(value), 0n) !== receivedBytes) {
         fail('ForeignHubSpotManagedResponse');
       }
+      if (bodies.length === 2) {
+        if (propertySource !== undefined || path !== schemaPath) fail('ForeignHubSpotManagedResponse');
+        // Keep the Result itself. A Source refusal must not leapfrog the
+        // original accepted/status check in project(response) below.
+        propertySource = provider.hubspotPreparePropertyResponseSource(body, path, objectType,
+          limits.maxResponseBytes, limits.maxNodes, limits.maxDepth, limits.maxProperties, limits.maxNameUnits);
+        propertyGeometry = Object.freeze([...provider.hubspotPropertyResponseSourceGeometryData(propertySource)]);
+      }
       // The same generic Reader retained and charged this body first. The
       // quote includes every earlier/failed constructor until real retirement.
-      return responseCapacity(Object.freeze(bodies.slice()), receivedBytes);
+      return responseCapacity(Object.freeze(bodies.slice()), receivedBytes, propertyGeometry);
     },
     async read(context) {
       if (this !== sequence || started) fail('ForeignHubSpotManagedSequence');current();started = true;
@@ -62,8 +73,10 @@ export function prepareHubSpotManagedSequence({moon, originalPortalId, originalC
       };
       const recheckProperties = async () => {
         await receive(HUBSPOT_PROPERTIES_READ_OPERATION, schemaPath, [], body => {
-          const catalog = checked(provider.hubspotProjectProperties(body, objectType,
-            limits.maxResponseBytes, limits.maxNodes, limits.maxDepth, limits.maxProperties, limits.maxNameUnits));
+          const catalog = propertySource !== undefined && requestCount === 2
+            ? checked(provider.hubspotConsumePropertyResponseSource(propertySource, schemaPath, body))
+            : checked(provider.hubspotProjectProperties(body, objectType,
+              limits.maxResponseBytes, limits.maxNodes, limits.maxDepth, limits.maxProperties, limits.maxNameUnits));
           checked(provider.hubspotRecheckPropertyCatalog(originalCatalog, catalog, limits.maxProperties));
         });
         await context.consumeObservation();current();
@@ -102,7 +115,9 @@ export function prepareHubSpotManagedSequence({moon, originalPortalId, originalC
     },
     retire() {
       if (this !== sequence) fail('ForeignHubSpotManagedSequence');
-      if (retired) return true;retired = true;
+      if (retired) return true;
+      if (propertySource !== undefined) provider.hubspotRetirePropertyResponseSource(propertySource);
+      propertySource = undefined;propertyGeometry = undefined;retired = true;
       bodies.length = 0;ids.clear();cursors.clear();return true;
     },
   });

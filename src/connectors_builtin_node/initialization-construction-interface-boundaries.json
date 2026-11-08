@@ -3,7 +3,7 @@
   "declarations": [
     {
       "module": "src/connectors_builtin_node/client_hubspot_initialization_bridge.mbt",
-      "sha256": "ab6234eaf4e07835b455df380494971f8b0d90f4caaf13616f0c6533c9ee6340",
+      "sha256": "8c438cdc95d5885e613eb219f884fe952459447c13416de425a774f9c31653a8",
       "exports": [],
       "operations": [
         {
@@ -21,6 +21,14 @@
         {
           "name": "client_program_hubspot_source_reader_capacity",
           "declaration": "client_program_hubspot_source_reader_capacity ( reader : Array [ Int ] , columns : Int , secret_bytes : Int , protocol : Array [ Int ] , target_units : Int , received : Array [ Int ] , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_hubspot_source_reader_observed_capacity",
+          "declaration": "client_program_hubspot_source_reader_observed_capacity ( reader : Array [ Int ] , columns : Int , secret_bytes : Int , protocol : Array [ Int ] , target_units : Int , received : Array [ Int ] , property_geometry : Array [ Int ] , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "hubspot_reader_common_capacity",
+          "declaration": "hubspot_reader_common_capacity ( reader : Array [ Int ] , columns : Int , secret_bytes : Int , native : @ execution . ExecutionCapacity ? , received : Array [ Int ] , target_units : Int , ) - > @ execution . ExecutionCapacity ?"
         }
       ],
       "responsibilityFacet": "primary",
@@ -100,7 +108,9 @@
         },
         {
           "operations": [
-            "client_program_hubspot_source_reader_capacity"
+            "client_program_hubspot_source_reader_capacity",
+            "client_program_hubspot_source_reader_observed_capacity",
+            "hubspot_reader_common_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -170,7 +180,7 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/client_hubspot_initialization_bridge.mbt",
-      "sha256": "6c1b026c270d3aa7324f60c01b57b29eceaf603190fdf052314b969cef7b4fe0",
+      "sha256": "9711d62a1959e1d703232b1246e05b24d55b272936b0d93fe7c50237c9d53313",
       "exports": [],
       "operations": [
         {
@@ -188,6 +198,14 @@
         {
           "name": "client_program_hubspot_source_reader_capacity",
           "declaration": "client_program_hubspot_source_reader_capacity ( reader : Array [ Int ] , columns : Int , secret_bytes : Int , protocol : Array [ Int ] , target_units : Int , received : Array [ Int ] , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_hubspot_source_reader_observed_capacity",
+          "declaration": "client_program_hubspot_source_reader_observed_capacity ( reader : Array [ Int ] , columns : Int , secret_bytes : Int , protocol : Array [ Int ] , target_units : Int , received : Array [ Int ] , property_geometry : Array [ Int ] , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "hubspot_reader_common_capacity",
+          "declaration": "hubspot_reader_common_capacity ( reader : Array [ Int ] , columns : Int , secret_bytes : Int , native : @ execution . ExecutionCapacity ? , received : Array [ Int ] , target_units : Int , ) - > @ execution . ExecutionCapacity ?"
         }
       ],
       "responsibilityFacet": "primary",
@@ -267,7 +285,9 @@
         },
         {
           "operations": [
-            "client_program_hubspot_source_reader_capacity"
+            "client_program_hubspot_source_reader_capacity",
+            "client_program_hubspot_source_reader_observed_capacity",
+            "hubspot_reader_common_capacity"
           ],
           "exports": [],
           "attributes": {
