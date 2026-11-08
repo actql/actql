@@ -597,6 +597,8 @@ pub fn issue_result_read_grant(PublicationContract, PublicationContract, Array[S
 
 pub fn issue_result_retention_extension(PublicationContract, String, String, Int, Int, Int) -> Result[PublicationContract, DeliveryIssuanceIssue]
 
+pub fn issue_result_retention_for_data_policy(PublicationContract, String, Int, Int, Int) -> Result[PublicationContract, PublicationContractIssue]
+
 pub fn issue_run_control_observation_wire(Int, Bool, Bool, Bool, Bool) -> Result[String, RunStateIssue]
 
 pub fn issue_run_definition(RunPublicationAdmission, String, String, String, String, String, Int, Int, Int) -> Result[PublicationContract, RunPublicationAdmissionIssue]

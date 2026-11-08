@@ -342,3 +342,62 @@ test "separate Source and publication policies preserve retention custody bounds
     assert_false(result_retention_bounds_equal(source, changed))
   }
 }
+
+///|
+test "Source policy projection preserves every original retention field and refuses foreign envelopes" {
+  let original = relation_fixture_retention(relation_fixture_cid("5"))
+  let expected = relation_fixture_retention(relation_fixture_cid("6"))
+  let projected = issue_result_retention_for_data_policy(
+    original,
+    relation_fixture_cid("6"),
+    10000,
+    1000,
+    32,
+  ).unwrap()
+  assert_eq(projected.wire, expected.wire)
+  assert_eq(projected.identity, expected.identity)
+  assert_true(result_retention_bounds_equal(projected, original))
+  assert_true(
+    physical_equal(
+      issue_result_retention_for_data_policy(
+        original,
+        relation_fixture_cid("5"),
+        10000,
+        1000,
+        32,
+      ).unwrap(),
+      original,
+    ),
+  )
+  assert_true(
+    issue_result_retention_for_data_policy(
+      original,
+      relation_fixture_cid("6"),
+      1,
+      1000,
+      32,
+    )
+    is Err(_),
+  )
+  assert_true(
+    issue_result_retention_for_data_policy(original, "unknown", 10000, 1000, 32)
+    is Err(_),
+  )
+  let scope = issue_single_source_acquisition_scope(
+    relation_fixture_cid("1"),
+    relation_fixture_cid("2"),
+    10000,
+    1000,
+    32,
+  ).unwrap()
+  assert_true(
+    issue_result_retention_for_data_policy(
+      scope,
+      relation_fixture_cid("6"),
+      10000,
+      1000,
+      32,
+    )
+    is Err(_),
+  )
+}

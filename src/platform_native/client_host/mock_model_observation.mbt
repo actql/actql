@@ -371,3 +371,39 @@ pub fn NativeClientMockModelWork::local_observation_dependency_bodies(
   )
   Some(bodies)
 }
+
+///|
+/// Same accepted original Model/Source closure and one semantic Invocation.
+/// The caller backs/retains these metadata aliases on its original capture
+/// operation; this does not claim keyed attempt provenance or Store custody.
+pub fn NativeClientMockModelWork::local_effect_direct_source_evidence(
+  self : Self,
+  retention : @publication.PublicationContract,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (@host.ClientEffectLocalInvocation, Array[@host.ClientEffectAcquiredEvidence]),
+  @host.ClientEffectAcquiredEvidenceIssue,
+] {
+  guard !self.closing &&
+    !self.closed &&
+    !self.advancing &&
+    self.local_observation is Some(observation) else {
+    return Err(Invocation(ForeignCapturedInput))
+  }
+  self.advancing = true
+  defer {
+    self.advancing = false
+  }
+  let result = @infer.issue_original_local_model_direct_source_evidence(
+    observation, retention, max_bytes, max_nodes, max_depth,
+  )
+  if self.closing ||
+    self.closed ||
+    !(self.local_observation is Some(original) &&
+    physical_equal(original, observation)) {
+    return Err(Invocation(ForeignCapturedInput))
+  }
+  result
+}

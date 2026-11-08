@@ -92,6 +92,12 @@ fn command_preparation_cleanup_cause(
       }
     CommandBusinessEffectProposals(cause) =>
       match cause {
+        Source(original) =>
+          match original {
+            Invocation(_) => "EffectProposalsSourceInvocation"
+            Relation(_) => "EffectProposalsSourceRelation"
+            Dependency(_) => "EffectProposalsSourceDependency"
+          }
         Keyed(original) =>
           match original {
             Identity(_) => "EffectProposalsKeyedContract"

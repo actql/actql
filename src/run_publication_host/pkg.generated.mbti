@@ -477,6 +477,8 @@ pub fn client_effect_acquired_invocation(ClientEffectAcquiredEvidence) -> Client
 
 pub fn client_effect_acquired_observation(ClientEffectAcquiredEvidence) -> @run_publication.RunEvidenceValue
 
+pub fn client_effect_acquired_relation_dependency_bodies(ClientEffectAcquiredEvidence) -> Array[(String, String)]?
+
 pub fn client_effect_acquired_request_cid(ClientEffectAcquiredEvidence) -> String
 
 pub fn client_effect_allowed_infer_run(ClientEffectAllowedRun) -> Result[ClientCompiledRun, ClientCompiledRunIssue]
@@ -1808,6 +1810,8 @@ pub fn issue_prepared_client_values_output_schema(PreparedClientProgram, Int, @l
 pub fn issue_prepared_client_values_plan_graph(PreparedClientProgram, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientValuesPlanGraph, ClientValuesPlanGraphIssue]
 
 pub fn issue_prepared_source_free_client_bound_template(PreparedClientProgram, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, ClientBoundTemplateIssue]
+
+pub fn issue_single_model_client_effect_direct_source_evidence(ClientCompiledRun, ClientInferCallScope, @run_publication.CapturedEffectDependencyBody, ClientInferComposedSources, @run_publication.PublicationContract, Int, Int, Int) -> Result[(ClientEffectLocalInvocation, Array[ClientEffectAcquiredEvidence]), ClientEffectAcquiredEvidenceIssue]
 
 pub fn issue_single_model_client_effect_local_invocation(ClientCompiledRun, ClientInferCallScope, @run_publication.CapturedEffectDependencyBody, Int, Int, Int) -> Result[ClientEffectLocalInvocation, ClientEffectLocalInvocationIssue]
 
