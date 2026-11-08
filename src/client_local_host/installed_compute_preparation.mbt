@@ -62,11 +62,29 @@ fn prepare_installed_compute_preparation(
       for task in first..<sequences.length() {
         tail.push(sequences[task])
       }
-      let max_rows = match owner {
+      let mut max_rows = match owner {
         Pure(prepared) =>
           @publication_host.prepared_client_values_max_rows(prepared)
         Effect(_) =>
           @publication_host.client_standard_values_sequence_limits().max_rows
+      }
+      // The same Source policy also bounds its receiving Compute. Preserve
+      // that original input envelope before quoting and configuring this Plan.
+      for source in whole_capacities {
+        max_rows = Int::max(
+          max_rows,
+          @row_source_host.row_input_acquisition_max_rows(source.acquisition),
+        )
+      }
+      for source in whole_sources {
+        if source is Some((_, original)) {
+          max_rows = Int::max(
+            max_rows,
+            @row_source_host.row_input_acquisition_max_rows(
+              original.acquisition,
+            ),
+          )
+        }
       }
       let configuration = client_local_capacity_plan(
         tail,
