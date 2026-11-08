@@ -187,6 +187,16 @@ test "local Model observation binds original complete relations before Result su
     held, issued, input_receipt, outcome_receipt, 4096, 1024, 20,
   ).unwrap()
   let body = original_local_model_observation_body(observation).unwrap()
+  let scope = active.call_scope.unwrap()
+  let (unit, ordinal) = @publication_host.client_infer_call_scope_local_coordinate(scope)
+  assert_true(@publication.local_model_observation_matches_input(
+    body, unit, ordinal, @publication_host.client_infer_call_scope_artifact(scope),
+  ))
+  // This original fixture is Pure. An otherwise complete live Model cannot
+  // acquire an Effect semantic Invocation from a different compilation role.
+  assert_true(issue_original_local_model_effect_invocation(
+    observation, 4096, 1024, 20,
+  ) is None)
   let reused = issue_original_local_model_observation_from_scope(
     held, issued, outcome_receipt, 4096, 1024, 20,
   ).unwrap()

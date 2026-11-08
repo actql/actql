@@ -247,3 +247,29 @@ pub fn original_local_model_observation_body(
     None
   }
 }
+
+///|
+/// The normal Model consumer supplies its SAME live output and complete issuer,
+/// not a caller-authored semantic body. The publication Host projects only the
+/// retained compiler/Scope; this neither executes the Model nor grants Effect
+/// publication. The caller backs the bounded metadata writers before entry.
+pub fn issue_original_local_model_effect_invocation(
+  value : LocalModelObservation,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication_host.ClientEffectLocalInvocation? {
+  guard original_local_model_observation_current(value.held, value.issued) &&
+    value.held.owner.call_scope is Some(scope) else {
+    return None
+  }
+  let invocation = @publication_host.issue_single_model_client_effect_local_invocation(
+    value.issued.state.compiled, scope, value.body,
+    max_wire_bytes, max_nodes, max_depth,
+  ).to_option()
+  if original_local_model_observation_current(value.held, value.issued) {
+    invocation
+  } else {
+    None
+  }
+}

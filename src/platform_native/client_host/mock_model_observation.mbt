@@ -303,3 +303,26 @@ pub fn NativeClientMockModelWork::local_observation_original(
   }
   @infer.original_local_model_observation_body(observation)
 }
+
+///|
+/// Borrow the original Model's semantic Invocation under its existing output
+/// and complete issuer. The enclosing member-capture operation backs these
+/// metadata constructors before this entry; no Model capacity is reissued.
+pub fn NativeClientMockModelWork::local_effect_invocation(
+  self : Self,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @host.ClientEffectLocalInvocation? {
+  guard !self.closing && !self.closed && !self.advancing &&
+    self.local_observation is Some(observation) else {
+    return None
+  }
+  self.advancing = true
+  defer {
+    self.advancing = false
+  }
+  @infer.issue_original_local_model_effect_invocation(
+    observation, max_wire_bytes, max_nodes, max_depth,
+  )
+}

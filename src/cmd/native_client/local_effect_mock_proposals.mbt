@@ -35,6 +35,9 @@ priv struct LocalNativeMockEffectProposals {
 ///|
 priv struct LocalNativeMockEffectProposalMember {
   plan : @strategy.CapturedEffectProposalPlan
+  mut capture_operation : @local_values.ClientInstalledEffectOperationBorrow?
+  mut _retained_invocation : @run_host.ClientEffectLocalInvocation?
+  mut _retained_capture_issue : @local_values.ClientInstalledManagedRunIssue?
   mut exported : @strategy.CapturedEffectLocalResultExport?
   mut stream : @execution.CompletedOutputExport?
   mut receipt : @execution.CompletedRelationExportReceipt?
@@ -49,6 +52,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
     business.effect_model is Some(state) &&
     state.effect_capture is Some(captured) &&
     business.request_run is Some(run) &&
+    business.model_work.length() == 1 &&
     state.model_use is Some(_) &&
     state.proposals is None else {
     stop("LocalOriginalEffectProposalsUnavailable")
@@ -97,12 +101,44 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
         .native_effect_proposal(self.original)
       let current : LocalNativeMockEffectProposalMember = {
         plan,
+        capture_operation: None,
+        _retained_invocation: None,
+        _retained_capture_issue: None,
         exported: None,
         stream: None,
         receipt: None,
         rows: [],
       }
       held.members.push(current)
+      // Retain the original member capture before its fallible semantic
+      // constructors. The existing capture recipe backs Artifact/Preview
+      // metadata; this does not consume another Model or Source allowance.
+      let capture_operation = @local_values.borrow_installed_effect_operation(
+          run,
+          state._retained_prepared,
+          state.first.request,
+          state._retained_plan,
+          entry,
+          false,
+          0,
+          0,
+          "native.mock.file.capture",
+        )
+        .map_err(issue => LocalNativeMockEffectProposalIssue::Managed(issue))
+        .native_effect_proposal(self.original)
+      current.capture_operation = Some(capture_operation)
+      let invocation = business.model_work[0]
+        .local_effect_invocation(16384, 1024, 20)
+        .unwrap_or_else(() => stop("LocalOriginalEffectInvocationUnavailable"))
+      guard @strategy.captured_effect_input_at(inputs, entry) is Some(input) &&
+        @run_host.client_effect_local_invocation_matches(
+          invocation,
+          state._retained_prepared,
+          @strategy.captured_effect_input_stage(input),
+        ) else {
+        stop("LocalOriginalEffectInvocationUnavailable")
+      }
+      current._retained_invocation = Some(invocation)
       let mut selected = None
       for index in 0..<@strategy.captured_effect_local_result_count(inputs) {
         if @strategy.captured_effect_local_result_matches_member(
@@ -220,6 +256,20 @@ fn LocalNativeMockEffectProposals::close(self : Self) -> Bool {
       entry.exported = None
     }
     entry.rows.clear()
+    entry._retained_invocation = None
+    if entry.capture_operation is Some(operation) {
+      match @local_values.retire_installed_effect_operation(operation, true) {
+        Err(issue) => {
+          entry._retained_capture_issue = Some(issue)
+          return false
+        }
+        Ok(false) => return false
+        Ok(true) => {
+          entry.capture_operation = None
+          entry._retained_capture_issue = None
+        }
+      }
+    }
   }
   @strategy.release_captured_effect_inputs(self.inputs)
 }
