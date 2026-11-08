@@ -127,7 +127,11 @@ export const mutations = [
     fault: 'Map buckets exceed the admitted constructor bound', event: 'start', resource: 'input ordinal Map table slots' },
 ];
 export function workspaceOverlay(original, offset) {
-  const before = '  let workspace = row_workspace(max_entries)';
-  assert.equal(original.split(before).length, 2);
-  return original.replace(before, `  let capacity_n = bounded_binding_input_row_count(input)\n  let capacity_peak = if capacity_n == 0 { 5 * output_width } else { Int::max(5 * output_width + 2 * capacity_n, 6 * output_width + capacity_n) }\n  let workspace = row_workspace(if distinct && !dedupe { capacity_peak + (${offset}) } else { max_entries })`);
+  assert([-1, 0, 1].includes(offset), 'Unknown workspace boundary offset');
+  const before = '  let workspace = working_row_workspace(generated, max_entries)';
+  assert.equal(original.split(before).length, 2, 'Ambiguous workspace boundary site');
+  // Keep the original growth attachment. Passing the diagnostic limit into
+  // working_row_workspace would expand it again for an attached Task, hiding
+  // the independent exact/one-short structural workspace boundary.
+  return original.replace(before, `${before}\n  let capacity_n = bounded_binding_input_row_count(input)\n  let capacity_peak = if capacity_n == 0 { 5 * output_width } else { Int::max(5 * output_width + 2 * capacity_n, 6 * output_width + capacity_n) }\n  let workspace = if distinct && !dedupe { { ..workspace, limit: capacity_peak + (${offset}), } } else { workspace }`);
 }
