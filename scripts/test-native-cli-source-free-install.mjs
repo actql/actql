@@ -342,8 +342,10 @@ async function requireAbsent(path) {
   catch (error) {if (error.code !== 'ENOENT') throw error;}
 }
 
-// These are actual installed refusals, not execution evidence for Mock bindings.
-export async function observeUnsupportedMockInitialization({root, cli}) {
+// Query the actual installed implementation without creating a Project. A
+// supported Mock reply is not Mock execution evidence for this source-free
+// consumer. An unsupported reply still requires every original no-write case.
+export async function observeNativeInitializationSupport({root, cli}) {
   const queryParent = join(root, 'query-no-write');
   await mkdir(queryParent, {mode: 0o700});
   const queryBefore = await unchangedDirectory(queryParent);
@@ -355,7 +357,10 @@ export async function observeUnsupportedMockInitialization({root, cli}) {
   const queryAfter = await unchangedDirectory(queryParent);
   assert.deepEqual(queryAfter, queryBefore);
   const support = JSON.parse(query.stdout);
-  assert.deepEqual(support, {version: 'actql-project-init-support/0.1', sourceFree: true, mock: false});
+  assert.equal(typeof support.mock, 'boolean');
+  assert.deepEqual(support, {version: 'actql-project-init-support/0.1', sourceFree: true, mock: support.mock});
+  if (support.mock) return {scope: 'mock-implementation-available-execution-unmeasured', support,
+    query: {configuration, state, before: queryBefore, after: queryAfter}, cases: []};
   const cases = [];
   for (const template of ['deal-review-mock', 'churn-risk-mock']) {
     const parent = join(root, `refused-${template}`), empty = join(parent, 'empty');
@@ -552,7 +557,7 @@ async function observeInstalledSourceFree(input, observationPath) {
     diagnoseFailure = () => observeFreshSubmissionFailureDiagnostic({
       root: join(root, 'submission-failure-diagnostic'), cli, environment: env});
     assert.equal((await cli(['--version'], root)).stdout, `${manifest.cohort.packageVersion}\n`);
-    const mockInitialization = await observeUnsupportedMockInitialization({root, cli});
+    const mockInitialization = await observeNativeInitializationSupport({root, cli});
     const catalogOnlyMockRefusal = await observeCatalogOnlyMockRefusal({root, cli});
     const plainInitialization = await observeTimingEnabledPlainInitialization({root, cli, environment: env});
     assert.equal(env.ACTQL_NATIVE_TIMINGS, undefined);

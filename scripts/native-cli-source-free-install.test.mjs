@@ -272,7 +272,7 @@ test('real registry callback failure cannot produce even provisional observation
 });
 
 import {chmod, mkdir, utimes, writeFile} from 'node:fs/promises';
-import {observeUnsupportedMockInitialization, observeCatalogOnlyMockRefusal, observeTimingEnabledPlainInitialization} from './test-native-cli-source-free-install.mjs';
+import {observeNativeInitializationSupport, observeCatalogOnlyMockRefusal, observeTimingEnabledPlainInitialization} from './test-native-cli-source-free-install.mjs';
 
 const supportReply = {code: 0, signal: null, stderr: '',
   stdout: '{"version":"actql-project-init-support/0.1","sourceFree":true,"mock":false}\n'};
@@ -291,7 +291,7 @@ async function initRoot(t) {
 test('init harness independently requires both templates, both target states and repeated no-write refusals', async t => {
   const root = await initRoot(t), calls = [];
   // Synthetic replies test harness assertions only, never Native acceptance.
-  const report = await observeUnsupportedMockInitialization({root, cli: async (args, cwd, code = 0) => {
+  const report = await observeNativeInitializationSupport({root, cli: async (args, cwd, code = 0) => {
     calls.push({args, cwd, code}); return args.at(-1) === 'project-init-support' ? supportReply : refusalReply;
   }});
   assert.equal(report.scope, 'unsupported-mock-initialization-refusal-only');
@@ -316,7 +316,7 @@ test('init harness independently requires both templates, both target states and
 for (const change of ['created-new', 'changed-mode', 'changed-mtime', 'created-entry', 'wrong-code', 'unexpected-stdout']) {
   test(`no-write harness refuses ${change} despite a purported unsupported reply`, async t => {
     const root = await initRoot(t);
-    await assert.rejects(observeUnsupportedMockInitialization({root, cli: async (args, cwd) => {
+    await assert.rejects(observeNativeInitializationSupport({root, cli: async (args, cwd) => {
       if (args.at(-1) === 'project-init-support') return supportReply;
       if (change === 'created-new') await mkdir(join(cwd, 'new'));
       if (change === 'changed-mode') await chmod(join(cwd, 'empty'), 0o755);
@@ -328,14 +328,30 @@ for (const change of ['created-new', 'changed-mode', 'changed-mtime', 'created-e
   });
 }
 
-test('a changed or unavailable Native capability cannot silently skip refusal coverage', async t => {
+test('malformed or unavailable Native capability cannot silently skip refusal coverage', async t => {
   for (const reply of [{...supportReply, code: 69}, {...supportReply, stderr: 'query diagnostics'},
-    {...supportReply, stdout: '{"version":"actql-project-init-support/0.1","sourceFree":true,"mock":true}\n'}]) {
+    {...supportReply, stdout: '{"version":"actql-project-init-support/0.1","sourceFree":true,"mock":1}\n'}]) {
     const root = await initRoot(t);
-    await assert.rejects(observeUnsupportedMockInitialization({root, cli: async () => reply}));
+    await assert.rejects(observeNativeInitializationSupport({root, cli: async () => reply}));
     assert.deepEqual(await readdir(root), ['query-no-write']);
     assert.deepEqual(await readdir(join(root, 'query-no-write')), []);
   }
+});
+
+test('available Native Mock implementation stays unmeasured in the source-free consumer', async t => {
+  const root = await initRoot(t), calls = [];
+  const report = await observeNativeInitializationSupport({root, cli: async (args, cwd) => {
+    calls.push({args, cwd});
+    return {...supportReply, stdout: '{"version":"actql-project-init-support/0.1","sourceFree":true,"mock":true}\n'};
+  }});
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].args.at(-1), 'project-init-support');
+  assert.equal(report.scope, 'mock-implementation-available-execution-unmeasured');
+  assert.equal(report.support.mock, true);
+  assert.deepEqual(report.cases, []);
+  assert.deepEqual(report.query.before, report.query.after);
+  assert.deepEqual(await readdir(root), ['query-no-write']);
+  assert.deepEqual(await readdir(join(root, 'query-no-write')), []);
 });
 
 test('plain init harness selects timings only for init and restores the caller environment', async () => {
@@ -370,7 +386,7 @@ test('query no-write harness rejects config or state creation before any init at
   for (const target of ['configuration', 'state']) {
     const root = await initRoot(t);
     let calls = 0;
-    await assert.rejects(observeUnsupportedMockInitialization({root, cli: async args => {
+    await assert.rejects(observeNativeInitializationSupport({root, cli: async args => {
       calls++;
       assert.equal(args.at(-1), 'project-init-support');
       if (target === 'configuration') await writeFile(args[1], '{}\n');
