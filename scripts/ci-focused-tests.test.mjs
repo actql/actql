@@ -25,8 +25,8 @@ test "native candidates preserve fixed ports" {
   assert_false(@connector.fixed_compute_request_has_supplied_input(request))
 }`;
 const change = (path = current, addition = false) => ({path,
-  before: {mode: addition ? '000000' : '100644', object: addition ? zero : old},
-  after: {mode: '100644', object: fresh}});
+  before: {mode: addition ? '000000' : '100644', object: addition ? zero : path === 'docs/development.md' ? '4'.repeat(40) : old},
+  after: {mode: '100644', object: path === 'docs/development.md' ? '5'.repeat(40) : fresh}});
 
 test('the current Git package admits a body-only edit to each stable focused file', () => {
   const git = args => execFileSync('git', args, {encoding: 'utf8'});
@@ -58,6 +58,9 @@ function gitFixture({changes = [change()], sources = {}, badPin = false, extra =
     if (args[0] === 'ls-tree') return [...files].map(([path, entry]) => `${entry.mode} blob ${entry.object}\t${path}\0`).join('');
     if (args[0] === 'show') {
       if (args[1] in sources) return sources[args[1]];
+      if (['4'.repeat(40), '5'.repeat(40)].includes(args[1])) return readFileSync(
+        new URL('../docs/development.md', import.meta.url), 'utf8') +
+        (args[1][0] === '5' ? '\nReviewed prose-only change.\n' : '');
       if ([old, fresh].includes(args[1]) || args[1].includes(':')) return portable;
       return 'fn fixture_helper() { () }';
     }

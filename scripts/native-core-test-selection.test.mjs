@@ -5,7 +5,7 @@ import {existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathS
 import {tmpdir} from 'node:os';
 import {basename, dirname, join, resolve} from 'node:path';
 import test from 'node:test';
-import {nativeCoreTestSelection, nativeCoreHttpArguments, nativeCoreHttpTestFiles,
+import {nativeCoreTestSelection, portableMoonTestCount, nativeCoreHttpArguments, nativeCoreHttpTestFiles,
   nativeCoreOrdinaryPartitions, nativeCorePartitionProfiles, nativeScopedTestFiles, nativeCoreScopedAllocationProfile} from './native-core-test-selection.mjs';
 import {assertTestExecution} from './test-execution.mjs';
 
@@ -18,6 +18,123 @@ function fixture(t) {
   }
   return root;
 }
+
+function dependencyFixture(t, {nested = false, changedDriver = false} = {}) {
+  const root = fixture(t);
+  const physical = nativeScopedTestFiles[0], http = 'src/platform_native/http_client/original_wbtest.mbt';
+  const source = 'src/platform_native/remote_resident_source_compute_tests/original_wbtest.mbt';
+  const paths = ['active/main.mbt', 'empty/main.mbt', 'unrelated/main.mbt', physical, http, source,
+    ...(nested ? ['active/nested/main.mbt'] : [])];
+  for (const path of paths) {
+    mkdirSync(dirname(join(root, path)), {recursive:true});
+    writeFileSync(join(root, path), 'test "compiler original" { assert_eq(7, 7) }\n');
+  }
+  const directory = path => path.slice(0, path.lastIndexOf('/'));
+  const command = path => ['moon', 'generate-test-driver', '--output-driver', `_build/${path}/driver.mbt`,
+    '--output-metadata', `_build/${path}/info.json`, path, '--target', 'native',
+    '--pkg-name', 'fixture/' + directory(path), '--driver-kind', 'blackbox'].join(' ');
+  const commands = [];
+  const execute = (_tool, values) => {
+    commands.push(values[0]);
+    if (values[0] === 'test') {
+      const selected = paths.filter(path => values.includes(path) || values.some(value =>
+        value === directory(path) || path.startsWith(value + '/')));
+      const input = (selected.length ? selected : paths).map(command).join('\n');
+      return changedDriver && selected.length ? input.replace('--driver-kind blackbox', '--driver-kind whitebox') : input;
+    }
+    assert.equal(values[0], 'generate-test-driver', 'Only metadata commands may be executed');
+    const original = values.find(value => paths.includes(value));
+    assert(original);
+    writeFileSync(values[values.indexOf('--output-metadata') + 1], JSON.stringify({tests:{
+      [basename(original)]:[{index:0, name:'same opaque original', attrs:[], line_number:1, original:{same:true}}],
+    }}));
+    return '';
+  };
+  const selectedPackages = ['active', 'empty', directory(physical), directory(http), directory(source)];
+  return {root, commands, execute, selectedPackages, physical, source, http, originalCases:paths.length};
+}
+
+test('Native dependency scope narrows compiler originals and preserves physical profiles and both partitions', t => {
+  const f = dependencyFixture(t);
+  const selected = nativeCoreTestSelection(f.root, ['--release'], {execute:f.execute,
+    partitionProfiles:true, ordinaryPartitions:true, executionPackages:f.selectedPackages});
+  assert.equal(selected.executionScope.mode, 'subset');
+  assert.equal(selected.executionScope.originalCases, 6); assert.equal(selected.cases, 5);
+  assert.equal(selected.executionScope.selectedCases, 5);
+  assert(!selected.args.includes('unrelated'));
+  assert.deepEqual(selected.profiles.ordinary.partitions.map(part => part.cases), [1, 1]);
+  assert.equal(selected.profiles.http.cases, 1); assert.equal(selected.profiles.source.cases, 1);
+  assert.deepEqual(selected.profiles.scoped.tests, [{source:f.physical, index:0}]);
+  const first = nativeCorePartitionProfiles(selected.profiles, '1/2');
+  const second = nativeCorePartitionProfiles(selected.profiles, '2/2');
+  assert.equal(first.http.cases + first.source.cases + first.scoped.cases, 3);
+  assert.equal(second.http.cases + second.source.cases + second.scoped.cases, 0);
+  assert.equal(first.ordinary.cases + second.ordinary.cases + 3, selected.cases);
+  assert(f.commands.every(command => ['test', 'generate-test-driver'].includes(command)));
+});
+
+test('Native dependency scope explains full fallback instead of admitting an empty original partition', t => {
+  for (const selectedPackages of [['active'], ['empty']]) {
+    const f = dependencyFixture(t);
+    const selected = nativeCoreTestSelection(f.root, ['--release'], {execute:f.execute,
+      partitionProfiles:true, ordinaryPartitions:true, executionPackages:selectedPackages});
+    assert.equal(selected.executionScope.mode, 'full-fallback');
+    assert.equal(selected.executionScope.originalCases, selected.cases);
+    assert.equal(selected.cases, f.originalCases);
+    assert(selected.profiles.ordinary.partitions.every(part => part.cases > 0));
+  }
+});
+
+test('Native dependency scope keeps full originals for skipped-only selections or either skipped-only partition', t => {
+  const scenarios = [
+    {skip:['active', 'empty'], ordinaryPartitions:true},
+    {skip:['empty'], ordinaryPartitions:true},
+    {skip:['active', 'empty'], ordinaryPartitions:false, allSkipped:true},
+    {skip:['unrelated'], ordinaryPartitions:true, extraSkipped:100},
+  ];
+  for (const scenario of scenarios) {
+    const f = dependencyFixture(t);
+    const execute = (tool, values, options) => {
+      const result = f.execute(tool, values, options);
+      if (values[0] !== 'generate-test-driver') return result;
+      const metadataPath = values[values.indexOf('--output-metadata') + 1];
+      const metadata = JSON.parse(readFileSync(metadataPath, 'utf8'));
+      const skipped = scenario.allSkipped || scenario.skip.some(directory => values.includes(directory + '/main.mbt'));
+      if (skipped) for (const tests of Object.values(metadata.tests)) {
+        tests[0].attrs = ['skip'];
+        if (scenario.extraSkipped) for (let index = 1; index <= scenario.extraSkipped; index++)
+          tests.push({...tests[0], index});
+      }
+      writeFileSync(metadataPath, JSON.stringify(metadata));
+      return result;
+    };
+    const packages = [...f.selectedPackages, ...(scenario.extraSkipped ? ['unrelated'] : [])];
+    const selected = nativeCoreTestSelection(f.root, ['--release'], {execute,
+      partitionProfiles:true, ordinaryPartitions:scenario.ordinaryPartitions, executionPackages:packages});
+    assert.equal(selected.executionScope.mode, 'full-fallback', JSON.stringify(scenario));
+    assert.equal(selected.cases, selected.executionScope.originalCases);
+  }
+});
+
+test('Native dependency scope keeps a full plan for an unselected nested compiler package', t => {
+  const f = dependencyFixture(t, {nested:true});
+  const selected = nativeCoreTestSelection(f.root, ['--release'], {execute:f.execute,
+    partitionProfiles:true, ordinaryPartitions:true, executionPackages:f.selectedPackages});
+  assert.equal(selected.executionScope.mode, 'full-fallback');
+  assert.match(selected.executionScope.reason, /nested/u);
+  assert.equal(selected.cases, f.originalCases);
+});
+
+test('Native dependency selection refuses changed original drivers and foreign or duplicate package paths', t => {
+  const f = dependencyFixture(t, {changedDriver:true});
+  assert.throws(() => nativeCoreTestSelection(f.root, ['--release'], {execute:f.execute,
+    partitionProfiles:true, ordinaryPartitions:true, executionPackages:f.selectedPackages}), /Foreign selected/u);
+  for (const executionPackages of [[], ['active', 'active'], ['../outside'], ['/foreign']]) {
+    const other = dependencyFixture(t);
+    assert.throws(() => nativeCoreTestSelection(other.root, ['--release'], {execute:other.execute,
+      partitionProfiles:true, ordinaryPartitions:true, executionPackages}));
+  }
+});
 
 test('Native ordinary partitions preserve complete original package drivers and exhaustive disjoint inputs', () => {
   const args = ['--deny-warn', '--release', '--strip', '-j', '2', '--no-parallelize'];
@@ -256,6 +373,32 @@ test('Native metadata discovery preserves original compiler failures and refuses
   }}), error=>error===original, 'A redirected compiler refusal remains the original exception');
   t.after(() => rmSync(failedScratch,{recursive:true,force:true}));
   assert.throws(() => nativeCoreTestSelection(root, [], {execute:()=>''}), /No compiler-owned Native test drivers/u);
+});
+
+test('portable metadata counts only runnable originals and never treats an empty driver as execution', t => {
+  const root = fixture(t);
+  const tests = [{index:0, name:null, attrs:[]}, {index:1, name:'skip', attrs:['skip']},
+    {index:2, name:'bench', attrs:[]}];
+  for (const target of ['js', 'wasm']) for (const entries of [[], tests.slice(1), tests]) {
+    let generated = 0;
+    const execute = (_tool, values) => {
+      if (values[0] === 'test') {
+        assert.deepEqual(values.slice(0, 3), ['test', '--target', target]);
+        return ['moon', 'generate-test-driver', '--output-driver', '_build/driver.mbt',
+          '--output-metadata', '_build/info.json', 'active/main.mbt', '--target', target,
+          '--pkg-name', 'fixture/active', '--driver-kind', 'whitebox'].join(' ');
+      }
+      assert.equal(values[0], 'generate-test-driver'); generated++;
+      writeFileSync(values[values.indexOf('--output-metadata') + 1], JSON.stringify({
+        tests:{'main.mbt':entries}, with_bench_args_tests:{'main.mbt':entries.filter(test => test.index === 2)},
+      }));
+      return '';
+    };
+    assert.equal(portableMoonTestCount(root, ['active/main.mbt'], target, {execute}), entries === tests ? 1 : 0);
+    assert.equal(generated, 1);
+  }
+  assert.equal(portableMoonTestCount(root, [], 'js', {execute:() => ''}), 0);
+  assert.throws(() => portableMoonTestCount(root, [], 'native'));
 });
 
 test('Native metadata deadline funds all original preparation from one explicit caller envelope', t => {

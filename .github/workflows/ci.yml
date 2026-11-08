@@ -87,11 +87,25 @@ jobs:
       deep_proofs: ${{ steps.select.outputs.deep_proofs }}
       plan: ${{ steps.select.outputs.plan }}
       python_wheels: ${{ steps.select.outputs.python_wheels }}
+      moon_test_selection: ${{ steps.select.outputs.moon_test_selection }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
           fetch-depth: 0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22.22.0
+      - name: Identify a regular Moon-only change before preparing graph tooling
+        id: moon-candidate
+        run: node scripts/ci-targets.mjs moon-graph-candidate
+      - name: Install pinned Moon only for compiler-owned dependency discovery
+        if: steps.moon-candidate.outputs.required == 'true'
+        run: |
+          node scripts/setup-moonbit.mjs
+          toolchain="$GITHUB_WORKSPACE/.toolchains/moonbit-$(node -p "require('./toolchain.json').version")"
+          echo "MOON_HOME=$toolchain" >> "$GITHUB_ENV"
+          echo "$toolchain/bin" >> "$GITHUB_PATH"
       - name: Select core targets without weakening evidence campaigns
         id: select
         env:
@@ -229,6 +243,9 @@ jobs:
         run: node --test scripts/ci-focused-tests.test.mjs
       - name: Test conservative CI target selection
         run: node --test scripts/ci-targets.test.mjs scripts/ci-main-base.test.mjs
+      - name: Test compiler-owned package selection and non-Moon input boundaries
+        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        run: node --test scripts/ci-moon-test-plan.test.mjs
       - name: Test ordinary operation performance assessment
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/operation-performance.test.mjs scripts/benchmark-node-operations.test.mjs scripts/operation-performance-policy.test.mjs scripts/operation-performance-native-control.test.mjs scripts/benchmark-node-process-operations.test.mjs scripts/benchmark-node-sqlite.test.mjs scripts/benchmark-node-boundaries.test.mjs scripts/node-operation-fs-trace.test.mjs scripts/operation-performance-priority-transition.test.mjs scripts/operation-performance-transition-ci.test.mjs
@@ -366,6 +383,7 @@ jobs:
         env:
           ACTQL_TEST_NATIVE_COMPILER_DIAGNOSTIC: ${{ matrix.target == 'native' && '1' || '' }}
           ACTQL_TEST_NATIVE_CORE_PARTITION: ${{ matrix.target == 'native' && format('{0}/2', matrix.partition) || '' }}
+          CI_PLAN: ${{ needs.select-targets.outputs.plan }}
         run: |
           if [ "${{ matrix.target }}" = native ]; then
             # Pinned Linux Native debug codegen exceeds the default 8 MiB
@@ -385,7 +403,11 @@ jobs:
             # only partition 1 owns the unchanged HTTP/Source/scoped profiles.
             MOONBIT_NEW_NATIVE=0 node scripts/test-native-core.mjs --deny-warn --release --strip -j 2 --no-parallelize --verbose
           else
-            moon test --target "${{ matrix.target }}" --deny-warn -j "$(getconf _NPROCESSORS_ONLN)"
+            if [ "${{ needs.select-targets.outputs.moon_test_selection }}" = true ]; then
+              node scripts/ci-moon-tests.mjs "${{ matrix.target }}"
+            else
+              moon test --target "${{ matrix.target }}" --deny-warn -j "$(getconf _NPROCESSORS_ONLN)"
+            fi
             if [ "${{ matrix.target }}" = wasm ]; then
               # The exported lookup counter retains physical imports. The
               # existing entrance harness refuses every actual Host call.

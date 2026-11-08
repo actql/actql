@@ -718,8 +718,8 @@ test('actual evaluation Source Git changes reject additions deletions renames an
 });
 
 test('maintenance inventory is exact and every existing reviewed modification qualifies', () => {
-  assert.equal(maintenanceFiles.length, 19);
-  assert.equal(new Set(maintenanceFiles).size, 19);
+  assert.equal(maintenanceFiles.length, 25);
+  assert.equal(new Set(maintenanceFiles).size, 25);
   for (const path of maintenanceFiles) {
     const selection = validateSelection(maintenanceSelection([path]));
     assert.equal(selection.profile, 'maintenance', path);
@@ -920,7 +920,8 @@ test('real Git raw changes admit a regular modification and reject structural ch
   git(['config', 'core.filemode', 'true']);
   mkdirSync(join(root, 'docs'));
   const path = join(root, 'docs/development.md');
-  writeFileSync(path, 'Original developer instructions\n');
+  const original = readFileSync(new URL('../docs/development.md', import.meta.url), 'utf8');
+  writeFileSync(path, original);
   git(['add', '.']); git(['commit', '--quiet', '-m', 'Original regular file']);
   const base = git(['rev-parse', 'HEAD']).trim();
   const inspect = () => {
@@ -928,7 +929,7 @@ test('real Git raw changes admit a regular modification and reject structural ch
     const change = readChanges({pull_request: {base: {sha: base}}}, git);
     return selectTargets(change.paths, change);
   };
-  writeFileSync(path, 'Changed developer instructions about hash reports\n');
+  writeFileSync(path, original + '\nChanged developer instructions about hash reports\n');
   assert.equal(inspect().profile, 'maintenance');
   chmodSync(path, 0o755);
   assert.equal(inspect().profile, 'full');

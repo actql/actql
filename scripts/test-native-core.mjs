@@ -41,6 +41,10 @@ for (const name of ['standard', 'bundles', 'executor-slot', 'retained-task-file'
 const bundle = nativeCompletedRestorationBundle();
 const args = process.argv.slice(2);
 const full = !['focused', 'reporting'].includes(classifyMoon('test', args).classification);
+// Keep the unscoped classification and its original fixture/backing setup.
+// Only the compiler-owned case inventory below receives this checked closure.
+const executionPackages = full && process.env.CI_PLAN && JSON.parse(process.env.CI_PLAN).selection?.moonTests
+  ? (await import('./ci-moon-tests.mjs')).nativeMoonPackages() : undefined;
 const partition = process.env.ACTQL_TEST_NATIVE_CORE_PARTITION;
 if (partition && !full) throw new Error('Native Core partitions require the complete original selection');
 // Select the test-only compiler once before either original checkpoint
@@ -57,7 +61,8 @@ const selection = full ? nativeCoreTestSelection(root, args,
   // One absolute metadata-preparation envelope covers four dry-run plans and
   // all original driver generations. It grants no extra test or C-build time.
   {env: compilerEnvironment, partitionProfiles: true, ordinaryPartitions: Boolean(partition),
-    timeoutMs: 5 * 60_000}) : undefined;
+    timeoutMs: 5 * 60_000, executionPackages}) : undefined;
+if (selection?.executionScope) console.log('Native Core dependency scope: ' + JSON.stringify(selection.executionScope));
 if (selection && partition) {
   const originalCases = selection.profiles.ordinary.cases;
   selection.profiles = nativeCorePartitionProfiles(selection.profiles, partition);
