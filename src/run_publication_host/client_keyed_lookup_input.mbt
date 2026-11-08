@@ -14,7 +14,7 @@ struct ClientKeyedLookupInput {
   mut growing : Bool
   rows : Int
   mut input : @execution.AdmittedInput?
-  mut known : Array[(String, @execution.SuppliedRelationRead?)]
+  mut known : Array[(String, @acquisition.KeyedRowRequest?, @execution.SuppliedRelationRead?)]
   mut accepted : Int
   mut work : Int
   mut retired_row_work : Int64
@@ -23,6 +23,7 @@ struct ClientKeyedLookupInput {
   mut preparation_work : Int
   mut pending_key : String?
   mut pending_read : @execution.SuppliedRelationRead?
+  mut pending_request : @acquisition.KeyedRowRequest?
   mut selected_request : ClientKeyedRequest?
   mut selected_key : String?
   mut selected_index : Int?
@@ -187,6 +188,7 @@ fn start_client_keyed_lookup_input_owned(
     preparation_work: 0,
     pending_key: None,
     pending_read: None,
+    pending_request: None,
     selected_request: None,
     selected_key: None,
     selected_index: None,
@@ -480,7 +482,7 @@ pub fn find_client_keyed_lookup_response(
   if state.selected_index is Some(index) {
     return Ok(index)
   }
-  for index, (key, _) in state.known {
+  for index, (key, _, _) in state.known {
     let amount = key.length().to_int64() + wire.length().to_int64() + 1L
     if amount > 2147483647L ||
       !charge_keyed_lookup_input_work(state, amount.to_int()) {
@@ -508,7 +510,7 @@ pub fn reuse_client_keyed_lookup_response(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  guard state.known.get(index) is Some((key, Some(read))) &&
+  guard state.known.get(index) is Some((key, _, Some(read))) &&
     key == wire &&
     @execution.supplied_relation_read_available(read) &&
     request.attempts == 0L else {
@@ -595,9 +597,9 @@ pub fn begin_client_keyed_lookup_response(
     })
     is Some(layout) &&
     @execution.preparation_representation_cost({
-      record_headers: layout.record_headers,
-      reference_slots: layout.reference_slots + 6L,
-      scalar_words: layout.scalar_words,
+      record_headers: layout.record_headers + 1L,
+      reference_slots: layout.reference_slots + 8L,
+      scalar_words: layout.scalar_words + 1L,
       owned_utf16_units: wire.length().to_int64(),
       owned_wire_bytes: 0L,
     })
@@ -649,6 +651,9 @@ pub fn begin_client_keyed_lookup_response(
   state.copying = Some(cursor)
   state.pending_key = Some(wire)
   state.pending_read = Some(read)
+  // Borrow the original typed request beside its existing physical response.
+  // The row debit above includes this additional cached tuple reference.
+  state.pending_request = Some(request.request)
   state.selected_request = None
   state.selected_key = None
   state.selected_index = None
@@ -699,11 +704,12 @@ pub fn advance_client_keyed_lookup_input(
             return Err(Assembly("row_cleanup"))
           }
           let key = state.pending_key.unwrap()
-          state.known.push((key, Some(read)))
+          state.known.push((key, state.pending_request, Some(read)))
           state.accepted += 1
           state.copying = None
           state.pending_key = None
           state.pending_read = None
+          state.pending_request = None
         }
       }
     } else {
@@ -819,7 +825,7 @@ pub fn finish_client_keyed_lookup_input(
         state.left.lookup_issue is None &&
         client_keyed_left_available(state.left) &&
         state.known.all(entry => {
-          entry.1
+          entry.2
           .map(@execution.supplied_relation_read_available)
           .unwrap_or(false)
         })
@@ -1011,6 +1017,7 @@ pub fn cleanup_client_keyed_lookup_input(
   }
   state.pending_key = None
   state.pending_read = None
+  state.pending_request = None
   state.selected_request = None
   state.selected_key = None
   state.selected_index = None
@@ -1028,7 +1035,7 @@ pub fn cleanup_client_keyed_lookup_input(
     if state.known.is_empty() {
       break
     }
-    state.known[state.known.length() - 1] = ("", None)
+    state.known[state.known.length() - 1] = ("", None, None)
     state.known.pop() |> ignore
   }
   if !state.known.is_empty() {

@@ -111,6 +111,8 @@ test "keyed request fragments include large authored and parameter values from o
       }
     }
     let request = completed.unwrap()
+    assert_eq(parameterized_keyed_static_request_wire(selected, 10000, 1000, 30).unwrap(),
+      "{\"tenant\":\"" + payload + "\"}")
     let expected = "{\"tenant\":\"" + payload + "\",\"id\":7}"
     assert_eq(keyed_row_request_usage(request).1, 1)
     assert_eq(keyed_row_request_usage(request).2, 0)

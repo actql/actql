@@ -237,6 +237,8 @@ pub fn parameterized_keyed_request_parameters(ParameterizedKeyedRequest) -> Requ
 
 pub fn parameterized_keyed_request_work(ParameterizedKeyedRequest) -> Int
 
+pub fn parameterized_keyed_static_request_wire(ParameterizedKeyedRequest, Int, Int, Int) -> Result[String, RequestWireIssue]
+
 pub fn parameterized_request(ParameterizedRequest) -> DirectRequest
 
 pub fn parameterized_request_field_at(ParameterizedRequest, Int) -> ParameterizedRequestField?

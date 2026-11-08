@@ -61,6 +61,7 @@ fn original_composed_keyed_consumer(
   keyed_start_observer? : ((ClientInstalledKeyedSourceRead) -> Unit)? = None,
   retained_input_root? : Bool = false,
   large_lookup_policy? : Bool = false,
+  publication_identity? : Bool = false,
 ) -> Unit raise {
   let (declaration, keyed_environment) = original_keyed_declaration_environment(
     relation_versions=true,
@@ -990,6 +991,25 @@ fn original_composed_keyed_consumer(
     }
   }
   let right = @publication_host.finish_client_keyed_lookup_input(lookup).unwrap()
+  if publication_identity {
+    let keys = match @publication_host.client_keyed_lookup_request_identity(lookup, 16384, 1024, 20) {
+      Ok(value) => value
+      Err(@publication_host.Identity(issue)) => fail("actual key-set contract: " + @debug.to_string(issue))
+      Err(@publication_host.Assembly(reason)) => fail("actual key-set assembly: " + reason)
+      Err(_) => fail("actual key-set refused outside contract/assembly")
+    }
+    assert_eq(keys.1, "{}")
+    let wire = @publication.publication_contract_json(keys.0)
+    assert_false(wire.contains("$actql_ref"))
+    assert_false(wire.contains("issuer_evidence"))
+    guard @json.parse(wire) is Object(fields) && fields["tuples"] is Array(tuples) &&
+      tuples.length() == 1 && tuples[0] is Array(cells) && cells.length() == 2 else {
+      fail("actual Resource/version request tuple")
+    }
+    assert_true(@publication.admit_publication_effect_dependency_body(
+      "request_key_set", wire, 16384, 1024, 20,
+    ) is Ok(_))
+  }
   if whole {
     let original_graph = @strategy.checked_effect_computation_graph(
       @publication_host.prepared_client_effect_computation_graph(prepared),
@@ -1511,6 +1531,11 @@ fn original_composed_keyed_consumer(
   assert_true(
     @publication_host.cleanup_client_keyed_lookup_input(lookup, 10000).unwrap(),
   )
+  if publication_identity {
+    assert_true(@publication_host.client_keyed_lookup_request_identity(
+      lookup, 16384, 1024, 20,
+    ) is Err(_))
+  }
   assert_true(cleanup_client_serialization_prefix(original.prefix).unwrap())
   for run in runs {
     @row_source_host.close_accounted_row_run(run).unwrap()
@@ -1686,4 +1711,9 @@ test "original composed keyed root maps its retained input originals without a d
 ///|
 test "large keyed logical quotas preserve actual input without an all-key upfront reservation" {
   original_composed_keyed_consumer(whole=true, large_lookup_policy=true)
+}
+
+///|
+test "actual two Whole Sources retain the original keyed request identity through Model input and retire it" {
+  original_composed_keyed_consumer(whole=true, publication_identity=true)
 }

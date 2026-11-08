@@ -62,6 +62,10 @@ pub(all) enum AcquisitionRelationIssue {
   WrongEvidence
   WrongScope
   WrongRetention
+  KeySetRole(Int, String)
+  KeySetArity(Int)
+  KeySetContract(Int, Int)
+  KeySetOrder(Int, Int, @admitted.KeyOrderIssue)
   Encoding
   Contract(PublicationContractIssue)
 } derive(Eq, Debug)

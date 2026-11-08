@@ -825,6 +825,8 @@ pub fn client_keyed_lookup_observation_originals(ClientKeyedLookupObservation) -
 
 pub fn client_keyed_lookup_observation_wires(ClientKeyedLookupObservation) -> (String, String)?
 
+pub fn client_keyed_lookup_request_identity(ClientKeyedLookupInput, Int, Int, Int) -> Result[(@run_publication.PublicationContract, String), ClientKeyedRequestIssue]
+
 pub fn client_keyed_lookup_usage(ClientKeyedLeftRead) -> (Int64, Int64, Int64, Int64, Int64, Int64)
 
 pub fn client_keyed_request_matches_acquisition(ClientKeyedRequest, ClientKeyedAcquisition) -> Bool
@@ -3312,6 +3314,7 @@ pub(all) enum ClientKeyedRequestIssue {
   LookupLimit(String)
   LookupIncomplete
   InvalidObservation
+  Identity(@run_publication.AcquisitionRelationIssue)
   Assembly(String)
   Physical(@physical_resources.LedgerIssue)
   Row(@execution_relation.AdmittedOutputRowIssue)

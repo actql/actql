@@ -415,6 +415,28 @@ Compute stops before the borrowed lookup and Direct input are reclaimed;
 their cleanup and final parent retirement remain separate duties. The
 standalone path and Model/serialization purposes retain their own contracts.
 
+## Keyed request identity for local publication
+
+The completed keyed lookup retains each original checked Request beside its
+existing captured response. Reuse still selects that same physical response;
+the additional Request reference does not spend another attempt or authorize a
+read. Its representation is included before the existing holding grows, and
+lookup cleanup cuts the Request aliases with the response aliases.
+
+Publication projects the actual correlation roles and checked tuple values from
+those originals. The existing lookup-key-set contract orders role names by
+canonical UTF-16 and deduplicates tuples by the shared typed key order. Resource
+and Content references contribute only their original identity CIDs, with no
+reference reissuance or capability envelope. Static bound Request fields exclude
+correlation roles and use canonical field ordering for their separate identity;
+the provider's existing Request wire keeps its original ordering.
+
+The key-set body is a dependency, not physical Source evidence or permission.
+It retains the original SourceView and Request-schema identities. Receiving
+admission checks both its pinned schema and typed ordering; incoming bodies are
+rejected rather than sorted or repaired. The checked Catalog supplies the
+Request-schema body through the existing dependency closure.
+
 ## Salesforce response construction on the original reader
 
 The installed Salesforce reader charges and retains each original response

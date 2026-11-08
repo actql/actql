@@ -19,6 +19,8 @@ const stage = JSON.parse(readFileSync(join(root,
   'spec/contracts/actql-stage-contracts.json'), 'utf8'));
 const profiles = JSON.parse(readFileSync(join(root,
   'spec/contracts/actql-production-profile-schemas.json'), 'utf8'));
+const lookup = JSON.parse(readFileSync(join(root,
+  'spec/contracts/actql-lookup-identities.json'), 'utf8'));
 const control = JSON.parse(readFileSync(join(root,
   'spec/contracts/actql-interactive-run-control.json'), 'utf8'));
 const publication = JSON.parse(readFileSync(join(root,
@@ -144,6 +146,9 @@ const selected = Object.freeze({
     .map(schema => [schema, Object.freeze({schema, identity: 'self_cid'})])),
   run_review_projection: Object.freeze({
     schema: 'run_review_projection', identity: 'review_projection_cid',
+  }),
+  request_key_set: Object.freeze({
+    schema: 'key_set', identity: 'self_cid', registry: 'lookup',
   }),
 });
 
@@ -511,14 +516,43 @@ function omitRequiredProperty(schema, field) {
 }
 
 function registerArtifactSchema(name, selection) {
-  const complete = structuredClone(
+  let complete = structuredClone(
     selection.registry === 'publication' ? publication.schemas[selection.schema]
+      : selection.registry === 'lookup' ? lookup.schemas[selection.schema]
       : selection.registry === 'stage' ? stage.schemas[selection.schema]
         : selection.registry === 'profiles' ? profiles.schemas[selection.schema]
       : document.artifact_schemas[selection.schema],
   );
   if (complete === undefined) {
     throw new Error(`Missing publication schema: ${selection.schema}`);
+  }
+  if (selection.registry === 'lookup') {
+    // Preserve the pinned scalar/reference contract branches verbatim. The
+    // recursive object/array branches cannot be KeyComparable and are rejected
+    // by the shared typed reader/order admission as well. Do not introduce a
+    // second recursive value-contract compiler for this scalar key boundary.
+    const hasReference = value => value && typeof value === 'object' &&
+      (Object.hasOwn(value, '$ref') || Object.values(value).some(hasReference));
+    const contracts = structuredClone(complete.$defs.value_contract);
+    contracts.oneOf = contracts.oneOf.filter(branch => !hasReference(branch));
+    // Decimal scale conditions inherit the already-required integer property.
+    // Copy only that declared type into the descriptor fragment; retain every
+    // original precision/scale condition and bound from the registry.
+    for (const branch of contracts.oneOf) {
+      for (const condition of branch.allOf ?? []) {
+        for (const arm of ['then', 'else']) {
+          for (const [name, fragment] of Object.entries(condition[arm]?.properties ?? {})) {
+            if (fragment.type === undefined) {
+              const type = branch.properties?.[name]?.type;
+              if (type === undefined) throw new Error('UnknownLookupConditionalProperty');
+              fragment.type = type;
+            }
+          }
+        }
+      }
+    }
+    complete.properties.key_roles.items.properties.value_contract = contracts;
+    delete complete.$defs;
   }
   const body = structuredClone(complete);
   if (['model_invocation_evidence', 'model_capture_bundle', 'effect_row_outcome_receipt'].includes(name)) {
@@ -544,7 +578,7 @@ function registerArtifactSchema(name, selection) {
 }
 
 for (const [name, selection] of Object.entries(selected)) {
-  registerArtifactSchema(name, selection);
+  if (name !== "request_key_set") registerArtifactSchema(name, selection);
 }
 
 // EffectOutcome is a value contract, not a self-addressed artifact. Reuse
@@ -600,6 +634,10 @@ if (document.artifact_schemas.installation_publication_storage_binding !== undef
   roots.set('installation_publication_storage_binding:true',
     emitSchema(document.artifact_schemas.installation_publication_storage_binding));
 }
+
+// The existing lookup envelope appends to the same descriptor owner; preserve
+// every prior rule/root index rather than renumbering unrelated contracts.
+registerArtifactSchema('request_key_set', selected.request_key_set);
 
 // Rule descriptors are private immutable DATA. Share only exactly identical
 // constructor expressions during generation; every original table slot and

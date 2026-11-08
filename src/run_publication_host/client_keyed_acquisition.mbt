@@ -343,6 +343,7 @@ pub(all) enum ClientKeyedRequestIssue {
   LookupLimit(String)
   LookupIncomplete
   InvalidObservation
+  Identity(@publication.AcquisitionRelationIssue)
   Assembly(String)
   Physical(@resources.LedgerIssue)
   Row(@execution.AdmittedOutputRowIssue)

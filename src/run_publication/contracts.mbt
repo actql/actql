@@ -130,6 +130,12 @@ fn common_grant_fields() -> Array[FieldSpec] {
 ///|
 fn contract_spec(name : String) -> ContractSpec? {
   match name {
+    "request_key_set" => Some({
+      name,
+      version: "actql-lookup-key-set/0.1",
+      identity: "self_cid",
+      fields: [],
+    })
     "compiled_plan" =>
       Some({
         name,
@@ -1069,6 +1075,10 @@ fn validate_bounded_contract(
         max_nodes,
         max_depth,
       ) {
+      if spec.name == "request_key_set" &&
+        !lookup_key_set_order_valid(value, max_wire_bytes, max_nodes, max_depth) {
+        return Err(InvalidField("typed_key_order"))
+      }
       if spec.name == "effect_apply_receipt" &&
         !effect_apply_receipt_consistent(value) {
         return Err(ConditionalField("status"))
@@ -1287,7 +1297,7 @@ pub fn admit_publication_contract(
   } catch {
     _ => return Err(Encoding)
   }
-  if (name == "acquisition_relation" || name == "acquisition_scope") &&
+  if ["acquisition_relation", "acquisition_scope", "request_key_set"].contains(name) &&
     wire != complete_wire {
     return Err(InvalidWire)
   }
