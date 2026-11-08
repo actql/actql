@@ -310,6 +310,103 @@ test('packed cause observer classifies omitted code descriptors without getters 
   assert.doesNotMatch(JSON.stringify(reports), /PrivateCodeSecret|9234567|private-|message|stack/u);
 });
 
+test('packed cause observer covers fixed submit factories without deriving categories from runtime data', {timeout: 30_000}, async t => {
+  const {parse} = await import('acorn');
+  const modules = [
+    'adapters/host-node/in-process-client.mjs', 'adapters/host-node/client-http.mjs',
+    'adapters/host-node/client-request-journal.mjs', 'adapters/host-node/client-submission.mjs',
+    'adapters/host-node/client-program-preparation.mjs', 'adapters/host-node/client-submit.mjs',
+    'adapters/host-node/ordinary-source-managed.mjs', 'adapters/host-node/source-managed-original-input.mjs',
+    'adapters/host-node/embedded-local.mjs', 'adapters/host-node/local-account-config.mjs',
+    'adapters/host-node/ordinary-local-account.mjs', 'adapters/host-node/ordinary-mock-account.mjs',
+    'adapters/host-node/ordinary-host-control.mjs', 'adapters/host-node/ordinary-host-journal.mjs',
+    'adapters/host-node/node-host-journal-installation.mjs', 'adapters/host-node/node-source-managed-installation.mjs',
+    'adapters/host-node/client-source-operation.mjs', 'adapters/host-node/installed-row-source.mjs',
+    'adapters/host-node/bounded-continuation-metadata.mjs', 'adapters/host-node/bounded-continuation-directory.mjs',
+    'adapters/host-common/runtime-core.mjs', 'adapters/host-common/runtime-result.mjs',
+    'adapters/host-common/sqlite-format-inspection.mjs', 'adapters/host-common/sqlite-transaction.mjs',
+  ];
+  const syntax = source => parse(source, {ecmaVersion:'latest', sourceType:'module'});
+  const helperSource = await readFile(new URL('./fixtures/packed-query-transport-owner.mjs', import.meta.url), 'utf8');
+  const declaration = syntax(helperSource).body.flatMap(node => node.declarations ?? [])
+    .find(node => node.id.name === 'originalFailureCodes');
+  assert.equal(declaration.init.callee.object.name, 'Object');
+  assert.equal(declaration.init.callee.property.name, 'freeze');
+  const entries = declaration.init.arguments[0];
+  assert.equal(entries.type, 'ArrayExpression');
+  assert(entries.elements.every(node => node.type === 'Literal' && typeof node.value === 'string'));
+  const codes = entries.elements.map(node => node.value), fixed = new Set(codes);
+  assert.equal(codes.length, fixed.size);
+  const selected = new Set(), factoryArguments = {fail:0, invalid:0,
+    clientOperationError:0, compiledRunResult:1, rejectSubmission:0, failure:0};
+  const literal = node => {
+    if (node?.type === 'Literal' && typeof node.value === 'string' && /^[A-Z][A-Za-z0-9_]+$/u.test(node.value)) {
+      selected.add(node.value);
+    } else if (node?.type === 'ConditionalExpression') {
+      literal(node.consequent); literal(node.alternate);
+    } else if (node?.type === 'LogicalExpression') {
+      literal(node.left); literal(node.right);
+    }
+  };
+  const visit = node => {
+    if (node === null || typeof node !== 'object') return;
+    if (node.type === 'CallExpression' && Object.hasOwn(factoryArguments, node.callee.name)) {
+      literal(node.arguments[factoryArguments[node.callee.name]]);
+    }
+    if (node.type === 'AssignmentExpression' && node.left.type === 'MemberExpression' && node.left.property.name === 'code') {
+      literal(node.right);
+    }
+    if (node.type === 'Property' && ['code', 'unavailableCode', 'cleanupCode'].includes(node.key.name ?? node.key.value)) {
+      literal(node.value);
+    }
+    if (node.type === 'VariableDeclarator' && ['issueCodes', 'effectIssueCodes'].includes(node.id.name)) {
+      assert.equal(node.init.callee.object.name, 'Object');
+      assert.equal(node.init.callee.property.name, 'freeze');
+      assert.equal(node.init.arguments[0].type, 'ObjectExpression');
+      for (const entry of node.init.arguments[0].properties) literal(entry.value);
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value !== null && typeof value === 'object') visit(value);
+    }
+  };
+  for (const path of modules) visit(syntax(await readFile(new URL('../' + path, import.meta.url), 'utf8')));
+  // This actual transaction factory has exactly two selected Journal callers.
+  // Expand only their Source-pinned prefixes, never an arbitrary runtime prefix.
+  const transaction = await readFile(new URL('../adapters/host-common/sqlite-transaction.mjs', import.meta.url), 'utf8');
+  const journal = await readFile(new URL('../adapters/host-node/client-request-journal.mjs', import.meta.url), 'utf8');
+  for (const prefix of ['ClientRequestJournal', 'ClientObservation']) {
+    assert(journal.includes(`'${prefix}'`));
+    for (const suffix of ['ConnectionUnusable', 'CommitOutcomeUnknown', 'RollbackFailed']) {
+      assert(transaction.includes('${prefix}' + suffix));
+      selected.add(prefix + suffix);
+    }
+  }
+  const http = await readFile(new URL('../adapters/host-node/client-http.mjs', import.meta.url), 'utf8');
+  assert(http.includes("responseCode(error) === 500 ? 'ClientHostFailure'"));
+  selected.add('ClientHostFailure');
+  for (const code of selected) assert(fixed.has(code), 'Missing fixed production factory code: ' + code);
+  // Execute all fixed categories in bounded batches. Foreign strings and
+  // accessors stay omitted; the live observer still uses only this literal set.
+  for (let offset = 0; offset < codes.length; offset += 7) {
+    const batch = codes.slice(offset, offset + 7), target = await diagnosticTarget(t), reports = [];
+    const originals = batch.map(code => Object.assign(new Error('private-original-message'), {code, cause:undefined}));
+    for (let index = 1; index < originals.length; index++) originals[index - 1].primaryFailure = originals[index];
+    let reads = 0;
+    Object.defineProperty(originals.at(-1), '_0', {get() {reads++;throw new Error('private-getter');}});
+    originals.at(-1)._1 = {code:'ClientPrivateFactoryPayload'};
+    const observer = await observePackedSubmissionCause({sourceURL:target.sourceURL, report:value=>reports.push(value)});
+    try {assert.throws(() => target.originalIngress(originals[0]), error => error === originals[0]);}
+    finally {await observer.close();}
+    assert.equal(reads, 0); assert.equal(reports[0].available, true);
+    const rows = reports[0].originalCauseTypes.flat();
+    assert.deepEqual(rows.flatMap(row => row.code === undefined ? [] : [row.code]), batch);
+    assert(rows.some(row => row.type === 'Accessor'));
+    assert(rows.some(row => row.codeOmitted === true && row.codeType === 'String'));
+    assert.doesNotMatch(JSON.stringify(reports), /private-|PrivateFactoryPayload|message|stack/u);
+  }
+});
+
 async function statusDiagnosticTarget(t, transport, {foreignCaller = false} = {}) {
   const caller = foreignCaller ? 'foreignFailure' : 'publicFailure';
   const directory = await fixture(t), path = join(directory, 'status-ingress.mjs');
