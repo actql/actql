@@ -12,9 +12,10 @@ import {nativeClientCheckpointFixture} from './native-client-checkpoint-fixture.
 import {nativePrivateHostFixture, nativeOriginalSigningFixture} from './native-private-host-fixture.mjs';
 import {nativeRuntimeReaderCustodyFixture} from './native-runtime-reader-custody-fixture.mjs';
 import {nativeCoreCCompiler} from './native-core-c-compiler.mjs';
-import {nativeProjectConfigurationFixture} from './native-project-configuration-fixture.mjs';
+import {nativeProjectConfigurationFixture, nativeProjectContentCaseFixture} from './native-project-configuration-fixture.mjs';
 import {nativeCoreTestSelection, nativeCoreScopedAllocationProfile, nativeCoreScopedBackingPages,
-  nativeRelationWorkTestFile, nativeRelationCaptureTestFiles, nativeCorePartitionProfiles} from './native-core-test-selection.mjs';
+  nativeRelationWorkTestFile, nativeRelationCaptureTestFiles, nativeCorePartitionProfiles,
+  nativeProjectMockContentTestFile} from './native-core-test-selection.mjs';
 import {nativeProcessRegionFixture} from './native-process-region-fixture.mjs';
 import {nativeCoreOrdinaryProcessFixture} from './native-core-scoped-fixture.mjs';
 import {nativeHttpLifetimeFixture} from './native-http-lifetime-fixture.mjs';
@@ -250,6 +251,9 @@ if (full) {
           sqliteLibrary: components.sqliteLibrary,
           backingPages: nativeCoreScopedBackingPages(test.source),
         });
+        const content = test.source === nativeProjectMockContentTestFile
+          ? nativeProjectContentCaseFixture(caseNamespace, test.index)
+          : {ACTQL_TEST_NATIVE_CONTENT_LOOKUPS: undefined};
         const scopedArgs = ['--target', 'native', ...args, test.source, '--index', String(test.index),
           '--target-dir', scoped.targetDirectory];
         const timeout = scopedDeadline - Date.now();
@@ -259,7 +263,7 @@ if (full) {
           "process.exitCode = runFocusedTests('moon', " + JSON.stringify(scopedArgs) +
           ", {timeout: " + timeout + ", expectedTests: 1, evidenceScratch: " +
           JSON.stringify(scopedScratch.path) + "});"],
-        {cwd: root, stdio: 'inherit', env: {...fixtureEnvironment, ...scoped.environment, ...physical}}));
+        {cwd: root, stdio: 'inherit', env: {...fixtureEnvironment, ...scoped.environment, ...physical, ...content}}));
       }
     }
     scopedScratch.passed();

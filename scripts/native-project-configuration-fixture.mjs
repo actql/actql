@@ -1,5 +1,6 @@
 // Only populate the invocation's existing owned namespace. These files are
 // reader test inputs, never installed project configuration or Run authority.
+import assert from 'node:assert/strict';
 import {mkdirSync, readFileSync, symlinkSync, writeFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {dirname, join} from 'node:path';
@@ -100,8 +101,25 @@ export function nativeProjectConfigurationFixture(namespace) {
   // payload locator absent, and derive its oracle from the independent ASCII
   // canonical identity preimage rather than the Native issuer's output.
   const resource = JSON.stringify({collection: 'files', identity: 'file-acme-notes', scope: scopeCid});
+  const data = JSON.parse(projectTemplateFiles('deal-review-mock')['mock/data.json']);
+  const contentDigests = Object.fromEntries(data.drive.files.rows.map(row => [row.id,
+    'sha256:' + createHash('sha256').update(Buffer.from(row.content_utf8, 'utf8')).digest('hex')]));
   return {ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT: root,
+    ACTQL_TEST_NATIVE_CONTENT_DIGESTS: JSON.stringify(contentDigests),
+    ACTQL_TEST_NATIVE_QUERY_CONTRACT: readFileSync(new URL('../spec/contracts/actql-query-acquisition.json', import.meta.url), 'utf8'),
+    ACTQL_TEST_NATIVE_EVIDENCE_CONTRACT: readFileSync(new URL('../spec/contracts/actql-query-process-evidence.json', import.meta.url), 'utf8'),
     ACTQL_TEST_NATIVE_MOCK_DRIVE_SCOPE_CID: scopeCid,
     ACTQL_TEST_NATIVE_MOCK_FILE_DATA: projectTemplateFiles('deal-review-mock')['mock/data.json'],
     ACTQL_TEST_NATIVE_MOCK_FIRST_RESOURCE_CID: 'sha256:' + createHash('sha256').update(resource).digest('hex')};
+}
+
+// These two authored cases retain distinct fresh Stores and their original
+// one/two lookup selections. No ambient lookup count can retarget either case.
+export function nativeProjectContentCaseFixture(namespace, index) {
+  assert(Number.isInteger(index) && (index === 0 || index === 1),
+    'An exact original Native Content case index is required');
+  const store = join(namespace, 'content-store');
+  mkdirSync(store, {mode: 0o700});
+  return {ACTQL_TEST_NATIVE_CONTENT_LOOKUPS: String(index + 1),
+    ACTQL_TEST_NATIVE_STORE_ROOT: store};
 }

@@ -78928,7 +78928,8 @@
             "resize_capacity_reservation",
             "resize_capacity_reservation_current",
             "resize_reservation_bytes_current",
-            "settle_capacity"
+            "settle_capacity",
+            "shrink_capacity_reservation"
           ],
           "exports": [],
           "attributes": {
@@ -78944,6 +78945,10 @@
               {
                 "path": "src/physical_resources/read_capacity.mbt",
                 "anchor": "pub fn grow_capacity_reservation("
+              },
+              {
+                "path": "src/physical_resources/read_capacity.mbt",
+                "anchor": "pub fn shrink_capacity_reservation("
               }
             ],
             "inputsOutputs": [
@@ -78958,6 +78963,10 @@
               {
                 "path": "src/physical_resources/read_capacity.mbt",
                 "anchor": "pub fn grow_capacity_reservation("
+              },
+              {
+                "path": "src/physical_resources/read_capacity.mbt",
+                "anchor": "pub fn shrink_capacity_reservation("
               }
             ],
             "identity": [
@@ -78972,6 +78981,10 @@
               {
                 "path": "src/physical_resources/read_capacity.mbt",
                 "anchor": "pub fn grow_capacity_reservation("
+              },
+              {
+                "path": "src/physical_resources/read_capacity.mbt",
+                "anchor": "pub fn shrink_capacity_reservation("
               }
             ],
             "ownership": [
@@ -78986,6 +78999,10 @@
               {
                 "path": "src/physical_resources/read_capacity.mbt",
                 "anchor": "pub fn grow_capacity_reservation("
+              },
+              {
+                "path": "src/physical_resources/read_capacity.mbt",
+                "anchor": "pub fn shrink_capacity_reservation("
               }
             ],
             "synchronization": [
@@ -79000,6 +79017,10 @@
               {
                 "path": "src/physical_resources/read_capacity.mbt",
                 "anchor": "pub fn grow_capacity_reservation("
+              },
+              {
+                "path": "src/physical_resources/read_capacity.mbt",
+                "anchor": "pub fn shrink_capacity_reservation("
               }
             ],
             "failure": [
@@ -79014,6 +79035,10 @@
               {
                 "path": "src/physical_resources/read_capacity.mbt",
                 "anchor": "pub fn grow_capacity_reservation("
+              },
+              {
+                "path": "src/physical_resources/read_capacity.mbt",
+                "anchor": "pub fn shrink_capacity_reservation("
               }
             ],
             "cancellation": [
@@ -79028,6 +79053,10 @@
               {
                 "path": "src/physical_resources/read_capacity.mbt",
                 "anchor": "pub fn grow_capacity_reservation("
+              },
+              {
+                "path": "src/physical_resources/read_capacity.mbt",
+                "anchor": "pub fn shrink_capacity_reservation("
               }
             ],
             "resources": [
@@ -79042,6 +79071,10 @@
               {
                 "path": "src/physical_resources/read_capacity.mbt",
                 "anchor": "pub fn grow_capacity_reservation("
+              },
+              {
+                "path": "src/physical_resources/read_capacity.mbt",
+                "anchor": "pub fn shrink_capacity_reservation("
               }
             ],
             "extension": [
@@ -79056,6 +79089,10 @@
               {
                 "path": "src/physical_resources/read_capacity.mbt",
                 "anchor": "pub fn grow_capacity_reservation("
+              },
+              {
+                "path": "src/physical_resources/read_capacity.mbt",
+                "anchor": "pub fn shrink_capacity_reservation("
               }
             ],
             "verification": [
@@ -79066,6 +79103,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/read_capacity.mbt",
+                "anchor": "pub fn shrink_capacity_reservation("
               }
             ]
           }
