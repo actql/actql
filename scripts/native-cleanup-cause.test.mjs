@@ -159,17 +159,6 @@ test('cleanup category never serializes payloads and keeps public error code', {
             InvalidBootstrap => "ReadInvalidBootstrap"
             Resource(_) => "ReadResource"
           }
-        Source(issue) =>
-          match issue {
-            Unavailable => "SourceUnavailable"
-            Binding(_) => "SourceBinding"
-            Completion(_) => "SourceCompletion"
-            Storage(_) => "SourceStorage"
-            Export(_) => "SourceExport"
-            DependencyBodyLimit => "SourceDependencyBodyLimit"
-          }
-        Capacity => "SourceIdentityCapacity"
-        ForeignOriginal => "SourceIdentityForeignOriginal"
       }`);
   const graphStart = functionSource.indexOf('    CommandBusinessModelGraph(cause) =>');
   const graphEnd = functionSource.indexOf('\n    CommandBusinessModel(cause) =>', graphStart);
@@ -340,17 +329,11 @@ test('cleanup category never serializes payloads and keeps public error code', {
   outer.push('  CommandBusinessEffectProposals(ProbeCommandBusinessEffectProposals)');
   const identityIssues = enumCases('src/cmd/native_client/local_effect_mock_source_identity.mbt',
     'LocalNativeMockSourceIdentityIssue');
-  assert.deepEqual(identityIssues, [{name: 'Read', arity: 1}, {name: 'Source', arity: 1},
-    {name: 'Capacity', arity: 0}, {name: 'ForeignOriginal', arity: 0}]);
+  assert.deepEqual(identityIssues, [{name: 'Read', arity: 1}]);
   const identityFamilies = {
     Read: {
       path: 'src/run_publication_host/client_model_read_preparation.mbt', name: 'ClientModelReadPreparationIssue',
       tags: {ForeignRun: 'ReadForeignRun', InvalidBootstrap: 'ReadInvalidBootstrap', Resource: 'ReadResource'},
-    },
-    Source: {
-      path: 'src/execution_query/captured_source.mbt', name: 'CapturedSourceIssue',
-      tags: {Unavailable: 'SourceUnavailable', Binding: 'SourceBinding', Completion: 'SourceCompletion',
-        Storage: 'SourceStorage', Export: 'SourceExport', DependencyBodyLimit: 'SourceDependencyBodyLimit'},
     },
   };
   const identityTypes = {};
@@ -363,8 +346,6 @@ test('cleanup category never serializes payloads and keeps public error code', {
     for (const item of cases) assertions.push(
       `  assert_eq(command_preparation_cleanup_cause(CommandBusinessSourceIdentity(${family}(${value(item)}))), "${owner.tags[item.name]}")`);
   }
-  for (const [name, tag] of [['Capacity', 'SourceIdentityCapacity'], ['ForeignOriginal', 'SourceIdentityForeignOriginal']])
-    assertions.push(`  assert_eq(command_preparation_cleanup_cause(CommandBusinessSourceIdentity(${name})), "${tag}")`);
   declare('ProbeCommandBusinessSourceIdentity', identityIssues, identityTypes);
   outer.push('  CommandBusinessSourceIdentity(ProbeCommandBusinessSourceIdentity)');
   // Match only this reviewed nested family, then execute every actual Owner
