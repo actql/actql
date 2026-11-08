@@ -47,7 +47,7 @@ test "next writer inventories retain prior depth and refuse closed foreign sink 
   end_array(output)
   end_array(output)
   let next = text_writer_next_construction_inventory(output, 0, 0, 0).unwrap()
-  assert_eq(next, text_writer_construction_inventory(4, 2, 2).unwrap())
+  assert_eq(next, text_writer_construction_inventory(4, 1, 2).unwrap())
   let hash = hashing_writer(32, 10, 4)
   assert_true(text_writer_next_construction_inventory(hash, 1, 1, 1) is None)
   assert_true(hash_writer_next_construction_inventory(output, 1, 1) is None)
@@ -90,4 +90,21 @@ test "buffered hash next inventory retains bounded actual Unicode fragments inst
     buffered_hash_writer_next_construction_inventory(output, 388, peak, 1, 1)
     is None,
   )
+}
+
+///|
+test "hash growth follows live keys rather than cumulative retired array elements" {
+  let output = hashing_writer(16777216, 10000, 1024)
+  begin_array(output)
+  let first = hash_writer_next_construction_inventory(output, 1, 0).unwrap()
+  for index in 0..<1000 {
+    number_value(output, index.to_double())
+  }
+  assert_eq(
+    hash_writer_next_construction_inventory(output, 1, 0).unwrap(),
+    first,
+  )
+  assert_eq(observed_writer_usage(output).1, 1001)
+  end_array(output)
+  assert_eq(finish_hash(output).length(), 64)
 }

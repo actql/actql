@@ -189,13 +189,23 @@ pub fn cancel_completed_relation_identity_scan(
 ///|
 fn advance_identity_scan_frame(
   value : CompletedRelationIdentityScan,
+  observed_source : CompletedOutput,
 ) -> Result[Unit, CompletedExportIssue] {
   if value.preparation is Some(preparation) {
-    match advance_completed_output_export_preparation(preparation, 1) {
+    match
+      advance_completed_export_metadata_owned(
+        preparation,
+        1,
+        Some(observed_source),
+      ) {
       Err(issue) => return Err(issue)
       Ok((done, _)) =>
         if done {
-          match finish_completed_output_export_preparation(preparation) {
+          match
+            finish_completed_export_metadata_owned(
+              preparation,
+              Some(observed_source),
+            ) {
             Err(issue) => return Err(issue)
             Ok(stream) => {
               value.stream = Some(stream)
@@ -418,6 +428,7 @@ fn advance_identity_scan_frame(
 pub fn advance_completed_relation_identity_scan(
   value : CompletedRelationIdentityScan,
   quantum : Int,
+  construction_capacity? : ExecutionCapacity? = None,
 ) -> Result[(Bool, Int), CompletedExportIssue] {
   if value.closed || value.advancing || quantum <= 0 {
     return Err(Closed)
@@ -427,11 +438,12 @@ pub fn advance_completed_relation_identity_scan(
     (None, Some(stream)) => stream.source
     _ => None
   }
+  value.advancing = true
   guard source is Some(source) && completed_output_available(source) else {
+    value.advancing = false
     cancel_completed_relation_identity_scan(value) |> ignore
     return Err(Unavailable)
   }
-  value.advancing = true
   let mut consumed = 0
   let mut issue : CompletedExportIssue? = None
   while consumed < quantum && !(value.phase is Done) {
@@ -439,9 +451,23 @@ pub fn advance_completed_relation_identity_scan(
       issue = Some(Admission(CaptureLimit))
       break
     }
+    if construction_capacity is Some(held) {
+      guard identity_scan_next_capacity(value) is Some(next) else {
+        issue = Some(Closed)
+        break
+      }
+      if execution_capacity_retained_bytes(next) >
+        execution_capacity_retained_bytes(held) ||
+        execution_capacity_execution_bytes(next) >
+        execution_capacity_execution_bytes(held) {
+        // Yield to the same caller BEFORE construction. These quantities
+        // are a continuation boundary, never Resource authority.
+        break
+      }
+    }
     value.work += 1
     consumed += 1
-    match advance_identity_scan_frame(value) {
+    match advance_identity_scan_frame(value, source) {
       Ok(_) => ()
       Err(failure) => {
         issue = Some(failure)

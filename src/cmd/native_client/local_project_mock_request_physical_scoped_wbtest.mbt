@@ -857,11 +857,11 @@ test "Native Model selection backs all three simultaneous original vectors" {
   let later = native_mock_effect_model_selection_storage(0)
   assert_eq(later.record_headers, 27L)
   assert_eq(later.reference_slots, 68L)
-  assert_eq(later.scalar_words, 88L)
+  assert_eq(later.scalar_words, 90L)
   let first = native_mock_effect_model_selection_storage(2)
   assert_eq(first.record_headers, 40L)
   assert_eq(first.reference_slots, 137L)
-  assert_eq(first.scalar_words, 97L)
+  assert_eq(first.scalar_words, 99L)
   assert_eq(first.owned_utf16_units, 0L)
   assert_eq(first.owned_wire_bytes, 0L)
 }

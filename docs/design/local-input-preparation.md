@@ -6044,6 +6044,25 @@ The returned quantities are not resource authority: the installing caller must
 grow its original publication reservation before the next constructor and keep
 the original output/receipt custody through retirement.
 
+The Native Model publication Plan carries only its fixed use/view controls.
+After the original Model completes, its actual slot count selects the existing
+finite flat-observation protocol allowance before issuer construction. The
+actual schema/scan next-construction inventory is composed alongside that
+retained issuer. The same reservation grows only when this simultaneous demand
+exceeds its held peak. A bounded scan yields before crossing its held numerical
+construction window; this yield boundary grants no resource use. Covered
+internal metadata transitions reuse the same synchronous Source observation,
+while public independent entries still perform their own current check.
+
+Publication retention is a sibling lifetime on the original parent Ledger,
+not another Model call/output allowance. The Model component's immutable work,
+attempt, quantity and permission ceilings remain intact. Original publication
+byte counters retain cleanup association but do not impose a second child byte
+ceiling on parent-admitted publication growth. The semantic projection reserves
+its original CID-string geometry and closed eight-member/nine-node body before
+encoding; it never reserves a configured row-export file or reconstructs the
+input relation. Original profile/admission limits remain unchanged.
+
 ### Native initialization selected for a Request
 
 The Native command retains its input and Request on the existing business

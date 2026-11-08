@@ -93,9 +93,9 @@ pub fn hash_writer_next_construction_inventory(
     additional_depth >= 0 else {
     return None
   }
-  let nodes = writer.max_nodes -
-    writer.remaining_nodes +
-    Int::min(additional_nodes, writer.remaining_nodes)
+  guard writer_next_live_keys(writer, additional_nodes) is Some(nodes) else {
+    return None
+  }
   let depth = Int::max(
     writer.peak_depth,
     writer.frames.length() +

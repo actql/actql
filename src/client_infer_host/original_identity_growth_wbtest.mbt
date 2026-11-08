@@ -89,11 +89,19 @@ test "same original publication backs actual identity steps without output-max s
     ).unwrap()
     let retained = @relation.execution_capacity_retained_bytes(quote)
     let execution = @relation.execution_capacity_execution_bytes(quote)
-    grow_original_infer_publication_capacity(
-      active, capacity, retained, execution,
-    ).unwrap()
+    if !@model.original_model_publication_capacity_covers(
+        capacity, retained, execution,
+      ) {
+      grow_original_infer_publication_capacity(
+        active, capacity, retained, execution,
+      ).unwrap()
+    }
     peak = Int64::max(peak, retained)
-    done = @relation.advance_completed_relation_identity_scan(scan, 1).unwrap().0
+    done = @relation.advance_completed_relation_identity_scan(
+        scan,
+        31,
+        construction_capacity=Some(quote),
+      ).unwrap().0
   }
   // Independent regression ceiling for this tiny authored output, not a new
   // production quota or a measurement of heap/RSS. Old max-file quotes exceed it.

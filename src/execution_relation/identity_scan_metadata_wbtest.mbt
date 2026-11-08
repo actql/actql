@@ -94,3 +94,70 @@ test "identity metadata stop and work refusal retain original completed source" 
     assert_true(finish_completed_relation_identity_scan(scan) is Err(Closed))
   }
 }
+
+///|
+test "identity held-capacity yield samples Source once and fences reentry before construction" {
+  let original = export_fixture(capture_fixture())
+  let calls = Ref(0)
+  let available = Ref(true)
+  let entering = Ref(false)
+  let selected : Ref[CompletedRelationIdentityScan?] = Ref(None)
+  let source = restrict_completed_output(original, () => {
+    calls.val += 1
+    if !entering.val && selected.val is Some(scan) {
+      entering.val = true
+      if !(advance_completed_relation_identity_scan(scan, 1) is Err(Closed)) {
+        abort("reentered identity scan")
+      }
+      entering.val = false
+    }
+    available.val
+  })
+  let wire = { ..row_wire_limits(), max_nodes: 10, }
+  let scan = start_completed_relation_identity_scan(
+    source,
+    2,
+    stream_value_limits(),
+    wire,
+    wire,
+    publication_schema_limits(),
+    10000,
+    47,
+    incremental_metadata=true,
+  ).unwrap()
+  selected.val = Some(scan)
+  calls.val = 0
+  let zero = execution_capacity(0L, 0L).unwrap()
+  assert_eq(
+    advance_completed_relation_identity_scan(
+      scan,
+      31,
+      construction_capacity=Some(zero),
+    ).unwrap(),
+    (false, 0),
+  )
+  assert_eq(calls.val, 1)
+  assert_eq(scan.work, 0)
+  let quote = completed_relation_identity_scan_next_construction_capacity(scan).unwrap()
+  let (_, used) = advance_completed_relation_identity_scan(
+    scan,
+    31,
+    construction_capacity=Some(quote),
+  ).unwrap()
+  assert_true(used > 0 && used <= 31)
+  assert_eq(calls.val, 2)
+  let spent = scan.work
+  available.val = false
+  assert_true(
+    advance_completed_relation_identity_scan(
+      scan,
+      31,
+      construction_capacity=Some(quote),
+    )
+    is Err(Unavailable),
+  )
+  assert_eq(calls.val, 3)
+  assert_eq(scan.work, spent)
+  assert_true(scan.closed)
+  assert_true(completed_output_available(original))
+}

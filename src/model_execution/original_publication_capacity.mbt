@@ -63,15 +63,8 @@ pub fn reserve_original_model_publication_capacity(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  match
-    check_original_mock_capacity(
-      execution.state,
-      retained_bytes,
-      execution_bytes,
-    ) {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
-  }
+  // Publication is a separate byte-only lifetime on the SAME Run Ledger,
+  // not Model call/output work within its immutable component ceiling.
   let shared = execution.state.original_startup is Some(startup) &&
     startup.shared_mock is Some(_)
   if shared {
@@ -164,15 +157,6 @@ pub fn grow_original_model_publication_capacity(
   let workspace = Int64::max(execution_bytes, value.execution_bytes)
   let retained_delta = retained - value.retained_bytes
   let execution_delta = workspace - value.execution_bytes
-  match
-    check_original_mock_capacity(
-      execution.state,
-      retained_delta,
-      execution_delta,
-    ) {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
-  }
   // The Resource grow owns its current callback and post-callback fences.
   // Do not repeat that callback through a separate mutable precheck. Keep the
   // original Model fenced while that callback can synchronously reenter it.

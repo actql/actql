@@ -29,16 +29,25 @@ pub fn completed_relation_identity_scan_start_construction_capacity(
   guard source.table is Some(table) else { return None }
   let width = IndexedRows::column_count(table).to_int64()
   guard @shape.collection_construction_extent({
-    records: 28L, record_references: 60L, record_words: 64L,
-    reference_arrays: 3L, reference_items: width,
-    scalar_arrays: 6L, scalar_items: 0L,
-    maps: 0L, map_entries: 0L,
-  }) is Some(start) else { return None }
+      records: 28L,
+      record_references: 60L,
+      record_words: 64L,
+      reference_arrays: 3L,
+      reference_items: width,
+      scalar_arrays: 6L,
+      scalar_items: 0L,
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(start) else {
+    return None
+  }
   identity_scan_capacity({
     record_headers: start.record_headers,
     reference_slots: start.reference_slots,
     scalar_words: start.scalar_words,
-    owned_utf16_units: 0L, owned_wire_bytes: 0L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
   })
 }
 
@@ -137,6 +146,15 @@ pub fn completed_relation_identity_scan_next_construction_capacity(
   if value.closed || value.advancing {
     return None
   }
+  identity_scan_next_capacity(value)
+}
+
+///|
+// Same private owner during its latched advance. This numerical inventory
+// invokes no callback and exports no reusable current or Resource proof.
+fn identity_scan_next_capacity(
+  value : CompletedRelationIdentityScan,
+) -> ExecutionCapacity? {
   if value.preparation is Some(preparation) {
     guard completed_export_metadata_next_inventory(preparation) is Some(units) else {
       return None

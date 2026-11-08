@@ -262,6 +262,18 @@ pub fn advance_completed_output_export_preparation(
   value : CompletedOutputExportPreparation,
   quantum : Int,
 ) -> Result[(Bool, Int), CompletedExportIssue] {
+  advance_completed_export_metadata_owned(value, quantum, None)
+}
+
+///|
+// Only the same latched identity scan passes its just-observed original
+// Source. Metadata transitions invoke no external callbacks, so internal
+// helpers need not repeat the parent's same current observation per frame.
+fn advance_completed_export_metadata_owned(
+  value : CompletedOutputExportPreparation,
+  quantum : Int,
+  observed_source : CompletedOutput?,
+) -> Result[(Bool, Int), CompletedExportIssue] {
   if value.closed || value.advancing || quantum <= 0 {
     return Err(Closed)
   }
@@ -269,7 +281,11 @@ pub fn advance_completed_output_export_preparation(
   value.advancing = true
   let result = (fn() -> Result[(Bool, Int), CompletedExportIssue] {
     guard value.source is Some(source) else { return Err(Closed) }
-    if !completed_output_available(source) {
+    let available = match observed_source {
+      Some(original) => physical_equal(source, original)
+      None => completed_output_available(source)
+    }
+    if !available {
       return Err(Unavailable)
     }
     if value.closed {
@@ -367,14 +383,24 @@ pub fn advance_completed_output_export_preparation(
 pub fn finish_completed_output_export_preparation(
   value : CompletedOutputExportPreparation,
 ) -> Result[CompletedOutputExport, CompletedExportIssue] {
+  finish_completed_export_metadata_owned(value, None)
+}
+
+///|
+// Immediate private transfer in that same synchronous scan observation.
+fn finish_completed_export_metadata_owned(
+  value : CompletedOutputExportPreparation,
+  observed_source : CompletedOutput?,
+) -> Result[CompletedOutputExport, CompletedExportIssue] {
   if value.closed || value.advancing {
     return Err(Closed)
   }
   guard value.stream is Some(stream) else { return Err(NotFinished) }
   value.advancing = true
-  let available = match value.source {
-    Some(source) => completed_output_available(source)
-    None => false
+  let available = match (value.source, observed_source) {
+    (Some(source), Some(original)) => physical_equal(source, original)
+    (Some(source), None) => completed_output_available(source)
+    _ => false
   }
   value.advancing = false
   if value.closed {

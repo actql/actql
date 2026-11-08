@@ -110,7 +110,7 @@ pub fn advance_completed_output_export(CompletedOutputExport, Int, Int) -> Resul
 
 pub fn advance_completed_output_export_preparation(CompletedOutputExportPreparation, Int) -> Result[(Bool, Int), CompletedExportIssue]
 
-pub fn advance_completed_relation_identity_scan(CompletedRelationIdentityScan, Int) -> Result[(Bool, Int), CompletedExportIssue]
+pub fn advance_completed_relation_identity_scan(CompletedRelationIdentityScan, Int, construction_capacity? : ExecutionCapacity?) -> Result[(Bool, Int), CompletedExportIssue]
 
 pub fn advance_completed_result_key_validation(CompletedResultKeyValidation, Int) -> Result[@bounded_execution.Observation[Int, CompletedResultKeyIssue], @bounded_execution.Issue]
 
