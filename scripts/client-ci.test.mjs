@@ -17,6 +17,7 @@ import './table-ctas-result-controls.test.mjs';
 import './packed-original-submission-callers.test.mjs';
 import './record-approval-workflow.test.mjs';
 import './record-approval-ci-input.test.mjs';
+import './hubspot-oauth-operator.test.mjs';
 import {parse} from 'yaml';
 import {parse as parseJavaScript} from 'acorn';
 import {optionalEffectCases} from './fixtures/two-source-optional-effect.mjs';
