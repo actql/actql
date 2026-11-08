@@ -37,7 +37,7 @@ const method = (receiver, name) => {
       nodeTypes.isProxy(field.value) || nodeTypes.isAsyncFunction(field.value)) fail('HubSpotEffectConstructionUnavailable');
   return (...args) => Reflect.apply(field.value, receiver, args);
 };
-const mappingLimits = Object.freeze({maxProperties: 100, maxFields: 100, maxNameBytes: 256,
+const mappingBounds = Object.freeze({maxFields: 100, maxNameBytes: 256,
   maxBytes: 100000, maxNodes: 10000, maxDepth: 64});
 const ownerLimits = Object.freeze({maxMembers: 16, maxRows: 100, maxFields: 100,
   preview: Object.freeze({maxWireBytes: 1000000, maxNodes: 100000, maxDepth: 64}),
@@ -45,7 +45,7 @@ const ownerLimits = Object.freeze({maxMembers: 16, maxRows: 100, maxFields: 100,
 const bodyLimits = Object.freeze({maxInputBytes: 8192, maxNodes: 2000, maxDepth: 24,
   maxFields: 100, maxNameBytes: 256, maxValueNodes: 2000, maxValueTextBytes: 8192,
   maxComparisonWork: 20000, maxOutputBytes: 8192, maxOutputNodes: 2000, maxOutputDepth: 24});
-const requestBounds = Object.freeze({maxRows: 100, maxProperties: 100, maxTraceBytes: 128,
+const requestBounds = Object.freeze({maxRows: 100, maxTraceBytes: 128,
   maxBodyBytes: 20000, maxBodyNodes: 3000, maxBodyDepth: 24});
 const maxRecoveryBytes = 1000000;
 
@@ -61,14 +61,14 @@ export function checkInstalledHubSpotEffectProfile(profile) {
     const field = Object.getOwnPropertyDescriptor(profile.writes, String(index)), write = field?.value;
     if (!field || !Object.hasOwn(field, 'value') || !closed(write, ['resource', 'fields', 'markerProperty']) ||
         !text(write.resource) || !text(write.markerProperty) || write.markerProperty === 'id' ||
-        write.markerProperty.length > mappingLimits.maxNameBytes ||
+        write.markerProperty.length > mappingBounds.maxNameBytes ||
         !Array.isArray(write.fields) || nodeTypes.isProxy(write.fields) ||
-        write.fields.length < 1 || write.fields.length > mappingLimits.maxFields) fail('InvalidInstalledHubSpotEffectProfile');
+        write.fields.length < 1 || write.fields.length > mappingBounds.maxFields) fail('InvalidInstalledHubSpotEffectProfile');
     const fields = [];
     for (let i = 0; i < write.fields.length; i++) {
       const selected = Object.getOwnPropertyDescriptor(write.fields, String(i));
       if (!selected || !Object.hasOwn(selected, 'value') || !text(selected.value) ||
-          selected.value.length > mappingLimits.maxNameBytes || selected.value === write.markerProperty) {
+          selected.value.length > mappingBounds.maxNameBytes || selected.value === write.markerProperty) {
         fail('InvalidInstalledHubSpotEffectProfile');
       }
       fields.push(selected.value);
@@ -110,7 +110,8 @@ function nativeLimits(limits) {
     maxRequestNodes: 3000, maxRequestDepth: 24});
   const write = Object.freeze({maxRequestBytes: requestBounds.maxBodyBytes,
     maxResponseBytes: limits.maxResponseBytes, maxNodes: limits.maxNodes, maxDepth: limits.maxDepth, maxRows: 1});
-  return Object.freeze({read, write, body: bodyLimits, request: requestBounds});
+  return Object.freeze({read, write, body: bodyLimits,
+    request: Object.freeze({...requestBounds, maxProperties: limits.maxProperties})});
 }
 
 function membersOf(moon, prepared, unit, installed) {
@@ -182,6 +183,10 @@ export async function loadInstalledHubSpotEffect(profile, {moon, providerMoon, c
   const material = await prepareInstalledHubSpotMaterials(providerProfile, {moon, providerMoon, construction});
   const {installed: source, siteProfile, metadata, objects, catalogs, declared} = material;
   if (selected.writes.some(write => !catalogs.has(write.resource))) fail('HubSpotEffectResourceNotInstalled');
+  // The same original Catalog was admitted under this Source bound. Carry it
+  // through Mapping, request and current rechecks; selected write-field/row
+  // limits remain independent and Core performs every actual check/quote.
+  const mappingLimits = Object.freeze({...mappingBounds, maxProperties: source.limits.maxProperties});
   const {originals, prepared} = prepareInstalledHubSpotUpdateMappings({construction, moon, providerMoon,
     connectorId: source.connectorId, declared, catalogFor: resource => catalogs.get(resource),
     writes: selected.writes, limits: mappingLimits});
@@ -248,7 +253,7 @@ export async function loadInstalledHubSpotEffect(profile, {moon, providerMoon, c
         origin: siteProfile.apiOrigin, portalId: source.portalId, connectorId: source.connectorId,
         siteBindingCid, generationCid, installedFor, metadataResources: source.metadataResources,
         requestLimits: Object.freeze({maxProperties: mappingLimits.maxProperties, body: bodyLimits,
-          request: requestBounds, maxRecoveryBytes}), readLimits: limits.read, writeLimits: limits.write,
+          request: limits.request, maxRecoveryBytes}), readLimits: limits.read, writeLimits: limits.write,
         maxRows: ownerLimits.maxRows, maxMembers: ownerLimits.maxMembers, maxRecoveryBytes});
       return Object.freeze({driver, managedPlanRecipes: Object.freeze({update: recipe})});
     },

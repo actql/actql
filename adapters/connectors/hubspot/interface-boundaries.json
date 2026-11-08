@@ -3146,7 +3146,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/installed-hubspot-effect.mjs",
-      "sha256": "c6db1ba3d819d5d920e50b75c5db6cbefbd84c3820c9e1b6af8b1c16bba6a9bf",
+      "sha256": "8e978db13e3d48272cd5c61e5a4618f495446a727ef413a5b82bd0f9caf8c593",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Effect, Common initialization/Mapping/Checkpoint/current/dispatch and original Row Site owners",
@@ -3642,6 +3642,10 @@
               {
                 "path": "adapters/connectors/hubspot/test/installed-hubspot-effect.test.mjs",
                 "anchor": "test('HubSpot authored Source and Effect binding callers agree"
+              },
+              {
+                "path": "adapters/host-node/installed-hubspot-returned-capacity.actual.test.mjs",
+                "anchor": "test('wide HubSpot Effect keeps the admitted Source Catalog limit"
               }
             ]
           }

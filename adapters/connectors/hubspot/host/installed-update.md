@@ -70,3 +70,11 @@ the Effect identity; empty alias metadata has the same omission semantics as
 the standard Source. The existing JSON configuration reader's complete
 checked-profile/split/identity envelope funds this path. No alias is a current
 namespace proof or a permission, and the full provider validation still runs.
+
+The installed Effect carries the validated Source's `maxProperties` through
+Mapping construction, request construction, current Catalog rechecks and the
+matching Core recipe quantities. A selected write can use one field of a wider
+complete Catalog; it does not replace that Catalog with writable fields or an
+unrelated fixed property ceiling. Selected field, row, wire, transfer and parent
+preparation limits remain independent. Core still refuses oversized Catalogs
+and unconfirmed or read-only writes through its original validators.

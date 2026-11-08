@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {writeFile} from 'node:fs/promises';
+import {readFile, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {boundConstructionActualFixture} from './fixtures/bound-construction-actual.fixture.mjs';
 import {installedSourceConfigurationReader} from './installed-host-services.mjs';
@@ -24,6 +24,61 @@ const quote = moon => {
   return value;
 };
 const latestReserve = events => events.findLast(event => event.operation === 'clientProgramReserveInstalledSourceConstruction');
+
+async function wideEffectFixture(t, {maxProperties = 256, readOnly = false} = {}) {
+  const events = [], f = await boundConstructionActualFixture(t, {capacityEvents: events});
+  const source = await f.metadataSourceProfile('hubspot');
+  const metadata = JSON.parse(await readFile(source.value.metadataPath, 'utf8'));
+  const results = ['name', 'description', ...Array.from({length: 243}, (_, i) => `field_${i}`)]
+    .map(name => ({name, type: 'string', fieldType: 'text', calculated: false,
+      modificationMetadata: {readOnlyValue: readOnly && name === 'name'}}));
+  const properties = {results, ignored: ''};
+  properties.ignored = 'x'.repeat(361489 - Buffer.byteLength(JSON.stringify(properties)));
+  metadata.objects[0].propertiesBody = Buffer.from(JSON.stringify(properties)).toString('base64');
+  await writeFile(source.value.metadataPath, JSON.stringify(metadata));
+  Object.assign(source.value.limits, {maxResponseBytes: 524288, maxNodes: 65536, maxDepth: 32,
+    maxProperties, maxNameUnits: 6003, maxColumns: 256, maxDeclarationBytes: 65536,
+    maxDeclarationNodes: 8000});
+  await writeFile(source.path, JSON.stringify(source.value));
+  const value = {version: 'actql-installed-hubspot-effect/0.1', connectorId: source.value.connectorId,
+    sourceProfilePath: source.path,
+    writes: [{resource: 'companies', fields: ['name'], markerProperty: 'description'}]};
+  const path = join(f.root, 'wide-effect.json');
+  await writeFile(path, JSON.stringify(value));
+  return {f, events, selection: {path, value, role: 'effect', registration: 'hubspot'}};
+}
+
+test('wide HubSpot Effect keeps the admitted Source Catalog limit through its actual Mapping and driver constructors', async t => {
+  const {f, events, selection} = await wideEffectFixture(t);
+  const effect = await f.load(selection);
+  const environment = JSON.parse(effect.environmentWire);
+  const carrier = environment.contract_registry.find(value => value.kind === 'carrier_schema');
+  assert.equal(Object.keys(carrier.body.fields).length, 246);
+  assert.equal(effect.mappings.length, 1);
+  const mapping = environment.mapping_contracts.find(value => value.mapping_ref === effect.mappings[0].mappingRef);
+  assert.deepEqual(mapping.writable_fields, ['name']);
+  assert.equal(latestReserve(events).accepted, true);
+  assert.equal(f.secretReads(), 0, 'initialization grants no provider operation');
+  await f.close(); assert.equal(f.pending(), false); assert.equal(f.retire(), true);
+});
+
+test('wide HubSpot Effect still rejects a Catalog beyond its original Source property limit before Mapping', async t => {
+  const {f, selection} = await wideEffectFixture(t, {maxProperties: 244});
+  await assert.rejects(f.load(selection), {code: 'InstalledHostInitializationFailed'});
+  assert.equal(f.secretReads(), 0);
+  await f.close(); assert.equal(f.pending(), false); assert.equal(f.retire(), true);
+});
+
+test('wide HubSpot Effect preserves the original read-only property refusal under the same Source limit', async t => {
+  const {f, selection} = await wideEffectFixture(t, {readOnly: true});
+  await assert.rejects(f.load(selection), error => {
+    const cause = error.primaryFailure?.cause;
+    return cause?.constructor?.name.endsWith('MappingIssue8Property') &&
+      cause._0?.constructor?.name.endsWith('PropertyIssue16ReadOnlyProperty');
+  });
+  assert.equal(f.secretReads(), 0);
+  await f.close(); assert.equal(f.pending(), false); assert.equal(f.retire(), true);
+});
 
 test('actual HubSpot Source projection releases completed native workspace before the next original reservation', async t => {
   const events = [], f = await boundConstructionActualFixture(t, {capacityEvents: events});
