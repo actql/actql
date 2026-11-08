@@ -19,6 +19,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_store(
 ) -> Unit raise ClientStop {
   guard self.original.business is Some(business) &&
     business.effect_model is Some(state) &&
+    business.operation is Some(operation) &&
     self.original.host is Some(host) &&
     self.original.pair is Some(pair) else {
     stop("LocalBusinessOriginalUnavailable")
@@ -38,6 +39,13 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_store(
       stop("LocalManagedRootRequired")
     }
   }
+  // The caller accepted these same Effect originals before this boundary.
+  // Activate the retained route while its original Journal Read is current;
+  // borrowing the SQLite original cannot stand in for that checked activation.
+  command_preparation_result(
+    operation.activate().map_err(issue => CommandStoreOperation(issue)),
+    stage=Some("effect-store-activation"),
+  )
   let store = self.open_store(library, managed, installation)
   let publication = match
     @local_host.install_native_client_cancellation_publication(
