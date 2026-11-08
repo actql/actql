@@ -18,6 +18,15 @@ metadata text changes workspace, not permanently retained text. The private
 Common tag passes mapping count, selected-field count, full resource count and
 original text units; it never accepts a provider Catalog or foreign capacity.
 
+Source property initialization shares the same retained Catalog inventory as
+Effect metadata and adds its original body Buffer, names Array, schema String,
+view/result records and schema digest. The Array and view borrow their original
+names and schema; the encoded publication String remains with its existing
+configuration holder. The complete prior parser/index/sort/schema-writer peak
+is still reserved as workspace before projection. The existing parent composer
+keeps that peak through failure or pending construction; only its successful
+original-return cut selects retained-only before the next declaration reserve.
+
 The private Node recipe bridge receives the complete four-entry Array directly.
 It wraps that vector in the generic optional profile inside MoonBit before
 calling the unchanged shared composer. JavaScript does not manufacture that

@@ -110,7 +110,7 @@ test "HubSpot metadata and Account quote keep original peaks but not completed p
     max_properties: 100,
     max_name_units: 256,
   }
-  let old = object_initialization_construction_capacity(
+  let (old, _) = object_initialization_peak_capacity(
     512, 0, 9, property_limits, 100, 256, 8192, 2000, 24,
   ).unwrap()
   let selected = effect_metadata_construction_capacity(512, 9, property_limits).unwrap()

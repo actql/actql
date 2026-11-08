@@ -485,7 +485,7 @@ pub fn effect_metadata_construction_capacity(
   object_units : Int,
   limits : PropertyLimits,
 ) -> @execution.ExecutionCapacity? {
-  guard object_initialization_construction_capacity(
+  guard object_initialization_peak_capacity(
       body_bytes,
       0,
       object_units,
@@ -496,19 +496,11 @@ pub fn effect_metadata_construction_capacity(
       limits.max_nodes,
       limits.max_depth,
     )
-    is Some(peak) else {
+    is Some((peak, _)) else {
     return None
   }
-  let n = Int::min(Int::max(1, body_bytes), limits.max_nodes).to_int64()
-  let f = Int64::min(n, limits.max_properties.to_int64())
   guard hubspot_effect_capacity(
-      {
-        record_headers: 8L + 4L * f + n,
-        reference_slots: 16L + 8L * f + 2L * n,
-        scalar_words: 8L + 4L * f,
-        owned_utf16_units: body_bytes.to_int64() + object_units.to_int64() + 64L,
-        owned_wire_bytes: 0L,
-      },
+      property_catalog_retained_units(body_bytes, object_units, limits),
       [],
     )
     is Some(retained) &&
