@@ -270,8 +270,11 @@ pub fn property_contract(
         }
       }
       match property.field_type {
-        "select" | "radio" | "booleancheckbox" | "calculation_equation" | "calculation_rollup" =>
-          @contract.StringType
+        "select"
+        | "radio"
+        | "booleancheckbox"
+        | "calculation_equation"
+        | "calculation_rollup" => @contract.StringType
         _ => return Err(UnsupportedProperty(name))
       }
     }
