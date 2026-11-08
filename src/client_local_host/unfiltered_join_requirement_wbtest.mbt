@@ -1,7 +1,10 @@
 ///|
 // This uses admitted Catalog/Host-policy fixture DATA and starts no physical
 // Source. Publication interpretation is not an installation or read grant.
-fn unfiltered_join_requirement_program() -> @publication_host.PreparedClientProgram {
+fn unfiltered_join_requirement_program() -> (
+  @publication_host.PreparedClientProgram,
+  @syntax.Program,
+) raise {
   let environment = @publication_host.admit_client_check_environment(
     source_query_original_environment,
     "sha256:05ee9059ef5f173069a3f3f1896e16ee62d34d0c842d81e9b0f8421db62e67a8",
@@ -20,26 +23,35 @@ fn unfiltered_join_requirement_program() -> @publication_host.PreparedClientProg
     Sql,
     Some(context),
   ).unwrap()
-  @publication_host.prepare_parsed_effect_free_client_program(
-    lowered.program.unwrap(),
-    environment,
-    None,
-    @publication_host.client_standard_program_preparation_limits(),
-  ).unwrap()
+  let program = lowered.program.unwrap()
+  let writer = @encode.writer(100000, 10000, 100)
+  @syntax.emit_metadata_stripped_program(program, writer)
+  assert_false(@encode.finish(writer).contains("\"filter\":{\"literal\":true}"))
+  (
+    @publication_host.prepare_parsed_effect_free_client_program(
+      program,
+      environment,
+      None,
+      @publication_host.client_standard_program_preparation_limits(),
+    ).unwrap(),
+    program,
+  )
 }
 
 ///|
-fn unfiltered_join_requirement(
+fn unfiltered_join_whole_input(
   prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
   stage : Int,
-) -> @planning.QueryRequirement raise {
+) -> @sourceviews.SourceAcquisition raise {
   let source_contracts = prepare_installed_sequence_contracts(
     source_query_original_registry,
     source_query_original_values,
     Some(source_query_original_fragment),
     None,
   ).unwrap()
-  match
+  // An absent predicate does not establish the narrower QueryRequirement.
+  assert_true(
     prepare_local_query_requirement(
       prepared,
       stage,
@@ -48,52 +60,116 @@ fn unfiltered_join_requirement(
       source_query_original_values,
       Some(source_query_original_fragment),
       None,
-    ) {
-    Ok(value) => value
-    Err(Sequences) => fail("original JOIN Source.Query.Sequences")
-    Err(MissingStage) => fail("original JOIN Source.Query.MissingStage")
-    Err(Requirement(@publication_host.Acquisition(_))) =>
-      fail("original JOIN Source.Query.Acquisition")
-    Err(Requirement(@publication_host.Sequence(_))) =>
-      fail("original JOIN Source.Query.Sequence")
-    Err(Requirement(@publication_host.Material(_))) =>
-      fail("original JOIN Source.Query.Material")
-    Err(Requirement(@publication_host.Requirement(_))) =>
-      fail("original JOIN Source.Query.Requirement")
+    )
+    is Err(Sequences),
+  )
+  guard select_installed_source_input(prepared, request, stage, 0).unwrap()
+    is @sourceviews.WholeInputRoute(original) else {
+    fail("unfiltered JOIN must retain its actual Whole input")
   }
+  assert_true(
+    @publication_host.client_source_acquisition_matches_program(
+      prepared, stage, 0, original,
+    ),
+  )
+  assert_eq(@sourceviews.source_acquisition_input(original), @pipeline.Input(0))
+  let schema = @pipeline.schema_at(
+    @sourceviews.source_acquisition_pipeline(original),
+    @pipeline.Input(0),
+  ).unwrap()
+  assert_eq(@schema.field_count(schema), 2)
+  for (index, name, nullable) in [(0, "amount", true), (1, "id", false)] {
+    let field = @schema.field_at(schema, index).unwrap()
+    assert_eq(field.name, @schema.Unqualified(name))
+    assert_true(
+      @contract.type_equal(
+        field.contract,
+        @contract.primitive(@contract.NumberType, nullable~),
+        100,
+      ),
+    )
+  }
+  original
 }
 
 ///|
-test "public unfiltered JOIN derives both original Local QueryRequirements" {
-  let prepared = unfiltered_join_requirement_program()
+test "public unfiltered JOIN selects both original Whole inputs and refuses QueryRequirements" {
+  let (prepared, program) = unfiltered_join_requirement_program()
   assert_eq(@publication_host.prepared_client_acquisition_count(prepared), 2)
-  let left = unfiltered_join_requirement(prepared, 0)
-  let right = unfiltered_join_requirement(prepared, 1)
+  let request = @publication_host.prepare_source_free_client_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "unfiltered-join-original",
+  ).unwrap()
+  let left = unfiltered_join_whole_input(prepared, request, 0)
+  let right = unfiltered_join_whole_input(prepared, request, 1)
+  let checked = @strategy.graph_program(
+    @publication_host.prepared_client_graph(prepared),
+  )
   assert_true(
     physical_equal(
-      @planning.query_requirement_program(left),
-      @planning.query_requirement_program(right),
+      @sourceviews.source_acquisition_pipeline(left),
+      @checked.unit_pipeline(checked, 0).unwrap(),
     ),
   )
-  assert_eq(@planning.query_requirement_site(left), ("capture", "source_0"))
-  assert_eq(@planning.query_requirement_site(right), ("capture_1", "source_1"))
-  // Equal Source and schema facts do not collapse the original occurrences.
+  assert_true(
+    physical_equal(
+      @sourceviews.source_acquisition_pipeline(right),
+      @checked.unit_pipeline(checked, 1).unwrap(),
+    ),
+  )
+  let stages = @syntax.stages(program)
   assert_eq(
-    @planning.query_requirement_source(left),
-    @planning.query_requirement_source(right),
+    (stages[0].id, @syntax.result_names(stages[0])[0]),
+    ("capture", "source"),
   )
-  assert_not_eq(
-    @planning.query_requirement_cid(left),
-    @planning.query_requirement_cid(right),
+  assert_eq(
+    (stages[1].id, @syntax.result_names(stages[1])[0]),
+    ("capture_1", "source"),
   )
-  let foreign = unfiltered_join_requirement(
-    unfiltered_join_requirement_program(),
-    0,
+  let left_source = @sourceviews.declaration(
+    @sourceviews.mode_input(@sourceviews.source_acquisition_mode(left)),
   )
+  let right_source = @sourceviews.declaration(
+    @sourceviews.mode_input(@sourceviews.source_acquisition_mode(right)),
+  )
+  assert_eq(
+    (left_source.connector, left_source.resource, left_source.view),
+    ("crm/main", "r", Some("v")),
+  )
+  assert_eq(
+    (right_source.connector, right_source.resource, right_source.view),
+    (left_source.connector, left_source.resource, left_source.view),
+  )
+  // Equal Source facts retain distinct original occurrences, not a fabricated
+  // Query CID. Both belong to the same checked Program above.
   assert_false(
     physical_equal(
-      @planning.query_requirement_program(left),
-      @planning.query_requirement_program(foreign),
+      @sourceviews.source_acquisition_owner(left),
+      @sourceviews.source_acquisition_owner(right),
+    ),
+  )
+  let identity = @checked.source_identity(checked)
+  assert_not_eq(
+    @context.stage_identity_definition_cid(
+      @context.program_identity_stage_at(identity, 0).unwrap(),
+    ),
+    @context.stage_identity_definition_cid(
+      @context.program_identity_stage_at(identity, 1).unwrap(),
+    ),
+  )
+  let (foreign_prepared, _) = unfiltered_join_requirement_program()
+  let foreign_request = @publication_host.prepare_source_free_client_request_identity(
+    foreign_prepared,
+    "sha256:" + "a".repeat(64),
+    "unfiltered-join-original",
+  ).unwrap()
+  let foreign = unfiltered_join_whole_input(
+    foreign_prepared, foreign_request, 0,
+  )
+  assert_false(
+    @publication_host.client_source_acquisition_matches_program(
+      prepared, 0, 0, foreign,
     ),
   )
 }
