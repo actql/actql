@@ -274,32 +274,11 @@ pub fn NativeClientMockModelWork::advance_local_observation(
     Err(issue) => return Err(Model(@infer.IdentityExport(issue)))
   }
   self.local_receipt = Some(receipt)
+  // The projection already starts with this token's complete held peak,
+  // including the body scan/join backing. Add only its actual new writers;
+  // independently adding the body again would duplicate retained demand.
   guard self.local_observation_projection_capacity(receipt) is Some(projecting) &&
-    @execution.completed_relation_identity_scan_body(scan, receipt)
-    is Some(body) &&
-    @execution.preparation_execution_capacity({
-      retained: {
-        record_headers: 1L,
-        reference_slots: 0L,
-        scalar_words: 1L,
-        owned_utf16_units: body.length().to_int64(),
-        owned_wire_bytes: 0L,
-      },
-      workspace: {
-        record_headers: 0L,
-        reference_slots: 0L,
-        scalar_words: 0L,
-        owned_utf16_units: 0L,
-        owned_wire_bytes: 0L,
-      },
-      retained_nodes: 0L,
-      workspace_nodes: 0L,
-      retained_bytes: 0L,
-      workspace_bytes: 0L,
-    })
-    is Some(retained_body) &&
-    @execution.add_execution_capacity(projecting, retained_body)
-    is Some(projecting) else {
+    @execution.completed_relation_identity_scan_body(scan, receipt) is Some(_) else {
     return Err(Encoding)
   }
   match self.grow_observation_capacity(projecting) {
