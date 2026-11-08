@@ -10,7 +10,7 @@ import {spawnSync} from 'node:child_process';
 test('Native Model local observation retains partial exports before issuer retirement', {timeout: 90_000}, t => {
   const source = readFileSync(new URL('../src/platform_native/client_host/mock_model_observation.mbt', import.meta.url), 'utf8');
   const capacities = readFileSync(new URL('../src/platform_native/client_host/mock_model_observation_capacity.mbt', import.meta.url), 'utf8');
-  const names = ['close_observation', 'prepare_local_observation', 'advance_local_observation', 'local_observation_original'];
+  const names = ['close_observation', 'prepare_local_observation', 'advance_local_observation', 'local_observation_original', 'local_observation_dependency_bodies'];
   const bodies = names.map(name => {
     const block = source.split('///|').find(value => value.includes(`fn NativeClientMockModelWork::${name}(`));
     assert(block, name); return block.trim();
@@ -61,6 +61,8 @@ pub fn finish_completed_relation_identity_scan(value : CompletedRelationIdentity
   if value.output.mode == 4 { Err(Refused) } else { Ok({output: value.output}) }
 }
 pub fn completed_relation_identity_scan_body(_ : CompletedRelationIdentityScan, _ : CompletedRelationExportReceipt) -> String? { Some("original-body") }
+pub fn completed_relation_export_schema_identity(_ : CompletedRelationExportReceipt) -> String { "original-schema" }
+pub fn relation_schema_wire(value : String) -> String { value }
 pub fn cancel_completed_relation_identity_scan(value : CompletedRelationIdentityScan) -> Bool { value.output.events.push("scan"); true }
 pub fn cancel_completed_relation_export_receipt(value : CompletedRelationExportReceipt) -> Unit { value.output.events.push("receipt") }
 `);
@@ -122,6 +124,7 @@ test "same production partial constructor and retirement matrix" {
       local_receipt: None, local_observation: None, compiled: 1, definition: 2, graph: 3,
       _retained_limits: {output_rows: 2, output_values: (), identity: {wire: (), logical_wire: (), schema: (), work: 1000, workspace: 1000}},
     }
+    assert_true(work.local_observation_dependency_bodies() is None)
     let opened = work.prepare_local_observation()
     assert_eq(events[0], "acquire")
     assert_eq(events[1], if mode == 6 { "grow-refused" } else { "grow" })
@@ -138,10 +141,19 @@ test "same production partial constructor and retirement matrix" {
       if mode == 3 || mode == 7 { assert_true(work.local_receipt is Some(_)) }
       if mode == 7 { assert_eq(work.publication_retained, 30L); assert_false(events.contains("project")) }
     }
+    if mode == 0 || mode == 5 {
+      assert_eq(work.local_observation_dependency_bodies(), Some([
+        ("relation_value", "original-body"), ("relation_schema", "original-schema"),
+      ]))
+      work.advancing = true
+      assert_true(work.local_observation_dependency_bodies() is None)
+      work.advancing = false
+    } else { assert_true(work.local_observation_dependency_bodies() is None) }
     assert_eq(events.filter(value => value == "grow").length(),
       if mode == 6 { 0 } else if mode == 0 || mode == 3 || mode == 5 { 2 } else { 1 })
     events.clear()
     assert_eq(work.close_observation(), Ok(mode != 5))
+    assert_true(work.local_observation_dependency_bodies() is None)
     let expected : Array[String] = []
     if mode != 1 && mode != 6 { expected.push("scan") }
     if mode == 0 || mode == 3 || mode == 5 || mode == 7 { expected.push("receipt") }
