@@ -84,7 +84,8 @@ pub fn issue_original_local_model_observation_from_scope(_ : OutputUse, _ : Obse
 }
 pub fn original_local_model_observation_body(value : LocalModelObservation) -> @publication.CapturedEffectDependencyBody? { Some({marker: value.marker}) }
 pub fn grow_original_infer_publication_capacity(owner : Execution, value : OriginalModelPublicationCapacity, retained : Int64, _ : Int64) -> Result[Unit, Issue] {
-  if owner.output.mode == 6 || (owner.output.mode == 7 && retained > 30L) {
+  if owner.output.mode == 6 || (owner.output.mode == 7 && retained > 30L) ||
+    (owner.output.mode == 8 && retained > 70L) {
     value.events.push("grow-refused"); Err(Refused)
   } else { value.events.push("grow"); Ok(()) }
 }
@@ -113,7 +114,7 @@ ${grow}
 ${startup}
 ${bodies}
 test "same production partial constructor and retirement matrix" {
-  for mode in 0..<8 {
+  for mode in 0..<9 {
     let events : Array[String] = []
     let issuer : @infer.ObservationIssuance = {events, pending: mode == 5, closed: false}
     let capacity : @infer.OriginalModelPublicationCapacity = {events, released: false}
@@ -125,6 +126,8 @@ test "same production partial constructor and retirement matrix" {
       _retained_limits: {output_rows: 2, output_values: (), identity: {wire: (), logical_wire: (), schema: (), work: 1000, workspace: 1000}},
     }
     assert_true(work.local_observation_dependency_bodies() is None)
+    // Mode8 permits exactly held30+new projection40. The held scan already
+    // owns the body; any independent second body debit must fail this port.
     let opened = work.prepare_local_observation()
     assert_eq(events[0], "acquire")
     assert_eq(events[1], if mode == 6 { "grow-refused" } else { "grow" })
@@ -136,12 +139,12 @@ test "same production partial constructor and retirement matrix" {
       assert_eq(events[2], "start")
       assert_true(opened is Ok(_))
       let result = work.advance_local_observation()
-      if mode == 0 || mode == 5 { assert_eq(result, Ok(true)); assert_true(work.local_observation_original() is Some(_)) }
+      if mode == 0 || mode == 5 || mode == 8 { assert_eq(result, Ok(true)); assert_true(work.local_observation_original() is Some(_)) }
       else { assert_true(result is Err(_)) }
       if mode == 3 || mode == 7 { assert_true(work.local_receipt is Some(_)) }
       if mode == 7 { assert_eq(work.publication_retained, 30L); assert_false(events.contains("project")) }
     }
-    if mode == 0 || mode == 5 {
+    if mode == 0 || mode == 5 || mode == 8 {
       assert_eq(work.local_observation_dependency_bodies(), Some([
         ("relation_value", "original-body"), ("relation_schema", "original-schema"),
       ]))
@@ -150,13 +153,13 @@ test "same production partial constructor and retirement matrix" {
       work.advancing = false
     } else { assert_true(work.local_observation_dependency_bodies() is None) }
     assert_eq(events.filter(value => value == "grow").length(),
-      if mode == 6 { 0 } else if mode == 0 || mode == 3 || mode == 5 { 2 } else { 1 })
+      if mode == 6 { 0 } else if mode == 0 || mode == 3 || mode == 5 || mode == 8 { 2 } else { 1 })
     events.clear()
     assert_eq(work.close_observation(), Ok(mode != 5))
     assert_true(work.local_observation_dependency_bodies() is None)
     let expected : Array[String] = []
     if mode != 1 && mode != 6 { expected.push("scan") }
-    if mode == 0 || mode == 3 || mode == 5 || mode == 7 { expected.push("receipt") }
+    if mode == 0 || mode == 3 || mode == 5 || mode == 7 || mode == 8 { expected.push("receipt") }
     expected.push("use"); expected.push("cancel"); expected.push("issuer")
     if mode != 5 { expected.push("capacity") }
     assert_eq(events, expected)
