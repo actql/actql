@@ -217,7 +217,32 @@ fn LocalProjectMockDeclarations::prepare_source_environment(
         schemas.push(local_project_mock_json(wire))
       }
       for wire in source_capabilities {
-        capabilities.push(local_project_mock_json(wire))
+        let capability = local_project_mock_json(wire)
+        guard capability is Object(fields) else {
+          stop("InvalidProjectBindings")
+        }
+        for binding in source._retained_files {
+          if fields.get("source_ref") ==
+            Some(Json::string(binding.content.source_ref)) {
+            guard fields.get("capability_contract_cids")
+              is Some(Array(contracts)) else {
+              stop("InvalidProjectBindings")
+            }
+            let profile = binding._retained_read_profile.contract()
+            // The original bound implementation, not a profile advertised for
+            // unrelated listing/row Sources or inferred from a resource name.
+            contracts.push(
+              Json::string(@publication.publication_contract_identity(profile)),
+            )
+            contracts.sort_by((a, b) => {
+              match (a, b) {
+                (String(a), String(b)) => a.compare(b)
+                _ => 0
+              }
+            })
+          }
+        }
+        capabilities.push(capability)
       }
       entries.push(local_project_mock_json(declaration.manifest_entry))
       for write in source._retained_writes {

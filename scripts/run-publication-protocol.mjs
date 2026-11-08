@@ -1,3 +1,4 @@
+import {verifyNativeFileReadProfile} from './native-file-read-profile-contract.mjs';
 import {execFileSync} from 'node:child_process';
 import {readFileSync, writeFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
@@ -7,6 +8,8 @@ import {amountMicroPattern} from './interactive-run-control-contract.mjs';
 import {generateEffectLocalOperationVectors} from './effect-local-operation-vectors.mjs';
 import {generateEffectReviewVectors} from './effect-review-projection-vectors.mjs';
 import {checkInstallationPublicationStorageSchema} from './installation-publication-storage-contract.mjs';
+
+verifyNativeFileReadProfile();
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const source = join(root, 'spec/contracts/actql-protocol-schemas.json');
@@ -657,7 +660,11 @@ export function shareProtocolRuleConstructors(constructors) {
 // arrays. Each helper borrows the same destination. Capacity uses the pinned
 // target's existing constructor semantics (a hint only on JS), not a new
 // physical memory guarantee or a numerical Model profile.
+registerArtifactSchema('native_file_content_read', {
+  schema: 'native_file_content_read', identity: 'transport_cid', registry: 'profiles',
+});
 const sharedNodes = shareProtocolRuleConstructors(nodes);
+
 const nodeChunks = [];
 for (let offset = 0; offset < sharedNodes.length; offset += 1000) {
   nodeChunks.push(sharedNodes.slice(offset, offset + 1000));
@@ -716,6 +723,6 @@ const localVectors = join(root,
 if (readFileSync(localVectors, 'utf8') !== generateEffectLocalOperationVectors()) {
   throw new Error(`Independent local-operation vectors are stale: ${localVectors}`);
 }
-// EffectOutcome plus the append-only response profile are outside selected.
-console.log(`${Object.keys(selected).length + 2} Run and Effect schemas and ` +
+// EffectOutcome, response profile and Native file profile are outside selected.
+console.log(`${Object.keys(selected).length + 3} Run and Effect schemas and ` +
   `${Object.keys(control.schemas).length} interactive schemas verified.`);

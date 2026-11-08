@@ -7,6 +7,7 @@ priv struct LocalProjectMockFileBinding {
   content : @row_host.RowDeclaredView
   _retained_physical : @row_host.RowDeclaration
   _retained_provider : @row_file.NativeRelationFilePreparedProvider
+  _retained_read_profile : @row_file.NativeRelationFileKeyedReadProfile
   _retained_selection : @row_file.NativeRelationFileSelection
   _retained_limits : @row_file.NativeRelationFileLimits
   _retained_identity : String
@@ -213,11 +214,28 @@ fn local_project_mock_file_bindings(
       Ok(value) => value
       Err(_) => return Err(InvalidSpecification)
     }
+    let read_profile = match
+      @row_file.prepare_native_relation_file_keyed_read_profile(
+        declaration,
+        content.source_ref,
+        provider,
+        {
+          name: selected[4],
+          version: selected[5],
+          media_type: selected[6],
+          path,
+        },
+        selected[7],
+      ) {
+      Ok(value) => value
+      Err(_) => return Err(InvalidSpecification)
+    }
     result.push({
       listing,
       content,
       _retained_physical: physical,
       _retained_provider: provider,
+      _retained_read_profile: read_profile,
       _retained_selection: selection,
       _retained_limits: limits,
       _retained_identity: identity,

@@ -377,6 +377,8 @@ pub fn row_declaration_catalog_cid(RowDeclaration) -> String
 
 pub fn row_declaration_evidence_members(RowDeclaration) -> (Array[String], Array[String]) raise @encode_core.EncodeFailure
 
+pub fn row_declaration_keyed_read_schema_identities(RowDeclaration, String) -> (String, String)?
+
 pub fn row_declaration_view(RowDeclaration, String) -> RowDeclaredView?
 
 pub fn row_input_acquisition_capacity(RowInputAcquisition, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?

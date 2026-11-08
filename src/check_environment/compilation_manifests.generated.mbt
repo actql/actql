@@ -12,12 +12,12 @@ pub fn compiler_grammar_manifest_wire() -> String {
 
 ///|
 pub fn compiler_barrier_contract_manifest_cid() -> String {
-  "sha256:21248968495ca7184f2d33eb938c97269021ee1714766f286ee5f04b93be06fc"
+  "sha256:86b00bd34605670e14b6bfd5d7fa4ec92385ef8a147f251f374b77a653eda80c"
 }
 
 ///|
 pub fn compiler_barrier_contract_manifest_wire() -> String {
-  "{\"barrier_contract_manifest_cid\":\"sha256:21248968495ca7184f2d33eb938c97269021ee1714766f286ee5f04b93be06fc\",\"contracts\":[{\"contract_cid\":\"sha256:4b7fea87dfbed0e1f11e9421cd077793cd3bccfc3e981617fa2a1547960acee5\",\"name\":\"content_barrier\"},{\"contract_cid\":\"sha256:34f1a37cbaea973964f4cf84ca3806b2492df545b718042ad8057604c95cb6dd\",\"name\":\"inference_barrier\"},{\"contract_cid\":\"sha256:587bfea69fbab0d23d200ac65ffc20c373142c4843820d37db6e0c617f10206a\",\"name\":\"lookup_barrier\"},{\"contract_cid\":\"sha256:cab960023ffd6486161c4757a86bde76c93798504d92a47631c73d747f881cdf\",\"name\":\"text_time_evaluation_barrier\"}],\"production_profile_registry_cid\":\"sha256:1967ffe06ffa38bd34f7ed433d4598ed73ce8ec1511e49792efb50154d9ec4b2\",\"version\":\"actql-barrier-contract-manifest/0.1\"}"
+  "{\"barrier_contract_manifest_cid\":\"sha256:86b00bd34605670e14b6bfd5d7fa4ec92385ef8a147f251f374b77a653eda80c\",\"contracts\":[{\"contract_cid\":\"sha256:4b7fea87dfbed0e1f11e9421cd077793cd3bccfc3e981617fa2a1547960acee5\",\"name\":\"content_barrier\"},{\"contract_cid\":\"sha256:34f1a37cbaea973964f4cf84ca3806b2492df545b718042ad8057604c95cb6dd\",\"name\":\"inference_barrier\"},{\"contract_cid\":\"sha256:587bfea69fbab0d23d200ac65ffc20c373142c4843820d37db6e0c617f10206a\",\"name\":\"lookup_barrier\"},{\"contract_cid\":\"sha256:cab960023ffd6486161c4757a86bde76c93798504d92a47631c73d747f881cdf\",\"name\":\"text_time_evaluation_barrier\"}],\"production_profile_registry_cid\":\"sha256:be730d4f154a09f4c043f5b80bbd1ac961735636e44a6729c3f5fcff03c01e57\",\"version\":\"actql-barrier-contract-manifest/0.1\"}"
 }
 
 ///|

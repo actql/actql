@@ -20,6 +20,7 @@ struct NativeRelationFileContentInput {
   now_ms : () -> Int64
   now_utc : () -> String
   resolve_identity : (@admitted.ReferenceValue) -> String?
+  read_profile : NativeRelationFileKeyedReadProfile?
 }
 
 ///|
@@ -37,6 +38,7 @@ pub fn prepare_native_relation_file_content_input(
   now_ms : () -> Int64,
   now_utc : () -> String,
   resolve_identity : (@admitted.ReferenceValue) -> String?,
+  read_profile? : NativeRelationFileKeyedReadProfile? = None,
 ) -> Result[NativeRelationFileContentInput, NativeRelationFileIssue] {
   if max_content_bytes < 0 ||
     !file_capture_text(content_utf8, 64) ||
@@ -63,6 +65,7 @@ pub fn prepare_native_relation_file_content_input(
     now_ms,
     now_utc,
     resolve_identity,
+    read_profile,
   })
 }
 
@@ -171,9 +174,31 @@ fn native_relation_file_content_capacity(
         // SHA block/state/digest/hex live beside projected bytes: H9/R5/W93,
         // B96/T263, with no copied Source text. Core candidate/reference
         // wire/tree construction uses its existing separate workspace below.
-        record_headers: page.record_headers + 1L + 6L + 7L + 1L + 24L + 9L,
-        reference_slots: page.reference_slots + 6L + 6L + 10L + 30L + 5L,
-        scalar_words: page.scalar_words + 4L + 6L + 3L + 24L + 93L,
+        // The installed profile body is borrowed, not copied. Retain its input
+        // reference and actual Some carrier on this same Content reservation.
+        record_headers: page.record_headers +
+        1L +
+        6L +
+        7L +
+        1L +
+        24L +
+        9L +
+        (if input.read_profile is Some(_) { 1L } else { 0L }),
+        reference_slots: page.reference_slots +
+        6L +
+        6L +
+        10L +
+        30L +
+        5L +
+        1L +
+        (if input.read_profile is Some(_) { 1L } else { 0L }),
+        scalar_words: page.scalar_words +
+        4L +
+        6L +
+        3L +
+        24L +
+        93L +
+        (if input.read_profile is Some(_) { 1L } else { 0L }),
         owned_utf16_units: page.owned_utf16_units + 263L,
         owned_wire_bytes: provider.limits.page.max_bytes.to_int64() + 96L,
       },

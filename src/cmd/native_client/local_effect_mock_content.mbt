@@ -392,6 +392,7 @@ fn LocalCommandBusinessPreparation::capture_mock_effect_content(
         local_status_watch_now_ffi,
         local_utc_now,
         reference => (file._retained_resolve_identity)(binding, reference),
+        read_profile=Some(binding._retained_read_profile),
       ).unwrap_or_else(() => stop("LocalOriginalContentInputUnavailable"))
       match
         @row_file.prepare_native_managed_relation_file_keyed_capture(
