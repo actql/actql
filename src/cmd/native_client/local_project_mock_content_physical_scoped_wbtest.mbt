@@ -100,6 +100,20 @@ test "Native original left Relation identity retains its actual completed prefix
 }
 
 ///|
+// Actual two-Source capture and Model-input component. The authority and
+// retention ports remain explicit; this is not an ordinary Journal/Model send.
+test "Native README reuses original Source evidence in its left Relation and Model input" {
+  assert_eq(@env.get_env_var("ACTQL_TEST_NATIVE_SOURCE_ARTIFACTS"), Some("1"))
+  native_project_mock_model_backed_read(
+    false,
+    readme_request=true,
+    effect_compilation=true,
+    effect_source_inputs=true,
+    content_join=true,
+  )
+}
+
+///|
 // Actual same Store/SQLite/Root/Writer/Reader, with authored raw metadata DATA.
 // No Source authority, Journal activation, Model send or normal funding proof.
 test "Native lookup raw Store preserves exact bytes and original purpose through reopen" {
@@ -432,7 +446,13 @@ fn native_mock_readme_content_join_adopt(
   let source_identities = []
   let source_logicals = []
   let source_observations = []
-  let source_authority = "sha256:" + "8".repeat(64)
+  let source_artifacts = @env.get_env_var("ACTQL_TEST_NATIVE_SOURCE_ARTIFACTS") ==
+    Some("1")
+  let source_authority = if source_artifacts {
+    @run_host.client_request_authority_scope_cid(first.request)
+  } else {
+    "sha256:" + "8".repeat(64)
+  }
   let source_completed = "2026-10-12T00:00:01.000Z"
   let collect_closure = @env.get_env_var(
       "ACTQL_TEST_NATIVE_MODEL_SOURCE_CLOSURE",
@@ -531,7 +551,7 @@ fn native_mock_readme_content_join_adopt(
     // the optional publication closure. Retain the same original for both.
     let same_original = evidence_original.unwrap()
     source_originals.push(same_original)
-    if collect_closure {
+    if collect_closure && !source_artifacts {
       let source = @row_host.row_capture_source(captured).unwrap()
       let identity = @query.identify_captured_source_relation(
         source,
@@ -873,6 +893,109 @@ fn native_mock_readme_content_join_adopt(
     )
   } else {
     None
+  }
+  if source_artifacts {
+    let retention = raw_retention.unwrap()
+    let before_work = @run_host.client_keyed_lookup_input_work(lookup)
+    // A complete left cannot be claimed before its actual two Source originals.
+    assert_true(
+      @run_host.prepare_client_keyed_native_left_relation(
+        lookup,
+        first.request,
+        retention,
+        "native-source-component",
+        65536,
+        4096,
+        32,
+      )
+      is Err(_),
+    )
+    for index, original in source_originals {
+      guard original is Whole(source_original, acquisition) else {
+        fail("original whole Source profile")
+      }
+      let evidence = @run_host.prepare_client_keyed_native_whole_source_evidence(
+        lookup,
+        index,
+        source_original,
+        acquisition,
+        native_children[index].capture().unwrap(),
+        first.request,
+        retention,
+        source_completed,
+        limits.identity.rows,
+        limits.output_values,
+        limits.identity.wire,
+        limits.identity.logical_wire,
+        limits.identity.schema,
+        limits.identity.work,
+        limits.identity.workspace,
+        65536,
+        4096,
+        32,
+      ).native_content_lookup_stage("original Source metadata before dispatch")
+      assert_true(
+        physical_equal(
+          @run_host.client_keyed_native_source_evidence(lookup, index).unwrap(),
+          evidence,
+        ),
+      )
+      source_identities.push(evidence.identity)
+      source_logicals.push(evidence.logical)
+      source_observations.push(evidence.observation)
+    }
+    assert_eq(source_identities.length(), 2)
+    assert_true(@run_host.client_keyed_lookup_input_work(lookup) > before_work)
+    let relation = @run_host.prepare_client_keyed_native_left_relation(
+      lookup,
+      first.request,
+      retention,
+      "native-source-component",
+      65536,
+      4096,
+      32,
+    ).native_content_lookup_stage("original computed left acquisition Relation")
+    assert_true(
+      physical_equal(
+        @run_host.client_keyed_native_left_relation(lookup).unwrap(),
+        relation,
+      ),
+    )
+    assert_eq(
+      @publication.publication_contract_name(relation.artifact),
+      "acquisition_relation",
+    )
+    let identity = left_identity.unwrap()
+    guard @json.parse(@publication.publication_contract_json(relation.artifact))
+      is Object(fields) else {
+      fail("original left acquisition Relation")
+    }
+    assert_eq(
+      fields.get("producer_contract_cid"),
+      Some(Json::string(identity.producer_contract_cid)),
+    )
+    assert_eq(
+      fields.get("logical_value_cid"),
+      Some(Json::string(identity.logical_value_cid)),
+    )
+    assert_eq(
+      fields.get("relation_schema_cid"),
+      Some(Json::string(identity.relation_schema_cid)),
+    )
+    assert_eq(fields.get("actual_row_count"), Some(Json::number(2)))
+    assert_eq(fields.get("actual_completeness"), Some(Json::string("complete")))
+    assert_eq(
+      fields.get("observation_scope_cid"),
+      Some(
+        Json::string(@publication.publication_contract_identity(relation.scope)),
+      ),
+    )
+    guard @json.parse(@publication.publication_contract_json(relation.scope))
+      is Object(scope_fields) &&
+      scope_fields.get("sources") is Some(Array(sources)) else {
+      fail("original contributing Source scopes")
+    }
+    assert_eq(sources.length(), 2)
   }
   let binding_wire = local_project_mock_relation_wire({
     "content_store_id": "native-readme-component",
@@ -1576,6 +1699,12 @@ fn native_mock_readme_content_join_adopt(
   if left_identity is Some(_) {
     assert_true(@run_host.client_keyed_native_left_identity(lookup) is None)
   }
+  if source_artifacts {
+    assert_true(
+      @run_host.client_keyed_native_source_evidence(lookup, 0) is None,
+    )
+    assert_true(@run_host.client_keyed_native_left_relation(lookup) is None)
+  }
   assert_true(
     @local_values.cleanup_client_serialization_prefix(
       @local_values.client_original_composed_keyed_prefix_execution(prefix),
@@ -1784,6 +1913,9 @@ fn[T] Result::native_content_lookup_stage(
         @run_host.Row(value) => "Row: " + @debug.to_string(value)
         @run_host.InputCapture(value) =>
           "InputCapture: " + @debug.to_string(value)
+        @run_host.SourceLogical(_) => "SourceLogical"
+        @run_host.SourceObservation(_) => "SourceObservation"
+        @run_host.Derivation(_) => "Derivation"
         @run_host.CompletedIdentity(value) => {
           let cause = match value {
             @execution.Unavailable => "Unavailable"

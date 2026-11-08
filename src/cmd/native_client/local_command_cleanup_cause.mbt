@@ -143,17 +143,6 @@ fn command_preparation_cleanup_cause(
             InvalidBootstrap => "ReadInvalidBootstrap"
             Resource(_) => "ReadResource"
           }
-        Source(issue) =>
-          match issue {
-            Unavailable => "SourceUnavailable"
-            Binding(_) => "SourceBinding"
-            Completion(_) => "SourceCompletion"
-            Storage(_) => "SourceStorage"
-            Export(_) => "SourceExport"
-            DependencyBodyLimit => "SourceDependencyBodyLimit"
-          }
-        Capacity => "SourceIdentityCapacity"
-        ForeignOriginal => "SourceIdentityForeignOriginal"
       }
     CommandBusinessModelGraph(cause) =>
       match cause {

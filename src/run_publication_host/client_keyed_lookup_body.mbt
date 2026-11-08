@@ -274,6 +274,24 @@ fn clear_keyed_lookup_identity_bodies(lookup : ClientKeyedLookupInput) -> Unit {
     @execution.cancel_completed_relation_identity_scan(scan) |> ignore
   }
   lookup.identity_scan = None
+  if lookup.native_sources is Some(state) {
+    if state.source_scan is Some(scan) {
+      @query.cancel_captured_source_cell_identity(scan) |> ignore
+    }
+    state.source_scan = None
+    if state.source_identity is Some(identity) {
+      @query.clear_captured_source_relation_dependency_bodies(identity)
+    }
+    state.source_identity = None
+    for entry in state.sources {
+      @query.clear_captured_source_relation_dependency_bodies(entry.identity)
+    }
+    state.sources.clear()
+    state.sources.shrink_to_fit()
+    state.relation = None
+    state.request = None
+  }
+  lookup.native_sources = None
   lookup.native_left_identity = None
   if lookup.native_left_receipt is Some(receipt) {
     @execution.cancel_completed_relation_export_receipt(receipt)

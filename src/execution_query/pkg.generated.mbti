@@ -44,6 +44,8 @@ pub fn captured_source_cell_identity_next_capacity(CapturedSourceCellIdentitySca
 
 pub fn captured_source_cell_identity_start_capacity(CapturedInputSource) -> @execution_relation.ExecutionCapacity?
 
+pub fn captured_source_cell_identity_work(CapturedSourceCellIdentityScan) -> Int64
+
 pub fn captured_source_identity_scan_storage(CapturedSourceIdentityScan) -> @execution_relation.ProducerStorage?
 
 pub fn captured_source_matches(CapturedInputSource, @pipeline_check_context.ProgramSourceIdentity, @lowering_relation.BoundPrepared) -> Bool

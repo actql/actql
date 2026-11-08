@@ -521,6 +521,8 @@ pub fn issue_complete_local_result_artifact(String, String, ResultOrderingEviden
 
 pub fn issue_complete_result_artifact(PublicationContract, PublicationContract, ResultOrderingEvidence, PublicationContract, Int, Int, Int, Int) -> Result[PublicationContract, ResultArtifactIssuanceIssue]
 
+pub fn issue_computed_input_relation(ResultOrderingEvidence, PublicationContract, PublicationContract, Int, String, Int, Int, Int) -> Result[PublicationContract, AcquisitionRelationIssue]
+
 pub fn issue_confirmed_cancelled_unpublished_run_state_wire(String, String, Array[String], Int, Int, Int) -> Result[String, RunStateIssue]
 
 pub fn issue_content_model_run_invocation(RunEvidenceValue, RunEvidenceValue, Array[BoundModelSlotCapture], Array[BoundContentGeneration], Int, Int, Int) -> Result[PublicationContract, RunEvidenceValueIssue]

@@ -9,6 +9,7 @@ struct CapturedSourceCellIdentityScan {
   mut advancing : Bool
   mut closed : Bool
   mut stopped : Bool
+  mut work : Int64
 }
 
 ///|
@@ -23,7 +24,7 @@ fn source_cell_identity_capacity(
   guard @execution.preparation_representation_cost({
       record_headers: 9L,
       reference_slots: 17L,
-      scalar_words: 5L,
+      scalar_words: 6L,
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     })
@@ -91,6 +92,7 @@ pub fn start_captured_source_cell_identity(
     advancing: false,
     closed: false,
     stopped: false,
+    work: 0L,
   })
 }
 
@@ -123,6 +125,7 @@ pub fn advance_captured_source_cell_identity(
     quantum,
     construction_capacity=Some(construction_capacity),
   ).map_err(issue => CapturedSourceIssue::Export(issue))
+  value.work = @execution.completed_relation_identity_scan_work(scan)
   value.advancing = false
   if value.stopped {
     cancel_captured_source_cell_identity(value) |> ignore
@@ -204,4 +207,13 @@ pub fn finish_captured_source_cell_identity(
   value.advancing = false
   cancel_captured_source_cell_identity(value) |> ignore
   Ok(identity)
+}
+
+///|
+/// Borrow actual consumed work even after failure/cancellation. This scalar
+/// issues no progress, completion, allocation refund or permission.
+pub fn captured_source_cell_identity_work(
+  value : CapturedSourceCellIdentityScan,
+) -> Int64 {
+  value.work
 }

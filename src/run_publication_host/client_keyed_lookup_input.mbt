@@ -30,6 +30,7 @@ struct ClientKeyedLookupInput {
   mut identity_bodies : (String, String)?
   mut native_left_receipt : @execution.CompletedRelationExportReceipt?
   mut native_left_identity : ClientKeyedNativeLeftIdentity?
+  mut native_sources : ClientKeyedNativeSourceState?
   mut native_left_work : Int64
   mut identity_work : Int64
   rows : Int
@@ -79,10 +80,11 @@ fn keyed_lookup_layout_capacity(
   // complete left row count allocate no payload here. The original request
   // cursor and each actual response grow this SAME reservation below.
   guard @execution.preparation_representation_cost({
-      // Two original left receipt/identity fields and consumed identity work.
+      // Original left receipt/identity and optional Source cache fields, plus
+      // consumed identity work. The Native-only cache body is funded on use.
       // Their later Some/token payloads are funded before construction below.
       record_headers: 0L,
-      reference_slots: 2L,
+      reference_slots: 3L,
       scalar_words: 1L,
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
@@ -228,6 +230,7 @@ fn start_client_keyed_lookup_input_owned(
     identity_bodies: None,
     native_left_receipt: None,
     native_left_identity: None,
+    native_sources: None,
     native_left_work: 0L,
     identity_work: 0L,
     rows,

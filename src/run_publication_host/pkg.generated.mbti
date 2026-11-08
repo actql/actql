@@ -855,6 +855,10 @@ pub fn client_keyed_native_activation_matches(ClientKeyedNativeActivation, Clien
 
 pub fn client_keyed_native_left_identity(ClientKeyedLookupInput) -> ClientKeyedNativeLeftIdentity?
 
+pub fn client_keyed_native_left_relation(ClientKeyedLookupInput) -> ClientKeyedNativeLeftRelation?
+
+pub fn client_keyed_native_source_evidence(ClientKeyedLookupInput, Int) -> ClientKeyedNativeSourceEvidence?
+
 pub fn client_keyed_request_matches_acquisition(ClientKeyedRequest, ClientKeyedAcquisition) -> Bool
 
 pub fn client_keyed_request_preparation_work(ClientKeyedRequestPreparation) -> Int
@@ -1999,7 +2003,11 @@ pub fn prepare_client_keyed_native_batch_plan(ClientKeyedLookupInput, Int, Int, 
 
 pub fn prepare_client_keyed_native_left_identity(ClientKeyedLookupInput, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int, Int) -> Result[ClientKeyedNativeLeftIdentity, ClientKeyedRequestIssue]
 
+pub fn prepare_client_keyed_native_left_relation(ClientKeyedLookupInput, ClientRequestIdentity, @run_publication.PublicationContract, String, Int, Int, Int) -> Result[ClientKeyedNativeLeftRelation, ClientKeyedRequestIssue]
+
 pub fn prepare_client_keyed_native_raw_response(ClientCompiledRun, @run_publication.PublicationContract, ClientKeyedRequest, @run_publication.PublicationContract, String, String, Int, String, Int64, @value_admission.ReferenceLimits) -> Result[ClientKeyedNativeRawResponse, ClientKeyedRequestIssue]
+
+pub fn prepare_client_keyed_native_whole_source_evidence(ClientKeyedLookupInput, Int, @sourceview_resolution.SourceAcquisition, @client_row_source_host.RowInputAcquisition, @client_row_source_host.RowSourceCapture, ClientRequestIdentity, @run_publication.PublicationContract, String, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int, Int, Int, Int, Int) -> Result[ClientKeyedNativeSourceEvidence, ClientKeyedRequestIssue]
 
 pub fn prepare_client_keyed_serialization_inputs(PreparedClientProgram, ClientKeyedLookupInput, @execution_query.CapturedInputSource, @physical_resources.Ledger, @execution_relation.GeneratedSequence) -> Result[(@execution_relation.ProducerRead, @execution_relation.SuppliedRelationRead), ClientKeyedRequestIssue]
 
@@ -3383,10 +3391,27 @@ pub struct ClientKeyedNativeLeftIdentity {
   // private fields
 }
 
+pub struct ClientKeyedNativeLeftRelation {
+  artifact : @run_publication.PublicationContract
+  ordering : @run_publication.ResultOrderingEvidence
+  scope : @run_publication.PublicationContract
+  retention : @run_publication.PublicationContract
+}
+
 pub struct ClientKeyedNativeRawResponse {
   metadata : @run_publication.PublicationContract
   retention : @run_publication.PublicationContract
   holding : String
+}
+
+pub struct ClientKeyedNativeSourceEvidence {
+  identity : @execution_query.CapturedSourceRelationIdentity
+  logical : @run_publication.RunEvidenceValue
+  observation : @run_publication.RunEvidenceValue
+  relation : @run_publication.PublicationContract
+  ordering : @run_publication.PublicationContract
+  scope : @run_publication.PublicationContract
+  retention : @run_publication.PublicationContract
 }
 
 type ClientKeyedRequest
@@ -3407,6 +3432,9 @@ pub(all) enum ClientKeyedRequestIssue {
   Row(@execution_relation.AdmittedOutputRowIssue)
   InputCapture(@execution_relation.CaptureIssue)
   CompletedIdentity(@execution_relation.CompletedExportIssue)
+  SourceLogical(ClientCapturedSourceLogicalIssue)
+  SourceObservation(@client_row_source_host.RowHostIssue)
+  Derivation(@run_publication.ResultEvidenceIssuanceIssue)
 }
 
 pub enum ClientKeyedRequestPoll {

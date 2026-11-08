@@ -266,6 +266,61 @@ fn LocalCommandBusinessPreparation::capture_mock_effect_content(
           stop("LocalOriginalLookupLeftIdentityUnavailable")
         }
       }
+      let observed_at = state.source_completed_at.unwrap_or_else(() => {
+        stop("LocalOriginalSourceClockUnavailable")
+      })
+      for index, original in state.input_originals {
+        let captured = state.sources[index]
+          .capture()
+          .unwrap_or_else(() => stop("LocalOriginalSourceCaptureUnavailable"))
+        match
+          @run_host.prepare_client_keyed_native_whole_source_evidence(
+            lookup,
+            index,
+            original.0,
+            original.1,
+            captured,
+            first.request,
+            installation.retention,
+            observed_at,
+            limits.identity.rows,
+            limits.output_values,
+            limits.identity.wire,
+            limits.identity.logical_wire,
+            limits.identity.schema,
+            limits.identity.work,
+            limits.identity.workspace,
+            native_mock_effect_record_bytes(installation),
+            limits.identity.wire.max_nodes,
+            limits.identity.wire.max_depth,
+          ) {
+          Ok(_) => ()
+          Err(issue) => {
+            self.original.retain_primary(
+              CommandBusinessSource(@row_file.Lookup(issue)),
+            )
+            stop("LocalOriginalLookupSourceEvidenceUnavailable")
+          }
+        }
+      }
+      match
+        @run_host.prepare_client_keyed_native_left_relation(
+          lookup,
+          first.request,
+          installation.retention,
+          self.host.adoption_cid(),
+          native_mock_effect_record_bytes(installation),
+          limits.identity.wire.max_nodes,
+          limits.identity.wire.max_depth,
+        ) {
+        Ok(_) => ()
+        Err(issue) => {
+          self.original.retain_primary(
+            CommandBusinessSource(@row_file.Lookup(issue)),
+          )
+          stop("LocalOriginalLookupLeftArtifactUnavailable")
+        }
+      }
       (
         lookup,
         rows,
