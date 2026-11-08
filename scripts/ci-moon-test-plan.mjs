@@ -1,6 +1,6 @@
 // Moon owns package/import semantics; CI adds the non-Moon input boundaries.
-// This plan narrows JS/Wasm execution only. Whole-module checks, Native's
-// physical profiles, and selected proof/product families remain unchanged.
+// Whole-module checks and selected proof/product families remain unchanged.
+// Native consumes the same closure inside its original physical profiles.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
@@ -119,7 +119,7 @@ export function planMoonTests(paths, graph, tree) {
   assert(names.join('\0').length <= 128 * 1024, 'Selected argv exceeds its finite bound');
   return {schema:'actql-ci-moon-tests/0.1', graphSha256:graph.digest,
     changedPackages:sorted(changed), packages, files:names,
-    portableTargets:['js', 'wasm'], native:'full-existing-profiles',
+    portableTargets:['js', 'wasm'], native:'compiler-owned-existing-profiles',
     supplemental:nonMoonRequirements(paths)};
 }
 
@@ -138,7 +138,7 @@ export function validateMoonTestPlan(plan) {
   assert(plan.files.every(path => path.endsWith('.mbt') && plan.packages.includes(path.slice(0, path.lastIndexOf('/')))));
   assert(plan.files.join('\0').length <= 128 * 1024);
   assert.deepEqual(plan.portableTargets, ['js', 'wasm']);
-  assert.equal(plan.native, 'full-existing-profiles');
+  assert.equal(plan.native, 'compiler-owned-existing-profiles');
   assert.deepEqual(plan.supplemental, [{name:'proof snapshot', jobs:['session-evidence', 'pipeline-evidence']}]);
   return plan;
 }

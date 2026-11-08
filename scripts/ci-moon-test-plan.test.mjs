@@ -10,7 +10,9 @@ import {moonGraphCandidate, nonMoonRequirements, normalizeMoonGraph, planMoonTes
   validateMoonTestPlan, readMoonTestPlan} from './ci-moon-test-plan.mjs';
 import {selectTargets, validateSelection, gateJobRequired, deepProofRequired, verifyGate, gateJobs,
   maintenanceFiles, readChanges} from './ci-targets.mjs';
-import {runMoonTests} from './ci-moon-tests.mjs';
+import {runMoonTests, nativeMoonPackages} from './ci-moon-tests.mjs';
+import {nativeCoreTestSelection, portableMoonTestCount} from './native-core-test-selection.mjs';
+import {runFocusedTests} from './test-execution.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url)).replace(/\/$/u, '');
 const git = args => execFileSync('git', args, {cwd:repository, encoding:'utf8'});
@@ -133,7 +135,7 @@ test('consumer rederives original graph/files before passing exact file argument
   let invoked = 0;
   const options = {git:() => hash, discover(paths, base) {
     assert.deepEqual(paths, selection.paths); assert.equal(base, other); return structuredClone(selection.moonTests);
-  }, preview:() => '/pinned/bin/moon generate-test-driver original', run(kind, args, {cwd}) {
+  }, count:() => 1, run(kind, args, {cwd}) {
     invoked++; assert.equal(kind, 'moon'); assert.equal(cwd, repository);
     assert.deepEqual(args.slice(0, 3), ['--target', 'js', '--deny-warn']);
     assert.deepEqual(args.slice(5), selection.moonTests.files); return 7;
@@ -142,14 +144,15 @@ test('consumer rederives original graph/files before passing exact file argument
   assert.throws(() => runMoonTests(envelope, 'native', other, options));
   assert.throws(() => runMoonTests(envelope, 'js', other, {...options, git:() => other}));
   assert.throws(() => runMoonTests(envelope, 'js', other, {...options, discover:() => ({...selection.moonTests, files:[]})}));
+  for (const value of [undefined, NaN, -1, '1']) assert.throws(() => runMoonTests(envelope, 'js', other, {...options, count:() => value}));
   assert.equal(invoked, 1, 'Refused plans must never invoke a compiler/test');
 });
 
-test('a backend without an applicable compiler driver retains its full nonzero suite', () => {
+test('a backend without runnable compiler cases retains its full nonzero suite', () => {
   const selection = selectTargets(['src/a/code.mbt'], {moonTests:fixture().plan});
   let invoked = 0;
   assert.equal(runMoonTests({sourceRevision:hash, selection}, 'wasm', other, {
-    git:() => hash, discover:() => selection.moonTests, preview:() => '',
+    git:() => hash, discover:() => selection.moonTests, count:() => 0,
     run(kind, args) {
       invoked++; assert.equal(kind, 'moon');
       assert.deepEqual(args.slice(0, 3), ['--target', 'wasm', '--deny-warn']);
@@ -158,6 +161,24 @@ test('a backend without an applicable compiler driver retains its full nonzero s
     },
   }), 1);
   assert.equal(invoked, 1);
+});
+
+test('Native caller consumes the same checked package closure without changing its full entry classification', () => {
+  const selection = selectTargets(['src/a/code.mbt'], {moonTests:fixture().plan});
+  const env = {CI_PLAN:JSON.stringify({sourceRevision:hash, selection}), GITHUB_EVENT_NAME:'pull_request', GITHUB_EVENT_PATH:'original-event'};
+  let reads = 0;
+  const options = {git:() => hash, discover:() => selection.moonTests,
+    readEvent(path) {reads++;assert.equal(path, 'original-event');return {pull_request:{base:{sha:other}}};}};
+  assert.deepEqual(nativeMoonPackages(env, options), selection.moonTests.packages); assert.equal(reads, 1);
+  assert.equal(nativeMoonPackages({}, options), undefined);
+  assert.equal(nativeMoonPackages({CI_PLAN:JSON.stringify({selection:{profile:'full'}})}, options), undefined);
+  assert.throws(() => nativeMoonPackages({...env, GITHUB_EVENT_NAME:'push'}, options));
+  assert.throws(() => nativeMoonPackages(env, {...options, git:() => other}));
+  const source = readFileSync(new URL('./test-native-core.mjs', import.meta.url), 'utf8');
+  assert.match(source, /const full = !\['focused', 'reporting'\]\.includes/u);
+  assert.match(source, /full && process\.env\.CI_PLAN/u);
+  assert.match(source, /nativeMoonPackages\(\)/u);
+  assert.match(source, /timeoutMs: 5 \* 60_000, executionPackages/u);
 });
 
 test('raw additions/deletions/renames/modes and omitted mixed changes refuse before graph discovery', () => {
@@ -219,11 +240,26 @@ test('the actual pinned compiler graph narrows a real Gmail source change and re
   assert(!plan.files.some(path => path.startsWith('src/platform_native/')));
   assert.equal(validateSelection(selectTargets([path], {moonTests:plan})).moonTests, plan);
   for (const target of ['js', 'wasm']) {
-    const commands = execFileSync('moon', ['test', '--target', target, '--deny-warn', ...plan.files, '--dry-run'],
-      {cwd:repository, encoding:'utf8', timeout:60000, maxBuffer:16 * 1024 ** 2});
-    assert.match(commands, /(?:^|\/)moon generate-test-driver /mu,
-      'The real ordinary input must reach selected execution, not permanent full fallback');
+    assert(portableMoonTestCount(repository, ['--deny-warn', ...plan.files], target) > 0,
+      'The real ordinary input must contain runnable compiler cases, not permanent full fallback');
   }
+});
+
+test('the actual repository Native compiler narrows a reverse dependency closure with original profiles and partitions', () => {
+  const tree = git(['ls-tree', '-rz', 'HEAD', '--', 'src']).slice(0, -1).split('\0').map(line => {
+    const [, mode, object, path] = /^(\d{6}) blob ([a-f0-9]{40})\t(.+)$/u.exec(line);
+    return {mode, object, path};
+  });
+  const raw = JSON.parse(execFileSync('moon', ['tree', '--package', '--json'],
+    {cwd:repository, encoding:'utf8', timeout:60000, maxBuffer:16 * 1024 ** 2}));
+  const graph = normalizeMoonGraph(raw, tree, repository);
+  const plan = planMoonTests(['src/bounded_graph_diff/apply_before.mbt'], graph, tree);
+  const selected = nativeCoreTestSelection(repository, ['--deny-warn', '--release', '--strip', '-j', '2', '--no-parallelize'],
+    {partitionProfiles:true, ordinaryPartitions:true, timeoutMs:5 * 60_000, executionPackages:plan.packages});
+  assert.equal(selected.executionScope.mode, 'subset');
+  assert(selected.cases > 0 && selected.cases < selected.executionScope.originalCases);
+  assert.equal(selected.profiles.ordinary.partitions.length, 2);
+  assert(selected.profiles.ordinary.partitions.every(part => part.cases > 0));
 });
 
 test('executed documentation Quickstart changes retain product owners while pure prose stays maintenance', () => {
@@ -245,12 +281,13 @@ test('executed documentation Quickstart changes retain product owners while pure
   }
 });
 
-test('actual compiler and Git endpoints execute only selected JS/Wasm tests while retaining complete checks', t => {
+test('actual compiler and Git endpoints execute only selected backend tests while retaining complete checks', t => {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-moon-ci-graph-')));
   t.after(() => rmSync(root, {recursive:true, force:true}));
   const write = (path, value) => {mkdirSync(dirname(join(root, path)), {recursive:true});writeFileSync(join(root, path), value);};
   const cleanEnv = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('GIT_')));
   const originalGit = args => execFileSync('git', args, {cwd:root, env:cleanEnv, encoding:'utf8', timeout:15000});
+  write('.gitignore', '_build/\n.moon/\n');
   write('moon.mod', 'name = "actql/actql"\nsource = "src"\npreferred_target = "js"\nsupported_targets = "+js+wasm+native"\n');
   write('src/moon.pkg', '');
   for (const name of ['base', 'consumer', 'caller', 'unrelated']) write(`src/${name}/moon.pkg`, '');
@@ -274,7 +311,7 @@ test('actual compiler and Git endpoints execute only selected JS/Wasm tests whil
   const scope = readMoonTestPlan(paths, base, {repository:root, git:originalGit});
   assert.deepEqual(scope.packages, ['src/base', 'src/caller', 'src/consumer']);
   const plan = {sourceRevision:originalGit(['rev-parse', 'HEAD']).trim(), selection:selectTargets(paths, {moonTests:scope})};
-  const event = join(root, '_event.json'), output = join(root, '_outputs');
+  const event = join(root, '_build/event.json'), output = join(root, '_build/outputs');
   writeFileSync(event, JSON.stringify({action:'synchronize', pull_request:{draft:false, base:{sha:base}}}));
   writeFileSync(output, '');
   const environment = {...cleanEnv, GITHUB_EVENT_NAME:'pull_request', GITHUB_EVENT_PATH:event,
@@ -288,5 +325,39 @@ test('actual compiler and Git endpoints execute only selected JS/Wasm tests whil
   for (const target of ['js', 'wasm']) {
     execFileSync('moon', ['check', '--target', target, '--deny-warn'], {cwd:root, env:cleanEnv, encoding:'utf8', timeout:60000});
     assert.equal(runMoonTests(plan, target, base, {cwd:root, git:originalGit}), 0);
+  }
+  const executionPackages = nativeMoonPackages({...environment, CI_PLAN:JSON.stringify(plan)}, {cwd:root});
+  const native = nativeCoreTestSelection(root, ['--deny-warn', '--release', '--strip', '-j', '1', '--no-parallelize'],
+    {partitionProfiles:true, ordinaryPartitions:true, executionPackages});
+  assert.equal(native.executionScope.mode, 'subset');
+  assert.equal(native.executionScope.originalCases, 4); assert.equal(native.cases, 3);
+  assert.equal(native.profiles.ordinary.partitions.reduce((sum, part) => sum + part.cases, 0), 3);
+  for (const part of native.profiles.ordinary.partitions) assert.equal(runFocusedTests('moon',
+    ['--target', 'native', ...part.args], {cwd:root, expectedTests:part.cases}), 0);
+
+  write('src/unrelated/fail_wbtest.mbt', 'test "unselected runtime sentinel" { assert_true(true) }\n');
+  write('src/testless/moon.pkg', '');
+  write('src/testless/value.mbt', 'pub fn value() -> Int { 7 }\n');
+  write('src/bench_only/moon.pkg', 'import { "moonbitlang/core/bench" } for "wbtest"\n');
+  write('src/bench_only/value_wbtest.mbt',
+    'test "benchmark only" (it : @bench.T) { it.bench(fn() { it.keep(7) }) }\n');
+  execFileSync('moon', ['info', '--target', 'js,wasm,native'], {cwd:root, env:cleanEnv, encoding:'utf8', timeout:60000});
+  commit('Original zero-case inputs');
+  for (const file of ['src/testless/value.mbt', 'src/bench_only/value_wbtest.mbt']) {
+    const before = originalGit(['rev-parse', 'HEAD']).trim();
+    write(file, readFileSync(join(root, file), 'utf8') + '// body-only zero-case change\n');
+    commit('Changed zero-case input');
+    const zeroScope = readMoonTestPlan([file], before, {repository:root, git:originalGit});
+    assert.deepEqual(zeroScope.packages, [dirname(file)]);
+    const zeroPlan = {sourceRevision:originalGit(['rev-parse', 'HEAD']).trim(),
+      selection:selectTargets([file], {moonTests:zeroScope})};
+    for (const target of ['js', 'wasm']) {
+      assert.equal(portableMoonTestCount(root, ['--deny-warn', ...zeroScope.files], target), 0);
+      assert.equal(runMoonTests(zeroPlan, target, before, {cwd:root, git:originalGit,
+        run(kind, args, options) {
+          assert.equal(args.length, 5, 'Zero-case selection must run the complete backend');
+          return runFocusedTests(kind, args, {...options, expectedTests:4});
+        }}), 0);
+    }
   }
 });

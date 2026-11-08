@@ -169,7 +169,7 @@ export function selectTargets(paths, {draft = null, event = 'pull_request', main
   if (moonTests && moonGraphCandidate(paths)) {
     try { validateMoonTestPlan(moonTests); }
     catch { return full('Invalid compiler-owned Moon test plan'); }
-    return {...full('Compiler package reverse dependencies select JS/Wasm tests; whole checks, Native and product/proof owners remain required'), moonTests};
+    return {...full('Compiler package reverse dependencies select test execution; whole checks and original Native profiles/product/proof owners remain required'), moonTests};
   }
   if (moonGraphFailure) return full(`Moon dependency discovery unavailable: ${moonGraphFailure}`);
   const path = paths.find(path => sensitive.test(path) || !reviewedPortableFiles.has(path));

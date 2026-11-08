@@ -9,28 +9,44 @@ import {fileURLToPath} from 'node:url';
 import {readMoonTestPlan} from './ci-moon-test-plan.mjs';
 import {validateSelection} from './ci-targets.mjs';
 import {runFocusedTests} from './test-execution.mjs';
+import {portableMoonTestCount} from './native-core-test-selection.mjs';
 
-export function runMoonTests(plan, target, base, {cwd = process.cwd(),
+export function originalMoonTestPlan(plan, base, {cwd = process.cwd(),
   git = args => execFileSync('git', args, {cwd, encoding:'utf8'}),
-  discover = readMoonTestPlan,
-  preview = args => execFileSync('moon', args, {cwd, encoding:'utf8', timeout:60000, maxBuffer:16 * 1024 ** 2}),
-  run = runFocusedTests} = {}) {
-  assert(['js', 'wasm'].includes(target), 'Native retains its full original physical profiles');
+  discover = readMoonTestPlan} = {}) {
   assert.equal(git(['rev-parse', 'HEAD']).trim(), plan?.sourceRevision, 'Foreign test selection');
   const selection = validateSelection(plan.selection);
   assert(selection.moonTests, 'Missing compiler-owned test plan');
   assert.deepEqual(discover(selection.paths, base, {repository:cwd}), selection.moonTests,
     'Changed compiler graph or selected source inventory');
+  return selection.moonTests;
+}
+
+export function nativeMoonPackages(environment = process.env, {cwd = process.cwd(),
+  readEvent = path => JSON.parse(readFileSync(path, 'utf8')), ...options} = {}) {
+  if (!environment.CI_PLAN) return undefined;
+  const plan = JSON.parse(environment.CI_PLAN);
+  if (!plan.selection?.moonTests) return undefined;
+  assert.equal(environment.GITHUB_EVENT_NAME, 'pull_request');
+  const base = readEvent(environment.GITHUB_EVENT_PATH).pull_request.base.sha;
+  return originalMoonTestPlan(plan, base, {cwd, ...options}).packages;
+}
+
+export function runMoonTests(plan, target, base, {cwd = process.cwd(), git, discover,
+  count = (args, backend) => portableMoonTestCount(cwd, args, backend),
+  run = runFocusedTests} = {}) {
+  assert(['js', 'wasm'].includes(target), 'Native uses its original compiler/profile entrance');
+  const scope = originalMoonTestPlan(plan, base, {cwd, git, discover});
   const args = ['--target', target, '--deny-warn', '-j', String(availableParallelism())];
-  const commands = preview(['test', ...args, ...selection.moonTests.files, '--dry-run']);
-  assert.equal(typeof commands, 'string', 'Missing compiler test plan');
-  // A JS-only package may have no Wasm driver. Keep that backend's complete
-  // nonzero suite, rather than invent successful execution for zero tests.
-  if (!commands.split('\n').some(line => /(?:^|\/)moon generate-test-driver /u.test(line.trim()))) {
-    console.log(`Moon ${target}: no applicable selected compiler driver; retaining the full backend suite`);
+  const runnable = count([...args.slice(2), ...scope.files], target);
+  assert(Number.isSafeInteger(runnable) && runnable >= 0, 'Missing compiler runnable test count');
+  // JS-only, testless and benchmark-only packages retain this backend's
+  // complete nonzero suite, rather than claiming a zero-test success.
+  if (runnable === 0) {
+    console.log(`Moon ${target}: no runnable selected compiler cases; retaining the full backend suite`);
     return run('moon', args, {cwd});
   }
-  return run('moon', [...args, ...selection.moonTests.files], {cwd});
+  return run('moon', [...args, ...scope.files], {cwd});
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

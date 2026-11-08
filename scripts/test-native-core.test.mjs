@@ -1563,7 +1563,8 @@ if(process.env.ACTQL_FIXTURE_FAIL_FULL==='1'&&process.argv.includes('--strip'))p
   writeFileSync(join(bin,'getconf'),'#!/bin/sh\nprintf "3\\n"\n');
   chmodSync(join(bin,'getconf'),0o755);
   for(const target of ['native','js','wasm']){
-    const command=coreStep.run.replaceAll('${{ matrix.target }}',target);
+    const command=coreStep.run.replaceAll('${{ matrix.target }}',target)
+      .replaceAll('${{ needs.select-targets.outputs.moon_test_selection }}','false');
     const result=spawnSync('bash',['-eo','pipefail','-c',command],{
       cwd:root,encoding:'utf8',timeout:5000,env:{...process.env,PATH:bin+':'+process.env.PATH,MOONBIT_NEW_NATIVE:'1'},
     });

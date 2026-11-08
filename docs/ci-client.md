@@ -73,11 +73,20 @@ unavailable diff never authorizes omission.
 - JS/Wasm consumers independently reproduce the normalized graph digest and
   original file inventory at the tested checkout before calling the existing
   nonzero test wrapper. Every Core target still runs whole-module
-  `moon check --deny-warn`. Native keeps its existing full physical profiles and
-  both partitions; this change does not replace those profiles with raw tests.
-  If a backend has no applicable selected compiler driver (for example a
-  JS-only package on Wasm), that backend retains its complete nonzero suite.
+  `moon check --deny-warn`. Native receives the same checked package closure
+  inside its existing full-classification entrance. Its compiler first discovers
+  the complete original case inventory, then checks the selected drivers against
+  those exact inputs/case identities. Original HTTP, Source, ordinary and scoped
+  provider profiles remain distinct; physical cases never move to an ordinary
+  or unfunded invocation. Both ordinary partitions remain nonempty/disjoint,
+  with auxiliary profiles owned once by partition 1.
+  If a backend has no runnable selected compiler cases (including testless or
+  benchmark-only inputs, or a JS-only package on Wasm), that backend retains its complete nonzero suite.
   The reason is printed; zero discovery never becomes a successful test result.
+  Native also prints an explicit full fallback when the requested closure lacks
+  two nonempty ordinary packages, has no runnable original cases, or would admit
+  an unselected nested package through a directory input. Neither the metadata
+  deadline nor the original execution/compiler budgets are extended or reduced.
 - FFI/platform, generator/build, JS bridge/distribution and proof-snapshot
   relationships are declared in `ci-moon-test-plan.mjs`. They are not inferred
   from Moon imports. Their existing product jobs remain required. In particular,
