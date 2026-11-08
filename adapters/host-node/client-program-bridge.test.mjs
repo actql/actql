@@ -1782,7 +1782,9 @@ test('public submit rejects checker failures before Run admission', async t => {
       [{n: null}, 'ClientProgramInvalidInput', 'invalid_input'],
       [{n: 'bad'}, 'ClientProgramInvalidInput', 'invalid_input'],
       [{n: 2, extra: true}, 'ClientProgramInvalidInput', 'invalid_input'],
-      [{n: 'x'.repeat(65536)}, 'ClientParametersTooLarge', 'implementation_limit'],
+      // The funded Request admits this wire demand; its String still fails
+      // the original number contract. Raw bounded-bridge refusal is separate.
+      [{n: 'x'.repeat(65536)}, 'ClientProgramInvalidInput', 'invalid_input'],
     ]) {
       const response = await submit(parameters);
       assert.equal(response.status, 200);
