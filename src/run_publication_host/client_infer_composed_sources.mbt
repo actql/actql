@@ -167,7 +167,8 @@ fn admit_client_infer_composed_sources_owned(
       Query(_) => task
       Whole(_) => {
         guard direct is Some(direct) &&
-          client_direct_acquisition_occurrence_at(direct, task) is Some((_, _, producer)) else {
+          client_direct_acquisition_occurrence_at(direct, task)
+          is Some((_, _, producer)) else {
           return Err(ForeignInput)
         }
         producer
@@ -212,7 +213,10 @@ fn admit_client_infer_composed_sources_owned(
             ports.length() == 1 &&
             keyed is Some(observed) &&
             client_composed_keyed_lookup_has_source_producer(
-              observed.lookup, occurrence, captures, task,
+              observed.lookup,
+              occurrence,
+              captures,
+              task,
             ) &&
             @pipeline.input_at(pipeline, ports[0].1) is Some((name, _)) else {
             return Err(ForeignInput)

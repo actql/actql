@@ -53,19 +53,22 @@ pub fn prepare_client_composed_keyed_producer_inputs(
 ) -> Result[Array[(Int, Int, @execution.ProducerRead)], ClientKeyedRequestIssue] {
   guard borrow_client_original_composed_keyed_ledger(
       scope, compiled, definition, plan, keyed, sources, captures,
-    ) is Ok(_) &&
+    )
+    is Ok(_) &&
     sources.get(slot) is Some(source) &&
     @row_host.row_captured_inputs_source_original_at(captures, slot) is Some(_) &&
-    select_client_direct_acquisition_occurrences(plan.owner, 1000000) is Ok(direct) &&
+    select_client_direct_acquisition_occurrences(plan.owner, 1000000)
+    is Ok(direct) &&
     client_direct_acquisition_occurrence_at(direct, slot) is Some((_, _, task)) &&
     task != plan.task &&
     @strategy.graph_task_owner(plan.owner.graph, task) is Some(owner) &&
     physical_equal(owner, @execution.generated_sequence_owner(sequence)) &&
     @execution.generated_sequence_step_count(sequence) > 0 &&
     @execution.generated_sequence_step_index_at(
-      sequence, @execution.generated_sequence_step_count(sequence) - 1,
+      sequence,
+      @execution.generated_sequence_step_count(sequence) - 1,
     ).map(step => @pipeline.Step(step)) ==
-      @lower.preparation_output_target(@lower.bound_preparation(owner)) else {
+    @lower.preparation_output_target(@lower.bound_preparation(owner)) else {
     return Err(ForeignLeft)
   }
   let inputs = []
@@ -77,25 +80,34 @@ pub fn prepare_client_composed_keyed_producer_inputs(
       if target is @pipeline.Step(previous) {
         let mut internal = false
         for index in 0..<position {
-          if @execution.generated_sequence_step_index_at(sequence, index) == Some(previous) {
+          if @execution.generated_sequence_step_index_at(sequence, index) ==
+            Some(previous) {
             internal = true
             break
           }
         }
-        if internal { continue }
+        if internal {
+          continue
+        }
       }
-      let bound = match @query.bind_captured_source_operation(source, owner, step, port) {
+      let bound = match
+        @query.bind_captured_source_operation(source, owner, step, port) {
         Ok(value) => value
         Err(issue) => return Err(Capture(issue))
       }
-      let read = match @execution.prepare_producer_read(owner, bound, max_entries, max_name_bytes) {
+      let read = match
+        @execution.prepare_producer_read(
+          owner, bound, max_entries, max_name_bytes,
+        ) {
         Ok(value) => value
         Err(issue) => return Err(Read(issue))
       }
       inputs.push((step, port, read))
     }
   }
-  if inputs.is_empty() { return Err(ForeignLeft) }
+  if inputs.is_empty() {
+    return Err(ForeignLeft)
+  }
   Ok(inputs)
 }
 
@@ -119,25 +131,50 @@ pub fn retain_client_composed_keyed_producer(
   max_work : Int,
 ) -> Result[ClientComposedKeyedProducer, ClientKeyedRequestIssue] {
   guard borrow_client_original_composed_keyed_ledger(
-      scope, compiled, definition, plan, keyed, sources, captures,
+      scope,
+      compiled,
+      definition,
+      plan,
+      keyed,
+      sources,
+      captures,
       prefix=Some(reservation),
-    ) is Ok(_) &&
+    )
+    is Ok(_) &&
     sources.get(slot) is Some(source) &&
     @row_host.row_captured_inputs_source_original_at(captures, slot) is Some(_) &&
-    select_client_direct_acquisition_occurrences(plan.owner, 1000000) is Ok(direct) &&
+    select_client_direct_acquisition_occurrences(plan.owner, 1000000)
+    is Ok(direct) &&
     client_direct_acquisition_occurrence_at(direct, slot) is Some((_, _, task)) &&
     task != plan.task &&
     @strategy.graph_task_owner(plan.owner.graph, task) is Some(owner) &&
     physical_equal(owner, @execution.generated_sequence_owner(sequence)) &&
-    @lower.preparation_output_target(@lower.bound_preparation(owner)) is Some(target) &&
+    @lower.preparation_output_target(@lower.bound_preparation(owner))
+    is Some(target) &&
     @execution.completed_output_matches_port(output, owner, target) &&
     !inputs.is_empty() &&
-    inputs.all(value => @query.captured_source_matches_segment_input(source, value.2)) &&
-    @execution.retain_completed_segment_inputs(output, sequence, inputs, max_work) is Some(completed) else {
+    inputs.all(value => {
+      @query.captured_source_matches_segment_input(source, value.2)
+    }) &&
+    @execution.retain_completed_segment_inputs(
+      output, sequence, inputs, max_work,
+    )
+    is Some(completed) else {
     return Err(ForeignLeft)
   }
-  Ok({ scope, compiled, definition, plan, keyed, source, slot, sequence,
-    inputs: inputs.copy(), completed, reservation, })
+  Ok({
+    scope,
+    compiled,
+    definition,
+    plan,
+    keyed,
+    source,
+    slot,
+    sequence,
+    inputs: inputs.copy(),
+    completed,
+    reservation,
+  })
 }
 
 ///|
@@ -155,12 +192,21 @@ fn client_composed_keyed_producer_output(
     physical_equal(value.definition, definition) &&
     physical_equal(value.plan, plan) &&
     physical_equal(value.keyed, keyed) &&
-    sources.get(value.slot) is Some(source) && physical_equal(source, value.source) &&
+    sources.get(value.slot) is Some(source) &&
+    physical_equal(source, value.source) &&
     @query.captured_source_available(source) &&
-    @resources.original_borrowed_reservation_available(scope.identity, scope.ledger, value.reservation) else {
+    @resources.original_borrowed_reservation_available(
+      scope.identity,
+      scope.ledger,
+      value.reservation,
+    ) else {
     return None
   }
-  @execution.completed_segment_inputs_output(value.completed, value.sequence, value.inputs)
+  @execution.completed_segment_inputs_output(
+    value.completed,
+    value.sequence,
+    value.inputs,
+  )
 }
 
 ///|
@@ -471,8 +517,16 @@ fn client_composed_keyed_original_current(
   is Some(_) &&
   value.sources.all(@query.captured_source_available) &&
   value.producers.all(producer => {
-    client_composed_keyed_producer_output(producer, value.scope, value.compiled,
-      value.definition, value.plan, value.keyed, value.sources) is Some(_)
+    client_composed_keyed_producer_output(
+      producer,
+      value.scope,
+      value.compiled,
+      value.definition,
+      value.plan,
+      value.keyed,
+      value.sources,
+    )
+    is Some(_)
   }) &&
   @row_host.row_captured_inputs_borrowed_available(
     value.captures,
@@ -632,15 +686,26 @@ fn client_composed_keyed_lookup_has_source_producer(
   // callbackful whole-inventory check for every source in this same walk.
   guard lookup.left.composed is Some(original) &&
     client_infer_occurrence_matches_plan(occurrence, original.plan) &&
-    sources.length() == original.sources.length() else { return false }
+    sources.length() == original.sources.length() else {
+    return false
+  }
   for index, source in sources {
-    if !physical_equal(source, original.sources[index]) { return false }
+    if !physical_equal(source, original.sources[index]) {
+      return false
+    }
   }
   let matches = original.producers.filter(producer => producer.slot == slot)
   matches.length() == 1 &&
-  client_composed_keyed_producer_output(matches[0], original.scope,
-    original.compiled, original.definition, original.plan, original.keyed,
-    sources) is Some(_)
+  client_composed_keyed_producer_output(
+    matches[0],
+    original.scope,
+    original.compiled,
+    original.definition,
+    original.plan,
+    original.keyed,
+    sources,
+  )
+  is Some(_)
 }
 
 ///|
@@ -782,15 +847,26 @@ pub fn prepare_client_original_composed_keyed_inputs(
         (if whole && producers.any(producer => producer.slot == task) {
           let selected = producers.filter(producer => producer.slot == task)
           guard selected.length() == 1 &&
-            client_composed_keyed_producer_output(selected[0], scope, compiled,
-              definition, plan, keyed, sources) is Some(output) else {
+            client_composed_keyed_producer_output(
+              selected[0],
+              scope,
+              compiled,
+              definition,
+              plan,
+              keyed,
+              sources,
+            )
+            is Some(output) else {
             return Err(ForeignLeft)
           }
           match target {
             @pipeline.Input(index) =>
-              @execution.bind_completed_input(keyed.owner, index,
-                @execution.generated_sequence_owner(selected[0].sequence), output)
-              .map_err(issue => @query.CapturedSourceIssue::Binding(issue))
+              @execution.bind_completed_input(
+                keyed.owner,
+                index,
+                @execution.generated_sequence_owner(selected[0].sequence),
+                output,
+              ).map_err(issue => @query.CapturedSourceIssue::Binding(issue))
             _ => return Err(ForeignLeft)
           }
         } else if whole {
@@ -890,18 +966,24 @@ pub fn prepare_client_original_composed_keyed_left(
       let mut selected = None
       for producer in producers {
         if producer.slot == slot {
-          if selected is Some(_) { return Err(ForeignLeft) }
+          if selected is Some(_) {
+            return Err(ForeignLeft)
+          }
           selected = Some(producer)
         }
       }
       let matched = match selected {
         None => @query.captured_source_matches_segment_input(source, read)
         Some(producer) =>
-          client_composed_keyed_producer_output(producer, scope, compiled,
-            definition, plan, keyed, sources) is Some(output) &&
+          client_composed_keyed_producer_output(
+            producer, scope, compiled, definition, plan, keyed, sources,
+          )
+          is Some(output) &&
           @execution.producer_read_matches_completed_output(read, output)
       }
-      if matched { matches += 1 }
+      if matched {
+        matches += 1
+      }
     }
     if matches != 1 {
       return Err(ForeignLeft)

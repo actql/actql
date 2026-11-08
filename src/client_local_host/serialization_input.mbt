@@ -578,6 +578,13 @@ pub fn cleanup_client_serialization_prefix(
           Err(issue) => return Err(Provider(issue))
         }
       }
+      // Main ACK precedes this cut. Its controller must not anchor Root
+      // outputs or reads while an upstream reservation is being returned.
+      // Dependencies retain the actual cleanup/work owners independently.
+      if value.composed is Some(original) {
+        retire_composed_keyed_prefix_input_aliases(original)
+        value.composed = None
+      }
       for index = value.dependencies.length() - 1; index >= 0; index = index - 1 {
         match cleanup_client_serialization_prefix(value.dependencies[index]) {
           Ok(true) => ()
@@ -590,10 +597,6 @@ pub fn cleanup_client_serialization_prefix(
       if !value.dependencies.is_empty() {
         value.final_work = Some(client_serialization_prefix_work(value))
         value.dependencies.clear()
-      }
-      if value.composed is Some(original) {
-        retire_composed_keyed_prefix_input_aliases(original)
-        value.composed = None
       }
       // Alias retirement follows the original child ACK, before this original
       // settlement can consume/fail. A failed return remains retryable here;
