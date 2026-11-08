@@ -101,7 +101,7 @@ fn captured_content_custody_inventory(
       owned_wire_bytes: 5L * max_record_bytes.to_int64(),
     },
     {
-      // Custody H1/R15/W8; five Some slots H5/R5/W5; failures + their Some
+      // Custody H1/R15/W8 plus closed purpose H1/R1/W1; five Some slots H5/R5/W5; failures + their Some
       // H4/R6/W4; generation H1/W3; chunk H1/R1/W1; four fields-array growth
       // peaks H8/R48; five retained/returned record Bytes H5; four names plus
       // suffix/replacement builder H7/R2/W2. Four record field sequences keep
@@ -110,9 +110,9 @@ fn captured_content_custody_inventory(
       // cover persist's one-shot hash and confirm's SAME incremental hasher.
       // Fixed nested Store/FS calls, closure/Result/refusal/return controls
       // H32/R40/W32 also cover the original routing-return pending carrier.
-      record_headers: 1L + 5L + 4L + 1L + 1L + 8L + 5L + 7L + 18L + 32L,
-      reference_slots: 15L + 5L + 6L + 1L + 48L + 2L + 10L + 40L,
-      scalar_words: 8L + 5L + 4L + 3L + 1L + 2L + 186L + 32L,
+      record_headers: 2L + 5L + 4L + 1L + 1L + 8L + 5L + 7L + 18L + 32L,
+      reference_slots: 16L + 5L + 6L + 1L + 48L + 2L + 10L + 40L,
+      scalar_words: 9L + 5L + 4L + 3L + 1L + 2L + 186L + 32L,
       // The original holding CID is71 characters; all private names are ASCII
       // <=128. No original candidate wire or Source content buffer is copied.
       owned_utf16_units: 4L * 128L + 240L + 526L + 8L * diagnostics.to_int64(),

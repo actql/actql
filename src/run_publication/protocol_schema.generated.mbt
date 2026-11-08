@@ -3,7 +3,7 @@
 
 ///|
 fn generated_protocol_schema_nodes() -> Array[ProtocolSchemaRule] {
-  let nodes : Array[ProtocolSchemaRule] = Array(capacity=8457)
+  let nodes : Array[ProtocolSchemaRule] = Array(capacity=8482)
   generated_protocol_schema_nodes_0(nodes)
   generated_protocol_schema_nodes_1(nodes)
   generated_protocol_schema_nodes_2(nodes)
@@ -23292,6 +23292,82 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
+  nodes.push(
+    protocol_string_rule(Some("actql-lookup-raw-response/0.1"), [], 0, 0),
+  )
+  nodes.push(nodes[2])
+  nodes.push(nodes[936])
+  nodes.push(nodes[2])
+  nodes.push(nodes[4])
+  nodes.push(nodes[1])
+  nodes.push(nodes[80])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[1])
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("version", 8457),
+        ("call_slot_cid", 8458),
+        ("network_attempt", 8459),
+        ("content_cid", 8460),
+        ("size_bytes", 8461),
+        ("media_type", 8462),
+        ("captured_at", 8463),
+        ("effective_data_policy_cid", 8464),
+        ("effective_retention_policy_cid", 8465),
+        ("issuer_id", 8466),
+        ("authority_scope_cid", 8467),
+      ],
+      [
+        "version", "call_slot_cid", "network_attempt", "content_cid", "size_bytes",
+        "media_type", "captured_at", "effective_data_policy_cid", "effective_retention_policy_cid",
+        "issuer_id", "authority_scope_cid",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[8457])
+  nodes.push(nodes[2])
+  nodes.push(nodes[936])
+  nodes.push(nodes[2])
+  nodes.push(nodes[4])
+  nodes.push(nodes[1])
+  nodes.push(nodes[80])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[1])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("version", 8469),
+        ("call_slot_cid", 8470),
+        ("network_attempt", 8471),
+        ("content_cid", 8472),
+        ("size_bytes", 8473),
+        ("media_type", 8474),
+        ("captured_at", 8475),
+        ("effective_data_policy_cid", 8476),
+        ("effective_retention_policy_cid", 8477),
+        ("issuer_id", 8478),
+        ("authority_scope_cid", 8479),
+        ("self_cid", 8480),
+      ],
+      [
+        "version", "call_slot_cid", "network_attempt", "content_cid", "size_bytes",
+        "media_type", "captured_at", "effective_data_policy_cid", "effective_retention_policy_cid",
+        "issuer_id", "authority_scope_cid", "self_cid",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
 }
 
 ///|
@@ -23460,6 +23536,8 @@ fn generated_protocol_schema_root(name : String, complete : Bool) -> Int? {
     ("native_file_lookup_call_slot", true) => Some(8423)
     ("native_file_lookup_activation", false) => Some(8439)
     ("native_file_lookup_activation", true) => Some(8456)
+    ("native_file_lookup_raw_response", false) => Some(8468)
+    ("native_file_lookup_raw_response", true) => Some(8481)
     _ => None
   }
 }

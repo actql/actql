@@ -36,6 +36,7 @@ pub fn open_store_with_custody(@sqlite.Library, String, String, Int64, Int64, In
 type CapturedContentCustody
 pub fn CapturedContentCustody::confirm(Self, Int) -> Result[Unit, NativePublicationStoreIssue]
 pub fn CapturedContentCustody::matches_confirmed(Self, @run_publication.CapturedContentReference) -> Bool
+pub fn CapturedContentCustody::matches_lookup_raw_confirmed(Self, @run_publication.PublicationContract) -> Bool
 pub fn CapturedContentCustody::persist(Self, Bytes) -> Result[Unit, NativePublicationStoreIssue]
 pub fn CapturedContentCustody::restore(Self) -> Result[Unit, NativePublicationStoreIssue]
 pub fn CapturedContentCustody::retained_inventory(Self) -> @execution_relation.PreparationRepresentationUnits?
@@ -271,6 +272,7 @@ pub fn Store::custody_location(Self) -> Result[(String, UInt64, UInt64), NativeP
 pub fn Store::inspect_committed_publication(Self, String, String, String, Int, Int, Int) -> Result[@run_publication.PublicationContract?, NativePublicationStoreIssue]
 pub fn Store::inspect_payload(Self, String) -> Result[NativePublicationPayloadInfo, NativePublicationStoreIssue]
 pub fn Store::inspect_result_delivery(Self, String) -> Result[NativeResultDeliveryStatus, NativePublicationStoreIssue]
+pub fn Store::lookup_raw_custody_construction_inventory(Self, Int, @run_publication.PublicationContract) -> @execution_relation.PreparationRepresentationUnits?
 pub fn Store::lookup_result_delivery(Self, @run_publication.DeliveryAttemptLookupScope) -> Result[NativeResultDeliveryLookup?, NativePublicationStoreIssue]
 pub fn Store::matches_original_operation(Self, @sqlite.NativeStoreOperationOriginal) -> Bool
 pub fn Store::observe_allocation(Self, (String) -> Unit) -> Unit
@@ -286,6 +288,7 @@ pub fn Store::prepare_effect_checkpoint_custody(Self, @checkpoint_runtime.Sealed
 pub fn Store::prepare_effect_preview_custody(Self, @run_publication.EffectPreviewIdentity, String, String, String, @signature.Library, Bytes, Int, Int, Int) -> Result[EffectPreviewCustody, NativePublicationStoreIssue]
 pub fn Store::prepare_effect_source_custody(Self, @run_publication.PublicationContract, @run_publication.CapturedEffectSourceArtifact, @publication_payload.PublicationPayloadRequest, String, Int64) -> Result[EffectSourceCustody, NativePublicationStoreIssue]
 pub fn Store::prepare_local_preparation_raw_observation(Self, @remote_credential.LocalPreparationCredentialGrant, @remote_credential.LocalPreparationCredentialUse, @http_client.Client, @signature.Library, Bytes) -> Result[LocalPreparationRawCustody, NativePublicationStoreIssue]
+pub fn Store::prepare_lookup_raw_custody(Self, @run_publication.PublicationContract, String) -> Result[CapturedContentCustody, NativePublicationStoreIssue]
 pub fn Store::prepare_model_evidence_custody(Self, @run_publication.PublicationContract, String, String, String, @run_publication.RunEvidenceValue, @signature.Library, Bytes) -> Result[ModelEvidenceCustody, NativePublicationStoreIssue]
 pub fn Store::read_publication_contract(Self, String, String) -> Result[@run_publication.PublicationContract, NativePublicationStoreIssue]
 pub fn Store::read_result_schema(Self, String) -> Result[String, NativePublicationStoreIssue]

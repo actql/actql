@@ -3,7 +3,7 @@
 // Run/keyed request/ContentRef. No separate Root, Ledger or permission exists.
 struct CapturedContentCustody {
   store : Store
-  original : @publication.CapturedContentReference
+  original : CapturedPayloadOriginal
   holding : String
   key : String
   staging : String
@@ -25,6 +25,14 @@ struct CapturedContentCustody {
   mut failed_writer : @filesystem.NativeWriterOpenFailure?
   mut reader : @filesystem.Reader?
   mut failed_reader : @filesystem.NativeReaderOpenFailure?
+}
+
+///|
+// Two closed metadata purposes on the SAME Store file/capacity/cleanup owner.
+// A raw lookup payload never creates or substitutes a ContentRef.
+priv enum CapturedPayloadOriginal {
+  Content(@publication.CapturedContentReference)
+  LookupRaw(@publication.PublicationContract)
 }
 
 ///|
@@ -146,6 +154,52 @@ pub fn Store::prepare_captured_content_custody(
     return Err(StateCollision)
   }
   let wire = @publication.captured_content_reference_wire(original)
+  self.prepare_captured_payload_custody(
+    Content(original),
+    holding,
+    wire,
+    digest,
+    count.to_int64(),
+  )
+}
+
+///|
+/// The authenticated Source caller supplies its original raw metadata and
+/// private holding. Only persist/confirm on this SAME owner establish byte
+/// custody; a kind, CID or Store quota is not Source permission or memory.
+pub fn Store::prepare_lookup_raw_custody(
+  self : Store,
+  original : @publication.PublicationContract,
+  holding : String,
+) -> Result[CapturedContentCustody, NativePublicationStoreIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
+  guard valid_effect_custody_digest(holding) &&
+    @publication.lookup_raw_response_content(original) is Some((digest, count)) else {
+    return Err(StateCollision)
+  }
+  self.prepare_captured_payload_custody(
+    LookupRaw(original),
+    holding,
+    @publication.publication_contract_json(original),
+    digest,
+    count,
+  )
+}
+
+///|
+fn Store::prepare_captured_payload_custody(
+  self : Store,
+  original : CapturedPayloadOriginal,
+  holding : String,
+  wire : String,
+  digest : String,
+  count : Int64,
+) -> Result[CapturedContentCustody, NativePublicationStoreIssue] {
   let intent = match
     captured_content_record(
       holding,
@@ -180,7 +234,7 @@ pub fn Store::prepare_captured_content_custody(
     name: "captured-content-" + suffix,
     wire,
     digest,
-    bytes: count.to_int64(),
+    bytes: count,
     intent,
     retired_record,
     registered: false,
@@ -451,7 +505,25 @@ pub fn CapturedContentCustody::matches_confirmed(
   self : Self,
   original : @publication.CapturedContentReference,
 ) -> Bool {
-  physical_equal(self.original, original) &&
+  self.original is Content(retained) &&
+  physical_equal(retained, original) &&
+  self.verified &&
+  self.committed &&
+  !self.store.closed &&
+  !self.store.retiring &&
+  self.reader is None &&
+  self.failed_reader is None
+}
+
+///|
+/// Pure original-purpose correspondence after actual byte verification.
+/// This cannot authorize another Source call or create a ContentRef.
+pub fn CapturedContentCustody::matches_lookup_raw_confirmed(
+  self : Self,
+  original : @publication.PublicationContract,
+) -> Bool {
+  self.original is LookupRaw(retained) &&
+  physical_equal(retained, original) &&
   self.verified &&
   self.committed &&
   !self.store.closed &&

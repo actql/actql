@@ -682,6 +682,7 @@ for (const [name, schema] of [
   ['native_file_lookup_request', 'request'],
   ['native_file_lookup_call_slot', 'call_slot'],
   ['native_file_lookup_activation', 'activation'],
+  ['native_file_lookup_raw_response', 'raw_response'],
 ]) {
   registerArtifactSchema(name, {schema, identity: 'self_cid', registry: 'lookup'});
 }
@@ -745,7 +746,9 @@ const localVectors = join(root,
 if (readFileSync(localVectors, 'utf8') !== generateEffectLocalOperationVectors()) {
   throw new Error(`Independent local-operation vectors are stale: ${localVectors}`);
 }
-// EffectOutcome, response profile, Native file descriptors, lookup barrier and
-// Native batch-plan descriptors are outside selected.
-console.log(`${Object.keys(selected).length + 9} Run and Effect schemas and ` +
+// Count actual registered names, including value-only and appended private
+// descriptors. A second handwritten offset drifts when a consumer is added.
+const registeredNames = new Set([...roots.keys()].map(key => key.slice(0, key.lastIndexOf(':'))));
+const artifactSchemaCount = [...registeredNames].filter(name => !Object.hasOwn(control.schemas, name)).length;
+console.log(`${artifactSchemaCount} Run and Effect schemas and ` +
   `${Object.keys(control.schemas).length} interactive schemas verified.`);

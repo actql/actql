@@ -40,9 +40,9 @@ fn captured_protocol_rule_height(
 ///|
 test "captured protocol validation stack is schema-bounded not row-count bounded" {
   let nodes = protocol_schema_nodes()
-  // Append-only lookup barrier/batch/activation descriptors add398 to8059.
+  // Append-only lookup descriptors retain all prior roots.
   // The captured_run roots and their stack height below are unchanged.
-  assert_eq(nodes.length(), 8457)
+  assert_eq(nodes.length(), 8482)
   for complete in [false, true] {
     let root = generated_protocol_schema_root("captured_run", complete).unwrap()
     assert_eq(root, if complete { 2303 } else { 1882 })
