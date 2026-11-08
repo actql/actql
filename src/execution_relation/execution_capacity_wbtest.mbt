@@ -125,7 +125,12 @@ test "bounded selected capacity funds exact completion metadata and preserves op
   ).unwrap()
   // One output field and one input identity, not a legacy whole-owner table.
   assert_eq(ordinary.retained_bytes - bounded.retained_bytes, 19998L * 256L)
-  assert_eq(ordinary.execution_bytes - bounded.execution_bytes, 9998L * 256L)
+  // The original immediate input cells are borrowed: no second 100-node,
+  // 100-byte-text forest. Operation and measurement workspace stay prepaid.
+  assert_eq(
+    ordinary.execution_bytes - bounded.execution_bytes,
+    9998L * 256L + 100L * 256L + 100L * 8L,
+  )
   let more = { ..limits, rows: { ..limits.rows, operation_entries: 10001, }, }
   let larger = generated_bounded_sequence_capacity(selected, more, measurement).unwrap()
   assert_eq(larger.execution_bytes - bounded.execution_bytes, 256L)
@@ -272,4 +277,87 @@ test "one original primitive Values constructor keeps logical budgets without ph
     text, limits, unused_measurement,
   ).unwrap()
   assert_true(text_large.execution_bytes > text_small.execution_bytes)
+}
+
+///|
+test "bounded immediate binding input borrows cells while copied schemas retain full allowance" {
+  for
+    (extra_schema, extra_row, immediate) in [
+      ("", "", true),
+      (
+        ",\"payload\":{\"type\":\"string\",\"nullable\":false}", ",\"payload\":\"x\"",
+        false,
+      ),
+      (
+        ",\"payload\":{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}",
+        ",\"payload\":[1]", false,
+      ),
+    ] {
+    let owner = bound_pipeline(
+      "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":false}" +
+      extra_schema +
+      "},\"rows\":[{\"id\":1,\"flag\":true" +
+      extra_row +
+      "}]},\"as\":\"seed\"},{\"from\":\"seed\",\"select\":[\"id\",\"flag\"]}]",
+    )
+    let sequence = prepared_sequence(owner)
+    let generated = prepare_generated_sequence(
+      registered_relation_contracts(),
+      sequence,
+      [],
+      ["select_1"],
+      100000,
+      10000,
+    ).unwrap()
+    let selected = select_generated_sequence_step(generated, 1).unwrap()
+    let limits = compute_test_limits()
+    let measure = managed_test_measure_limits()
+    let more = {
+      ..limits,
+      rows: {
+        ..limits.rows,
+        input_values: {
+          ..limits.rows.input_values,
+          max_nodes: limits.rows.input_values.max_nodes + 1,
+          max_text_bytes: limits.rows.input_values.max_text_bytes + 1,
+        },
+      },
+    }
+    let before = generated_bounded_sequence_capacity(selected, limits, measure).unwrap()
+    let after = generated_bounded_sequence_capacity(selected, more, measure).unwrap()
+    assert_eq(
+      after.execution_bytes - before.execution_bytes,
+      if immediate {
+        0L
+      } else {
+        264L
+      },
+    )
+    assert_eq(after.retained_bytes, before.retained_bytes)
+    let old = generated_sequence_capacity(selected, limits, measure).unwrap()
+    let old_more = generated_sequence_capacity(selected, more, measure).unwrap()
+    assert_eq(old_more.execution_bytes - old.execution_bytes, 264L)
+    let full = generated_bounded_sequence_capacity(generated, limits, measure).unwrap()
+    let generic = generated_sequence_capacity(generated, limits, measure).unwrap()
+    assert_eq(
+      (full.retained_bytes, full.execution_bytes),
+      (generic.retained_bytes, generic.execution_bytes),
+    )
+    let output_more = generated_bounded_sequence_capacity(
+      selected,
+      {
+        ..limits,
+        rows: {
+          ..limits.rows,
+          output_values: {
+            ..limits.rows.output_values,
+            max_nodes: limits.rows.output_values.max_nodes + 1,
+          },
+        },
+      },
+      measure,
+    ).unwrap()
+    assert_eq(output_more.retained_bytes - before.retained_bytes, 256L)
+    assert_eq(output_more.execution_bytes - before.execution_bytes, 256L)
+  }
 }
