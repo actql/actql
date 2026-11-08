@@ -90,6 +90,39 @@ fn command_preparation_cleanup_cause(
         Store(_) => "SourceStore"
         Lookup(_) => "SourceLookup"
       }
+    CommandBusinessEffectProposals(cause) =>
+      match cause {
+        Managed(original) =>
+          match original {
+            InsufficientCapacity => "EffectProposalsInsufficientCapacity"
+            Ledger(_) => "EffectProposalsLedger"
+            _ => "EffectProposalsManaged"
+          }
+        Capture(original) =>
+          match original {
+            ForeignCapture => "EffectProposalsForeignCapture"
+            Physical(_) => "EffectProposalsPhysical"
+            _ => "EffectProposalsCapture"
+          }
+        Proposal(original) =>
+          match original {
+            ForeignBinding => "EffectProposalsForeignBinding"
+            RowCountMismatch => "EffectProposalsRowCountMismatch"
+            _ => "EffectProposalsProjection"
+          }
+        Export(original) =>
+          match original {
+            ForeignOutput => "EffectProposalsForeignOutput"
+            Export(_) => "EffectProposalsExportBody"
+            _ => "EffectProposalsExport"
+          }
+        Completed(original) =>
+          match original {
+            ForeignMaterial => "EffectProposalsForeignMaterial"
+            Closed => "EffectProposalsClosed"
+            _ => "EffectProposalsCompleted"
+          }
+      }
     CommandBusinessModel(cause) =>
       match cause {
         ForeignOriginal => "ModelForeignOriginal"

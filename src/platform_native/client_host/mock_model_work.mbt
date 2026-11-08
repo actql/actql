@@ -283,7 +283,7 @@ pub fn NativeClientMockModelWork::observe_step_in_original_read(
 /// replacement read; its installing caller retires that same partial Scope.
 pub fn NativeClientMockModelWork::open(
   self : Self,
-  prefix : @execution.GeneratedSequence,
+  sequence : @execution.GeneratedSequence,
   sources : @host.ClientInferComposedSources,
   consumer : @host.ClientModelReadConsumer,
   read_retained_bytes : Int64,
@@ -305,7 +305,7 @@ pub fn NativeClientMockModelWork::open(
       @infer.start_original_composed(
         self.graph.occurrence,
         self.graph,
-        prefix,
+        sequence,
         [],
         self._retained_provider,
         self._retained_limits,
@@ -320,6 +320,33 @@ pub fn NativeClientMockModelWork::open(
       ).map_err(issue => NativeClientMockModelIssue::Model(issue)),
     )
     self.active = Some(active)
+    let (_, _, model_step) = @host.client_infer_occurrence_coordinates(
+      self.graph.occurrence,
+    )
+    guard @host.client_infer_occurrence_output_step(self.graph.occurrence)
+      is Some(last) &&
+      last >= model_step else {
+      return Err(ForeignOriginal)
+    }
+    if last > model_step {
+      // A view of the SAME already compiled Plan sequence, inside this entered
+      // original read window. No Program, kernels, clock or Model is reissued.
+      // Bind before the first advance: raw INFER output cannot stand in for
+      // its checked WHERE/SELECT/Result tail or the Effect dependency port.
+      guard @execution.select_generated_sequence_range(
+          sequence,
+          model_step + 1,
+          last,
+        )
+        is Some(suffix) else {
+        return Err(ForeignOriginal)
+      }
+      mock_model_require(
+        @infer.bind_compute_suffix(active, suffix).map_err(issue => {
+          NativeClientMockModelIssue::Model(issue)
+        }),
+      )
+    }
     mock_model_require(
       @infer.require_model_call_entry(active).map_err(issue => {
         NativeClientMockModelIssue::Binding(issue)
