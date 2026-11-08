@@ -150,6 +150,11 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
     library, root, store_authority, 65536L, 8L, 131072L,
   ).unwrap()
   let (row_limits, limits) = work.publication_limits(65536).unwrap()
+  // Match the ordinary Native caller: per-Result row workspace does not
+  // supply the separate original bridge and publication-evidence budgets.
+  let (bridge_entries, evidence_entries) = work
+    .publication_entry_limits()
+    .unwrap()
   let retention = @publication.seal_publication_contract(
     "result_retention_policy",
     "{\"version\":\"actql-result-retention-policy/0.1\",\"retention_contract_cid\":\"" +
@@ -225,28 +230,13 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
   }
   let pending = work
     .prepare_local_publication(
-      service,
-      results,
-      authoring,
-      publication_intent,
-      occurrence,
-      row_limits,
-      limits.max_result_workspace_entries,
-      65536,
-      limits,
-      65536,
-      8192,
-      64,
+      service, results, authoring, publication_intent, occurrence, row_limits, bridge_entries,
+      65536, limits, 65536, 8192, 64,
     )
     .unwrap()
   assert_true(
     host.observe_publication_run_state(
-      publisher,
-      pending,
-      "2026-10-15T00:00:02.000Z",
-      limits.max_result_workspace_entries,
-      16,
-      1000,
+      publisher, pending, "2026-10-15T00:00:02.000Z", evidence_entries, 16, 1000,
     )
     is Err(Candidate(Unavailable)),
   )
@@ -368,12 +358,7 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
   )
   let observed = match
     host.observe_publication_run_state(
-      publisher,
-      pending,
-      "2026-10-15T00:00:02.000Z",
-      limits.max_result_workspace_entries,
-      16,
-      1000,
+      publisher, pending, "2026-10-15T00:00:02.000Z", evidence_entries, 16, 1000,
     ) {
     Ok(value) => value
     Err(Candidate(ValidationLimit)) =>
@@ -510,12 +495,7 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
   )
   let changed = host
     .observe_publication_run_state(
-      publisher,
-      pending,
-      "2026-10-15T00:00:03.000Z",
-      limits.max_result_workspace_entries,
-      16,
-      1000,
+      publisher, pending, "2026-10-15T00:00:03.000Z", evidence_entries, 16, 1000,
     )
     .unwrap()
   let changed_saved = host
@@ -629,12 +609,7 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
   )
   assert_true(
     host.observe_publication_run_state(
-      publisher,
-      pending,
-      "not-a-time",
-      limits.max_result_workspace_entries,
-      16,
-      1000,
+      publisher, pending, "not-a-time", evidence_entries, 16, 1000,
     )
     is Err(Candidate(State(_))),
   )
@@ -642,10 +617,7 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
   // the actual typed RunRead purpose remains current in the same real Host.
   let candidate = pending
     .prepare_run_state_candidate(
-      "2026-10-15T00:00:02.000Z",
-      limits.max_result_workspace_entries,
-      16,
-      1000,
+      "2026-10-15T00:00:02.000Z", evidence_entries, 16, 1000,
     )
     .unwrap()
   let read_authority = native_local_policy_authority_for(
@@ -756,12 +728,7 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
   )
   assert_true(
     host.observe_publication_run_state(
-      publisher,
-      pending,
-      "2026-10-15T00:00:02.000Z",
-      limits.max_result_workspace_entries,
-      16,
-      1000,
+      publisher, pending, "2026-10-15T00:00:02.000Z", evidence_entries, 16, 1000,
     )
     is Err(Candidate(Publication(Store(@publication_store.Closed)))),
   )
