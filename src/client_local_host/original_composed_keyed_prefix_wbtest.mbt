@@ -67,6 +67,7 @@ fn original_composed_keyed_consumer(
   keyed_identity_bodies? : Bool = false,
   keyed_body_reentry? : Bool = false,
   keyed_body_stop? : Bool = false,
+  direct_effect_evidence? : Bool = false,
 ) -> Unit raise {
   let (declaration, keyed_environment) = original_keyed_declaration_environment(
     relation_versions=true,
@@ -426,6 +427,9 @@ fn original_composed_keyed_consumer(
   let restorations = []
   let whole_observations = []
   let whole_identities : Array[@query.CapturedSourceRelationIdentity] = []
+  let direct_effect_originals : Ref[
+    Array[@publication_host.ClientEffectAcquiredEvidence],
+  ] = Ref([])
   for task in 0..<2 {
     let run = if whole {
       let selected = @publication_host.prepare_client_effect_source_acquisition(
@@ -1520,6 +1524,170 @@ fn original_composed_keyed_consumer(
     }
   }
   assert_eq(@execution.prepared_infer_rows_count(rows.unwrap()), 1)
+  if direct_effect_evidence {
+    let completed_input = client_infer_completed_input(input).unwrap()
+    let scan = @execution.start_completed_relation_identity_scan(
+      completed_input,
+      20,
+      limits.values,
+      limits.payload_wire,
+      limits.logical_wire,
+      limits.schema,
+      10000,
+      10000,
+    ).unwrap()
+    while !@execution.advance_completed_relation_identity_scan(scan, 7).unwrap().0 {
+      ()
+    }
+    let receipt = @execution.finish_completed_relation_identity_scan(scan).unwrap()
+    let call_scope = @publication_host.issue_client_infer_occurrence_call_scope(
+      model._occurrence,
+      model.graph,
+      completed_input,
+      receipt,
+      1000000,
+      100000,
+      100,
+      sources=Some(source_closure),
+    ).unwrap()
+    let artifact = @publication_host.client_infer_call_scope_artifact(
+      call_scope,
+    )
+    guard @json.parse(@publication.run_evidence_value_json(artifact))
+      is Object(fields) &&
+      fields["unit_definition_cid"] is String(unit) else {
+      fail("actual original Model input")
+    }
+    let (logical, schema) = @publication.model_input_artifact_relation_identities(
+      artifact,
+    ).unwrap()
+    let ordinal = @publication_host.client_infer_occurrence_coordinates(
+        model._occurrence,
+      ).2
+    // Only semantic projection is exercised here. These authored outcome CIDs
+    // do NOT attest an accepted Model/provider/OutputUse or physical completion.
+    let preimage = "{\"input_logical_relation_cid\":\"" +
+      logical +
+      "\",\"input_relation_schema_cid\":\"" +
+      schema +
+      "\",\"outcome_logical_relation_cid\":\"sha256:" +
+      "e".repeat(64) +
+      "\",\"outcome_relation_schema_cid\":\"sha256:" +
+      "f".repeat(64) +
+      "\",\"source_ordinal\":" +
+      ordinal.to_string() +
+      ",\"unit_definition_cid\":\"" +
+      unit +
+      "\",\"version\":\"actql-local-model-observation/0.1\"}"
+    let body = @publication.admit_local_effect_dependency_body(
+      "local_model_observation",
+      preimage.replace(
+        old=",\"source_ordinal\":",
+        new=",\"self_cid\":\"sha256:" +
+          @sha.text_hex(preimage).unwrap() +
+          "\",\"source_ordinal\":",
+      ),
+      10000,
+      1000,
+      32,
+    ).unwrap()
+    let retention = @publication.seal_publication_contract(
+      "result_retention_policy",
+      "{\"version\":\"actql-result-retention-policy/0.1\",\"retention_contract_cid\":\"sha256:" +
+      "1".repeat(64) +
+      "\",\"effective_data_policy_cid\":\"sha256:" +
+      "2".repeat(64) +
+      "\",\"available_until\":\"2026-11-06T01:00:00.000Z\",\"delete_by\":\"2026-11-06T02:00:00.000Z\",\"extension_ceiling_at\":\"2026-11-06T03:00:00.000Z\",\"metadata_retention_policy_cid\":\"sha256:" +
+      "3".repeat(64) +
+      "\",\"metadata_delete_by\":\"2026-11-06T04:00:00.000Z\",\"clock_contract_cid\":\"sha256:" +
+      "4".repeat(64) +
+      "\"}",
+      10000,
+      1000,
+      32,
+    ).unwrap()
+    let issued_direct = @publication_host.issue_single_model_client_effect_direct_source_evidence(
+      model.compiled,
+      call_scope,
+      body,
+      source_closure,
+      retention,
+      16384,
+      1024,
+      20,
+    )
+    if !whole {
+      let program = @checked.effect_program_static_checked_computation(
+        @publication_host.prepared_client_effect_computation_candidate(prepared),
+      )
+      assert_true(
+        @checked.unit_result_import_count(
+          program,
+          @publication_host.client_infer_occurrence_coordinates(
+            model._occurrence,
+          ).1,
+        ).unwrap() >
+        0,
+      )
+      assert_true(
+        issued_direct
+        is Err(
+          @publication_host.Invocation(
+            @publication_host.ForeignSourceObservation
+          )
+        ),
+      )
+    } else {
+      let (invocation, direct) = issued_direct.unwrap()
+      assert_eq(direct.length(), 2)
+      direct_effect_originals.val = direct
+      for index, evidence in direct {
+        if source_identity_bodies {
+          let raw = @publication_host.client_effect_acquired_relation_dependency_bodies(
+            evidence,
+          ).unwrap()
+          let source_raw = @query.captured_source_relation_dependency_bodies(
+            whole_identities[index],
+            sources[index],
+          ).unwrap()
+          assert_eq(raw, [
+            ("relation_value", source_raw.0),
+            ("relation_schema", source_raw.1),
+          ])
+        }
+        assert_true(
+          physical_equal(
+            @publication_host.client_effect_acquired_invocation(evidence),
+            invocation,
+          ),
+        )
+        let bodies = @publication_host.client_effect_acquired_dependency_bodies(
+          evidence,
+        )
+        assert_eq(
+          bodies.iter().find_first(pair => pair.0 == "request_values").unwrap().1,
+          "{}",
+        )
+        assert_true(bodies.iter().any(pair => pair.0 == "acquisition_relation"))
+        assert_true(bodies.iter().any(pair => pair.0 == "source_evidence"))
+      }
+      assert_eq(
+        @publication_host.client_infer_composed_source_observations(
+          source_closure,
+        ).length(),
+        3,
+      )
+      // Two Direct relations do not stand in for the third/keyed Source proof.
+      assert_true(
+        @publication_host.client_infer_composed_keyed_lookup(
+          source_closure,
+          model._occurrence,
+        )
+        is Some(_),
+      )
+    }
+  }
+
   if following {
     let completed_input = client_infer_completed_input(input).unwrap()
     let scan = @execution.start_completed_relation_identity_scan(
@@ -1720,6 +1888,14 @@ fn original_composed_keyed_consumer(
   if source_identity_bodies {
     for identity in whole_identities {
       @query.clear_captured_source_relation_dependency_bodies(identity)
+    }
+    for evidence in direct_effect_originals.val {
+      assert_true(
+        @publication_host.client_effect_acquired_relation_dependency_bodies(
+          evidence,
+        )
+        is None,
+      )
     }
     for index, source in sources {
       assert_true(
@@ -1992,4 +2168,18 @@ test "keyed body reentrant cleanup defers backing retirement and preserves spent
     keyed_identity_bodies=true,
     keyed_body_stop=true,
   )
+}
+
+///|
+test "actual Whole Source originals supply Model Direct acquisition evidence without Query conversion" {
+  original_composed_keyed_consumer(
+    whole=true,
+    source_identity_bodies=true,
+    direct_effect_evidence=true,
+  )
+}
+
+///|
+test "Query Result-import Model retains its existing direct-only Invocation refusal" {
+  original_composed_keyed_consumer(direct_effect_evidence=true)
 }

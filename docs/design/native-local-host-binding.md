@@ -3054,3 +3054,46 @@ attempt receipt. The keyset, original response barrier, complete actual
 transport/capture history and admitted provenance closure remain separate
 obligations. A raw body or matching CID does not establish those obligations,
 physical cleanup, Artifact admission, Model execution or publication success.
+
+
+### Original Model contributing Source Relations
+
+The Native Model-to-Effect capture projects its contributing Direct/Whole
+Source Relations from the same accepted Model observation and the composed
+Source originals retained by that Model. The generated request document comes
+from the existing typed Request writer, with its original measured byte count;
+it is not reparsed or admitted as a Query. Query-backed contributing inputs
+retain their existing original request document instead.
+
+All member captures reuse one semantic Model Invocation. The already-admitted
+Scope's exact original observation/Plan association is carried forward without
+repeating composed Source admission/current checks. Each contributing
+Source binds its own original observation, logical/schema identity, static
+request and resolved Source policy. Its retention envelope preserves every
+original publication custody/timestamp field and substitutes only that already
+resolved Source policy; this is semantic dependency DATA, not a policy grant,
+extension or new retention owner. Equal-policy requests reuse the admitted
+original envelope. The Source and publication policies remain distinct.
+
+An explicit body-borrow accessor returns the raw Relation/schema preimages
+retained by that exact Source identity scan. Its Source-current check stays
+separate from the immutable metadata dependency getter; missing or retired
+bodies are not reacquired, re-exported or rebuilt.
+
+The actual Native capture operation is retained before this bounded metadata
+construction. The returned Invocation and Source evidence aliases are retained
+before later export/target constructors, then cut before the capture operation
+returns its backing. The existing Model OutputUse/complete issuer owns the
+pre/post current boundaries, including reentrant Ref emission; no second
+Model use, acquisition or execution-success issuer is created.
+
+A private contribution-purpose marker prevents a single returned component
+from entering the older single-Source whole-Unit Artifact issuer. It is routing
+DATA, not a completion/current/authority proof. The combined Model Artifact
+must still close every original input and its required provenance.
+
+This direct-input projection excludes the keyed output Relation. A complete
+keyed Artifact still needs its real admitted transport/batch/attempt history,
+the canonical keyset/static-request scope and captured Source provenance.
+Contributing Direct Relations are not a substitute for that proof or for the
+final Artifact, Store custody, Preview, approval or physical update.

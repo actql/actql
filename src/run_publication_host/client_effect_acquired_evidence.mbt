@@ -6,11 +6,21 @@ pub(all) enum ClientEffectAcquiredEvidenceIssue {
 } derive(Eq, Debug)
 
 ///|
+// The old single-Source Artifact entry must not accept an individual Source
+// contribution from the new multi-input Model closure as an entire Unit.
+priv enum ClientEffectSourceEvidencePurpose {
+  SingleSourceUnit
+  ModelContribution
+}
+
+///|
 /// Closed source provenance from the actual common capture and checked
 /// static request. This does not grant a mutation or transfer Store custody.
 struct ClientEffectAcquiredEvidence {
   owner : PreparedClientEffectComputation
   identity : @query.CapturedSourceRelationIdentity
+  captured : @query.CapturedInputSource
+  purpose : ClientEffectSourceEvidencePurpose
   invocation : ClientEffectLocalInvocation
   input : @publication.RunEvidenceValue
   observation : @publication.RunEvidenceValue
@@ -145,6 +155,8 @@ pub fn issue_client_effect_acquired_evidence(
   Ok({
     owner,
     identity,
+    captured,
+    purpose: SingleSourceUnit,
     invocation,
     input,
     observation,
@@ -309,6 +321,9 @@ fn build_client_effect_acquired_result_artifact(
   ClientEffectLocalResultArtifact,
   ClientEffectLocalResultArtifactIssue,
 ] {
+  if source.purpose is ModelContribution {
+    return Err(ForeignOwner)
+  }
   if !client_effect_local_result_definition_matches(
       definition,
       owner,
@@ -358,4 +373,18 @@ fn build_client_effect_acquired_result_artifact(
     max_depth,
     scope=Some(source.scope),
   )
+}
+
+///|
+/// Read the preimages retained by this exact original Source identity pass.
+/// Keep this explicit currentful body borrow separate from the immutable
+/// metadata dependency getter. It performs no re-export/hash/provider read.
+/// Missing bodies or retired originals stay absent; they are never rebuilt.
+pub fn client_effect_acquired_relation_dependency_bodies(
+  value : ClientEffectAcquiredEvidence,
+) -> Array[(String, String)]? {
+  @query.captured_source_relation_dependency_bodies(
+    value.identity,
+    value.captured,
+  ).map(body => [("relation_value", body.0), ("relation_schema", body.1)])
 }

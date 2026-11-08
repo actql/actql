@@ -315,3 +315,43 @@ pub fn original_local_model_observation_input_bodies(
     ),
   ])
 }
+
+///|
+/// Contributing Direct/Whole Source provenance from this SAME accepted Model
+/// and its original retained composed inputs. The separate keyed proof is not
+/// completed by this projection. No second output use, Source read or issuer.
+pub fn issue_original_local_model_direct_source_evidence(
+  value : LocalModelObservation,
+  retention : @publication.PublicationContract,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (
+    @publication_host.ClientEffectLocalInvocation,
+    Array[@publication_host.ClientEffectAcquiredEvidence],
+  ),
+  @publication_host.ClientEffectAcquiredEvidenceIssue,
+] {
+  guard original_local_model_observation_current(value.held, value.issued) &&
+    value.held.owner.call_scope is Some(scope) &&
+    value.held.owner.composed_sources is Some(sources) else {
+    return Err(Invocation(ForeignCapturedInput))
+  }
+  let result = @publication_host.issue_single_model_client_effect_direct_source_evidence(
+    value.issued.state.compiled,
+    scope,
+    value.body,
+    sources,
+    retention,
+    max_bytes,
+    max_nodes,
+    max_depth,
+  )
+  // Static Request emission can call an original Ref current observer. Do not
+  // return a semantic projection if that callback retired the actual Model.
+  if !original_local_model_observation_current(value.held, value.issued) {
+    return Err(Invocation(ForeignCapturedInput))
+  }
+  result
+}

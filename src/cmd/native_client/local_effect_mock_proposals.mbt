@@ -8,6 +8,7 @@ priv enum LocalNativeMockEffectProposalIssue {
   Export(@strategy.CapturedEffectLocalResultExportIssue)
   Completed(@execution.CompletedExportIssue)
   Keyed(@run_host.ClientKeyedRequestIssue)
+  Source(@run_host.ClientEffectAcquiredEvidenceIssue)
 }
 
 ///|
@@ -32,6 +33,8 @@ priv struct LocalNativeMockEffectProposals {
   inputs : @strategy.CapturedEffectInputs
   members : Array[LocalNativeMockEffectProposalMember]
   mut _retained_keyed_identity : @run_host.ClientKeyedLookupRequestIdentity?
+  mut invocation : @run_host.ClientEffectLocalInvocation?
+  mut _retained_direct_evidence : Array[@run_host.ClientEffectAcquiredEvidence]
 }
 
 ///|
@@ -49,6 +52,7 @@ priv struct LocalNativeMockEffectProposalMember {
 ///|
 fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
   self : LocalCommandBusinessPreparation,
+  retention : @publication.PublicationContract,
 ) -> Unit raise ClientStop {
   guard self.original.business is Some(business) &&
     business.effect_model is Some(state) &&
@@ -85,6 +89,8 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
       inputs,
       members: [],
       _retained_keyed_identity: None,
+      invocation: None,
+      _retained_direct_evidence: [],
     }
     state.proposals = Some(held)
     @local_values.retain_installed_effect_captured_input_inventory(
@@ -145,9 +151,17 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
           .native_effect_proposal(self.original),
         )
       }
-      let invocation = business.model_work[0]
-        .local_effect_invocation(16384, 1024, 20)
-        .unwrap_or_else(() => stop("LocalOriginalEffectInvocationUnavailable"))
+      if held.invocation is None {
+        let (invocation, sources) = business.model_work[0]
+          .local_effect_direct_source_evidence(retention, 16384, 1024, 20)
+          .map_err(issue => LocalNativeMockEffectProposalIssue::Source(issue))
+          .native_effect_proposal(self.original)
+        // Keep the actual returned originals before any later export/target
+        // constructor. All members reuse this one semantic Invocation.
+        held.invocation = Some(invocation)
+        held._retained_direct_evidence = sources
+      }
+      let invocation = held.invocation.unwrap()
       guard @strategy.captured_effect_input_at(inputs, entry) is Some(input) &&
         @run_host.client_effect_local_invocation_matches(
           invocation,
@@ -257,6 +271,8 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
 // pins. No file, pending write, Store or physical owner is acknowledged here.
 fn LocalNativeMockEffectProposals::close(self : Self) -> Bool {
   self._retained_keyed_identity = None
+  self.invocation = None
+  self._retained_direct_evidence.clear()
   for entry in self.members {
     @strategy.cancel_captured_effect_proposal_plan(entry.plan)
     if entry.receipt is Some(receipt) {
