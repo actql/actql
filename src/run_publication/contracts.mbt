@@ -151,6 +151,13 @@ fn contract_spec(name : String) -> ContractSpec? {
         identity: "self_cid",
         fields: [],
       })
+    "native_file_lookup_raw_response" =>
+      Some({
+        name,
+        version: "actql-lookup-raw-response/0.1",
+        identity: "self_cid",
+        fields: [],
+      })
     "native_file_lookup_batch_plan" =>
       Some({
         name,
@@ -1360,6 +1367,7 @@ pub fn admit_publication_contract(
   if [
       "acquisition_relation", "acquisition_scope", "request_key_set", "native_file_lookup_batch_plan",
       "native_file_lookup_request", "native_file_lookup_call_slot", "native_file_lookup_activation",
+      "native_file_lookup_raw_response",
     ].contains(name) &&
     wire != complete_wire {
     return Err(InvalidWire)

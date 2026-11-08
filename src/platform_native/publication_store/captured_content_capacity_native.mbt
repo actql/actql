@@ -18,16 +18,45 @@ pub fn Store::captured_content_custody_construction_inventory(
   chunk_bytes : Int,
   candidate? : @publication.CapturedContentReference? = None,
 ) -> @execution.PreparationRepresentationUnits? {
+  let wire = match candidate {
+    None => None
+    Some(original) =>
+      Some(@publication.captured_content_reference_wire(original))
+  }
+  self.captured_payload_construction_inventory(chunk_bytes, wire)
+}
+
+///|
+/// Same file/record/verification/cleanup inventory as Content, with actual raw
+/// metadata. Original response bytes and semantic issuance keep their own
+/// Source backing; this quotes no disk grant or execution permission.
+pub fn Store::lookup_raw_custody_construction_inventory(
+  self : Store,
+  chunk_bytes : Int,
+  original : @publication.PublicationContract,
+) -> @execution.PreparationRepresentationUnits? {
+  guard @publication.lookup_raw_response_content(original) is Some(_) else {
+    return None
+  }
+  self.captured_payload_construction_inventory(
+    chunk_bytes,
+    Some(@publication.publication_contract_json(original)),
+  )
+}
+
+///|
+fn Store::captured_payload_construction_inventory(
+  self : Store,
+  chunk_bytes : Int,
+  wire : String?,
+) -> @execution.PreparationRepresentationUnits? {
   if self.closed || self.retiring {
     return None
   }
-  let record = match candidate {
+  let record = match wire {
     None => None
-    Some(original) => {
-      guard captured_content_record_bound(
-          @publication.captured_content_reference_wire(original),
-          self.max_record_bytes,
-        )
+    Some(wire) => {
+      guard captured_content_record_bound(wire, self.max_record_bytes)
         is Some(bytes) else {
         return None
       }
@@ -110,13 +139,14 @@ pub fn CapturedContentCustody::retained_inventory(
       owned_wire_bytes: 0L,
     },
     {
-      // Original custody H1/R15/W8; retained generation plus Some H2/R1/W4;
+      // Original custody H1/R15/W8 plus closed purpose H1/R1/W1;
+      // retained generation plus Some H2/R1/W4;
       // three owned names H3; two retained record Bytes H2. Candidate wire,
       // holding/digest and Store are borrowed, not copied by this child.
       // A removed Map entry does NOT mean its bucket backing was freed.
-      record_headers: 1L + 2L + 3L + 2L,
-      reference_slots: 15L + 1L,
-      scalar_words: 8L + 4L,
+      record_headers: 2L + 2L + 3L + 2L,
+      reference_slots: 16L + 1L,
+      scalar_words: 9L + 4L,
       owned_utf16_units: self.key.length().to_int64() +
       self.staging.length().to_int64() +
       self.name.length().to_int64(),

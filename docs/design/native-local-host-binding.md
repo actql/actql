@@ -3230,3 +3230,16 @@ lookup/Request alias. An uncertain transaction retains its original and keeps
 cleanup pending. Actual Source authorization is observed again after persistence
 and before physical advance. This entry does not replace raw-response custody,
 attempt events, adoption, cumulative accounting or the five lookup Artifacts.
+
+Raw lookup byte custody uses the existing captured-payload Store file, quota,
+generation, verification and retirement owner. Its closed metadata purpose is
+distinct from Content: no raw envelope creates a ContentRef, and Content
+correspondence cannot accept that alternative. Both purposes retain their exact
+original metadata object, byte digest and size. The shared constructor and
+retained inventory include the one closed-purpose carrier. Verification reads
+the sealed original generation; restore reattaches its existing reservation
+without another write or holding. Failed writes retain their acquired original
+Writer duties. Successful I/O retirement keeps the durable bytes for their
+original holding. The Source still owes its actual pre-page capture, policy,
+retention, activation and adoption correspondence; Store byte custody alone
+grants none of these and cannot authorize another Source call.

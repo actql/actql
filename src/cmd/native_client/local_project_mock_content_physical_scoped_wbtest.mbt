@@ -63,6 +63,101 @@ test "Native README prepares one first activation for each original canonical ke
 }
 
 ///|
+// Actual same Store/SQLite/Root/Writer/Reader, with authored raw metadata DATA.
+// No Source authority, Journal activation, Model send or normal funding proof.
+test "Native lookup raw Store preserves exact bytes and original purpose through reopen" {
+  let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY").unwrap()
+  let root = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
+  let library = @local_sqlite.load_library(path).unwrap()
+  let authority = "sha256:" + "d".repeat(64)
+  let store = @local_store.open_store_with_custody(
+    library,
+    root,
+    authority,
+    64L,
+    8L,
+    65536L,
+    diagnostic_ceiling=Some(128),
+  ).unwrap()
+  // Raw capture can precede a failing page decoder. Keep opaque bytes rather
+  // than repairing UTF8 or making this a synthetic successful ContentRef.
+  let bytes = b"e\xcc\x81\r\n\xff"
+  let raw = native_lookup_raw_store_metadata(bytes)
+  let holding = "sha256:" + "e".repeat(64)
+  let before = store.capacity_usage().unwrap()
+  assert_true(
+    store.lookup_raw_custody_construction_inventory(2, raw) is Some(_),
+  )
+  let child = store.prepare_lookup_raw_custody(raw, holding).unwrap()
+  assert_false(child.matches_lookup_raw_confirmed(raw))
+  assert_true(child.persist(b"xxxxxx") is Err(@local_store.DigestMismatch))
+  assert_eq(
+    store.capacity_usage().unwrap().reserved_bytes,
+    before.reserved_bytes,
+  )
+  child.persist(bytes).unwrap()
+  child.confirm(2).unwrap()
+  assert_true(child.matches_lookup_raw_confirmed(raw))
+  let same_wire_new_original = native_lookup_raw_store_metadata(bytes)
+  assert_false(child.matches_lookup_raw_confirmed(same_wire_new_original))
+  assert_eq(
+    store.capacity_usage().unwrap().reserved_bytes,
+    before.reserved_bytes + bytes.length().to_int64(),
+  )
+  assert_true(child.retry_cleanup().unwrap())
+  assert_true(child.retained_inventory() is Some(_))
+  assert_true(store.close().unwrap())
+  let reopened = @local_store.open_store_with_custody(
+    library,
+    root,
+    authority,
+    64L,
+    8L,
+    65536L,
+    diagnostic_ceiling=Some(128),
+  ).unwrap()
+  let retained = reopened.prepare_lookup_raw_custody(raw, holding).unwrap()
+  retained.restore().unwrap()
+  retained.confirm(1).unwrap()
+  assert_true(retained.matches_lookup_raw_confirmed(raw))
+  assert_eq(
+    reopened.capacity_usage().unwrap().reserved_bytes,
+    before.reserved_bytes + bytes.length().to_int64(),
+  )
+  assert_true(retained.retry_cleanup().unwrap())
+  assert_true(reopened.close().unwrap())
+  // Stock SQLite is an explicit component input, never an installed provider
+  // or its physical library-unload acknowledgement.
+  assert_true(library.close_checked() is Err(@local_sqlite.Physical(_)))
+}
+
+///|
+fn native_lookup_raw_store_metadata(
+  bytes : Bytes,
+) -> @publication.PublicationContract {
+  let cid = "sha256:" + "a".repeat(64)
+  @publication.seal_publication_contract(
+    "native_file_lookup_raw_response",
+    "{\"version\":\"actql-lookup-raw-response/0.1\",\"call_slot_cid\":\"" +
+    cid +
+    "\",\"network_attempt\":1,\"content_cid\":\"sha256:" +
+    @sha.hex(bytes) +
+    "\",\"size_bytes\":" +
+    bytes.length().to_string() +
+    ",\"media_type\":\"application/octet-stream\",\"captured_at\":\"2026-10-26T00:00:00.000Z\",\"effective_data_policy_cid\":\"" +
+    cid +
+    "\",\"effective_retention_policy_cid\":\"" +
+    cid +
+    "\",\"issuer_id\":\"explicit-native-component\",\"authority_scope_cid\":\"" +
+    cid +
+    "\"}",
+    16384,
+    1024,
+    20,
+  ).unwrap()
+}
+
+///|
 test "Native README Source originals retain the keyed Model closure" {
   assert_eq(
     @env.get_env_var("ACTQL_TEST_NATIVE_MODEL_SOURCE_CLOSURE"),

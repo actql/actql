@@ -519,10 +519,10 @@ test "Native captured Content retained inventory keeps original records and actu
   assert_true(store.active_writers.capacity() > 0)
   assert_eq(
     inventory.reference_slots,
-    18L + store.active_writers.capacity().to_int64(),
+    19L + store.active_writers.capacity().to_int64(),
   )
-  assert_eq(inventory.record_headers, 10L)
-  assert_eq(inventory.scalar_words, 18L)
+  assert_eq(inventory.record_headers, 11L)
+  assert_eq(inventory.scalar_words, 19L)
   assert_eq(
     inventory.owned_wire_bytes,
     child.intent.length().to_int64() + child.retired_record.length().to_int64(),
