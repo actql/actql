@@ -63,6 +63,7 @@ pub fn[I] prepare_request_model_graph(
   manifests~ : @publication_host.ClientCompilationManifests,
   compilation_limits~ : @publication_host.ClientPureCompilationLimits,
   serialization? : @publication_host.ClientSerializationPlanGraph? = None,
+  caller_material? : @execution.PreparationRepresentationUnits? = None,
 ) -> Result[
   @publication_host.ClientInferPlanGraph,
   ClientRequestProgramPlanIssue,
@@ -263,6 +264,21 @@ pub fn[I] prepare_request_model_graph(
         )
         is Some(bytes) else {
         return Err(Preparation(Policy))
+      }
+      // The installed caller owns its selected bounds/provider-holder records,
+      // separately from the Graph. Admit that original constructor inventory
+      // before either constructor; units are DATA and supply no new capacity.
+      let bytes = match caller_material {
+        None => bytes
+        Some(storage) => {
+          guard @execution.preparation_representation_cost(storage)
+            is Some(caller_bytes) &&
+            @execution.checked_preparation_add_product(bytes, caller_bytes, 1L)
+            is Some(total) else {
+            return Err(Preparation(Policy))
+          }
+          total
+        }
       }
       let bytes = if multi is Some(occurrences) && occurrences.length() > 1 {
         // New immutable graph vector plus its old/new backing. The same

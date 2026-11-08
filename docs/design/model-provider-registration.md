@@ -420,6 +420,15 @@ create an identity requirement or supply physical backing. The complete Native
 constructor, Model/read Scope and output/failed-child overlap still require
 admission on the same Request before execution begins.
 
+The bounds owner's construction inventory and the Native caller's holder/Array
+inventory are added to that same Graph preparation reservation before either
+constructor. The existing shared representation tariff prices these declared
+records; the installing caller supplies no new budget or Ledger. Additional
+caller material defaults to absent for existing consumers. An invalid inventory
+refuses before measuring/issuing the Graph and retains the original parent for
+cleanup. This preparation-only addition does not cover later Model/provider,
+Store encryption, output or failed-child constructors by implication.
+
 The original preparation, compiled admission and graph stay together in the same
 Host preparation membership. A private restored-membership index rejects a
 copied bundle; it does not create a second execution Owner or a resume permit.
