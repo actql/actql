@@ -122,6 +122,8 @@ fn native_project_mock_model_backed_read(
   effect_source_inputs? : Bool = false,
   content_join? : Bool = false,
   account_initialization? : Bool = false,
+  static_policy? : Bool = false,
+  authored_predicate? : Bool = false,
 ) -> Unit raise {
   // Reuse the existing real Native facility entry, as in Request/Effect's
   // physical component. This supplies no Command platform/Journal/Account.
@@ -193,6 +195,8 @@ fn native_project_mock_model_backed_read(
       effect_compilation~,
       effect_source_inputs~,
       content_join~,
+      static_policy~,
+      authored_predicate~,
     )
   } else if account_initialization {
     native_project_mock_account_in_original_read()

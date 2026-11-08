@@ -10,7 +10,7 @@ test "captured single JOIN projection uses shared binding and authored keys and 
   assert_true(body.contains("\"on\":[{\"left\":\"id\",\"right\":\"id\"}]"))
   assert_true(body.contains("\"fields\":[\"original\",\"matched\"]"))
   assert_eq(body.split("\"carrier\":\"relation\"").length(), 2)
-  assert_eq(body.split("\"filter\":{\"literal\":true}").length(), 2)
+  assert_false(body.contains("\"filter\":{\"literal\":true}"))
   match @check.check_parsed(actual, check_environment(), None, check_limits()) {
     Checked(_) => ()
     Rejected(error) => raise @check.diagnostic_cause(error)

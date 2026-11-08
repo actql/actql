@@ -29,7 +29,7 @@ export function projectTemplateFiles(template) {
     'model-tasks/deal-review.v1.yaml': "task: model-task:deal-review.v1\ninput:\n  StageName: string\n  NextStep: {type: string, nullable: true}\n  notes: {type: content_ref, nullable: false}\ninstructions: |\n  Review only the current stage, current next step and the captured meeting\n  notes supplied for this deal. State whether the notes establish a change.\n  When they do, return the new stage and one specific next step supported by\n  those notes. Do not invent facts, external context or another document.\noutput:\n  changed: boolean\n  stage: string\n  next_step: string\n",
     'mock/catalog.json': json({connections: {
       salesforce: {
-        views: [{resource: 'Opportunity', resource_kind: 'record', schema: {
+        views: [{resource: 'Opportunity', resource_kind: 'record', data_classification: 'internal', schema: {
           id: {type: 'string', nullable: false}, name: {type: 'string', nullable: false},
           StageName: {type: 'string', nullable: false}, NextStep: {type: 'string', nullable: true},
         }, facts: {relation_keys: {candidate_keys: [['id']]}}}],
@@ -42,7 +42,7 @@ export function projectTemplateFiles(template) {
           aliases: ['salesforce.Opportunity']}],
       },
       drive: {
-        views: [{resource: 'files', resource_kind: 'file', schema: {
+        views: [{resource: 'files', resource_kind: 'file', data_classification: 'internal', schema: {
           resource: {type: 'resource_ref', resource_kind: 'file', nullable: false},
           version: {type: 'string', nullable: false}, name: {type: 'string', nullable: false},
           path: {type: 'string', nullable: true}, media_type: {type: 'string', nullable: true},
@@ -51,7 +51,7 @@ export function projectTemplateFiles(template) {
           paths: {type: 'array', nullable: true, items: {type: 'string', nullable: false}},
           glob: {type: 'string', nullable: true},
         }}, acquisition: {kind: 'scan', authority: 'read_metadata'}},
-        {resource: 'contents', resource_kind: 'file', schema: {
+        {resource: 'contents', resource_kind: 'file', data_classification: 'internal', schema: {
           resource: {type: 'resource_ref', resource_kind: 'file', nullable: false},
           version: {type: 'string', nullable: false},
           content: {type: 'content_ref', media_type: 'text/plain', nullable: false},

@@ -298,6 +298,8 @@ fn native_mock_readme_request_payload(
   effect_compilation : Bool,
   effect_source_inputs : Bool,
   content_join : Bool,
+  check_policy? : Bool = false,
+  authored_predicate? : Bool = false,
 ) -> String? raise {
   facility.arena.enter_domain_retained_execution(facility.physical).unwrap()
   let wire : Json = {
@@ -307,12 +309,74 @@ fn native_mock_readme_request_payload(
   }
   let wire = local_project_mock_relation_wire(wire).unwrap()
   let intent = @run_host.prepare_client_submitted_intent(wire, 65536, 8192, 64).unwrap()
+  let verified = Ref(0)
+  let declined = Ref(0)
   let result = @local_host.prepare_native_client_submitted_request_input(
     facility.parent,
     facility.input,
     intent,
     environment,
     publication,
+    verify_request_value_policy=if check_policy {
+      Some(subject => {
+        // This is the original Host callback, before the first compilation or
+        // body borrow. Failed phase observation cannot construct a new body.
+        assert_true(
+          @local_values.borrow_request_effect_plan_input(
+            facility.parent,
+            facility.input,
+          )
+          is Err(_),
+        ) catch {
+          _ => return None
+        }
+        verified.val += 1
+        assert_true(
+          original.verify_static_request_policy(
+            explain_fixture_environment(),
+            subject,
+          )
+          is None,
+        ) catch {
+          _ => return None
+        }
+        let copied = @json.parse(subject) catch { _ => return None }
+        if copied is Object(fields) &&
+          fields.get("request") is Some(Object(values)) &&
+          fields.get("origins") is Some(Object(origins)) &&
+          values.contains("paths") {
+          values["paths"] = Json::array([Json::string("private-selector")])
+          assert_true(
+            original.verify_static_request_policy(
+              environment,
+              local_project_mock_relation_wire(copied).unwrap(),
+            )
+            is None,
+          ) catch {
+            _ => return None
+          }
+          values["paths"] = Json::null()
+          origins["paths"] = (
+            { "origin": "supplied", "parameter": "selector" } : Json)
+          assert_true(
+            original.verify_static_request_policy(
+              environment,
+              local_project_mock_relation_wire(copied).unwrap(),
+            )
+            is None,
+          ) catch {
+            _ => return None
+          }
+        }
+        let policy = original.verify_static_request_policy(environment, subject)
+        if policy is None {
+          declined.val += 1
+        }
+        policy
+      })
+    } else {
+      None
+    },
   )
   let issue = match result {
     Err(issue) => Some(native_mock_readme_request_issue(issue))
@@ -354,6 +418,62 @@ fn native_mock_readme_request_payload(
               )
               if infers.length() != 1 {
                 stop("LocalOriginalModelGraphCount")
+              }
+              if check_policy {
+                assert_true(verified.val > 0)
+                let graph = infers[0]
+                let execution = @run_host.client_infer_plan_graph_execution_contract(
+                  graph,
+                )
+                let region = @compiler_environment.model_task_region_at(
+                  @compiler_environment.model_execution_task(execution),
+                  0,
+                ).unwrap()
+                match
+                  @run_host.admit_client_infer_occurrence_egress(
+                    graph.occurrence,
+                    execution,
+                    () => {
+                      Some({
+                        classification: @compiler_environment.Public,
+                        region,
+                        provider_retention: false,
+                        training_use: false,
+                      })
+                    },
+                  ) {
+                  Ok(_) if !authored_predicate => ()
+                  Err(@run_host.UnknownClassification) if authored_predicate =>
+                    ()
+                  Ok(_) =>
+                    fail(
+                      "authored predicate must retain its unverified provenance",
+                    )
+                  Err(issue) =>
+                    fail(
+                      "original README egress: " +
+                      @debug.to_string(issue) +
+                      "; subjects=" +
+                      verified.val.to_string() +
+                      "; declined=" +
+                      declined.val.to_string(),
+                    )
+                }
+                assert_true(
+                  @run_host.admit_client_infer_occurrence_egress(
+                    graph.occurrence,
+                    execution,
+                    () => {
+                      Some({
+                        classification: @compiler_environment.Unknown,
+                        region,
+                        provider_retention: false,
+                        training_use: false,
+                      })
+                    },
+                  )
+                  is Err(@run_host.UnknownClassification),
+                )
               }
               let request = local_effect_request_identity(
                 preparation,
@@ -462,6 +582,8 @@ fn native_mock_readme_request_in_metadata_read(
   effect_compilation? : Bool = false,
   effect_source_inputs? : Bool = false,
   content_join? : Bool = false,
+  static_policy? : Bool = false,
+  authored_predicate? : Bool = false,
 ) -> String? raise {
   let original = native_project_mock_model_fixture(
     if content_join {
@@ -508,12 +630,30 @@ fn native_mock_readme_request_in_metadata_read(
     original._retained_project,
     Some("deal-review.aql"),
   ).unwrap()
+  let document = if authored_predicate {
+    let changed = document.replace(
+      old="|> ASSERT UNIQUE BY (id)",
+      new="WHERE TRUE\n|> ASSERT UNIQUE BY (id)",
+    )
+    assert_true(changed != document)
+    changed
+  } else {
+    document
+  }
   // The earlier cases intentionally omit payload data. The distinct joined
   // component selects the exact existing template with its fresh data file.
   metadata.leave_domain_original_read(read).unwrap()
   let issue = native_mock_readme_request_payload(
-    facility, environment, publication, document, original, effect_compilation, effect_source_inputs,
+    facility,
+    environment,
+    publication,
+    document,
+    original,
+    effect_compilation,
+    effect_source_inputs,
     content_join,
+    check_policy=static_policy,
+    authored_predicate~,
   )
   facility.arena.close_domain_retained_execution(facility.physical).unwrap()
   match facility.run {
@@ -531,6 +671,29 @@ fn native_mock_readme_request_in_metadata_read(
   metadata.enter_domain_original_read(read).unwrap()
   original.retire_originals().unwrap() |> ignore
   issue
+}
+
+///|
+test "Native README original Request verifies static policies before its first Model compilation" {
+  native_project_mock_model_backed_read(
+    false,
+    readme_request=true,
+    effect_compilation=true,
+    effect_source_inputs=true,
+    static_policy=true,
+  )
+}
+
+///|
+test "Native README original Request retains Unknown for an authored TRUE predicate" {
+  native_project_mock_model_backed_read(
+    false,
+    readme_request=true,
+    effect_compilation=true,
+    effect_source_inputs=true,
+    static_policy=true,
+    authored_predicate=true,
+  )
 }
 
 ///|

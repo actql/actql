@@ -7302,20 +7302,32 @@ fn capture_source_boundary(
   input_name : String,
   imported : @builder.Node,
   fields : Array[String],
-  predicate : @builder.Node,
+  predicate : @builder.Node?,
   projection? : SourceProjectionCapture? = None,
 ) -> (@builder.Node, @builder.Node) raise Abort {
-  let capture_filter = construction.object([
-    ("from", construction.text(input_name)),
-    ("filter", predicate),
-  ])
-  let capture_step = construction.object([
+  let capture_filter = match predicate {
+    Some(original) =>
+      [
+        construction.object([
+          ("from", construction.text(input_name)),
+          ("filter", original),
+        ]),
+      ]
+    None => []
+  }
+  let capture_entries = [
     (
       "select",
       construction.array(fields.map(field => construction.text(field))),
     ),
     ("as", construction.text("aql_capture_0")),
-  ])
+  ]
+  // Absence is not an authored TRUE predicate. Retain the same original
+  // acquisition and projection without introducing unattested value provenance.
+  if predicate is None {
+    capture_entries.insert(0, ("from", construction.text(input_name)))
+  }
+  let capture_step = construction.object(capture_entries)
   let (publication_from, publication_fields, continuation) = match projection {
     Some(projection) if projection.count > 0 =>
       (projection.projection_name, projection.fields, projection.steps)
@@ -7333,7 +7345,10 @@ fn capture_source_boundary(
   let capture = construction.object([
     ("id", construction.text(stage_id)),
     ("inputs", construction.object([(input_name, imported)])),
-    ("steps", construction.array([capture_filter, capture_step] + continuation)),
+    (
+      "steps",
+      construction.array(capture_filter + [capture_step] + continuation),
+    ),
     ("results", construction.object([("source", capture_result)])),
   ])
   let source_ref = construction.object([
@@ -7524,7 +7539,7 @@ pub fn compile_with_source(
     } else {
       None
     }
-    let capture_details : Array[(String, @builder.Node, @builder.Node)] = []
+    let capture_details : Array[(String, @builder.Node, @builder.Node?)] = []
     let mut start_at = 0
     let (input_entries, seed_steps, capture_stage) = match input.source {
       Captured(_) =>
@@ -7533,17 +7548,18 @@ pub fn compile_with_source(
             let predicate = match @query.operation_at(query, 0) {
               Some(Where(expression)) if !reused_query_source => {
                 start_at = 1
-                append_expression(
-                  construction,
-                  expression,
-                  query,
-                  input,
-                  fields,
-                  limits.max_expression_work,
+                Some(
+                  append_expression(
+                    construction,
+                    expression,
+                    query,
+                    input,
+                    fields,
+                    limits.max_expression_work,
+                  ),
                 )
               }
-              _ =>
-                construction.object([("literal", construction.add(Bool(true)))])
+              _ => None
             }
             capture_details.push((stage_id, imported, predicate))
             let (capture, source_ref) = capture_source_boundary(
@@ -7603,7 +7619,7 @@ pub fn compile_with_source(
                 candidate.name,
                 imported,
                 columns(candidate),
-                construction.object([("literal", construction.add(Bool(true)))]),
+                None,
               )
               capture_stages.push(capture)
               input_entries.push((candidate.name, reference))

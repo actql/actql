@@ -154,7 +154,20 @@ fn LocalCommandPreparationOriginal::prepare_business_request(
     let (publication, _) = local_command_project_publication(environment)
     match
       @local_host.prepare_native_client_submitted_request_input(
-        parent, input, intent, environment, publication,
+        parent,
+        input,
+        intent,
+        environment,
+        publication,
+        verify_request_value_policy=match self.project {
+          Some(project) =>
+            project.mock_declarations.map(original => {
+              subject => {
+                original.verify_static_request_policy(environment, subject)
+              }
+            })
+          None => None
+        },
       ) {
       Err(issue) => local_stop_submitted_preparation(issue)
       Ok((preparation, holder)) => {

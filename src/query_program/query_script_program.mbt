@@ -319,7 +319,7 @@ fn lower_script_relation_term(
   } else {
     None
   }
-  let capture_originals : Array[(Int, String, @builder.Node, @builder.Node)] = []
+  let capture_originals : Array[(Int, String, @builder.Node, @builder.Node?)] = []
   let input = bind_script_input(
     construction,
     selected,
