@@ -130,6 +130,13 @@ fn common_grant_fields() -> Array[FieldSpec] {
 ///|
 fn contract_spec(name : String) -> ContractSpec? {
   match name {
+    "lookup_barrier" =>
+      Some({
+        name,
+        version: "actql-lookup-barrier/0.1",
+        identity: "barrier_cid",
+        fields: [],
+      })
     "native_file_lookup_transport" =>
       Some({
         name,
@@ -1184,6 +1191,7 @@ pub fn seal_publication_contract(
       max_nodes - 1,
       max_depth,
       data_keys=name == "captured_run" ||
+        name == "lookup_barrier" ||
         name == "native_file_lookup_transport" ||
         name == "effect_row_outcome_receipt" ||
         name == "effect_local_operation_receipt",
@@ -1280,6 +1288,7 @@ pub fn admit_publication_contract(
       max_nodes,
       max_depth,
       data_keys=name == "captured_run" ||
+        name == "lookup_barrier" ||
         name == "native_file_lookup_transport" ||
         name == "effect_row_outcome_receipt" ||
         name == "effect_local_operation_receipt",

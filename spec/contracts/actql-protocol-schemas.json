@@ -17279,7 +17279,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:447843aa6284014cb8fa15d6d4b2ad6ad74223fc0ebaca774aaa40bf5de43989",
+  "artifact_registry_cid": "sha256:632eb2f5bde239a51bc4d70c0c6db578e50db967bcd3baee537194b1a9465984",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:cf421ba9a3d602be0bf53fc646eb822c0fa96151a2c5cf72a2f271cc7c3a6d77",
@@ -17314,7 +17314,7 @@
     "result_manifest": "sha256:bd718c411677e83cdf33258176d09c6dd690789b3cc7bb897cbff2b629290e02",
     "result_delivery_receipt": "sha256:d68ae5fbe6b23410b08b4419e5ebfa10eb61c38d61273360399e71ae2681de21",
     "plan_document": "sha256:8faa3038775b916b1446c42b8ef3a2349bed1fb9f4341a96025f668a6d199232",
-    "plan_result": "sha256:692b481d25e23400f0f81e0ddade946aba2dafca4dd2f1fe6c22c7e15e5122c1",
+    "plan_result": "sha256:30b762e781c467c305110ca83ad9b724275422380eb060b3c6654d7d6807583b",
     "run_state": "sha256:3fbfc2cc5a79449fd05fce58e0fad25f6eef0ecde8314a222417a2e233db28c2",
     "captured_run": "sha256:feed43823ca2721a948906e49866261d6dff991d20aec1dd7330ea7b433e86fd",
     "execution_account_config": "sha256:12fabf23550cc9bb9ab5023865de0a8e6393a271d7f8c68d31fc1f6dfa41db20",
@@ -80126,301 +80126,596 @@
                 "external_joins": {
                   "type": "array",
                   "items": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": [
-                      "logical_join_node_id",
-                      "source_input",
-                      "connector",
-                      "resource",
-                      "view",
-                      "source_view_contract_cid",
-                      "acquisition_barrier_cid",
-                      "capacity_proof_cid",
-                      "join_kind",
-                      "left_fields",
-                      "right_fields",
-                      "max_distinct_keys",
-                      "access_strategy",
-                      "response_cardinality",
-                      "join_cardinality",
-                      "cardinality_proof",
-                      "null_key",
-                      "static_request_fields",
-                      "effective_response_data_policy_cid",
-                      "observed_response_fields",
-                      "published_right_fields",
-                      "correlation_fields",
-                      "evidence_only_identity_fields",
-                      "max_output_rows",
-                      "completeness"
-                    ],
-                    "properties": {
-                      "logical_join_node_id": {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      "source_input": {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      "connector": {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      "resource": {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      "view": {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      "source_view_contract_cid": {
-                        "type": "string",
-                        "pattern": "^sha256:[0-9a-f]{64}$"
-                      },
-                      "acquisition_barrier_cid": {
-                        "type": "string",
-                        "pattern": "^sha256:[0-9a-f]{64}$"
-                      },
-                      "capacity_proof_cid": {
-                        "type": "string",
-                        "pattern": "^sha256:[0-9a-f]{64}$"
-                      },
-                      "join_kind": {
-                        "enum": [
-                          "inner",
-                          "left",
-                          "semi",
-                          "anti"
-                        ]
-                      },
-                      "left_fields": {
-                        "type": "array",
-                        "minItems": 1,
-                        "uniqueItems": true,
-                        "items": {
-                          "type": "string",
-                          "minLength": 1
-                        }
-                      },
-                      "right_fields": {
-                        "type": "array",
-                        "minItems": 1,
-                        "uniqueItems": true,
-                        "items": {
-                          "type": "string",
-                          "minLength": 1
-                        }
-                      },
-                      "max_distinct_keys": {
-                        "type": "integer",
-                        "minimum": 1
-                      },
-                      "access_strategy": {
-                        "const": "bounded_keyed_acquisition"
-                      },
-                      "response_cardinality": {
-                        "enum": [
-                          "zero_or_one",
-                          "zero_or_many",
-                          "one",
-                          "one_or_many"
-                        ]
-                      },
-                      "join_cardinality": {
-                        "enum": [
-                          "one_to_one",
-                          "one_to_many",
-                          "many_to_one",
-                          "many_to_many",
-                          "unproven"
-                        ]
-                      },
-                      "cardinality_proof": {
-                        "oneOf": [
-                          {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": [
-                              "source",
-                              "contract_cid"
-                            ],
-                            "properties": {
-                              "source": {
-                                "const": "source_view_contract"
-                              },
-                              "contract_cid": {
-                                "type": "string",
-                                "pattern": "^sha256:[0-9a-f]{64}$"
-                              }
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "logical_join_node_id",
+                          "source_input",
+                          "connector",
+                          "resource",
+                          "view",
+                          "source_view_contract_cid",
+                          "acquisition_barrier_cid",
+                          "capacity_proof_cid",
+                          "join_kind",
+                          "left_fields",
+                          "right_fields",
+                          "max_distinct_keys",
+                          "access_strategy",
+                          "response_cardinality",
+                          "join_cardinality",
+                          "cardinality_proof",
+                          "null_key",
+                          "static_request_fields",
+                          "effective_response_data_policy_cid",
+                          "observed_response_fields",
+                          "published_right_fields",
+                          "correlation_fields",
+                          "evidence_only_identity_fields",
+                          "max_output_rows",
+                          "completeness"
+                        ],
+                        "properties": {
+                          "logical_join_node_id": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "source_input": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "connector": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "resource": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "view": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "source_view_contract_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "acquisition_barrier_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "capacity_proof_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "join_kind": {
+                            "enum": [
+                              "inner",
+                              "left",
+                              "semi",
+                              "anti"
+                            ]
+                          },
+                          "left_fields": {
+                            "type": "array",
+                            "minItems": 1,
+                            "uniqueItems": true,
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
                             }
                           },
-                          {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": [
-                              "source"
-                            ],
-                            "properties": {
-                              "source": {
-                                "const": "candidate_key"
-                              }
+                          "right_fields": {
+                            "type": "array",
+                            "minItems": 1,
+                            "uniqueItems": true,
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
                             }
                           },
-                          {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": [
-                              "source",
-                              "runtime_check"
-                            ],
-                            "properties": {
-                              "source": {
-                                "const": "author_assertion"
-                              },
-                              "runtime_check": {
-                                "const": true
-                              }
-                            }
+                          "max_distinct_keys": {
+                            "type": "integer",
+                            "minimum": 1
                           },
-                          {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": [
-                              "source",
-                              "static_proof",
-                              "author_assertion",
-                              "runtime_check",
-                              "currently_entailed"
-                            ],
-                            "properties": {
-                              "source": {
-                                "const": "combined"
-                              },
-                              "static_proof": {
-                                "oneOf": [
-                                  {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "required": [
-                                      "source",
-                                      "contract_cid"
-                                    ],
-                                    "properties": {
-                                      "source": {
-                                        "const": "source_view_contract"
-                                      },
-                                      "contract_cid": {
-                                        "type": "string",
-                                        "pattern": "^sha256:[0-9a-f]{64}$"
-                                      }
-                                    }
+                          "access_strategy": {
+                            "const": "bounded_keyed_acquisition"
+                          },
+                          "response_cardinality": {
+                            "enum": [
+                              "zero_or_one",
+                              "zero_or_many",
+                              "one",
+                              "one_or_many"
+                            ]
+                          },
+                          "join_cardinality": {
+                            "enum": [
+                              "one_to_one",
+                              "one_to_many",
+                              "many_to_one",
+                              "many_to_many",
+                              "unproven"
+                            ]
+                          },
+                          "cardinality_proof": {
+                            "oneOf": [
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "source",
+                                  "contract_cid"
+                                ],
+                                "properties": {
+                                  "source": {
+                                    "const": "source_view_contract"
                                   },
-                                  {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "required": [
-                                      "source"
-                                    ],
-                                    "properties": {
-                                      "source": {
-                                        "const": "candidate_key"
-                                      }
-                                    }
+                                  "contract_cid": {
+                                    "type": "string",
+                                    "pattern": "^sha256:[0-9a-f]{64}$"
                                   }
-                                ]
+                                }
                               },
-                              "author_assertion": {
-                                "enum": [
-                                  "one_to_one",
-                                  "many_to_one",
-                                  "one_to_many"
-                                ]
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "source"
+                                ],
+                                "properties": {
+                                  "source": {
+                                    "const": "candidate_key"
+                                  }
+                                }
                               },
-                              "runtime_check": {
-                                "const": true
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "source",
+                                  "runtime_check"
+                                ],
+                                "properties": {
+                                  "source": {
+                                    "const": "author_assertion"
+                                  },
+                                  "runtime_check": {
+                                    "const": true
+                                  }
+                                }
                               },
-                              "currently_entailed": {
-                                "type": "boolean"
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "source",
+                                  "static_proof",
+                                  "author_assertion",
+                                  "runtime_check",
+                                  "currently_entailed"
+                                ],
+                                "properties": {
+                                  "source": {
+                                    "const": "combined"
+                                  },
+                                  "static_proof": {
+                                    "oneOf": [
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "source",
+                                          "contract_cid"
+                                        ],
+                                        "properties": {
+                                          "source": {
+                                            "const": "source_view_contract"
+                                          },
+                                          "contract_cid": {
+                                            "type": "string",
+                                            "pattern": "^sha256:[0-9a-f]{64}$"
+                                          }
+                                        }
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "source"
+                                        ],
+                                        "properties": {
+                                          "source": {
+                                            "const": "candidate_key"
+                                          }
+                                        }
+                                      }
+                                    ]
+                                  },
+                                  "author_assertion": {
+                                    "enum": [
+                                      "one_to_one",
+                                      "many_to_one",
+                                      "one_to_many"
+                                    ]
+                                  },
+                                  "runtime_check": {
+                                    "const": true
+                                  },
+                                  "currently_entailed": {
+                                    "type": "boolean"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "source"
+                                ],
+                                "properties": {
+                                  "source": {
+                                    "const": "unproven"
+                                  }
+                                }
                               }
+                            ]
+                          },
+                          "null_key": {
+                            "enum": [
+                              "no_match",
+                              "fail"
+                            ]
+                          },
+                          "static_request_fields": {
+                            "type": "array",
+                            "uniqueItems": true,
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
                             }
                           },
-                          {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": [
-                              "source"
-                            ],
-                            "properties": {
-                              "source": {
-                                "const": "unproven"
-                              }
+                          "effective_response_data_policy_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "observed_response_fields": {
+                            "type": "array",
+                            "minItems": 1,
+                            "uniqueItems": true,
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
                             }
+                          },
+                          "published_right_fields": {
+                            "type": "array",
+                            "uniqueItems": true,
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "correlation_fields": {
+                            "type": "array",
+                            "minItems": 1,
+                            "uniqueItems": true,
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "evidence_only_identity_fields": {
+                            "type": "array",
+                            "uniqueItems": true,
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "max_output_rows": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "completeness": {
+                            "const": "complete_per_requested_key"
                           }
-                        ]
-                      },
-                      "null_key": {
-                        "enum": [
-                          "no_match",
-                          "fail"
-                        ]
-                      },
-                      "static_request_fields": {
-                        "type": "array",
-                        "uniqueItems": true,
-                        "items": {
-                          "type": "string",
-                          "minLength": 1
                         }
                       },
-                      "effective_response_data_policy_cid": {
-                        "type": "string",
-                        "pattern": "^sha256:[0-9a-f]{64}$"
-                      },
-                      "observed_response_fields": {
-                        "type": "array",
-                        "minItems": 1,
-                        "uniqueItems": true,
-                        "items": {
-                          "type": "string",
-                          "minLength": 1
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "logical_join_node_id",
+                          "source_input",
+                          "connector",
+                          "resource",
+                          "view",
+                          "source_view_contract_cid",
+                          "acquisition_barrier_cid",
+                          "join_kind",
+                          "left_fields",
+                          "right_fields",
+                          "access_strategy",
+                          "response_cardinality",
+                          "join_cardinality",
+                          "cardinality_proof",
+                          "null_key",
+                          "static_request_fields",
+                          "effective_response_data_policy_cid",
+                          "observed_response_fields",
+                          "published_right_fields",
+                          "correlation_fields",
+                          "evidence_only_identity_fields",
+                          "completeness",
+                          "lookup_execution_cid"
+                        ],
+                        "properties": {
+                          "logical_join_node_id": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "source_input": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "connector": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "resource": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "view": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "source_view_contract_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "acquisition_barrier_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "join_kind": {
+                            "enum": [
+                              "inner",
+                              "left",
+                              "semi",
+                              "anti"
+                            ]
+                          },
+                          "left_fields": {
+                            "type": "array",
+                            "minItems": 1,
+                            "uniqueItems": true,
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "right_fields": {
+                            "type": "array",
+                            "minItems": 1,
+                            "uniqueItems": true,
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "access_strategy": {
+                            "const": "bounded_keyed_acquisition"
+                          },
+                          "response_cardinality": {
+                            "enum": [
+                              "zero_or_one",
+                              "zero_or_many",
+                              "one",
+                              "one_or_many"
+                            ]
+                          },
+                          "join_cardinality": {
+                            "enum": [
+                              "one_to_one",
+                              "one_to_many",
+                              "many_to_one",
+                              "many_to_many",
+                              "unproven"
+                            ]
+                          },
+                          "cardinality_proof": {
+                            "oneOf": [
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "source",
+                                  "contract_cid"
+                                ],
+                                "properties": {
+                                  "source": {
+                                    "const": "source_view_contract"
+                                  },
+                                  "contract_cid": {
+                                    "type": "string",
+                                    "pattern": "^sha256:[0-9a-f]{64}$"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "source"
+                                ],
+                                "properties": {
+                                  "source": {
+                                    "const": "candidate_key"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "source",
+                                  "runtime_check"
+                                ],
+                                "properties": {
+                                  "source": {
+                                    "const": "author_assertion"
+                                  },
+                                  "runtime_check": {
+                                    "const": true
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "source",
+                                  "static_proof",
+                                  "author_assertion",
+                                  "runtime_check",
+                                  "currently_entailed"
+                                ],
+                                "properties": {
+                                  "source": {
+                                    "const": "combined"
+                                  },
+                                  "static_proof": {
+                                    "oneOf": [
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "source",
+                                          "contract_cid"
+                                        ],
+                                        "properties": {
+                                          "source": {
+                                            "const": "source_view_contract"
+                                          },
+                                          "contract_cid": {
+                                            "type": "string",
+                                            "pattern": "^sha256:[0-9a-f]{64}$"
+                                          }
+                                        }
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "source"
+                                        ],
+                                        "properties": {
+                                          "source": {
+                                            "const": "candidate_key"
+                                          }
+                                        }
+                                      }
+                                    ]
+                                  },
+                                  "author_assertion": {
+                                    "enum": [
+                                      "one_to_one",
+                                      "many_to_one",
+                                      "one_to_many"
+                                    ]
+                                  },
+                                  "runtime_check": {
+                                    "const": true
+                                  },
+                                  "currently_entailed": {
+                                    "type": "boolean"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "source"
+                                ],
+                                "properties": {
+                                  "source": {
+                                    "const": "unproven"
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "null_key": {
+                            "enum": [
+                              "no_match",
+                              "fail"
+                            ]
+                          },
+                          "static_request_fields": {
+                            "type": "array",
+                            "uniqueItems": true,
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "effective_response_data_policy_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "observed_response_fields": {
+                            "type": "array",
+                            "minItems": 1,
+                            "uniqueItems": true,
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "published_right_fields": {
+                            "type": "array",
+                            "uniqueItems": true,
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "correlation_fields": {
+                            "type": "array",
+                            "minItems": 1,
+                            "uniqueItems": true,
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "evidence_only_identity_fields": {
+                            "type": "array",
+                            "uniqueItems": true,
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "max_output_rows": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "completeness": {
+                            "const": "complete_per_requested_key"
+                          },
+                          "lookup_execution_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[a-f0-9]{64}$"
+                          }
                         }
-                      },
-                      "published_right_fields": {
-                        "type": "array",
-                        "uniqueItems": true,
-                        "items": {
-                          "type": "string",
-                          "minLength": 1
-                        }
-                      },
-                      "correlation_fields": {
-                        "type": "array",
-                        "minItems": 1,
-                        "uniqueItems": true,
-                        "items": {
-                          "type": "string",
-                          "minLength": 1
-                        }
-                      },
-                      "evidence_only_identity_fields": {
-                        "type": "array",
-                        "uniqueItems": true,
-                        "items": {
-                          "type": "string",
-                          "minLength": 1
-                        }
-                      },
-                      "max_output_rows": {
-                        "type": "integer",
-                        "minimum": 1
-                      },
-                      "completeness": {
-                        "const": "complete_per_requested_key"
                       }
-                    }
+                    ]
                   }
                 },
                 "results": {
@@ -82876,301 +83171,596 @@
                 "external_joins": {
                   "type": "array",
                   "items": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": [
-                      "logical_join_node_id",
-                      "source_input",
-                      "connector",
-                      "resource",
-                      "view",
-                      "source_view_contract_cid",
-                      "acquisition_barrier_cid",
-                      "capacity_proof_cid",
-                      "join_kind",
-                      "left_fields",
-                      "right_fields",
-                      "max_distinct_keys",
-                      "access_strategy",
-                      "response_cardinality",
-                      "join_cardinality",
-                      "cardinality_proof",
-                      "null_key",
-                      "static_request_fields",
-                      "effective_response_data_policy_cid",
-                      "observed_response_fields",
-                      "published_right_fields",
-                      "correlation_fields",
-                      "evidence_only_identity_fields",
-                      "max_output_rows",
-                      "completeness"
-                    ],
-                    "properties": {
-                      "logical_join_node_id": {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      "source_input": {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      "connector": {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      "resource": {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      "view": {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      "source_view_contract_cid": {
-                        "type": "string",
-                        "pattern": "^sha256:[0-9a-f]{64}$"
-                      },
-                      "acquisition_barrier_cid": {
-                        "type": "string",
-                        "pattern": "^sha256:[0-9a-f]{64}$"
-                      },
-                      "capacity_proof_cid": {
-                        "type": "string",
-                        "pattern": "^sha256:[0-9a-f]{64}$"
-                      },
-                      "join_kind": {
-                        "enum": [
-                          "inner",
-                          "left",
-                          "semi",
-                          "anti"
-                        ]
-                      },
-                      "left_fields": {
-                        "type": "array",
-                        "minItems": 1,
-                        "uniqueItems": true,
-                        "items": {
-                          "type": "string",
-                          "minLength": 1
-                        }
-                      },
-                      "right_fields": {
-                        "type": "array",
-                        "minItems": 1,
-                        "uniqueItems": true,
-                        "items": {
-                          "type": "string",
-                          "minLength": 1
-                        }
-                      },
-                      "max_distinct_keys": {
-                        "type": "integer",
-                        "minimum": 1
-                      },
-                      "access_strategy": {
-                        "const": "bounded_keyed_acquisition"
-                      },
-                      "response_cardinality": {
-                        "enum": [
-                          "zero_or_one",
-                          "zero_or_many",
-                          "one",
-                          "one_or_many"
-                        ]
-                      },
-                      "join_cardinality": {
-                        "enum": [
-                          "one_to_one",
-                          "one_to_many",
-                          "many_to_one",
-                          "many_to_many",
-                          "unproven"
-                        ]
-                      },
-                      "cardinality_proof": {
-                        "oneOf": [
-                          {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": [
-                              "source",
-                              "contract_cid"
-                            ],
-                            "properties": {
-                              "source": {
-                                "const": "source_view_contract"
-                              },
-                              "contract_cid": {
-                                "type": "string",
-                                "pattern": "^sha256:[0-9a-f]{64}$"
-                              }
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "logical_join_node_id",
+                          "source_input",
+                          "connector",
+                          "resource",
+                          "view",
+                          "source_view_contract_cid",
+                          "acquisition_barrier_cid",
+                          "capacity_proof_cid",
+                          "join_kind",
+                          "left_fields",
+                          "right_fields",
+                          "max_distinct_keys",
+                          "access_strategy",
+                          "response_cardinality",
+                          "join_cardinality",
+                          "cardinality_proof",
+                          "null_key",
+                          "static_request_fields",
+                          "effective_response_data_policy_cid",
+                          "observed_response_fields",
+                          "published_right_fields",
+                          "correlation_fields",
+                          "evidence_only_identity_fields",
+                          "max_output_rows",
+                          "completeness"
+                        ],
+                        "properties": {
+                          "logical_join_node_id": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "source_input": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "connector": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "resource": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "view": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "source_view_contract_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "acquisition_barrier_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "capacity_proof_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "join_kind": {
+                            "enum": [
+                              "inner",
+                              "left",
+                              "semi",
+                              "anti"
+                            ]
+                          },
+                          "left_fields": {
+                            "type": "array",
+                            "minItems": 1,
+                            "uniqueItems": true,
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
                             }
                           },
-                          {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": [
-                              "source"
-                            ],
-                            "properties": {
-                              "source": {
-                                "const": "candidate_key"
-                              }
+                          "right_fields": {
+                            "type": "array",
+                            "minItems": 1,
+                            "uniqueItems": true,
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
                             }
                           },
-                          {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": [
-                              "source",
-                              "runtime_check"
-                            ],
-                            "properties": {
-                              "source": {
-                                "const": "author_assertion"
-                              },
-                              "runtime_check": {
-                                "const": true
-                              }
-                            }
+                          "max_distinct_keys": {
+                            "type": "integer",
+                            "minimum": 1
                           },
-                          {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": [
-                              "source",
-                              "static_proof",
-                              "author_assertion",
-                              "runtime_check",
-                              "currently_entailed"
-                            ],
-                            "properties": {
-                              "source": {
-                                "const": "combined"
-                              },
-                              "static_proof": {
-                                "oneOf": [
-                                  {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "required": [
-                                      "source",
-                                      "contract_cid"
-                                    ],
-                                    "properties": {
-                                      "source": {
-                                        "const": "source_view_contract"
-                                      },
-                                      "contract_cid": {
-                                        "type": "string",
-                                        "pattern": "^sha256:[0-9a-f]{64}$"
-                                      }
-                                    }
+                          "access_strategy": {
+                            "const": "bounded_keyed_acquisition"
+                          },
+                          "response_cardinality": {
+                            "enum": [
+                              "zero_or_one",
+                              "zero_or_many",
+                              "one",
+                              "one_or_many"
+                            ]
+                          },
+                          "join_cardinality": {
+                            "enum": [
+                              "one_to_one",
+                              "one_to_many",
+                              "many_to_one",
+                              "many_to_many",
+                              "unproven"
+                            ]
+                          },
+                          "cardinality_proof": {
+                            "oneOf": [
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "source",
+                                  "contract_cid"
+                                ],
+                                "properties": {
+                                  "source": {
+                                    "const": "source_view_contract"
                                   },
-                                  {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "required": [
-                                      "source"
-                                    ],
-                                    "properties": {
-                                      "source": {
-                                        "const": "candidate_key"
-                                      }
-                                    }
+                                  "contract_cid": {
+                                    "type": "string",
+                                    "pattern": "^sha256:[0-9a-f]{64}$"
                                   }
-                                ]
+                                }
                               },
-                              "author_assertion": {
-                                "enum": [
-                                  "one_to_one",
-                                  "many_to_one",
-                                  "one_to_many"
-                                ]
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "source"
+                                ],
+                                "properties": {
+                                  "source": {
+                                    "const": "candidate_key"
+                                  }
+                                }
                               },
-                              "runtime_check": {
-                                "const": true
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "source",
+                                  "runtime_check"
+                                ],
+                                "properties": {
+                                  "source": {
+                                    "const": "author_assertion"
+                                  },
+                                  "runtime_check": {
+                                    "const": true
+                                  }
+                                }
                               },
-                              "currently_entailed": {
-                                "type": "boolean"
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "source",
+                                  "static_proof",
+                                  "author_assertion",
+                                  "runtime_check",
+                                  "currently_entailed"
+                                ],
+                                "properties": {
+                                  "source": {
+                                    "const": "combined"
+                                  },
+                                  "static_proof": {
+                                    "oneOf": [
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "source",
+                                          "contract_cid"
+                                        ],
+                                        "properties": {
+                                          "source": {
+                                            "const": "source_view_contract"
+                                          },
+                                          "contract_cid": {
+                                            "type": "string",
+                                            "pattern": "^sha256:[0-9a-f]{64}$"
+                                          }
+                                        }
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "source"
+                                        ],
+                                        "properties": {
+                                          "source": {
+                                            "const": "candidate_key"
+                                          }
+                                        }
+                                      }
+                                    ]
+                                  },
+                                  "author_assertion": {
+                                    "enum": [
+                                      "one_to_one",
+                                      "many_to_one",
+                                      "one_to_many"
+                                    ]
+                                  },
+                                  "runtime_check": {
+                                    "const": true
+                                  },
+                                  "currently_entailed": {
+                                    "type": "boolean"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "source"
+                                ],
+                                "properties": {
+                                  "source": {
+                                    "const": "unproven"
+                                  }
+                                }
                               }
+                            ]
+                          },
+                          "null_key": {
+                            "enum": [
+                              "no_match",
+                              "fail"
+                            ]
+                          },
+                          "static_request_fields": {
+                            "type": "array",
+                            "uniqueItems": true,
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
                             }
                           },
-                          {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": [
-                              "source"
-                            ],
-                            "properties": {
-                              "source": {
-                                "const": "unproven"
-                              }
+                          "effective_response_data_policy_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "observed_response_fields": {
+                            "type": "array",
+                            "minItems": 1,
+                            "uniqueItems": true,
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
                             }
+                          },
+                          "published_right_fields": {
+                            "type": "array",
+                            "uniqueItems": true,
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "correlation_fields": {
+                            "type": "array",
+                            "minItems": 1,
+                            "uniqueItems": true,
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "evidence_only_identity_fields": {
+                            "type": "array",
+                            "uniqueItems": true,
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "max_output_rows": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "completeness": {
+                            "const": "complete_per_requested_key"
                           }
-                        ]
-                      },
-                      "null_key": {
-                        "enum": [
-                          "no_match",
-                          "fail"
-                        ]
-                      },
-                      "static_request_fields": {
-                        "type": "array",
-                        "uniqueItems": true,
-                        "items": {
-                          "type": "string",
-                          "minLength": 1
                         }
                       },
-                      "effective_response_data_policy_cid": {
-                        "type": "string",
-                        "pattern": "^sha256:[0-9a-f]{64}$"
-                      },
-                      "observed_response_fields": {
-                        "type": "array",
-                        "minItems": 1,
-                        "uniqueItems": true,
-                        "items": {
-                          "type": "string",
-                          "minLength": 1
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "logical_join_node_id",
+                          "source_input",
+                          "connector",
+                          "resource",
+                          "view",
+                          "source_view_contract_cid",
+                          "acquisition_barrier_cid",
+                          "join_kind",
+                          "left_fields",
+                          "right_fields",
+                          "access_strategy",
+                          "response_cardinality",
+                          "join_cardinality",
+                          "cardinality_proof",
+                          "null_key",
+                          "static_request_fields",
+                          "effective_response_data_policy_cid",
+                          "observed_response_fields",
+                          "published_right_fields",
+                          "correlation_fields",
+                          "evidence_only_identity_fields",
+                          "completeness",
+                          "lookup_execution_cid"
+                        ],
+                        "properties": {
+                          "logical_join_node_id": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "source_input": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "connector": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "resource": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "view": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "source_view_contract_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "acquisition_barrier_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "join_kind": {
+                            "enum": [
+                              "inner",
+                              "left",
+                              "semi",
+                              "anti"
+                            ]
+                          },
+                          "left_fields": {
+                            "type": "array",
+                            "minItems": 1,
+                            "uniqueItems": true,
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "right_fields": {
+                            "type": "array",
+                            "minItems": 1,
+                            "uniqueItems": true,
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "access_strategy": {
+                            "const": "bounded_keyed_acquisition"
+                          },
+                          "response_cardinality": {
+                            "enum": [
+                              "zero_or_one",
+                              "zero_or_many",
+                              "one",
+                              "one_or_many"
+                            ]
+                          },
+                          "join_cardinality": {
+                            "enum": [
+                              "one_to_one",
+                              "one_to_many",
+                              "many_to_one",
+                              "many_to_many",
+                              "unproven"
+                            ]
+                          },
+                          "cardinality_proof": {
+                            "oneOf": [
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "source",
+                                  "contract_cid"
+                                ],
+                                "properties": {
+                                  "source": {
+                                    "const": "source_view_contract"
+                                  },
+                                  "contract_cid": {
+                                    "type": "string",
+                                    "pattern": "^sha256:[0-9a-f]{64}$"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "source"
+                                ],
+                                "properties": {
+                                  "source": {
+                                    "const": "candidate_key"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "source",
+                                  "runtime_check"
+                                ],
+                                "properties": {
+                                  "source": {
+                                    "const": "author_assertion"
+                                  },
+                                  "runtime_check": {
+                                    "const": true
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "source",
+                                  "static_proof",
+                                  "author_assertion",
+                                  "runtime_check",
+                                  "currently_entailed"
+                                ],
+                                "properties": {
+                                  "source": {
+                                    "const": "combined"
+                                  },
+                                  "static_proof": {
+                                    "oneOf": [
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "source",
+                                          "contract_cid"
+                                        ],
+                                        "properties": {
+                                          "source": {
+                                            "const": "source_view_contract"
+                                          },
+                                          "contract_cid": {
+                                            "type": "string",
+                                            "pattern": "^sha256:[0-9a-f]{64}$"
+                                          }
+                                        }
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "source"
+                                        ],
+                                        "properties": {
+                                          "source": {
+                                            "const": "candidate_key"
+                                          }
+                                        }
+                                      }
+                                    ]
+                                  },
+                                  "author_assertion": {
+                                    "enum": [
+                                      "one_to_one",
+                                      "many_to_one",
+                                      "one_to_many"
+                                    ]
+                                  },
+                                  "runtime_check": {
+                                    "const": true
+                                  },
+                                  "currently_entailed": {
+                                    "type": "boolean"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "source"
+                                ],
+                                "properties": {
+                                  "source": {
+                                    "const": "unproven"
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "null_key": {
+                            "enum": [
+                              "no_match",
+                              "fail"
+                            ]
+                          },
+                          "static_request_fields": {
+                            "type": "array",
+                            "uniqueItems": true,
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "effective_response_data_policy_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "observed_response_fields": {
+                            "type": "array",
+                            "minItems": 1,
+                            "uniqueItems": true,
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "published_right_fields": {
+                            "type": "array",
+                            "uniqueItems": true,
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "correlation_fields": {
+                            "type": "array",
+                            "minItems": 1,
+                            "uniqueItems": true,
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "evidence_only_identity_fields": {
+                            "type": "array",
+                            "uniqueItems": true,
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "max_output_rows": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "completeness": {
+                            "const": "complete_per_requested_key"
+                          },
+                          "lookup_execution_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[a-f0-9]{64}$"
+                          }
                         }
-                      },
-                      "published_right_fields": {
-                        "type": "array",
-                        "uniqueItems": true,
-                        "items": {
-                          "type": "string",
-                          "minLength": 1
-                        }
-                      },
-                      "correlation_fields": {
-                        "type": "array",
-                        "minItems": 1,
-                        "uniqueItems": true,
-                        "items": {
-                          "type": "string",
-                          "minLength": 1
-                        }
-                      },
-                      "evidence_only_identity_fields": {
-                        "type": "array",
-                        "uniqueItems": true,
-                        "items": {
-                          "type": "string",
-                          "minLength": 1
-                        }
-                      },
-                      "max_output_rows": {
-                        "type": "integer",
-                        "minimum": 1
-                      },
-                      "completeness": {
-                        "const": "complete_per_requested_key"
                       }
-                    }
+                    ]
                   }
                 },
                 "results": {

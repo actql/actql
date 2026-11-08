@@ -8672,6 +8672,16 @@ deadline arithmetic is Program vocabulary. The acquisition's
 `max_output_rows`; a final semi/anti/output cap MUST NOT truncate the response
 needed to prove per-key completeness.
 
+The runtime form of `actql-lookup-barrier/0.1` retains the same input, SourceView,
+request mapping, correlation, output and policy fields. It contains the original
+`lookup_execution_cid` instead of static `bounds` and `capacity_proof_cid`.
+Its `complete` guarantee describes successful per-requested-key response semantics;
+it does not describe an accomplished resource admission. The corresponding Plan
+summary omits an unknown `max_distinct_keys` and retains that same policy CID.
+A retained logical `max_output_rows` remains optional information, independent
+of the acquisition response needed for per-key completeness.
+Actual zero counts belong to the materialized original key set and its accounting.
+
 <!-- requirement-block: external-joins.the-remaining-request-batch-page-attempt-byte-and-duration-limits -->
 The remaining request, batch, page, attempt, byte, and duration limits are
 physical execution constraints and MUST NOT appear in Program source.

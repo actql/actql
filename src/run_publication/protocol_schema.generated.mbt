@@ -3,7 +3,7 @@
 
 ///|
 fn generated_protocol_schema_nodes() -> Array[ProtocolSchemaRule] {
-  let nodes : Array[ProtocolSchemaRule] = Array(capacity=8059)
+  let nodes : Array[ProtocolSchemaRule] = Array(capacity=8367)
   generated_protocol_schema_nodes_0(nodes)
   generated_protocol_schema_nodes_1(nodes)
   generated_protocol_schema_nodes_2(nodes)
@@ -22235,6 +22235,781 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
+  nodes.push(protocol_string_rule(Some("actql-lookup-barrier/0.1"), [], 0, 0))
+  nodes.push(nodes[1])
+  nodes.push(nodes[1])
+  nodes.push(nodes[1])
+  nodes.push(nodes[1])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[1])
+  nodes.push(protocol_object_rule([("field", 8067)], ["field"], -1, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(
+    protocol_object_rule([("literal", 8069)], ["literal"], -1, 0, None),
+  )
+  nodes.push(nodes[1])
+  nodes.push(protocol_object_rule([("$param", 8071)], ["$param"], -1, 0, None))
+  nodes.push(protocol_one_of_rule([8068, 8070, 8072]))
+  nodes.push(protocol_object_rule([], [], 8073, 1, None))
+  nodes.push(nodes[1])
+  nodes.push(nodes[1])
+  nodes.push(
+    protocol_object_rule(
+      [("request", 8075), ("response", 8076)],
+      ["request", "response"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_array_rule(8077, 1, false, -1))
+  nodes.push(nodes[1])
+  nodes.push(protocol_array_rule(8079, 1, true, -1))
+  nodes.push(
+    protocol_string_rule(
+      None,
+      ["zero_or_one", "zero_or_many", "one", "one_or_many"],
+      0,
+      0,
+    ),
+  )
+  nodes.push(protocol_string_rule(None, ["exclude_from_request", "fail"], 0, 0))
+  nodes.push(protocol_string_rule(None, ["emit_no_row", "fail"], 0, 0))
+  nodes.push(protocol_string_rule(Some("fail"), [], 0, 0))
+  nodes.push(nodes[8084])
+  nodes.push(nodes[8084])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("on", 8078),
+        ("identity", 8080),
+        ("cardinality", 8081),
+        ("null_request_policy", 8082),
+        ("on_missing", 8083),
+        ("on_unrequested_key", 8084),
+        ("on_excess_cardinality", 8085),
+        ("on_duplicate_identity", 8086),
+      ],
+      [
+        "on", "identity", "cardinality", "null_request_policy", "on_missing", "on_unrequested_key",
+        "on_excess_cardinality", "on_duplicate_identity",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[2407])
+  nodes.push(nodes[2407])
+  nodes.push(nodes[2407])
+  nodes.push(nodes[2407])
+  nodes.push(nodes[2407])
+  nodes.push(nodes[2407])
+  nodes.push(nodes[2407])
+  nodes.push(nodes[2407])
+  nodes.push(nodes[2407])
+  nodes.push(nodes[2407])
+  nodes.push(nodes[2407])
+  nodes.push(nodes[2407])
+  nodes.push(nodes[2407])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("max_input_rows", 8088),
+        ("max_distinct_keys", 8089),
+        ("max_keys_per_batch", 8090),
+        ("max_batches", 8091),
+        ("max_pages_per_batch", 8092),
+        ("max_requests", 8093),
+        ("max_network_attempts", 8094),
+        ("max_rows_per_key", 8095),
+        ("max_response_rows", 8096),
+        ("max_request_bytes_per_attempt", 8097),
+        ("max_total_request_bytes", 8098),
+        ("max_total_response_bytes", 8099),
+        ("max_total_duration_ms", 8100),
+      ],
+      [
+        "max_input_rows", "max_distinct_keys", "max_keys_per_batch", "max_batches",
+        "max_pages_per_batch", "max_requests", "max_network_attempts", "max_rows_per_key",
+        "max_response_rows", "max_request_bytes_per_attempt", "max_total_request_bytes",
+        "max_total_response_bytes", "max_total_duration_ms",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_string_rule(None, ["complete", "hard_limit_only"], 0, 0))
+  nodes.push(nodes[8084])
+  nodes.push(nodes[2])
+  nodes.push(nodes[1])
+  nodes.push(protocol_array_rule(8105, 0, true, -1))
+  nodes.push(nodes[2])
+  nodes.push(protocol_array_rule(8107, 0, true, -1))
+  nodes.push(
+    protocol_string_rule(
+      None,
+      ["public", "internal", "confidential", "restricted"],
+      0,
+      0,
+    ),
+  )
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[8109])
+  nodes.push(nodes[2])
+  nodes.push(nodes[1])
+  nodes.push(protocol_array_rule(8114, 1, true, -1))
+  nodes.push(nodes[1])
+  nodes.push(protocol_array_rule(8116, 1, true, -1))
+  nodes.push(nodes[1])
+  nodes.push(protocol_array_rule(8118, 1, true, -1))
+  nodes.push(nodes[8109])
+  nodes.push(nodes[2])
+  nodes.push(protocol_string_rule(Some("not_required"), [], 0, 0))
+  nodes.push(protocol_object_rule([("kind", 8122)], ["kind"], -1, 0, None))
+  nodes.push(protocol_string_rule(Some("required"), [], 0, 0))
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[1])
+  nodes.push(nodes[2])
+  nodes.push(nodes[8109])
+  nodes.push(protocol_array_rule(8130, 1, true, -1))
+  nodes.push(nodes[1])
+  nodes.push(protocol_array_rule(8132, 1, true, -1))
+  nodes.push(nodes[1])
+  nodes.push(protocol_array_rule(8134, 0, true, -1))
+  nodes.push(nodes[2407])
+  nodes.push(nodes[14])
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("kind", 8124),
+        ("request_data_handling_contract_cid", 8125),
+        ("provider_execution_capability_cid", 8126),
+        ("provider_account_boundary_cid", 8127),
+        ("resolved_region", 8128),
+        ("host_policy_cid", 8129),
+        ("accepted_classifications", 8131),
+        ("allowed_regions", 8133),
+        ("accepted_media_types", 8135),
+        ("max_artifact_bytes", 8136),
+        ("require_full_artifact", 8137),
+        ("egress_requirements_cid", 8138),
+      ],
+      [
+        "kind", "request_data_handling_contract_cid", "provider_execution_capability_cid",
+        "provider_account_boundary_cid", "resolved_region", "host_policy_cid", "accepted_classifications",
+        "allowed_regions", "accepted_media_types", "require_full_artifact", "egress_requirements_cid",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_one_of_rule([8123, 8139]))
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("version", 8059),
+        ("barrier_id", 8060),
+        ("input_ref", 8061),
+        ("source_input_ref", 8062),
+        ("output_ref", 8063),
+        ("source_view_contract_cid", 8064),
+        ("request_schema_cid", 8065),
+        ("output_contract_cid", 8066),
+        ("request_mapping", 8074),
+        ("correlation", 8087),
+        ("bounds", 8101),
+        ("capacity_guarantee", 8102),
+        ("on_non_success", 8103),
+        ("capacity_proof_cid", 8104),
+        ("input_artifact_fields", 8106),
+        ("request_input_data_policy_cids", 8108),
+        ("effective_request_classification", 8109),
+        ("effective_request_data_policy_cid", 8110),
+        ("response_source_data_policy_cid", 8111),
+        ("effective_response_classification", 8112),
+        ("effective_response_data_policy_cid", 8113),
+        ("observed_response_fields", 8115),
+        ("correlation_fields", 8117),
+        ("response_identity_fields", 8119),
+        ("effective_output_classification", 8120),
+        ("effective_output_data_policy_cid", 8121),
+        ("egress_requirements", 8140),
+      ],
+      [
+        "version", "barrier_id", "input_ref", "source_input_ref", "output_ref", "source_view_contract_cid",
+        "request_schema_cid", "output_contract_cid", "request_mapping", "correlation",
+        "bounds", "capacity_guarantee", "on_non_success", "capacity_proof_cid", "input_artifact_fields",
+        "request_input_data_policy_cids", "effective_request_classification", "effective_request_data_policy_cid",
+        "response_source_data_policy_cid", "effective_response_classification", "effective_response_data_policy_cid",
+        "observed_response_fields", "correlation_fields", "response_identity_fields",
+        "effective_output_classification", "effective_output_data_policy_cid", "egress_requirements",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[8059])
+  nodes.push(nodes[1])
+  nodes.push(nodes[1])
+  nodes.push(nodes[1])
+  nodes.push(nodes[1])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[1])
+  nodes.push(protocol_object_rule([("field", 8150)], ["field"], -1, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(
+    protocol_object_rule([("literal", 8152)], ["literal"], -1, 0, None),
+  )
+  nodes.push(nodes[1])
+  nodes.push(protocol_object_rule([("$param", 8154)], ["$param"], -1, 0, None))
+  nodes.push(protocol_one_of_rule([8151, 8153, 8155]))
+  nodes.push(protocol_object_rule([], [], 8156, 1, None))
+  nodes.push(nodes[1])
+  nodes.push(nodes[1])
+  nodes.push(
+    protocol_object_rule(
+      [("request", 8158), ("response", 8159)],
+      ["request", "response"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_array_rule(8160, 1, false, -1))
+  nodes.push(nodes[1])
+  nodes.push(protocol_array_rule(8162, 1, true, -1))
+  nodes.push(nodes[8081])
+  nodes.push(nodes[8082])
+  nodes.push(nodes[8083])
+  nodes.push(nodes[8084])
+  nodes.push(nodes[8084])
+  nodes.push(nodes[8084])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("on", 8161),
+        ("identity", 8163),
+        ("cardinality", 8164),
+        ("null_request_policy", 8165),
+        ("on_missing", 8166),
+        ("on_unrequested_key", 8167),
+        ("on_excess_cardinality", 8168),
+        ("on_duplicate_identity", 8169),
+      ],
+      [
+        "on", "identity", "cardinality", "null_request_policy", "on_missing", "on_unrequested_key",
+        "on_excess_cardinality", "on_duplicate_identity",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[3263])
+  nodes.push(nodes[8084])
+  nodes.push(nodes[1])
+  nodes.push(protocol_array_rule(8173, 0, true, -1))
+  nodes.push(nodes[2])
+  nodes.push(protocol_array_rule(8175, 0, true, -1))
+  nodes.push(nodes[8109])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[8109])
+  nodes.push(nodes[2])
+  nodes.push(nodes[1])
+  nodes.push(protocol_array_rule(8182, 1, true, -1))
+  nodes.push(nodes[1])
+  nodes.push(protocol_array_rule(8184, 1, true, -1))
+  nodes.push(nodes[1])
+  nodes.push(protocol_array_rule(8186, 1, true, -1))
+  nodes.push(nodes[8109])
+  nodes.push(nodes[2])
+  nodes.push(nodes[8122])
+  nodes.push(protocol_object_rule([("kind", 8190)], ["kind"], -1, 0, None))
+  nodes.push(nodes[8124])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[1])
+  nodes.push(nodes[2])
+  nodes.push(nodes[8109])
+  nodes.push(protocol_array_rule(8198, 1, true, -1))
+  nodes.push(nodes[1])
+  nodes.push(protocol_array_rule(8200, 1, true, -1))
+  nodes.push(nodes[1])
+  nodes.push(protocol_array_rule(8202, 0, true, -1))
+  nodes.push(nodes[2407])
+  nodes.push(nodes[14])
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("kind", 8192),
+        ("request_data_handling_contract_cid", 8193),
+        ("provider_execution_capability_cid", 8194),
+        ("provider_account_boundary_cid", 8195),
+        ("resolved_region", 8196),
+        ("host_policy_cid", 8197),
+        ("accepted_classifications", 8199),
+        ("allowed_regions", 8201),
+        ("accepted_media_types", 8203),
+        ("max_artifact_bytes", 8204),
+        ("require_full_artifact", 8205),
+        ("egress_requirements_cid", 8206),
+      ],
+      [
+        "kind", "request_data_handling_contract_cid", "provider_execution_capability_cid",
+        "provider_account_boundary_cid", "resolved_region", "host_policy_cid", "accepted_classifications",
+        "allowed_regions", "accepted_media_types", "require_full_artifact", "egress_requirements_cid",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_one_of_rule([8191, 8207]))
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("version", 8142),
+        ("barrier_id", 8143),
+        ("input_ref", 8144),
+        ("source_input_ref", 8145),
+        ("output_ref", 8146),
+        ("source_view_contract_cid", 8147),
+        ("request_schema_cid", 8148),
+        ("output_contract_cid", 8149),
+        ("request_mapping", 8157),
+        ("correlation", 8170),
+        ("capacity_guarantee", 8171),
+        ("on_non_success", 8172),
+        ("input_artifact_fields", 8174),
+        ("request_input_data_policy_cids", 8176),
+        ("effective_request_classification", 8177),
+        ("effective_request_data_policy_cid", 8178),
+        ("response_source_data_policy_cid", 8179),
+        ("effective_response_classification", 8180),
+        ("effective_response_data_policy_cid", 8181),
+        ("observed_response_fields", 8183),
+        ("correlation_fields", 8185),
+        ("response_identity_fields", 8187),
+        ("effective_output_classification", 8188),
+        ("effective_output_data_policy_cid", 8189),
+        ("egress_requirements", 8208),
+        ("lookup_execution_cid", 8209),
+      ],
+      [
+        "version", "barrier_id", "input_ref", "source_input_ref", "output_ref", "source_view_contract_cid",
+        "request_schema_cid", "output_contract_cid", "request_mapping", "correlation",
+        "capacity_guarantee", "on_non_success", "input_artifact_fields", "request_input_data_policy_cids",
+        "effective_request_classification", "effective_request_data_policy_cid",
+        "response_source_data_policy_cid", "effective_response_classification", "effective_response_data_policy_cid",
+        "observed_response_fields", "correlation_fields", "response_identity_fields",
+        "effective_output_classification", "effective_output_data_policy_cid", "egress_requirements",
+        "lookup_execution_cid",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_one_of_rule([8141, 8210]))
+  nodes.push(nodes[8059])
+  nodes.push(nodes[1])
+  nodes.push(nodes[1])
+  nodes.push(nodes[1])
+  nodes.push(nodes[1])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[1])
+  nodes.push(protocol_object_rule([("field", 8220)], ["field"], -1, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(
+    protocol_object_rule([("literal", 8222)], ["literal"], -1, 0, None),
+  )
+  nodes.push(nodes[1])
+  nodes.push(protocol_object_rule([("$param", 8224)], ["$param"], -1, 0, None))
+  nodes.push(protocol_one_of_rule([8221, 8223, 8225]))
+  nodes.push(protocol_object_rule([], [], 8226, 1, None))
+  nodes.push(nodes[1])
+  nodes.push(nodes[1])
+  nodes.push(
+    protocol_object_rule(
+      [("request", 8228), ("response", 8229)],
+      ["request", "response"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_array_rule(8230, 1, false, -1))
+  nodes.push(nodes[1])
+  nodes.push(protocol_array_rule(8232, 1, true, -1))
+  nodes.push(nodes[8081])
+  nodes.push(nodes[8082])
+  nodes.push(nodes[8083])
+  nodes.push(nodes[8084])
+  nodes.push(nodes[8084])
+  nodes.push(nodes[8084])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("on", 8231),
+        ("identity", 8233),
+        ("cardinality", 8234),
+        ("null_request_policy", 8235),
+        ("on_missing", 8236),
+        ("on_unrequested_key", 8237),
+        ("on_excess_cardinality", 8238),
+        ("on_duplicate_identity", 8239),
+      ],
+      [
+        "on", "identity", "cardinality", "null_request_policy", "on_missing", "on_unrequested_key",
+        "on_excess_cardinality", "on_duplicate_identity",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[2407])
+  nodes.push(nodes[2407])
+  nodes.push(nodes[2407])
+  nodes.push(nodes[2407])
+  nodes.push(nodes[2407])
+  nodes.push(nodes[2407])
+  nodes.push(nodes[2407])
+  nodes.push(nodes[2407])
+  nodes.push(nodes[2407])
+  nodes.push(nodes[2407])
+  nodes.push(nodes[2407])
+  nodes.push(nodes[2407])
+  nodes.push(nodes[2407])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("max_input_rows", 8241),
+        ("max_distinct_keys", 8242),
+        ("max_keys_per_batch", 8243),
+        ("max_batches", 8244),
+        ("max_pages_per_batch", 8245),
+        ("max_requests", 8246),
+        ("max_network_attempts", 8247),
+        ("max_rows_per_key", 8248),
+        ("max_response_rows", 8249),
+        ("max_request_bytes_per_attempt", 8250),
+        ("max_total_request_bytes", 8251),
+        ("max_total_response_bytes", 8252),
+        ("max_total_duration_ms", 8253),
+      ],
+      [
+        "max_input_rows", "max_distinct_keys", "max_keys_per_batch", "max_batches",
+        "max_pages_per_batch", "max_requests", "max_network_attempts", "max_rows_per_key",
+        "max_response_rows", "max_request_bytes_per_attempt", "max_total_request_bytes",
+        "max_total_response_bytes", "max_total_duration_ms",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[8102])
+  nodes.push(nodes[8084])
+  nodes.push(nodes[2])
+  nodes.push(nodes[1])
+  nodes.push(protocol_array_rule(8258, 0, true, -1))
+  nodes.push(nodes[2])
+  nodes.push(protocol_array_rule(8260, 0, true, -1))
+  nodes.push(nodes[8109])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[8109])
+  nodes.push(nodes[2])
+  nodes.push(nodes[1])
+  nodes.push(protocol_array_rule(8267, 1, true, -1))
+  nodes.push(nodes[1])
+  nodes.push(protocol_array_rule(8269, 1, true, -1))
+  nodes.push(nodes[1])
+  nodes.push(protocol_array_rule(8271, 1, true, -1))
+  nodes.push(nodes[8109])
+  nodes.push(nodes[2])
+  nodes.push(nodes[8122])
+  nodes.push(protocol_object_rule([("kind", 8275)], ["kind"], -1, 0, None))
+  nodes.push(nodes[8124])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[1])
+  nodes.push(nodes[2])
+  nodes.push(nodes[8109])
+  nodes.push(protocol_array_rule(8283, 1, true, -1))
+  nodes.push(nodes[1])
+  nodes.push(protocol_array_rule(8285, 1, true, -1))
+  nodes.push(nodes[1])
+  nodes.push(protocol_array_rule(8287, 0, true, -1))
+  nodes.push(nodes[2407])
+  nodes.push(nodes[14])
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("kind", 8277),
+        ("request_data_handling_contract_cid", 8278),
+        ("provider_execution_capability_cid", 8279),
+        ("provider_account_boundary_cid", 8280),
+        ("resolved_region", 8281),
+        ("host_policy_cid", 8282),
+        ("accepted_classifications", 8284),
+        ("allowed_regions", 8286),
+        ("accepted_media_types", 8288),
+        ("max_artifact_bytes", 8289),
+        ("require_full_artifact", 8290),
+        ("egress_requirements_cid", 8291),
+      ],
+      [
+        "kind", "request_data_handling_contract_cid", "provider_execution_capability_cid",
+        "provider_account_boundary_cid", "resolved_region", "host_policy_cid", "accepted_classifications",
+        "allowed_regions", "accepted_media_types", "require_full_artifact", "egress_requirements_cid",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_one_of_rule([8276, 8292]))
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("version", 8212),
+        ("barrier_id", 8213),
+        ("input_ref", 8214),
+        ("source_input_ref", 8215),
+        ("output_ref", 8216),
+        ("source_view_contract_cid", 8217),
+        ("request_schema_cid", 8218),
+        ("output_contract_cid", 8219),
+        ("request_mapping", 8227),
+        ("correlation", 8240),
+        ("bounds", 8254),
+        ("capacity_guarantee", 8255),
+        ("on_non_success", 8256),
+        ("capacity_proof_cid", 8257),
+        ("input_artifact_fields", 8259),
+        ("request_input_data_policy_cids", 8261),
+        ("effective_request_classification", 8262),
+        ("effective_request_data_policy_cid", 8263),
+        ("response_source_data_policy_cid", 8264),
+        ("effective_response_classification", 8265),
+        ("effective_response_data_policy_cid", 8266),
+        ("observed_response_fields", 8268),
+        ("correlation_fields", 8270),
+        ("response_identity_fields", 8272),
+        ("effective_output_classification", 8273),
+        ("effective_output_data_policy_cid", 8274),
+        ("egress_requirements", 8293),
+        ("barrier_cid", 8294),
+      ],
+      [
+        "version", "barrier_id", "input_ref", "source_input_ref", "output_ref", "source_view_contract_cid",
+        "request_schema_cid", "output_contract_cid", "request_mapping", "correlation",
+        "bounds", "capacity_guarantee", "on_non_success", "capacity_proof_cid", "input_artifact_fields",
+        "request_input_data_policy_cids", "effective_request_classification", "effective_request_data_policy_cid",
+        "response_source_data_policy_cid", "effective_response_classification", "effective_response_data_policy_cid",
+        "observed_response_fields", "correlation_fields", "response_identity_fields",
+        "effective_output_classification", "effective_output_data_policy_cid", "egress_requirements",
+        "barrier_cid",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[8059])
+  nodes.push(nodes[1])
+  nodes.push(nodes[1])
+  nodes.push(nodes[1])
+  nodes.push(nodes[1])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[1])
+  nodes.push(protocol_object_rule([("field", 8304)], ["field"], -1, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(
+    protocol_object_rule([("literal", 8306)], ["literal"], -1, 0, None),
+  )
+  nodes.push(nodes[1])
+  nodes.push(protocol_object_rule([("$param", 8308)], ["$param"], -1, 0, None))
+  nodes.push(protocol_one_of_rule([8305, 8307, 8309]))
+  nodes.push(protocol_object_rule([], [], 8310, 1, None))
+  nodes.push(nodes[1])
+  nodes.push(nodes[1])
+  nodes.push(
+    protocol_object_rule(
+      [("request", 8312), ("response", 8313)],
+      ["request", "response"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_array_rule(8314, 1, false, -1))
+  nodes.push(nodes[1])
+  nodes.push(protocol_array_rule(8316, 1, true, -1))
+  nodes.push(nodes[8081])
+  nodes.push(nodes[8082])
+  nodes.push(nodes[8083])
+  nodes.push(nodes[8084])
+  nodes.push(nodes[8084])
+  nodes.push(nodes[8084])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("on", 8315),
+        ("identity", 8317),
+        ("cardinality", 8318),
+        ("null_request_policy", 8319),
+        ("on_missing", 8320),
+        ("on_unrequested_key", 8321),
+        ("on_excess_cardinality", 8322),
+        ("on_duplicate_identity", 8323),
+      ],
+      [
+        "on", "identity", "cardinality", "null_request_policy", "on_missing", "on_unrequested_key",
+        "on_excess_cardinality", "on_duplicate_identity",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[3263])
+  nodes.push(nodes[8084])
+  nodes.push(nodes[1])
+  nodes.push(protocol_array_rule(8327, 0, true, -1))
+  nodes.push(nodes[2])
+  nodes.push(protocol_array_rule(8329, 0, true, -1))
+  nodes.push(nodes[8109])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[8109])
+  nodes.push(nodes[2])
+  nodes.push(nodes[1])
+  nodes.push(protocol_array_rule(8336, 1, true, -1))
+  nodes.push(nodes[1])
+  nodes.push(protocol_array_rule(8338, 1, true, -1))
+  nodes.push(nodes[1])
+  nodes.push(protocol_array_rule(8340, 1, true, -1))
+  nodes.push(nodes[8109])
+  nodes.push(nodes[2])
+  nodes.push(nodes[8122])
+  nodes.push(protocol_object_rule([("kind", 8344)], ["kind"], -1, 0, None))
+  nodes.push(nodes[8124])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[1])
+  nodes.push(nodes[2])
+  nodes.push(nodes[8109])
+  nodes.push(protocol_array_rule(8352, 1, true, -1))
+  nodes.push(nodes[1])
+  nodes.push(protocol_array_rule(8354, 1, true, -1))
+  nodes.push(nodes[1])
+  nodes.push(protocol_array_rule(8356, 0, true, -1))
+  nodes.push(nodes[2407])
+  nodes.push(nodes[14])
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("kind", 8346),
+        ("request_data_handling_contract_cid", 8347),
+        ("provider_execution_capability_cid", 8348),
+        ("provider_account_boundary_cid", 8349),
+        ("resolved_region", 8350),
+        ("host_policy_cid", 8351),
+        ("accepted_classifications", 8353),
+        ("allowed_regions", 8355),
+        ("accepted_media_types", 8357),
+        ("max_artifact_bytes", 8358),
+        ("require_full_artifact", 8359),
+        ("egress_requirements_cid", 8360),
+      ],
+      [
+        "kind", "request_data_handling_contract_cid", "provider_execution_capability_cid",
+        "provider_account_boundary_cid", "resolved_region", "host_policy_cid", "accepted_classifications",
+        "allowed_regions", "accepted_media_types", "require_full_artifact", "egress_requirements_cid",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_one_of_rule([8345, 8361]))
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("version", 8296),
+        ("barrier_id", 8297),
+        ("input_ref", 8298),
+        ("source_input_ref", 8299),
+        ("output_ref", 8300),
+        ("source_view_contract_cid", 8301),
+        ("request_schema_cid", 8302),
+        ("output_contract_cid", 8303),
+        ("request_mapping", 8311),
+        ("correlation", 8324),
+        ("capacity_guarantee", 8325),
+        ("on_non_success", 8326),
+        ("input_artifact_fields", 8328),
+        ("request_input_data_policy_cids", 8330),
+        ("effective_request_classification", 8331),
+        ("effective_request_data_policy_cid", 8332),
+        ("response_source_data_policy_cid", 8333),
+        ("effective_response_classification", 8334),
+        ("effective_response_data_policy_cid", 8335),
+        ("observed_response_fields", 8337),
+        ("correlation_fields", 8339),
+        ("response_identity_fields", 8341),
+        ("effective_output_classification", 8342),
+        ("effective_output_data_policy_cid", 8343),
+        ("egress_requirements", 8362),
+        ("barrier_cid", 8363),
+        ("lookup_execution_cid", 8364),
+      ],
+      [
+        "version", "barrier_id", "input_ref", "source_input_ref", "output_ref", "source_view_contract_cid",
+        "request_schema_cid", "output_contract_cid", "request_mapping", "correlation",
+        "capacity_guarantee", "on_non_success", "input_artifact_fields", "request_input_data_policy_cids",
+        "effective_request_classification", "effective_request_data_policy_cid",
+        "response_source_data_policy_cid", "effective_response_classification", "effective_response_data_policy_cid",
+        "observed_response_fields", "correlation_fields", "response_identity_fields",
+        "effective_output_classification", "effective_output_data_policy_cid", "egress_requirements",
+        "barrier_cid", "lookup_execution_cid",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_one_of_rule([8295, 8365]))
 }
 
 ///|
@@ -22393,6 +23168,8 @@ fn generated_protocol_schema_root(name : String, complete : Bool) -> Int? {
     ("native_file_content_read", true) => Some(8021)
     ("native_file_lookup_transport", false) => Some(8039)
     ("native_file_lookup_transport", true) => Some(8058)
+    ("lookup_barrier", false) => Some(8211)
+    ("lookup_barrier", true) => Some(8366)
     _ => None
   }
 }

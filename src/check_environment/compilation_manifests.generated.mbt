@@ -12,12 +12,12 @@ pub fn compiler_grammar_manifest_wire() -> String {
 
 ///|
 pub fn compiler_barrier_contract_manifest_cid() -> String {
-  "sha256:86b00bd34605670e14b6bfd5d7fa4ec92385ef8a147f251f374b77a653eda80c"
+  "sha256:8129e5022cfac2ff3ad199f8a546d2d28234f75bdda6aa2c61ccaeece3b63efd"
 }
 
 ///|
 pub fn compiler_barrier_contract_manifest_wire() -> String {
-  "{\"barrier_contract_manifest_cid\":\"sha256:86b00bd34605670e14b6bfd5d7fa4ec92385ef8a147f251f374b77a653eda80c\",\"contracts\":[{\"contract_cid\":\"sha256:4b7fea87dfbed0e1f11e9421cd077793cd3bccfc3e981617fa2a1547960acee5\",\"name\":\"content_barrier\"},{\"contract_cid\":\"sha256:34f1a37cbaea973964f4cf84ca3806b2492df545b718042ad8057604c95cb6dd\",\"name\":\"inference_barrier\"},{\"contract_cid\":\"sha256:587bfea69fbab0d23d200ac65ffc20c373142c4843820d37db6e0c617f10206a\",\"name\":\"lookup_barrier\"},{\"contract_cid\":\"sha256:cab960023ffd6486161c4757a86bde76c93798504d92a47631c73d747f881cdf\",\"name\":\"text_time_evaluation_barrier\"}],\"production_profile_registry_cid\":\"sha256:be730d4f154a09f4c043f5b80bbd1ac961735636e44a6729c3f5fcff03c01e57\",\"version\":\"actql-barrier-contract-manifest/0.1\"}"
+  "{\"barrier_contract_manifest_cid\":\"sha256:8129e5022cfac2ff3ad199f8a546d2d28234f75bdda6aa2c61ccaeece3b63efd\",\"contracts\":[{\"contract_cid\":\"sha256:4b7fea87dfbed0e1f11e9421cd077793cd3bccfc3e981617fa2a1547960acee5\",\"name\":\"content_barrier\"},{\"contract_cid\":\"sha256:34f1a37cbaea973964f4cf84ca3806b2492df545b718042ad8057604c95cb6dd\",\"name\":\"inference_barrier\"},{\"contract_cid\":\"sha256:c76fc9ca77e78c8b3db96df748e3b2c6e6055dc3477d19473cc6548842567941\",\"name\":\"lookup_barrier\"},{\"contract_cid\":\"sha256:cab960023ffd6486161c4757a86bde76c93798504d92a47631c73d747f881cdf\",\"name\":\"text_time_evaluation_barrier\"}],\"production_profile_registry_cid\":\"sha256:eae25158c427297a50b55d1ab688e624df72da0317953558295806bceae1becb\",\"version\":\"actql-barrier-contract-manifest/0.1\"}"
 }
 
 ///|
