@@ -47,8 +47,9 @@ async function rowOwner(verifyTransport,format) {
   const view=declared.views[0];
   const publication=JSON.stringify({environmentCid:environment.evidenceCid,aliases:[{name:'notion.users',
     sourceRef:view.source_ref,sourceViewContractCid:view.view_cid,schemaContractCid:view.carrier_schema_cid}]});
+  // Author the predicate required by this Query-only component fixture.
   const preparation=common.clientProgramPrepareSourceWithParameters(
-    format==='sql'?'SELECT id, name FROM notion.users':'FROM notion.users |> SELECT id, name',
+    format==='sql'?'SELECT id, name FROM notion.users WHERE TRUE':'FROM notion.users |> WHERE TRUE |> SELECT id, name',
     format,check,publication,undefined,undefined);
   const program=common.clientProgramPreparationReady(preparation);
   assert.ok(program,common.clientProgramPreparationIssueCode(preparation));
