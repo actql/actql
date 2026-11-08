@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import {randomBytes, timingSafeEqual} from 'node:crypto';
 import {createServer} from 'node:http';
-import {open, readFile, writeFile} from 'node:fs/promises';
+import {lstat, open, readFile, writeFile} from 'node:fs/promises';
 import {constants} from 'node:fs';
 import {isAbsolute, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -73,32 +73,42 @@ async function authorizationCode(url, redirectUri, state, authorize, timeoutMill
   }
 }
 
-export async function loginHubSpotOAuth(configuration, installUrl, {fetchToken = fetch,
-  authorize = url => execute('open', [url], {timeout: 10000}), timeoutMilliseconds = 180000} = {}) {
-  const {clientId, clientSecretFile, redirectUri, tokensFile, expectedHubId} = configuration;
+function checkConfiguration(configuration) {
+  const {clientId, clientSecretFile, tokensFile, expectedHubId} = configuration;
   for (const path of [clientSecretFile, tokensFile]) assert(isAbsolute(path));
   assert.equal(typeof clientId, 'string');
   if (expectedHubId !== undefined && (typeof expectedHubId !== 'string' ||
       !/^[1-9][0-9]*$/u.test(expectedHubId) || !Number.isSafeInteger(Number(expectedHubId)))) {
     fail('InvalidHubSpotOAuthAccountSelection');
   }
-  const state = randomBytes(32).toString('hex');
-  const url = hubspotAuthorizationUrl(installUrl, {clientId, redirectUri}, state);
-  const handle = await open(clientSecretFile, constants.O_RDONLY | constants.O_NOFOLLOW);
-  let secret;
+}
+
+async function readPrivateText(path, maximum, refusal) {
+  const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
   try {
     const stat = await handle.stat();
-    if (!stat.isFile() || stat.mode & 0o077 || stat.size < 1 || stat.size > 4096) fail('HubSpotOAuthPrivateSecretRequired');
-    const buffer = Buffer.alloc(4097), {bytesRead} = await handle.read(buffer, 0, buffer.length, 0);
-    if (bytesRead > 4096) fail('HubSpotOAuthPrivateSecretRequired');
-    secret = buffer.subarray(0, bytesRead).toString('utf8').replace(/^\uFEFF/u, '').trim();
-    if (!secret || /[\r\n\u0000]/u.test(secret)) fail('HubSpotOAuthPrivateSecretRequired');
+    if (!stat.isFile() || stat.mode & 0o077 || stat.size < 1 || stat.size > maximum) fail(refusal);
+    const buffer = Buffer.alloc(maximum + 1); let bytes = 0;
+    while (bytes < buffer.length) {
+      const {bytesRead} = await handle.read(buffer, bytes, buffer.length - bytes, null);
+      if (bytesRead === 0) break;
+      bytes += bytesRead;
+    }
+    if (bytes < 1 || bytes > maximum) fail(refusal);
+    return buffer.subarray(0, bytes).toString('utf8');
   } finally {await handle.close();}
-  const code = await authorizationCode(url, redirectUri, state, authorize, timeoutMilliseconds);
+}
+
+async function clientSecret(path) {
+  const value = (await readPrivateText(path, 4096, 'HubSpotOAuthPrivateSecretRequired')).replace(/^\uFEFF/u, '').trim();
+  if (!value || /[\r\n\u0000]/u.test(value)) fail('HubSpotOAuthPrivateSecretRequired');
+  return value;
+}
+
+async function requestTokens(parameters, fetchToken, expectedHubId, originalScopes) {
   const response = await fetchToken(tokenEndpoint, {method: 'POST', redirect: 'error',
     headers: {'content-type': 'application/x-www-form-urlencoded'}, signal: AbortSignal.timeout(15000),
-    body: new URLSearchParams({client_id: clientId, client_secret: secret,
-      code, grant_type: 'authorization_code', redirect_uri: redirectUri})});
+    body: new URLSearchParams(parameters)});
   if (!response.ok) fail('HubSpotOAuthTokenRejected');
   const reader = response.body.getReader(), chunks = [];
   let bytes = 0;
@@ -119,16 +129,58 @@ export async function loginHubSpotOAuth(configuration, installUrl, {fetchToken =
       !(Number.isSafeInteger(token.hub_id) && token.hub_id > 0) ||
       !Array.isArray(token.scopes) || !token.scopes.every(value => typeof value === 'string')) fail('InvalidHubSpotOAuthTokenResponse');
   if (expectedHubId !== undefined && String(token.hub_id) !== expectedHubId) fail('HubSpotOAuthAccountMismatch');
+  if (originalScopes !== undefined && JSON.stringify([...new Set(token.scopes)].sort()) !==
+      JSON.stringify([...new Set(originalScopes)].sort())) fail('HubSpotOAuthScopesChanged');
+  return token;
+}
+
+async function saveTokens(token, tokensFile, status) {
   const expiresAt = new Date(Date.now() + token.expires_in * 1000).toISOString();
   await writeFile(tokensFile, JSON.stringify({access_token: token.access_token, refresh_token: token.refresh_token,
     token_type: token.token_type, hub_id: token.hub_id, scopes: token.scopes, expiresAt}) + '\n', {mode: 0o600, flag: 'wx'});
-  return {status: 'oauth_authorized', hubId: String(token.hub_id), expiresAt, tokensFile};
+  return {status, hubId: String(token.hub_id), expiresAt, tokensFile};
+}
+
+export async function loginHubSpotOAuth(configuration, installUrl, {fetchToken = fetch,
+  authorize = url => execute('open', [url], {timeout: 10000}), timeoutMilliseconds = 180000} = {}) {
+  checkConfiguration(configuration);
+  const {clientId, clientSecretFile, redirectUri, tokensFile, expectedHubId} = configuration;
+  const state = randomBytes(32).toString('hex');
+  const url = hubspotAuthorizationUrl(installUrl, {clientId, redirectUri}, state);
+  const secret = await clientSecret(clientSecretFile);
+  const code = await authorizationCode(url, redirectUri, state, authorize, timeoutMilliseconds);
+  const token = await requestTokens({client_id: clientId, client_secret: secret,
+    code, grant_type: 'authorization_code', redirect_uri: redirectUri}, fetchToken, expectedHubId);
+  return saveTokens(token, tokensFile, 'oauth_authorized');
+}
+
+export async function refreshHubSpotOAuth(configuration, originalTokensFile, {fetchToken = fetch} = {}) {
+  checkConfiguration(configuration); assert(isAbsolute(originalTokensFile));
+  const {clientId, clientSecretFile, tokensFile, expectedHubId} = configuration;
+  if (resolve(originalTokensFile) === resolve(tokensFile)) fail('HubSpotOAuthNewTokenFileRequired');
+  try {await lstat(tokensFile); fail('HubSpotOAuthNewTokenFileRequired');}
+  catch (error) {if (error.code !== 'ENOENT') throw error;}
+  let original;
+  const wire = await readPrivateText(originalTokensFile, 16384, 'HubSpotOAuthPrivateTokensRequired');
+  try {original = JSON.parse(wire);} catch {fail('InvalidHubSpotOAuthSavedTokens');}
+  if (!original || typeof original.refresh_token !== 'string' || !original.refresh_token ||
+      !Number.isSafeInteger(original.hub_id) || original.hub_id <= 0 || !Array.isArray(original.scopes) ||
+      !original.scopes.every(value => typeof value === 'string')) fail('InvalidHubSpotOAuthSavedTokens');
+  const originalHubId = String(original.hub_id);
+  if (expectedHubId !== undefined && originalHubId !== expectedHubId) fail('HubSpotOAuthAccountMismatch');
+  const secret = await clientSecret(clientSecretFile);
+  const token = await requestTokens({client_id: clientId, client_secret: secret,
+    refresh_token: original.refresh_token, grant_type: 'refresh_token'}, fetchToken, originalHubId, original.scopes);
+  return saveTokens(token, tokensFile, 'oauth_refreshed');
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const [configurationPath, installUrlPath] = process.argv.slice(2);
-  assert.equal(process.argv.length, 4, 'usage: oauth.mjs CONFIGURATION INSTALL_URL_FILE');
+  const args = process.argv.slice(2), refreshing = args[0] === '--refresh';
+  assert.equal(args.length, refreshing ? 3 : 2,
+    'usage: oauth.mjs CONFIGURATION INSTALL_URL_FILE | --refresh CONFIGURATION ORIGINAL_TOKEN_FILE');
+  const [configurationPath, inputPath] = refreshing ? args.slice(1) : args;
   const configuration = JSON.parse(await readFile(configurationPath, 'utf8'));
-  const installUrl = (await readFile(installUrlPath, 'utf8')).trim();
-  console.log(JSON.stringify(await loginHubSpotOAuth(configuration, installUrl)));
+  const result = refreshing ? await refreshHubSpotOAuth(configuration, inputPath)
+    : await loginHubSpotOAuth(configuration, (await readFile(inputPath, 'utf8')).trim());
+  console.log(JSON.stringify(result));
 }
