@@ -107,11 +107,11 @@ fn native_mock_effect_model_selection_storage(
   }
   let arrays = @execution.preparation_array_representation(
     if vector_count > 0 {
-      2L
+      3L
     } else {
       0L
     },
-    2L * vector_count.to_int64(),
+    3L * vector_count.to_int64(),
     true,
   ).unwrap_or_else(() => stop("LocalOriginalModelBoundsUnavailable"))
   // One actual ClientCompiledRun record, Effects/Result/Some wrappers, and

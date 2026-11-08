@@ -331,13 +331,15 @@ pub fn NativeClientMockModelWork::persist_settlement_evidence_in_original_read(
       // Retain the known durable observation before returning to Read or any
       // next callback. This counter is not a physical or Model settlement ACK.
       saved.stored += 1
+      // The last original confirmation remains known even if the following
+      // current fence refuses. Journal COMMIT and Model ACK stay independent.
+      saved.store_complete = saved.stored == saved.leaves.length()
       mock_model_require(
         self.capture
         .check_current_in_original_read()
         .map_err(issue => NativeClientMockModelIssue::Original(issue)),
       )
     }
-    saved.store_complete = saved.stored == saved.leaves.length()
     Ok(())
   } catch {
     NativeMockModelStop(issue) => Err(issue)
