@@ -323,6 +323,7 @@ fn local_effect_prepare_start_with_clocks(
     )
     selected.capture_mock_effect_content(run)
     selected.execute_mock_effect_model(run)
+    selected.retain_mock_effect_host(bound)
   }
   AuthoritySupplierUnavailable
 }
