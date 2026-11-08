@@ -182,6 +182,27 @@ pub fn read_client_source_capture_descriptor(
 }
 
 ///|
+/// Read-only geometry of the SAME original Query capture. Equal requirements
+/// or an unrelated schema cannot enlarge the installed Source identity path.
+/// This grants no read, publication, stop or restoration authority.
+fn client_source_capture_schema_columns(
+  source : @query.CapturedInputSource,
+  requirement : @planning.QueryRequirement,
+) -> Int? {
+  let original = @planning.query_material_owner(
+    @planning.query_requirement_material(requirement),
+  )
+  if !@query.captured_source_matches_query(source, original) {
+    return None
+  }
+  let query = @query.query_sequence_requirement(original)
+  @lower.preparation_schema_at(
+    @lower.bound_preparation(@query.query_sequence_owner(original)),
+    @sourceviews.query_acquisition_capture(query),
+  ).map(schema => @schema.field_count(schema))
+}
+
+///|
 /// The Host binds Run/request, occurrence, selected configuration, physical
 /// Source, original attempt and authority in its immutable private record.
 /// This string is not an authorization grant. The source/requirement pair is
@@ -191,12 +212,11 @@ pub fn export_client_source_capture(
   requirement : @planning.QueryRequirement,
   binding : String,
 ) -> Result[ClientSourceCaptureExport, ClientSourceCaptureIssue] {
-  let query = @planning.query_material_owner(
-    @planning.query_requirement_material(requirement),
-  )
-  if binding.is_empty() ||
-    binding.length() > 262144 ||
-    !@query.captured_source_matches_query(source, query) {
+  if binding.is_empty() || binding.length() > 262144 {
+    return Err(BindingMismatch)
+  }
+  guard client_source_capture_schema_columns(source, requirement)
+    is Some(columns) else {
     return Err(BindingMismatch)
   }
   let stream = match
@@ -204,9 +224,14 @@ pub fn export_client_source_capture(
       source,
       100,
       source_capture_values(),
-      source_capture_wire(),
-      source_capture_wire(),
-      { max_fields: 100, max_bytes: 100000, max_nodes: 10000, max_depth: 100, },
+      { ..source_capture_wire(), max_columns: columns, },
+      { ..source_capture_wire(), max_columns: columns, },
+      {
+        max_fields: columns,
+        max_bytes: 100000,
+        max_nodes: 10000,
+        max_depth: 100,
+      },
       1000000,
     ) {
     Ok(value) => value

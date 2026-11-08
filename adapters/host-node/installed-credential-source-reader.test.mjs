@@ -201,7 +201,7 @@ function fixture({pendingRead, pendingBinding = false, responseGrowth = false, g
       return coreRetired ? error('original Core capture retired') : ok(capturedSource);
     },
     clientProgramEffectCapturedSourceMatches: () => true,
-    clientProgramIdentifyCapturedEffectSourceRelation: () => ok(identity),
+    clientProgramIdentifyRowCaptureEffectSourceRelation: () => ok(identity),
     clientProgramEffectIssueCapturedSourceLogical: () => ok(logicalInput),
     clientProgramRowSourceIssueSourceEvidence() {
       assert.equal(coreRetired,false);events.push('source-evidence');return ok(evidence);

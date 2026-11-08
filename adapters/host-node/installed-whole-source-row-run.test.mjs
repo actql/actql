@@ -54,7 +54,9 @@ test('whole input consumes the same Run/reader/evidence originals without Query 
     clientProgramCapturedTaskSourceMatches(prepared, actual, task) {
       assert.equal(prepared, checkedOwner); assert.equal(actual, source); assert.equal(task, 0); return true;
     },
-    clientProgramIdentifyCapturedSourceRelation: () => ok(identity),
+    clientProgramIdentifyRowCaptureSourceRelation(actual, original) {
+      assert.strictEqual(actual, source); assert.strictEqual(original, capture); return ok(identity);
+    },
     clientProgramIssueWholeSourceInputLogical(prepared, actual, measured, selected) {
       assert.equal(prepared, checkedOwner); assert.equal(actual, source);
       assert.equal(measured, identity); assert.equal(selected, capacity); calls.push('logical'); return ok(logical);

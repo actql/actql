@@ -346,8 +346,8 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
       fail('InstalledSourceProgramMismatch');
     }
     const identity = checked(effectful
-      ? moon.clientProgramIdentifyCapturedEffectSourceRelation(capturedSource)
-      : moon.clientProgramIdentifyCapturedSourceRelation(capturedSource));
+      ? moon.clientProgramIdentifyRowCaptureEffectSourceRelation(capturedSource, captured)
+      : moon.clientProgramIdentifyRowCaptureSourceRelation(capturedSource, captured));
     const logicalInput = checked(wholeInput
       ? effectful
         ? moon.clientProgramIssueEffectWholeSourceInputLogical(checkedOwner,

@@ -48269,7 +48269,7 @@
     },
     {
       "module": "src/client_row_source_host/host.mbt",
-      "sha256": "bde8e2624f2272e7264a63c5313d8c2b6226322706913001b7f97fca9bb92daf",
+      "sha256": "e3fe283b75d7f786e24c52bf78c061ecda3d291153738ccebb2d7d15a4dbe8e0",
       "exports": [],
       "operations": [
         {
@@ -57413,7 +57413,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
-      "sha256": "f43ce4f02bcf23a0cffce85945545ffa96f24a1a31cd04186e12841012072281",
+      "sha256": "1bb3afef8f3858148fb886635276bae1b281e48fb493796f62ec5f68c44ec95c",
       "exports": [],
       "operations": [
         {
@@ -59526,7 +59526,7 @@
         },
         {
           "name": "identify_installed_captured_source",
-          "declaration": "identify_installed_captured_source ( source : @ query . CapturedInputSource , retain_body_bytes : Int , ) - > Result [ @ query . CapturedSourceRelationIdentity , @ query . CapturedSourceIssue ]"
+          "declaration": "identify_installed_captured_source ( source : @ query . CapturedInputSource , retain_body_bytes : Int , columns ? : Int"
         },
         {
           "name": "issue_captured_source_logical_graph",
@@ -84906,12 +84906,16 @@
     },
     {
       "module": "src/client_row_source_host/measurement_capacity.mbt",
-      "sha256": "5ef5dc391309b217b7b99f7860d0fd9fcd31017ec7d164e0490eac76ae0a8285",
+      "sha256": "2331a68467334ece4530c023355d2568db4b54ca01f9fdb3adb91f90c17b22f7",
       "exports": [],
       "operations": [
         {
           "name": "row_capture_measurement_geometry",
-          "declaration": "row_capture_measurement_geometry ( preparation : RowSourcePreparation , ) - > ( Int , Int64 , Int64 ) ?"
+          "declaration": "row_capture_measurement_geometry ( preparation : RowSourcePreparation , ) - > ( Int , Int64 , Int64 , Int ) ?"
+        },
+        {
+          "name": "row_capture_schema_columns",
+          "declaration": "row_capture_schema_columns ( capture : RowSourceCapture , source : @ query . CapturedInputSource , ) - > Int ?"
         },
         {
           "name": "row_schema_measurement_capacity",
@@ -84927,6 +84931,74 @@
             "<module>",
             "row_capture_measurement_geometry",
             "row_schema_measurement_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Selected-schema capture measurement"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "row_capture_schema_columns"
           ],
           "exports": [],
           "attributes": {

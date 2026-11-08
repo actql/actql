@@ -51,10 +51,11 @@ fn row_schema_measurement_capacity(schema : @schema.Schema) -> (Int64, Int64)? {
 ///|
 // Input is the SAME checked declaration schema bound by prepare_row_source.
 // Capture is its original checked SELECT port, not an arbitrary Host maximum.
-// The two measurements are sequential; their variable workspaces do not sum.
+// Scan/capture measurements are sequential. Later identity metadata overlaps
+// the original evidence record names, so both are funded before provider I/O.
 fn row_capture_measurement_geometry(
   preparation : RowSourcePreparation,
-) -> (Int, Int64, Int64)? {
+) -> (Int, Int64, Int64, Int)? {
   let owner = @lower.bound_preparation(preparation.owner)
   guard @lower.preparation_input_schema(owner, preparation.input_index)
     is Some(input) &&
@@ -75,11 +76,41 @@ fn row_capture_measurement_geometry(
     row_schema_measurement_capacity(output) is Some((output_workspace, _)) else {
     return None
   }
+  guard @execution.checked_preparation_add_product(
+      Int64::max(input_workspace, output_workspace),
+      record_retained,
+      1L,
+    )
+    is Some(working) else {
+    return None
+  }
   Some(
     (
       Int::max(@schema.field_count(input), @schema.field_count(output)),
-      Int64::max(input_workspace, output_workspace),
+      working,
       record_retained,
+      @schema.field_count(output),
     ),
   )
+}
+
+///|
+/// Geometry from the SAME live completed RowRun and cached captured source.
+/// Query and Whole input variants keep their own original schema owners.
+/// This neither issues evidence nor grants read, publication or stop authority.
+pub fn row_capture_schema_columns(
+  capture : RowSourceCapture,
+  source : @query.CapturedInputSource,
+) -> Int? {
+  guard row_capture_source(capture) is Ok(original) &&
+    physical_equal(original, source) else {
+    return None
+  }
+  match (capture.run.configuration, capture.observation) {
+    (DirectConfiguration(configuration), QueryObservation(_)) =>
+      Some(configuration.capture_columns)
+    (InputConfiguration(acquisition), InputObservation(_)) =>
+      Some(acquisition.preparation.columns.length())
+    _ => None
+  }
 }

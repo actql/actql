@@ -259,7 +259,8 @@ up to 3n simultaneous column-growth references, n tuple name/index pairs, and
 bounded cursor/control records. Qualified spelling uses the original schema
 constructor's own header/UTF16 inventory; unqualified strings stay borrowed.
 The two measurements run sequentially, so their variable workspaces use the
-larger original extent. The existing wire/hash payload envelope is unchanged.
+larger original extent. Later capture identity measurement overlaps retained
+evidence-record names, so the same execution reservation also backs that extent. The existing wire/hash payload envelope is unchanged.
 The checked quote is retained in the same immutable RowHost configuration and
 added to its same original reservation, with no new Ledger, attempt or cleanup
 owner. Physical/current refusal retains the existing reader and Source duties.
@@ -277,3 +278,12 @@ For 102 unqualified fields this adds 1664 logical retained bytes. Its 3n growth
 peak is smaller than the already funded measurement workspace. Parameter,
 byte, node, ordering and work bounds remain independent; this replaces neither
 the writer's field check nor the receiving schema's nominal validation.
+
+Installed Query and Whole identity callers pass the same live RowSourceCapture
+and its exact cached Source. The receiver checks physical identity and the
+original observation variant before reading its checked capture schema width;
+foreign or closed captures refuse. Legacy generic identity and standalone
+restoration limits stay unchanged. Query export independently binds its original
+requirement before using that capture port's schema width. For 102 unqualified
+fields, the late metadata/name overlap is 8576 logical execution bytes, alongside
+the separately charged 1664 retained bytes; no new Ledger or authority is issued.

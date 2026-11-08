@@ -87221,7 +87221,7 @@
     {
       "module": "adapters/host-node/installed-row-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "6427d9f7abdd3e94f2cf6f0844f5132ff76592047eca851ad8555cb98682cc77",
+      "sha256": "8f32c823d22d04bce6b6bfd71e628811147296f578d1b44797f24c9d06faabc1",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [

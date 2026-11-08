@@ -146,6 +146,7 @@ priv struct RowHostConfiguration {
   listing_rows : RowListingRows?
   measurement_workspace : Int64
   record_fields_retained : Int64
+  capture_columns : Int
 }
 
 ///|
@@ -311,7 +312,12 @@ fn prepare_row_acquisition_owned(
   }
   guard row_capture_measurement_geometry(preparation)
     is Some(
-      (measurement_columns, measurement_workspace, record_fields_retained)
+      (
+        measurement_columns,
+        measurement_workspace,
+        record_fields_retained,
+        capture_columns,
+      )
     ) else {
     return Err(Physical(InvalidLimits))
   }
@@ -334,6 +340,7 @@ fn prepare_row_acquisition_owned(
       listing_rows,
       measurement_workspace,
       record_fields_retained,
+      capture_columns,
       limits: {
         execution: {
           rows: {

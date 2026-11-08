@@ -335,6 +335,8 @@ pub fn row_capture_original_prefix_requirement(RowSourceCapture, @physical_resou
 
 pub fn row_capture_original_read(RowSourceCapture) -> @execution_relation.SuppliedRelationRead?
 
+pub fn row_capture_schema_columns(RowSourceCapture, @execution_query.CapturedInputSource) -> Int?
+
 pub fn row_capture_source(RowSourceCapture) -> Result[@execution_query.CapturedInputSource, @execution_query.CapturedSourceIssue]
 
 pub fn row_captured_input_at(RowCapturedInputs, Int) -> RowSourceCapture?

@@ -487,7 +487,7 @@ function installCompletedProviderCapture(f) {
     clientProgramRowSourceCapture: () => ok(capture),
     clientProgramRowSourceCaptureSource: actual => {assert.equal(actual,capture);return ok(source);},
     clientProgramEffectCapturedSourceMatches: () => true,
-    clientProgramIdentifyCapturedEffectSourceRelation: () => ok({}),
+    clientProgramIdentifyRowCaptureEffectSourceRelation: () => ok({}),
     clientProgramEffectIssueCapturedSourceLogical: () => ok({}),
     clientProgramRowSourceRetireResponseWorkspace(actualBorrow) {
       assert.equal(actualBorrow,f.borrow);
