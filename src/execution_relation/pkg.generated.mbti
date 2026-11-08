@@ -362,6 +362,8 @@ pub fn cancel_row_wire_order(RowWireOrderPreparation) -> Bool
 
 pub fn capture(@value_admission.Value) -> Value
 
+pub fn capture_generated_supplied_source_input(GeneratedSequence, SuppliedRelationRead, Int, Int) -> Result[CompletedOutput, TrustedOutputIssue]
+
 pub fn capture_input(@lowering_relation.BoundPrepared, Int, Array[@decode_core.Cursor], max_rows~ : Int, ValueLimits) -> Result[CapturedRows, CaptureIssue]
 
 pub fn capture_supplied_source_input(RegisteredRelationContracts, @lowering_relation.PreparedSequence, SuppliedRelationRead, Int, Int) -> Result[CompletedOutput, TrustedOutputIssue]
@@ -1527,6 +1529,8 @@ pub fn supplied_relation_read_rows_identity(SuppliedRelationRead, RowWireLimits)
 pub fn supplied_relation_read_same_binding(SuppliedRelationRead, SuppliedRelationRead) -> Bool
 
 pub fn supplied_relation_read_schema(SuppliedRelationRead) -> @relation_schema.Schema
+
+pub fn supplied_source_input_capture_capacity(CapturedRows) -> ExecutionCapacity?
 
 pub fn take_admitted_output_preparation_rows(AdmittedOutputPreparation) -> AdmittedOutputRows?
 

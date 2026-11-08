@@ -64,6 +64,9 @@ fn original_composed_keyed_consumer(
   publication_identity? : Bool = false,
   publication_early? : Bool = false,
   source_identity_bodies? : Bool = false,
+  keyed_identity_bodies? : Bool = false,
+  keyed_body_reentry? : Bool = false,
+  keyed_body_stop? : Bool = false,
 ) -> Unit raise {
   let (declaration, keyed_environment) = original_keyed_declaration_environment(
     relation_versions=true,
@@ -369,7 +372,39 @@ fn original_composed_keyed_consumer(
     }
   }
   let prior_attempts = @resources.ledger_usage(ledger).attempts
+  let body_lookup : Ref[@publication_host.ClientKeyedLookupInput?] = Ref(None)
+  let body_armed = Ref(false)
+  let body_observed = Ref(false)
+  let body_reentry_refused = Ref(false)
+  let body_cleanup_deferred = Ref(false)
   let accepted = wire => {
+    // The keyset emits Resource references; the one body scan emits the
+    // actual Content reference. No callback-count or fabricated current proof.
+    if body_armed.val && wire == original_keyed_child_content(0) {
+      body_armed.val = false
+      body_observed.val = true
+      if body_lookup.val is Some(lookup) {
+        if keyed_body_stop {
+          body_cleanup_deferred.val = @publication_host.cleanup_client_keyed_lookup_input(
+              lookup, 10000,
+            )
+            is Ok(false)
+        } else if keyed_body_reentry {
+          body_reentry_refused.val = @publication_host.finish_client_keyed_lookup_input(
+              lookup,
+            )
+            is Err(_) &&
+            @publication_host.finish_client_keyed_lookup_publication_input(
+              lookup,
+              16384,
+              1024,
+              20,
+              retain_body=true,
+            )
+            is Err(_)
+        }
+      }
+    }
     wire == original_keyed_child_resource(0) ||
     wire == original_keyed_child_content(0)
   }
@@ -1029,13 +1064,53 @@ fn original_composed_keyed_consumer(
       break
     }
   }
-  let right = if publication_early {
+  body_lookup.val = Some(lookup)
+  body_armed.val = keyed_body_reentry || keyed_body_stop
+  let right_result = if publication_early {
     @publication_host.finish_client_keyed_lookup_publication_input(
-      lookup, 16384, 1024, 20,
-    ).unwrap()
+      lookup,
+      16384,
+      1024,
+      20,
+      retain_body=keyed_identity_bodies,
+    )
   } else {
-    @publication_host.finish_client_keyed_lookup_input(lookup).unwrap()
+    @publication_host.finish_client_keyed_lookup_input(lookup)
   }
+  if keyed_body_reentry {
+    assert_true(body_observed.val && body_reentry_refused.val)
+  }
+  if keyed_body_stop {
+    assert_true(body_observed.val && body_cleanup_deferred.val)
+    assert_true(right_result is Err(_))
+    assert_true(
+      @publication_host.client_keyed_lookup_input_identity(lookup) is None,
+    )
+    @row_source_host.close_accounted_row_run(child).unwrap()
+    assert_true(
+      @publication_host.cleanup_client_keyed_lookup_input(lookup, 10000).unwrap(),
+    )
+    assert_true(cleanup_client_serialization_prefix(original.prefix).unwrap())
+    for run in runs {
+      @row_source_host.close_accounted_row_run(run).unwrap()
+    }
+    assert_true(restorations.is_empty() && managed is None)
+    assert_true(
+      @publication_host.finish_client_model_read_scope(
+        scope,
+        model.compiled,
+        model.definition,
+        model.graph,
+        true,
+      ).unwrap(),
+    )
+    assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
+    assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+    assert_eq(@resources.ledger_usage(ledger).attempts, prior_attempts + 3)
+    return
+  }
+  let right = right_result.unwrap()
+
   if publication_identity {
     let keys = match
       @publication_host.client_keyed_lookup_request_identity(
@@ -1221,6 +1296,33 @@ fn original_composed_keyed_consumer(
   let keyed_observation = @publication_host.issue_client_keyed_lookup_observation(
     lookup, authority, completed,
   ).unwrap()
+  if keyed_identity_bodies {
+    let bodies = @publication_host.client_keyed_lookup_observation_dependency_bodies(
+      keyed_observation,
+    ).unwrap()
+    let row = original_keyed_child_expected_row(0)
+    let expected = "{\"sort\":\"relation\",\"value\":[" + row + "]}"
+    assert_eq(bodies.0, expected)
+    let (_, _, logical) = @publication_host.client_keyed_lookup_observation_originals(
+      keyed_observation,
+    ).unwrap()
+    assert_eq(logical, "sha256:" + @sha.text_hex(expected).unwrap())
+    assert_eq(
+      @publication_host.client_keyed_lookup_input_identity(lookup),
+      Some("sha256:" + @sha.text_hex("[" + row + "]").unwrap()),
+    )
+    // The second original-observation projection consumes the SAME receipt;
+    // it opens no new reservation, allocation, response or identity scan.
+    let usage = @resources.ledger_usage(ledger)
+    let again = @publication_host.issue_client_keyed_lookup_observation(
+      lookup, authority, completed,
+    ).unwrap()
+    assert_eq(
+      @publication_host.client_keyed_lookup_observation_dependency_bodies(again),
+      Some(bodies),
+    )
+    assert_eq(@resources.ledger_usage(ledger), usage)
+  }
   let admit_sources = (
     selected,
     selected_identities,
@@ -1643,6 +1745,14 @@ fn original_composed_keyed_consumer(
   assert_true(
     @publication_host.cleanup_client_keyed_lookup_input(lookup, 10000).unwrap(),
   )
+  if keyed_identity_bodies {
+    assert_true(
+      @publication_host.client_keyed_lookup_observation_dependency_bodies(
+        keyed_observation,
+      )
+      is None,
+    )
+  }
   if publication_identity {
     assert_true(
       @publication_host.client_keyed_lookup_request_identity(
@@ -1849,5 +1959,37 @@ test "actual Whole Sources retain one scanned body through same keyed Model inpu
     publication_identity=true,
     publication_early=true,
     source_identity_bodies=true,
+  )
+}
+
+///|
+test "actual keyed Source retains one receipt and raw bodies before Model Read and retires them" {
+  original_composed_keyed_consumer(
+    whole=true,
+    publication_identity=true,
+    publication_early=true,
+    keyed_identity_bodies=true,
+  )
+}
+
+///|
+test "keyed body original Content callback cannot reenter identity or supplied read finalization" {
+  original_composed_keyed_consumer(
+    whole=true,
+    publication_identity=true,
+    publication_early=true,
+    keyed_identity_bodies=true,
+    keyed_body_reentry=true,
+  )
+}
+
+///|
+test "keyed body reentrant cleanup defers backing retirement and preserves spent attempts" {
+  original_composed_keyed_consumer(
+    whole=true,
+    publication_identity=true,
+    publication_early=true,
+    keyed_identity_bodies=true,
+    keyed_body_stop=true,
   )
 }

@@ -3021,3 +3021,36 @@ returned identity retains the actual raw logical/schema strings; the command
 keeps it before later fallible evidence constructors. After Work/Store consumers
 have retired, command cleanup cuts those body aliases before returning the same
 Read. These alias operations never acknowledge physical Source or Model cleanup.
+
+
+### Keyed output bodies before the Model Read snapshot
+
+The Native publication purpose also retains the keyed response Relation's raw
+logical/schema preimages. Its existing ordered-input constructor selects this
+purpose before claiming the Model Read. The original generated prefix supplies
+its registered contracts and prepared sequence directly to the existing trusted
+supplied-input capture. No replacement registry, Source, task completion or
+second provider request is constructed.
+
+The same lookup reservation backs the capture controls and each actual
+incremental identity-scan peak before the corresponding constructor/advance.
+The original rows/schema/Values remain borrowed. One scan supplies the payload
+CID, logical CID, schema CID, byte measurements and retained preimages; the
+later Source observation projects that exact receipt instead of rehashing its
+rows/schema. Repeated observation reads open no new scan, reservation or
+attempt. Other lookup purposes retain their original path; an already exposed
+ordinary read cannot be upgraded by rescanning it for publication bodies.
+
+The lookup's existing allocation retains the completed body/receipt until its
+actual dependency consumer retires. Before returning that allocation, cleanup
+cuts the scan, receipt, body and output aliases. The identity work counter is
+monotone across cancellation and retirement. During a reference's synchronous
+callback, a separate identity latch refuses nested finalization and defers
+cleanup's backing release. Owning stop still invalidates the read immediately;
+the in-flight borrow must return before its actual rows can be reclaimed.
+
+These retained strings are dependency DATA, not a transport plan or lookup
+attempt receipt. The keyset, original response barrier, complete actual
+transport/capture history and admitted provenance closure remain separate
+obligations. A raw body or matching CID does not establish those obligations,
+physical cleanup, Artifact admission, Model execution or publication success.

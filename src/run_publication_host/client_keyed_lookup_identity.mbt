@@ -187,12 +187,18 @@ pub fn finish_client_keyed_lookup_publication_input(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  retain_body? : Bool = false,
 ) -> Result[@execution.SuppliedRelationRead, ClientKeyedRequestIssue] {
   if lookup.publication_identity is Some(_) {
-    return finish_client_keyed_lookup_input(lookup)
+    return if retain_body {
+      finish_keyed_lookup_identity_bodies(lookup)
+    } else {
+      finish_client_keyed_lookup_input(lookup)
+    }
   }
   if lookup.closed ||
     lookup.growing ||
+    lookup.identifying ||
     lookup.completed is Some(_) ||
     lookup.copying is Some(_) ||
     lookup.preparation is Some(_) ||
@@ -293,5 +299,9 @@ pub fn finish_client_keyed_lookup_publication_input(
   }
   lookup.completed = Some(rows)
   lookup.publication_identity = Some(identity)
-  finish_client_keyed_lookup_input(lookup)
+  if retain_body {
+    finish_keyed_lookup_identity_bodies(lookup)
+  } else {
+    finish_client_keyed_lookup_input(lookup)
+  }
 }

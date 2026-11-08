@@ -12,6 +12,12 @@ struct ClientKeyedLookupInput {
   mut retained_bytes : Int64
   mut execution_bytes : Int64
   mut growing : Bool
+  mut identifying : Bool
+  mut identity_scan : @execution.CompletedRelationIdentityScan?
+  mut identity_output : @execution.CompletedOutput?
+  mut identity_receipt : @execution.CompletedRelationExportReceipt?
+  mut identity_bodies : (String, String)?
+  mut identity_work : Int64
   rows : Int
   mut input : @execution.AdmittedInput?
   mut known : Array[
@@ -180,6 +186,12 @@ fn start_client_keyed_lookup_input_owned(
     retained_bytes,
     execution_bytes,
     growing: false,
+    identifying: false,
+    identity_scan: None,
+    identity_output: None,
+    identity_receipt: None,
+    identity_bodies: None,
+    identity_work: 0L,
     rows,
     input: Some(input),
     known: [],
@@ -733,6 +745,8 @@ pub fn finish_client_keyed_lookup_input(
   state : ClientKeyedLookupInput,
 ) -> Result[@execution.SuppliedRelationRead, ClientKeyedRequestIssue] {
   if state.closed ||
+    state.growing ||
+    state.identifying ||
     state.copying is Some(_) ||
     state.accepted != state.rows ||
     state.left.lookup_issue is Some(_) ||
@@ -823,6 +837,16 @@ pub fn finish_client_keyed_lookup_input(
     }
     return Err(Assembly("closed_response"))
   }
+  keyed_lookup_supplied_read(state)
+}
+
+///|
+fn keyed_lookup_supplied_read(
+  state : ClientKeyedLookupInput,
+) -> Result[@execution.SuppliedRelationRead, ClientKeyedRequestIssue] {
+  if state.read is Some(read) {
+    return Ok(read)
+  }
   let response_input = match
     @query.keyed_response_input_index(
       state.left.acquisition.owner,
@@ -844,7 +868,9 @@ pub fn finish_client_keyed_lookup_input(
           entry.2
           .map(@execution.supplied_relation_read_available)
           .unwrap_or(false)
-        })
+        }) &&
+        !state.closed &&
+        state.left.lookup_issue is None
       },
     ) {
     Ok(read) => read
@@ -857,6 +883,7 @@ pub fn finish_client_keyed_lookup_input(
 ///|
 pub fn client_keyed_lookup_input_work(state : ClientKeyedLookupInput) -> Int64 {
   state.work.to_int64() +
+  state.identity_work +
   state.input
   .map(input => @execution.admitted_input_work(input).to_int64())
   .unwrap_or(state.retired_row_work)
@@ -1024,9 +1051,10 @@ pub fn cleanup_client_keyed_lookup_input(
   quantum : Int,
 ) -> Result[Bool, ClientKeyedRequestIssue] {
   stop_client_keyed_lookup_input(state)
-  if quantum <= 0 || state.growing {
+  if quantum <= 0 || state.growing || state.identifying {
     return Ok(false)
   }
+  clear_keyed_lookup_identity_bodies(state)
   state.publication_identity = None
   if state.copying is Some(cursor) {
     @execution.cleanup_admitted_input_row(cursor) |> ignore
