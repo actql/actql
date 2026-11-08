@@ -5,7 +5,7 @@
 // its physical owner. The later protocol issuer must validate that original.
 priv struct ClientKeyedResponseHistory {
   request : ClientKeyedRequest
-  _retained_capture : @row_host.RowKeyedSourceCapture?
+  mut _retained_capture : @row_host.RowKeyedSourceCapture?
 }
 
 ///|
@@ -33,7 +33,11 @@ struct ClientKeyedLookupInput {
   mut known : Array[
     (String, @execution.SuppliedRelationRead?, ClientKeyedResponseHistory?),
   ]
+  mut planned_requests : Array[(ClientKeyedRequest, Int)]?
+  mut planned_order : Array[Int]?
+  mut pending_slot : Int
   mut accepted : Int
+  mut completed_responses : Int
   mut work : Int
   mut retired_row_work : Int64
   mut copying : @execution.AdmittedOutputRowCursor?
@@ -205,7 +209,11 @@ fn start_client_keyed_lookup_input_owned(
     rows,
     input: Some(input),
     known: [],
+    planned_requests: None,
+    planned_order: None,
+    pending_slot: -1,
     accepted: 0,
+    completed_responses: 0,
     work: 1,
     retired_row_work: 0L,
     copying: None,
@@ -382,7 +390,11 @@ pub fn start_client_keyed_lookup_request(
     state.preparation is Some(_) ||
     state.selected_request is Some(_) ||
     state.completed is Some(_) ||
-    row != state.accepted ||
+    (match state.planned_requests {
+      None => row != state.accepted
+      Some(requests) =>
+        state.planned_order is Some(_) || row != requests.length()
+    }) ||
     row >= state.rows ||
     state.left.lookup_issue is Some(_) {
     return Err(Assembly("unavailable_request"))
@@ -438,6 +450,9 @@ pub fn advance_client_keyed_lookup_request(
   match poll {
     ClientKeyedRequestComplete(request, ..) => {
       request.assembly_accounting = Some(state)
+      if state.planned_requests is Some(_) {
+        state.selected_request = Some(request)
+      }
       state.preparation = None
     }
     ClientKeyedRequestFailed(issue, ..) =>
@@ -456,6 +471,10 @@ fn keyed_lookup_input_request(
     state.copying is Some(_) ||
     state.preparation is Some(_) ||
     state.completed is Some(_) ||
+    (
+      state.planned_requests is Some(_) &&
+      (state.planned_order is None || state.selected_request is None)
+    ) ||
     !physical_equal(request.left, state.left) ||
     request.row != state.accepted ||
     state.accepted >= state.rows ||
@@ -570,6 +589,18 @@ pub fn begin_client_keyed_lookup_response(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  let planned_slot = match state.planned_requests {
+    None => -1
+    Some(requests) => {
+      guard requests.get(state.accepted) is Some((original, slot)) &&
+        physical_equal(original, request) &&
+        state.known.get(slot) is Some((_, None, Some(history))) &&
+        physical_equal(history.request, request) else {
+        return Err(Assembly("foreign_planned_response"))
+      }
+      slot
+    }
+  }
   let acquisition = state.left.acquisition
   let response_input = match
     @query.keyed_response_input_index(
@@ -632,15 +663,32 @@ pub fn begin_client_keyed_lookup_response(
       // The previous request Some and existing tuple/read carriers remain;
       // the same typed request payload is not charged a second time.
       record_headers: layout.record_headers +
-      request_layout.record_headers +
-      1L +
-      (if capture is Some(_) { 5L } else { 3L }),
+      (if planned_slot >= 0 {
+        2L + (if capture is Some(_) { 2L } else { 0L })
+      } else {
+        request_layout.record_headers +
+        1L +
+        (if capture is Some(_) { 5L } else { 3L })
+      }),
       reference_slots: layout.reference_slots +
-      request_layout.reference_slots +
-      8L +
-      (if capture is Some(_) { 9L } else { 5L }),
-      scalar_words: layout.scalar_words + request_layout.scalar_words + 1L + 6L,
-      owned_utf16_units: wire.length().to_int64(),
+      (if planned_slot >= 0 {
+        4L + (if capture is Some(_) { 3L } else { 0L })
+      } else {
+        request_layout.reference_slots +
+        8L +
+        (if capture is Some(_) { 9L } else { 5L })
+      }),
+      scalar_words: layout.scalar_words +
+      (if planned_slot >= 0 {
+        1L + (if capture is Some(_) { 1L } else { 0L })
+      } else {
+        request_layout.scalar_words + 7L
+      }),
+      owned_utf16_units: if planned_slot >= 0 {
+        0L
+      } else {
+        wire.length().to_int64()
+      },
       owned_wire_bytes: 0L,
     })
     is Some(extra) else {
@@ -681,7 +729,14 @@ pub fn begin_client_keyed_lookup_response(
     state.selected_key != Some(wire) {
     return keyed_lookup_fail(state.left, Assembly("unavailable_response"))
   }
-  state.pending_history = Some({ request, _retained_capture: capture, })
+  state.pending_history = if planned_slot >= 0 {
+    let history = state.known[planned_slot].2.unwrap()
+    history._retained_capture = capture
+    state.known[planned_slot].2
+  } else {
+    Some({ request, _retained_capture: capture, })
+  }
+  state.pending_slot = planned_slot
   let cursor = match
     @execution.start_admitted_presence_input_row(input, state.max_work, column => {
       @execution.supplied_relation_read_presence_cell(read, 0, column)
@@ -744,7 +799,17 @@ pub fn advance_client_keyed_lookup_input(
             return Err(Assembly("row_cleanup"))
           }
           let key = state.pending_key.unwrap()
-          state.known.push((key, Some(read), state.pending_history))
+          if state.pending_slot >= 0 {
+            state.known[state.pending_slot] = (
+              key,
+              Some(read),
+              state.pending_history,
+            )
+          } else {
+            state.known.push((key, Some(read), state.pending_history))
+          }
+          state.pending_slot = -1
+          state.completed_responses += 1
           state.accepted += 1
           state.copying = None
           state.pending_key = None
@@ -763,6 +828,9 @@ pub fn advance_client_keyed_lookup_input(
 pub fn finish_client_keyed_lookup_input(
   state : ClientKeyedLookupInput,
 ) -> Result[@execution.SuppliedRelationRead, ClientKeyedRequestIssue] {
+  if state.planned_requests is Some(_) && state.completed is None {
+    return Err(Assembly("planned_publication_required"))
+  }
   if state.closed ||
     state.growing ||
     state.identifying ||
@@ -1075,6 +1143,7 @@ pub fn cleanup_client_keyed_lookup_input(
   }
   clear_keyed_lookup_identity_bodies(state)
   state.publication_identity = None
+  state.planned_order = None
   if state.copying is Some(cursor) {
     @execution.cleanup_admitted_input_row(cursor) |> ignore
     state.copying = None
@@ -1082,6 +1151,7 @@ pub fn cleanup_client_keyed_lookup_input(
   state.pending_key = None
   state.pending_read = None
   state.pending_history = None
+  state.pending_slot = -1
   state.selected_request = None
   state.selected_key = None
   state.selected_index = None
@@ -1095,6 +1165,18 @@ pub fn cleanup_client_keyed_lookup_input(
     }
     return Ok(false)
   }
+  if state.planned_requests is Some(requests) {
+    for _ in 0..<quantum {
+      if requests.is_empty() {
+        break
+      }
+      requests.pop() |> ignore
+    }
+    if !requests.is_empty() {
+      return Ok(false)
+    }
+    state.planned_requests = None
+  }
   for _ in 0..<quantum {
     if state.known.is_empty() {
       break
@@ -1106,6 +1188,7 @@ pub fn cleanup_client_keyed_lookup_input(
     return Ok(false)
   }
   state.known = []
+  state.completed_responses = 0
   if state.input is Some(input) {
     state.retired_row_work = @execution.admitted_input_work(input).to_int64()
   }

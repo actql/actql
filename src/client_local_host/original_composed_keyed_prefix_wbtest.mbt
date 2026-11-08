@@ -68,7 +68,9 @@ fn original_composed_keyed_consumer(
   keyed_body_reentry? : Bool = false,
   keyed_body_stop? : Bool = false,
   direct_effect_evidence? : Bool = false,
+  pre_dispatch_plan? : Bool = false,
 ) -> Unit raise {
+  let publication_early = publication_early || pre_dispatch_plan
   let (declaration, keyed_environment) = original_keyed_declaration_environment(
     relation_versions=true,
   )
@@ -905,6 +907,9 @@ fn original_composed_keyed_consumer(
     )
     assert_eq(@resources.ledger_usage(ledger), before)
   }
+  if pre_dispatch_plan {
+    @publication_host.start_client_keyed_lookup_request_plan(lookup).unwrap()
+  }
   let preparation = @publication_host.start_client_keyed_lookup_request(
     lookup, 0,
   ).unwrap()
@@ -921,6 +926,22 @@ fn original_composed_keyed_consumer(
     }
   }
   let request = request.unwrap()
+  let request = if pre_dispatch_plan {
+    @publication_host.retain_client_keyed_lookup_planned_request(
+      lookup, request,
+    ).unwrap()
+    @publication_host.finish_client_keyed_lookup_request_plan(
+      lookup, 16384, 1024, 20,
+    ).unwrap()
+    |> ignore
+    let selected = @publication_host.client_keyed_lookup_planned_request(
+      lookup, 0,
+    ).unwrap()
+    assert_true(physical_equal(selected, request))
+    selected
+  } else {
+    request
+  }
   assert_eq(
     @publication_host.find_client_keyed_lookup_response(lookup, request).unwrap(),
     -1,

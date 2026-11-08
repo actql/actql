@@ -21,7 +21,19 @@ fn keyed_lookup_observation(
   if left.lookup_issue is Some(issue) {
     return Err(issue)
   }
-  if !client_keyed_request_matches_acquisition(request, left.acquisition) {
+  if !keyed_lookup_request_dispatch_available(request) {
+    return Err(Assembly("request_plan_not_ready"))
+  }
+  let original = client_keyed_request_matches_acquisition(
+    request,
+    left.acquisition,
+  )
+  // The actual current callback can stop the plan or retain its first cause.
+  // Preserve that cause before checking the post-callback local phase.
+  if left.lookup_issue is Some(issue) {
+    return Err(issue)
+  }
+  if !original || !keyed_lookup_request_dispatch_available(request) {
     return Err(ForeignLeft)
   }
   if request.io_complete || now_ms < 0L || now_ms < left.observed_ms {

@@ -170,7 +170,7 @@ pub fn start_client_original_keyed_lookup_input(
 
 ///|
 // Loan only to Core Local's existing accounted keyed Row receiver. The cache
-// count comes from the actual assembly, not an external usage claim. Return
+// count comes from actual completed responses, never preplanned key slots. Return
 // its exact request so the receiver does not re-extract data after this check.
 // No Node export/getter, another resource owner or durable grant is introduced.
 pub fn borrow_client_original_keyed_child(
@@ -221,7 +221,7 @@ pub fn borrow_client_original_keyed_child(
       scope.identity,
       scope.ledger,
       lookup.reservation,
-      lookup.known.length(),
+      lookup.completed_responses,
       prefix~,
     ) else {
     return Err(Assembly("original_child_custody_changed"))
@@ -231,7 +231,7 @@ pub fn borrow_client_original_keyed_child(
       scope.ledger,
       scope.identity,
       lookup.reservation,
-      lookup.known.length(),
+      lookup.completed_responses,
       request.request,
     ),
   )

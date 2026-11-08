@@ -831,6 +831,10 @@ pub fn client_keyed_lookup_observation_originals(ClientKeyedLookupObservation) -
 
 pub fn client_keyed_lookup_observation_wires(ClientKeyedLookupObservation) -> (String, String)?
 
+pub fn client_keyed_lookup_planned_request(ClientKeyedLookupInput, Int) -> Result[ClientKeyedRequest, ClientKeyedRequestIssue]
+
+pub fn client_keyed_lookup_planned_request_identity(ClientKeyedLookupInput) -> ClientKeyedLookupRequestIdentity?
+
 pub fn client_keyed_lookup_request_identity(ClientKeyedLookupInput, Int, Int, Int) -> Result[ClientKeyedLookupRequestIdentity, ClientKeyedRequestIssue]
 
 pub fn client_keyed_lookup_request_identity_matches(ClientKeyedLookupRequestIdentity, ClientKeyedLookupInput) -> Bool
@@ -1540,6 +1544,8 @@ pub fn find_client_keyed_lookup_response(ClientKeyedLookupInput, ClientKeyedRequ
 pub fn finish_client_keyed_lookup_input(ClientKeyedLookupInput) -> Result[@execution_relation.SuppliedRelationRead, ClientKeyedRequestIssue]
 
 pub fn finish_client_keyed_lookup_publication_input(ClientKeyedLookupInput, Int, Int, Int, retain_body? : Bool) -> Result[@execution_relation.SuppliedRelationRead, ClientKeyedRequestIssue]
+
+pub fn finish_client_keyed_lookup_request_plan(ClientKeyedLookupInput, Int, Int, Int) -> Result[ClientKeyedLookupRequestIdentity, ClientKeyedRequestIssue]
 
 pub fn finish_client_keyed_request_io(ClientKeyedRequest, Int64) -> Result[Unit, ClientKeyedRequestIssue]
 
@@ -2323,6 +2329,8 @@ pub fn restore_prepared_client_local_normalization(PreparedClientProgram, Client
 
 pub fn retain_client_composed_keyed_producer(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientKeyedAcquisition, Array[@execution_query.CapturedInputSource], @client_row_source_host.RowCapturedInputs, Int, @execution_relation.GeneratedSequence, Array[(Int, Int, @execution_relation.ProducerRead)], @execution_relation.CompletedOutput, @physical_resources.Reservation, Int) -> Result[ClientComposedKeyedProducer, ClientKeyedRequestIssue]
 
+pub fn retain_client_keyed_lookup_planned_request(ClientKeyedLookupInput, ClientKeyedRequest) -> Result[Unit, ClientKeyedRequestIssue]
+
 pub fn retain_client_original_composed_keyed_captures(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientKeyedAcquisition, Array[@client_row_source_host.RowSourceCapture]) -> Result[(@physical_resources.Ledger, @client_row_source_host.RowCapturedInputs, Array[@execution_query.CapturedInputSource]), ClientModelReadPreparationIssue]
 
 pub fn retain_compiled_client_source_effect_input(ClientSourceInput, PreparedClientEffectComputation) -> Result[ClientSourcePreparation, ClientSourcePreparationIssue]
@@ -2380,6 +2388,8 @@ pub fn start_client_keyed_file_locator(ClientKeyedLookupInput, ClientKeyedReques
 pub fn start_client_keyed_lookup_input(ClientKeyedLeftRead, @physical_resources.Ledger, Int, Int) -> Result[ClientKeyedLookupInput, ClientKeyedRequestIssue]
 
 pub fn start_client_keyed_lookup_request(ClientKeyedLookupInput, Int) -> Result[ClientKeyedRequestPreparation, ClientKeyedRequestIssue]
+
+pub fn start_client_keyed_lookup_request_plan(ClientKeyedLookupInput) -> Result[Unit, ClientKeyedRequestIssue]
 
 pub fn start_client_keyed_row_request(ClientKeyedLeftRead, Int, @sourceview_resolution.RequestLimits) -> Result[ClientKeyedRequestPreparation, ClientKeyedRequestIssue]
 

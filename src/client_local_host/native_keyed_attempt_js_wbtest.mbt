@@ -168,3 +168,34 @@ test "Native keyed caller reentrant start retirement retains the actual unfinish
   assert_true(attempted.val > 0)
   assert_true(retained.val)
 }
+
+///|
+#cfg(target="js")
+test "Native keyed managed caller uses one predispatch original plan through Model input and retirement" {
+  original_composed_keyed_consumer(
+    native_keyed=true,
+    pre_dispatch_plan=true,
+    prepare_parent=Some((wire, selected_environment) => {
+      let (parent, child, _, input) = registration_parent_fixture(
+        text=wire,
+        environment=Some(selected_environment),
+        effect_limits=Some(
+          @publication_host.client_standard_effect_computation_limits(),
+        ),
+      )
+      finish_effect_program_check_preparation(child).unwrap() |> ignore
+      let prepared = compile_effect_program_check_preparation(child).unwrap()
+      assert_true(
+        physical_equal(
+          continue_request_effect_preparation(parent, input).unwrap(),
+          prepared,
+        ),
+      )
+      (parent, input, prepared)
+    }),
+    foreign_run=Some(() => {
+      let (prepared, _, _) = effect_operation_plan_inputs()
+      effect_parent_bound_run(prepared)
+    }),
+  )
+}
