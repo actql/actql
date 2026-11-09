@@ -18,7 +18,7 @@ struct NativeLocalEffectReviewerBinding {
   reference : NativeClientSubmissionReference
   request : @host.ClientRequestIdentity
   original : NativeClientOriginalCheckpointMetadata
-  approval_scope : @resident.ResidentOriginalEffectApprovalScope
+  approval_scope : NativeLocalOriginalEffectApprovalScope
   installed : NativeLocalInstalledEffectReviewer
   now : () -> Double
 }
@@ -133,7 +133,14 @@ pub fn NativeLocalHostConnection::bind_effect_reviewer(
     Err(issue) => return Err(issue)
   }
   self.bind_selected_effect_reviewer(
-    crypto, principal, connection, reference, request, approval_scope, now, installed,
+    crypto,
+    principal,
+    connection,
+    reference,
+    request,
+    ResidentApproval(approval_scope),
+    now,
+    installed,
   )
 }
 
@@ -148,7 +155,7 @@ fn NativeLocalHostConnection::bind_selected_effect_reviewer(
   connection : String,
   reference : NativeClientSubmissionReference,
   request : @host.ClientRequestIdentity,
-  approval_scope : @resident.ResidentOriginalEffectApprovalScope,
+  approval_scope : NativeLocalOriginalEffectApprovalScope,
   now : () -> Double,
   installed : NativeLocalInstalledEffectReviewer,
 ) -> Result[

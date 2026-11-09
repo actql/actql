@@ -11,6 +11,9 @@ struct NativeLocalSavedEffectReview {
   namespace_id : String
   mut attempted : Bool
   mut retired : Bool
+  mut approval_attempted : Bool
+  mut approval_original : NativeLocalSavedEffectApprovalOriginal?
+  mut retained_persisted : @checkpoint.PersistedCheckpoint?
   mut _retained_checkpoint : @publication_store.EffectCheckpointCustody?
   mut _retained_continuation : String?
   mut _retained_original : NativeClientOriginalCheckpointMetadata?
@@ -34,8 +37,8 @@ pub fn NativeLocalJournalCapture::prepare_saved_effect_review(
         // Receiver, returned Some/Result and the restoration callback. All
         // input identity/Store/String fields remain original borrowed values.
         record_headers: 5L,
-        reference_slots: 24L,
-        scalar_words: 4L,
+        reference_slots: 26L,
+        scalar_words: 5L,
         owned_utf16_units: 0L,
         owned_wire_bytes: 0L,
       }),
@@ -52,6 +55,9 @@ pub fn NativeLocalJournalCapture::prepare_saved_effect_review(
     namespace_id,
     attempted: false,
     retired: false,
+    approval_attempted: false,
+    approval_original: None,
+    retained_persisted: None,
     _retained_checkpoint: None,
     _retained_continuation: None,
     _retained_original: None,
@@ -190,11 +196,12 @@ pub fn NativeLocalSavedEffectReview::restore_in_original_read(
       Err(issue) => return Err(Journal(PublicationObservation(issue)))
     }
     self._retained_checkpoint = Some(restored)
-    let (_, continuation) = match restored.confirm() {
+    let (persisted, continuation) = match restored.confirm() {
       Ok(value) => value
       Err(issue) => return Err(Journal(PublicationObservation(issue)))
     }
     self._retained_continuation = Some(continuation)
+    self.retained_persisted = Some(persisted)
     self._retained_original = Some(metadata)
     if !current() {
       return Err(Journal(AuthorizationDenied))
@@ -233,4 +240,6 @@ pub fn NativeLocalSavedEffectReview::retire_read_aliases(
   self._retained_checkpoint = None
   self._retained_continuation = None
   self._retained_original = None
+  self.retained_persisted = None
+  self.approval_original = None
 }

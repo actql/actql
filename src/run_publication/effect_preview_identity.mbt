@@ -1274,6 +1274,15 @@ pub fn effect_preview_program_semantics_cid(
 }
 
 ///|
+/// Borrow the authoring original already admitted with this Preview. No
+/// authoring context is issued, parsed again or reconstructed from DATA.
+pub fn effect_preview_authoring_context_cid(
+  value : EffectPreviewIdentity,
+) -> String {
+  value.authoring_context_cid
+}
+
+///|
 pub fn effect_preview_program_definition_cid(
   value : EffectPreviewIdentity,
 ) -> String {

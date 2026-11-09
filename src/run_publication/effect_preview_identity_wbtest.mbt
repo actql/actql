@@ -27,6 +27,7 @@ test "Preview identity and readmission retain exact nested JSON data" {
   let (wire, identity) = author_effect_preview_semantic_wire(
     template, run, authoring, 8192, 256, 12,
   ).unwrap()
+  assert_eq(effect_preview_authoring_context_cid(identity), authoring)
   // Independently authored actql-effect-preview-row/0.1 preimage, using
   // payload above for after.value and intended_changes.value, was hashed
   // with Python SHA-256. The complete before value remains {"Name":"Before"}.
@@ -45,6 +46,7 @@ test "Preview identity and readmission retain exact nested JSON data" {
   let readmitted = admit_effect_preview_identity(
     wire, run, authoring, 8192, 256, 12,
   ).unwrap()
+  assert_eq(effect_preview_authoring_context_cid(readmitted), authoring)
   assert_eq(
     effect_preview_row_intended_value_wire(readmitted, 0, 0),
     Some(payload),

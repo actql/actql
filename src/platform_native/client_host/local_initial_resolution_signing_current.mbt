@@ -7,7 +7,7 @@ priv struct NativeLocalInitialSigningCurrent {
   key : NativeLocalInitialReviewerSigningKey
   scope : @credential.LocalSigningCredentialScope
   authority : NativeLocalPolicyAuthority
-  subject : @resident.ResidentOriginalEffectSigningSubjectRead
+  subject : NativeLocalOriginalEffectSigningSubjectRead
   original_use : (
     NativeLocalGrantOriginal,
     @credential.LocalSigningCredentialUse,

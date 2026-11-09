@@ -339,6 +339,8 @@ pub fn effect_local_operation_receipt_wire(EffectLocalOperationReceipt) -> Strin
 
 pub fn effect_local_target_cid(String, String, String, Int, Int, Int) -> Result[String, EffectRowOutcomeIssue]
 
+pub fn effect_preview_authoring_context_cid(EffectPreviewIdentity) -> String
+
 pub fn effect_preview_check_environment_cid(EffectPreviewIdentity) -> String
 
 pub fn effect_preview_footprint_kind(EffectPreviewFootprintIdentity) -> String

@@ -115,6 +115,13 @@ pub fn NativeLocalHostConnection::bind_initial_effect_reviewer(
     Err(issue) => return Err(issue)
   }
   self.bind_selected_effect_reviewer(
-    crypto, principal, connection, reference, request, approval_scope, now, installed,
+    crypto,
+    principal,
+    connection,
+    reference,
+    request,
+    ResidentApproval(approval_scope),
+    now,
+    installed,
   )
 }

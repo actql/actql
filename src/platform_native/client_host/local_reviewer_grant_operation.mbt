@@ -4,7 +4,7 @@
 struct NativeLocalReviewerSigningGrantOperation {
   materials : NativeLocalReviewerProofMaterials
   key : NativeLocalSigningKeyOriginal
-  subject : @resident.ResidentOriginalEffectSigningSubjectRead
+  subject : NativeLocalOriginalEffectSigningSubjectRead
   issuer_file : NativeLocalSelectedFile
   original : NativeLocalGrantOriginal
 }
