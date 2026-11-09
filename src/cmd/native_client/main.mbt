@@ -833,6 +833,11 @@ fn command() -> @argparse.Command {
         global=true,
       ),
       @argparse.OptionArg(
+        "host-config",
+        about="Operator Host configuration file (default: ~/.config/actql/host.json)",
+        global=true,
+      ),
+      @argparse.OptionArg(
         "profile",
         about="Project configuration profile",
         global=true,

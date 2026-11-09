@@ -107,6 +107,8 @@ priv struct LocalCommandPreparationOriginal {
   mut component : @initial_arena.InstalledArenaCryptoComponent?
   mut outer_library : @local_crypto.Library?
   mut inner_library : @local_crypto.Library?
+  mut operator_host : @local_host.NativeLocalOperatorHostCapture?
+  mut operator_host_wire : String?
   mut product : @local_host.NativeLocalProductConfigurationCapture?
   mut initial_product_selected : Bool
   mut adoption : @local_host.NativeLocalAdoptionCapture?
@@ -265,6 +267,8 @@ fn prepare_local_command_preparation_original(
     component: None,
     outer_library: None,
     inner_library: None,
+    operator_host: None,
+    operator_host_wire: None,
     product: None,
     initial_product_selected: false,
     adoption: None,
@@ -899,6 +903,14 @@ fn LocalCommandPreparationOriginal::close_checked(
             return Err(CommandUnavailable)
           }
         }
+        if self.operator_host is Some(original) {
+          self.cleanup_stage = "operator-host"
+          command_preparation_value(
+            original.close().map_err(issue => CommandAdoption(issue)),
+          )
+          self.operator_host = None
+          self.operator_host_wire = None
+        }
         if self.product_parent_failure is Some(failure) {
           self.cleanup_stage = "product-parent-partial"
           command_preparation_value(
@@ -1307,7 +1319,16 @@ fn LocalCommandPreparationOriginal::prepare_adoption(
       selected.map_err(issue => CommandAdoption(issue)),
     )
     self.adoption = Some(capture)
-    if capture.open(product=self.product).issue() is Some(issue) {
+    let operator_host = match self.operator_host {
+      Some(original) =>
+        Some(
+          command_preparation_value(
+            original.open().map_err(issue => CommandAdoption(issue)),
+          ),
+        )
+      None => None
+    }
+    if capture.open(product=self.product, operator_host~).issue() is Some(issue) {
       self.retain_primary(CommandCapture(issue))
       return Err(CommandCapture(issue))
     }

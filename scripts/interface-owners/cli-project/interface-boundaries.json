@@ -124,7 +124,7 @@
     },
     {
       "module": "packages/native-cli/lib/project-scaffold.mjs",
-      "sha256": "6dc7dab61378f8b8fd8e263de4444571af74a4596950c948c0b80a4b0104b2a3",
+      "sha256": "8cec271ef81b9c2e11cc518b2ee96278c7ef8868d57478429e5a88884f74e0ee",
       "exports": [
         "projectInitArguments",
         "projectInitialAdoptionArguments",
@@ -157,7 +157,8 @@
         {
           "name": "projectInitialAdoptionArguments",
           "parameters": [
-            "project"
+            "project",
+            "hostConfiguration"
           ],
           "async": false
         },
@@ -252,7 +253,7 @@
               },
               {
                 "path": "packages/native-cli/lib/project-scaffold.mjs",
-                "anchor": "export function projectInitialAdoptionArguments(project)"
+                "anchor": "export function projectInitialAdoptionArguments(project, hostConfiguration)"
               }
             ],
             "identity": [
@@ -326,6 +327,14 @@
               {
                 "path": "scripts/native-cli-project-cleanup.test.mjs",
                 "anchor": "// Inject failures into operations on real, fresh handles."
+              },
+              {
+                "path": "scripts/native-cli-project-init.test.mjs",
+                "anchor": "test('init forwards one explicit operator Host path unchanged to the original Native adoption'"
+              },
+              {
+                "path": "scripts/native-cli-project-init.test.mjs",
+                "anchor": "test('installed init dispatcher forwards the original Host selector without reading or creating that file'"
               }
             ]
           }

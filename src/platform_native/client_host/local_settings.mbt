@@ -21,6 +21,7 @@ priv struct NativeLocalConfigurationSelection {
   managed : NativeLocalManagedRoot?
   manifest : Bytes
   manifest_cid : String
+  operator_host : NativeLocalOperatorHostOriginal?
 }
 
 ///|
@@ -32,12 +33,16 @@ fn select_native_local_configuration(
   crypto : @crypto.Library,
   custody? : NativeLocalAdoptionOpenFailure? = None,
   root_opening? : NativeLocalAdoptionRootOpening = LegacyPrivateRoots,
+  operator_host? : NativeLocalOperatorHostOriginal? = None,
 ) -> Result[NativeLocalConfigurationSelection, NativeLocalAdoptionIssue] {
   // The same codec/capture inventory: ten existing configuration originals
   // plus the distinct initialized Host file, not another implementation slot.
   if names.length() > 11 ||
     (names.length() == 11 && !names.contains("host.json")) {
     return Err(ConfigurationLimit)
+  }
+  if operator_host is Some(_) && !names.contains("host.json") {
+    return Err(InvalidInput)
   }
   let names = names.copy()
   names.sort()
@@ -48,9 +53,17 @@ fn select_native_local_configuration(
       (index > 0 && name == names[index - 1]) {
       return Err(InvalidInput)
     }
-    let (body, generation) = match local_adoption_read(source, name, 65536L) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
+    let (body, generation) = if name == "host.json" &&
+      operator_host is Some(original) {
+      match original.check_current() {
+        Ok(_) => (original.body, original.generation)
+        Err(issue) => return Err(issue)
+      }
+    } else {
+      match local_adoption_read(source, name, 65536L) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
     }
     let content_cid = match local_adoption_digest(crypto, body) {
       Ok(value) => value
@@ -104,7 +117,7 @@ fn select_native_local_configuration(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  Ok({ files, managed, manifest, manifest_cid, })
+  Ok({ files, managed, manifest, manifest_cid, operator_host, })
 }
 
 ///|
@@ -119,6 +132,12 @@ fn NativeLocalConfigurationSelection::check_source(
     }
   }
   for file in self.files {
+    if file.name == "host.json" && self.operator_host is Some(original) {
+      match original.check_current() {
+        Ok(_) => continue
+        Err(issue) => return Err(issue)
+      }
+    }
     let (body, generation) = match
       local_adoption_read(source, file.name, 65536L) {
       Ok(value) => value

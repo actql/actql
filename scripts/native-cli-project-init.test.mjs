@@ -10,6 +10,23 @@ import {projectInitArguments, projectInitialAdoptionArguments, requireProjectIni
 import {nativeCliPackageInputs} from './native-cli-package-inputs.mjs';
 import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
 
+test('init forwards one explicit operator Host path unchanged to the original Native adoption', () => {
+  const selection = projectInitArguments(['init', '--template', 'deal-review-mock',
+    '--host-config', './operator/host.json', 'project']);
+  assert.deepEqual(selection, {directory: 'project', template: 'deal-review-mock',
+    hostConfiguration: './operator/host.json'});
+  assert.equal(projectInitArguments(['init', '--host-config=./selected.json']).hostConfiguration,
+    './selected.json');
+  assert.deepEqual(projectInitialAdoptionArguments({configuration: '/owned/project/actql.config.json',
+    stateDirectory: '/owned/project/.actql'}, selection.hostConfiguration),
+  ['--host-config', './operator/host.json', '--mode', 'local', '--config', '/owned/project/actql.config.json',
+    '--state-dir', '/owned/project/.actql', 'adopt', '--initialize-signing']);
+  for (const args of [['--host-config'], ['--host-config='], ['--host-config', '--force'],
+    ['--host-config', 'a', '--host-config', 'b'], ['--host-config', 'nul\0file']]) {
+    assert.throws(() => projectInitArguments(['init', ...args]), {code: 'ACTQL_E_INIT_ARGUMENTS'});
+  }
+});
+
 test('deal-review fixture declares its three internal Source policies without a global Mock default', () => {
   const files = projectTemplateFiles('deal-review-mock');
   const catalogue = JSON.parse(files['mock/catalog.json']);
@@ -96,6 +113,23 @@ async function installedFixture(t, {runtime = false} = {}) {
   return {cwd, native, executable, binary, metadata, expected, save, invoke};
 }
 
+test('installed init dispatcher forwards the original Host selector without reading or creating that file', installedTest, async t => {
+  const f = await installedFixture(t, {runtime: true});
+  const host = './operator/host.json';
+  const result = f.invoke(['init', 'project', '--host-config', host]);
+  assert.ifError(result.error);
+  assert.equal(result.signal, null);
+  assert.equal(result.status, 0);
+  assert.equal(result.stderr, '');
+  const project = await realpath(join(f.cwd, 'project'));
+  assert.deepEqual(JSON.parse(result.stdout).args,
+    ['--host-config', host, '--mode', 'local', '--config', join(project, 'actql.config.json'),
+      '--state-dir', join(project, '.actql'), 'adopt', '--initialize-signing']);
+  assert.deepEqual(await readdir(f.cwd), ['project']);
+  // This synthetic process observes dispatch only. Native still owns creation,
+  // current/custody, Account admission, signer selection and all physical ACKs.
+});
+
 test('only init is intercepted while all protocol operations retain their original argv', () => {
   for (const args of [[], ['adopt'], ['run', 'program.aql'], ['--mode', 'local', 'connect'], ['initialize']]) {
     const before = structuredClone(args);
@@ -147,7 +181,7 @@ test('public init help does not need a runtime or create project files', async t
     assert.equal(result.error, undefined);
     assert.equal(result.status, 0);
     assert.equal(result.stderr, '');
-    assert.equal(result.stdout, 'Usage: actql init [--template churn-risk-mock|deal-review-mock] [<directory>]\n');
+    assert.equal(result.stdout, 'Usage: actql init [--template churn-risk-mock|deal-review-mock] [--host-config <file>] [<directory>]\n');
   }
   assert.deepEqual(await readdir(root), []);
 });

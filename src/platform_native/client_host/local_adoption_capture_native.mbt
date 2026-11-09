@@ -151,6 +151,7 @@ fn NativeLocalAdoptionCapture::reply(
 pub fn NativeLocalAdoptionCapture::open(
   self : NativeLocalAdoptionCapture,
   product? : NativeLocalProductConfigurationCapture? = None,
+  operator_host? : NativeLocalOperatorHostOriginal? = None,
 ) -> NativeLocalAdoptionCaptureReply {
   if self.closing {
     return self.reply(OpenCapturedAdoption, Some(AdoptionCaptureClosed))
@@ -187,6 +188,7 @@ pub fn NativeLocalAdoptionCapture::open(
         custody=Some(self.original),
         root_opening=self.root_opening,
         product_original~,
+        operator_host~,
       ) {
       Ok(session) => AdoptionAcquired(session)
       Err(issue) => {

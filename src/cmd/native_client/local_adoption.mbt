@@ -274,6 +274,13 @@ fn execute_native_local_adoption(
     current == root_ownership else {
     stop("LocalConfigurationRootUntrusted")
   }
+  if optional(matches, "host-config") is Some(_) &&
+    settings.initial_host_signing is None {
+    stop("LocalConfiguredHostInstallationUnavailable")
+  }
+  if settings.initial_host_signing is Some(_) && preparation is Some(original) {
+    ignore(original.select_operator_host(matches, false))
+  }
   // The operator selects installation originals separately from submitted
   // Program data. Their bytes and generations join the same adoption intent;
   // naming a file installs no Source, Policy, credential or execution grant.

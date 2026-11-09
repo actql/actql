@@ -87,3 +87,27 @@ supplying that body. Explicit signers, including an empty map, cannot select
 the initialized default key. The additional original extends only the bounded
 configuration inventory; execution, work, retry and memory policy stay with
 their existing Owners. Restored installations never regenerate this input.
+
+The Native command selects `~/.config/actql/host.json` or the explicit
+`--host-config` path. An explicit path is resolved from the invocation's cwd;
+Project configuration does not select it. The existing Adoption owner retains
+the actual no-follow Root, file observation and bytes before use. Only an
+explicit first initialization may exclusively create an absent default file.
+A missing file on restore refuses. Existing files are never replaced with the
+default, including files with an explicit empty signer map.
+
+The selected configuration manifest binds the operator file's actual
+generation and content, rather than the generation of its Product-side copy.
+Live current checks use the same operator Root namespace and file observation.
+The original command retains partial constructors and the exclusive Writer;
+cleanup closes Adoption first, then the operator capture, before returning its
+original Read. Closing the capture invalidates retained views and acknowledges
+only the original filesystem children, not signing or business completion.
+
+The current Native default installer consumes the absent-policy configuration.
+An explicit Account, policy or signer configuration refuses until its own
+consumer is connected; it cannot silently choose the initialized default key.
+This implementation boundary does not restrict the public Host contract or
+make a successful configuration capture an approval/resume proof. The npm
+initializer forwards an explicit Host selector unchanged to that same Native
+entrance and never reads or creates the authority file itself.

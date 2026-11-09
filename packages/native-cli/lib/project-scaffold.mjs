@@ -105,8 +105,9 @@ export function scaffoldProject(directory, template) {
 // This private argv selection requests explicit initial creation; the Native
 // session must independently prove exclusive first initialization. It supplies
 // no fresh-state witness, default signer, grant or permission itself.
-export function projectInitialAdoptionArguments(project) {
-  return Object.freeze(['--mode', 'local', '--config', project.configuration,
+export function projectInitialAdoptionArguments(project, hostConfiguration) {
+  const host = hostConfiguration === undefined ? [] : ['--host-config', hostConfiguration];
+  return Object.freeze([...host, '--mode', 'local', '--config', project.configuration,
     '--state-dir', project.stateDirectory, 'adopt', '--initialize-signing']);
 }
 
@@ -117,7 +118,7 @@ export function projectInitArguments(args) {
   if (args.length === 2 && ['--help', '-h'].includes(args[1])) {
     return Object.freeze({help: true});
   }
-  let directory, template, positional = false;
+  let directory, template, hostConfiguration, positional = false;
   for (let index = 1; index < args.length; index++) {
     const value = args[index];
     if (!positional && value === '--') { positional = true; continue; }
@@ -126,6 +127,13 @@ export function projectInitArguments(args) {
       template = value === '--template' ? args[++index] : value.slice('--template='.length);
       if (typeof template !== 'string' || template.length === 0 || template.startsWith('-')) {
         fail('ACTQL_E_INIT_ARGUMENTS', 'The template option needs a name.');
+      }
+    } else if (!positional && (value === '--host-config' || value.startsWith('--host-config='))) {
+      if (hostConfiguration !== undefined) fail('ACTQL_E_INIT_ARGUMENTS', 'Select one Host configuration.');
+      hostConfiguration = value === '--host-config' ? args[++index] : value.slice('--host-config='.length);
+      if (typeof hostConfiguration !== 'string' || hostConfiguration.length === 0 ||
+          hostConfiguration.length > 4096 || hostConfiguration.startsWith('-') || hostConfiguration.includes('\0')) {
+        fail('ACTQL_E_INIT_ARGUMENTS', 'The Host configuration option needs a path.');
       }
     } else {
       if (!positional && value.startsWith('-')) {
@@ -137,7 +145,8 @@ export function projectInitArguments(args) {
   }
   // Validate before package admission or any filesystem write.
   projectTemplateFiles(template);
-  return Object.freeze({directory: directory ?? '.', template});
+  return Object.freeze({directory: directory ?? '.', template,
+    ...(hostConfiguration === undefined ? {} : {hostConfiguration})});
 }
 
 // Implementation availability only, observed from the same admitted executable.

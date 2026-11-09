@@ -14,6 +14,7 @@ fn begin_native_local_host_adoption_original(
   custody? : NativeLocalAdoptionOpenFailure? = None,
   root_opening? : NativeLocalAdoptionRootOpening = LegacyPrivateRoots,
   product_original? : NativeLocalProductConfigurationSession? = None,
+  operator_host? : NativeLocalOperatorHostOriginal? = None,
 ) -> Result[NativeLocalAdoptionSession, NativeLocalAdoptionIssue] {
   if !local_adoption_name(state_name) ||
     !local_adoption_name(source_name) ||
@@ -70,6 +71,7 @@ fn begin_native_local_host_adoption_original(
       crypto,
       custody~,
       root_opening~,
+      operator_host~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)

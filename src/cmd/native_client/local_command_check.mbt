@@ -295,6 +295,32 @@ fn LocalCommandPreparationOriginal::execute_product_command(
         is Some(_) {
         stop("LocalProductCustodyLost")
       }
+      let mock = match self.project {
+        Some(project) if operation == "adopt" &&
+          project.mock_declarations is Some(mock) =>
+          Some(
+            mock
+            .account_subjects()
+            .unwrap_or_else(() => stop("LocalProjectBindingsUnavailable")),
+          )
+        _ => None
+      }
+      let host_configuration = if mock is Some(subjects) &&
+        subjects.update_target is Some(_) {
+        Some(self.select_operator_host(matches, true))
+      } else {
+        None
+      }
+      let mock = mock.map(subjects => {
+        if host_configuration is Some(_) {
+          {
+            ..subjects,
+            signing_key_resource: Some("key/initial-host-attestation"),
+          }
+        } else {
+          subjects
+        }
+      })
       let selected = @run_host.client_native_local_finite_product_originals(
         configuration_root,
         runtime.sqlite,
@@ -302,16 +328,8 @@ fn LocalCommandPreparationOriginal::execute_product_command(
         local_utc_now(),
         runtime.assets,
         runtime.manifest,
-        mock=match self.project {
-          Some(project) if operation == "adopt" &&
-            project.mock_declarations is Some(mock) =>
-            Some(
-              mock
-              .account_subjects()
-              .unwrap_or_else(() => stop("LocalProjectBindingsUnavailable")),
-            )
-          _ => None
-        },
+        mock~,
+        host_configuration~,
       ).unwrap_or_else(() => stop("LocalProductDefaultsNotAdmitted"))
       let selected = local_product_model_policy_originals(
         selected,
