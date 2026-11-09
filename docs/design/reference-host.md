@@ -3003,6 +3003,15 @@ record and the original current check for a Pure record. These alternatives
 construct no second Plan or execution permit. After that callback, original
 record, Request, parent and Plan identity fences precede provider work.
 
+The captured Core Plan-shape getter reads only its original immutable Plan's
+three scalar fields. The Host control wrapper checks that same current Plan
+before and after this read without opening constructor workspace. This route
+requires the original runtime, captured getter and one exact DATA Plan argument;
+argument accessors, Proxies and other callbacks retain the complete constructor
+path. The same retirement/reentry latch and invalid asynchronous-result handling
+remain active. This metadata read grants no row, physical operation, capacity
+or currentness reusable by later work; Core still owns every resource quantity.
+
 The ordinary execution installer requires its existing Request preparation
 owner. It receives that owner's original checked/compiler result and retains
 the original Environment, Parameters cursor and restoration associations.

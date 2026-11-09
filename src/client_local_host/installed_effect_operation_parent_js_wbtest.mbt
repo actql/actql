@@ -1970,6 +1970,84 @@ test "same original planned parent lookup observes physical current once" {
 }
 
 ///|
+test "original Plan metadata keeps current fences when real constructor execution is exhausted" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let baseline = effect_operation_plan_fixture(prepared, request, contracts)
+  let plan = effect_operation_plan_with_control_fixture(
+    prepared,
+    request,
+    contracts,
+    baseline,
+    @execution.execution_capacity(7L, 47L).unwrap(),
+  ).unwrap()
+  let quote = prepared_installed_effect_managed_requirements(plan)
+  quote[4] = 536870902L
+  quote[5] = 536870902L
+  let calls = Ref(0)
+  let (input, initial, ledger, capacity) = effect_parent_test_preparation(
+    plan,
+    quote,
+    current=() => calls.val += 1,
+  )
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
+  ).unwrap()
+  retain_installed_effect_operation_controls_before_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  |> ignore
+  let limits = @resources.ledger_limits(ledger)
+  assert_eq(limits.execution_bytes, 536870912L)
+  let before = @resources.ledger_usage(ledger)
+  let blocker = @resources.reserve_capacity(
+    ledger,
+    0L,
+    limits.execution_bytes - before.reserved_execution_bytes,
+  ).unwrap()
+  let blocked = @resources.ledger_usage(ledger)
+  calls.val = 0
+  let original = installed_effect_managed_operation_plan(
+    owner, prepared, request,
+  ).unwrap()
+  assert_true(physical_equal(original, plan))
+  assert_eq(
+    prepared_installed_effect_managed_shape(original),
+    (1, 1, plan.held_children),
+  )
+  assert_true(
+    physical_equal(
+      installed_effect_managed_operation_plan(owner, prepared, request).unwrap(),
+      plan,
+    ),
+  )
+  assert_eq(calls.val, 2)
+  assert_eq(@resources.ledger_usage(ledger), blocked)
+  assert_true(
+    begin_installed_effect_operation_control_construction(
+      owner, prepared, request, plan,
+    )
+    is Err(Ledger(ExecutionLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), blocked)
+  @resources.settle_capacity(ledger, blocker).unwrap()
+  begin_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  complete_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  assert_eq(
+    @resources.ledger_usage(ledger).reserved_execution_bytes,
+    before.reserved_execution_bytes,
+  )
+  retire_installed_managed_run(owner).unwrap()
+  assert_true(
+    installed_effect_managed_operation_plan(owner, prepared, request)
+    is Err(Unsupported),
+  )
+}
+
+///|
 test "bound Plan getter checks exact immutable originals and calls current once" {
   let (prepared, request, contracts) = effect_operation_plan_inputs()
   let plan = effect_operation_plan_fixture(prepared, request, contracts)

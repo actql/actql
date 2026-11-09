@@ -1043,6 +1043,7 @@ export function prepareInstalledEffectControlConstruction(run) {
   const codecComplete = runtime?.clientProgramInstalledEffectOperationLedgerCodecComplete;
   const hasHostInput = runtime?.clientProgramInstalledEffectManagedPlanHasHostInput;
   const retainInventory = runtime?.clientProgramInstalledEffectCapturedInputInventoryRetain;
+  const shape = runtime?.clientProgramInstalledEffectManagedPlanShape;
   const parseJson = JSON.parse;
   const jsonReceiver = JSON;
   if (![begin, complete, readPlan].every(method => typeof method === 'function') || parent === undefined || plan === undefined) {
@@ -1078,6 +1079,18 @@ export function prepareInstalledEffectControlConstruction(run) {
     if (failed) throw primary;
     if (working || run.selecting) fail('InstalledEffectControlConstructionPending');
     if (typeof method !== 'function' || !Array.isArray(args)) fail('InvalidInstalledEffectControlConstruction');
+    // Only the captured Core getter and its exact immutable Plan are metadata.
+    // Inspect DATA descriptors without executing argument getters or Proxy traps.
+    const metadata = inputWire === undefined && receiver === runtime && method === shape &&
+      !nodeTypes.isProxy(method) && !nodeTypes.isProxy(args) &&
+      Object.getOwnPropertyDescriptor(args, 'length')?.value === 1 &&
+      Object.getOwnPropertyDescriptor(args, '0')?.value === plan;
+    const observePlan = () => {
+      const current = Reflect.apply(readPlan, runtime, [parent, prepared, request]);
+      retainInvalid(current);
+      if (checked(current) !== plan) fail('ForeignInstalledEffectManagedRun');
+      originalRecord();
+    };
     working = true;
     let invoking = false;
     // The existing parent retirement already refuses this latch. Retain it
@@ -1085,16 +1098,18 @@ export function prepareInstalledEffectControlConstruction(run) {
     run.selecting = true;
     try {
       originalRecord();
-      checked(Reflect.apply(inputWire === undefined ? begin : beginInput, runtime,
+      if (metadata) observePlan();
+      else checked(Reflect.apply(inputWire === undefined ? begin : beginInput, runtime,
         [parent, prepared, request, plan, ...(inputWire === undefined ? [] : [inputWire])]));
       originalRecord();
       invoking = true;
-      const value = Reflect.apply(method, receiver, args);
+      const value = Reflect.apply(method, receiver, metadata ? [plan] : args);
       invoking = false;
       if (failed) throw primary;
       retainInvalid(value);
       originalRecord();
-      checked(Reflect.apply(complete, runtime, [parent, prepared, request, plan]));
+      if (metadata) observePlan();
+      else checked(Reflect.apply(complete, runtime, [parent, prepared, request, plan]));
       originalRecord();
       return value;
     } catch (cause) {
@@ -1107,7 +1122,8 @@ export function prepareInstalledEffectControlConstruction(run) {
         // this frame. It grants neither a terminal Run nor physical cleanup.
         try {
           originalRecord();
-          checked(Reflect.apply(complete, runtime, [parent, prepared, request, plan]));
+          if (metadata) observePlan();
+          else checked(Reflect.apply(complete, runtime, [parent, prepared, request, plan]));
           originalRecord();
         } catch (completionFailure) {
           // Scratch retirement is a separate result. Preserve even a thrown

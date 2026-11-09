@@ -10,6 +10,7 @@ import {captureInstalledEffectPlanRecipe, prepareInstalledEffectManagedPlan,
   prepareInstalledEffectControlConstruction}
   from './installed-effect-plan.mjs';
 import {effectLedgerImplementationBounds} from './effect-ledger-implementation-bounds.mjs';
+import {refusedEffectPreparation} from '../host-common/effect-preparation-result.mjs';
 import {httpsCredentialAuthorizationPrefix, httpsCredentialResponseHeaderByteLimit}
   from '../site-node/https-credential-resource.mjs';
 
@@ -826,6 +827,135 @@ function controlWorkFixture(overrides = {}) {
   const work=prepareInstalledEffectControlConstruction(run);run.controlConstruction=work;run.retireControlConstruction=work.retire;
   return {run,work,events,runtime};
 }
+
+test('original Plan shape uses current fences without entering an exhausted constructor frame', () => {
+  const blocked = new Error('ExecutionLimit'), shape = [101, 2, 1];
+  let f;
+  f = controlWorkFixture({
+    clientProgramInstalledEffectOperationControlConstructionBegin() {f.events.push('begin'); throw blocked;},
+    clientProgramInstalledEffectManagedOperationPlan(...args) {
+      assert.deepEqual(args, [f.run.value, f.run.prepared, f.run.request]);
+      assert.strictEqual(this, f.runtime);
+      assert.equal(f.work.retire(), false);
+      assert.throws(() => f.work(this, f.runtime.clientProgramInstalledEffectManagedPlanShape, [f.run.operationPlan]),
+        {code: 'InstalledEffectControlConstructionPending'});
+      f.events.push('current'); return {$tag: 1, _0: f.run.operationPlan};
+    },
+    clientProgramInstalledEffectManagedPlanShape(plan) {
+      assert.strictEqual(this, f.runtime); assert.strictEqual(plan, f.run.operationPlan);
+      f.events.push('shape'); return shape;
+    },
+  });
+  assert.strictEqual(f.work(f.runtime, f.runtime.clientProgramInstalledEffectManagedPlanShape,
+    [f.run.operationPlan]), shape);
+  assert.deepEqual(f.events, ['current', 'shape', 'current']);
+  assert.equal(f.run.selecting, false);
+  assert.throws(() => f.work(f.runtime, () => assert.fail('unfunded constructor'), []), error => error === blocked);
+  assert.deepEqual(f.events, ['current', 'shape', 'current', 'begin']);
+  assert.equal(f.work.retire(), true);
+});
+
+test('original Plan shape does not bypass constructor funding for foreign or executable arguments', () => {
+  for (const mode of ['receiver', 'method', 'plan', 'extra', 'getter', 'proxy']) {
+    const blocked = new Error('ExecutionLimit'); let reads = 0;
+    const f = controlWorkFixture({
+      clientProgramInstalledEffectOperationControlConstructionBegin() {throw blocked;},
+      clientProgramInstalledEffectManagedPlanShape() {assert.fail('unfunded shape');},
+    });
+    const original = f.runtime.clientProgramInstalledEffectManagedPlanShape;
+    let receiver = f.runtime, method = original, args = [f.run.operationPlan];
+    if (mode === 'receiver') receiver = {};
+    if (mode === 'method') method = (...values) => Reflect.apply(original, receiver, values);
+    if (mode === 'plan') args = [{}];
+    if (mode === 'extra') args.push(undefined);
+    if (mode === 'getter') Object.defineProperty(args, '0', {get() {reads++; return f.run.operationPlan;}});
+    if (mode === 'proxy') args = new Proxy(args, {get() {reads++; throw new Error('Proxy trap');},
+      getOwnPropertyDescriptor() {reads++; throw new Error('Proxy descriptor trap');}});
+    assert.throws(() => f.work(receiver, method, args), error => error === blocked);
+    assert.equal(reads, 0);
+  }
+});
+
+test('original Plan shape preserves failed current and replaced records on both sides of the getter', () => {
+  for (const mode of ['before', 'after', 'replacement', 'closed']) {
+    const original = new Error('OriginalCurrentFailure'); let reads = 0, shapes = 0, f;
+    f = controlWorkFixture({
+      clientProgramInstalledEffectOperationControlConstructionBegin() {assert.fail('metadata constructor');},
+      clientProgramInstalledEffectManagedOperationPlan() {
+        reads++;
+        if (mode === 'before' || mode === 'after' && reads === 2) throw original;
+        return {$tag: 1, _0: f.run.operationPlan};
+      },
+      clientProgramInstalledEffectManagedPlanShape() {
+        shapes++;
+        if (mode === 'replacement') f.run.request = {};
+        if (mode === 'closed') f.run.closed = true;
+        return [1, 1, 1];
+      },
+    });
+    let primary;
+    assert.throws(() => f.work(f.runtime, f.runtime.clientProgramInstalledEffectManagedPlanShape, [f.run.operationPlan]),
+      error => {primary = error; return mode === 'before' || mode === 'after'
+        ? error === original : error.code === 'ForeignInstalledEffectManagedRun';});
+    assert.equal(shapes, mode === 'before' ? 0 : 1);
+    assert.equal(reads, mode === 'after' ? 2 : 1);
+    assert.throws(() => f.work({}, () => assert.fail('failed-prefix reuse'), []), error => error === primary);
+    assert.equal(f.run.selecting, false);
+  }
+});
+
+test('original Plan shape retains an invalid asynchronous result under its same retirement latch', async () => {
+  let settle;
+  const pending = new Promise(resolve => {settle = resolve;});
+  const f = controlWorkFixture({
+    clientProgramInstalledEffectOperationControlConstructionBegin() {assert.fail('metadata constructor');},
+    clientProgramInstalledEffectManagedPlanShape() {return pending;},
+  });
+  let primary;
+  assert.throws(() => f.work(f.runtime, f.runtime.clientProgramInstalledEffectManagedPlanShape, [f.run.operationPlan]),
+    error => {primary = error; return error.code === 'InvalidInstalledEffectControlConstruction';});
+  assert.equal(f.run.selecting, true); assert.equal(f.work.retire(), false);
+  assert.throws(() => f.work({}, () => assert.fail('failed-prefix reuse'), []), error => error === primary);
+  settle(); await new Promise(resolve => setImmediate(resolve));
+  assert.equal(f.run.selecting, false); assert.equal(f.work.retire(), true);
+  assert.deepEqual(f.events, []);
+});
+
+test('original Plan shape keeps the same input through current mutation and never completes an unopened refusal frame', () => {
+  const refusal = refusedEffectPreparation(new Error('OriginalShapeRefusal'));
+  let f, args, reads = 0;
+  f = controlWorkFixture({
+    clientProgramInstalledEffectOperationControlConstructionBegin() {assert.fail('metadata constructor');},
+    clientProgramInstalledEffectManagedOperationPlan() {
+      reads++; args[0] = {};
+      return {$tag: 1, _0: f.run.operationPlan};
+    },
+    clientProgramInstalledEffectManagedPlanShape(plan) {
+      assert.strictEqual(plan, f.run.operationPlan); throw refusal;
+    },
+  });
+  args = [f.run.operationPlan];
+  assert.throws(() => f.work(f.runtime, f.runtime.clientProgramInstalledEffectManagedPlanShape, args),
+    error => error === refusal);
+  assert.equal(reads, 2); assert.deepEqual(f.events, []);
+  assert.equal(f.run.selecting, false);
+  assert.equal(f.work.retire(), true);
+});
+
+test('original Plan shape retains an invalid asynchronous current fence before reading metadata', async () => {
+  let settle;
+  const pending = new Promise(resolve => {settle = resolve;});
+  const f = controlWorkFixture({
+    clientProgramInstalledEffectOperationControlConstructionBegin() {assert.fail('metadata constructor');},
+    clientProgramInstalledEffectManagedOperationPlan() {return pending;},
+    clientProgramInstalledEffectManagedPlanShape() {assert.fail('invalid current');},
+  });
+  assert.throws(() => f.work(f.runtime, f.runtime.clientProgramInstalledEffectManagedPlanShape, [f.run.operationPlan]),
+    {code: 'InvalidInstalledEffectControlConstruction'});
+  assert.equal(f.run.selecting, true); assert.equal(f.work.retire(), false);
+  settle(); await new Promise(resolve => setImmediate(resolve));
+  assert.equal(f.run.selecting, false); assert.equal(f.work.retire(), true);
+});
 
 test('captured Effect inventory uses the captured method and same parent before any constructor', () => {
   const inputs = {}, events = [];

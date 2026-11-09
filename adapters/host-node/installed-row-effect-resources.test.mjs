@@ -121,10 +121,10 @@ test('managed recovery derives its shared row ceiling from the same current Plan
     let active = false;
     const f = await fixture(t, {limits: supplied === undefined ? {} : {maxRows: supplied}, moon: {
       clientProgramInstalledEffectManagedPlanShape(selected) {
-        assert.strictEqual(this, f.moon); assert.strictEqual(selected, plan); assert.equal(active, true);
+        assert.strictEqual(this, f.moon); assert.strictEqual(selected, plan); assert.equal(active, false);
         events.push('shape'); return runtimeTupleFromFields({0: rows, 1: members, 2: 1});
       },
-      clientProgramInstalledEffectManagedOperationPlan() {return {$tag: 1, _0: plan};},
+      clientProgramInstalledEffectManagedOperationPlan() {events.push('current'); return {$tag: 1, _0: plan};},
       clientProgramInstalledEffectManagedPlanHasHostInput() {return false;},
       clientProgramInstalledEffectOperationControlConstructionBegin(p, original, identity, selected) {
         assert.deepEqual([p, original, identity, selected], [value, prepared, request, plan]);
@@ -146,7 +146,7 @@ test('managed recovery derives its shared row ceiling from the same current Plan
     f.recovered.control.effectComputationPreviewLedgerIdentity = () => ({});
     f.expect(f.recovered);
     assert.throws(() => f.effect.prepareRecovered(f.recovered), error => error === f.next);
-    assert.deepEqual(events, ['begin', 'shape', 'complete']);
+    assert.deepEqual(events, ['current', 'shape', 'current']);
     assert.equal(work.retire(), true);
   }
 });
