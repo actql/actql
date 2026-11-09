@@ -13,7 +13,8 @@ test('installed Slack channels original Source captures exact typed rows under i
     const opened=await source.openCapture(p);await f.retain(opened,p.ledger);
     const exported=checked(f.common.clientProgramExportSourceCapture(opened.capture.source(),opened.requirement,'slack-channels'));
     const rows=f.common.clientProgramSourceCaptureExportRows(exported).map(JSON.parse);
-    assert.deepEqual(rows.map(r=>[r.id,r.member_count,r.created]),[['C1','2','1970-01-01T00:00:00.000Z'],['C2','3','1970-01-01T00:00:01.000Z']]);
+    assert.deepEqual(rows,[{id:'C1',name:'one',member_count:'2'},
+      {id:'C2',name:'two',member_count:'3'}]);
     assert.equal(f.state.requests.length,3);assert(f.state.requests[1].path.startsWith('/api/conversations.list?'));
     await opened.close();
     assert.deepEqual(ledgerUsageFieldsFor(f.common.clientProgramMultiCapturedLedgerUsage(p.ledger),
