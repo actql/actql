@@ -57,6 +57,37 @@ pub fn execute_source_free_local_tasks_guarded(
 }
 
 ///|
+/// Continue only the original checked Effect computation. Completed Source
+/// and Model tasks stay on this same captured DAG; they are not dispatched
+/// again. The caller keeps their original output uses until this execution's
+/// cleanup returns, including when a later task cannot be started.
+pub fn execute_retained_effect_local_tasks_guarded(
+  setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  captured : @strategy.CapturedEffectRunDAG,
+  finalization_quantum : Int,
+  max_finalization_rounds : Int,
+  require_current : () -> Bool,
+  require_live? : (() -> Bool)? = None,
+) -> Result[LocalValuesExecution, LocalValuesExecutionFailure] {
+  let run = @host_driver.dispatch_driver_run(
+    @builtin.configured_host_driver(setup),
+  )
+  if !physical_equal(run, @strategy.captured_effect_run_dag(captured)) ||
+    !@strategy.graph_program_has_effects(@strategy.captured_dag_graph(run)) {
+    return Err(failed_local_values_execution(UnsupportedGraph))
+  }
+  execute_local_tasks_guarded(
+    setup,
+    finalization_quantum,
+    max_finalization_rounds,
+    require_current,
+    require_live~,
+    first=@strategy.graph_captured_prefix(@strategy.captured_dag_graph(run)),
+    retained_effect=Some(captured),
+  )
+}
+
+///|
 /// Continue the single original Row capture through its checked Common tail.
 /// The original Host must already have authorized physical work. This entry
 /// neither admits a Run nor claims a Source task or supplies authorization.
@@ -122,6 +153,7 @@ fn execute_local_tasks_guarded(
   require_current : () -> Bool,
   require_live~ : (() -> Bool)?,
   first~ : Int,
+  retained_effect? : @strategy.CapturedEffectRunDAG? = None,
 ) -> Result[LocalValuesExecution, LocalValuesExecutionFailure] {
   if finalization_quantum <= 0 || max_finalization_rounds <= 0 {
     return Err(failed_local_values_execution(InvalidLimits))
@@ -166,10 +198,18 @@ fn execute_local_tasks_guarded(
   if require_live is Some(poll) && !poll() {
     return reject(Fenced)
   }
+  let continuation = retained_effect is Some(original) &&
+    physical_equal(@strategy.captured_effect_run_dag(original), run) &&
+    @strategy.graph_program_has_effects(graph)
   if @strategy.graph_captured_prefix(graph) != first ||
-    (first == 0 && !@strategy.graph_source_free_inputs_complete(graph)) ||
-    @strategy.graph_program_has_effects(graph) ||
-    @strategy.next_captured_task(run) != Some(first) {
+    (
+      !continuation &&
+      (
+        (first == 0 && !@strategy.graph_source_free_inputs_complete(graph)) ||
+        @strategy.graph_program_has_effects(graph) ||
+        @strategy.next_captured_task(run) != Some(first)
+      )
+    ) {
     return reject(UnsupportedGraph)
   }
   guard @builtin.configured_local_module(
@@ -196,6 +236,11 @@ fn execute_local_tasks_guarded(
         return reject(Fenced)
       }
     }
+    // The retained Model can have completed intermediate tasks already. None
+    // only ends dispatch here; the original Result output is still required.
+    if continuation && @strategy.next_captured_task(run) is None {
+      break
+    }
     guard @strategy.next_captured_task(run) is Some(index) &&
       index >= first &&
       index < count &&
@@ -211,6 +256,20 @@ fn execute_local_tasks_guarded(
     let producers = @strategy.captured_next_managed_producers(run)
     let inputs : Array[@local_driver.LocalManagedAvailableOutput[Int]] = []
     for producer in producers {
+      if continuation && producer == -1 {
+        inputs.push(@local_driver.local_managed_supplied_relation_input())
+        continue
+      }
+      if continuation &&
+        producer >= 0 &&
+        producer < count &&
+        tasks[producer] is None &&
+        @strategy.captured_task_completed(run, producer) {
+        // The common DAG binds the receiver to this exact original output.
+        // This does not fabricate a ManagedCompletedOutput or its provider.
+        inputs.push(@local_driver.local_managed_captured_relation_input())
+        continue
+      }
       if first == 1 && producer == 0 {
         inputs.push(@local_driver.local_managed_captured_relation_input())
         continue
@@ -243,6 +302,17 @@ fn execute_local_tasks_guarded(
     }
     if !current() {
       return reject(Fenced)
+    }
+    if continuation {
+      match
+        @strategy.select_captured_managed_registration(
+          run,
+          index,
+          @local_driver.local_dispatch_registration(installed),
+        ) {
+        Ok(_) => ()
+        Err(issue) => return reject(Driver(Execution(issue)))
+      }
     }
     let operations = match
       @local_driver.start_local_managed_dispatch_node(prepared) {

@@ -238,6 +238,18 @@ fn LocalCommandPreparationOriginal::close_business_children(
         }
         state.proposals = None
       }
+      if state.suffix_failure is Some(failure) {
+        if !@local_values.retry_local_values_execution_failure_cleanup(failure) {
+          return Err(CommandBusinessChildren)
+        }
+        state.suffix_failure = None
+      }
+      if state.suffix is Some(suffix) {
+        if !suffix.close() {
+          return Err(CommandBusinessChildren)
+        }
+        state.suffix = None
+      }
       if business.request_run is Some(run) {
         match @local_values.retire_installed_effect_captured_consumers(run) {
           Err(_) => return Err(CommandBusinessChildren)

@@ -448,3 +448,167 @@ test "Source and Compute attempt inventory refuses checked Int overflow" {
   assert_eq(installed_source_compute_count(-1, 1), None)
   assert_eq(installed_source_compute_count(1, -1), None)
 }
+
+///|
+// Actual checked Effect, two complete Direct Source inputs in one task, the
+// existing admitted managed parent, two RowRuns and the same physical host.
+#cfg(target="js")
+test "Retained Effect dispatcher preserves whole Source originals through managed Result completion" {
+  let plan = effect_operation_source_plan_fixture(whole_inputs=true)
+  assert_eq(plan.captures.length(), 0)
+  assert_eq(plan.whole_sources.length(), 2)
+  assert_eq(@strategy.graph_captured_prefix(plan.graph), 0)
+  let coordinates = plan.direct_occurrences.unwrap()
+  assert_eq(
+    @publication_host.client_direct_acquisition_occurrence_at(coordinates, 0),
+    Some((0, 0, 0)),
+  )
+  assert_eq(
+    @publication_host.client_direct_acquisition_occurrence_at(coordinates, 1),
+    Some((0, 1, 0)),
+  )
+  let (input, initial, ledger, capacity) = effect_parent_test_preparation(
+    plan,
+    prepared_installed_effect_managed_requirements(plan),
+  )
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial,
+    input,
+    capacity,
+    plan.prepared,
+    plan.request,
+    plan,
+  ).unwrap()
+  assert_true(
+    installed_effect_managed_sources_ledger(owner, plan.prepared, plan.request)
+    is Err(ForeignOriginal),
+  )
+  let sibling = @resources.reserve_capacity(ledger, 0L, 1L).unwrap()
+  let sources = []
+  let reads = []
+  let rows = []
+  for occurrence in 0..<2 {
+    let (declaration, source) = plan.whole_sources[occurrence].unwrap()
+    assert_true(source.provider is None)
+    assert_eq(
+      installed_effect_managed_source_input_kind(
+        owner,
+        plan.prepared,
+        plan.request,
+        occurrence,
+      ).unwrap(),
+      "whole-input",
+    )
+    let (read, original, acquisition, selected) = begin_installed_effect_managed_whole_source_read(
+      owner,
+      plan.prepared,
+      plan.request,
+      declaration,
+      occurrence,
+    ).unwrap()
+    assert_true(physical_equal(selected, source))
+    assert_true(physical_equal(original, source.original))
+    assert_true(read.requirement is None && read.acquisition is None)
+    assert_true(
+      begin_installed_effect_managed_whole_source_read(
+        owner,
+        plan.prepared,
+        plan.request,
+        declaration,
+        occurrence,
+      )
+      is Err(AlreadyBound),
+    )
+    let run = match
+      start_installed_whole_source_read_rows(
+        read,
+        acquisition,
+        "effect-whole-" + occurrence.to_string(),
+        _ => true,
+        1024L,
+        2048L,
+      ) {
+      Ok(value) => value
+      Err(Acquisition(Physical(issue))) =>
+        fail("WholeSource physical admission: " + @debug.to_string(issue))
+      Err(Acquisition(_)) => fail("WholeSource row admission")
+      Err(_) => fail("WholeSource managed read")
+    }
+    @row_source_host.begin_row_run_with_page_limits(
+      run,
+      { max_bytes: 128, max_nodes: 1000, max_depth: 20, max_rows: 3, },
+      3,
+    ).unwrap()
+    let body = @utf8.encode("[{\"id\":3}]")
+    let charge = @row_source_host.charge_row_run_page(run, body).unwrap()
+    @row_source_host.accept_charged_row_run_page(run, charge, body).unwrap()
+    |> ignore
+    @row_source_host.finish_row_run(run).unwrap()
+    @row_source_host.begin_row_capture(run).unwrap()
+    let mut complete = false
+    for _ in 0..<10000 {
+      if @row_source_host.advance_row_capture(run, 256).unwrap().0 {
+        complete = true
+        break
+      }
+    }
+    assert_true(complete)
+    let capture = @row_source_host.capture_row_run(run).unwrap()
+    let actual = @row_source_host.row_capture_source(capture).unwrap()
+    assert_true(
+      @query.captured_source_matches_input_acquisition(actual, original),
+    )
+    sources.push(actual)
+    reads.push(read)
+    rows.push(capture)
+  }
+  assert_true(
+    physical_equal(
+      installed_effect_managed_sources_ledger(
+        owner,
+        plan.prepared,
+        plan.request,
+      ).unwrap(),
+      ledger,
+    ),
+  )
+  let bound = effect_parent_bound_run(plan.prepared)
+  assert_true(
+    open_installed_effect_managed_host(owner, bound, [sources[1], sources[0]])
+    is Err(ForeignOriginal),
+  )
+  let (host, captured, _) = open_installed_effect_managed_host(
+      owner, bound, sources,
+    )
+    .unwrap()
+    .unwrap()
+  let dag = @strategy.captured_effect_run_dag(captured)
+  assert_false(@strategy.captured_task_completed(dag, 0))
+  assert_eq(@strategy.next_captured_task(dag), Some(0))
+  for capture in rows {
+    @row_source_host.check_row_input_compute_binding(capture, dag, 0).unwrap()
+  }
+  let execution = execute_retained_effect_local_tasks_guarded(
+    host,
+    captured,
+    256,
+    10000,
+    () => true,
+  ).unwrap()
+  assert_true(@strategy.captured_task_completed(dag, 0))
+  assert_true(@strategy.captured_task_completed(dag, 1))
+  assert_true(@strategy.next_captured_task(dag) is None)
+  assert_eq(execution.rows().unwrap(), ["{\"id\":3}"])
+  assert_true(execution.close())
+  assert_true(retire_installed_effect_captured_consumers(owner).unwrap())
+  for read in reads {
+    retire_installed_source_read(read).unwrap()
+  }
+  assert_true(
+    installed_effect_managed_sources_ledger(owner, plan.prepared, plan.request)
+    is Err(ForeignOriginal),
+  )
+  @resources.settle_capacity(ledger, sibling).unwrap()
+  retire_installed_managed_run(owner).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+}

@@ -261,23 +261,38 @@ fn LocalCommandBusinessPreparation::retain_mock_effect_host(
     // this original Host's existing ready-task dispatcher before Result pins.
     // An absent next task is not a success/availability acknowledgement:
     // pin_captured_effect_sources still checks its actual original outputs.
-    let runtime = @builtin.configured_host_runtime(host)
-    let dag = @strategy.captured_effect_run_dag(captured)
-    let tasks = @strategy.graph_task_count(@strategy.captured_dag_graph(dag))
-    for _ in 0..<tasks {
-      let next = @host_dispatch.prepare_next_compute_task(runtime, ())
-        .map_err(issue => {
-          LocalNativeMockEffectProposalIssue::HostPreparation(issue)
-        })
-        .native_effect_proposal(self.original)
-      match next {
-        None => break
-        Some(task) =>
-          @builtin.execute_configured_in_process(host, task)
-          .map_err(issue => {
-            LocalNativeMockEffectProposalIssue::HostDispatch(issue)
-          })
-          .native_effect_proposal(self.original)
+    match
+      @local_values.execute_retained_effect_local_tasks_guarded(
+        host,
+        captured,
+        256,
+        100000,
+        () => {
+          @infer.output(held) is Some(_) &&
+          @local_values.check_installed_effect_managed_run(
+            run,
+            state._retained_prepared,
+            state.first.request,
+          )
+          is Ok(_)
+        },
+        // Full parent currentness stays at dispatch/callback-return boundaries.
+        // Quantum polling keeps only the original Model output-use lifetime.
+        require_live=Some(() => @infer.output(held) is Some(_)),
+      ) {
+      Ok(value) => state.suffix = Some(value)
+      Err(failure) => {
+        // Keep pending task/transfer cleanup BEFORE throwing the original
+        // typed failure. Cleanup may not discard the retained Model borrow.
+        state.suffix_failure = Some(failure)
+        self.original.retain_primary(
+          CommandBusinessEffectProposals(
+            HostExecution(
+              @local_values.local_values_execution_failure_issue(failure),
+            ),
+          ),
+        )
+        stop("LocalOriginalEffectProposalsUnavailable")
       }
     }
   })

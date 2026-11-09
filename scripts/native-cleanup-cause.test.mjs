@@ -104,17 +104,16 @@ test('cleanup category never serializes payloads and keeps public error code', {
   const effectProposals = functionSource.slice(proposalStart, proposalEnd);
   assert.equal(effectProposals, `    CommandBusinessEffectProposals(cause) =>
       match cause {
-        HostPreparation(original) =>
+        HostExecution(original) =>
           match original {
-            ForeignInstallation => "EffectHostForeignInstallation"
-            Installation(_) => "EffectHostInstallation"
-            Dispatch(_) => "EffectHostDispatchPreparation"
+            InvalidLimits => "EffectHostLimits"
+            Fenced => "EffectHostFenced"
+            UnsupportedGraph => "EffectHostGraph"
+            MissingLocalModule => "EffectHostModule"
+            Driver(_) => "EffectHostDriver"
             Estimate(_) => "EffectHostEstimate"
-          }
-        HostDispatch(original) =>
-          match original {
-            MissingImplementation => "EffectHostMissingImplementation"
-            Implementation(_) => "EffectHostImplementation"
+            FinalizationLimit => "EffectHostFinalization"
+            MissingOutput => "EffectHostOutput"
           }
         PublicExport(original) =>
           match original {
@@ -524,14 +523,12 @@ test('cleanup category never serializes payloads and keeps public error code', {
       path: 'src/run_publication_host/client_effect_captured_run.mbt', name: 'ClientEffectCapturedRunIssue',
       tags: {ForeignInput: 'EffectPublicCaptureInput'}, fallback: 'EffectPublicCapture',
     },
-    HostPreparation: {
-      path: 'src/physical_host_dispatch/compute_host.mbt', name: 'ComputeHostIssue',
-      tags: {ForeignInstallation: 'EffectHostForeignInstallation', Installation: 'EffectHostInstallation',
-        Dispatch: 'EffectHostDispatchPreparation', Estimate: 'EffectHostEstimate'},
-    },
-    HostDispatch: {
-      path: 'src/connectors_builtin/compute.generated.mbt', name: 'ConfiguredDispatchIssue',
-      tags: {MissingImplementation: 'EffectHostMissingImplementation', Implementation: 'EffectHostImplementation'},
+    HostExecution: {
+      path: 'src/client_local_host/execute.mbt', name: 'LocalValuesExecutionIssue',
+      tags: {InvalidLimits: 'EffectHostLimits', Fenced: 'EffectHostFenced',
+        UnsupportedGraph: 'EffectHostGraph', MissingLocalModule: 'EffectHostModule',
+        Driver: 'EffectHostDriver', Estimate: 'EffectHostEstimate',
+        FinalizationLimit: 'EffectHostFinalization', MissingOutput: 'EffectHostOutput'},
     },
   };
   assert.deepEqual(proposalIssues, Object.keys(proposalFamilies).map(name => ({name, arity: 1})));

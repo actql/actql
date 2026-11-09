@@ -22,6 +22,8 @@ priv struct LocalNativeMockEffectPlan {
   mut model_use : @infer.OutputUse?
   mut effect_host : @builtin.ConfiguredComputeHost[@strategy.RunIssue]?
   mut effect_capture : @strategy.CapturedEffectRunDAG?
+  mut suffix : @local_values.LocalValuesExecution?
+  mut suffix_failure : @local_values.LocalValuesExecutionFailure?
   mut proposals : LocalNativeMockEffectProposals?
   mut preview : LocalNativeMockEffectPreview?
   mut computation : LocalNativeMockEffectComputation?
@@ -166,6 +168,15 @@ fn native_mock_effect_managed_plan(
   // no Node-specific physical layout or spare Model allowance is inferred.
   let retained = limits.mapping.logical.max_live_value_bytes
   let execution = limits.identity.wire.max_bytes.to_int64()
+  let suffix = @local_values.retained_effect_local_tasks_control_capacity(
+    @strategy.checked_effect_computation_graph(
+      @run_host.prepared_client_effect_computation_graph(prepared),
+    ),
+  ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
+  let publication = @execution.add_execution_capacity(publication, suffix).unwrap_or_else(() => {
+      stop("LocalOriginalEffectCapacityUnavailable")
+    },
+  )
   let model = @local_values.prepare_installed_effect_model_demand(
     prepared,
     compiled,
@@ -290,6 +301,8 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_plan(
       model_use: None,
       effect_host: None,
       effect_capture: None,
+      suffix: None,
+      suffix_failure: None,
       proposals: None,
       preview: None,
       computation: None,

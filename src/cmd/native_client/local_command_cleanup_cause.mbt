@@ -92,17 +92,16 @@ fn command_preparation_cleanup_cause(
       }
     CommandBusinessEffectProposals(cause) =>
       match cause {
-        HostPreparation(original) =>
+        HostExecution(original) =>
           match original {
-            ForeignInstallation => "EffectHostForeignInstallation"
-            Installation(_) => "EffectHostInstallation"
-            Dispatch(_) => "EffectHostDispatchPreparation"
+            InvalidLimits => "EffectHostLimits"
+            Fenced => "EffectHostFenced"
+            UnsupportedGraph => "EffectHostGraph"
+            MissingLocalModule => "EffectHostModule"
+            Driver(_) => "EffectHostDriver"
             Estimate(_) => "EffectHostEstimate"
-          }
-        HostDispatch(original) =>
-          match original {
-            MissingImplementation => "EffectHostMissingImplementation"
-            Implementation(_) => "EffectHostImplementation"
+            FinalizationLimit => "EffectHostFinalization"
+            MissingOutput => "EffectHostOutput"
           }
         PublicExport(original) =>
           match original {

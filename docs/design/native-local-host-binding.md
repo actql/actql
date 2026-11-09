@@ -3374,7 +3374,13 @@ The Native caller retains the completed Model observation, its original Run
 Invocation and actual successful invocation evidence at the Preview boundary.
 Opening its configured retained-Model Host keeps that boundary available but
 does not execute the remaining checked computation. The caller consumes that
-same Host's ready-task dispatcher before pinning the Effect Result sources.
+same Host's managed Local dispatcher before pinning the Effect Result sources.
+The shared driving loop skips only tasks already completed on that original
+DAG. Original Source and Model outputs bind through the common receiver ports;
+new downstream outputs retain their real managed transfer/finalization owners.
+The Plan includes the loop's control inventory before construction. Both the
+successful execution and any failed partial execution remain on the command
+until their original cleanup confirms, before the Model output use is returned.
 The original finite task inventory bounds dispatch; completed Source and Model
 boundaries are not re-executed. Host preparation/dispatch failures remain typed
 on the original command, and a missing next task supplies no completion or

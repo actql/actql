@@ -30,8 +30,7 @@ priv enum LocalNativeMockEffectProposalIssue {
   PublicBindings(@run_host.ClientEffectReceiptBindingsIssue)
   PublicNormalization(@run_host.ClientEffectNormalizationIssue)
   PublicCapture(@run_host.ClientEffectCapturedRunIssue)
-  HostPreparation(@host_dispatch.ComputeHostIssue[@strategy.RunIssue])
-  HostDispatch(@builtin.ConfiguredDispatchIssue[@strategy.RunIssue])
+  HostExecution(@local_values.LocalValuesExecutionIssue)
 }
 
 ///|
