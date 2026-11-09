@@ -35946,7 +35946,8 @@
             "installed_effect_operation_response_backing_fits",
             "installed_effect_response_buffer_construction_capacity",
             "installed_effect_response_buffer_representation",
-            "installed_effect_response_headers_representation"
+            "installed_effect_response_headers_representation",
+            "installed_effect_response_headers_retained_representation"
           ],
           "exports": [],
           "attributes": {
@@ -36000,6 +36001,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Initial headers and trailers have separate parser counters and can"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "The common physical HTTP response quote separates the original header"
               }
             ],
             "extension": [
@@ -36024,12 +36029,24 @@
               {
                 "path": "adapters/site-node/https-credential-response-accounting.test.mjs",
                 "anchor": "test('original HTTP overflow in either header block stays Unknown without another claim'"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_header_lifetime_js_wbtest.mbt",
+                "anchor": "test \"HTTP selected header output preserves all original peak work and returned pair storage\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_header_lifetime_js_wbtest.mbt",
+                "anchor": "test \"HTTP header full peak and returned output each reject one byte short on the real Ledger\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_header_lifetime_js_wbtest.mbt",
+                "anchor": "test \"HTTP completed header workspace returns on its same physical token without cleanup ACK\""
               }
             ]
           }
         }
       ],
-      "sha256": "28a1f89d07f198c560ba13d3f16d4a4c6ee174c28367af8dd8763a86f2f234a6",
+      "sha256": "07fcfb9f9bd31bcc4d77afb4466d5567aed2667aa05e2f7e8559296e8edef768",
       "operations": [
         {
           "name": "installed_effect_http_response_construction_capacity",
@@ -36050,6 +36067,10 @@
         {
           "name": "installed_effect_response_headers_representation",
           "declaration": "installed_effect_response_headers_representation ( max_header_bytes : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "installed_effect_response_headers_retained_representation",
+          "declaration": "installed_effect_response_headers_retained_representation ( max_header_bytes : Int , ) - > @ execution . PreparationRepresentationUnits ?"
         }
       ]
     },
