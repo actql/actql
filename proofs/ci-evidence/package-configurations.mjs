@@ -92,10 +92,10 @@ const foreignLibraryConfigurations = Object.freeze({
 // revision still applies to every unchanged entry.
 export const currentConfigurationReviewRevision = '38e95bfac2907700456de6c53ed0cad3620bb72d';
 export const currentPackageConfigurations = Object.freeze({
-  // This successor adds only the pure logical-request-scope inventory import.
-  // Removing it restores the reviewed HubSpot WB descriptor; all targets,
-  // options and other production/WB imports retain their complete preimages.
-  'src/client_local_host/moon.pkg': Object.freeze({digest: '590ae12dd0826dd9143d9cc62babaf713cff15d82cdf5efafe0621234f5fefee', rule: 'literal-target-selectors-with-bound-source-membership', revision: 'ff4e214d60984ee7b5c42ae57943d0b6d3e95437'}),
+  // The HTTP-header/native-control/discarded-projection regressions are JS-only. Removing
+  // their selectors restores the reviewed scope-import descriptor exactly;
+  // production/WB imports, other targets and options are unchanged.
+  'src/client_local_host/moon.pkg': Object.freeze({digest: '63dd3e4a78397a73ba2991b8c656d4d699234c67c6d01d11c2058047bc397ef6', rule: 'literal-target-selectors-with-bound-source-membership', revision: '3c5dcdf49b732d4510360580d2ad3304252de3b7'}),
   'src/connectors_builtin_node/moon.pkg': Object.freeze({digest: 'd515c9868140c30ef68b5778b71863813cad0d53cc7300e4ba8fcc3e00405d9d', rule: 'literal-js-foreign-library-with-bound-source-membership', revision: '6f27dfdf10aa232977277ec8580557463e44e81f'}),
   'src/execution_relation/moon.pkg': Object.freeze({digest: '2a223e06a52cbb8c01280e9d5c5132485434728f59271ff02900f74ea582d079', rule: 'literal-target-selectors-with-bound-source-membership', revision: '6813ab0330a17f99c8eef5c9f4a70480ecc7e96c'}),
   'src/native_values_integration/moon.pkg': Object.freeze({digest: 'aa3777f1835f552da0ea34a13bbcb0de9afeb6c96adeadfbb26b483ce683c54f', rule: 'literal-native-options-with-bound-source-membership'}),
