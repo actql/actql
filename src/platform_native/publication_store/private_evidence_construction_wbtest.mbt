@@ -41,3 +41,40 @@ test "observed ciphertext above the plaintext limit uses the existing envelope l
   // This read quote does not change the original plaintext admission limit.
   assert_true(private_evidence_custody_construction(1048577) is None)
 }
+
+///|
+test "private envelope mixed JSON construction covers scalar container field and malformed prefix families" {
+  // Independent grammar families under the unchanged pinned JSON parser.
+  // Tuple: input bytes, values, arrays, maps, fields, array items.
+  let families = [
+    (1L, 1L, 0L, 0L, 0L, 0L), // 0
+    (2L, 1L, 1L, 0L, 0L, 0L), // []
+    (2L, 1L, 0L, 1L, 0L, 0L), // {}
+    (11L, 4L, 2L, 1L, 1L, 2L), // [{"": [0]}]
+    (2049L, 1025L, 1024L, 0L, 0L, 1024L), // nested arrays
+    (1024L, 1024L, 1024L, 0L, 0L, 1023L), // unclosed depth frontier
+    (2001L, 1001L, 1L, 0L, 0L, 1000L), // dense scalar Array
+    (3001L, 1001L, 1L, 1000L, 0L, 1000L), // Array of empty Maps
+    (5001L, 1001L, 0L, 1L, 1000L, 0L), // repeated shortest object key
+    (5001L, 1001L, 0L, 1000L, 1000L, 0L), // nested object fields
+  ]
+  for (bytes, values, arrays, maps, fields, items) in families {
+    let actual = @shape.collection_construction_extent({
+      records: 4L * values + 2L * fields + 16L,
+      record_references: 6L * values + 2L * fields + 32L,
+      record_words: 4L * values + fields + 16L,
+      reference_arrays: arrays,
+      reference_items: items,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps,
+      map_entries: fields,
+    }).unwrap()
+    let bound = private_evidence_json_construction_extent(bytes).unwrap()
+    assert_true(bound.record_headers >= actual.record_headers)
+    assert_true(bound.reference_slots >= actual.reference_slots)
+    assert_true(bound.scalar_words >= actual.scalar_words)
+  }
+  assert_true(private_evidence_json_construction_extent(0L) is None)
+  assert_true(private_evidence_json_construction_extent(1398273L) is None)
+}

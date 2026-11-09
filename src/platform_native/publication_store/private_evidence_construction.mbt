@@ -38,10 +38,36 @@ fn private_evidence_envelope_construction(
 }
 
 ///|
-// The selected envelope bounds untrusted readback before its JSON parser.
-// Every token/container/field consumes a byte; homogeneous array and Map
-// endpoints conservatively cover malformed input as well as the four-field
-// canonical envelope. No observed successful row count narrows this bound.
+// The existing parser still admits/refuses the SAME JSON and Base64 envelope.
+// Charge a single dominating mixed-container family instead of simultaneously
+// assuming one growing Array AND one growing Map AND one entry per input byte.
+// In a complete JSON prefix with V values, K object fields and P nonempty
+// containers, syntax consumes at least 2V+3K-1+(containers-P) bytes. At most
+// 1024 unfinished containers survive the pinned parser's existing depth guard.
+// Thus ceil((bytes+min(bytes,1024)+1)/2) worst-Map/value units dominate the
+// combined Array, Map, field-link and value/token controls, including malformed
+// prefixes. This is representation DATA, not a lower syntax/Store/read limit.
+fn private_evidence_json_construction_extent(
+  bytes : Int64,
+) -> @shape.CollectionConstructionExtent? {
+  if bytes < 1L || bytes > 1398272L {
+    return None
+  }
+  let units = (bytes + Int64::min(bytes, 1024L) + 2L) / 2L
+  @shape.collection_construction_extent({
+    records: 4L * units + 16L,
+    record_references: 6L * units + 32L,
+    record_words: 4L * units + 16L,
+    reference_arrays: 0L,
+    reference_items: 0L,
+    scalar_arrays: 0L,
+    scalar_items: 0L,
+    maps: units,
+    map_entries: 0L,
+  })
+}
+
+///|
 #warnings("-unused_value")
 fn private_evidence_custody_construction(
   plaintext_bytes : Int,
@@ -51,19 +77,7 @@ fn private_evidence_custody_construction(
   }
   let p = plaintext_bytes.to_int64()
   let e = raw_cipher_envelope_bytes(p)
-  guard @shape.collection_construction_extent({
-      // Json values/tokens, field pairs and parser/result/refusal controls.
-      records: 4L * e + 16L,
-      record_references: 6L * e + 32L,
-      record_words: 4L * e + 16L,
-      reference_arrays: e,
-      reference_items: e,
-      scalar_arrays: 0L,
-      scalar_items: 0L,
-      maps: e,
-      map_entries: e,
-    })
-    is Some(json) else {
+  guard private_evidence_json_construction_extent(e) is Some(json) else {
     return None
   }
   Some({
