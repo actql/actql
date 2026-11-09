@@ -2428,8 +2428,10 @@ conservatively keeping the complete old header String bound. It does not keep
 raw dictionaries, parser vectors or byte prefixes as returned header storage.
 The existing checked response-projection completion returns this private
 workspace only after the original request/socket, current, Journal and provider
-projection have succeeded. Failure or pending cleanup keeps the full execution
-peak on that same original token. No header policy or pair selection changes.
+projection have succeeded. Failed or pending response construction keeps the
+full execution peak on that same original token. Returning completed workspace
+does not acknowledge any remaining physical cleanup. No header policy or pair
+selection changes.
 The whole HTTP extent also retains the existing optional original-response byte
 snapshot. It is constructed only after the copied receive prefix is severed,
 so both returned bodies fit within the unchanged full receive peak. Failed
