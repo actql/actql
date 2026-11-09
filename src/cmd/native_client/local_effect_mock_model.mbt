@@ -387,7 +387,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_local_observation(
             )
             state._retained_local_model_dependencies = Some(
               work
-              .local_observation_dependency_bodies()
+              .local_observation_dependency_originals()
               .unwrap_or_else(() => {
                 stop("LocalOriginalModelLocalObservationUnavailable")
               }),

@@ -10,11 +10,18 @@ pub fn native_client_mock_model_observation_capacity(
   if limits.model.max_items < 0 || limits.model.max_items > 2147483645 {
     return None
   }
+  // The identity-preserving dependency reader keeps four original triples
+  // (+one reference each), two temporary original input pairs, one map
+  // closure/Some, and the original two-entry input array during projection.
+  guard @execution.preparation_array_representation(1L, 2L, true)
+    is Some(input_array) else {
+    return None
+  }
   @execution.preparation_execution_capacity({
     retained: {
-      record_headers: 32L,
-      reference_slots: 128L,
-      scalar_words: 64L,
+      record_headers: 32L + 4L + input_array.record_headers,
+      reference_slots: 128L + 10L + input_array.reference_slots,
+      scalar_words: 64L + 1L + input_array.scalar_words,
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     },

@@ -317,6 +317,33 @@ pub fn original_local_model_observation_input_bodies(
 }
 
 ///|
+/// Keep each original first-scan body paired with its retained identity. The
+/// existing body entrance performs the sole current/Scope/receipt comparison;
+/// these following pure projections neither scan nor hash input again.
+pub fn original_local_model_observation_input_dependency_bodies(
+  value : LocalModelObservation,
+) -> Array[(String, String, String)]? {
+  guard original_local_model_observation_input_bodies(value) is Some(bodies) &&
+    value.held.owner.identity is Some(scan) &&
+    @relation.completed_relation_identity_scan_body_receipt(scan)
+    is Some(receipt) else {
+    return None
+  }
+  let logical = @relation.logical_relation_cid(
+    @relation.completed_relation_export_identity(receipt),
+  )
+  let schema = @relation.relation_schema_cid(
+    @relation.completed_relation_export_schema_identity(receipt),
+  )
+  Some(
+    bodies.map(entry => {
+      let (kind, wire) = entry
+      (kind, if kind == "relation_value" { logical } else { schema }, wire)
+    }),
+  )
+}
+
+///|
 /// Contributing Direct/Whole Source provenance from this SAME accepted Model
 /// and its original retained composed inputs. The separate keyed proof is not
 /// completed by this projection. No second output use, Source read or issuer.

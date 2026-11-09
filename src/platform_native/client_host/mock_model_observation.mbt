@@ -435,6 +435,65 @@ pub fn NativeClientMockModelWork::local_observation_dependency_bodies(
 }
 
 ///|
+/// Original input and outcome scans supply their own CIDs with the bodies.
+/// No dependency admission may guess an identity from a body name or omit it
+/// for a hashed relation. Existing pair-only readers remain unchanged.
+pub fn NativeClientMockModelWork::local_observation_dependency_originals(
+  self : Self,
+) -> Array[(String, String, String)]? {
+  guard !self.closing &&
+    !self.closed &&
+    !self.advancing &&
+    self.local_scan is Some(scan) &&
+    self.local_receipt is Some(receipt) &&
+    self.local_observation is Some(observation) else {
+    return None
+  }
+  self.advancing = true
+  defer {
+    self.advancing = false
+  }
+  guard @infer.original_local_model_observation_input_dependency_bodies(
+      observation,
+    )
+    is Some(bodies) &&
+    @execution.completed_relation_identity_scan_body(scan, receipt)
+    is Some(body) else {
+    return None
+  }
+  bodies.push(
+    (
+      "relation_value",
+      @execution.logical_relation_cid(
+        @execution.completed_relation_export_identity(receipt),
+      ),
+      body,
+    ),
+  )
+  let schema = @execution.completed_relation_export_schema_identity(receipt)
+  bodies.push(
+    (
+      "relation_schema",
+      @execution.relation_schema_cid(schema),
+      @execution.relation_schema_wire(schema),
+    ),
+  )
+  // The Core current observation may call out. Finish with this SAME Work's
+  // noncallback alias/retirement fence, never another permission observation.
+  guard !self.closing &&
+    !self.closed &&
+    self.local_scan is Some(actual_scan) &&
+    physical_equal(actual_scan, scan) &&
+    self.local_receipt is Some(actual_receipt) &&
+    physical_equal(actual_receipt, receipt) &&
+    self.local_observation is Some(actual_observation) &&
+    physical_equal(actual_observation, observation) else {
+    return None
+  }
+  Some(bodies)
+}
+
+///|
 /// Same accepted original Model/Source closure and one semantic Invocation.
 /// The caller backs/retains these metadata aliases on its original capture
 /// operation; this does not claim keyed attempt provenance or Store custody.

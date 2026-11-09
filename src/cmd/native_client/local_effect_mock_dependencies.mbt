@@ -126,8 +126,8 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_dependency_inventory(
     }
   }
   retain(model)
-  for (kind, wire) in model_dependencies {
-    append(kind, None, wire)
+  for (kind, cid, wire) in model_dependencies {
+    append(kind, Some(cid), wire)
   }
   let source_evidence = if proposals.imports is Some(_) {
     proposals.source_imports.map(source => source.source)
@@ -139,7 +139,15 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_dependency_inventory(
       (kind, wire) in @run_host.client_effect_acquired_dependency_bodies(
         acquired,
       ) {
-      append(kind, None, wire)
+      append(
+        kind,
+        if kind == "request_values" {
+          Some(@run_host.client_effect_acquired_request_cid(acquired))
+        } else {
+          None
+        },
+        wire,
+      )
     }
     let catalog = @run_host.client_effect_acquired_catalog_bodies(
         acquired, max_bytes, max_nodes, max_depth,

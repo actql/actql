@@ -48,11 +48,62 @@ test "original first input scan retains its body through Model and the same acce
       ),
     ),
   )
+  let dependencies = original_local_model_observation_input_dependency_bodies(
+    observation,
+  ).unwrap()
+  assert_eq(
+    dependencies[0],
+    (
+      "relation_value",
+      @relation.logical_relation_cid(
+        @relation.completed_relation_export_identity(receipt),
+      ),
+      expected,
+    ),
+  )
+  assert_eq(
+    dependencies[1],
+    (
+      "relation_schema",
+      @relation.relation_schema_cid(
+        @relation.completed_relation_export_schema_identity(receipt),
+      ),
+      bodies[1].1,
+    ),
+  )
+  // The real inventory consumer requires the original CID for hashed bodies.
+  // Its strict original admission must accept each exact body/CID pair.
+  for (kind, cid, wire) in dependencies {
+    let admitted = @publication.admit_captured_effect_dependency_body(
+      kind,
+      Some(cid),
+      wire,
+      10000,
+      1000,
+      20,
+    ).unwrap()
+    assert_eq(@publication.captured_effect_dependency_body_cid(admitted), cid)
+    assert_true(
+      @publication.admit_captured_effect_dependency_body(
+        kind,
+        None,
+        wire,
+        10000,
+        1000,
+        20,
+      )
+      is Err(@publication.InvalidBody),
+    )
+  }
   assert_eq(@relation.completed_relation_identity_scan_work(scan), work)
   assert_eq(calls.val, 1)
   assert_true(release_output(held))
   assert_true(
     original_local_model_observation_input_bodies(observation) is None,
+  )
+  assert_true(
+    original_local_model_observation_input_dependency_bodies(observation)
+    is None,
   )
   @relation.cancel_completed_relation_export_receipt(outcome_receipt)
   assert_true(cleanup_observation_issuance(issued).unwrap())
