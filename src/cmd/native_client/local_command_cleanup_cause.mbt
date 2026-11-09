@@ -253,11 +253,20 @@ fn command_preparation_cleanup_cause(
             RowCountMismatch => "EffectProposalsRowCountMismatch"
             _ => "EffectProposalsProjection"
           }
-        Export(original) =>
+        ManagedExport(original) =>
           match original {
-            ForeignOutput => "EffectProposalsForeignOutput"
+            ForeignInput | Binding(ForeignOutput) =>
+              "EffectProposalsForeignOutput"
             Export(_) => "EffectProposalsExportBody"
+            Bridge(_) => "EffectProposalsExportBridge"
             _ => "EffectProposalsExport"
+          }
+        ManagedPublicExport(original) =>
+          match original {
+            Export(InvalidState) => "EffectPublicExportState"
+            Transformation(_) => "EffectPublicExportTransformation"
+            Bridge(_) => "EffectPublicExportBridge"
+            _ => "EffectPublicExport"
           }
         Completed(original) =>
           match original {

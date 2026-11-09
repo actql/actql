@@ -220,6 +220,9 @@ fn LocalCommandPreparationOriginal::close_business_children(
         for output in computation.outputs {
           output.cancel()
         }
+        for output in computation.managed_outputs {
+          output.close()
+        }
         state.computation = None
       }
       if state.preview is Some(preview) {

@@ -5,7 +5,8 @@ priv enum LocalNativeMockEffectProposalIssue {
   Managed(@local_values.ClientInstalledManagedRunIssue)
   Capture(@strategy.RunIssue)
   Proposal(@strategy.CapturedEffectProposalIssue)
-  Export(@strategy.CapturedEffectLocalResultExportIssue)
+  ManagedExport(@local_values.LocalValuesEffectResultExportIssue)
+  ManagedPublicExport(@local_values.LocalValuesResultExportIssue)
   Completed(@execution.CompletedExportIssue)
   Keyed(@run_host.ClientKeyedRequestIssue)
   Source(@run_host.ClientEffectAcquiredEvidenceIssue)
@@ -55,6 +56,7 @@ fn[T] Result::native_effect_proposal(
 // writes retain their separate original Owners and authorizations.
 priv struct LocalNativeMockEffectProposals {
   inputs : @strategy.CapturedEffectInputs
+  mut construction : LocalNativeMockEffectImportConstruction?
   members : Array[LocalNativeMockEffectProposalMember]
   mut _retained_keyed_identity : @run_host.ClientKeyedLookupRequestIdentity?
   mut invocation : @run_host.ClientEffectLocalInvocation?
@@ -76,6 +78,7 @@ priv struct LocalNativeMockEffectProposalMember {
   mut capture_operation : @local_values.ClientInstalledEffectOperationBorrow?
   mut _retained_invocation : @run_host.ClientEffectLocalInvocation?
   mut _retained_capture_issue : @local_values.ClientInstalledManagedRunIssue?
+  mut managed_export : @local_values.LocalValuesEffectResultExport?
   mut exported : @strategy.CapturedEffectLocalResultExport?
   mut stream : @execution.CompletedOutputExport?
   mut receipt : @execution.CompletedRelationExportReceipt?
@@ -124,11 +127,12 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
       )
       .map_err(issue => LocalNativeMockEffectProposalIssue::Capture(issue))
       .native_effect_proposal(self.original)
-    // Closed initial Host frame: this record's12 borrowed references and its
+    // Closed initial Host frame: this record's13 borrowed references and its
     // five empty Array headers stay inside the existing fixed4096 call frame.
     // Import bodies/producer exports begin only after the first capture borrow.
     let held : LocalNativeMockEffectProposals = {
       inputs,
+      construction: None,
       members: [],
       _retained_keyed_identity: None,
       invocation: None,
@@ -165,6 +169,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
         capture_operation: None,
         _retained_invocation: None,
         _retained_capture_issue: None,
+        managed_export: None,
         exported: None,
         stream: None,
         receipt: None,
@@ -206,6 +211,12 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
         })
         .map_err(issue => LocalNativeMockEffectProposalIssue::Managed(issue))
         .native_effect_proposal(self.original)
+        held.construction = Some({
+          operation: capture_operation,
+          recipe: state._retained_import_recipes[0],
+          retained: 0L,
+          workspace: 0L,
+        })
       }
       if entry == 0 && state.lookup is Some(lookup) {
         // The SAME completed lookup retains actual typed requests. Its key
@@ -324,24 +335,13 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
       let index = selected.unwrap_or_else(() => {
         stop("LocalOriginalEffectResultUnavailable")
       })
-      let exported = @strategy.start_captured_effect_local_result_export(
-          inputs,
-          index,
-          {
-            max_fields: wire.max_columns,
-            max_mapping_work: wire.max_order_work,
-            max_order_work: wire.max_order_work,
-            max_workspace_entries: limits.output_workspace,
-          },
-          limits.output_rows,
-          limits.output_values,
-          wire,
-          limits.identity.logical_wire,
-          limits.identity.schema,
-          Int::min(wire.max_bytes, 16384),
-        )
-        .map_err(issue => LocalNativeMockEffectProposalIssue::Export(issue))
-        .native_effect_proposal(self.original)
+      let managed = self.prepare_mock_effect_local_result_export(
+        state, held, index,
+      )
+      current.managed_export = Some(managed)
+      let exported = managed
+        .captured_export()
+        .unwrap_or_else(() => stop("LocalOriginalEffectResultUnavailable"))
       current.exported = Some(exported)
       let preparation = @strategy.captured_effect_local_result_export_preparation(
         exported,
@@ -532,6 +532,10 @@ fn LocalNativeMockEffectProposals::close(self : Self) -> Bool {
       |> ignore
       entry.exported = None
     }
+    if entry.managed_export is Some(exported) {
+      exported.close()
+      entry.managed_export = None
+    }
     entry.rows.clear()
     entry._retained_invocation = None
     if entry.capture_operation is Some(operation) {
@@ -548,5 +552,6 @@ fn LocalNativeMockEffectProposals::close(self : Self) -> Bool {
       }
     }
   }
+  self.construction = None
   @strategy.release_captured_effect_inputs(self.inputs)
 }

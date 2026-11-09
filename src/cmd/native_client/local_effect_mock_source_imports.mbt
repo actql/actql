@@ -9,6 +9,7 @@ priv struct LocalNativeMockEffectSourceImport {
   mut snapshot : @execution.CompletedRelationSnapshotPreparation?
   mut _snapshot_wire : String?
   mut manifest : @run_host.ClientEffectLocalManifest?
+  mut managed_export : @local_values.LocalValuesEffectResultExport?
   mut exported : @strategy.CapturedEffectLocalResultExport?
   mut stream : @execution.CompletedOutputExport?
   mut receipt : @execution.CompletedRelationExportReceipt?
@@ -35,6 +36,10 @@ fn LocalNativeMockEffectSourceImport::close_export(self : Self) -> Unit {
     )
     |> ignore
     self.exported = None
+  }
+  if self.managed_export is Some(exported) {
+    exported.close()
+    self.managed_export = None
   }
 }
 
@@ -73,18 +78,12 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_source_imports(
   }
   let limits = state.first._retained_models[0]._retained_limits
   let wire = limits.identity.wire
-  guard state._retained_import_recipes.length() == 2 &&
-    held.members.get(0) is Some(first_member) &&
-    first_member.capture_operation is Some(operation) else {
+  guard state._retained_import_recipes.length() == 2 else {
     stop("LocalOriginalEffectImportsUnavailable")
   }
-  let recipe = state._retained_import_recipes[0]
-  let construction : LocalNativeMockEffectImportConstruction = {
-    operation,
-    recipe,
-    retained: 0L,
-    workspace: 0L,
-  }
+  let construction = held.construction.unwrap_or_else(() => {
+    stop("LocalOriginalEffectImportsUnavailable")
+  })
   // The complete original source occurrence inventory, not import names or
   // counts as a substitute for producer custody. Canonical metadata is funded
   // in this same capture extent before any of these constructors are called.
@@ -118,6 +117,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_source_imports(
       snapshot: None,
       _snapshot_wire: None,
       manifest: None,
+      managed_export: None,
       exported: None,
       stream: None,
       receipt: None,
@@ -137,24 +137,13 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_source_imports(
       if @strategy.captured_effect_local_result_stage(result) != stage {
         continue
       }
-      let exported = @strategy.start_captured_effect_local_result_export(
-          held.inputs,
-          index,
-          {
-            max_fields: wire.max_columns,
-            max_mapping_work: wire.max_order_work,
-            max_order_work: wire.max_order_work,
-            max_workspace_entries: limits.output_workspace,
-          },
-          limits.output_rows,
-          limits.output_values,
-          wire,
-          limits.identity.logical_wire,
-          limits.identity.schema,
-          Int::min(wire.max_bytes, 16384),
-        )
-        .map_err(issue => LocalNativeMockEffectProposalIssue::Export(issue))
-        .native_effect_proposal(self.original)
+      let managed = self.prepare_mock_effect_local_result_export(
+        state, held, index,
+      )
+      source.managed_export = Some(managed)
+      let exported = managed
+        .captured_export()
+        .unwrap_or_else(() => stop("LocalOriginalEffectImportsUnavailable"))
       source.exported = Some(exported)
       let preparation = @strategy.captured_effect_local_result_export_preparation(
         exported,

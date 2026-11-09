@@ -455,6 +455,7 @@ test "Source and Compute attempt inventory refuses checked Int overflow" {
 #cfg(target="js")
 fn retained_effect_whole_source_export_control(
   export_results? : Bool = false,
+  export_public? : Bool = false,
 ) -> Unit raise {
   let plan = effect_operation_source_plan_fixture(whole_inputs=true)
   assert_eq(plan.captures.length(), 0)
@@ -601,7 +602,7 @@ fn retained_effect_whole_source_export_control(
   assert_true(@strategy.captured_task_completed(dag, 1))
   assert_true(@strategy.next_captured_task(dag) is None)
   assert_eq(execution.rows().unwrap(), ["{\"id\":3}"])
-  if export_results {
+  if export_results || export_public {
     assert_eq(
       @strategy.graph_result_task(@strategy.captured_dag_graph(dag), 0),
       Some(1),
@@ -643,44 +644,94 @@ fn retained_effect_whole_source_export_control(
       },
       max_batch_bytes: 128,
     }
-    for index in 0..<2 {
-      let result = @strategy.captured_effect_local_result_at(inputs, index).unwrap()
-      assert_eq(@strategy.captured_effect_local_result_task(result), index)
-      let owned = match
-        execution.prepare_effect_result_export(
-          captured, inputs, index, row, 1000, 10000, export_limits,
-        ) {
-        Ok(value) => value
-        Err(ForeignInput) =>
-          fail("Exact original producer Result refused as ForeignInput")
-        Err(_) =>
-          fail("Original managed export refused before Result conversion")
+    if export_results {
+      for index in 0..<2 {
+        let result = @strategy.captured_effect_local_result_at(inputs, index).unwrap()
+        assert_eq(@strategy.captured_effect_local_result_task(result), index)
+        let owned = match
+          execution.prepare_effect_result_export(
+            captured, inputs, index, row, 1000, 10000, export_limits,
+          ) {
+          Ok(value) => value
+          Err(ForeignInput) =>
+            fail("Exact original producer Result refused as ForeignInput")
+          Err(_) =>
+            fail("Original managed export refused before Result conversion")
+        }
+        let exported = owned.captured_export().unwrap()
+        let preparation = @strategy.captured_effect_local_result_export_preparation(
+          exported,
+        )
+        while !@execution.advance_completed_result_relation_export(
+                preparation, 31,
+              ).unwrap().0 {
+          continue
+        }
+        let stream = @execution.finish_completed_result_relation_export_preparation(
+          preparation,
+        ).unwrap()
+        let actual = StringBuilder()
+        while @execution.next_completed_output_export_canonical_row(
+                stream, 1000, 20, 10000,
+              ).unwrap()
+              is Some((_, wire, _)) {
+          actual.write_string(wire)
+        }
+        let (receipt, tail) = @execution.finish_completed_relation_export(
+          stream,
+        ).unwrap()
+        actual.write_string(tail)
+        assert_eq(actual.to_string(), "[{\"id\":3}]")
+        @execution.cancel_completed_relation_export_receipt(receipt)
+        @execution.cancel_completed_output_export(stream)
+        owned.close()
+        assert_true(owned.captured_export() is None)
       }
-      let exported = owned.captured_export().unwrap()
-      let preparation = @strategy.captured_effect_local_result_export_preparation(
-        exported,
+    }
+    if export_public {
+      // Refusal closes only its partial bridge. The original completion and
+      // exact Result are still available for the funded caller below.
+      let calls = Ref(0)
+      assert_true(
+        execution.prepare_captured_result_export(
+          dag,
+          0,
+          row,
+          1000,
+          10000,
+          export_limits,
+          before_row=Some(_ => {
+            calls.val += 1
+            false
+          }),
+        )
+        is Err(MissingOutput),
       )
-      while !@execution.advance_completed_result_relation_export(
-              preparation, 31,
-            ).unwrap().0 {
-        continue
+      assert_eq(calls.val, 1)
+      assert_eq(execution.rows().unwrap(), ["{\"id\":3}"])
+      let owned = execution
+        .prepare_captured_result_export(
+          dag,
+          0,
+          row,
+          1000,
+          10000,
+          export_limits,
+          before_row=Some(_ => {
+            calls.val += 1
+            true
+          }),
+        )
+        .unwrap()
+      assert_eq(calls.val, 2)
+      let output = owned.output_export()
+      let actual = StringBuilder()
+      while output.next().unwrap() is Some(wire) {
+        actual.write_string(wire)
       }
-      let stream = @execution.finish_completed_result_relation_export_preparation(
-        preparation,
-      ).unwrap()
-      let actual = []
-      while @execution.next_completed_output_export_canonical_row(
-              stream, 1000, 20, 10000,
-            ).unwrap()
-            is Some((_, wire, _)) {
-        actual.push(wire)
-      }
-      assert_eq(actual, ["{\"id\":3}"])
-      let (receipt, _) = @execution.finish_completed_relation_export(stream).unwrap()
-      @execution.cancel_completed_relation_export_receipt(receipt)
-      @execution.cancel_completed_output_export(stream)
+      actual.write_string(output.finish().unwrap())
+      assert_eq(actual.to_string(), "[{\"id\":3}]")
       owned.close()
-      assert_true(owned.captured_export() is None)
     }
     assert_true(@strategy.release_captured_effect_inputs(inputs))
   }
@@ -708,4 +759,10 @@ test "Retained Effect dispatcher preserves whole Source originals through manage
 #cfg(target="js")
 test "managed Effect exports exact producer Results independently of the public Result task" {
   retained_effect_whole_source_export_control(export_results=true)
+}
+
+///|
+#cfg(target="js")
+test "managed Effect public Result keeps its captured pin after a refused bridge row" {
+  retained_effect_whole_source_export_control(export_public=true)
 }

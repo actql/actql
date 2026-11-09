@@ -34,6 +34,7 @@ pub fn LocalValuesExecution::prepare_effect_result_export(
   bridge_max_entries : Int,
   bridge_max_name_bytes : Int,
   limits : @publication_host.PublicationOutputExportLimits,
+  before_row? : ((String) -> Bool)? = None,
 ) -> Result[LocalValuesEffectResultExport, LocalValuesEffectResultExportIssue] {
   if !self.available.val {
     return Err(MissingOutput)
@@ -46,16 +47,26 @@ pub fn LocalValuesExecution::prepare_effect_result_export(
     is Some(result) else {
     return Err(MissingResult)
   }
-  if @strategy.captured_effect_local_result_task(result) != 0 ||
-    !@strategy.captured_any_result_borrow_matches_managed(
+  let task = @strategy.captured_effect_local_result_task(result)
+  guard self.publication_original_for_task(task)
+    is Some((operations, completed)) else {
+    return Err(MissingOutput)
+  }
+  if !@strategy.captured_any_result_borrow_matches_managed(
       @strategy.captured_effect_local_result_borrow(result),
-      self.completed,
+      completed,
     ) {
     return Err(ForeignInput)
   }
   let (bridge, output) = match
-    self.prepare_publication_bridge(
-      row_limits, bridge_max_entries, bridge_max_name_bytes, limits,
+    self.prepare_publication_bridge_for_original(
+      operations,
+      completed,
+      row_limits,
+      bridge_max_entries,
+      bridge_max_name_bytes,
+      limits,
+      before_row~,
     ) {
     Ok(value) => value
     Err(MissingOutput) => return Err(MissingOutput)
@@ -89,11 +100,7 @@ pub fn LocalValuesExecution::prepare_effect_result_export(
   }
   let exported = match
     @strategy.bind_captured_effect_local_result_managed_export(
-      inputs,
-      local_result,
-      self.completed,
-      bridge,
-      preparation,
+      inputs, local_result, completed, bridge, preparation,
     ) {
     Ok(value) => value
     Err(issue) => {

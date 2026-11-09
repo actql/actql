@@ -1695,7 +1695,8 @@ pub struct LocalValuesExecution {
 pub fn LocalValuesExecution::close(Self) -> Bool
 pub fn LocalValuesExecution::completed_output(Self) -> @execution_relation.ManagedCompletedOutput[Int]
 pub fn LocalValuesExecution::material(Self) -> @execution_relation.ManagedRetainedOutput[Int]?
-pub fn LocalValuesExecution::prepare_effect_result_export(Self, @physical_strategy_host.CapturedEffectRunDAG, @physical_strategy_host.CapturedEffectInputs, Int, @execution_relation.RetainedRowDecodeLimits, Int, Int, @run_publication_host.PublicationOutputExportLimits) -> Result[LocalValuesEffectResultExport, LocalValuesEffectResultExportIssue]
+pub fn LocalValuesExecution::prepare_captured_result_export(Self, @physical_strategy_host.CapturedDAG, Int, @execution_relation.RetainedRowDecodeLimits, Int, Int, @run_publication_host.PublicationOutputExportLimits, before_row? : ((String) -> Bool)?) -> Result[LocalValuesResultExport, LocalValuesResultExportIssue]
+pub fn LocalValuesExecution::prepare_effect_result_export(Self, @physical_strategy_host.CapturedEffectRunDAG, @physical_strategy_host.CapturedEffectInputs, Int, @execution_relation.RetainedRowDecodeLimits, Int, Int, @run_publication_host.PublicationOutputExportLimits, before_row? : ((String) -> Bool)?) -> Result[LocalValuesEffectResultExport, LocalValuesEffectResultExportIssue]
 pub fn LocalValuesExecution::prepare_result_export(Self, Int, @execution_relation.RetainedRowDecodeLimits, Int, Int, @run_publication_host.PublicationOutputExportLimits, publication? : ClientProgramPublication?) -> Result[LocalValuesResultExport, LocalValuesResultExportIssue]
 pub fn LocalValuesExecution::rows(Self) -> Result[Array[String], LocalValuesExecutionIssue]
 
@@ -1718,7 +1719,7 @@ pub(all) enum LocalValuesExecutionIssue {
 
 pub struct LocalValuesResultExport {
   stream : @run_publication_host.PublicationOutputExport
-  bridge : @execution_relation.ManagedPublicationBridge[Int]
+  bridge : @execution_relation.ManagedPublicationBridge[Int]?
   mut closed : Bool
 }
 pub fn LocalValuesResultExport::close(Self) -> Unit

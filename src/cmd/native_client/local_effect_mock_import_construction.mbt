@@ -4,7 +4,7 @@
 // selects another occurrence, grants an attempt or refunds failed work.
 priv struct LocalNativeMockEffectImportConstruction {
   operation : @local_values.ClientInstalledEffectOperationBorrow
-  recipe : Array[@execution.ExecutionCapacity]
+  mut recipe : Array[@execution.ExecutionCapacity]
   mut retained : Int64
   mut workspace : Int64
 }
@@ -119,7 +119,11 @@ fn LocalNativeMockEffectImportConstruction::finish(
   original : LocalCommandPreparationOriginal,
   capture : Array[@execution.ExecutionCapacity],
 ) -> Bool {
-  self.resize(original, capture, self.retained, self.workspace)
+  if !self.resize(original, capture, self.retained, self.workspace) {
+    return false
+  }
+  self.recipe = capture
+  true
 }
 
 ///|
@@ -166,4 +170,74 @@ fn LocalNativeMockEffectImportConstruction::resize(
       true
     }
   }
+}
+
+///|
+// The original producer wire is borrowed. Fund its preserving row decoder and
+// retained cells on the SAME capture before the bridge allocates them. The
+// existing normalizing body recipe conservatively covers this decoder too.
+fn LocalNativeMockEffectImportConstruction::prepare_row(
+  self : Self,
+  original : LocalCommandPreparationOriginal,
+  wire : String,
+  limits : @execution.RetainedRowDecodeLimits,
+) -> Bool {
+  guard @scalar.admit_utf8_length(wire, limits.max_bytes) is Ok(bytes) else {
+    original.retain_primary(
+      CommandBusinessEffectProposals(ManagedExport(Bridge(Wire(InputLimit)))),
+    )
+    return false
+  }
+  self.prepare(
+    original,
+    Int::max(1, bytes),
+    Int::min(limits.max_nodes, Int::max(1, bytes)),
+    Int::min(limits.max_depth, Int::max(1, bytes)),
+  )
+}
+
+///|
+fn LocalCommandBusinessPreparation::prepare_mock_effect_local_result_export(
+  self : Self,
+  state : LocalNativeMockEffectPlan,
+  held : LocalNativeMockEffectProposals,
+  index : Int,
+) -> @local_values.LocalValuesEffectResultExport raise ClientStop {
+  guard state.suffix is Some(execution) &&
+    state.effect_capture is Some(captured) &&
+    held.construction is Some(construction) else {
+    stop("LocalOriginalEffectImportsUnavailable")
+  }
+  let limits = state.first._retained_models[0]._retained_limits
+  let wire = limits.identity.wire
+  let row : @execution.RetainedRowDecodeLimits = {
+    max_bytes: wire.max_bytes,
+    max_nodes: wire.max_nodes,
+    max_depth: wire.max_depth,
+    max_text_bytes: limits.output_values.max_text_bytes,
+  }
+  execution
+  .prepare_effect_result_export(
+    captured,
+    held.inputs,
+    index,
+    row,
+    limits.output_work,
+    wire.max_bytes,
+    {
+      max_result_fields: wire.max_columns,
+      max_result_mapping_work: wire.max_order_work,
+      max_result_order_work: wire.max_order_work,
+      max_result_workspace_entries: limits.output_workspace,
+      max_rows: limits.output_rows,
+      values: limits.output_values,
+      payload_wire: wire,
+      logical_wire: limits.identity.logical_wire,
+      schema: limits.identity.schema,
+      max_batch_bytes: Int::min(wire.max_bytes, 16384),
+    },
+    before_row=Some(text => construction.prepare_row(self.original, text, row)),
+  )
+  .map_err(issue => LocalNativeMockEffectProposalIssue::ManagedExport(issue))
+  .native_effect_proposal(self.original)
 }

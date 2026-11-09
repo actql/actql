@@ -4,6 +4,7 @@
 // waiting, approval, mutation or physical cleanup acknowledgement.
 priv struct LocalNativeMockEffectComputation {
   outputs : Array[@run_host.PublicationOutputExport]
+  managed_outputs : Array[@local_values.LocalValuesResultExport]
   definitions : Array[@publication.PublicationContract]
   artifacts : Array[@publication.PublicationContract]
   snapshots : Array[@publication.CapturedResultSnapshot]
@@ -26,6 +27,8 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_computation(
     proposals.acquired is Some(acquired) &&
     state.preview is Some(preview) &&
     preview._retained_dependency_inventory is Some(inventory) &&
+    state.suffix is Some(execution) &&
+    proposals.construction is Some(construction) &&
     state.computation is None else {
     stop("LocalOriginalEffectComputationUnavailable")
   }
@@ -38,6 +41,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_computation(
     let max_depth = policy.effects.max_admission_depth
     let held : LocalNativeMockEffectComputation = {
       outputs: [],
+      managed_outputs: [],
       definitions: [],
       artifacts: [],
       snapshots: [],
@@ -48,27 +52,47 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_computation(
     }
     state.computation = Some(held)
     let run = @strategy.captured_effect_run_dag(captured)
-    // The ordinary exporter selects every public Named Result from this
-    // original graph. It retains separate pins, not another execution.
-    let outputs = @run_host.prepare_all_captured_result_publication_exports(
-        run,
-        {
-          max_result_fields: wire.max_columns,
-          max_result_mapping_work: wire.max_order_work,
-          max_result_order_work: wire.max_order_work,
-          max_result_workspace_entries: limits.output_workspace,
-          max_rows: limits.output_rows,
-          values: limits.output_values,
-          payload_wire: wire,
-          logical_wire: limits.identity.logical_wire,
-          schema: limits.identity.schema,
-          max_batch_bytes: Int::min(wire.max_bytes, 16384),
-        },
-      )
-      .map_err(issue => LocalNativeMockEffectProposalIssue::PublicExport(issue))
-      .native_effect_proposal(self.original)
-    for output in outputs {
-      held.outputs.push(output)
+    // Keep every checked Named Result, in original graph order. Each wrapper
+    // retains its own captured pin and any managed bridge before further work.
+    let row : @execution.RetainedRowDecodeLimits = {
+      max_bytes: wire.max_bytes,
+      max_nodes: wire.max_nodes,
+      max_depth: wire.max_depth,
+      max_text_bytes: limits.output_values.max_text_bytes,
+    }
+    for
+      index in 0..<@strategy.graph_result_count(
+        @strategy.captured_dag_graph(run),
+      ) {
+      let output = execution
+        .prepare_captured_result_export(
+          run,
+          index,
+          row,
+          limits.output_work,
+          wire.max_bytes,
+          {
+            max_result_fields: wire.max_columns,
+            max_result_mapping_work: wire.max_order_work,
+            max_result_order_work: wire.max_order_work,
+            max_result_workspace_entries: limits.output_workspace,
+            max_rows: limits.output_rows,
+            values: limits.output_values,
+            payload_wire: wire,
+            logical_wire: limits.identity.logical_wire,
+            schema: limits.identity.schema,
+            max_batch_bytes: Int::min(wire.max_bytes, 16384),
+          },
+          before_row=Some(text => {
+            construction.prepare_row(self.original, text, row)
+          }),
+        )
+        .map_err(issue => {
+          LocalNativeMockEffectProposalIssue::ManagedPublicExport(issue)
+        })
+        .native_effect_proposal(self.original)
+      held.managed_outputs.push(output)
+      held.outputs.push(output.output_export())
     }
     for index, output in held.outputs {
       let original = proposals.members
