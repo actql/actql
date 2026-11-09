@@ -29,6 +29,39 @@ fn selected_binding_rows_supported(kernel : @lower.PreparedKernel) -> Bool {
 }
 
 ///|
+// These evaluator leaves return an existing input/prior value or capture an
+// immutable admitted literal. They build no text/container forest. Keep the
+// complete fragment/traversal workspace and fund persistent output on the
+// original bounded row budget before CommitOutputRow transfers it.
+fn selected_binding_outputs_borrowed(kernel : @lower.PreparedKernel) -> Bool {
+  guard (
+      @lower.kernel_body(kernel) is @lower.SnapshotMap(_) ||
+      @lower.kernel_body(kernel) is @lower.OrderedBindings(_)
+    ) &&
+    @lower.kernel_bindings(kernel) is Some(bindings) &&
+    @lower.bindings_count(bindings) > 0 else {
+    return false
+  }
+  let ordered = @lower.bindings_ordered(bindings)
+  for index in 0..<@lower.bindings_count(bindings) {
+    guard @lower.binding_at(bindings, index) is Some((_, expression)) else {
+      return false
+    }
+    match @lower.expression_body(expression) {
+      @lower.Field(_, @relation.InputField(_))
+      | @lower.Literal(_)
+      | @lower.TypedNull => ()
+      @lower.Field(_, @relation.PriorSlot(slot)) =>
+        if !ordered || slot < 0 || slot >= index {
+          return false
+        }
+      _ => return false
+    }
+  }
+  true
+}
+
+///|
 fn selected_binding_rows_issue(
   issue : @execution.BoundedBindingRowsIssue,
   step : Int,

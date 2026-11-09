@@ -440,7 +440,14 @@ pub fn local_module_metered_output_start_capacity(
             // the complete fragment-live/traversal scratch still prepaid.
             // CommitOutputRow then funds recursive persistent DATA on the
             // same attachment before releasing those temporary roots.
-            if !primitive && !funded_snapshot {
+            // Alias/literal leaves also borrow text/container backing from
+            // the still-live input or admitted preparation. This is not a
+            // general constructed-output recipe: retain the full scratch and
+            // use the same before-commit persistent-output growth owner.
+            let borrowed_bindings = count == 1 &&
+              @schema.all_fields_required(input) &&
+              selected_binding_outputs_borrowed(kernel)
+            if !primitive && !funded_snapshot && !borrowed_bindings {
               metered_retention = false
             }
           }

@@ -3,6 +3,7 @@
 // evidence is supplied by this bounded component diagnostic.
 fn set_output_expression_prepared(
   text? : String = "WITH chosen AS (SELECT id FROM records WHERE amount >= 20 UNION ALL SELECT id FROM records WHERE amount IS NULL ORDER BY 0 - id LIMIT 2) SELECT id FROM chosen ORDER BY id",
+  format? : @frontend.Format = @frontend.Sql,
 ) -> @publication_host.PreparedClientProgram raise {
   let environment = @publication_host.admit_client_check_environment(
     source_query_original_environment,
@@ -35,7 +36,7 @@ fn set_output_expression_prepared(
     selected,
     environment,
     text,
-    @frontend.Sql,
+    format,
     None,
     public_primary=true,
   ).unwrap()
