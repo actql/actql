@@ -4841,7 +4841,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "7fef911e0b4ec4f05a4fccc6a95dee837b597474c451ff45ba816e430cf34cde",
+      "sha256": "038da746527ebd2e6651dccc1b5730a02fb8ecf2828c6b56b567e8bc42bc59b6",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -21493,7 +21493,8 @@
             "method",
             "args",
             "inputWire",
-            "grant"
+            "grant",
+            "requestProjection"
           ],
           "async": false
         },
@@ -21540,6 +21541,25 @@
             "receiver",
             "method",
             "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectControlConstruction/requestProjection/requestProjection",
+          "parameters": [
+            "member",
+            "operation",
+            "row",
+            "receiver",
+            "method",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectControlConstruction/requestProjection/requestProjection/requestProjection",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -22077,7 +22097,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "33afb5fbce85b939965f96d4519fce0720e11fd82a3a9fe8068a5f03bf41ef1a",
+      "sha256": "166579eec8daf0198f6247226001f7615c55f53a1addd8969bc23497a62cb939",
       "contracts": [
         {
           "operations": [
@@ -22629,7 +22649,9 @@
             "prepareInstalledEffectControlConstruction/grant/grant",
             "prepareInstalledEffectControlConstruction/invoke/invoke",
             "prepareInstalledEffectControlConstruction/invoke/invoke/observePlan/observePlan",
-            "prepareInstalledEffectControlConstruction/parsePreview/parsePreview"
+            "prepareInstalledEffectControlConstruction/parsePreview/parsePreview",
+            "prepareInstalledEffectControlConstruction/requestProjection/requestProjection",
+            "prepareInstalledEffectControlConstruction/requestProjection/requestProjection/requestProjection"
           ],
           "exports": [],
           "attributes": {
@@ -22687,6 +22709,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The same Run's control token has a separate synchronous Grant-construction"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "After an original row request constructor has completed, its Host facts export"
               }
             ],
             "extension": [
@@ -22719,6 +22745,14 @@
               {
                 "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
                 "anchor": "test \"original Grant constructor keeps retained outputs without reserving unrelated Receipt scratch\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
+                "anchor": "test \"completed original request projection selects its constructor on the same real Ledger control\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
+                "anchor": "test \"request projection current retirement keeps failed control scratch until original cleanup\""
               }
             ]
           }

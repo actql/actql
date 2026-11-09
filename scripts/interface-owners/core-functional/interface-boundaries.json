@@ -34435,7 +34435,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_borrow.mbt",
-      "sha256": "aabe3ab4c7f2d2d7c6cd20809e5a8d5d26d5bbd9b24a7f18ddce021b10dbea5d",
+      "sha256": "91d38c52088e364f6a2c11aa4d538c9de7ad55f5051497c273cc568487d4fe39",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original installed Effect operation borrow and retained same-Run management controls",
@@ -34475,6 +34475,10 @@
           "declaration": "begin_installed_effect_operation_ledger_codec ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : ClientInstalledEffectManagedPlan , wire : String ? , nodes : Int , depth : Int , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
         },
         {
+          "name": "begin_installed_effect_operation_request_projection",
+          "declaration": "begin_installed_effect_operation_request_projection ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : ClientInstalledEffectManagedPlan , member_index : Int , operation_index : Int , row_index : Int , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "borrow_installed_effect_operation",
           "declaration": "borrow_installed_effect_operation ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , member_index : Int , per_row : Bool , operation_index : Int , row_index : Int , operation : String , ) - > Result [ ClientInstalledEffectOperationBorrow , ClientInstalledManagedRunIssue , ]"
         },
@@ -34497,6 +34501,10 @@
         {
           "name": "check_installed_effect_operation_original",
           "declaration": "check_installed_effect_operation_original ( owner : ClientInstalledManagedRun , ledger : @ resources . Ledger , preparation : ClientInstalledManagedRunOriginal , control : ClientEffectOperationControls ? , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "check_installed_effect_request_projection_original",
+          "declaration": "check_installed_effect_request_projection_original ( child : ClientInstalledEffectOperationBorrow , owner : ClientInstalledManagedRun , ledger : @ resources . Ledger , preparation : ClientInstalledManagedRunOriginal , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "complete_installed_effect_operation_construction",
@@ -34703,9 +34711,11 @@
             "begin_installed_effect_operation_controls_original",
             "begin_installed_effect_operation_grant_construction",
             "begin_installed_effect_operation_input",
+            "begin_installed_effect_operation_request_projection",
             "check_installed_effect_construction_original",
             "check_installed_effect_operation_backing_original",
             "check_installed_effect_operation_original",
+            "check_installed_effect_request_projection_original",
             "complete_installed_effect_operation_construction",
             "complete_installed_effect_operation_construction_output",
             "complete_installed_effect_operation_construction_owned",
@@ -34807,6 +34817,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The same Run's control token has a separate synchronous Grant-construction"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "After an original row request constructor has completed, its Host facts export"
               }
             ],
             "extension": [
@@ -34847,6 +34861,14 @@
               {
                 "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
                 "anchor": "test \"original Grant constructor keeps retained outputs without reserving unrelated Receipt scratch\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
+                "anchor": "test \"completed original request projection selects its constructor on the same real Ledger control\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
+                "anchor": "test \"request projection current retirement keeps failed control scratch until original cleanup\""
               }
             ]
           }
@@ -53857,6 +53879,7 @@
             "client_program_installed_effect_operation_grant_construction_begin",
             "client_program_installed_effect_operation_input_begin",
             "client_program_installed_effect_operation_input_grow",
+            "client_program_installed_effect_operation_request_projection_begin",
             "client_program_installed_effect_operation_response_projection_complete",
             "client_program_installed_effect_recovered_input_inventory_retain"
           ],
@@ -53940,6 +53963,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The same Run's control token has a separate synchronous Grant-construction"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "After an original row request constructor has completed, its Host facts export"
               }
             ],
             "extension": [
@@ -53968,6 +53995,14 @@
               {
                 "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
                 "anchor": "test \"original Grant constructor keeps retained outputs without reserving unrelated Receipt scratch\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
+                "anchor": "test \"completed original request projection selects its constructor on the same real Ledger control\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
+                "anchor": "test \"request projection current retirement keeps failed control scratch until original cleanup\""
               }
             ]
           }
@@ -54122,7 +54157,7 @@
           }
         }
       ],
-      "sha256": "82c6e8d0c8cb736457bfc18825958ca25b8c6b5c9b94f2b585066b525da185fe",
+      "sha256": "b78d1ac3da351a3f4d7fb990614f720a9455b55e94e633f18ba268607141ae49",
       "operations": [
         {
           "name": "client_program_installed_effect_captured_input_inventory_retain",
@@ -54207,6 +54242,10 @@
         {
           "name": "client_program_installed_effect_operation_ledger_codec_complete",
           "declaration": "client_program_installed_effect_operation_ledger_codec_complete ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "client_program_installed_effect_operation_request_projection_begin",
+          "declaration": "client_program_installed_effect_operation_request_projection_begin ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , member_index : Int , operation_index : Int , row_index : Int , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "client_program_installed_effect_operation_response_backing_fits",
