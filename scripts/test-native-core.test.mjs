@@ -827,7 +827,8 @@ test('common Core stack prerequisite is confined to Linux Native children', t =>
   }
 });
 
-function fixture(t, {scoped = false, http = false, sourcePeers = false, relationWork = false, effectTargets = false} = {}) {
+function fixture(t, {scoped = false, http = false, sourcePeers = false, relationWork = false, effectTargets = false,
+  effectCapture = false} = {}) {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-native-namespace-test-')));
   t.after(() => rmSync(root, {recursive: true, force: true}));
   const checkout = join(root, 'checkout');
@@ -936,7 +937,7 @@ process.exitCode=process.env.ACTQL_FIXTURE_SOURCE_FAILED==='1'?9:0;
   if (scoped) {
     mkdirSync(join(checkout, 'src/cmd/native_client'), {recursive: true});
     for (const name of ['ordinary_wbtest.mbt', 'local_command_business_wbtest.mbt',
-      'local_command_business_cleanup_wbtest.mbt']) {
+      'local_command_business_cleanup_wbtest.mbt', ...(effectCapture ? ['local_effect_capture_wbtest.mbt'] : [])]) {
       writeFileSync(join(checkout, 'src/cmd/native_client', name), 'Original compiler-input fixture\n');
     }
     mkdirSync(join(checkout, 'src/platform_native/host_bootstrap'), {recursive: true});
@@ -1030,6 +1031,7 @@ if (process.argv[2] === 'generate-test-driver') {
     .map(value => [require('node:path').basename(value), value.startsWith('src/fixture-empty/') ? [] :
       Array.from({length: value.endsWith('/root_control_physical_scoped_wbtest.mbt') ||
           value.endsWith('/target_io_physical_scoped_wbtest.mbt') ? 3 :
+          value.endsWith('/local_effect_capture_wbtest.mbt') ? 5 :
           value.endsWith('/local_project_mock_content_physical_scoped_wbtest.mbt') ? 20 : 1},
         (_, index) => ({index,name:'original fixture case '+index,attrs:[],line_number:index+1}))]));
   writeFileSync(metadata, JSON.stringify({tests}));
@@ -1051,6 +1053,7 @@ if (process.argv.includes('--dry-run')) {
       '--output-driver _build/native/release/test/cmd/native_client/driver.mbt ' +
       '--output-metadata _build/native/release/test/cmd/native_client/info.json ' +
       ['ordinary_wbtest.mbt','local_command_business_wbtest.mbt','local_command_business_cleanup_wbtest.mbt']
+        .concat(process.env.ACTQL_FIXTURE_CORE_EFFECT_CAPTURE === '1' ? ['local_effect_capture_wbtest.mbt'] : [])
         .concat(process.env.ACTQL_FIXTURE_CORE_EFFECT_TARGETS === '1' ? ['local_project_mock_content_physical_scoped_wbtest.mbt'] : [])
         .map(name => 'src/cmd/native_client/' + name).join(' ') +
       ' --target native --pkg-name fixture/native_client --driver-kind whitebox');
@@ -1198,6 +1201,13 @@ if (['runtime-values','scoped-review-values'].includes(process.env.ACTQL_FIXTURE
     assert.notEqual(process.env.ACTQL_TEST_CRYPTO_COMPONENT, process.env.ACTQL_TEST_NATIVE_CRYPTO_LIBRARY);
   }
   if (process.env.ACTQL_FIXTURE_SCOPED_FAIL === '1') process.exit(7);
+  if (process.argv.includes('src/cmd/native_client/local_effect_capture_wbtest.mbt')) {
+    assert.equal(process.env.ACTQL_FIXTURE_PROFILE, 'runtime-values');
+    if (process.env.ACTQL_FIXTURE_CAPTURE_ZERO === '1' &&
+        process.argv[process.argv.indexOf('--index') + 1] === '1') {
+      console.log('Total tests: 0, passed: 0, failed: 0.'); process.exit(0);
+    }
+  }
   console.log('Total tests: 1, passed: 1, failed: 0.'); process.exit(0);
 }
 if (['src/platform_native/client_host/run_checkpoint_wbtest.mbt',
@@ -1376,6 +1386,7 @@ process.exit(result.status ?? 1);
     ...(scoped ? {ACTQL_FIXTURE_CORE_SCOPED: '1'} : {}),
     ...(relationWork ? {ACTQL_FIXTURE_CORE_RELATION_WORK: '1'} : {}),
     ...(effectTargets ? {ACTQL_FIXTURE_CORE_EFFECT_TARGETS: '1'} : {}),
+    ...(effectCapture ? {ACTQL_FIXTURE_CORE_EFFECT_CAPTURE: '1'} : {}),
     ...(http ? {ACTQL_FIXTURE_CORE_HTTP: '1'} : {}),
     ...(sourcePeers ? {ACTQL_FIXTURE_CORE_SOURCE:'1'} : {}),
     HOME: root, RUNNER_TEMP: join(root, 'runner'), ACTQL_TEST_NATIVE_SQLITE_ROOT: parent,
@@ -2033,6 +2044,57 @@ test('full Native Core requires both ordinary and selected profiles and propagat
   }
 });
 
+
+test('Native first-member capture uses the original scoped Request provider and requires execution', t => {
+  const captureFile = 'src/cmd/native_client/local_effect_capture_wbtest.mbt';
+  const captureSource = readFileSync(new URL('../' + captureFile, import.meta.url), 'utf8');
+  assert.deepEqual([...captureSource.matchAll(/^test "([^"]+)"/gmu)].map(match => match[1]), [
+    'Native Work capture exposes the original owner method without a supplied journal',
+    'Native first member retains one original capture before input and full recipe growth',
+    'Native completed canonical dependencies retain data without accumulating parser scratch',
+    'Native serial capture retains every row and one original constructor workspace',
+    'Native complete Unit inventory keeps an unconsumed Result alias',
+  ]);
+  for (const zero of [false, true]) {
+    const f = fixture(t, {scoped: true, effectCapture: true});
+    const commands = join(f.root, 'capture-commands.jsonl');
+    const result = spawnSync(process.execPath, ['scripts/test-native-core.mjs',
+      '--deny-warn', '--release', '--strip', '-j', '2', '--no-parallelize'], {
+      cwd: f.checkout, encoding: 'utf8', timeout: 20000,
+      env: {...f.env, ACTQL_FIXTURE_NATIVE_COMMANDS: commands,
+        ACTQL_FIXTURE_CAPTURE_ZERO: zero ? '1' : '0'},
+    });
+    assert.ifError(result.error); assert.equal(result.signal, null);
+    assert.equal(result.status === 0, !zero, result.stdout + result.stderr);
+    const calls = readFileSync(commands, 'utf8').trim().split('\n').map(JSON.parse);
+    const ordinary = calls[2];
+    assert.equal(ordinary.profile, 'ordinary', 'both original checkpoint producers precede ordinary Core');
+    assert(!ordinary.args.includes(captureFile));
+    assert(ordinary.args.includes('src/platform_native/host_bootstrap/root_control_unavailable_wbtest.mbt'),
+      'the original ordinary provider-absence case remains required');
+    const captures = calls.filter(call => call.args.includes(captureFile));
+    assert.deepEqual(captures.map(call => call.args[call.args.indexOf('--index') + 1]),
+      zero ? ['0', '1'] : ['0', '1', '2', '3', '4']);
+    assert.equal(new Set(captures.map(call => call.installedProcess)).size, captures.length,
+      'each original case receives fresh physical backing');
+    for (const call of captures) {
+      assert.equal(call.profile, 'runtime-values');
+      assert.deepEqual(call.args.slice(0, 9), ['test', '--target', 'native',
+        '--deny-warn', '--release', '--strip', '-j', '2', '--no-parallelize']);
+      assert.notEqual(call.installedProcess, ordinary.installedProcess);
+      assert(call.sqliteComponent.endsWith('/sqlite-component.dylib'));
+      assert(call.cryptoComponent.endsWith('/crypto-component.dylib'));
+      assert(call.args.includes('--target-dir'));
+    }
+    if (zero) assert.match(result.stderr + result.stdout,
+      /no successfully executed test cases|expected tests=1/u);
+    else {
+      assert.equal(calls.length, 15, 'both checkpoints, ordinary Core and all twelve selected cases execute');
+      assert.match(result.stdout, /"ordinary":3,"http":0,"source":0,"scoped":12,"physical":11,"repeatedGeometry":1/u);
+    }
+    f.verifyExternal();
+  }
+});
 
 test('Native project configuration inputs belong only to the selected fresh child', t => {
   const f = fixture(t);

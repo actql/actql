@@ -56,6 +56,8 @@ export const nativeScopedTestFiles = Object.freeze([
   nativeRequestEffectHandoffTestFile,
   'src/cmd/native_client/local_project_mock_physical_scoped_wbtest.mbt',
   'src/cmd/native_client/local_project_mock_request_physical_scoped_wbtest.mbt',
+  // Its first-member control uses that same real Request/Arena facility.
+  'src/cmd/native_client/local_effect_capture_wbtest.mbt',
   nativeProjectMockContentTestFile,
   'src/cmd/native_client/local_command_business_cleanup_wbtest.mbt',
   'src/cmd/native_client/local_command_business_window_scoped_wbtest.mbt',
