@@ -33237,7 +33237,7 @@
     },
     {
       "module": "src/client_local_host/host.mbt",
-      "sha256": "182a34a4c4629f6b2f800881e5a2c482c3bc785785d2ad095ae7572ecd7cb02e",
+      "sha256": "7bf9c6fe70ffda931beffd511eed07cbf3efae49d9e59268f9a061cd43d858b4",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing configured Local module and same original Request Model owners",
@@ -33246,6 +33246,14 @@
         {
           "name": "bind_client_local_configuration",
           "declaration": "bind_client_local_configuration ( run : @ strategy . CapturedDAG , original : ClientPreparedLocalConfiguration , fixed_ms : Int64 , per_row_ms : Int64 , per_wire_byte_ms : Int64 , per_pair_ms : Int64 , captured_effect ? : @ strategy . CapturedEffectRunDAG ?"
+        },
+        {
+          "name": "client_local_dispatch_run_issue",
+          "declaration": "client_local_dispatch_run_issue ( issue : @ local_driver . LocalDispatchIssue , ) - > @ strategy . RunIssue"
+        },
+        {
+          "name": "client_local_estimate_run_issue",
+          "declaration": "client_local_estimate_run_issue ( issue : @ local_driver . LocalEstimateIssue , ) - > @ strategy . RunIssue"
         },
         {
           "name": "client_local_export_limits",
@@ -33317,6 +33325,8 @@
           "operations": [
             "<module>",
             "bind_client_local_configuration",
+            "client_local_dispatch_run_issue",
+            "client_local_estimate_run_issue",
             "client_local_export_limits",
             "client_local_import_limits",
             "client_local_import_limits_for_rows",
@@ -33418,6 +33428,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "src/client_local_host/host.mbt",
+                "anchor": "priv suberror ClientLocalImplementationFailure"
               }
             ],
             "cancellation": [
@@ -33478,6 +33492,18 @@
               {
                 "path": "src/client_local_host/original_composed_keyed_prefix_wbtest.mbt",
                 "anchor": "test \"adopted Effect Model borrows shared Source tokens and its original prefix exactly once\""
+              },
+              {
+                "path": "src/client_local_host/local_failure_projection_wbtest.mbt",
+                "anchor": "test \"Local projection retains the same original execution and physical failure\""
+              },
+              {
+                "path": "src/client_local_host/local_failure_projection_wbtest.mbt",
+                "anchor": "test \"actual configured Local rejection preserves its configuration family\""
+              },
+              {
+                "path": "src/client_local_host/local_failure_projection_wbtest.mbt",
+                "anchor": "test \"Local estimate projection delegates dispatch and retains the original rate issue\""
               }
             ]
           }
