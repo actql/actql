@@ -132,19 +132,9 @@ pub fn NativeClientRunJournal::record_effect_row_receipt(
     }
     let bounds = native_client_effect_ledger_limits()
     let receipt = match
-      @publication.issue_effect_row_outcome_receipt(
-        preview,
-        member_index,
-        row_index,
-        dispatch_cid,
-        response.credential_use_cid,
-        response.body,
-        response.status_code,
-        outcome_wire,
-        max_response_bytes,
-        bounds.max_wire_bytes,
-        bounds.max_nodes,
-        bounds.max_depth,
+      response.row_receipt(
+        preview, member_index, row_index, dispatch_cid, outcome_wire, max_response_bytes,
+        bounds,
       ) {
       Ok(value) => value
       Err(_) => return Err(Checkpoint(InvalidMaterial))
@@ -158,7 +148,7 @@ pub fn NativeClientRunJournal::record_effect_row_receipt(
     }
     let head = history[history.length() - 1]
     let terminal = match
-      @effect.issue_effect_row_receipt_terminal_entry(
+      response.terminal_entry(
         preview,
         member_index,
         row_index,
@@ -169,14 +159,9 @@ pub fn NativeClientRunJournal::record_effect_row_receipt(
         head,
         history,
         dispatch_cid,
-        response.credential_use_cid,
-        response.body,
-        response.status_code,
         @publication.publication_contract_json(receipt),
         max_response_bytes,
-        bounds.max_wire_bytes,
-        bounds.max_nodes,
-        bounds.max_depth,
+        bounds,
       ) {
       Ok(value) => value
       Err(_) => return Err(Checkpoint(InvalidMaterial))
@@ -319,7 +304,7 @@ pub fn NativeClientRunJournal::effect_row_receipt(
     }
     let bounds = native_client_effect_ledger_limits()
     match
-      @effect.issue_effect_row_receipt_terminal_entry(
+      response.terminal_entry(
         preview,
         member_index,
         row_index,
@@ -330,14 +315,9 @@ pub fn NativeClientRunJournal::effect_row_receipt(
         head,
         history,
         dispatch.dispatching.cid,
-        response.credential_use_cid,
-        response.body,
-        response.status_code,
         @publication.publication_contract_json(receipt),
         max_response_bytes,
-        bounds.max_wire_bytes,
-        bounds.max_nodes,
-        bounds.max_depth,
+        bounds,
       ) {
       Ok(value) if value.cid == head.cid => ()
       _ => return Err(Checkpoint(InvalidMaterial))

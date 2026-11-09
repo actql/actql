@@ -2,8 +2,13 @@
 priv struct NativeClientEffectResponseRecord {
   metadata : Bytes
   body : Bytes
-  credential_use_cid : String
-  status_code : Int
+  protocol : NativeClientEffectResponseProtocol
+}
+
+///|
+priv enum NativeClientEffectResponseProtocol {
+  HttpOriginal(String, Int)
+  FileOriginal(@publication.EffectFileOperationReceipt)
 }
 
 ///|
@@ -26,6 +31,34 @@ fn read_client_effect_response_record(
     ) {
     (Err(@sqlite.NotFound), Err(@sqlite.NotFound)) => Ok(None)
     (Ok(meta), Ok(body)) if meta.revision == 0L && body.revision == 0L => {
+      // Existing HTTP framing begins with its CID. A canonical file receipt
+      // begins with an object; no old metadata/witness bytes change.
+      if meta.body.length() > 0 && meta.body[0] == 123 {
+        let wire = @utf8.decode(meta.body) catch {
+          _ => return Err(CustodyLost)
+        }
+        let limits = native_client_effect_storage_profile.receipt
+        let response = match
+          @publication.admit_saved_effect_file_operation_receipt(
+            wire,
+            body.body,
+            native_client_effect_storage_profile.response_bytes,
+            limits.max_wire_bytes,
+            limits.max_nodes,
+            limits.max_depth,
+          ) {
+          Ok(value) if value.operation.dispatch_entry_cid == dispatch_cid =>
+            value
+          _ => return Err(CustodyLost)
+        }
+        return Ok(
+          Some({
+            metadata: meta.body,
+            body: body.body,
+            protocol: FileOriginal(response),
+          }),
+        )
+      }
       guard @journal.effect_response_record_fields(
           meta.body,
           body.body,
@@ -38,8 +71,7 @@ fn read_client_effect_response_record(
         Some({
           metadata: meta.body,
           body: body.body,
-          credential_use_cid,
-          status_code,
+          protocol: HttpOriginal(credential_use_cid, status_code),
         }),
       )
     }
@@ -47,6 +79,27 @@ fn read_client_effect_response_record(
       Err(Physical(issue))
     _ => Err(CustodyLost)
   }
+}
+
+///|
+fn require_client_file_response_binding(
+  record : NativeClientRunRecord,
+  dispatch : @effect.EffectLedgerEntry,
+  response : NativeClientEffectResponseRecord,
+) -> Result[Unit, NativeClientRunJournalIssue] {
+  if response.protocol is FileOriginal(saved) {
+    guard record.checkpoint is Some(checkpoint) &&
+      saved.operation.effect_preview_cid ==
+      checkpoint.artifact.checkpoint.required_artifact_cid &&
+      saved.operation.dispatch_entry_cid == dispatch.cid &&
+      saved.operation.canonical_request_cid == dispatch.canonical_request_cid &&
+      saved.operation.authorization_context_cid ==
+      @host.client_request_authority_scope_cid(record.request) &&
+      Some(saved.operation.resolution_cid) == checkpoint.resolution_cid else {
+      return Err(CustodyLost)
+    }
+  }
+  Ok(())
 }
 
 ///|
@@ -73,16 +126,26 @@ fn effect_ledger_custody_with_responses(
       }
       guard @publication.effect_row_outcome_receipt_dispatch_identity(receipt)
         is Some(dispatch_cid) &&
-        checkpoint.effect_ledger.any(original => {
+        checkpoint.effect_ledger
+        .iter()
+        .find_first(original => {
           original.cid == dispatch_cid &&
           @effect.effect_ledger_entry_state_code(original) == 1 &&
           original.logical_item_locator_cid == entry.logical_item_locator_cid &&
           original.attempt_sequence == entry.attempt_sequence
-        }) else {
+        })
+        is Some(original_dispatch) else {
         return Err(CustodyLost)
       }
       match read_client_effect_response_record(database, dispatch_cid, reads~) {
-        Ok(Some(_)) => ()
+        Ok(Some(response)) =>
+          match
+            require_client_file_response_binding(
+              record, original_dispatch, response,
+            ) {
+            Ok(_) => ()
+            Err(issue) => return Err(issue)
+          }
         Err(issue) => return Err(issue)
         _ => return Err(CustodyLost)
       }
@@ -97,6 +160,10 @@ fn effect_ledger_custody_with_responses(
     let cid = @effect.effect_ledger_entry_cid(entry)
     match read_client_effect_response_record(database, cid, reads~) {
       Ok(Some(response)) => {
+        match require_client_file_response_binding(record, entry, response) {
+          Ok(_) => ()
+          Err(issue) => return Err(issue)
+        }
         body += "\nresponse\n" +
           cid +
           "\n" +
@@ -177,7 +244,8 @@ pub fn NativeClientRunJournal::record_effect_row_response(
     let cid = @effect.effect_ledger_entry_cid(dispatch.dispatching)
     match read_client_effect_response_record(self.database, cid) {
       Ok(Some(saved)) if saved.metadata == metadata &&
-        saved.body == response.body => return Ok(())
+        saved.body == response.body &&
+        saved.protocol is HttpOriginal(_, _) => return Ok(())
       Ok(Some(_)) => return Err(Checkpoint(InvalidMaterial))
       Ok(None) => ()
       Err(issue) => return Err(issue)
@@ -255,12 +323,20 @@ pub fn NativeClientRunJournal::effect_row_response(
     if !current() {
       return Err(AuthorizationDenied)
     }
-    Ok(
-      saved.map(response => {
-        credential_use_cid: response.credential_use_cid,
-        status_code: response.status_code,
-        body: Bytes::from_array(response.body.to_array()),
-      }),
-    )
+    match saved {
+      None => Ok(None)
+      Some(response) =>
+        match response.protocol {
+          HttpOriginal(credential_use_cid, status_code) =>
+            Ok(
+              Some({
+                credential_use_cid,
+                status_code,
+                body: Bytes::from_array(response.body.to_array()),
+              }),
+            )
+          FileOriginal(_) => Err(Checkpoint(InvalidMaterial))
+        }
+    }
   })
 }
