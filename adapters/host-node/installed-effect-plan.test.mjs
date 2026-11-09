@@ -1909,3 +1909,20 @@ test('standard Ledger family original wrapper selects only immutable frontier in
   const legacy=bind(original,(receiver,method,args)=>{generic++;return Reflect.apply(method,receiver,args);},policy);
   legacy.frontierFromCapturedHeads(preview,members,99);assert.equal(generic,7);
 });
+
+
+test('standard Ledger family revoked metadata proxies keep original generic failure boundary', () => {
+  const source=readFileSync(new URL('./effect-ledger.mjs',import.meta.url),'utf8');
+  const tree=parse(source,{ecmaVersion:'latest',sourceType:'module'});
+  const declaration=tree.body.find(node=>node.type==='FunctionDeclaration'&&node.id?.name==='bindEffectLedgerConstruction');
+  const bind=Function('nodeTypes',source.slice(declaration.start,declaration.end)+';return bindEffectLedgerConstruction;')(nodeTypes);
+  for(const role of ['members','claims']){
+    const revoked=Proxy.revocable([],{});revoked.revoke();
+    const members=role==='members'?revoked.proxy:Object.freeze([Object.freeze({claims:revoked.proxy})]);
+    const primary=new Error('original generic callback');let generic=0;
+    const original=Object.freeze({frontierFromCapturedHeads(){assert.strictEqual(this,original);throw primary;}});
+    const work=Object.assign((receiver,method,args)=>{generic++;return Reflect.apply(method,receiver,args);},{ledgerFamily(){assert.fail('revoked geometry selected');}});
+    assert.throws(()=>bind(original,work,Object.freeze({})).frontierFromCapturedHeads({},members,99),cause=>cause===primary);
+    assert.equal(generic,1);
+  }
+});

@@ -49,14 +49,14 @@ function bindEffectLedgerConstruction(ledger, construction, policy) {
         if ((name === 'frontierFromDurableHeads' || name === 'frontierFromCapturedHeads' ||
              name === 'recoveredTargetGuards' || name === 'prepareSetIntents' ||
              name === 'prepareCapturedSetIntents') && typeof construction.ledgerFamily === 'function' &&
-            Array.isArray(members) && !nodeTypes.isProxy(members) && Object.isFrozen(members) &&
+            !nodeTypes.isProxy(members) && Array.isArray(members) && Object.isFrozen(members) &&
             members.length > 0 && members.length <= 1000) {
           counts = new Array(members.length);
           for (let index = 0; index < members.length; index++) {
             const member = Object.getOwnPropertyDescriptor(members, index)?.value;
             if (member === null || typeof member !== 'object' || nodeTypes.isProxy(member) || !Object.isFrozen(member)) {counts = undefined; break;}
             const claims = Object.getOwnPropertyDescriptor(member, 'claims')?.value;
-            if (!Array.isArray(claims) || nodeTypes.isProxy(claims) || !Object.isFrozen(claims)) {counts = undefined; break;}
+            if (nodeTypes.isProxy(claims) || !Array.isArray(claims) || !Object.isFrozen(claims)) {counts = undefined; break;}
             counts[index] = claims.length;
           }
         }
