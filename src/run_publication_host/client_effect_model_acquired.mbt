@@ -190,7 +190,8 @@ pub fn client_effect_model_acquired_lookup_barrier(
 
 ///|
 /// Bind the named Result's exact export to the original completed Model host
-/// output. The calling Model owner retains OutputUse/currentness; the captured
+/// output, directly or through its checked serial same-Unit suffix input.
+/// The calling Model owner retains OutputUse/currentness; the captured
 /// Run retains the same Result pin. No individual contribution can enter here
 /// as a whole Unit, and equal rows or another completion are insufficient.
 pub fn issue_model_client_effect_local_result_artifact(
@@ -221,12 +222,31 @@ pub fn issue_model_client_effect_local_result_artifact(
     ) {
     return Err(ForeignOwner)
   }
-  if !@strategy.captured_effect_local_result_export_matches_receipt(
-      inputs, exported, receipt,
-    ) ||
-    !@execution.completed_relation_export_matches_output(
+  let model_task = acquired.call_scope.plan.task
+  // Select using immutable identity, not a failed current observation or task
+  // numbering. Preserve every old direct original; a declined direct branch
+  // never retries through the suffix path.
+  let original_matches = if @execution.completed_relation_export_has_output_identity(
       receipt, expected_output,
     ) {
+    @strategy.captured_effect_local_result_export_matches_receipt(
+      inputs, exported, receipt,
+    ) &&
+    @execution.completed_relation_export_matches_output(
+      receipt, expected_output,
+    )
+  } else {
+    @strategy.captured_effect_local_result_export_matches_model_suffix(
+      exported,
+      inputs,
+      owner.graph,
+      invocation.unit,
+      model_task,
+      expected_output,
+      receipt,
+    )
+  }
+  if !original_matches {
     return Err(ForeignExport)
   }
   let borrow = @strategy.captured_effect_local_result_borrow(result)

@@ -364,7 +364,13 @@ pub fn completed_result_export_preparation_matches_receipt(
     receipt.rows.source is Some(source) else {
     return false
   }
-  completed_output_available(source) &&
+  let available = completed_output_available(source)
+  // Availability may synchronously cancel this exact receipt/stream. Its
+  // earlier alias is not a successful observation after that callback.
+  available &&
+  value.closed &&
+  (value.stream is Some(actual) && physical_equal(actual, stream)) &&
+  (receipt.rows.source is Some(actual) && physical_equal(actual, source)) &&
   physical_equal(stream.export_identity, receipt.rows.export_identity)
 }
 
@@ -759,11 +765,31 @@ pub fn completed_relation_export_matches_output(
   value : CompletedRelationExportReceipt,
   output : CompletedOutput,
 ) -> Bool {
-  completed_output_available(output) &&
-  value.rows.source is Some(source) &&
-  // The receipt owns the verified cell view. The expected original may still
-  // be retained/resident; only the converted side must have cell storage.
-  completed_output_same_occurrence(output, source)
+  guard value.rows.source is Some(source) &&
+    completed_output_occurrence_identity_matches(output, source) else {
+    return false
+  }
+  // The expected original and the receipt's converted view have separate
+  // availability. Observe each once, then fence the exact mutable receipt alias.
+  let available = completed_output_available(output) &&
+    completed_output_available(source)
+  available &&
+  value.rows.source is Some(actual) &&
+  physical_equal(actual, source)
+}
+
+///|
+/// Project immutable completion/target identity only, before selecting a
+/// current-aware direct or derived consumer. This observes no availability,
+/// Source, Host or current callback and cannot authorize use of the receipt.
+pub fn completed_relation_export_has_output_identity(
+  value : CompletedRelationExportReceipt,
+  output : CompletedOutput,
+) -> Bool {
+  match value.rows.source {
+    Some(source) => completed_output_occurrence_identity_matches(output, source)
+    None => false
+  }
 }
 
 ///|

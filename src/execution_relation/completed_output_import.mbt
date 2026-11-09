@@ -34,6 +34,16 @@ pub fn completed_output_same_occurrence(
 ) -> Bool {
   completed_output_available(source) &&
   completed_output_available(converted) &&
+  completed_output_occurrence_identity_matches(source, converted)
+}
+
+///|
+// Immutable completion/target/representation facts only. They select an
+// existing current-aware path, never grant availability or another completion.
+fn completed_output_occurrence_identity_matches(
+  source : CompletedOutput,
+  converted : CompletedOutput,
+) -> Bool {
   physical_equal(
     source.completion.result_identity,
     converted.completion.result_identity,

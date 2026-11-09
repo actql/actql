@@ -1130,3 +1130,35 @@ test "Result receipt checks original availability once and skips known foreign m
   assert_false(completed_relation_export_matches_output(receipt, original))
   assert_eq(calls.val, 0)
 }
+
+///|
+test "Receipt identity metadata selects a current-aware path without granting availability" {
+  let raw = export_fixture(capture_fixture())
+  let (receipt, _) = export_relation_all(raw)
+  let calls = Ref(0)
+  let live = Ref(true)
+  let cancel = Ref(false)
+  let original = restrict_completed_output(raw, () => {
+    calls.val += 1
+    if cancel.val {
+      cancel_completed_relation_export_receipt(receipt)
+    }
+    live.val
+  })
+  assert_true(completed_relation_export_has_output_identity(receipt, original))
+  assert_eq(calls.val, 0)
+  live.val = false
+  // Identity remains immutable while availability can expire. The selected
+  // direct consumer must still reject; metadata cannot become a live proof.
+  assert_true(completed_relation_export_has_output_identity(receipt, original))
+  assert_eq(calls.val, 0)
+  assert_false(completed_relation_export_matches_output(receipt, original))
+  assert_eq(calls.val, 1)
+  live.val = true
+  cancel.val = true
+  assert_true(completed_relation_export_has_output_identity(receipt, original))
+  assert_eq(calls.val, 1)
+  assert_false(completed_relation_export_matches_output(receipt, original))
+  assert_eq(calls.val, 2)
+  assert_false(completed_relation_export_has_output_identity(receipt, original))
+}

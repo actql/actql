@@ -562,6 +562,8 @@ pub fn completed_relation_export_content_reference_cids(CompletedRelationExportR
 
 pub fn completed_relation_export_field_names(CompletedRelationExportReceipt) -> Array[String]
 
+pub fn completed_relation_export_has_output_identity(CompletedRelationExportReceipt, CompletedOutput) -> Bool
+
 pub fn completed_relation_export_identity(CompletedRelationExportReceipt) -> LogicalRelationIdentity
 
 pub fn completed_relation_export_matches_output(CompletedRelationExportReceipt, CompletedOutput) -> Bool

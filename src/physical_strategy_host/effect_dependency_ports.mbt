@@ -497,3 +497,86 @@ pub fn captured_effect_local_result_export_matches_computed_unit(
   ) ==
   Some(result.task)
 }
+
+///|
+/// Bind a serial post-Model Result to the original Model input actually read
+/// by this captured Run. The completed Result is intentionally not the Model
+/// boundary itself. This reads the checked same-Unit edges and the existing
+/// nominal ProducerRead; it never compares rows/CIDs, executes a task or issues
+/// an input, permission, current proof or cleanup acknowledgement.
+pub fn captured_effect_local_result_export_matches_model_suffix(
+  value : CapturedEffectLocalResultExport,
+  inputs : CapturedEffectInputs,
+  computation : CheckedEffectComputationDAG,
+  unit : Int,
+  model_task : Int,
+  original : @execution.CompletedOutput,
+  receipt : @execution.CompletedRelationExportReceipt,
+) -> Bool {
+  guard value.owner is EffectInputs(originals) &&
+    physical_equal(originals, inputs) &&
+    inputs.live &&
+    captured_effect_local_result_export_matches_computed_unit(
+      value, computation, unit,
+    ) else {
+    return false
+  }
+  let run = inputs.run.captured
+  let graph = run.graph
+  let result = value.result
+  if model_task < graph.captured_prefix_value() ||
+    model_task >= result.task ||
+    graph_task_unit_index(graph, model_task) != Some(unit) ||
+    !run.done[model_task] {
+    return false
+  }
+  let mut consumer = result.task
+  // Checked edges are ordered; a strictly decreasing cursor bounds this
+  // metadata-only walk without another stack, Array, graph or work owner.
+  while consumer > model_task {
+    if graph_task_unit_index(graph, consumer) != Some(unit) ||
+      graph_task_input_count(graph, consumer) != Some(1) ||
+      !run.done[consumer] {
+      return false
+    }
+    let mut producer = -1
+    for edge in graph.data_iter() {
+      if edge.consumer == consumer {
+        if producer >= 0 ||
+          edge.input != 0 ||
+          edge.producer < model_task ||
+          edge.producer >= consumer {
+          return false
+        }
+        producer = edge.producer
+      }
+    }
+    if producer < model_task {
+      return false
+    }
+    if producer == model_task {
+      guard run.inputs[consumer][0] is Some(input) &&
+        @execution.producer_read_matches_completed_output(input, original) &&
+        @execution.completed_result_export_preparation_matches_receipt(
+          value.preparation,
+          receipt,
+        ) else {
+        return false
+      }
+      // Original availability can call out. Keep only callback-free exact
+      // alias/lifetime fences afterwards; revocation cannot leave a live path.
+      return inputs.live &&
+        !run.stopped &&
+        run.lifetimes[model_task].live &&
+        run.lifetimes[consumer].live &&
+        (
+          run.inputs[consumer][0] is Some(actual) &&
+          physical_equal(actual, input)
+        ) &&
+        captured_effect_local_result_export_derived_retained(value) &&
+        captured_effect_local_result_export_retained(inputs, value)
+    }
+    consumer = producer
+  }
+  false
+}
