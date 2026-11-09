@@ -348,6 +348,7 @@ test('shared target reader retains both actual selected Core package target clau
       ['imported_child_ledger_unsupported_wbtest.mbt', ['not', 'wasm']],
     ]],
     ['client_local_host', [
+      ['managed_import_reentry_js_wbtest.mbt', ['js']],
       ['original_values_text_working_js_wbtest.mbt', ['js']],
       ['preparation_request_native_document_js_wbtest.mbt', ['js']],
       ['preparation_request_native_intake_js_wbtest.mbt', ['js']],

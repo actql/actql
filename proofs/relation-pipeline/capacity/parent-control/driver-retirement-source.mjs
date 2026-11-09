@@ -393,7 +393,42 @@ export function checkDriverRetirementSource(read) {
   assert.equal(clean(blockAfter(roots,'advance_local_managed_scratch_retirement(')),clean(rootSlice),'Changed bounded scratch root retirement slice');
   assert.equal(clean(blockAfter(roots,'fn local_managed_input_writes_open(')),clean('{ live && !settled && !disposed }'),'Changed late input write rejection');
   assert.equal((driver.match(/let scratch_retirement = local_managed_scratch_retirement\(\)/g)??[]).length,1,'Changed installed scratch cursor construction');
-  assert.equal((driver.match(/local_managed_input_writes_open\(/g)??[]).length,5,'Changed import/bridge write guards');
+  // The sixth guard rechecks the same bridge after import grow/current. The
+  // shared mutation scope must already enclose the earlier transfer/current;
+  // counting a new call alone cannot admit a weakened guard or per-copy latch.
+  assert.equal((driver.match(/local_managed_input_writes_open\(/g)??[]).length,6,'Changed import/bridge write guards');
+  assert.equal(clean(blockAfter(driver,'fn with_local_managed_import_mutation(')),clean(`{
+    if active.val { return Err(Configuration(InputUnavailable)) }
+    active.val = true
+    let result = action()
+    active.val = false
+    result
+  }`),'Changed shared import mutation fence');
+  assert.equal((driver.match(/let import_mutating = Ref\(false\)/g)??[]).length,1,
+    'Every input copy must use the same Task mutation fence');
+  const inputTransfer=blockAfter(driver,'transfers.push(LocalManagedInputTransfer::');
+  const append=blockAfter(inputTransfer,'append: row =>');
+  const importMutation=blockAfter(append,'with_local_managed_import_mutation(import_mutating, fn()');
+  assert.equal(clean(append),clean(`{ with_local_managed_import_mutation(import_mutating, fn() ${importMutation}) }`),
+    'Current, transfer, grow, counter commit and append must stay inside the fence');
+  const mutation=clean(importMutation);
+  assert.equal((mutation.match(/local_managed_input_writes_open\(/g)??[]).length,2,
+    'Managed append must retain both initial and after-grow write guards');
+  const currentBridge=clean(`guard local_managed_input_writes_open(live.val, settled.val, disposed.val) &&
+    handle.val is Some(current) && physical_equal(current, bridge) else {
+      return Err(Configuration(InputUnavailable))
+    }`);
+  const ordered=[
+    mutation.indexOf('local_managed_input_writes_open('),
+    mutation.indexOf('@strategy.charge_task_execution_transfer('),
+    mutation.indexOf('local_managed_import_next_extent('),
+    mutation.indexOf('reserve_import(next)'),
+    mutation.indexOf(currentBridge),
+    mutation.indexOf('copied_rows.val=rows'),
+    mutation.indexOf('@execution.append_managed_producer_bridge_wire('),
+  ];
+  assert(ordered.every((at,index)=>at>=0&&(index===0||at>ordered[index-1])),
+    'Original import calculation/current/bridge checks must precede counter commit and copy');
   assert.equal(clean(blockAfter(strategy,'fn release_task_execution(')),clean(retirementObservation),'Changed common cleanup reentry/refusal observation boundary');
   assert.equal(clean(blockAfter(strategy,'fn release_task_execution_owned(')),clean(retirement),'Changed common reservation retirement boundary');
   assert.match(driver.replace(/\s+/g,' '),/let provider_execution : Ref\[@local\.ManagedProviderExecution\?\] = Ref\(None\)/);
