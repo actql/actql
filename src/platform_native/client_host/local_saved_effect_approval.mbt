@@ -1,7 +1,7 @@
 ///|
 // Immutable evidence read under the original saved Checkpoint's authenticated
 // custody. This record owns no execution, permission, key use or cleanup duty.
-priv struct NativeLocalSavedEffectApprovalOriginal {
+struct NativeLocalSavedEffectApprovalOriginal {
   materials : @host.ClientEffectRunMaterials
   invocation : @publication.PublicationContract
   definitions : Array[@publication.PublicationContract]
@@ -10,6 +10,9 @@ priv struct NativeLocalSavedEffectApprovalOriginal {
   receipt : @publication.PublicationContract
   captured : @publication.PublicationContract
   preview : @publication.EffectPreviewIdentity
+  preview_wire : String
+  scope : @scope.LogicalRequestScope
+  row_keys : Array[Array[@effect.EffectDispatchKey]]
   checkpoint : @checkpoint.PersistedCheckpoint
   unit_definition_cid : String
   authority : String
@@ -163,10 +166,10 @@ pub fn NativeLocalSavedEffectReview::restore_approval_in_original_read(
         ),
       ),
       additional_controls=Some({
-        // Original (11 refs), read view (2), two private sums (1 each),
+        // Original (14 refs), read view (2), two private sums (1 each),
         // returned Some/Result (1 each) and subject tuple (2). Borrowed DATA.
         record_headers: 7L,
-        reference_slots: 19L,
+        reference_slots: 22L,
         scalar_words: 0L,
         owned_utf16_units: 0L,
         owned_wire_bytes: 0L,
@@ -314,7 +317,10 @@ pub fn NativeLocalSavedEffectReview::restore_approval_in_original_read(
     declared_rows += bound
   }
   let (key_bytes, key_nodes, key_depth) = @effect.effect_dispatch_key_codec_limits()
-  if @effect.recover_effect_preview_apply_keys(
+  // Keep the original checked inventory for continuation. Validation must
+  // not derive every immutable key and then discard it before the caller.
+  let row_keys = match
+    @effect.recover_effect_preview_apply_keys(
       preview,
       scope,
       members,
@@ -323,9 +329,9 @@ pub fn NativeLocalSavedEffectReview::restore_approval_in_original_read(
       key_bytes,
       key_nodes,
       key_depth,
-    )
-    is Err(_) {
-    return Err(Journal(CustodyLost))
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(Journal(CustodyLost))
   }
   let unit = match
     @host.client_effect_review_checkpoint_unit_definition_cid(
@@ -345,6 +351,9 @@ pub fn NativeLocalSavedEffectReview::restore_approval_in_original_read(
     receipt,
     captured,
     preview,
+    preview_wire,
+    scope,
+    row_keys,
     checkpoint: persisted,
     unit_definition_cid: unit,
     authority,

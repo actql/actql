@@ -402,14 +402,14 @@ fn LocalCommandBusinessPreparation::observe_mock_effect_targets(
         // SAME canonical request contract as the existing Mock UPDATE Owner.
         // Its full original before/version reaches Preview and cold recovery;
         // neither this DATA nor its digest is a durable write claim.
-        let wire = local_project_mock_relation_wire({
-          "binding": Json::string(installation.binding),
-          "mapping": Json::string(installation.write.mapping.mapping_cid),
-          "target": target,
-          "value": value,
-          "version": Json::string(version),
-          "before": before,
-        }).unwrap_or_else(() => stop("LocalOriginalEffectRequestUnavailable"))
+        let wire = native_mock_effect_update_request_wire(
+          installation.binding,
+          installation.write.mapping.mapping_cid,
+          target,
+          value,
+          before,
+          version,
+        ).unwrap_or_else(() => stop("LocalOriginalEffectRequestUnavailable"))
         if @utf8.encode(wire).length() >
           policy.program.checking.compilation.artifacts.bytes {
           stop("LocalOriginalEffectRequestUnavailable")
