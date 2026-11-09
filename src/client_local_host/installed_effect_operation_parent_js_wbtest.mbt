@@ -2893,3 +2893,248 @@ test "request projection current retirement keeps failed control scratch until o
   retire_installed_managed_run(owner).unwrap()
   assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
 }
+
+///|
+fn effect_opaque_footprint_plan(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  contracts : ClientInstalledSequenceContracts,
+  footprint : ClientInstalledEffectOperationExtent,
+) -> ClientInstalledEffectManagedPlan {
+  let baseline = effect_operation_plan_fixture(prepared, request, contracts)
+  let members = baseline.operations[0].member_extents.copy()
+  members.push(footprint)
+  let demand = prepare_installed_effect_operation_demand_with_controls(
+    prepared,
+    0,
+    "save",
+    members,
+    baseline.operations[0].row_extents,
+    standard_create_saved_control_capacity(1000000, 512, 16).unwrap(),
+  ).unwrap()
+  prepare_installed_effect_managed_plan(
+    prepared,
+    request,
+    [],
+    "",
+    "",
+    [],
+    [],
+    contracts,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+    [demand],
+    provider_factory=_ => [],
+  ).unwrap()
+}
+
+///|
+test "opaque footprint uses original member scratch on same real Ledger with full retained floor" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let footprint = installed_effect_opaque_boundary_footprint_capacity(
+    "https://hubspot.invalid", "7", 64,
+  ).unwrap()
+  assert_eq(@execution.execution_capacity_retained_bytes(footprint), 0L)
+  let workspace = @execution.execution_capacity_execution_bytes(footprint)
+  assert_true(workspace > 0L)
+  let plan = effect_opaque_footprint_plan(
+    prepared,
+    request,
+    contracts,
+    prepare_installed_effect_operation_extent(
+      "save.footprint", footprint, 0L, false,
+    ).unwrap(),
+  )
+  let quote = prepared_installed_effect_managed_requirements(plan)
+  quote[4] = 536870902L
+  quote[5] = 536870902L
+  let calls = Ref(0)
+  let (input, initial, ledger, capacity) = effect_parent_test_preparation(
+    plan,
+    quote,
+    current=() => calls.val += 1,
+  )
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
+  ).unwrap()
+  retain_installed_effect_operation_controls_before_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  |> ignore
+  let control = owner.effect_operation_controls.unwrap()
+  let token = control.reservation
+  let idle = @resources.ledger_usage(ledger)
+  let available = workspace * 2L
+  let remaining = @resources.ledger_limits(ledger).execution_bytes -
+    idle.reserved_execution_bytes
+  let pressure = @resources.reserve_capacity(ledger, 0L, remaining - available).unwrap()
+  let occupied = @resources.ledger_usage(ledger)
+  assert_true(
+    begin_installed_effect_operation_control_construction(
+      owner, prepared, request, plan,
+    )
+    is Err(Ledger(ExecutionLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), occupied)
+  assert_true(
+    begin_installed_effect_operation_footprint_construction(
+      owner, prepared, request, plan, 0, 0,
+    )
+    is Err(ForeignOriginal),
+  )
+  assert_true(
+    begin_installed_effect_operation_footprint_construction(
+      owner, prepared, request, plan, 1, 1,
+    )
+    is Err(ForeignOriginal),
+  )
+  assert_true(
+    begin_installed_effect_operation_footprint_construction(
+      { ..owner, },
+      prepared,
+      request,
+      plan,
+      0,
+      1,
+    )
+    is Err(ForeignOriginal),
+  )
+  calls.val = 0
+  begin_installed_effect_operation_footprint_construction(
+    owner, prepared, request, plan, 0, 1,
+  ).unwrap()
+  assert_true(calls.val > 0)
+  let active = @resources.ledger_usage(ledger)
+  let increment = active.reserved_execution_bytes -
+    occupied.reserved_execution_bytes
+  // The idle control already owns its fixed current/quantity scratch. The
+  // constructor replaces that workspace; it is not added a second time.
+  assert_eq(
+    increment,
+    Int64::max(
+      plan.operation_control_idle_execution,
+      @execution.execution_capacity_retained_bytes(
+        plan.operation_control_capacity,
+      ) +
+      workspace,
+    ) -
+    plan.operation_control_idle_execution,
+  )
+  assert_eq(active.reserved_retention_bytes, occupied.reserved_retention_bytes)
+  assert_eq(active.held_bytes, occupied.held_bytes)
+  assert_eq(active.transferred_bytes, occupied.transferred_bytes)
+  assert_true(physical_equal(control.reservation, token))
+  assert_true(control.constructor_frame is Some((_, None)))
+  assert_true(
+    begin_installed_effect_operation_footprint_construction(
+      owner, prepared, request, plan, 0, 1,
+    )
+    is Err(AlreadyBound),
+  )
+  // A failed callback has not completed this frame; repeated current checks
+  // cannot shrink its scratch before the original cleanup completes.
+  check_installed_effect_managed_run(owner, prepared, request).unwrap()
+  assert_eq(@resources.ledger_usage(ledger), active)
+  complete_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  assert_eq(@resources.ledger_usage(ledger), occupied)
+  assert_true(control.constructor_frame is None)
+  let one_short = @resources.reserve_capacity(
+    ledger,
+    0L,
+    available - increment + 1L,
+  ).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  assert_true(
+    begin_installed_effect_operation_footprint_construction(
+      owner, prepared, request, plan, 0, 1,
+    )
+    is Err(Ledger(ExecutionLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
+  assert_false(control.construction_active)
+  @resources.settle_capacity(ledger, one_short).unwrap()
+  @resources.settle_capacity(ledger, pressure).unwrap()
+  begin_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  complete_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  retire_installed_managed_run(owner).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+  assert_true(
+    begin_installed_effect_operation_footprint_construction(
+      owner, prepared, request, plan, 0, 1,
+    )
+    is Err(Retired),
+  )
+}
+
+///|
+test "opaque footprint refuses retained physical and staged members without widening original duty" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let scratch = installed_effect_opaque_boundary_footprint_capacity(
+    "https://hubspot.invalid", "7", 64,
+  ).unwrap()
+  let plain = prepare_installed_effect_operation_extent(
+    "save.footprint", scratch, 0L, false,
+  ).unwrap()
+  let invalid = [
+    prepare_installed_effect_operation_extent("save", scratch, 0L, false).unwrap(),
+    prepare_installed_effect_operation_extent(
+      "save.footprint", scratch, 1L, true,
+    ).unwrap(),
+    prepare_installed_effect_operation_extent(
+      "save.footprint",
+      @execution.execution_capacity(1L, 2L).unwrap(),
+      0L,
+      false,
+    ).unwrap(),
+    prepare_installed_effect_staged_extent(plain, plain).unwrap(),
+  ]
+  for extent in invalid {
+    let plan = effect_opaque_footprint_plan(
+      prepared, request, contracts, extent,
+    )
+    let (input, initial, ledger, capacity) = effect_parent_test_preparation(
+      plan,
+      prepared_installed_effect_managed_requirements(plan),
+    )
+    let owner = begin_preparation_owned_installed_effect_managed_run(
+      initial, input, capacity, prepared, request, plan,
+    ).unwrap()
+    retain_installed_effect_operation_controls_before_construction(
+      owner, prepared, request, plan,
+    ).unwrap()
+    |> ignore
+    let before = @resources.ledger_usage(ledger)
+    assert_true(
+      begin_installed_effect_operation_footprint_construction(
+        owner, prepared, request, plan, 0, 1,
+      )
+      is Err(ForeignOriginal),
+    )
+    assert_eq(@resources.ledger_usage(ledger), before)
+    retire_installed_managed_run(owner).unwrap()
+    assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+  }
+  assert_true(
+    installed_effect_opaque_boundary_footprint_capacity("", "7", 64) is None,
+  )
+  assert_true(
+    installed_effect_opaque_boundary_footprint_capacity(
+      "https://hubspot.invalid", "7", 0,
+    )
+    is None,
+  )
+  let escaped = installed_effect_opaque_boundary_footprint_capacity(
+    "https://hubspot.invalid", "\"\\\n", 128,
+  ).unwrap()
+  assert_true(
+    @execution.execution_capacity_execution_bytes(escaped) >
+    @execution.execution_capacity_execution_bytes(scratch),
+  )
+}

@@ -2266,8 +2266,12 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   const footprintOf = (member, entries, controlConstruction) => {
     const {owned, connectorRegistration} = ownerOf(member);
     const facts = {member, entries};
+    const constructor = recipeOf(member)?.footprintConstruction;
     const footprint = controlConstruction === undefined ? owned.footprint(facts)
-      : controlConstruction(owned, owned.footprint, [facts]);
+      : constructor === undefined || controlConstruction.footprint === undefined
+        ? controlConstruction(owned, owned.footprint, [facts])
+        : controlConstruction.footprint(member.memberIndex, constructor.operationIndex,
+          owned, owned.footprint, [facts]);
     if (footprint?.kind !== undefined) {
       if (!footprintKinds.includes(footprint.kind) ||
           !cidPattern.test(footprint.provider_boundary_cid ?? '') ||

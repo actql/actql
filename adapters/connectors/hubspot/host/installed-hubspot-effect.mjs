@@ -245,7 +245,7 @@ export async function loadInstalledHubSpotEffect(profile, {moon, providerMoon, c
       const installedFor = member => mappings.find(value => value.resource === member?.resource &&
         value.mappingRef === member.mapping?.mappingRef && value.mappingCid === member.mapping?.mappingCid);
       const originalSite = installedRowCredentialOperationSite(site.credential);
-      const recipe = prepareRecipe({mappings, portalId: source.portalId,
+      const recipe = prepareRecipe({mappings, origin: siteProfile.apiOrigin, portalId: source.portalId,
         objectTypeUnits: Math.max(...source.resources.map(value => value.objectType.length)),
         metadataResources: source.metadataResources, credentialSite: originalSite, limits,
         inputLimits: {body: ownerLimits.body, preview: ownerLimits.preview}, maxRecoveryBytes});

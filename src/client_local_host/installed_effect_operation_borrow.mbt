@@ -112,18 +112,18 @@ fn installed_effect_operation_control_capacity(
     // text remains with the already-funded original Preview producer.
     // One same-Run optional actual-row inventory adds its field and one Some
     // carrier at most, independently of how many operation bodies are live.
-    // The same constructor selector adds one method/context pair and its
-    // fixed original-coordinate call vector. The optional frame retains one
+    // The request and footprint selectors each add one method/context pair
+    // and a fixed original-coordinate call vector (4H14R3W each). The optional frame retains one
     // tuple/Some and the existing child reference, never another body owner.
     record_headers: 13L +
-    4L +
+    8L +
     shared.record_headers +
     11L * count +
     69L +
     4L +
     recovery.record_headers,
     reference_slots: 22L +
-    14L +
+    28L +
     slots +
     shared.reference_slots +
     17L * count +
@@ -132,7 +132,7 @@ fn installed_effect_operation_control_capacity(
     recovery.reference_slots,
     // The active codec retains its separately charged original output bound.
     scalar_words: 27L +
-    3L +
+    6L +
     shared.scalar_words +
     29L * count +
     4L +
@@ -1313,6 +1313,28 @@ pub fn begin_installed_effect_operation_request_projection(
 }
 
 ///|
+/// Select only the SAME Plan member's declared scratch-only opaque boundary
+/// footprint constructor. No Host quantity, callback, Grant or new child is
+/// accepted. Full original control retention/current/cleanup stays unchanged.
+pub fn begin_installed_effect_operation_footprint_construction(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : ClientInstalledEffectManagedPlan,
+  member_index : Int,
+  operation_index : Int,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  resize_installed_effect_operation_control_construction(
+    owner,
+    prepared,
+    request,
+    plan,
+    true,
+    footprint_construction=Some((member_index, operation_index)),
+  )
+}
+
+///|
 // Called after the original Resource current, including on completion and
 // other same-owner observations of a live/failed projection frame.
 fn check_installed_effect_request_projection_original(
@@ -1417,6 +1439,7 @@ fn resize_installed_effect_operation_control_construction(
   input_wire? : String? = None,
   grant_construction? : Bool = false,
   request_projection? : (Int, Int, Int)? = None,
+  footprint_construction? : (Int, Int)? = None,
   ledger_codec? : (Bool, String?, Int, Int)? = None,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
   guard owner.original is Some(original) && physical_equal(original, owner) else {
@@ -1522,6 +1545,7 @@ fn resize_installed_effect_operation_control_construction(
   let constructor_frame = if request_projection
     is Some((member_index, operation, row)) {
     if !active ||
+      footprint_construction is Some(_) ||
       grant_construction ||
       input_wire is Some(_) ||
       ledger_codec is Some(_) {
@@ -1568,6 +1592,31 @@ fn resize_installed_effect_operation_control_construction(
         Some(child),
       ),
     )
+  } else if footprint_construction is Some((member_index, operation_index)) {
+    if !active ||
+      grant_construction ||
+      input_wire is Some(_) ||
+      ledger_codec is Some(_) {
+      return Err(Unsupported)
+    }
+    guard plan.operations.get(member_index) is Some(demand) &&
+      demand.member_extents.get(operation_index) is Some(extent) &&
+      extent.operation.has_suffix(".footprint") &&
+      !extent.physical_attempt &&
+      extent.transfer_bytes == 0L &&
+      extent.maximum is None &&
+      extent.checked_row_capacity is None &&
+      extent.checked_effect_id_capacity is None &&
+      extent.host_input_limits is None &&
+      @execution.execution_capacity_retained_bytes(extent.capacity) == 0L else {
+      return refuse_installed_effect_operation_after_current(
+        owner,
+        prepared,
+        request,
+        ForeignOriginal,
+      ).map(_ => ())
+    }
+    Some((@execution.execution_capacity_execution_bytes(extent.capacity), None))
   } else if grant_construction {
     if !active || input_wire is Some(_) || ledger_codec is Some(_) {
       return Err(Unsupported)

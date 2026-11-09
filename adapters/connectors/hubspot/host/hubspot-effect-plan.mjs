@@ -39,13 +39,14 @@ export function captureHubSpotEffectPlanRecipeBuilder({moon}) {
   const constructor = method(moon, 'clientProgramHubSpotEffectConstructorCapacity');
   const compose = method(moon, 'clientProgramHubSpotEffectRecipeCapacities');
   const controlBound = method(moon, 'clientProgramInstalledEffectControlWireBound');
+  const footprintCapacity = method(moon, 'clientProgramInstalledOpaqueBoundaryFootprintCapacity');
   const stage = method(moon, 'clientProgramInstalledEffectOperationStagedExtentPrepare');
   const extent = method(moon, 'clientProgramInstalledEffectOperationExtentFromCapacityPrepare');
   const capture = method(moon, 'clientProgramInstalledEffectHostInputCaptureRecipeExtentPrepare');
-  return function prepareHubSpotEffectPlanRecipe({mappings, portalId, objectTypeUnits,
+  return function prepareHubSpotEffectPlanRecipe({mappings, origin, portalId, objectTypeUnits,
     metadataResources, credentialSite, limits, inputLimits, maxRecoveryBytes}) {
     if (!Array.isArray(mappings) || nodeTypes.isProxy(mappings) || !Object.isFrozen(mappings) ||
-        mappings.length < 1 || typeof portalId !== 'string' || !positive(portalId.length) ||
+        mappings.length < 1 || typeof origin !== 'string' || !origin || typeof portalId !== 'string' || !positive(portalId.length) ||
         !positive(objectTypeUnits) || !positive(maxRecoveryBytes)) fail();
     const resources = data(metadataResources, ['account', 'properties']);
     if (Object.values(resources).some(value => typeof value !== 'string' || !value) ||
@@ -154,6 +155,11 @@ export function captureHubSpotEffectPlanRecipeBuilder({moon}) {
       checked(extent(operation, capacity, transfer, physical));
     const memberOperations = [{operation: captureName,
       extent: checked(stage(capturedExtent(initial), capturedExtent(maximum)))}];
+    const footprintIndex = memberOperations.length;
+    const footprint = runtimeUnboxedReferenceOption(footprintCapacity(origin, portalId, objectTypeUnits));
+    if (footprint === undefined || footprint === null) fail();
+    const footprintName = HUBSPOT_INSTALLED_UPDATE_OPERATION + '.footprint';
+    memberOperations.push({operation: footprintName, extent: operationExtent(footprintName, footprint)});
     const rowOperations = [
       {operation: HUBSPOT_INSTALLED_UPDATE_OPERATION + '.request', extent: operationExtent(HUBSPOT_INSTALLED_UPDATE_OPERATION + '.request', initial[2])},
       {operation: HUBSPOT_INSTALLED_UPDATE_OPERATION + '.finalize', extent: operationExtent(HUBSPOT_INSTALLED_UPDATE_OPERATION + '.finalize', finalization)},
@@ -203,6 +209,7 @@ export function captureHubSpotEffectPlanRecipeBuilder({moon}) {
       rowOperations: Object.freeze(rowOperations.map(Object.freeze)),
       credentialOperations: Object.freeze(credentialOperations),
       captureConstruction: Object.freeze({operationIndex: 0}),
+      footprintConstruction: Object.freeze({operationIndex: footprintIndex}),
       recoveryConstruction: Object.freeze({operationIndex: recoveryIndex, inputExtent}),
       requestConstruction: Object.freeze({operationIndex: 0}), requestFinalization: Object.freeze({operationIndex: 1}),
       controlsPerRow: initial[4],

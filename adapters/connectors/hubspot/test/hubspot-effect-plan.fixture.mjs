@@ -15,6 +15,7 @@ export function hubSpotEffectPlanFixture() {
       const call = {original, finalization, limits: [...limits], units, quantum, control, host}; compositions.push(call);
       return ok(Array.from({length: 8}, (_, index) => freeze({index, call})));
     },
+    clientProgramInstalledOpaqueBoundaryFootprintCapacity(origin, account, units) {return freeze({opaqueBoundary: true, origin, account, units});},
     clientProgramInstalledEffectControlWireBound() {return ok(4096);},
     clientProgramInstalledEffectOperationStagedExtentPrepare(initial, maximum) {return ok(freeze({initial, maximum}));},
     clientProgramInstalledEffectOperationExtentFromCapacityPrepare(operation, capacity, transfer, physical) {
@@ -38,7 +39,7 @@ export function hubSpotEffectPlanFixture() {
   };
   const options = {mappings: freeze([freeze({resource: 'companies', mappingRef: 'mapping:hubspot/update.v1',
     mappingCid: 'sha256:' + 'a'.repeat(64), fields: freeze(['amount', 'tags'])})]),
-    portalId: '7', objectTypeUnits: 9, metadataResources: {account: 'account', properties: 'properties'},
+    origin: 'https://hubspot.invalid', portalId: '7', objectTypeUnits: 9, metadataResources: {account: 'account', properties: 'properties'},
     credentialSite: {construction: {scope: {namespaceId: 'original', resourceOrigin: 'https://hubspot.invalid'},
       issuer: {keyId: 'original-key'}, limits: {maxSecretBytes: 256}}},
     limits, maxRecoveryBytes: 65536, inputLimits: {

@@ -25,7 +25,7 @@ fn hubspot_effect_capacity(
 /// mapping lookup/target predicates. Catalogs, Mappings, limits and Site are
 /// borrowed from the same parent. No per-Run requests or authority are owned
 /// by this quote. Closed arrays include both initial/maximum quantity vectors,
-/// 8 member operations, 15 row operations and 19 Credential selections.
+/// 9 member operations, 15 row operations and 19 Credential selections.
 pub fn effect_installation_construction_capacity(
   mappings : Int,
   fields : Int,
@@ -41,13 +41,15 @@ pub fn effect_installation_construction_capacity(
   // Each captured method has an original receiver/callable pair and closure
   // view. Cover driver/request/observation (96), Plan/extent/response (96),
   // and installing lookup/target/current callbacks (16). Capture vectors and
-  // returned records are distinct from those closure views.
+  // returned records are distinct from those closure views. The fixed
+  // footprint method capture/capacity/extent/operation/descriptor add8H24R10W
+  // and one shared operation-name String; no original binding is copied.
   guard @shape.collection_construction_extent({
-      records: 2L * (96L + 96L + 16L) + 64L + 5L * m,
-      record_references: 14L * (96L + 96L + 16L) + 512L + 24L * m + 2L * f,
-      record_words: 128L + 12L * m,
+      records: 2L * (96L + 96L + 16L) + 72L + 5L * m,
+      record_references: 14L * (96L + 96L + 16L) + 536L + 24L * m + 2L * f,
+      record_words: 138L + 12L * m,
       reference_arrays: 48L + 2L * m,
-      reference_items: 512L + 8L + 15L + 19L + 2L * f,
+      reference_items: 512L + 9L + 15L + 19L + 2L * f,
       scalar_arrays: 12L,
       scalar_items: 256L,
       maps: 8L,
@@ -64,7 +66,8 @@ pub fn effect_installation_construction_capacity(
         scalar_words: 0L,
         // The Site binding and installation-generation digest escape. Their
         // canonical preimages below are private construction workspace.
-        owned_utf16_units: 2L * 71L,
+        owned_utf16_units: 2L * 71L +
+        "hubspot:objects:batch-update.footprint".length().to_int64(),
         owned_wire_bytes: 0L,
       },
     ])

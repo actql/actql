@@ -7,7 +7,7 @@ import {hubSpotEffectPlanFixture as fixture} from './hubspot-effect-plan.fixture
 
 test('HubSpot typed Effect recipe declares all nineteen distinct original physical occurrences and cold constructor', () => {
   const f = fixture(), recipe = f.build(f.options);
-  assert.equal(recipe.memberOperations.length, 8); assert.equal(recipe.rowOperations.length, 15);
+  assert.equal(recipe.memberOperations.length, 9); assert.equal(recipe.rowOperations.length, 15);
   assert.equal(recipe.credentialOperations.length, 19);
   assert.equal(new Set(recipe.credentialOperations.map(o => (o.perRow === false ? 'm' : 'r') + o.operationIndex)).size, 19);
   assert.notEqual(recipe.requestConstruction.operationIndex, recipe.requestFinalization.operationIndex);
@@ -51,4 +51,14 @@ test('HubSpot typed Effect recipe retains captured quantities and checks exact r
     assert.throws(() => target.responseExtent(bytes, body), {code: 'HubSpotEffectRecipeUnavailable'});
   }
   assert.throws(() => f.build({...f.options, mappings: []}), {code: 'HubSpotEffectRecipeUnavailable'});
+});
+
+
+test('HubSpot fixed footprint binds a scratch-only original member distinct from all physical and capture roles',()=>{
+  const f=fixture(),recipe=f.build(f.options),index=recipe.footprintConstruction.operationIndex;
+  assert.notEqual(index,recipe.captureConstruction.operationIndex);assert.notEqual(index,recipe.recoveryConstruction.operationIndex);
+  const original=recipe.memberOperations[index];assert.equal(original.operation,'hubspot:objects:batch-update.footprint');
+  assert.equal(original.extent.physical,false);assert.equal(original.extent.transfer,0n);
+  assert.deepEqual(original.extent.capacity,{opaqueBoundary:true,origin:f.options.origin,account:f.options.portalId,units:f.options.objectTypeUnits});
+  assert(recipe.credentialOperations.every(entry=>entry.perRow!==false||entry.operationIndex!==index));
 });

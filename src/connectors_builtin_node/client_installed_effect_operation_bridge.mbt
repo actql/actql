@@ -416,3 +416,30 @@ pub fn client_program_installed_effect_operation_response_projection_complete(
     original,
   )
 }
+
+///|
+#export_name("clientProgramInstalledOpaqueBoundaryFootprintCapacity")
+pub fn client_program_installed_opaque_boundary_footprint_capacity(
+  origin : String,
+  account : String,
+  object_units : Int,
+) -> @execution.ExecutionCapacity? {
+  @client_local_host.installed_effect_opaque_boundary_footprint_capacity(
+    origin, account, object_units,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectOperationFootprintConstructionBegin")
+pub fn client_program_installed_effect_operation_footprint_construction_begin(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  member_index : Int,
+  operation_index : Int,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.begin_installed_effect_operation_footprint_construction(
+    owner, prepared, request, plan, member_index, operation_index,
+  )
+}

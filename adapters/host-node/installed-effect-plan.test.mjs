@@ -1780,3 +1780,39 @@ test('original request projection preserves refusal failure and pending cleanup 
     assert.equal(f.run.selecting, false);
   }
 });
+
+test('declared footprint frame selects same Core member coordinates and legacy keeps full funding', () => {
+  let f;const receiver={},argument={},result={};
+  f=controlWorkFixture({clientProgramInstalledEffectOperationFootprintConstructionBegin(...args){
+    assert.strictEqual(this,f.runtime);assert.deepEqual(args,[f.run.value,f.run.prepared,f.run.request,f.run.operationPlan,0,2]);
+    f.events.push('footprint');return {$tag:1};
+  }});
+  assert.strictEqual(f.work.footprint(0,2,receiver,function(value){assert.strictEqual(this,receiver);assert.strictEqual(value,argument);assert.equal(f.run.selecting,true);return result;},[argument]),result);
+  assert.deepEqual(f.events,['footprint','complete']);
+  f.work(undefined,()=>result,[]);assert.deepEqual(f.events,['footprint','complete','begin','complete']);
+  const legacy=controlWorkFixture();assert.strictEqual(legacy.work.footprint(0,2,undefined,()=>result,[]),result);assert.deepEqual(legacy.events,['begin','complete']);
+  assert.throws(()=>f.work.footprint(0,-1,undefined,()=>{},[]),{code:'InvalidInstalledEffectControlConstruction'});
+});
+
+test('declared footprint frame retains original failures current replacement and pending task cleanup', async () => {
+  for(const mode of ['entry','callback','foreign','async']){
+    let f,finish;const failure=new Error(mode),task=new Promise(resolve=>{finish=resolve;});
+    f=controlWorkFixture({clientProgramInstalledEffectOperationFootprintConstructionBegin(){f.events.push('footprint');if(mode==='entry')throw failure;return {$tag:1};}});
+    let primary;assert.throws(()=>f.work.footprint(0,1,undefined,()=>{
+      if(mode==='callback')throw failure;if(mode==='foreign'){f.run.operationPlan={};return {};}
+      if(mode==='async')return task;assert.fail('unfunded footprint entered');
+    },[]),cause=>{primary=cause;return mode==='entry'||mode==='callback'?cause===failure:!!cause.code;});
+    assert.deepEqual(f.events,['footprint']);assert.throws(()=>f.work(undefined,()=>{},[]),cause=>cause===primary);
+    if(mode==='async'){assert.equal(f.work.retire(),false);finish();await new Promise(setImmediate);}
+  }
+});
+
+test('footprint recipe refuses alias capture physical slots and accessor selection', () => {
+  const memberOperations=Object.freeze([{operation:'capture',extent:{}},{operation:'update.footprint',extent:{}},{operation:'read',extent:{}}].map(Object.freeze));
+  const base={memberOperations,rowOperations:Object.freeze([]),captureConstruction:Object.freeze({operationIndex:0})};
+  const selected=captureInstalledEffectPlanRecipe(Object.freeze({...base,footprintConstruction:Object.freeze({operationIndex:1})}),3);
+  assert.equal(selected.footprintConstruction.operationIndex,1);
+  for(const operationIndex of [-1,0,2,3])assert.throws(()=>captureInstalledEffectPlanRecipe(Object.freeze({...base,footprintConstruction:Object.freeze({operationIndex})}),3),{code:'InvalidInstalledEffectPlanRecipe'});
+  const accessor=Object.freeze(Object.defineProperty({...base},'footprintConstruction',{get(){assert.fail('selector getter');},enumerable:true}));
+  assert.throws(()=>captureInstalledEffectPlanRecipe(accessor,3),{code:'InvalidInstalledEffectPlanRecipe'});
+});
