@@ -330,3 +330,110 @@ test "described recipe keeps post-return request export on original control work
     )
   }
 }
+
+///|
+// The production described-record composer supplies the COMPLETE child:
+// received HTTP backing + the original Core-selected secret bound + metadata.
+// Other recipe inputs below cannot grant this child any surrounding allowance.
+fn hubspot_full_metadata_response_quote(
+  metadata : @execution.ExecutionCapacity,
+) -> @execution.ExecutionCapacity {
+  let zero = @execution.execution_capacity(0L, 0L).unwrap()
+  installed_described_effect_recipe_capacities(
+    Some([
+      (zero, None, None),
+      (zero, None, None),
+      (zero, None, None),
+      (metadata, None, None),
+    ]),
+    Some([zero, zero, zero]),
+    256,
+    16,
+    4,
+    128,
+    8,
+    2,
+    64,
+    32,
+    true,
+    16,
+    32,
+    16,
+    524288,
+    installed_source_reader_policy()[0],
+    7,
+    16384,
+    256,
+    64,
+    4,
+    0L,
+    response_read_quantum=16384,
+    metadata_on_child=true,
+    metadata_occurrences=6,
+    target_occurrences=12,
+    target_on_child=true,
+    host_input_bytes=Some(0),
+  ).unwrap()[7]
+}
+
+///|
+test "portable HubSpot Catalog quantities preserve the Core staged extent bound" {
+  // Producer -> full receive/secret/metadata composer -> existing Common
+  // staged-extent contract. No JS Resource admission, IO or cleanup ACK.
+  let limits : @hubspot_catalog.PropertyLimits = {
+    max_bytes: 8192,
+    max_nodes: 4096,
+    max_depth: 32,
+    max_properties: 64,
+    max_name_units: 4096,
+  }
+  let initial = hubspot_full_metadata_response_quote(
+    @hubspot_catalog.effect_metadata_construction_capacity(0, 9, limits).unwrap(),
+  )
+  let full = hubspot_full_metadata_response_quote(
+    @hubspot_catalog.effect_metadata_construction_capacity(8192, 9, limits).unwrap(),
+  )
+  let extent = (capacity : @execution.ExecutionCapacity) => {
+    prepare_installed_effect_operation_extent("properties", capacity, 17L, true).unwrap()
+  }
+  let initial_extent = extent(initial)
+  let full_extent = extent(full)
+  let staged = prepare_installed_effect_staged_extent(
+    initial_extent, full_extent,
+  ).unwrap()
+  assert_eq(staged.operation, "properties")
+  assert_eq(staged.transfer_bytes, 17L)
+  assert_true(staged.physical_attempt)
+  assert_true(staged.maximum is Some(_))
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(staged.capacity),
+    @execution.execution_capacity_retained_bytes(initial),
+  )
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(staged.capacity),
+    @execution.execution_capacity_execution_bytes(initial),
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(full) >
+    @execution.execution_capacity_execution_bytes(initial),
+  )
+  assert_true(
+    prepare_installed_effect_staged_extent(full_extent, initial_extent)
+    is Err(Unsupported),
+  )
+  // Each dimension remains mandatory, independently of the other full bound.
+  let short_r = @execution.execution_capacity(
+    @execution.execution_capacity_retained_bytes(initial) - 1L,
+    @execution.execution_capacity_execution_bytes(full),
+  ).unwrap()
+  let short_e = @execution.execution_capacity(
+    @execution.execution_capacity_retained_bytes(initial),
+    @execution.execution_capacity_execution_bytes(initial) - 1L,
+  ).unwrap()
+  for short in [short_r, short_e] {
+    assert_true(
+      prepare_installed_effect_staged_extent(initial_extent, extent(short))
+      is Err(Unsupported),
+    )
+  }
+}

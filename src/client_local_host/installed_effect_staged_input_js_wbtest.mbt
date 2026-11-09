@@ -85,51 +85,6 @@ fn staged_effect_input_fixture(
 }
 
 ///|
-// The production described-record composer supplies the COMPLETE child:
-// received HTTP backing + the original Core-selected secret bound + metadata.
-// Other recipe inputs below cannot grant this child any surrounding allowance.
-fn hubspot_full_metadata_response_quote(
-  metadata : @execution.ExecutionCapacity,
-) -> @execution.ExecutionCapacity {
-  let zero = @execution.execution_capacity(0L, 0L).unwrap()
-  installed_described_effect_recipe_capacities(
-    Some([
-      (zero, None, None),
-      (zero, None, None),
-      (zero, None, None),
-      (metadata, None, None),
-    ]),
-    Some([zero, zero, zero]),
-    256,
-    16,
-    4,
-    128,
-    8,
-    2,
-    64,
-    32,
-    true,
-    16,
-    32,
-    16,
-    524288,
-    installed_source_reader_policy()[0],
-    7,
-    16384,
-    256,
-    64,
-    4,
-    0L,
-    response_read_quantum=16384,
-    metadata_on_child=true,
-    metadata_occurrences=6,
-    target_occurrences=12,
-    target_on_child=true,
-    host_input_bytes=Some(0),
-  ).unwrap()[7]
-}
-
-///|
 test "full HubSpot response InputBegin reproduces current coheld execution refusal" {
   let property_limits : @hubspot_catalog.PropertyLimits = {
     max_bytes: 524288,
