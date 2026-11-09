@@ -444,10 +444,15 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_plan(
       inputs => {
         // This Native root reads its captured inputs through the original
         // composed Source closure; unrelated external ports cannot replace it.
-        if !inputs.is_empty() {
+        if !inputs.is_empty() || business.model_work.length() != 1 {
           return Err(@infer.InvalidAdvance)
         }
-        work.borrow_opened_original_model().map_err(_ => @infer.InvalidAdvance)
+        // The SAME command slot owns this original Work through its real
+        // cleanup ACK. Retained provider metadata must not independently pin
+        // the closed Work/Journal after that slot has retired.
+        business.model_work[0]
+        .borrow_opened_original_model()
+        .map_err(_ => @infer.InvalidAdvance)
       },
       _ => @compute_sdk.ComputeUnsupported,
     )
