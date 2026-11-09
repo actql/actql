@@ -386,6 +386,8 @@ fn native_mock_readme_content_join(
       contracts,
       provider,
       @local_host.native_client_mock_model_observation_capacity(limits).unwrap(),
+      // Existing finite Product record ceiling; explicit component DATA only.
+      1048576,
     ) catch {
       ClientStop(message) => fail(message)
     }

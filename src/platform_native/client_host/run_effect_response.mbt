@@ -29,7 +29,7 @@ fn read_client_effect_response_record(
       guard @journal.effect_response_record_fields(
           meta.body,
           body.body,
-          1048576L,
+          native_client_effect_storage_profile.response_bytes.to_int64(),
         )
         is Some((credential_use_cid, status_code)) else {
         return Err(CustodyLost)
@@ -154,7 +154,8 @@ pub fn NativeClientRunJournal::record_effect_row_response(
   if !physical_equal(self, dispatch.journal) {
     return Err(Checkpoint(InvalidMaterial))
   }
-  if max_response_bytes < 1 || max_response_bytes > 1048576 {
+  if max_response_bytes < 1 ||
+    max_response_bytes > native_client_effect_storage_profile.response_bytes {
     return Err(CapacityExceeded)
   }
   if response.body.length() > max_response_bytes {
@@ -231,7 +232,8 @@ pub fn NativeClientRunJournal::effect_row_response(
   if !physical_equal(self, dispatch.journal) {
     return Err(Checkpoint(InvalidMaterial))
   }
-  if max_response_bytes < 1 || max_response_bytes > 1048576 {
+  if max_response_bytes < 1 ||
+    max_response_bytes > native_client_effect_storage_profile.response_bytes {
     return Err(CapacityExceeded)
   }
   self.transaction(() => {

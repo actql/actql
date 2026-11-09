@@ -299,7 +299,7 @@ fn local_effect_prepare_start_with_clocks(
   }
   let native_model = match business {
     Some(selected) if original._retained_models.length() == 1 => {
-      selected.prepare_mock_effect_plan(original)
+      selected.prepare_mock_effect_plan(original, run)
       true
     }
     _ => false

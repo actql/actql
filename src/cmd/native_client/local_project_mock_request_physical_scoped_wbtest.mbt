@@ -301,6 +301,7 @@ fn native_mock_readme_request_payload(
   check_policy? : Bool = false,
   authored_predicate? : Bool = false,
   effect_result_source? : Bool = false,
+  effect_recipe? : Bool = false,
 ) -> String? raise {
   facility.arena.enter_domain_retained_execution(facility.physical).unwrap()
   let wire : Json = {
@@ -547,6 +548,12 @@ fn native_mock_readme_request_payload(
                 is Ok(_),
               )
               let selected = models[0]
+              if effect_recipe {
+                native_mock_readme_effect_recipe(
+                  original,
+                  selected._retained_limits.identity.wire,
+                )
+              }
               if effect_result_source {
                 // The exact original README, original typed Effect compiler
                 // and checked Run supply both inventories. No fake Result,
@@ -649,6 +656,7 @@ fn native_mock_readme_request_in_metadata_read(
   static_policy? : Bool = false,
   authored_predicate? : Bool = false,
   effect_result_source? : Bool = false,
+  effect_recipe? : Bool = false,
 ) -> String? raise {
   let original = native_project_mock_model_fixture(
     if content_join {
@@ -720,6 +728,7 @@ fn native_mock_readme_request_in_metadata_read(
     check_policy=static_policy,
     authored_predicate~,
     effect_result_source~,
+    effect_recipe~,
   )
   facility.arena
   .close_domain_retained_execution(facility.physical)
@@ -1002,4 +1011,68 @@ fn native_model_graph_test_cause(
     }
   }
   "NativeModelGraphOriginalProfileMissing"
+}
+
+///|
+// Actual checked README selection and original file provider, with the finite
+// Product's existing 1MiB private-record setting. These are constructor DATA,
+// not a completed input inventory or authority to execute a physical row.
+fn native_mock_readme_effect_recipe(
+  original : LocalProjectMockDeclarations,
+  wire : @execution.RowWireLimits,
+) -> Unit raise {
+  let installation = original.write_installations.unwrap()[0]
+  let binding = installation._retained_source._retained_rows
+    .iter()
+    .find_first(value => {
+      value.view.resource == installation.write.mapping.resource
+    })
+    .unwrap()
+  let physical = @row_file.native_relation_file_target_io_capacity(
+    binding.provider,
+    installation.write.mapping.write_fields.length(),
+  ).unwrap()
+  let request = native_mock_effect_request_bytes(
+    wire,
+    binding.limits.page.max_bytes,
+    installation.binding,
+    installation.write.mapping.mapping_cid,
+  ).unwrap()
+  assert_true(request > 2 * wire.max_bytes + binding.limits.page.max_bytes)
+  let codec = @local_host.native_client_effect_storage_limits()
+  assert_eq(codec.ledger.max_wire_bytes, 65536)
+  assert_eq(codec.ledger.max_nodes, 128)
+  assert_eq(codec.ledger.max_depth, 16)
+  assert_eq(codec.receipt.max_wire_bytes, 65536)
+  assert_eq(codec.receipt.max_nodes, 4096)
+  assert_eq(codec.receipt.max_depth, 64)
+  assert_eq(codec.response_bytes, 1048576)
+  let quantities = native_mock_effect_recipe_capacities(
+    wire, 1048576, request, physical,
+  ).unwrap()
+  assert_eq(quantities.length(), 6)
+  assert_true(physical_equal(quantities[3], physical))
+  let control_r = @execution.execution_capacity_retained_bytes(quantities[4])
+  let control_e = @execution.execution_capacity_execution_bytes(quantities[4])
+  // Frozen d414's pre-inventory Ledger observation, before any member record:
+  // held=60922084, reserved R=223729857/E=303631383. This regression checks
+  // ONLY the two-row control growth that failed there; the unchanged 512MiB
+  // facility and later capture/physical lifetimes still require runtime proof.
+  assert_true(60922084L + 223729857L + 13936L + 2L * control_r < 536870912L)
+  assert_true(60922084L + 303631383L + 33936L + 2L * control_e < 536870912L)
+  // Raw response Bytes remain two simultaneous full original buffers.
+  assert_true(control_r >= 2L * codec.response_bytes.to_int64())
+  assert_true(control_e >= control_r)
+}
+
+///|
+test "Native README Effect recipe uses its selected row and original storage codecs" {
+  native_project_mock_model_backed_read(
+    false,
+    readme_request=true,
+    effect_compilation=true,
+    effect_source_inputs=true,
+    static_policy=true,
+    effect_recipe=true,
+  )
 }

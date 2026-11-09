@@ -14,9 +14,14 @@ fn read_client_effect_receipt(
     _ => return Err(CustodyLost)
   }
   let wire = @utf8.decode(stored.body) catch { _ => return Err(CustodyLost) }
+  let limits = native_client_effect_storage_profile.receipt
   match
     @publication.admit_publication_contract(
-      "effect_row_outcome_receipt", wire, 65536, 4096, 64,
+      "effect_row_outcome_receipt",
+      wire,
+      limits.max_wire_bytes,
+      limits.max_nodes,
+      limits.max_depth,
     ) {
     Ok(value) if @publication.publication_contract_identity(value) == cid &&
       @publication.effect_row_outcome_receipt_terminal_state(value) ==
@@ -100,7 +105,8 @@ pub fn NativeClientRunJournal::record_effect_row_receipt(
   if !current() {
     return Err(AuthorizationDenied)
   }
-  if max_response_bytes < 1 || max_response_bytes > 1048576 {
+  if max_response_bytes < 1 ||
+    max_response_bytes > native_client_effect_storage_profile.response_bytes {
     return Err(CapacityExceeded)
   }
   self.transaction(() => {
@@ -265,7 +271,8 @@ pub fn NativeClientRunJournal::effect_row_receipt(
   if !current() {
     return Err(AuthorizationDenied)
   }
-  if max_response_bytes < 1 || max_response_bytes > 1048576 {
+  if max_response_bytes < 1 ||
+    max_response_bytes > native_client_effect_storage_profile.response_bytes {
     return Err(CapacityExceeded)
   }
   self.transaction(() => {

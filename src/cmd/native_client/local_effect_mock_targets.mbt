@@ -309,9 +309,6 @@ fn LocalCommandBusinessPreparation::observe_mock_effect_targets(
             stop("LocalOriginalEffectRequestUnavailable")
           })
         held._retained_request = Some((wire, cid))
-        @local_values.complete_installed_effect_operation_construction(request)
-        .map_err(issue => LocalNativeMockEffectProposalIssue::Managed(issue))
-        .native_effect_proposal(self.original)
         match child.close() {
           Err(issue) => {
             self.original.retain_primary(CommandBusinessSource(issue))
@@ -320,10 +317,19 @@ fn LocalCommandBusinessPreparation::observe_mock_effect_targets(
           Ok(false) => stop("LocalOriginalEffectTargetCleanupPending")
           Ok(true) => held.child = None
         }
+        held.observed = None
+        // The SAME original physical child has acknowledged close. Retain
+        // only its already-owned detached canonical request, with the existing
+        // output completion port; no reparse, reissue, attempt refund or size-
+        // based physical acknowledgement is introduced here.
+        @local_values.complete_installed_effect_operation_construction_output(
+          request, wire,
+        )
+        .map_err(issue => LocalNativeMockEffectProposalIssue::Managed(issue))
+        .native_effect_proposal(self.original)
         // The detached canonical request has its OWN same-Plan pure backing.
         // Release the completed read's live holdings now; its occurrence and
         // consumed physical attempt/bytes remain spent on the original Run.
-        held.observed = None
         if !@local_values.retire_installed_effect_operation(
             held.operation,
             true,
