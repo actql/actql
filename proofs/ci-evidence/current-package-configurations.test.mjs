@@ -252,8 +252,8 @@ test('current Local Host successor binds its pure Ledger-open import and preserv
   const revision = 'db039dc07a845fc420be9f95b750fe5208183735';
   const digest = '1ce3256e4f3b1dc32ee5136fcbbe5076fd996ad0a05c901a5cd175a3b16af326';
   const rule = 'literal-target-selectors-with-bound-source-membership';
-  const currentRevision = 'd0ff734f2470a4bb9766b013b93b1429a1b0a4c7';
-  const currentDigest = '398e399bde810706a01d039c57b6dc4730be95a8ce3c7bb5955f5e82f8b00760';
+  const currentRevision = '734b43cc49343b347f146b5b8b93a5d02f421c67';
+  const currentDigest = '5a8d99327028ad653aae66e18dcb81a190c2dadbe7b3a948ad30196149a0eac9';
   const scopeRevision = 'ff4e214d60984ee7b5c42ae57943d0b6d3e95437';
   const catalogRevision = 'f213d49c0748b99a69ae25fd462e8f9d500d7109';
   const catalogDigest = '11e08f7a636e2e73d47863ea626632b5dbf6e45e16ba00a32a27952c72e4007e';
@@ -266,12 +266,23 @@ test('current Local Host successor binds its pure Ledger-open import and preserv
   const scopeBody = gitTree(root, scopeRevision).read(path).toString();
   const completionSelectors = ['installed_effect_header_lifetime_js_wbtest.mbt',
     'installed_effect_native_control_js_wbtest.mbt', 'installed_effect_discarded_projection_js_wbtest.mbt',
-    'installed_effect_definition_capacity_js_wbtest.mbt']
+    'installed_effect_definition_capacity_js_wbtest.mbt', 'installed_effect_empty_headers_js_wbtest.mbt']
     .map(name => `    "${name}": [ "js" ],\n`);
+  const fourSelectorRevision = '060c2edd37be24db029d8d4e2628793d88356eaf';
+  const fourSelectorBody = gitTree(root, fourSelectorRevision).read(path).toString();
+  assert.equal(fourSelectorBody, gitTree(root, 'd0ff734f2470a4bb9766b013b93b1429a1b0a4c7').read(path).toString());
+  assert.equal(hash(fourSelectorBody), '398e399bde810706a01d039c57b6dc4730be95a8ce3c7bb5955f5e82f8b00760');
+  assert.equal(Buffer.byteLength(fourSelectorBody), 10283);
+  assert.equal(Buffer.byteLength(completionSelectors[4]), 62);
+  assert.equal(currentBody.replace(completionSelectors[4], ''), fourSelectorBody,
+    'only the original empty-header lifetime selector extends the complete four-selector descriptor');
+  execFileSync('git', ['merge-base', '--is-ancestor', fourSelectorRevision, currentRevision], {cwd: root});
+  execFileSync('git', ['merge-base', '--is-ancestor', 'd0ff734f2470a4bb9766b013b93b1429a1b0a4c7', fourSelectorRevision], {cwd: root});
+  assert.equal(currentPackageConfigurationReviewFor(request(path, hash(fourSelectorBody))), null);
   const priorCompletionBody = gitTree(root, '3c5dcdf49b732d4510360580d2ad3304252de3b7').read(path).toString();
   assert.equal(hash(priorCompletionBody), '63dd3e4a78397a73ba2991b8c656d4d699234c67c6d01d11c2058047bc397ef6');
   assert.equal(Buffer.byteLength(completionSelectors[3]), 68);
-  assert.equal(currentBody.replace(completionSelectors[3], ''), priorCompletionBody,
+  assert.equal(fourSelectorBody.replace(completionSelectors[3], ''), priorCompletionBody,
     'only the original Definition capacity selector extends the prior complete descriptor');
   assert.equal(currentPackageConfigurationReviewFor(request(path, hash(priorCompletionBody))), null);
   let beforeCompletion = currentBody;
@@ -280,7 +291,7 @@ test('current Local Host successor binds its pure Ledger-open import and preserv
     beforeCompletion = beforeCompletion.replace(selector, '');
   }
   assert.equal(beforeCompletion, scopeBody,
-    'only the four reviewed JS-only regressions extend the complete scope descriptor');
+    'only the five reviewed JS-only regressions extend the complete scope descriptor');
   assert.equal(hash(scopeBody), '590ae12dd0826dd9143d9cc62babaf713cff15d82cdf5efafe0621234f5fefee');
   assert.deepEqual(packageImports(currentBody).imports, packageImports(scopeBody).imports);
   execFileSync('git', ['merge-base', '--is-ancestor', scopeRevision, currentRevision], {cwd: root});
@@ -288,7 +299,7 @@ test('current Local Host successor binds its pure Ledger-open import and preserv
   const catalogBody = gitTree(root, catalogRevision).read(path).toString();
   execFileSync('git', ['merge-base', '--is-ancestor', catalogRevision, currentRevision], {cwd: root});
   const scopeImport = '  "actql/actql/logical_request_scope" @request_scope,\n';
-  assert.equal(Buffer.byteLength(currentBody), 10283);
+  assert.equal(Buffer.byteLength(currentBody), 10345);
   assert.equal(Buffer.byteLength(scopeBody), 10019);
   assert.equal(Buffer.byteLength(scopeImport), 54);
   assert.equal(hash(currentBody), currentDigest);
@@ -411,7 +422,7 @@ test('current Local Host successor binds its pure Ledger-open import and preserv
     assert.equal(currentTree.entries.get(member)?.kind, 'blob');
     assert.equal(currentTree.entries.get(member)?.mode, '100644');
   }
-  for (const changed of [previous, callbackBody, valuesBody, effectBody, body, reentryBody, catalogBody,
+  for (const changed of [previous, callbackBody, valuesBody, effectBody, body, reentryBody, catalogBody, fourSelectorBody,
     currentBody.replace('@request_scope,', '@unreviewed_scope,'),
     currentBody.replace('actql/actql/logical_request_scope', 'actql/actql/unreviewed_scope'),
     currentBody.replace(scopeImport, scopeImport + '  "actql/actql/unreviewed_scope" @extra,\n'),
@@ -422,7 +433,8 @@ test('current Local Host successor binds its pure Ledger-open import and preserv
     ...[reentrySelector, keyedSelector, originalSelector, valuesSelector, ...selectors, ...successorSelectors].map(selector => currentBody.replace(selector, selector.replace('"js"', '"native"'))),
     ...completionSelectors.flatMap(selector => [currentBody.replace(selector, ''),
       currentBody.replace(selector, selector.replace('"js"', '"native"')),
-      currentBody.replace(selector, selector.replace('"js"', '"wasm"'))]),
+      currentBody.replace(selector, selector.replace('"js"', '"wasm"')),
+      currentBody.replace(selector, selector.replace('.mbt', '_unreviewed.mbt'))]),
     currentBody.replace(keyedSelector, keyedSelector + '    "unreviewed_keyed_target.mbt": [ "js" ],\n'),
     currentBody + '\noptions(pre_build: {command: "unreviewed"})\n']) {
     assert.equal(currentPackageConfigurationReviewFor(request(path, hash(changed))), null);
