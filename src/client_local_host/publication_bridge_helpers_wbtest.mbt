@@ -4,6 +4,7 @@
 // The same managed generation and physical rows serve ordinary publication
 // and private Effect Result evidence. Neither path obtains new execution or
 // permission, and both retain the original bridge cleanup on every failure.
+#cfg(target="js")
 fn LocalValuesExecution::prepare_publication_bridge(
   self : LocalValuesExecution,
   row_limits : @execution.RetainedRowDecodeLimits,
@@ -29,6 +30,7 @@ fn LocalValuesExecution::prepare_publication_bridge(
 // Select the exact checked Named Result's original physical task. The retained
 // graph may have independent roots and intermediate tasks; task zero or the
 // last executed task is not a replacement result identity.
+#cfg(target="js")
 fn LocalValuesExecution::prepare_publication_bridge_for_task(
   self : LocalValuesExecution,
   task : Int,
