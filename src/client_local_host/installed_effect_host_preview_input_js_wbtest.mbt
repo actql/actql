@@ -1,6 +1,8 @@
 ///|
 fn effect_host_preview_input_fixture(
   standard? : Bool = false,
+  wide_controls? : Bool = false,
+  current? : () -> Unit = () => (),
 ) -> (
   @publication_host.PreparedClientEffectComputation,
   @publication_host.ClientRequestIdentity,
@@ -32,13 +34,24 @@ fn effect_host_preview_input_fixture(
   let before = original.operations[0]
   let members = before.member_extents.copy()
   members.push(host)
-  let demand = prepare_installed_effect_operation_demand(
-    prepared,
-    0,
-    "save",
-    members,
-    before.row_extents,
-  ).unwrap()
+  let demand = if wide_controls {
+    prepare_installed_effect_operation_demand_with_controls(
+      prepared,
+      0,
+      "save",
+      members,
+      before.row_extents,
+      standard_create_saved_control_capacity(1000000, 512, 16).unwrap(),
+    ).unwrap()
+  } else {
+    prepare_installed_effect_operation_demand(
+      prepared,
+      0,
+      "save",
+      members,
+      before.row_extents,
+    ).unwrap()
+  }
   let plan = prepare_installed_effect_managed_plan(
     prepared,
     request,
@@ -57,10 +70,17 @@ fn effect_host_preview_input_fixture(
   let requirements = prepared_installed_effect_managed_requirements(plan)
   // Explicit existing parent ports for this control/accounting unit only.
   // Product policy and normal Host admission are not changed by this fixture.
-  requirements[4] += 1000000L
-  requirements[5] += 1000000L
+  if wide_controls {
+    requirements[4] = 536870902L
+    requirements[5] = 536870902L
+  } else {
+    requirements[4] += 1000000L
+    requirements[5] += 1000000L
+  }
   let (input, initial, _, capacity) = effect_parent_test_preparation(
-    plan, requirements,
+    plan,
+    requirements,
+    current~,
   )
   let owner = begin_preparation_owned_installed_effect_managed_run(
     initial, input, capacity, prepared, request, plan,
@@ -251,4 +271,126 @@ test "standard two-role capture grows the same original Preview forest and keeps
   )
   assert_eq(@resources.ledger_usage(ledger), retained)
   retire_installed_managed_run(owner).unwrap()
+}
+
+///|
+test "Preview decode selects same wire geometry instead of unrelated full recipe scratch on real Ledger" {
+  let calls = Ref(0)
+  let (prepared, request, plan, owner, ledger) = effect_host_preview_input_fixture(
+    wide_controls=true,
+    current=() => calls.val += 1,
+  )
+  let wire = "{\"rows\":[{\"id\":1}]}"
+  let host = installed_effect_host_preview_input_capacity(plan, wire).unwrap()
+  let retained = @execution.execution_capacity_retained_bytes(host)
+  let execution = @execution.execution_capacity_execution_bytes(host)
+  assert_true(retained > 0L && execution > retained)
+  let control = owner.effect_operation_controls.unwrap()
+  let token = control.reservation
+  let before = @resources.ledger_usage(ledger)
+  let remaining = @resources.ledger_limits(ledger).execution_bytes -
+    before.reserved_execution_bytes
+  let pressure = @resources.reserve_capacity(ledger, 0L, remaining - execution).unwrap()
+  let one_short = @resources.reserve_capacity(ledger, 0L, 1L).unwrap()
+  let exhausted = @resources.ledger_usage(ledger)
+  // The actual same-wire quote is required in full, even though the unrelated
+  // recipe peak is no longer selected. A declined entry owns no parsed forest.
+  assert_true(
+    begin_installed_effect_operation_control_input(
+      owner, prepared, request, plan, wire,
+    )
+    is Err(Ledger(ExecutionLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), exhausted)
+  assert_true(control.host_input is None && control.constructor_frame is None)
+  @resources.settle_capacity(ledger, one_short).unwrap()
+  let occupied = @resources.ledger_usage(ledger)
+  assert_true(
+    begin_installed_effect_operation_control_construction(
+      owner, prepared, request, plan,
+    )
+    is Err(Ledger(ExecutionLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), occupied)
+  assert_true(
+    begin_installed_effect_operation_control_input(
+      { ..owner, },
+      prepared,
+      request,
+      plan,
+      wire,
+    )
+    is Err(ForeignOriginal),
+  )
+  calls.val = 0
+  begin_installed_effect_operation_control_input(
+    owner, prepared, request, plan, wire,
+  ).unwrap()
+  assert_true(calls.val > 0)
+  let active = @resources.ledger_usage(ledger)
+  assert_eq(
+    active.reserved_retention_bytes - occupied.reserved_retention_bytes,
+    retained,
+  )
+  assert_eq(
+    active.reserved_execution_bytes - occupied.reserved_execution_bytes,
+    execution,
+  )
+  assert_eq(active.held_bytes, occupied.held_bytes)
+  assert_eq(active.attempts, occupied.attempts)
+  assert_eq(active.transferred_bytes, occupied.transferred_bytes)
+  assert_true(physical_equal(control.reservation, token))
+  assert_true(
+    control.constructor_frame is Some((workspace, None)) &&
+    workspace == execution - retained,
+  )
+  let (selected, idle) = installed_effect_control_capacity(Some(control), plan).unwrap()
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(selected),
+    plan.operation_control_idle_execution + execution,
+  )
+  assert_eq(idle, plan.operation_control_idle_execution + retained)
+  // No successful completion was issued: failed or pending parsing keeps the
+  // same forest, full retained floor and scratch through ordinary current.
+  check_installed_effect_managed_run(owner, prepared, request).unwrap()
+  assert_eq(@resources.ledger_usage(ledger), active)
+  assert_true(
+    begin_installed_effect_operation_control_input(
+      owner, prepared, request, plan, wire,
+    )
+    is Err(AlreadyBound),
+  )
+  complete_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  let held = @resources.ledger_usage(ledger)
+  assert_eq(held.reserved_retention_bytes, active.reserved_retention_bytes)
+  assert_eq(
+    held.reserved_execution_bytes - occupied.reserved_execution_bytes,
+    retained,
+  )
+  assert_true(control.constructor_frame is None)
+  assert_true(
+    begin_installed_effect_operation_control_input(
+      owner, prepared, request, plan, "{\"different\":true}",
+    )
+    is Err(ForeignOriginal),
+  )
+  // A later generic callback still owes its complete original recipe quote.
+  assert_true(
+    begin_installed_effect_operation_control_construction(
+      owner, prepared, request, plan,
+    )
+    is Err(Ledger(ExecutionLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), held)
+  @resources.settle_capacity(ledger, pressure).unwrap()
+  begin_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  complete_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  retire_installed_managed_run(owner).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
 }

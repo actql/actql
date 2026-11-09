@@ -27,3 +27,14 @@ A successful completion returns only temporary scratch. A failed or pending
 callback keeps its original frame until the existing cleanup completes; an
 insufficient reservation never invokes the callback. This changes neither
 identity bytes nor Account, capture, read, write or approval authority.
+
+The existing Preview-input entry selects its frame from the complete geometry
+of that exact producer-owned wire and the same Plan's original member input
+limits. Its existing input quote owns the decoded forest and decoder scratch;
+JSON parsing does not reconstruct metadata or run the entire recipe. The frame
+therefore borrows that quoted scratch while the capacity combiner preserves
+all control retention, the idle-current floor and the complete input execution
+demand. Input refusal leaves both the original wire selection and usage
+unchanged. A successful input is one-use, and only successful completion drops
+its scratch; its returned forest remains retained. Later generic callbacks
+still require the full original recipe construction demand.

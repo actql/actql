@@ -1631,6 +1631,23 @@ fn resize_installed_effect_operation_control_construction(
         None,
       ),
     )
+  } else if input is Some((_, host)) {
+    // This exact producer-owned Preview wire has its complete forest and
+    // decoder workspace quoted above from the SAME Plan's member limits.
+    // JSON.parse does not reconstruct Catalog/metadata or execute the full
+    // recipe. Select its existing scratch on this SAME control frame; the
+    // capacity combiner below still funds the whole original retained/idle
+    // floor plus host retention and the complete input execution demand.
+    if !active || ledger_codec is Some(_) {
+      return Err(Unsupported)
+    }
+    Some(
+      (
+        @execution.execution_capacity_execution_bytes(host) -
+        @execution.execution_capacity_retained_bytes(host),
+        None,
+      ),
+    )
   } else if ledger_codec is Some(_) {
     control.constructor_frame
   } else {
