@@ -41,6 +41,56 @@ fn original_keyed_version_response(index : Int) -> String {
 }
 
 ///|
+// The authored request has two correlation roles and two distinct keys.
+// Successful metadata construction retains its original contracts/Strings,
+// not its 16*max_bytes codec window. Count the actual immutable backing with
+// the shared representation units; backend Array capacities may differ.
+fn original_keyed_publication_metadata_retained(
+  identity : @publication_host.ClientKeyedLookupRequestIdentity,
+) -> Int64 {
+  let (keys, static_request, static_request_cid, scope) = @publication_host.client_keyed_lookup_request_identity_parts(
+    identity,
+  )
+  // Role/key tuples, roles and canonical order controls remain charged.
+  let mut retained = 128L * (2L * 2L + 2L + 2L)
+  for original in [keys, scope] {
+    let extent = @publication.publication_contract_representation_extent(
+      original, 1024, 20, 2147483647,
+    ).unwrap()
+    let tree = extent.canonical
+    let containers = tree.arrays + tree.objects
+    // Contract + optional usage + usage tuple (3H7R5W), four String
+    // headers, canonical variants/Strings, FrozenArray/Array/backing,
+    // object-entry tuples and every actual backing slot remain live.
+    retained += @execution.preparation_representation_cost({
+      record_headers: 7L +
+      tree.nodes +
+      tree.strings +
+      3L * containers +
+      tree.object_backing_slots,
+      reference_slots: 7L +
+      tree.nodes +
+      2L * containers +
+      tree.array_backing_slots +
+      3L * tree.object_backing_slots,
+      scalar_words: 5L + 2L * tree.nodes + 2L * containers,
+      owned_utf16_units: extent.contract_text_utf16_units +
+      tree.text_utf16_units,
+      owned_wire_bytes: 0L,
+    }).unwrap()
+  }
+  retained +
+  @execution.preparation_representation_cost({
+    record_headers: 2L,
+    reference_slots: 0L,
+    scalar_words: 0L,
+    owned_utf16_units: static_request.length().to_int64() +
+    static_request_cid.length().to_int64(),
+    owned_wire_bytes: 0L,
+  }).unwrap()
+}
+
+///|
 fn original_keyed_version_history(
   suffix? : Bool = false,
   content? : Bool = false,
@@ -845,9 +895,17 @@ fn original_keyed_version_history(
       let after = @resources.ledger_usage(ledger)
       assert_eq(after.attempts, before.attempts)
       assert_eq(after.transferred_bytes, before.transferred_bytes)
+      let metadata = if pre_dispatch_plan {
+        0L // The same metadata was already retained by the predispatch Plan.
+      } else {
+        original_keyed_publication_metadata_retained(first_identity)
+      }
+      // The successful codec phase returns only unused construction scratch.
+      // Its actual metadata and the previous lookup remainder transfer to the
+      // SAME holding; no child custody or cumulative history is refunded.
       assert_eq(
         after.held_bytes - before.held_bytes,
-        (if pre_dispatch_plan { 0L } else { 16L * 16384L + 128L * 8L }) +
+        metadata +
         before.reserved_retention_bytes -
         after.reserved_retention_bytes,
       )
