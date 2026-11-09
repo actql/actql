@@ -4,13 +4,15 @@
   "declarations": [
     {
       "module": "adapters/host-node/update-target-original-shape.mjs",
-      "sha256": "22846265410615e5c19837b96c7669359390c867a2cec048bc82500566448151",
+      "sha256": "48f90ce90a5682380518667c2d28033595073f15bce037b741dbd6d0ccc397d3",
       "exports": [
         "assertUpdateTargetSelectionCurrent",
+        "assertUpdateTargetSelectionCurrentData",
         "assertUpdateTargetSelectionMembersCurrent",
         "createUpdateTargetOriginalShapeControl",
         "installationsShape",
         "issueUpdateTargetInstallation",
+        "issueUpdateTargetInstallationData",
         "originalUpdateTargetSelectionsCid",
         "retainUpdateTargetSelection",
         "runUpdateSelectionCid",
@@ -26,6 +28,16 @@
           "parameters": [
             "selections",
             "observations",
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "assertUpdateTargetSelectionCurrentData",
+          "parameters": [
+            "selections",
+            "observations",
+            "installations",
             "prepared"
           ],
           "async": false
@@ -72,6 +84,14 @@
           "parameters": [
             "moon",
             "facts"
+          ],
+          "async": false
+        },
+        {
+          "name": "issueUpdateTargetInstallationData",
+          "parameters": [
+            "moon",
+            "values"
           ],
           "async": false
         },
@@ -151,12 +171,14 @@
           "operations": [
             "<module>",
             "assertUpdateTargetSelectionCurrent",
+            "assertUpdateTargetSelectionCurrentData",
             "assertUpdateTargetSelectionMembersCurrent",
             "createUpdateTargetOriginalShapeControl",
             "createUpdateTargetOriginalShapeControl/createUpdateTargetOriginalShapeControl",
             "installationsShape",
             "invalid/invalid",
             "issueUpdateTargetInstallation",
+            "issueUpdateTargetInstallationData",
             "originalUpdateTargetSelectionsCid",
             "retainUpdateTargetSelection",
             "runUpdateSelectionCid",
@@ -168,10 +190,12 @@
           ],
           "exports": [
             "assertUpdateTargetSelectionCurrent",
+            "assertUpdateTargetSelectionCurrentData",
             "assertUpdateTargetSelectionMembersCurrent",
             "createUpdateTargetOriginalShapeControl",
             "installationsShape",
             "issueUpdateTargetInstallation",
+            "issueUpdateTargetInstallationData",
             "originalUpdateTargetSelectionsCid",
             "retainUpdateTargetSelection",
             "runUpdateSelectionCid",
@@ -280,6 +304,14 @@
               {
                 "path": "src/run_publication_host/client_effect_target_selections.mbt",
                 "anchor": "pub fn client_effect_target_selection_matches_prepared("
+              },
+              {
+                "path": "src/run_publication_host/client_effect_target_original_data_wbtest.mbt",
+                "anchor": "test \"same-call typed installation shares full current purpose Mapping and unchanged virtual wire bounds\" {"
+              },
+              {
+                "path": "adapters/host-node/installed-update-targets.test.mjs",
+                "anchor": "test('same physical current uses real typed installation DATA without transporting its immutable wire again', async t => {"
               }
             ]
           }
@@ -506,7 +538,7 @@
     },
     {
       "module": "adapters/host-node/installed-update-originals.mjs",
-      "sha256": "baf352ce5637e02dd15bf268615016d2e8d93732118419db402d6dd768e83f4c",
+      "sha256": "fce1fe37f2f0531777d9ffea00a590bd7564bf1d80d26cfbcdb8c0b9cb3c863f",
       "exports": [
         "installUpdateTargetOriginals"
       ],
@@ -956,6 +988,14 @@
               {
                 "path": "adapters/host-node/installed-update-targets.test.mjs",
                 "anchor": "test('actual bound installation repeats complete current checks without generic DATA reconstruction'"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_target_original_data_wbtest.mbt",
+                "anchor": "test \"same-call typed installation shares full current purpose Mapping and unchanged virtual wire bounds\" {"
+              },
+              {
+                "path": "adapters/host-node/installed-update-targets.test.mjs",
+                "anchor": "test('same physical current uses real typed installation DATA without transporting its immutable wire again', async t => {"
               }
             ]
           }

@@ -77921,7 +77921,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "ac107c0e0e9b38334858a2b6f00ad6c81ae0f9a437f7d3288b73c34519ed3b1f",
+      "sha256": "39bd511cd3e6e5212fd37f384fac30eafd5ae42ffa4a3017fb6417ed86eee271",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -84002,6 +84002,14 @@
               {
                 "path": "src/run_publication_host/client_effect_target_selections.mbt",
                 "anchor": "pub fn client_effect_target_selection_matches_prepared("
+              },
+              {
+                "path": "src/run_publication_host/client_effect_target_original_data_wbtest.mbt",
+                "anchor": "test \"same-call typed installation shares full current purpose Mapping and unchanged virtual wire bounds\" {"
+              },
+              {
+                "path": "adapters/host-node/installed-update-targets.test.mjs",
+                "anchor": "test('same physical current uses real typed installation DATA without transporting its immutable wire again', async t => {"
               }
             ]
           }
