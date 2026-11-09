@@ -119,6 +119,10 @@ fn LocalCommandPreparationOriginal::restore_checkpoint_review(
     ),
   )
   |> ignore
+  // Only current implementation metadata is selected here. The Saved
+  // Program/Model/Result is restored independently below, never recomputed.
+  // The original Runtime/Read/authority supplies the actual installation.
+  self.bind_project_mock_runtime(runtime, capture, settings.principal)
   let body = local_host_result(
     capture.selected_configuration_in_original_read(run_file),
   )

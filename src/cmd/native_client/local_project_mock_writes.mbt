@@ -242,7 +242,11 @@ fn LocalProjectMockDeclarations::bind_runtime(
       @utf8.encode(@run_host.client_native_local_runtime_original(manifest)),
     )
   for source in self.sources {
-    if source._retained_writes.is_empty() && source._retained_files.is_empty() {
+    // A cold approved write has no Model/Source execution originals. Do not
+    // issue new ResourceRef identities or rebuild unused file listing hooks.
+    let source_files = self._retained_registry is Some(_) &&
+      !source._retained_files.is_empty()
+    if source._retained_writes.is_empty() && !source_files {
       continue
     }
     let scope = match
@@ -258,7 +262,7 @@ fn LocalProjectMockDeclarations::bind_runtime(
     if self.closing || self.retired || self.file_sources is None {
       return refuse(ForeignOriginal)
     }
-    if !source._retained_files.is_empty() {
+    if source_files {
       let files = match local_project_mock_file_source(source, scope) {
         Ok(value) => value
         Err(issue) => return refuse(Source(issue))

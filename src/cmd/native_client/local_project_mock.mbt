@@ -33,7 +33,7 @@ priv struct LocalProjectMockDeclarations {
   mut retired : Bool
   _retained_connections : @run_host.ClientProjectConnections
   _retained_catalog : @run_host.ClientProjectCatalog
-  _retained_registry : @run_host.ClientProjectModelRegistry
+  _retained_registry : @run_host.ClientProjectModelRegistry?
   _retained_data_file : String
   _retained_tasks : Array[
     (
@@ -88,6 +88,7 @@ fn local_project_registry_document(
 fn local_project_read_mock_declarations(
   project : LocalProjectConfiguration,
   task_limits : @compiler_environment.ModelTaskLimits,
+  include_models? : Bool = true,
 ) -> Result[LocalProjectMockDeclarations, @files.NativeBoundedTextFailure] raise ClientStop {
   if project.metadata.lock_file() is Some(_) {
     stop("LocalProjectBindingsUnavailable")
@@ -116,18 +117,26 @@ fn local_project_read_mock_declarations(
       stop("InvalidProjectBindings")
     },
   )
-  let registry_path = project.metadata
-    .model_tasks_file()
-    .unwrap_or_else(() => stop("InvalidProjectBindings"))
-  let registry_wire = match
-    local_project_required_declaration(project, Some(registry_path)) {
-    Ok(value) => value
-    Err(original) => return Err(original)
+  // Cold approved writes retain only the actual implementation declarations.
+  // A missing Model original is explicit, never an invented empty registry or
+  // a reconstructed Task/answer. Computation intake keeps its complete path.
+  let registry_original = if include_models {
+    let registry_path = project.metadata
+      .model_tasks_file()
+      .unwrap_or_else(() => stop("InvalidProjectBindings"))
+    let registry_wire = match
+      local_project_required_declaration(project, Some(registry_path)) {
+      Ok(value) => value
+      Err(original) => return Err(original)
+    }
+    let registry = @run_host.admit_client_project_model_registry(registry_wire).unwrap_or_else(() => {
+        stop("InvalidProjectBindings")
+      },
+    )
+    Some((registry_path, registry))
+  } else {
+    None
   }
-  let registry = @run_host.admit_client_project_model_registry(registry_wire).unwrap_or_else(() => {
-      stop("InvalidProjectBindings")
-    },
-  )
   let catalog_path = profile
     .mock_catalog_file()
     .unwrap_or_else(() => stop("InvalidProjectBindings"))
@@ -159,65 +168,67 @@ fn local_project_read_mock_declarations(
       String,
     ),
   ] = []
-  for index in 0..<registry.task_count() {
-    let (name, path) = registry
-      .task_at(index)
-      .unwrap_or_else(() => stop("InvalidProjectBindings"))
-    let wire = match
-      local_project_registry_document(project, registry_path, path) {
-      Ok(value) => value
-      Err(original) => return Err(original)
+  if registry_original is Some((registry_path, registry)) {
+    for index in 0..<registry.task_count() {
+      let (name, path) = registry
+        .task_at(index)
+        .unwrap_or_else(() => stop("InvalidProjectBindings"))
+      let wire = match
+        local_project_registry_document(project, registry_path, path) {
+        Ok(value) => value
+        Err(original) => return Err(original)
+      }
+      let format = if path.has_suffix(".json") { "json" } else { "yaml" }
+      let task = @compiler_environment.read_public_model_task_document(
+        wire, format, task_limits,
+      ).unwrap_or_else(() => stop("InvalidProjectBindings"))
+      if @compiler_environment.public_model_task_declaration_identity(task).0 !=
+        name {
+        stop("InvalidProjectBindings")
+      }
+      let selection = @run_host.select_client_project_model_task(
+        registry,
+        task,
+        task_limits.max_work,
+      ).unwrap_or_else(() => stop("InvalidProjectBindings"))
+      let mut answer_path = None
+      for
+        answer_index in 0..<profile
+        .mock_answer_count()
+        .unwrap_or_else(() => stop("InvalidProjectBindings")) {
+        let (answer_task, path) = profile
+          .mock_answer_at(answer_index)
+          .unwrap_or_else(() => stop("InvalidProjectBindings"))
+          .unwrap_or_else(() => stop("InvalidProjectBindings"))
+        if answer_task == name {
+          answer_path = Some(path)
+        }
+      }
+      let original_answer_path = answer_path.unwrap_or_else(() => {
+        stop("InvalidProjectBindings")
+      })
+      let answers = match
+        local_project_required_declaration(project, Some(original_answer_path)) {
+        Ok(value) => value
+        Err(original) => return Err(original)
+      }
+      tasks.push((task, selection, answers, original_answer_path))
     }
-    let format = if path.has_suffix(".json") { "json" } else { "yaml" }
-    let task = @compiler_environment.read_public_model_task_document(
-      wire, format, task_limits,
-    ).unwrap_or_else(() => stop("InvalidProjectBindings"))
-    if @compiler_environment.public_model_task_declaration_identity(task).0 !=
-      name {
-      stop("InvalidProjectBindings")
-    }
-    let selection = @run_host.select_client_project_model_task(
-      registry,
-      task,
-      task_limits.max_work,
-    ).unwrap_or_else(() => stop("InvalidProjectBindings"))
-    let mut answer_path = None
+    // Answer declarations without an original registered Task are not ignored.
     for
-      answer_index in 0..<profile
+      index in 0..<profile
       .mock_answer_count()
       .unwrap_or_else(() => stop("InvalidProjectBindings")) {
-      let (answer_task, path) = profile
-        .mock_answer_at(answer_index)
+      let (name, _) = profile
+        .mock_answer_at(index)
         .unwrap_or_else(() => stop("InvalidProjectBindings"))
         .unwrap_or_else(() => stop("InvalidProjectBindings"))
-      if answer_task == name {
-        answer_path = Some(path)
+      if !tasks.any(entry => {
+          @compiler_environment.public_model_task_declaration_identity(entry.0).0 ==
+          name
+        }) {
+        stop("InvalidProjectBindings")
       }
-    }
-    let original_answer_path = answer_path.unwrap_or_else(() => {
-      stop("InvalidProjectBindings")
-    })
-    let answers = match
-      local_project_required_declaration(project, Some(original_answer_path)) {
-      Ok(value) => value
-      Err(original) => return Err(original)
-    }
-    tasks.push((task, selection, answers, original_answer_path))
-  }
-  // Answer declarations without an original registered Task are not ignored.
-  for
-    index in 0..<profile
-    .mock_answer_count()
-    .unwrap_or_else(() => stop("InvalidProjectBindings")) {
-    let (name, _) = profile
-      .mock_answer_at(index)
-      .unwrap_or_else(() => stop("InvalidProjectBindings"))
-      .unwrap_or_else(() => stop("InvalidProjectBindings"))
-    if !tasks.any(entry => {
-        @compiler_environment.public_model_task_declaration_identity(entry.0).0 ==
-        name
-      }) {
-      stop("InvalidProjectBindings")
     }
   }
   let result = {
@@ -244,7 +255,7 @@ fn local_project_read_mock_declarations(
     retired: false,
     _retained_connections: connections,
     _retained_catalog: catalog,
-    _retained_registry: registry,
+    _retained_registry: registry_original.map(value => value.1),
     _retained_data_file: data_file,
     _retained_tasks: tasks,
   }
@@ -319,6 +330,9 @@ fn LocalProjectMockDeclarations::prepare_models(
   if self.model_failure is Some(original) {
     return Err(original)
   }
+  guard self._retained_registry is Some(registry) else {
+    return Err(ForeignOriginal)
+  }
   if self.model_started {
     return Err(AlreadyPreparing)
   }
@@ -335,9 +349,7 @@ fn LocalProjectMockDeclarations::prepare_models(
   self.model_profile = Some(profile)
   for (task, selection, wire, answer_path) in self._retained_tasks {
     if @run_host.client_project_model_task_selection_for(
-        selection,
-        self._retained_registry,
-        task,
+        selection, registry, task,
       )
       is None {
       self.model_failure = Some(ForeignOriginal)

@@ -63,9 +63,13 @@ export function nativeProjectConfigurationFixture(namespace) {
       ? Buffer.alloc(65537, 0x20) : Buffer.from([0xc3, 0x28]));
   }
   // Exact public authored inputs, not an old business-state fixture.
-  for (const name of ['deal-review', 'deal-review-missing', 'deal-review-wrong-task', 'deal-review-nested-registry', 'deal-review-wrong-answer', 'deal-review-missing-task']) {
+  for (const name of ['deal-review', 'deal-review-missing', 'deal-review-wrong-task', 'deal-review-nested-registry', 'deal-review-wrong-answer', 'deal-review-missing-task', 'deal-review-approval']) {
     const path = directory(name);
     for (const [originalPath, original] of Object.entries(projectTemplateFiles('deal-review-mock'))) {
+      // Cold approval selects the original write implementation metadata only.
+      // Missing Model registry/Task/answers and payload prove those are not replayed.
+      if (name === 'deal-review-approval' && !['actql.config.json', 'connectors.json',
+        'mock/catalog.json'].includes(originalPath)) continue;
       if (name === 'deal-review-missing' && originalPath === 'mock/data.json') continue;
       if (name === 'deal-review-missing-task' && originalPath === 'model-tasks/deal-review.v1.yaml') {
         // Reach the actual missing-file Reader boundary, with its owned Root

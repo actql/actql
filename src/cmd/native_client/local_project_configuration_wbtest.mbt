@@ -705,19 +705,19 @@ test "Native Project Mock reads exact public declarations and retains same typed
   assert_eq(value._retained_connections.at(0).unwrap().0, "salesforce")
   assert_eq(value._retained_connections.at(1).unwrap().0, "drive")
   assert_eq(value._retained_catalog.count(), 2)
-  assert_eq(value._retained_registry.task_count(), 1)
+  assert_eq(value._retained_registry.unwrap().task_count(), 1)
   assert_eq(value._retained_tasks.length(), 1)
   let (task, selection, answers, _path) = value._retained_tasks[0]
   assert_eq(
     @run_host.client_project_model_task_selection_for(
       selection,
-      value._retained_registry,
+      value._retained_registry.unwrap(),
       task,
     ),
     Some(("openai", None, "./model-tasks/deal-review.v1.yaml")),
   )
   let separately_read = @run_host.admit_client_project_model_registry(
-    value._retained_registry.original_wire(),
+    value._retained_registry.unwrap().original_wire(),
   ).unwrap()
   assert_eq(
     @run_host.client_project_model_task_selection_for(
@@ -791,7 +791,7 @@ fn native_project_mock_nested_original() -> @run_host.ClientProjectProfileSelect
   assert_eq(
     @run_host.client_project_model_task_selection_for(
       selection,
-      original._retained_registry,
+      original._retained_registry.unwrap(),
       task,
     ),
     Some(("openai", None, "../model-tasks/deal-review.v1.yaml")),
@@ -1065,4 +1065,67 @@ test "Native finite Store profile retains explicit and legacy object quotas" {
       legacy.iter().find_first(pair => pair.0 == name).unwrap().1,
     )
   }
+}
+
+///|
+// Actual bounded Project declaration readers, with only the three original
+// metadata documents present. No Host, Run, Account, payload read or IO grant.
+test "Native approval selects write metadata without reopening Model or Source payload" {
+  let directory = @env.get_env_var(
+      "ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT",
+    ).unwrap() +
+    "/deal-review-approval"
+  let project = local_project_read_from(
+      command().parse(argv=["check", "never-read.aql"]),
+      directory,
+    )
+    .unwrap()
+    .unwrap()
+  let selected = local_project_read_execution_bindings(Some(project), "approve")
+    .unwrap()
+    .unwrap()
+  guard selected.mock_declarations is Some(original) else {
+    fail("approval must retain its actual write metadata")
+  }
+  defer original.retire()
+  assert_true(
+    physical_equal(project.metadata, original._retained_project.metadata),
+  )
+  assert_eq(original._retained_tasks.length(), 0)
+  assert_true(original.model_profile is None)
+  assert_false(original.model_started)
+  original.prepare_source_declarations().unwrap()
+  guard original.sources
+    .iter()
+    .find_first(source => source._retained_connection == "salesforce")
+    is Some(source) else {
+    fail("original Salesforce declaration required")
+  }
+  assert_eq(source._retained_writes.length(), 1)
+  assert_true(source._retained_rows.length() > 0)
+  assert_true(
+    source._retained_writes[0].mapping.write_fields.contains("StageName"),
+  )
+  assert_true(
+    source._retained_writes[0].mapping.write_fields.contains("NextStep"),
+  )
+  assert_false(
+    source._retained_writes[0]._retained_observe_permission.is_empty(),
+  )
+  let mut clocks = 0
+  assert_true(
+    original.prepare_models(
+      local_project_mock_task_limits(),
+      local_project_mock_answer_limits(),
+      () => {
+        clocks += 1
+        "2026-01-01T00:00:00Z"
+      },
+    )
+    is Err(ForeignOriginal),
+  )
+  assert_eq(clocks, 0)
+  assert_false(original.model_started)
+  assert_true(original.model_profile is None)
+  assert_eq(original.models.length(), 0)
 }
