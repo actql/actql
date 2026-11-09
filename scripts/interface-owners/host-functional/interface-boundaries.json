@@ -134039,7 +134039,7 @@
     {
       "module": "adapters/host-node/effect-capture-resources.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1814b4826b9c920f602489b6a5ceda2696738770008eb50a76c1cbc60ca04b7e",
+      "sha256": "17d0ea7642e3103428048a769dfbdc686c48be7a8ec87186b7e8e64c17939e2e",
       "role": "physical-io",
       "owner": "Existing Request preparation and same adopted Effect Run resource/cleanup ownership through the installed Node Host; no independent grant, Ledger or semantic issuer",
       "exports": [
@@ -134191,54 +134191,90 @@
               {
                 "path": "adapters/host-node/effect-capture-resources.mjs",
                 "anchor": "// Fixed adapter to the existing Request preparation or SAME adopted Run."
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed capture-recovery Definition construction"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/effect-capture-resources.mjs",
                 "anchor": "export function prepareEffectCaptureResources({moon, control, request, runDefinition,"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed capture-recovery Definition construction"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/effect-capture-resources.mjs",
                 "anchor": "managed.value, managed.prepared, managed.request, managed.definitionOriginal.definition,"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed capture-recovery Definition construction"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/effect-capture-resources.mjs",
                 "anchor": "retain(view);"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed capture-recovery Definition construction"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/effect-capture-resources.mjs",
                 "anchor": "if (state.closeFlight !== undefined) return state.closeFlight;"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed capture-recovery Definition construction"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/effect-capture-resources.mjs",
                 "anchor": "state.failure ??= error;"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed capture-recovery Definition construction"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/effect-capture-resources.mjs",
                 "anchor": "state.closing = true;"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed capture-recovery Definition construction"
               }
             ],
             "resources": [
               {
                 "path": "adapters/host-node/effect-capture-resources.mjs",
                 "anchor": "checked(state.context.runtime.clientProgramReserveInstalledEffectCaptureRecovery("
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed capture-recovery Definition construction"
               }
             ],
             "extension": [
               {
                 "path": "adapters/host-node/effect-capture-resources.mjs",
                 "anchor": "typeof control?.reserveEffectCaptureRecovery !== 'function') fail('EffectCaptureResourceUnavailable');"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed capture-recovery Definition construction"
               }
             ],
             "verification": [
@@ -134249,6 +134285,10 @@
               {
                 "path": "adapters/host-node/effect-capture-resources.test.mjs",
                 "anchor": "live capture uses SAME adopted Run"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_definition_capacity_js_wbtest.mbt",
+                "anchor": "test \"Definition success retains actual Unicode tree and full text then SAME begin regrows before admission\""
               }
             ]
           }

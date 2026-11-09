@@ -57230,6 +57230,7 @@
             "client_program_adopt_request_program_preparation",
             "client_program_advance_program_json_preparation",
             "client_program_begin_host_initialization_preparation",
+            "client_program_begin_installed_effect_capture_recovery",
             "client_program_begin_request_preparation",
             "client_program_bind_request_policy_subject",
             "client_program_borrow_request_effect_plan_input",
@@ -57237,6 +57238,7 @@
             "client_program_borrow_request_program_preparation",
             "client_program_cleanup_local_preparation_admission",
             "client_program_close_host_initialization_preparation",
+            "client_program_complete_installed_effect_capture_recovery",
             "client_program_complete_request_effect_preparation",
             "client_program_construct_program_json_preparation",
             "client_program_effect_preparation_input_read",
@@ -57286,14 +57288,13 @@
             "client_program_request_preparation_accounting",
             "client_program_request_preparation_control",
             "client_program_request_submitted_intent_original",
+            "client_program_reserve_installed_effect_capture_decoded",
             "client_program_reserve_installed_effect_capture_recovery",
             "client_program_reserve_request_effect_capture_recovery",
             "client_program_reserve_request_snapshot",
             "client_program_retire_installed_effect_capture_recovery",
             "strategy_begin_original_effect_free_captured_run",
-            "strategy_captured_run_preparation_limits",
-            "client_program_complete_installed_effect_capture_recovery",
-            "client_program_reserve_installed_effect_capture_decoded"
+            "strategy_captured_run_preparation_limits"
           ],
           "exports": [],
           "attributes": {
@@ -57301,54 +57302,90 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The Node Request bridge completes this original Effect Plan"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed capture-recovery Definition construction"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The Node Request bridge completes this original Effect Plan"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed capture-recovery Definition construction"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The Node Request bridge completes this original Effect Plan"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed capture-recovery Definition construction"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The Node Request bridge completes this original Effect Plan"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed capture-recovery Definition construction"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The Node Request bridge completes this original Effect Plan"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed capture-recovery Definition construction"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The Node Request bridge completes this original Effect Plan"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed capture-recovery Definition construction"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The Node Request bridge completes this original Effect Plan"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed capture-recovery Definition construction"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The Node Request bridge completes this original Effect Plan"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed capture-recovery Definition construction"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The Node Request bridge completes this original Effect Plan"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed capture-recovery Definition construction"
               }
             ],
             "verification": [
@@ -57363,6 +57400,10 @@
               {
                 "path": "src/client_local_host/preparation_effect_capture_recovery_js_wbtest.mbt",
                 "anchor": "capture geometry distinguishes long String bytes"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_definition_capacity_js_wbtest.mbt",
+                "anchor": "test \"Definition success retains actual Unicode tree and full text then SAME begin regrows before admission\""
               }
             ]
           }
@@ -57792,14 +57833,15 @@
         },
         {
           "operations": [
-            "client_program_request_program_module_capacity_refusal",
-            "client_program_reserve_request_model_recovery_materials",
-            "client_program_reserve_request_retained_program_material",
-            "client_program_retain_request_submitted_intent",
             "client_program_open_request_model_recovery_host",
             "client_program_request_model_recovery_ledger",
             "client_program_request_model_recovery_source_coordinates",
-            "client_program_request_model_recovery_usage_isolated"
+            "client_program_request_model_recovery_usage_isolated",
+            "client_program_request_program_module_capacity_refusal",
+            "client_program_reserve_request_effect_original_material",
+            "client_program_reserve_request_model_recovery_materials",
+            "client_program_reserve_request_retained_program_material",
+            "client_program_retain_request_submitted_intent"
           ],
           "exports": [],
           "attributes": {
@@ -57911,6 +57953,10 @@
         {
           "name": "client_program_begin_host_initialization_preparation",
           "declaration": "client_program_begin_host_initialization_preparation ( initial : @ resources . NodePreparationAdmission [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , policy : @ client_local_host . ClientLocalResourcePolicy , ) - > Result [ @ client_local_host . ClientHostInitializationPreparation [ ClientLocalPreparationInputOriginal , ] , @ client_local_host . ClientHostInitializationIssue , ]"
+        },
+        {
+          "name": "client_program_begin_installed_effect_capture_recovery",
+          "declaration": "client_program_begin_installed_effect_capture_recovery ( original : @ client_local_host . ClientInstalledEffectCaptureRecovery , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "client_program_begin_request_preparation",
@@ -58313,6 +58359,10 @@
           "declaration": "client_program_reserve_request_effect_capture_recovery ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , request : @ publication_host . ClientRequestIdentity , definition : @ publication . PublicationContract , encrypted_bytes : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
         },
         {
+          "name": "client_program_reserve_request_effect_original_material",
+          "declaration": "client_program_reserve_request_effect_original_material ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , prepared : @ publication_host . PreparedClientEffectComputation , count : Int , wire_at : ( Int ) - > String , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
+        },
+        {
           "name": "client_program_reserve_request_model_recovery_materials",
           "declaration": "client_program_reserve_request_model_recovery_materials ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , request : @ publication_host . ClientRequestIdentity , definition : @ publication . PublicationContract , count : Int , wire_at : ( Int ) - > String , containers : Int , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
         },
@@ -58349,7 +58399,7 @@
           "declaration": "strategy_captured_run_preparation_limits ( original : @ publication . CapturedRunIssuancePreparation , ) - > Array [ Int ] ?"
         }
       ],
-      "sha256": "b7c92459c1d9bbf8bc700a3ae98e2d862d1858230df06a1e402fe406736184c5"
+      "sha256": "33b7f9fadb9ddb38efbb1ac704ebc49113bca92d999812da5bf2bb01a325ee91"
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
