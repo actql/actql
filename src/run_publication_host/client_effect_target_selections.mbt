@@ -30,6 +30,10 @@ priv struct ClientEffectUpdateTargetSelection {
 pub struct ClientEffectUpdateTargetSelections {
   wire : String
   priv cid : String
+  // The already-copied, bounded metadata records belong to this same prepared
+  // original. Their strings are borrowed; no Source cursor or second wire is
+  // retained, and no current purpose, permission or installation is cached.
+  priv entries : Array[ClientEffectUpdateTargetSelection]
 }
 
 ///|
@@ -91,7 +95,7 @@ fn encode_client_effect_target_selections(
   }
   // Seal this immutable selection once; Run and current-use checks stay at
   // their original admission and execution boundaries.
-  Ok({ wire, cid: "sha256:" + @sha.hex(@utf8.encode(wire)), })
+  Ok({ wire, cid: "sha256:" + @sha.hex(@utf8.encode(wire)), entries, })
 }
 
 ///|

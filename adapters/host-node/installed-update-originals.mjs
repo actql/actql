@@ -2,7 +2,7 @@
 // bytes live in their existing request and Checkpoint custody; they never
 // resolve aliases, issue permissions or establish another recovery authority.
 import {checked} from '../host-common/runtime-result.mjs';
-import {installedRowEffectOwnerBinding, installedRowEffectUpdateObservations,
+import {installedRowEffectUpdateObservation,
   installedRowEffectDescriptors} from
   './installed-row-effect.mjs';
 import {refusedEffectPreparation} from '../host-common/effect-preparation-result.mjs';
@@ -31,16 +31,12 @@ export function installUpdateTargetOriginals({moon, control, installedEffect, li
       // up that actual private owner, then let Common check its original
       // UPDATE/DELETE/STORE purpose and Mapping against current observations.
       // Reconstructing every selection as an UPDATE loses STORE's Command.
-      const matches = (installedEffect?.effects ?? [installedEffect]).filter(owner =>
-        installedRowEffectOwnerBinding(owner)?.cid === selection.installation_owner_cid);
-      if (matches.length !== 1) fail();
-      const owner = matches[0];
-      const original = installedRowEffectOwnerBinding(owner);
-      if (original === undefined) fail();
+      const observation = installedRowEffectUpdateObservation(
+        installedEffect?.effects ?? [installedEffect], selection.installation_owner_cid);
+      if (observation === undefined) fail();
+      const original = observation.installation;
       originals.set(original.cid, original);
-      for (const observation of installedRowEffectUpdateObservations(owner)) {
-        observations.set(observation.installation.cid, observation);
-      }
+      observations.set(original.cid, observation);
     }
     assertUpdateTargetSelectionCurrent(selections, [...observations.values()]);
     return [...originals.values()].sort((a, b) => a.cid.localeCompare(b.cid));

@@ -101,6 +101,21 @@ fn[I, P] begin_program_compilation_work(
     guard program_check_data_extent_cost(data) is Some(bytes) else {
       return Err(Overflow)
     }
+    // The same checked occurrence inventory bounds retained selection records.
+    // Their seven Strings are borrowed; price records, the array and its holder
+    // before the Effect constructor, without another wire or text allocation.
+    let occurrences = if owner.effect_candidate is Some(_) {
+      @syntax.program_preparation_data(
+        @checked.checked_source_program(checked),
+      ).effect_members
+    } else {
+      0
+    }
+    guard program_effect_selection_extent_cost(occurrences) is Some(selection) &&
+      @execution.checked_preparation_add_product(bytes, selection, 1L)
+      is Some(bytes) else {
+      return Err(Overflow)
+    }
     let (r, e) = match
       @resources.preparation_capacity_working_extents(owner.capacity, input) {
       Err(issue) => return Err(Capacity(issue))
@@ -141,6 +156,37 @@ fn[I, P] begin_program_compilation_work(
   }
   owner.work = Some(work)
   Ok(work)
+}
+
+///|
+fn program_effect_selection_extent_cost(occurrences : Int) -> Int64? {
+  if occurrences < 0 {
+    return None
+  }
+  if occurrences == 0 {
+    return Some(0L)
+  }
+  let count = occurrences.to_int64()
+  guard @shape.collection_construction_extent({
+    records: count,
+    record_references: count * 7L + 1L,
+    record_words: count,
+    reference_arrays: 1L,
+    reference_items: count,
+    scalar_arrays: 0L,
+    scalar_items: 0L,
+    maps: 0L,
+    map_entries: 0L,
+  }) is Some(extent) else {
+    return None
+  }
+  @execution.preparation_representation_cost({
+    record_headers: extent.record_headers,
+    reference_slots: extent.reference_slots,
+    scalar_words: extent.scalar_words,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  })
 }
 
 ///|

@@ -513,14 +513,10 @@ pub fn client_effect_target_run_selection_cid(
 /// Preview, physical stop or saved-custody observation is issued here.
 fn client_effect_target_selection_purpose(
   prepared : PreparedClientEffectComputation,
-  selection : @decode.ObjectView,
+  selection : ClientEffectUpdateTargetSelection,
 ) -> String raise ClientEffectTargetOriginalStop {
-  let stage = @decode.safe_integer(
-    @decode.required(selection, "stage_index").unwrap_or_else(() => {
-      raise InvalidUpdateTargetOriginal
-    }),
-  ).unwrap_or_else(() => raise InvalidUpdateTargetOriginal)
-  let effect_id = client_effect_target_original_text(selection, "effect_id")
+  let stage = selection.stage_index
+  let effect_id = selection.effect_id
   let effects = @stage_results.effect_static_candidate_results(
     @checked.effect_program_static_effects(prepared.candidate),
   )
@@ -533,7 +529,7 @@ fn client_effect_target_selection_purpose(
     let header = @stage_results.effect_result_binding_header(
       @stage_results.effect_result_binding_at(effects, index).unwrap(),
     )
-    if @syntax.effect_header_stage(header).to_int64() == stage &&
+    if @syntax.effect_header_stage(header) == stage &&
       @syntax.effect_header_id(header) == effect_id {
       if purpose is Some(_) {
         raise InvalidUpdateTargetOriginal
@@ -562,33 +558,19 @@ pub fn client_effect_target_selection_current(
     return false
   }
   try {
-    let selected = @decode.elements(
-      client_effect_target_original_cursor(original.wire),
-    ).unwrap_or_else(() => raise InvalidUpdateTargetOriginal)
     let current = @decode.elements(
       client_effect_target_original_cursor(observations),
     ).unwrap_or_else(() => raise InvalidUpdateTargetOriginal)
     if current.is_empty() || current.length() > 1024 {
       raise InvalidUpdateTargetOriginal
     }
-    for selection in selected {
-      let selection = @decode.open_object(selection).unwrap_or_else(() => {
-        raise InvalidUpdateTargetOriginal
-      })
+    for selection in original.entries {
       let purpose = client_effect_target_selection_purpose(prepared, selection)
-      let owner_cid = client_effect_target_original_text(
-        selection, "installation_owner_cid",
-      )
-      let binding_cid = client_effect_target_original_text(
-        selection, "installation_binding_cid",
-      )
-      let target = client_effect_target_original_text(selection, "target_ref")
-      let mapping_ref = client_effect_target_original_text(
-        selection, "mapping_ref",
-      )
-      let mapping_cid = client_effect_target_original_text(
-        selection, "mapping_cid",
-      )
+      let owner_cid = selection.installation_owner_cid
+      let binding_cid = selection.installation_binding_cid
+      let target = selection.target_ref
+      let mapping_ref = selection.mapping_ref
+      let mapping_cid = selection.mapping_cid
       let mut matches = 0
       for observation in current {
         let object = @decode.closed_object(observation, [

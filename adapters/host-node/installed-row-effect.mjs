@@ -283,7 +283,7 @@ const selectionChanged = cause => {
     new Error('InstalledRowEffectInstallationChanged', {cause}),
     {code: 'InstalledRowEffectInstallationChanged'}));
 };
-const updateObservations = owners => owners.map(owner => ({installation: ownerBinding(owner),
+const updateObservation = (owner, installation = ownerBinding(owner)) => ({installation,
   update: owner.owned.kinds.includes('update'),
   ...(owner.owned.kinds.includes('delete') ? {delete: true} : {}),
   ...(owner.storeMappings.length === 0 ? {} : {store: true}),
@@ -291,7 +291,26 @@ const updateObservations = owners => owners.map(owner => ({installation: ownerBi
     target: mapping.target, mappingRef: mapping.mappingRef, mappingCid: mapping.mappingCid,
     update: mapping.rules.some(rule => rule.effect_kind === 'update'),
     ...(mapping.rules.some(rule => rule.effect_kind === 'delete') ? {delete: true} : {}),
-    ...(owner.storeMappings.includes(mapping) ? {store: true} : {})}))}));
+    ...(owner.storeMappings.includes(mapping) ? {store: true} : {})}))});
+const updateObservations = owners => owners.map(owner => updateObservation(owner));
+
+// One synchronous physical projection. Issue each genuine singular owner's
+// DATA once, preserve ambiguity refusal before Mapping reads, then borrow the
+// selected issuance for its current purpose/Mapping observation. Nothing is
+// retained between calls and Common still validates the complete observation.
+export function installedRowEffectUpdateObservation(adapters, ownerCid) {
+  if (!Array.isArray(adapters)) return undefined;
+  const matches = [];
+  for (const adapter of adapters) {
+    const owner = rowInstallations.get(adapter);
+    if (owner === undefined || Array.isArray(owner)) continue;
+    const installation = ownerBinding(owner);
+    if (installation.cid === ownerCid) matches.push({owner, installation});
+  }
+  if (matches.length !== 1) return undefined;
+  const {owner, installation} = matches[0];
+  return updateObservation(owner, installation);
+}
 const validateOwnerSelections = (owners, selections, prepared) => {
   if (selections === undefined) return undefined;
   try { assertUpdateTargetSelectionCurrent(selections, updateObservations(owners), prepared); }

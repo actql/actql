@@ -187,6 +187,17 @@ still performs the complete original-material, compiler, Run and installation
 checks; the larger outer conversion is neither successful admission nor a
 permission or resource grant.
 
+One physical current observation issues each genuine installed owner's DATA
+once and shares that result for matching and validation in that call only.
+The same prepared original retains its copied, sorted typed selections; later
+current checks borrow those immutable records instead of decoding their saved
+wire again. The existing compilation demand backs the bounded checked-occurrence
+records, array and holder before construction, borrowing the original Strings.
+Each call still reads the actual installed owner and Mapping and derives the
+purpose from the checked Header. Cold admission, changed owners and full wire
+identity validation keep their existing complete paths; neither representation
+reuse carries a currentness or permission verdict into a later call.
+
 A held-submission caller supplies its complete saved prepared original to the
 existing nominal compiler/current/full-byte validation before forwarding that
 same DATA. It does not demand a new ordinary construction parent merely to

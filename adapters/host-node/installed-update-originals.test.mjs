@@ -6,6 +6,7 @@ import test from 'node:test';
 import {canonicalJson as valueJson} from '../../packages/sdk/host-port.mjs';
 import {createInstalledRowEffect, installedRowEffectOwnerBinding} from './installed-row-effect.mjs';
 import {installUpdateTargetOriginals} from './installed-update-originals.mjs';
+import {checked} from '../host-common/runtime-result.mjs';
 import {updateTargetPreparedOriginalShape as preparedShape,
   updateTargetRunOriginalShape as runShape, updateTargetSelectionsCid as selectionsCid} from './update-target-original-shape.mjs';
 import {pathToFileURL} from 'node:url';
@@ -244,6 +245,48 @@ test('held originals restore concrete selection without invoking a source resolv
   assert.equal(f.originals.compilationFor(restored.prepared), f.compilation);
   restored.assertUpdateSelectionCurrent();
   assert.deepEqual(f.calls, ['restore-prepared']);
+});
+
+test('one current observation issues actual same-owner installation DATA once without caching live facts', async t => {
+  const f = await fixture(t);
+  const original = f.originals.capturePrepared(f.prepared, f.compilation);
+  const restored = f.originals.restorePrepared(original);
+  const issue = f.moon.clientProgramIssueEffectTargetInstallation;
+  const current = f.moon.clientProgramEffectTargetSelectionCurrent;
+  let completedCoreIssuances = 0, completedCurrentObservations = 0;
+  f.moon.clientProgramIssueEffectTargetInstallation = (...args) => {
+    const result = issue(...args); checked(result); completedCoreIssuances++; return result;
+  };
+  f.moon.clientProgramEffectTargetSelectionCurrent = (...args) => {
+    const result = current.apply(f.moon, args);
+    if (result) completedCurrentObservations++;
+    return result;
+  };
+  for (let index = 0; index < 3; index++) restored.assertUpdateSelectionCurrent();
+  console.log('ACTQL_OWNER_PROJECTION_WORK ' + JSON.stringify({completedCoreIssuances,
+    completedCurrentObservations}));
+  assert.equal(completedCoreIssuances, 3);
+  assert.equal(completedCurrentObservations, 3);
+  // A changed physical observation must still issue through real Core and fail.
+  f.moon.clientProgramIssueEffectTargetInstallation = wire => {
+    const facts = JSON.parse(wire); facts.continuation_binding = cid('f');
+    const result = issue(JSON.stringify(facts)); checked(result); return result;
+  };
+  assert.throws(() => restored.assertUpdateSelectionCurrent(),
+    {code:'InstalledEffectOriginalSelectionChanged'});
+  f.moon.clientProgramIssueEffectTargetInstallation = issue;
+  f.moon.clientProgramEffectTargetSelectionCurrent = () => false;
+  assert.throws(() => restored.assertUpdateSelectionCurrent(),
+    {name:'TypeError',message:'InvalidEffectTargetSelections'});
+  f.moon.clientProgramEffectTargetSelectionCurrent = current;
+  const fabricated = [{...f.installedEffect}];
+  fabricated.flatMap = () => assert.fail('Caller methods cannot issue private owner observations');
+  for (const installedEffect of [{...f.installedEffect}, {effects:fabricated},
+    {effects:[f.installedEffect,f.installedEffect]}]) {
+    const foreign = installUpdateTargetOriginals({...f, installedEffect});
+    assert.throws(() => foreign.restorePrepared(original),
+      {code:'InstalledEffectOriginalSelectionChanged'});
+  }
 });
 
 test('held caller reuses its complete original only after existing nominal current and full-byte validation', async t => {

@@ -14,13 +14,21 @@ test "selection encoder matches independent identity corpus original preimage" {
   }
   let expected =
     #|[{"check_environment_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","effect_id":"update","installation_binding_cid":"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","installation_owner_cid":"sha256:82b29228f604437218a51df3d6504e813219649a14e80c4b7c24f505eea6c1e9","mapping_cid":"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","mapping_ref":"mapping:crm.account.v1","stage_index":0,"target_ref":"connector://crm/account"}]
-  let actual = encode_client_effect_target_selections([selected]).unwrap()
+  let input = [selected]
+  let actual = encode_client_effect_target_selections(input).unwrap()
+  input.clear()
+  assert_eq(actual.entries.length(), 1)
+  assert_true(physical_equal(actual.entries[0], selected))
   assert_eq(actual.wire, expected)
   assert_eq(
     client_effect_target_selection_cid(actual),
     "sha256:312e3ae46daa9cf148a228e668726d8f251e1f0035c796c882a51d76f3ba22db",
   )
   assert_true(encode_client_effect_target_selections([]) is Err(Limit))
+  assert_true(
+    encode_client_effect_target_selections(Array::make(1025, selected))
+    is Err(Limit),
+  )
   assert_true(
     encode_client_effect_target_selections([selected, selected])
     is Err(ForeignSelection),
