@@ -58,6 +58,17 @@ def prepare(source: str, target: str, clang: Path, sdk: Path | None,
         raise ValueError('Bundle component preparation budget exhausted')
     remaining = max(1, int(deadline - time.monotonic()))
     if target == 'darwin-arm64' and darwin_crypto_profile == 'source-macos11':
+        if openssl_source_archive is None:
+            expected = json.loads((CRYPTO.SOURCE / 'source.json').read_bytes())['upstream']
+            remaining = int(deadline - time.monotonic())
+            if remaining <= 0:
+                raise ValueError('Bundle component preparation budget exhausted')
+            openssl_source_archive = INPUTS.acquire(expected['url'],
+                {key: expected[key] for key in ('bytes', 'sha256')},
+                destination / 'openssl-original.tar.gz', None, remaining)
+            remaining = int(deadline - time.monotonic())
+            if remaining <= 0:
+                raise ValueError('Bundle component preparation budget exhausted')
         crypto = CRYPTO.produce_darwin_source(destination / 'crypto-source', clang, sdk,
             remaining, source_archive=openssl_source_archive, component_output=destination / 'crypto')
     elif target == 'darwin-arm64' and darwin_crypto_profile == 'homebrew26' and openssl is not None:

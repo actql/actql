@@ -478,5 +478,89 @@ class BoundedPinnedDownloads(unittest.TestCase):
             self.assertEqual(archive.read_bytes(),b'pinned');self.assertEqual(opened.call_count,2)
             compiler.assert_called_once_with('a'*40,archive,root/'clang',root/'sdk',destination/'sqlite',30)
 
+    def test_bundle_crypto_uses_pinned_acquisition_same_deadline_and_explicit_original(self):
+        import ast
+        import types
+        # Execute only the actual orchestration body. The real input verifier
+        # runs; explicit compiler ports stop at Crypto entry without any build.
+        source=P.ROOT/'scripts/prepare-native-runtime-bundle-components.py'
+        body=next(node for node in ast.parse(source.read_text()).body
+                  if isinstance(node,ast.FunctionDef) and node.name=='prepare')
+        for mode in ('download','bad-pin','expired','explicit'):
+            with self.subTest(mode=mode),tempfile.TemporaryDirectory() as raw:
+                root=Path(raw);sqlite_root=root/'sqlite-source';crypto_root=root/'crypto-source'
+                sqlite_root.mkdir();crypto_root.mkdir()
+                sqlite_bytes=b'original SQLite Source';crypto_bytes=b'original OpenSSL Source'
+                for directory,url,data in ((sqlite_root,'https://sqlite.invalid/source',sqlite_bytes),
+                                           (crypto_root,'https://crypto.invalid/source',crypto_bytes)):
+                    (directory/'source.json').write_text(json.dumps({'upstream':{
+                        'url':url,'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest()}}))
+                sqlite=types.SimpleNamespace(SOURCE=sqlite_root,build_process_import=None)
+                crypto=types.SimpleNamespace(SOURCE=crypto_root,produce_darwin_source=None)
+                fields={'ROOT':P.ROOT,'Path':Path,'subprocess':subprocess,'time':P.time,
+                        'json':json,'SQLITE':sqlite,'CRYPTO':crypto,'INPUTS':P}
+                exec(compile(ast.Module(body=[body],type_ignores=[]),str(source),'exec'),fields)
+                bundle=types.SimpleNamespace(**fields)
+                now=[0];events=[];destination=root/'components'
+                explicit=root/'explicit-openssl.tar.gz'
+                explicit.write_bytes(crypto_bytes)
+                if mode=='explicit':(crypto_root/'source.json').unlink()
+                refusal=ValueError('original Crypto archive refusal')
+                class CryptoReached(Exception):pass
+                def download(request,*,timeout):
+                    events.append(('download',request.full_url,timeout))
+                    if request.full_url=='https://sqlite.invalid/source':
+                        now[0]+=3
+                        return self.response(sqlite_bytes,url=request.full_url)
+                    self.assertEqual(request.full_url,'https://crypto.invalid/source')
+                    self.assertNotEqual(mode,'explicit','Explicit archive must not fall back to a download')
+                    self.assertEqual(timeout,50)
+                    now[0]=60 if mode=='expired' else 17
+                    return self.response(b'changed OpenSSL Source' if mode=='bad-pin' else crypto_bytes,
+                                         url=request.full_url)
+                def sqlite_compiler(*args):
+                    events.append(('sqlite',args[-1]))
+                    self.assertEqual(args,('a'*40,destination/'sqlite-original.zip',root/'clang',
+                                           root/'sdk',destination/'sqlite',57))
+                    self.assertEqual(args[1].read_bytes(),sqlite_bytes)
+                    now[0]+=7
+                    return {}
+                def crypto_compiler(*args,**kwargs):
+                    events.append(('crypto',args[-1]))
+                    selected=explicit if mode=='explicit' else destination/'openssl-original.tar.gz'
+                    self.assertEqual(args,(destination/'crypto-source',root/'clang',root/'sdk',
+                                           50 if mode=='explicit' else 43))
+                    self.assertEqual(kwargs,{'source_archive':selected,'component_output':destination/'crypto'})
+                    self.assertEqual(selected.read_bytes(),crypto_bytes)
+                    if mode=='explicit':raise refusal
+                    raise CryptoReached
+                with patch.object(bundle.subprocess,'check_output',
+                                  side_effect=['a'*40,'']),\
+                        patch.object(P.time,'monotonic',side_effect=lambda:now[0]),\
+                        patch.object(P.time,'sleep',side_effect=AssertionError('no transport retry expected')),\
+                        patch.object(P.urllib.request,'urlopen',side_effect=download) as opened,\
+                        patch.object(sqlite,'build_process_import',side_effect=sqlite_compiler) as sqlite_entry,\
+                        patch.object(crypto,'produce_darwin_source',side_effect=crypto_compiler) as crypto_entry:
+                    invoke=lambda:bundle.prepare('a'*40,'darwin-arm64',root/'clang',root/'sdk',None,
+                        destination,60,openssl_source_archive=explicit if mode=='explicit' else None)
+                    if mode=='bad-pin':
+                        with self.assertRaisesRegex(ValueError,'Pinned original HTTP preparation download differs'):invoke()
+                    elif mode=='expired':
+                        with self.assertRaisesRegex(ValueError,'Bundle component preparation budget exhausted'):invoke()
+                    elif mode=='explicit':
+                        with self.assertRaises(ValueError) as observed:invoke()
+                        self.assertIs(observed.exception,refusal)
+                    else:
+                        with self.assertRaises(CryptoReached):invoke()
+                    sqlite_entry.assert_called_once()
+                    if mode in ('bad-pin','expired'):crypto_entry.assert_not_called()
+                    else:crypto_entry.assert_called_once()
+                    self.assertEqual(opened.call_count,1 if mode=='explicit' else 2)
+                self.assertEqual([event[0] for event in events],
+                    ['download','sqlite']+([] if mode=='explicit' else ['download'])+
+                    ([] if mode in ('bad-pin','expired') else ['crypto']))
+                self.assertEqual((destination/'openssl-original.tar.gz').exists(),mode in ('download','expired'))
+                self.assertFalse((destination/'bundle-components.json').exists())
+
 
 if __name__=='__main__':unittest.main()
