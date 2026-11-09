@@ -107,15 +107,37 @@ test "full HubSpot response InputBegin reproduces current coheld execution refus
     max_properties: 256,
     max_name_units: 6003,
   }
-  let initial = hubspot_full_metadata_response_quote(
-    @hubspot_catalog.effect_metadata_construction_capacity(
-      0, 9, property_limits,
-    ).unwrap(),
-  )
+  let metadata = @hubspot_catalog.effect_metadata_construction_capacity(
+    0, 9, property_limits,
+  ).unwrap()
+  let initial = hubspot_full_metadata_response_quote(metadata)
   println(
     "Full initial R=\{@execution.execution_capacity_retained_bytes(initial)} E=\{@execution.execution_capacity_execution_bytes(initial)}",
   )
-  assert_eq(@execution.execution_capacity_retained_bytes(initial), 10692246L)
+  // Current shared HTTP retention owns two body views and only returned
+  // header pairs; completed parser dictionaries are not retained outputs.
+  let receive = installed_effect_http_response_construction_capacity(
+    524288,
+    16384,
+    response_read_quantum=16384,
+  ).unwrap()
+  let secret = installed_source_reader_policy()[0].to_int64()
+  // Independent Credential roles: three text/view headers, token/header
+  // strings and two encoded views. Use shared units, not a byte price or the
+  // composite value under test. Constructor-only secret wire remains in E.
+  let secret_retained = @execution.preparation_representation_cost({
+    record_headers: 3L,
+    reference_slots: 0L,
+    scalar_words: 0L,
+    owned_utf16_units: 3L * secret + 2L * 7L,
+    owned_wire_bytes: 2L * (secret + 7L),
+  }).unwrap()
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(initial),
+    @execution.execution_capacity_retained_bytes(receive) +
+    secret_retained +
+    @execution.execution_capacity_retained_bytes(metadata),
+  )
   assert_eq(@execution.execution_capacity_execution_bytes(initial), 12333318L)
   let (prepared, request, plan, owner, ledger) = staged_effect_input_fixture(
     physical_initial=Some(initial),

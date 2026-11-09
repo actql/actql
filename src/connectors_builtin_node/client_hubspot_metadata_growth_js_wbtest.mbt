@@ -60,7 +60,34 @@ test "HubSpot original physical metadata grow keeps old token and coheld capture
   println(
     "Physical metadata oldR=\{old_r} oldE=\{old_e} newR=\{@execution.execution_capacity_retained_bytes(selected)} newE=\{@execution.execution_capacity_execution_bytes(selected)}",
   )
-  assert_eq(old_r, 10692246L)
+  let receive = @client_local_host.installed_effect_http_response_construction_capacity(
+    524288,
+    16384,
+    response_read_quantum=16384,
+  ).unwrap()
+  let metadata = client_program_hubspot_effect_constructor_capacity(
+    4,
+    [0, 9, 524288, 65536, 32, 256, 6003],
+    [],
+    [],
+  ).unwrap()
+  let secret = secret_bytes.to_int64()
+  // Independently enumerate retained Credential text/header and encoded
+  // views, using the shared unit owner. Original constructor E is unchanged;
+  // only successful HTTP header output retention replaced the old peak pin.
+  let secret_retained = @execution.preparation_representation_cost({
+    record_headers: 3L,
+    reference_slots: 0L,
+    scalar_words: 0L,
+    owned_utf16_units: 3L * secret + 2L * 7L,
+    owned_wire_bytes: 2L * (secret + 7L),
+  }).unwrap()
+  assert_eq(
+    old_r,
+    @execution.execution_capacity_retained_bytes(receive) +
+    secret_retained +
+    @execution.execution_capacity_retained_bytes(metadata),
+  )
   assert_eq(old_e, 12333318L)
   let ledger = @resources.create_ledger({
     planning_work: 1000000,
