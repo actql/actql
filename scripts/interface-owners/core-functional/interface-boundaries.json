@@ -52144,7 +52144,7 @@
     },
     {
       "module": "src/connectors/local/driver/managed_dispatch.mbt",
-      "sha256": "9c103bc52a7160daa40d4bec7f770c474e064d05f19becd39ed82d6ec003ed35",
+      "sha256": "787c41cf60eff03baffbf398582673f1562b9cff965265fec2d6e57f0fac1620",
       "role": "common-semantics",
       "owner": "Existing Local managed task/Source/resource owners; native supplied lifetime and imported producer custody remain distinct",
       "responsibilityFacet": "primary",
@@ -52202,6 +52202,14 @@
           "declaration": "bind_physical_operation_input ( run : @ strategy . CapturedDAG , index : Int , binding : @ execution . ManagedInputBinding , ) - > @ execution . ManagedInputBinding ?"
         },
         {
+          "name": "local_managed_import_next_extent",
+          "declaration": "local_managed_import_next_extent ( limits : @ local . LocalImportLimits , rows : Int64 , nodes : Int64 , text : Int64 , wire_bytes : Int64 , ) - > ( Int64 , Int64 , Int64 , Int64 ) ?"
+        },
+        {
+          "name": "local_managed_import_start_bytes",
+          "declaration": "local_managed_import_start_bytes ( limits : @ local . LocalImportLimits , ) - > Int64 ?"
+        },
+        {
           "name": "managed_row_transfer_bytes",
           "declaration": "managed_row_transfer_bytes ( row : String , max_bytes : Int , ) - > Result [ Int64 , LocalDispatchIssue ]"
         },
@@ -52228,6 +52236,8 @@
             "[T]prepare_local_managed_dispatch_with_outputs",
             "[T]start_local_managed_dispatch",
             "bind_physical_operation_input",
+            "local_managed_import_next_extent",
+            "local_managed_import_start_bytes",
             "managed_row_transfer_bytes",
             "start_local_managed_dispatch_node"
           ],
@@ -52265,6 +52275,10 @@
               {
                 "path": "src/connectors/local/driver/dispatch.mbt",
                 "anchor": "@strategy.next_captured_task(installed.run) != Some(task)"
+              },
+              {
+                "path": "src/connectors/local/driver/managed_dispatch.mbt",
+                "anchor": "physical_equal(current, bridge)"
               }
             ],
             "ownership": [
@@ -52331,6 +52345,10 @@
               {
                 "path": "src/connectors/local/driver/managed_dispatch.mbt",
                 "anchor": "if !@execution.producer_read_has_cell_access(read)"
+              },
+              {
+                "path": "src/connectors/local/driver/managed_dispatch.mbt",
+                "anchor": "let import_extra = Ref(0L)"
               }
             ],
             "extension": [
@@ -52363,6 +52381,22 @@
               {
                 "path": "src/connectors/local/driver/capacity_metadata_wbtest.mbt",
                 "anchor": "missing input copy quote preserves original scratch metadata export and exact copy boundaries"
+              },
+              {
+                "path": "src/connectors/local/driver/managed_import_data_funding_wbtest.mbt",
+                "anchor": "test \"managed import starts with full parser scratch and grows only copied DATA\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"managed input DATA funds all original alias JOIN parents at bounded startup\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"managed input growth refusal precedes decode and retains the original Source\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"cancelled managed input cannot grow or decode a later row\""
               }
             ]
           }

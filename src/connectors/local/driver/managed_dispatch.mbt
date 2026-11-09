@@ -260,6 +260,63 @@ fn managed_row_transfer_bytes(
 }
 
 ///|
+// The existing import recipe separates the fixed wire/parser allowance from
+// cumulative copied values and row slots. This is startup DATA only: callers
+// keep the unchanged admission limits and fund copied DATA before decoding.
+fn local_managed_import_start_bytes(
+  limits : @local.LocalImportLimits,
+) -> Int64? {
+  @local.local_import_retention_capacity({
+    ..limits,
+    max_rows: 0,
+    values: { ..limits.values, max_nodes: 0, max_text_bytes: 0, },
+  })
+}
+
+///|
+// A complete incoming row wire bounds every newly decoded value node and
+// text byte, including columns outside the receiving projection. Each bridge
+// accumulates its own bound: equal producers never share a parsed copy.
+fn local_managed_import_next_extent(
+  limits : @local.LocalImportLimits,
+  rows : Int64,
+  nodes : Int64,
+  text : Int64,
+  wire_bytes : Int64,
+) -> (Int64, Int64, Int64, Int64)? {
+  let max_rows = limits.max_rows.to_int64()
+  let max_nodes = limits.values.max_nodes.to_int64()
+  let max_text = limits.values.max_text_bytes.to_int64()
+  guard rows >= 0L &&
+    rows <= max_rows &&
+    nodes >= 0L &&
+    nodes <= max_nodes &&
+    text >= 0L &&
+    text <= max_text &&
+    wire_bytes >= 0L else {
+    return None
+  }
+  let next_rows = rows + Int64::min(1L, max_rows - rows)
+  let next_nodes = nodes + Int64::min(wire_bytes, max_nodes - nodes)
+  let next_text = text + Int64::min(wire_bytes, max_text - text)
+  guard local_managed_import_start_bytes(limits) is Some(start) &&
+    @local.local_import_retention_capacity({
+      ..limits,
+      max_rows: next_rows.to_int(),
+      values: {
+        ..limits.values,
+        max_nodes: next_nodes.to_int(),
+        max_text_bytes: next_text.to_int(),
+      },
+    })
+    is Some(quoted) &&
+    quoted >= start else {
+    return None
+  }
+  Some((next_rows, next_nodes, next_text, quoted - start))
+}
+
+///|
 pub fn[T] prepare_local_managed_dispatch(
   installed : LocalDispatchModule,
   outputs : Array[@execution.ManagedCompletedOutput[T]],
@@ -582,20 +639,37 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
   // ordinary captures borrow their original storage; only missing copies and
   // managed producer bridges allocate an importer on this same task.
   let mut count = 0L
+  let mut imported = 0L
+  guard local_managed_import_start_bytes(imports) is Some(import_start) else {
+    return Err(Configuration(InvalidLimits))
+  }
   for input in relation_inputs {
-    match input {
+    let required = match input {
       OrdinaryRelationInput(read) =>
         if !@execution.producer_read_has_cell_access(read) {
           count += 1L
+          per_input
+        } else {
+          0L
         }
-      ManagedRelationInput(_) => count += 1L
-      SuppliedRelationInput(_) => ()
+      ManagedRelationInput(_) => {
+        count += 1L
+        if metered_start is Some(_) {
+          import_start
+        } else {
+          per_input
+        }
+      }
+      SuppliedRelationInput(_) => 0L
     }
+    if imported > 9223372036854775807L - required {
+      return Err(Configuration(InvalidLimits))
+    }
+    imported += required
   }
   if per_input > 0L && count > 9223372036854775807L / per_input {
     return Err(Configuration(InvalidLimits))
   }
-  let imported = count * per_input
   // Host metadata is a separately funded holding. It survives scratch release
   // and follows the existing completed-output/borrower cleanup acknowledgement.
   guard local_retained_with_metadata(
@@ -1105,6 +1179,7 @@ pub fn[T] start_local_managed_dispatch(
   let retained_extra = Ref(0L)
   let metadata_extra = Ref(0L)
   let transport_extra = Ref(0L)
+  let import_extra = Ref(0L)
   let output_row_extent : Ref[Int?] = Ref(None)
   let working_failure : Ref[LocalDispatchIssue?] = Ref(None)
   let reserve_capacity = fn(
@@ -1123,14 +1198,21 @@ pub fn[T] start_local_managed_dispatch(
       9223372036854775807L -
       setup.capacity.scratch_bytes -
       extra -
-      metadata_extra.val {
+      metadata_extra.val ||
+      import_extra.val >
+      9223372036854775807L -
+      setup.capacity.scratch_bytes -
+      extra -
+      metadata_extra.val -
+      transport_extra.val {
       working_failure.val = Some(Execution(Stopped))
       return Err(WorkspaceUnavailable)
     }
     let scratch = setup.capacity.scratch_bytes +
       extra +
       metadata_extra.val +
-      transport_extra.val
+      transport_extra.val +
+      import_extra.val
     // This pure balance refusal precedes every grow/current/imported-window
     // call and changes no reservation. It permits the common attachment to
     // ask for its exact minimum instead of spare page backing. The subsequent
@@ -1179,6 +1261,36 @@ pub fn[T] start_local_managed_dispatch(
   let reserve_working = fn(extra) {
     reserve_capacity(extra, retained_extra.val)
   }
+  // Import DATA, evaluator scratch, framing and Result metadata coexist under
+  // this original Task reservation. No live parent or other copy is credited.
+  let reserve_import = fn(next : Int64) -> Result[Unit, LocalDispatchIssue] {
+    if !live.val || disposed.val || next < import_extra.val {
+      return Err(Execution(Stopped))
+    }
+    let mut total = setup.capacity.scratch_bytes
+    for
+      extra in [
+        working_extra.val,
+        metadata_extra.val,
+        transport_extra.val,
+        next,
+      ] {
+      guard @execution.checked_preparation_add_product(total, extra, 1L)
+        is Some(value) else {
+        return Err(Configuration(InvalidLimits))
+      }
+      total = value
+    }
+    match @strategy.grow_task_execution_workspace(setup.run, execution, total) {
+      Err(issue) => return Err(Execution(Physical(issue)))
+      Ok(_) => ()
+    }
+    import_extra.val = next
+    if !live.val || disposed.val {
+      return Err(Execution(Stopped))
+    }
+    Ok(())
+  }
   let export_frame_extent = fn(
     receipt : @execution.ManagedOutputValueReceipt,
     result : @execution.ManagedResultOccurrence?,
@@ -1204,7 +1316,10 @@ pub fn[T] start_local_managed_dispatch(
     }
     if extra > transport_extra.val {
       guard @execution.execution_capacity_inventory_add(
-          setup.capacity.scratch_bytes + working_extra.val + metadata_extra.val,
+          setup.capacity.scratch_bytes +
+          working_extra.val +
+          metadata_extra.val +
+          import_extra.val,
           QuotedBytes,
           extra,
           1,
@@ -1235,6 +1350,10 @@ pub fn[T] start_local_managed_dispatch(
     guard input is ManagedRelationInput(managed) else { continue }
     let handle = bridges[bridge_index]
     bridge_index += 1
+    let copied_rows = Ref(0L)
+    let copied_nodes = Ref(0L)
+    let copied_text = Ref(0L)
+    let copied_extent = Ref(0L)
     transfers.push(LocalManagedInputTransfer::{
       input: managed,
       append: fn(row) {
@@ -1249,14 +1368,52 @@ pub fn[T] start_local_managed_dispatch(
         }
         match
           @strategy.charge_task_execution_transfer(setup.run, execution, bytes) {
-          Err(issue) => Err(Execution(Physical(issue)))
-          Ok(_) =>
-            @execution.append_managed_producer_bridge_wire(
-              bridge,
-              row,
-              setup.imports.row,
-            ).map_err(_ => Configuration(InputUnavailable))
+          Err(issue) => return Err(Execution(Physical(issue)))
+          Ok(_) => ()
         }
+        if setup.metered_output_retention {
+          guard local_managed_import_next_extent(
+              setup.imports,
+              copied_rows.val,
+              copied_nodes.val,
+              copied_text.val,
+              bytes,
+            )
+            is Some((rows, nodes, text, extent)) &&
+            extent >= copied_extent.val &&
+            @execution.checked_preparation_add_product(
+              import_extra.val,
+              extent - copied_extent.val,
+              1L,
+            )
+            is Some(next) else {
+            return Err(Configuration(InvalidLimits))
+          }
+          match reserve_import(next) {
+            Err(issue) => return Err(issue)
+            Ok(_) => ()
+          }
+          // A current callback may synchronously cancel and retire this exact
+          // bridge. A successful grow cannot revive it or permit parsing.
+          guard local_managed_input_writes_open(
+              live.val,
+              settled.val,
+              disposed.val,
+            ) &&
+            handle.val is Some(current) &&
+            physical_equal(current, bridge) else {
+            return Err(Configuration(InputUnavailable))
+          }
+          copied_rows.val = rows
+          copied_nodes.val = nodes
+          copied_text.val = text
+          copied_extent.val = extent
+        }
+        @execution.append_managed_producer_bridge_wire(
+          bridge,
+          row,
+          setup.imports.row,
+        ).map_err(_ => Configuration(InputUnavailable))
       },
       finish: fn() {
         guard handle.val is Some(bridge) &&
@@ -1947,7 +2104,8 @@ pub fn[T] start_local_managed_dispatch(
                       guard @execution.execution_capacity_inventory_add(
                           setup.capacity.scratch_bytes +
                           working_extra.val +
-                          transport_extra.val,
+                          transport_extra.val +
+                          import_extra.val,
                           QuotedBytes,
                           scratch,
                           1,
