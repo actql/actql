@@ -117,13 +117,17 @@ export function nativeProjectConfigurationFixture(namespace) {
 // require their original earlier ports too; the last two keep their separate
 // Source-closure/Effect selections. Ambient flags cannot retarget another case.
 export function nativeProjectContentCaseFixture(namespace, index, projectRoot) {
-  assert(Number.isInteger(index) && index >= 0 && index <= 14,
+  assert(Number.isInteger(index) && index >= 0 && index <= 15,
     'An exact original Native Content case index is required');
-  const selected = (first, last = 11) => index >= first && index <= last;
+  // The new completed-workspace case reuses the full captured-page inputs.
+  // Every earlier case keeps its original role after the one-position shift.
+  const originalIndex = index === 0 ? 11 : index - 1;
+  const selected = (first, last = 11) => originalIndex >= first && originalIndex <= last;
   const raw = selected(2) ? readFileSync(join(projectRoot, 'deal-review/mock/data.json')) : undefined;
   const store = join(namespace, 'content-store');
   mkdirSync(store, {mode: 0o700});
-  return {ACTQL_TEST_NATIVE_CONTENT_LOOKUPS: index === 0 ? '1' : '2',
+  return {ACTQL_TEST_NATIVE_METADATA_REMAINDER: index === 0 ? '1' : undefined,
+    ACTQL_TEST_NATIVE_CONTENT_LOOKUPS: originalIndex === 0 ? '1' : '2',
     ACTQL_TEST_NATIVE_RAW_SNAPSHOT: selected(2) ? '1' : undefined,
     // The actual authored input file, independently of any capture/Store output.
     ACTQL_TEST_NATIVE_RAW_SNAPSHOT_CID: raw === undefined ? undefined :
@@ -132,12 +136,12 @@ export function nativeProjectContentCaseFixture(namespace, index, projectRoot) {
     ACTQL_TEST_NATIVE_BATCH_PLAN: selected(3) ? '1' : undefined,
     ACTQL_TEST_NATIVE_ACTIVATION: selected(4) ? '1' : undefined,
     ACTQL_TEST_NATIVE_RAW_STORE: selected(5) ? '1' : undefined,
-    ACTQL_TEST_NATIVE_RAW_STORE_REFUSAL: index === 6 || index === 10 ? '1' : undefined,
+    ACTQL_TEST_NATIVE_RAW_STORE_REFUSAL: originalIndex === 6 || originalIndex === 10 ? '1' : undefined,
     ACTQL_TEST_NATIVE_LEFT_IDENTITY: selected(7) ? '1' : undefined,
     ACTQL_TEST_NATIVE_SOURCE_ARTIFACTS: selected(8) ? '1' : undefined,
     ACTQL_TEST_NATIVE_ATTEMPT_USAGE: selected(9) ? '1' : undefined,
-    ACTQL_TEST_NATIVE_MODEL_SOURCE_CLOSURE: selected(8) || index === 13 ? '1' : undefined,
-    ACTQL_TEST_NATIVE_CAPTURED_PAGE: index === 11 ? '1' : undefined,
-    ACTQL_TEST_NATIVE_EFFECT_PLAN_ONLY: index === 14 ? '1' : undefined,
+    ACTQL_TEST_NATIVE_MODEL_SOURCE_CLOSURE: selected(8) || originalIndex === 13 ? '1' : undefined,
+    ACTQL_TEST_NATIVE_CAPTURED_PAGE: originalIndex === 11 ? '1' : undefined,
+    ACTQL_TEST_NATIVE_EFFECT_PLAN_ONLY: originalIndex === 14 ? '1' : undefined,
     ACTQL_TEST_NATIVE_STORE_ROOT: store};
 }

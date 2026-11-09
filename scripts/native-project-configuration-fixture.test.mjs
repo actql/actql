@@ -31,6 +31,7 @@ test('Native Content case indices retain every original role in distinct fresh S
   t.after(() => rmSync(root, {recursive: true, force: true}));
   const project = nativeProjectConfigurationFixture(root).ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT;
   const names = [
+    'Native README metadata returns completed codec workspace before both keyed captures',
     'Native original README joins its two physical Sources and original keyed Content Store',
     'Native original README retains both keyed Content originals for its Model input',
     'Native README keyed capture preserves original raw snapshot after ContentRef projection',
@@ -54,15 +55,17 @@ test('Native Content case indices retain every original role in distinct fresh S
     const path = join(root, String(index)); mkdirSync(path); return path;
   });
   const cases = namespaces.map((path, index) => nativeProjectContentCaseFixture(path, index, project));
-  assert.deepEqual(cases.map(value => value.ACTQL_TEST_NATIVE_CONTENT_LOOKUPS), ['1', ...Array(14).fill('2')]);
-  assert.equal(new Set(cases.map(value => value.ACTQL_TEST_NATIVE_STORE_ROOT)).size, 15);
+  assert.deepEqual(cases.map(value => value.ACTQL_TEST_NATIVE_CONTENT_LOOKUPS), ['2', '1', ...Array(14).fill('2')]);
+  assert.equal(new Set(cases.map(value => value.ACTQL_TEST_NATIVE_STORE_ROOT)).size, 16);
   const roles = {
-    RAW_SNAPSHOT: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-    BATCH_PLAN: [3, 4, 5, 6, 7, 8, 9, 10, 11],
-    ACTIVATION: [4, 5, 6, 7, 8, 9, 10, 11],
-    RAW_STORE: [5, 6, 7, 8, 9, 10, 11], RAW_STORE_REFUSAL: [6, 10],
-    LEFT_IDENTITY: [7, 8, 9, 10, 11], SOURCE_ARTIFACTS: [8, 9, 10, 11],
-    ATTEMPT_USAGE: [9, 10, 11], CAPTURED_PAGE: [11], MODEL_SOURCE_CLOSURE: [8, 9, 10, 11, 13], EFFECT_PLAN_ONLY: [14],
+    METADATA_REMAINDER: [0],
+    RAW_SNAPSHOT: [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+    BATCH_PLAN: [0, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+    ACTIVATION: [0, 5, 6, 7, 8, 9, 10, 11, 12],
+    RAW_STORE: [0, 6, 7, 8, 9, 10, 11, 12], RAW_STORE_REFUSAL: [7, 11],
+    LEFT_IDENTITY: [0, 8, 9, 10, 11, 12], SOURCE_ARTIFACTS: [0, 9, 10, 11, 12],
+    ATTEMPT_USAGE: [0, 10, 11, 12], CAPTURED_PAGE: [0, 12],
+    MODEL_SOURCE_CLOSURE: [0, 9, 10, 11, 12, 14], EFFECT_PLAN_ONLY: [15],
   };
   for (const [role, selected] of Object.entries(roles)) {
     const key = 'ACTQL_TEST_NATIVE_' + role;
@@ -73,8 +76,8 @@ test('Native Content case indices retain every original role in distinct fresh S
     assert.equal(statSync(value.ACTQL_TEST_NATIVE_STORE_ROOT).mode & 0o777, 0o700);
     assert.deepEqual(readdirSync(value.ACTQL_TEST_NATIVE_STORE_ROOT), []);
   }
-  assert.throws(() => nativeProjectContentCaseFixture(namespaces[0], 0), {code: 'EEXIST'});
-  for (const index of [-1, 15, 0.5, '1', undefined]) {
+  assert.throws(() => nativeProjectContentCaseFixture(namespaces[0], 0, project), {code: 'EEXIST'});
+  for (const index of [-1, 16, 0.5, '1', undefined]) {
     assert.throws(() => nativeProjectContentCaseFixture(root, index), /exact original/u);
   }
 });
@@ -84,7 +87,7 @@ test('Native raw snapshot case binds its own authored file digest before selecte
   t.after(() => rmSync(root, {recursive: true, force: true}));
   const project = nativeProjectConfigurationFixture(root).ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT;
   const selected = join(root, 'selected'); mkdirSync(selected);
-  const value = nativeProjectContentCaseFixture(selected, 2, project);
+  const value = nativeProjectContentCaseFixture(selected, 3, project);
   assert.equal(value.ACTQL_TEST_NATIVE_RAW_SNAPSHOT, '1');
   const original = readFileSync(join(project, 'deal-review/mock/data.json'));
   assert.equal(value.ACTQL_TEST_NATIVE_RAW_SNAPSHOT_BYTES, String(original.length));

@@ -1030,7 +1030,7 @@ if (process.argv[2] === 'generate-test-driver') {
     .map(value => [require('node:path').basename(value), value.startsWith('src/fixture-empty/') ? [] :
       Array.from({length: value.endsWith('/root_control_physical_scoped_wbtest.mbt') ||
           value.endsWith('/target_io_physical_scoped_wbtest.mbt') ? 3 :
-          value.endsWith('/local_project_mock_content_physical_scoped_wbtest.mbt') ? 15 : 1},
+          value.endsWith('/local_project_mock_content_physical_scoped_wbtest.mbt') ? 16 : 1},
         (_, index) => ({index,name:'original fixture case '+index,attrs:[],line_number:index+1}))]));
   writeFileSync(metadata, JSON.stringify({tests}));
   process.exit(0);
@@ -1098,6 +1098,7 @@ if (process.env.ACTQL_FIXTURE_NATIVE_COMMANDS) {
       installedProcess:process.env.ACTQL_TEST_INSTALLED_PROCESS_ROOT,
       targetRoot:process.env.ACTQL_TEST_NATIVE_TARGET_IO_ROOT,
       contentStore:process.env.ACTQL_TEST_NATIVE_STORE_ROOT,
+      metadataRemainder:process.env.ACTQL_TEST_NATIVE_METADATA_REMAINDER,
       contentLookups:process.env.ACTQL_TEST_NATIVE_CONTENT_LOOKUPS,
       modelSourceClosure:process.env.ACTQL_TEST_NATIVE_MODEL_SOURCE_CLOSURE,
       effectPlanOnly:process.env.ACTQL_TEST_NATIVE_EFFECT_PLAN_ONLY,
@@ -1136,11 +1137,13 @@ if (['runtime-values','scoped-review-values'].includes(process.env.ACTQL_FIXTURE
   assert.equal(process.env.ACTQL_TEST_NATIVE_TARGET_IO_ROOT, undefined);
   if (process.argv.includes('src/cmd/native_client/local_project_mock_content_physical_scoped_wbtest.mbt')) {
     const index = Number(process.argv[process.argv.indexOf('--index') + 1]);
-    assert.equal(process.env.ACTQL_TEST_NATIVE_CONTENT_LOOKUPS, index === 0 ? '1' : '2');
-    assert.equal(process.env.ACTQL_TEST_NATIVE_MODEL_SOURCE_CLOSURE, [8,9,10,11,13].includes(index) ? '1' : undefined);
-    assert.equal(process.env.ACTQL_TEST_NATIVE_EFFECT_PLAN_ONLY, index === 14 ? '1' : undefined);
-    assert.equal(process.env.ACTQL_TEST_NATIVE_CAPTURED_PAGE, index === 11 ? '1' : undefined);
-    if (index >= 2 && index <= 11) {
+    const originalIndex = index === 0 ? 11 : index - 1;
+    assert.equal(process.env.ACTQL_TEST_NATIVE_METADATA_REMAINDER, index === 0 ? '1' : undefined);
+    assert.equal(process.env.ACTQL_TEST_NATIVE_CONTENT_LOOKUPS, originalIndex === 0 ? '1' : '2');
+    assert.equal(process.env.ACTQL_TEST_NATIVE_MODEL_SOURCE_CLOSURE, [8,9,10,11,13].includes(originalIndex) ? '1' : undefined);
+    assert.equal(process.env.ACTQL_TEST_NATIVE_EFFECT_PLAN_ONLY, originalIndex === 14 ? '1' : undefined);
+    assert.equal(process.env.ACTQL_TEST_NATIVE_CAPTURED_PAGE, originalIndex === 11 ? '1' : undefined);
+    if (originalIndex >= 2 && originalIndex <= 11) {
       assert.equal(process.env.ACTQL_TEST_NATIVE_RAW_SNAPSHOT, '1');
       const raw = require('node:fs').readFileSync(join(process.env.ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT,
         'deal-review/mock/data.json'));
@@ -1153,7 +1156,10 @@ if (['runtime-values','scoped-review-values'].includes(process.env.ACTQL_FIXTURE
       assert.equal(process.env.ACTQL_TEST_NATIVE_RAW_SNAPSHOT_BYTES, undefined);
     }
     assert.equal(statSync(process.env.ACTQL_TEST_NATIVE_STORE_ROOT).mode & 0o777, 0o700);
-  } else assert.equal(process.env.ACTQL_TEST_NATIVE_EFFECT_PLAN_ONLY, undefined);
+  } else {
+    assert.equal(process.env.ACTQL_TEST_NATIVE_EFFECT_PLAN_ONLY, undefined);
+    assert.equal(process.env.ACTQL_TEST_NATIVE_METADATA_REMAINDER, undefined);
+  }
   if (process.argv.includes('src/platform_native/relation_file_work_tests/relation_file_original_physical_scoped_test.mbt')) {
     assert.equal(process.env.ACTQL_FIXTURE_PROFILE, 'scoped-review-values');
     const relation = process.env.ACTQL_TEST_RELATION_ORIGINAL_ROOT;
@@ -2102,7 +2108,7 @@ test('Core Native prepares existing scoped producer dependencies before expensiv
   }
 });
 
-test('Native Core routes fifteen Content and three target I/O originals with nonzero selected execution', t => {
+test('Native Core routes sixteen Content and three target I/O originals with nonzero selected execution', t => {
   const contentFile = 'src/cmd/native_client/local_project_mock_content_physical_scoped_wbtest.mbt';
   const targetFile = 'src/platform_native/row_source/target_io_physical_scoped_wbtest.mbt';
   for (const zero of [false, true]) {
@@ -2114,6 +2120,7 @@ test('Native Core routes fifteen Content and three target I/O originals with non
         ACTQL_FIXTURE_TARGET_ZERO: zero ? '1' : '0',
         ACTQL_TEST_NATIVE_EFFECT_PLAN_ONLY: 'ambient-plan',
         ACTQL_TEST_NATIVE_MODEL_SOURCE_CLOSURE: 'ambient-closure',
+        ACTQL_TEST_NATIVE_METADATA_REMAINDER: 'ambient-metadata',
         ACTQL_TEST_NATIVE_CONTENT_LOOKUPS: 'ambient-count',
         ACTQL_TEST_NATIVE_RAW_SNAPSHOT: 'ambient-raw',
         ACTQL_TEST_NATIVE_RAW_SNAPSHOT_CID: 'ambient-cid',
@@ -2134,14 +2141,15 @@ test('Native Core routes fifteen Content and three target I/O originals with non
     const selected = calls.filter(call => call.profile !== 'ordinary');
     const content = selected.filter(call => call.args.includes(contentFile));
     assert.deepEqual(content.map(call => call.args[call.args.indexOf('--index') + 1]),
-      Array.from({length: 15}, (_, index) => String(index)));
-    assert.deepEqual(content.map(call => call.contentLookups), ['1', ...Array(14).fill('2')]);
-    assert.equal(new Set(content.map(call => call.contentStore)).size, 15);
+      Array.from({length: 16}, (_, index) => String(index)));
+    assert.deepEqual(content.map(call => call.contentLookups), ['2', '1', ...Array(14).fill('2')]);
+    assert.equal(new Set(content.map(call => call.contentStore)).size, 16);
     const roles = {
-      rawSnapshot: [2,3,4,5,6,7,8,9,10,11], batchPlan: [3,4,5,6,7,8,9,10,11],
-      activation: [4,5,6,7,8,9,10,11], rawStore: [5,6,7,8,9,10,11], rawStoreRefusal: [6,10],
-      leftIdentity: [7,8,9,10,11], sourceArtifacts: [8,9,10,11], attemptUsage: [9,10,11], capturedPage: [11],
-      modelSourceClosure: [8,9,10,11,13], effectPlanOnly: [14],
+      metadataRemainder: [0],
+      rawSnapshot: [0,3,4,5,6,7,8,9,10,11,12], batchPlan: [0,4,5,6,7,8,9,10,11,12],
+      activation: [0,5,6,7,8,9,10,11,12], rawStore: [0,6,7,8,9,10,11,12], rawStoreRefusal: [7,11],
+      leftIdentity: [0,8,9,10,11,12], sourceArtifacts: [0,9,10,11,12], attemptUsage: [0,10,11,12], capturedPage: [0,12],
+      modelSourceClosure: [0,9,10,11,12,14], effectPlanOnly: [15],
     };
     for (const [role, selectedIndices] of Object.entries(roles)) {
       assert.deepEqual(content.map(call => call[role]),
@@ -2165,8 +2173,8 @@ test('Native Core routes fifteen Content and three target I/O originals with non
     for (const call of selected.filter(call => !targets.includes(call))) assert.equal(call.targetRoot, undefined);
     for (const call of selected.filter(call => !content.includes(call))) assert.equal(call.effectPlanOnly, undefined);
     if (!zero) {
-      assert.equal(calls.length, 28, 'all original cases remain alongside fifteen Content and three target originals');
-      assert.match(result.stdout, /"scoped":25,"physical":24,"repeatedGeometry":1/u);
+      assert.equal(calls.length, 29, 'all original cases remain alongside sixteen Content and three target originals');
+      assert.match(result.stdout, /"scoped":26,"physical":25,"repeatedGeometry":1/u);
     } else assert.match(result.stderr + result.stdout, /no successfully executed test cases|expected tests=1/u);
     f.verifyExternal();
   }

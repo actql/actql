@@ -265,7 +265,7 @@ if (full) {
         const content = test.source === nativeProjectMockContentTestFile
           ? nativeProjectContentCaseFixture(caseNamespace, test.index,
             fixtureEnvironment.ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT)
-          : {ACTQL_TEST_NATIVE_CONTENT_LOOKUPS: undefined, ACTQL_TEST_NATIVE_MODEL_SOURCE_CLOSURE: undefined,
+          : {ACTQL_TEST_NATIVE_METADATA_REMAINDER: undefined, ACTQL_TEST_NATIVE_CONTENT_LOOKUPS: undefined, ACTQL_TEST_NATIVE_MODEL_SOURCE_CLOSURE: undefined,
             ACTQL_TEST_NATIVE_EFFECT_PLAN_ONLY: undefined, ACTQL_TEST_NATIVE_RAW_SNAPSHOT: undefined,
             ACTQL_TEST_NATIVE_RAW_SNAPSHOT_CID: undefined, ACTQL_TEST_NATIVE_RAW_SNAPSHOT_BYTES: undefined,
             ACTQL_TEST_NATIVE_BATCH_PLAN: undefined, ACTQL_TEST_NATIVE_ACTIVATION: undefined,
