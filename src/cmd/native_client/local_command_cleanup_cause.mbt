@@ -92,6 +92,16 @@ fn command_preparation_cleanup_cause(
       }
     CommandBusinessEffectProposals(cause) =>
       match cause {
+        ImportObservation(original) =>
+          match original {
+            ForeignInput => "EffectImportForeignInput"
+            _ => "EffectImportObservation"
+          }
+        Imports(original) =>
+          match original {
+            MissingScope => "EffectImportedScopeMissing"
+            _ => "EffectImportedEvidence"
+          }
         HostExecution(original) =>
           match original {
             InvalidLimits => "EffectHostLimits"

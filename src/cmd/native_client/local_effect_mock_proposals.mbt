@@ -31,6 +31,8 @@ priv enum LocalNativeMockEffectProposalIssue {
   PublicNormalization(@run_host.ClientEffectNormalizationIssue)
   PublicCapture(@run_host.ClientEffectCapturedRunIssue)
   HostExecution(@local_values.LocalValuesExecutionIssue)
+  ImportObservation(@run_host.ClientEffectResultImportIssue)
+  Imports(@run_host.ClientEffectImportedEvidenceIssue)
 }
 
 ///|
@@ -63,6 +65,9 @@ priv struct LocalNativeMockEffectProposals {
     @publication.CapturedEffectDependencyBody,
   ]
   mut _retained_direct_evidence : Array[@run_host.ClientEffectAcquiredEvidence]
+  source_imports : Array[LocalNativeMockEffectSourceImport]
+  mut imports : @run_host.ClientEffectImportedEvidence?
+  import_observations : Array[@run_host.ClientEffectResultImportObservation]
 }
 
 ///|
@@ -119,6 +124,9 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
       )
       .map_err(issue => LocalNativeMockEffectProposalIssue::Capture(issue))
       .native_effect_proposal(self.original)
+    // Closed initial Host frame: this record's12 borrowed references and its
+    // five empty Array headers stay inside the existing fixed4096 call frame.
+    // Import bodies/producer exports begin only after the first capture borrow.
     let held : LocalNativeMockEffectProposals = {
       inputs,
       members: [],
@@ -129,6 +137,9 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
       _retained_local_manifest: None,
       _retained_lookup_dependencies: [],
       _retained_direct_evidence: [],
+      source_imports: [],
+      imports: None,
+      import_observations: [],
     }
     state.proposals = Some(held)
     @local_values.retain_installed_effect_captured_input_inventory(
@@ -195,8 +206,25 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
         )
       }
       if held.invocation is None {
+        held.materials = Some(
+          @run_host.bind_prepared_client_effect_original_materials(
+            state.first.allowed,
+            state.first.definition,
+            state.first.issued,
+            request=Some(state.first.request),
+          )
+          .map_err(issue => LocalNativeMockEffectProposalIssue::Materials(issue))
+          .native_effect_proposal(self.original),
+        )
+        self.prepare_mock_effect_source_imports(state, held, retention)
         let acquired = business.model_work[0]
-          .local_effect_model_acquired_evidence(retention, 16384, 1024, 20)
+          .local_effect_model_acquired_evidence(
+            retention,
+            16384,
+            1024,
+            20,
+            imports=held.imports,
+          )
           .map_err(issue => LocalNativeMockEffectProposalIssue::Source(issue))
           .native_effect_proposal(self.original)
         // Keep the actual returned originals before any later export/target
@@ -208,16 +236,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
         held._retained_direct_evidence = @run_host.client_effect_model_acquired_direct_sources(
           acquired,
         )
-        held.materials = Some(
-          @run_host.bind_prepared_client_effect_original_materials(
-            state.first.allowed,
-            state.first.definition,
-            state.first.issued,
-            request=Some(state.first.request),
-          )
-          .map_err(issue => LocalNativeMockEffectProposalIssue::Materials(issue))
-          .native_effect_proposal(self.original),
-        )
+
         guard self.original.project is Some(project) &&
           project.mock_declarations is Some(mock) &&
           mock.file_sources is Some(files) &&
@@ -458,6 +477,22 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
 // Retire pure Core child continuations before returning their actual Result
 // pins. No file, pending write, Store or physical owner is acknowledged here.
 fn LocalNativeMockEffectProposals::close(self : Self) -> Bool {
+  // Shared pure dependency aliases retire before their first member capture
+  // backing. Physical pins and every partial child still close below through
+  // the original owners; clearing metadata is never a physical ACK.
+  self.acquired = None
+  self.imports = None
+  self.import_observations.clear()
+  for source in self.source_imports {
+    source.close_export()
+  }
+  self.source_imports.clear()
+  self._retained_local_manifest = None
+  self._retained_lookup_dependencies.clear()
+  self.materials = None
+  self._retained_keyed_identity = None
+  self.invocation = None
+  self._retained_direct_evidence.clear()
   for entry in self.members {
     entry._retained_dependency = None
     entry._retained_snapshot_wire = None
@@ -499,12 +534,5 @@ fn LocalNativeMockEffectProposals::close(self : Self) -> Bool {
       }
     }
   }
-  self.acquired = None
-  self._retained_local_manifest = None
-  self._retained_lookup_dependencies.clear()
-  self.materials = None
-  self._retained_keyed_identity = None
-  self.invocation = None
-  self._retained_direct_evidence.clear()
   @strategy.release_captured_effect_inputs(self.inputs)
 }

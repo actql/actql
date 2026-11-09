@@ -19,6 +19,7 @@ import {
   "actql/actql/logical_request_scope" @request_scope,
   "actql/actql/effect_application" @effect,
   "actql/actql/stage_results",
+  "actql/actql/relation_results" @results,
   "actql/actql/platform_native/client_host" @local_host,
   "actql/actql/platform_native/credential_resource" @raw_resource,
   "actql/actql/platform_native/signature" @local_crypto,

@@ -1077,6 +1077,24 @@ fn native_mock_readme_content_join_adopt(
           evidence,
         ),
       )
+      if @env.get_env_var("ACTQL_TEST_NATIVE_SOURCE_UNIT_EVIDENCE") == Some("1") {
+        let unit = @run_host.issue_client_keyed_native_effect_source_unit(
+          prepared, lookup, index, retention, 16384, 1024, 20,
+        ).native_content_join_stage("same original whole Source Unit evidence")
+        assert_true(
+          @run_host.client_effect_local_invocation_matches(
+            @run_host.client_effect_acquired_invocation(unit),
+            prepared,
+            index,
+          ),
+        )
+        assert_true(
+          @run_host.issue_client_keyed_native_effect_source_unit(
+            prepared, lookup, index, retention, 1, 1024, 20,
+          )
+          is Err(@run_host.Invocation(@run_host.Encoding)),
+        )
+      }
       source_identities.push(evidence.identity)
       source_logicals.push(evidence.logical)
       source_observations.push(evidence.observation)
@@ -2363,6 +2381,20 @@ fn native_mock_readme_content_join_adopt(
     assert_true(@run_host.client_keyed_native_left_identity(lookup) is None)
   }
   if source_artifacts {
+    if @env.get_env_var("ACTQL_TEST_NATIVE_SOURCE_UNIT_EVIDENCE") == Some("1") {
+      assert_true(
+        @run_host.issue_client_keyed_native_effect_source_unit(
+          prepared,
+          lookup,
+          0,
+          raw_retention.unwrap(),
+          16384,
+          1024,
+          20,
+        )
+        is Err(@run_host.Invocation(@run_host.ForeignCapturedInput)),
+      )
+    }
     assert_true(
       @run_host.client_keyed_native_source_evidence(lookup, 0) is None,
     )
@@ -2644,4 +2676,21 @@ fn Result::native_source_logical_stage(
       fail(label + ": " + cause)
     }
   }
+}
+
+///|
+test "Native original whole Source Unit evidence preserves original captures and retired refusal" {
+  assert_eq(
+    @env.get_env_var("ACTQL_TEST_NATIVE_SOURCE_UNIT_EVIDENCE"),
+    Some("1"),
+  )
+  assert_eq(@env.get_env_var("ACTQL_TEST_NATIVE_SOURCE_ARTIFACTS"), Some("1"))
+  native_project_mock_model_backed_read(
+    false,
+    readme_request=true,
+    effect_compilation=true,
+    effect_source_inputs=true,
+    content_join=true,
+    static_policy=true,
+  )
 }

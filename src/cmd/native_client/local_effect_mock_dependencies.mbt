@@ -84,11 +84,57 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_dependency_inventory(
   for body in proposals._retained_lookup_dependencies {
     retain(body)
   }
+  // The imported producer's complete original Artifact/Manifest closure is
+  // additional to the Model observation and Lookup protocol, never replaced
+  // by their CIDs or the narrower contributing Source metadata.
+  for source in proposals.source_imports {
+    append(
+      "local_computation",
+      None,
+      @run_host.client_effect_local_invocation_json(
+        @run_host.client_effect_acquired_invocation(source.source),
+      ),
+    )
+    if source.manifest is Some(original) {
+      append(
+        "local_manifest",
+        None,
+        @run_host.client_effect_local_manifest_json(original),
+      )
+    }
+    for capture in source.captures {
+      for body in @run_host.client_effect_dependency_capture_bodies(capture) {
+        retain(body)
+      }
+    }
+  }
+  for observed in proposals.import_observations {
+    append(
+      "result_import_observation",
+      None,
+      @run_host.client_effect_result_import_observation_json(observed),
+    )
+  }
+  if proposals.imports is Some(original) {
+    append(
+      "acquisition_scope",
+      None,
+      @run_host.client_effect_imported_scope_json(original),
+    )
+    for relation in @run_host.client_effect_imported_relation_bodies(original) {
+      append("acquisition_relation", None, relation)
+    }
+  }
   retain(model)
   for (kind, wire) in model_dependencies {
     append(kind, None, wire)
   }
-  for acquired in proposals._retained_direct_evidence {
+  let source_evidence = if proposals.imports is Some(_) {
+    proposals.source_imports.map(source => source.source)
+  } else {
+    proposals._retained_direct_evidence
+  }
+  for acquired in source_evidence {
     for
       (kind, wire) in @run_host.client_effect_acquired_dependency_bodies(
         acquired,

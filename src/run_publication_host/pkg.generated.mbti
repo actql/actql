@@ -1725,6 +1725,8 @@ pub fn issue_client_infer_run_materials(ClientCompiledRun, @run_publication.Publ
 
 pub fn issue_client_keyed_lookup_observation(ClientKeyedLookupInput, String, String) -> Result[ClientKeyedLookupObservation, ClientKeyedRequestIssue]
 
+pub fn issue_client_keyed_native_effect_source_unit(PreparedClientEffectComputation, ClientKeyedLookupInput, Int, @run_publication.PublicationContract, Int, Int, Int) -> Result[ClientEffectAcquiredEvidence, ClientEffectAcquiredEvidenceIssue]
+
 pub fn issue_client_local_run_retention_policy(ClientLocalRunPolicyProfile, String) -> Result[@run_publication.PublicationContract, ClientLocalRunPolicyProfileIssue]
 
 pub fn issue_client_model_provider_binding(String, String, String, String) -> Result[@run_publication.RunEvidenceValue, @run_publication.RunEvidenceValueIssue]
@@ -1867,7 +1869,7 @@ pub fn issue_prepared_client_values_plan_graph(PreparedClientProgram, @lowering_
 
 pub fn issue_prepared_source_free_client_bound_template(PreparedClientProgram, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, ClientBoundTemplateIssue]
 
-pub fn issue_single_model_client_effect_acquired_evidence(ClientCompiledRun, ClientInferCallScope, @run_publication.CapturedEffectDependencyBody, ClientInferComposedSources, @run_publication.PublicationContract, Int, Int, Int) -> Result[ClientEffectModelAcquiredEvidence, ClientEffectAcquiredEvidenceIssue]
+pub fn issue_single_model_client_effect_acquired_evidence(ClientCompiledRun, ClientInferCallScope, @run_publication.CapturedEffectDependencyBody, ClientInferComposedSources, @run_publication.PublicationContract, Int, Int, Int, imports? : ClientEffectImportedEvidence?) -> Result[ClientEffectModelAcquiredEvidence, ClientEffectAcquiredEvidenceIssue]
 
 pub fn issue_single_model_client_effect_direct_source_evidence(ClientCompiledRun, ClientInferCallScope, @run_publication.CapturedEffectDependencyBody, ClientInferComposedSources, @run_publication.PublicationContract, Int, Int, Int) -> Result[(ClientEffectLocalInvocation, Array[ClientEffectAcquiredEvidence]), ClientEffectAcquiredEvidenceIssue]
 

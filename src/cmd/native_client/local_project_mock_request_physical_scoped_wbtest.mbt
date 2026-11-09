@@ -550,6 +550,7 @@ fn native_mock_readme_request_payload(
               let selected = models[0]
               if effect_recipe {
                 native_mock_readme_effect_recipe(
+                  prepared,
                   original,
                   selected._retained_limits.identity.wire,
                 )
@@ -1018,6 +1019,7 @@ fn native_model_graph_test_cause(
 // Product's existing 1MiB private-record setting. These are constructor DATA,
 // not a completed input inventory or authority to execute a physical row.
 fn native_mock_readme_effect_recipe(
+  prepared : @run_host.PreparedClientEffectComputation,
   original : LocalProjectMockDeclarations,
   wire : @execution.RowWireLimits,
 ) -> Unit raise {
@@ -1063,10 +1065,45 @@ fn native_mock_readme_effect_recipe(
   // Raw response Bytes remain two simultaneous full original buffers.
   assert_true(control_r >= 2L * codec.response_bytes.to_int64())
   assert_true(control_e >= control_r)
+  if @env.get_env_var("ACTQL_TEST_NATIVE_IMPORT_QUOTE") == Some("1") {
+    let imports = native_mock_effect_import_construction(prepared, wire)
+    let capture_r = @execution.execution_capacity_retained_bytes(quantities[0]) +
+      2L * @execution.execution_capacity_retained_bytes(quantities[1]) +
+      @execution.execution_capacity_retained_bytes(imports)
+    let capture_e = @execution.execution_capacity_execution_bytes(quantities[0]) +
+      2L * @execution.execution_capacity_execution_bytes(quantities[1]) +
+      @execution.execution_capacity_execution_bytes(imports)
+    println(
+      "Original import/capture quote R=" +
+      capture_r.to_string() +
+      ",E=" +
+      capture_e.to_string(),
+    )
+    if 60922084L + 223729857L + 13936L + 2L * control_r + capture_r >=
+      536870912L ||
+      60922084L + 303631383L + 33936L + 2L * control_e + capture_e >= 536870912L {
+      fail(
+        "Actual Native import/capture constructor does not fit beside the original frozen pre-capture Ledger",
+      )
+    }
+  }
 }
 
 ///|
 test "Native README Effect recipe uses its selected row and original storage codecs" {
+  native_project_mock_model_backed_read(
+    false,
+    readme_request=true,
+    effect_compilation=true,
+    effect_source_inputs=true,
+    static_policy=true,
+    effect_recipe=true,
+  )
+}
+
+///|
+test "Native original two-row import and capture construction fits its unchanged facility" {
+  assert_eq(@env.get_env_var("ACTQL_TEST_NATIVE_IMPORT_QUOTE"), Some("1"))
   native_project_mock_model_backed_read(
     false,
     readme_request=true,

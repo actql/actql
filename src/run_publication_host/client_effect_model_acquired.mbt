@@ -11,6 +11,7 @@ struct ClientEffectModelAcquiredEvidence {
   keyed : (ClientKeyedLookupInput, ClientKeyedNativeCompletion)?
   scope : @publication.PublicationContract
   retention : @publication.PublicationContract
+  imports : ClientEffectImportedEvidence?
 }
 
 ///|
@@ -26,6 +27,7 @@ pub fn issue_single_model_client_effect_acquired_evidence(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  imports? : ClientEffectImportedEvidence? = None,
 ) -> Result[
   ClientEffectModelAcquiredEvidence,
   ClientEffectAcquiredEvidenceIssue,
@@ -79,6 +81,7 @@ pub fn issue_single_model_client_effect_acquired_evidence(
       max_bytes,
       max_nodes,
       max_depth,
+      imports=imports.map(value => (value, sources)),
     ) {
     Ok(value) => value
     Err(issue) => return Err(Invocation(issue))
@@ -102,7 +105,10 @@ pub fn issue_single_model_client_effect_acquired_evidence(
     ) {
     return Err(Invocation(ForeignCapturedInput))
   }
-  let scopes = direct.map(value => value.scope)
+  let scopes = match imports {
+    Some(original) => [original.scope]
+    None => direct.map(value => value.scope)
+  }
   if keyed is Some((lookup, _)) {
     guard lookup.publication_identity is Some(identity) else {
       return Err(Invocation(ForeignSourceObservation))
@@ -125,6 +131,7 @@ pub fn issue_single_model_client_effect_acquired_evidence(
     keyed,
     scope,
     retention,
+    imports,
   })
 }
 
@@ -288,9 +295,14 @@ pub fn issue_model_client_effect_local_result_artifact(
 fn effect_model_acquired_relation_cids(
   acquired : ClientEffectModelAcquiredEvidence,
 ) -> Result[Array[String], ClientEffectLocalResultArtifactIssue] {
-  let relations = acquired.direct.map(value => {
-    @publication.publication_contract_identity(value.relation)
-  })
+  let relations = match acquired.imports {
+    Some(original) =>
+      original.relations.map(@publication.publication_contract_identity)
+    None =>
+      acquired.direct.map(value => {
+        @publication.publication_contract_identity(value.relation)
+      })
+  }
   if acquired.keyed is Some((lookup, completed)) {
     guard !lookup.closed &&
       lookup.left.lookup_issue is None &&

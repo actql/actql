@@ -140,7 +140,7 @@ pub fn invocation_binding_output(InvocationBinding) -> @execution_relation.Compl
 
 pub fn invocation_evidence(Execution, Int) -> @run_publication.RunEvidenceValue?
 
-pub fn issue_original_local_model_acquired_evidence(LocalModelObservation, @run_publication.PublicationContract, Int, Int, Int) -> Result[@run_publication_host.ClientEffectModelAcquiredEvidence, @run_publication_host.ClientEffectAcquiredEvidenceIssue]
+pub fn issue_original_local_model_acquired_evidence(LocalModelObservation, @run_publication.PublicationContract, Int, Int, Int, imports? : @run_publication_host.ClientEffectImportedEvidence?) -> Result[@run_publication_host.ClientEffectModelAcquiredEvidence, @run_publication_host.ClientEffectAcquiredEvidenceIssue]
 
 pub fn issue_original_local_model_direct_source_evidence(LocalModelObservation, @run_publication.PublicationContract, Int, Int, Int) -> Result[(@run_publication_host.ClientEffectLocalInvocation, Array[@run_publication_host.ClientEffectAcquiredEvidence]), @run_publication_host.ClientEffectAcquiredEvidenceIssue]
 

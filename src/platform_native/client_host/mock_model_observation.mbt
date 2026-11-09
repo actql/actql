@@ -479,6 +479,7 @@ pub fn NativeClientMockModelWork::local_effect_model_acquired_evidence(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  imports? : @host.ClientEffectImportedEvidence? = None,
 ) -> Result[
   @host.ClientEffectModelAcquiredEvidence,
   @host.ClientEffectAcquiredEvidenceIssue,
@@ -494,7 +495,12 @@ pub fn NativeClientMockModelWork::local_effect_model_acquired_evidence(
     self.advancing = false
   }
   let result = @infer.issue_original_local_model_acquired_evidence(
-    observation, retention, max_bytes, max_nodes, max_depth,
+    observation,
+    retention,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    imports~,
   )
   if self.closing ||
     self.closed ||

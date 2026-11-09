@@ -114,6 +114,7 @@ fn native_mock_effect_operations(
   )
   let selected = []
   let policy = @run_host.client_standard_effect_computation_limits()
+  let imports = native_mock_effect_import_construction(prepared, wire)
   for index in 0..<@syntax.effect_header_count(headers) {
     let header = @syntax.effect_header_at(headers, index).unwrap()
     let stage = @syntax.effect_header_stage(header)
@@ -160,6 +161,14 @@ fn native_mock_effect_operations(
     let quantities = native_mock_effect_recipe_capacities(
       wire, record_bytes, request_bytes, physical,
     ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
+    // One shared import construction and holding, on the first original
+    // member. Other members reuse that original; they do not reserve it again.
+    if index == 0 {
+      quantities[0] = @execution.add_execution_capacity(quantities[0], imports).unwrap_or_else(() => {
+          stop("LocalOriginalEffectCapacityUnavailable")
+        },
+      )
+    }
     let capture = @local_values.prepare_installed_effect_capture_recipe_extent(
       "native.mock.file.capture", quantities,
     ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
@@ -406,5 +415,108 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_plan(
     business.request_initial = None
     business.request_input = None
     business.request_intent = None
+  })
+}
+
+///|
+// Additional immutable producer/import metadata, before the actual SAME Plan
+// capture operation is borrowed. The existing JSON constructor owns parser,
+// Unicode and wire backing; zero here is its additive non-physical basis, not
+// a Provider, a spare allowance or a claim of physical Source backing.
+fn native_mock_effect_import_construction(
+  prepared : @run_host.PreparedClientEffectComputation,
+  wire : @execution.RowWireLimits,
+) -> @execution.ExecutionCapacity raise ClientStop {
+  let empty = @execution.execution_capacity(0L, 0L).unwrap()
+  guard @run_host.prepared_client_effect_infer_occurrence(prepared)
+    is Some(model) else {
+    return empty
+  }
+  let unit = @run_host.client_infer_occurrence_coordinates(model).0
+  let program = @checked.effect_program_static_checked_computation(
+    @run_host.prepared_client_effect_computation_candidate(prepared),
+  )
+  let imports = @checked.unit_result_import_count(program, unit)
+    .unwrap_or(0)
+    .to_int64()
+  if imports == 0L {
+    return empty
+  }
+  let direct = @run_host.select_client_effect_direct_acquisition_occurrences(
+    prepared, 1000000,
+  ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
+  let units = @run_host.client_direct_acquisition_occurrence_count(direct).to_int64()
+  // SAME existing composed reader admission, not a new language ceiling.
+  if units < 1L || units > 2L {
+    stop("LocalOriginalEffectCapacityUnavailable")
+  }
+  let mut results = 0L
+  let stages = @checked.checked_stage_results(program)
+  for index in 0..<units.to_int() {
+    let (stage, _, _) = @run_host.client_direct_acquisition_occurrence_at(
+      direct, index,
+    ).unwrap()
+    let declarations = @stage_results.stage_at(stages, stage).unwrap_or_else(() => {
+      stop("LocalOriginalEffectCapacityUnavailable")
+    })
+    results += @results.count(declarations).to_int64()
+  }
+  // Per Result: Definition/Artifact/Derivation/Ordering. Per import: original
+  // observation and derived Relation. Per producer: Invocation/full Manifest.
+  // The imported combined scope and its semantic Invocation add two bodies.
+  let documents = 4L * results + 2L * imports + 2L * units + 2L
+  let json = @local_values.installed_json_effect_response_construction_capacity(
+    empty, 16384, 1024, 20,
+  ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
+  let rows = @local_values.installed_json_effect_response_construction_capacity(
+    empty,
+    wire.max_bytes,
+    wire.max_nodes,
+    wire.max_depth,
+  ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
+  let row_r = @execution.checked_preparation_add_product(
+    0L,
+    @execution.execution_capacity_retained_bytes(rows),
+    results,
+  ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
+  let r = @execution.checked_preparation_add_product(
+    0L,
+    @execution.execution_capacity_retained_bytes(json),
+    documents,
+  ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
+  let arrays = @execution.preparation_array_representation(
+    3L * units + 2L,
+    units + 3L * results + imports,
+    true,
+  ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
+  let controls = @execution.preparation_representation_cost(
+    @execution.compose_preparation_representation([
+      arrays,
+      {
+        record_headers: 2L + 5L * units + 5L * results + 3L * imports,
+        reference_slots: 5L + 40L * units + 24L * results + 20L * imports,
+        scalar_words: 2L * documents,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      },
+    ]).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable")),
+  ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
+  let workspace = @execution.checked_preparation_add_product(
+    @execution.execution_capacity_execution_bytes(json) -
+    @execution.execution_capacity_retained_bytes(json),
+    @execution.execution_capacity_execution_bytes(rows) -
+    @execution.execution_capacity_retained_bytes(rows),
+    1L,
+  ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
+  let retained = @execution.checked_preparation_add_product(r, row_r, 1L)
+    .bind(value => {
+      @execution.checked_preparation_add_product(value, controls, 1L)
+    })
+    .unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
+  let execution = @execution.checked_preparation_add_product(
+    retained, workspace, 1L,
+  ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
+  @execution.execution_capacity(retained, execution).unwrap_or_else(() => {
+    stop("LocalOriginalEffectCapacityUnavailable")
   })
 }

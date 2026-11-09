@@ -8,6 +8,7 @@ pub fn issue_original_local_model_acquired_evidence(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  imports? : @publication_host.ClientEffectImportedEvidence? = None,
 ) -> Result[
   @publication_host.ClientEffectModelAcquiredEvidence,
   @publication_host.ClientEffectAcquiredEvidenceIssue,
@@ -26,6 +27,7 @@ pub fn issue_original_local_model_acquired_evidence(
     max_bytes,
     max_nodes,
     max_depth,
+    imports~,
   )
   if !original_local_model_observation_current(value.held, value.issued) {
     return Err(Invocation(ForeignCapturedInput))

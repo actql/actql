@@ -3400,6 +3400,25 @@ The dependency inventory joins original lookup, contributing Source, Model and
 Result bodies under the existing strict graph validator and exact local source
 roots. Missing or unused evidence is not repaired by the caller.
 
+An imported Model Unit keeps each producer's complete local Result Manifest
+and its actual captured Result import observation. Contributing Source metadata
+alone cannot replace these imports or become a whole producer Artifact. The
+Native whole-Source entrance uses the original lookup's retained capture and
+protocol metadata to issue that producer's separate local Invocation; the
+original Result export still supplies its Artifact. The Model joins these
+typed imports with its original observation and completed lookup, checking the
+same captured Run and source identity at each checked input position. The
+source-free Model entrance continues to reject imported Units without those
+originals. No Source, Model or compiler is executed again for this projection.
+
+Producer exports, partial snapshots and dependency aliases remain on the
+existing proposal record before later constructors can fail. Their additional
+constructor inventory belongs to the first member's original capture extent;
+other members reuse that same immutable closure. Cleanup severs the shared
+metadata and closes its export continuations before retiring that backing.
+Result pins, physical sources and the Model output keep their independent
+original cleanup obligations.
+
 Preview metadata borrows the proposals' original pins. Its verifier children
 and body aliases retire before proposals return those pins; Preview cleanup
 must not release the same input owner a second time. These semantic checks do
