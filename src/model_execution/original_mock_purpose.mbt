@@ -130,15 +130,12 @@ fn original_model_startup_limits_match(
   if !provider_matches {
     return false
   }
-  let parent = @resources.ledger_limits(value.ledger)
-  let bound = purpose.limits.ledger
-  valid_original_mock_purpose_limits(limits) &&
-  parent.planning_work >= bound.planning_work &&
-  parent.attempts >= bound.attempts &&
-  parent.holdings >= bound.holdings &&
-  parent.transfer_bytes >= bound.transfer_bytes &&
-  parent.retained_bytes >= bound.retained_bytes &&
-  parent.execution_bytes >= bound.execution_bytes
+  // These are the SAME component ceilings retained by the original seal,
+  // not an allocation of every maximum on the shared parent. Component work,
+  // attempt/response/quantity admission still checks this exact Limits value;
+  // Resource independently admits each actual operation against the SAME
+  // parent's aggregate limits and consumed history. Neither ceiling is raised.
+  valid_original_mock_purpose_limits(limits)
 }
 
 ///|

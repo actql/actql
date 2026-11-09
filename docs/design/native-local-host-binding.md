@@ -3300,3 +3300,12 @@ page and activation-body aliases held by that persistence observation. Source
 and Store cleanup remain separate duties. Neither a captured event nor its
 adoption alone constitutes the cumulative accounting/attempt receipt or the
 validated whole lookup Relation required for final lookup evidence.
+
+The original shared Model startup retains the exact selected provider and
+component Limits alongside its original row/Scope/capacity seal. A component
+ceiling may exceed a smaller aggregate parent ceiling: it is not an allocation
+of every maximum. Component admission still bounds its actual work, attempts,
+bytes and quantities, while each real reservation on the same parent enforces
+the aggregate limits and all consumed or uncertain history. Startup must not
+reject that supported intersection merely by comparing the two maxima. The
+dedicated Model startup keeps its exact Ledger configuration correspondence.
