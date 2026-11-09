@@ -1,7 +1,11 @@
 ///|
 // Authored two-row input from scripts/fixtures/effect-file-operation-vectors.mjs.
 // Pure immutable-key projection only; no Host, Account, signer or IO is admitted.
-test "Native retained application keys follow execution order without reissuing originals" {
+fn native_application_projection_fixture() -> (
+  @scope.LogicalRequestScope,
+  @publication.EffectPreviewIdentity,
+  Array[Array[@effect.EffectDispatchKey]],
+) {
   let (request, _, _, _) = journal_test_run(
     "key-projection", "key-projection-run",
   )
@@ -44,6 +48,12 @@ test "Native retained application keys follow execution order without reissuing 
   let retained = @effect.recover_effect_preview_apply_keys(
     preview, scope, 1, 2, 1000, 256, 32, 8,
   ).unwrap()
+  (scope, preview, retained)
+}
+
+///|
+test "Native retained application keys follow execution order without reissuing originals" {
+  let (_, preview, retained) = native_application_projection_fixture()
   assert_eq(
     @publication.effect_preview_row_correlation_wire(preview, 0, 0),
     Some("\"B\""),
@@ -66,4 +76,79 @@ test "Native retained application keys follow execution order without reissuing 
   assert_true(retained_effect_ordered_row_key(preview, retained, 0, 2) is None)
   assert_true(retained_effect_ordered_row_key(preview, retained, 1, 0) is None)
   assert_true(retained_effect_ordered_row_key(preview, [], 0, 0) is None)
+}
+
+///|
+test "Native application row basis retains original key and ordered membership" {
+  let (scope, preview, keys) = native_application_projection_fixture()
+  let request = "sha256:" + "c".repeat(64)
+  let retention = "sha256:" + "d".repeat(64)
+  let unit = "sha256:" + "e".repeat(64)
+  let invocation = "sha256:" + "f".repeat(64)
+  let first_key = retained_effect_ordered_row_key(preview, keys, 0, 0).unwrap()
+  let (locator, key, basis) = retained_effect_application_row_basis(
+    preview, scope, first_key, "ProgramOriginal", "UnitOriginal", unit, invocation,
+    0, 0, request, retention, 64,
+  ).unwrap()
+  assert_true(physical_equal(key, first_key))
+  assert_eq(locator.program_id, "ProgramOriginal")
+  assert_eq(locator.node_id, "UnitOriginal")
+  assert_eq(locator.effect_id, "WriteOne")
+  assert_eq(locator.item_correlation_wire, "\"A\"")
+  assert_eq(basis.logical_item_locator_cid, locator.cid)
+  assert_eq(basis.dispatch_key_cid, first_key.cid)
+  assert_eq(basis.unit_definition_cid, unit)
+  assert_eq(
+    basis.original_membership_cid,
+    @publication.effect_preview_member_identity(preview, 0).unwrap(),
+  )
+  assert_eq(
+    basis.intent_fingerprint_cid,
+    @publication.effect_preview_ordered_row_identity(preview, 0, 0).unwrap(),
+  )
+  assert_eq(basis.canonical_request_cid, request)
+  assert_eq(basis.retention_contract_cid, retention)
+  assert_eq(basis.capability, "unavailable")
+  assert_eq(
+    basis.reservation_evidence_cid,
+    @publication.effect_preview_member_capability_evidence_cid(preview, 0).unwrap(),
+  )
+  // Independent literal preimage, calculated outside the product encoder.
+  assert_eq(
+    basis.recovery_contract_cid,
+    "sha256:8d268a8219c27f2d3c6eec3e91c1df28a0db9eb10bb134017f026123cce379c0",
+  )
+  let second_key = retained_effect_ordered_row_key(preview, keys, 0, 1).unwrap()
+  assert_true(
+    retained_effect_application_row_basis(
+      preview, scope, second_key, "ProgramOriginal", "UnitOriginal", unit, invocation,
+      0, 0, request, retention, 64,
+    )
+    is Err(_),
+  )
+  assert_true(
+    retained_effect_application_row_basis(
+      preview, scope, first_key, "ProgramOriginal", "UnitOriginal", unit, invocation,
+      0, 2, request, retention, 64,
+    )
+    is Err(_),
+  )
+  let (second_locator, same_second_key, second_basis) = retained_effect_application_row_basis(
+    preview, scope, second_key, "ProgramOriginal", "UnitOriginal", unit, invocation,
+    0, 1, request, retention, 64,
+  ).unwrap()
+  assert_true(physical_equal(same_second_key, second_key))
+  assert_eq(second_locator.item_correlation_wire, "\"B\"")
+  assert_true(second_locator.cid != locator.cid)
+  assert_true(
+    second_basis.intent_fingerprint_cid != basis.intent_fingerprint_cid,
+  )
+  assert_eq(second_basis.recovery_contract_cid, basis.recovery_contract_cid)
+  assert_true(
+    retained_effect_application_row_basis(
+      preview, scope, first_key, "ProgramOriginal", "UnitOriginal", unit, invocation,
+      0, 0, "invalid-request-cid", retention, 64,
+    )
+    is Err(_),
+  )
 }
