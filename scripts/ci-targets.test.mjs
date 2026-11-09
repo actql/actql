@@ -868,6 +868,11 @@ test('every heavy primitive is selected as one complete job and lint/spec always
 });
 
 test('full integration cannot skip, omit or fail either actual CLI acceptance job', () => {
+  for (const script of ['test-native-cli-source-free-install.mjs', 'test-native-cli-mock-install.mjs']) {
+    assert(jobs['native-cli-linux-local'].steps.some(step =>
+      step.run?.includes(`node scripts/${script}`) && step['continue-on-error'] === undefined),
+    `The required Local job must execute ${script}`);
+  }
   const selection = selectTargets(['README.md'], {event: 'workflow_dispatch', mainIntegration: true, nativeMacos: false});
   for (const name of ['native-cli-installed', 'native-cli-linux-local']) {
     for (const result of ['missing', 'failure', 'cancelled', 'skipped']) {

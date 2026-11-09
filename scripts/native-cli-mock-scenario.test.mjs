@@ -8,6 +8,21 @@ import {join} from 'node:path';
 import {scaffoldProject} from '../packages/native-cli/lib/project-scaffold.mjs';
 import {mockTemplates, runNativeCliMockScenario} from './native-cli-mock-scenario.mjs';
 
+test('installed Mock acceptance requires both complete same-cohort public templates without skips', async () => {
+  assert.deepEqual(mockTemplates, ['deal-review-mock', 'churn-risk-mock']);
+  const installed = await readFile(new URL('./test-native-cli-mock-install.mjs', import.meta.url), 'utf8');
+  for (const requirement of ['await verifyNativeCliRelease(directory)',
+    "assert.equal(source.revision, manifest.sourceSha",
+    'assert(expectedArtifact?.localRuntime',
+    'for (const template of mockTemplates) scenarios.push(await runNativeCliMockScenario',
+    "assert.equal(scenarios.length, 2, 'Both README and Quickstart must finish without skips')",
+    "run(process.execPath, [launcher, ...args], cwd)",
+    "records.push(record)", "await writeFile(join(root, 'commands.json')"]) {
+    assert(installed.includes(requirement), requirement);
+  }
+  assert.equal(installed.indexOf('await registry.close()') < installed.indexOf('await writeFile(receiptFile'), true);
+});
+
 async function fixture(t, template, mutate = () => {}) {
   const root = await mkdtemp(join(tmpdir(), 'actql-mock-scenario-unit-'));
   t.after(() => rm(root, {recursive: true, force: true}));

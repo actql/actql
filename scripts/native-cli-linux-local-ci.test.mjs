@@ -27,7 +27,9 @@ test('Local CI uses the normal selected producer and Local-required packaging be
   const producer = commands.findIndex(command => command.includes('node scripts/produce-native-cli-linux-local.mjs'));
   const pack = commands.findIndex(command => command.includes('node scripts/native-cli-release.mjs prepare-local'));
   const install = commands.findIndex(command => command.includes('node scripts/test-native-cli-source-free-install.mjs'));
+  const mock = commands.findIndex(command => command.includes('node scripts/test-native-cli-mock-install.mjs'));
   assert(producer >= 0 && producer < pack && pack < install);
+  assert(pack < mock);
   const command = commands[producer];
   for (const selected of ['--source "$(git rev-parse HEAD)"', '--package-version 0.0.2-rc.0',
     '--clang "$(realpath /usr/bin/clang-19)"', '--sqlite-archive', '--component-seconds 300', '--compile-seconds 1800']) {
@@ -36,10 +38,39 @@ test('Local CI uses the normal selected producer and Local-required packaging be
   assert.equal(command.match(/--openssl-package-archive/gu).length, 2);
   assert(!command.includes('--system-header-root'), 'Normal Ubuntu headers need no implicit extra-root widening');
   assert(!commands.some(value => /\|\|\s*(?:true|node)|--ignore-scripts.*artifact/u.test(value)));
-  for (const index of [producer, pack, install]) {
+  for (const index of [producer, pack]) {
     const step = job.steps.find(value => value.run === commands[index]);
     assert.equal(step.if, undefined); assert.equal(step['continue-on-error'], undefined);
   }
+  assert.equal(job.steps.find(value => value.run === commands[pack]).id, 'local_cohort');
+  for (const index of [install, mock]) {
+    const step = job.steps.find(value => value.run === commands[index]);
+    assert.equal(step['continue-on-error'], undefined);
+    assert.equal(step.run.split(' ').at(-1), '"$RUNNER_TEMP/native-cli-linux-local/release"');
+  }
+});
+
+test('prepared Local consumers remain independently required after sibling failure', () => {
+  const consumers = ['test-native-cli-source-free-install.mjs', 'test-native-cli-mock-install.mjs']
+    .map(script => job.steps.find(step => step.run?.includes(`node scripts/${script}`)));
+  for (const consumer of consumers) {
+    assert(consumer);
+    assert.match(consumer.if, /!cancelled\(\)/u, 'explicit status guard must not inherit success()');
+    assert.match(consumer.if, /steps\.local_cohort\.outcome/u);
+    assert.equal(consumer['continue-on-error'], undefined);
+    const condition = consumer.if.replace(/^\$\{\{\s*|\s*\}\}$/gu, '');
+    const evaluate = Function('steps', 'cancelled', 'success', `return (${condition});`);
+    for (const prepared of ['success', 'failure', 'skipped', 'cancelled']) {
+      for (const sibling of ['success', 'failure', 'skipped', 'cancelled']) {
+        for (const cancelled of [false, true]) {
+          assert.equal(evaluate({local_cohort: {outcome: prepared}, sibling: {outcome: sibling}},
+            () => cancelled, () => sibling === 'success'), prepared === 'success' && !cancelled);
+        }
+      }
+    }
+  }
+  const mock = consumers[1];
+  assert.equal(mock.env.TMPDIR, '${{ runner.temp }}/native-cli-linux-local/mock-consumers');
 });
 
 test('CI downloads original hash-bounded archives and retains exact production and failure receipts', () => {
@@ -51,9 +82,11 @@ test('CI downloads original hash-bounded archives and retains exact production a
   const retain = job.steps.find(step => step.uses?.startsWith('actions/upload-artifact@'));
   assert.equal(retain.if, 'always()');
   for (const path of ['sqlite/process-producer.json', 'crypto/producer.json', 'recipe/',
-    'artifact/artifact.json', 'native-producer/build.json', 'release/release.json', 'release/source-free-install-*.json', 'release/source-free-observed-*.json']) {
+    'artifact/artifact.json', 'native-producer/build.json', 'release/release.json', 'release/source-free-install-*.json', 'release/source-free-observed-*.json',
+    'release/mock-install-*.json', 'mock-consumers/actql-native-mock-install-*/commands.json']) {
     assert(retain.with.path.includes(path), path);
   }
+  assert(!retain.with.path.includes('mock-consumers/**'), 'Do not upload private project state or keys');
 });
 
 

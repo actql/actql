@@ -1803,6 +1803,7 @@ jobs:
             --openssl-package-archive "$RUNNER_TEMP/native-cli-linux-local/inputs/libssl3t64.deb" \
             --component-seconds 300 --compile-seconds 1800
       - name: Require Local payload in the selected npm cohort
+        id: local_cohort
         run: |
           printf '%s\n' '{"packageVersion":"0.0.2-rc.0","registry":"https://registry.npmjs.org/","access":"public","tag":"rc"}' > "$RUNNER_TEMP/native-cli-linux-local/cohort.json"
           node scripts/native-cli-release.mjs prepare-local \
@@ -1810,7 +1811,13 @@ jobs:
             "$RUNNER_TEMP/native-cli-linux-local/cohort.json" \
             "$RUNNER_TEMP/native-cli-linux-local/production/artifact"
       - name: Require actual fresh installed source-free Local execution
+        if: ${{ !cancelled() && steps.local_cohort.outcome == 'success' }}
         run: node scripts/test-native-cli-source-free-install.mjs "$RUNNER_TEMP/native-cli-linux-local/release"
+      - name: Require actual fresh installed README and Quickstart Mock workflows
+        if: ${{ !cancelled() && steps.local_cohort.outcome == 'success' }}
+        env:
+          TMPDIR: ${{ runner.temp }}/native-cli-linux-local/mock-consumers
+        run: node scripts/test-native-cli-mock-install.mjs "$RUNNER_TEMP/native-cli-linux-local/release"
       - name: Retain exact component, artifact and installed Local receipts
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -1825,6 +1832,8 @@ jobs:
             ${{ runner.temp }}/native-cli-linux-local/release/release.json
             ${{ runner.temp }}/native-cli-linux-local/release/source-free-install-*.json
             ${{ runner.temp }}/native-cli-linux-local/release/source-free-observed-*.json
+            ${{ runner.temp }}/native-cli-linux-local/release/mock-install-*.json
+            ${{ runner.temp }}/native-cli-linux-local/mock-consumers/actql-native-mock-install-*/commands.json
           if-no-files-found: warn
           retention-days: 14
   # Native storage, publication and control, and the Native retained path.

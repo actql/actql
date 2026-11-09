@@ -1,6 +1,6 @@
-// Opt-in positive acceptance, never an expected refusal or a skip. This stays
-// separate from source-free/Remote acceptance until the Native mock suppliers
-// and approval continuation are implemented. Missing support is a failure.
+// Positive installed acceptance, never an expected refusal or a skip. CI runs
+// this independently of source-free acceptance on the same prepared Native
+// release. Missing suppliers or approval continuation are failures.
 import assert from 'node:assert/strict';
 import {execFile} from 'node:child_process';
 import {createHash} from 'node:crypto';
