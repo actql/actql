@@ -502,7 +502,7 @@ pub fn captured_effect_local_result_export_matches_computed_unit(
 /// Bind a serial post-Model Result to the original Model input actually read
 /// by this captured Run. The completed Result is intentionally not the Model
 /// boundary itself. This reads the checked same-Unit edges and the existing
-/// nominal ProducerRead; it never compares rows/CIDs, executes a task or issues
+/// sealed completed input binding; it never compares rows/CIDs, executes a task or issues
 /// an input, permission, current proof or cleanup acknowledgement.
 pub fn captured_effect_local_result_export_matches_model_suffix(
   value : CapturedEffectLocalResultExport,
@@ -555,8 +555,8 @@ pub fn captured_effect_local_result_export_matches_model_suffix(
       return false
     }
     if producer == model_task {
-      guard run.inputs[consumer][0] is Some(input) &&
-        @execution.producer_read_matches_completed_output(input, original) &&
+      guard captured_completed_task_has_original_input(run, consumer, original) &&
+        @execution.completed_output_available(original) &&
         @execution.completed_result_export_preparation_matches_receipt(
           value.preparation,
           receipt,
@@ -569,14 +569,41 @@ pub fn captured_effect_local_result_export_matches_model_suffix(
         !run.stopped &&
         run.lifetimes[model_task].live &&
         run.lifetimes[consumer].live &&
-        (
-          run.inputs[consumer][0] is Some(actual) &&
-          physical_equal(actual, input)
-        ) &&
+        captured_completed_task_has_original_input(run, consumer, original) &&
         captured_effect_local_result_export_derived_retained(value) &&
         captured_effect_local_result_export_retained(inputs, value)
     }
     consumer = producer
   }
   false
+}
+
+///|
+// Read the same completed task's retained admission, never the scheduling
+// cache cleared by commit_task_output. Completion already checked these exact
+// inputs before making the output visible. No callbacks or material reads.
+fn captured_completed_task_has_original_input(
+  run : CapturedDAG,
+  task : Int,
+  original : @execution.CompletedOutput,
+) -> Bool {
+  match run.outputs[task] {
+    Some(Materialized(output)) =>
+      @execution.completed_output_has_original_operation_input(
+        output, original, 0,
+      )
+    Some(Managed(_)) => {
+      guard run.executions[task] is Some(execution) &&
+        !execution.disposed &&
+        execution.admitted_managed_inputs is Some(inputs) &&
+        inputs.length() == 1 else {
+        return false
+      }
+      @execution.managed_input_binding_has_original_completion(
+        inputs[0],
+        original,
+      )
+    }
+    _ => false
+  }
 }

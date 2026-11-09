@@ -524,6 +524,8 @@ pub fn completed_output_export_rows_complete(CompletedOutputExport) -> Result[Bo
 
 pub fn completed_output_export_workspace_slots(ValueLimits, RowWireLimits) -> Int?
 
+pub fn completed_output_has_original_operation_input(CompletedOutput, CompletedOutput, Int) -> Bool
+
 pub fn completed_output_has_row_table(CompletedOutput) -> Bool
 
 pub fn completed_output_import_cumulative_work(CompletedOutputImport) -> Int64
@@ -919,6 +921,8 @@ pub fn managed_identity_issuance_capability_same(ManagedIdentityIssuanceCapabili
 pub fn managed_input_binding_available(ManagedInputBinding) -> Bool
 
 pub fn managed_input_binding_for_operation(ManagedInputBinding, @lowering_relation.BoundPrepared, Int, Int) -> ManagedInputBinding?
+
+pub fn managed_input_binding_has_original_completion(ManagedInputBinding, CompletedOutput) -> Bool
 
 pub fn managed_input_binding_matches_carrier_reference(ManagedInputBinding, CarrierManagedCompletionReference) -> Bool
 
