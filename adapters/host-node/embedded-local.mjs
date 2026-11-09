@@ -2690,7 +2690,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         cleanupPending: state.cleanupPending}, {ownerFactKey});
     } catch { observation.noteLoss(); }
   };
-  const observeRun = async ({ref, principalId: actual}) => {
+  const observeRun = async ({ref, principalId: actual}, originalFrame, retainFrame) => {
     if (actual !== principalId || ref.namespaceId !== namespaceId ||
         ref.authorityScopeCid !== authorityScopeCid) {
       throw clientOperationError('RunStateAccessDenied');
@@ -2698,7 +2698,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     // Recheck the journal revision after asynchronous Store observation so
     // control facts never combine observations from two journal revisions.
     for (let attempt = 0; attempt < 8; attempt++) {
-      const retained = journal.lookupRunDefinition(ref, moon, control);
+      const retained = journal.lookupRunDefinition(ref, moon, control, originalFrame);
       if (retained === undefined) {
         throw clientOperationError('RunStateAccessDenied');
       }
@@ -2771,8 +2771,10 @@ async function openInstalledHost(originalInstallation, preparation) {
       // Only this revision-stable common Owner projection supplies status.
       projectRunObservation(ref, state, retained);
       try {
-        return JSON.parse(journal.publishRunState(retained, state,
+        const observed = JSON.parse(journal.publishRunState(retained, state,
           moon, control));
+        retainFrame?.(retained);
+        return observed;
       } catch (cause) {
         if (cause?.code === 'RunStateObservationChanged') continue;
         throw cause;
@@ -2944,6 +2946,10 @@ async function openInstalledHost(originalInstallation, preparation) {
       try { return await Promise.race([promise, interrupted]); }
       finally { signal?.removeEventListener('abort', abort); }
     };
+    // Borrow only the last completed observation of this same wait. Journal
+    // still reads current SQL and compares the complete original row on use.
+    let originalFrame;
+    const retainFrame = frame => { originalFrame = frame; };
     for (;;) {
       if (signal?.aborted) throw interruption();
       let wake, timer;
@@ -2964,7 +2970,8 @@ async function openInstalledHost(originalInstallation, preparation) {
         captureWork();
         // Reuse the original read/authorization owner. A caller timeout does
         // not retire an unfinished Store read or the original physical work.
-        const current = await observeStep(observeRun({ref, principalId:actual}));
+        const current = await observeStep(observeRun({ref, principalId:actual},
+          originalFrame, retainFrame));
         if (signal?.aborted) throw interruption();
         const decision = installedRunWaitDecision(moon, current, since);
         if (decision === 'ready') return current;
