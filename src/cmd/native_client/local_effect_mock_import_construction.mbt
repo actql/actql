@@ -20,9 +20,15 @@ fn native_mock_effect_capture_operation(
   @local_values.ClientInstalledEffectOperationBorrow,
   @local_values.ClientInstalledManagedRunIssue,
 ] {
-  @local_values.borrow_installed_effect_operation(
-    run, prepared, request, plan, entry, false, 0, 0, "native.mock.file.capture",
-  )
+  if entry == 0 {
+    @local_values.retain_installed_effect_operation_construction(
+      run, prepared, request, plan, entry, false, 0, 0, "native.mock.file.capture",
+    )
+  } else {
+    @local_values.borrow_installed_effect_operation(
+      run, prepared, request, plan, entry, false, 0, 0, "native.mock.file.capture",
+    )
+  }
 }
 
 ///|
