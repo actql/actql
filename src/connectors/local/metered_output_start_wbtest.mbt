@@ -313,3 +313,227 @@ test "singleton Set startup keeps recursive and injected providers fully prepaid
     @connector.close_capability_registry(registry)
   }
 }
+
+///|
+test "singleton Join startup keeps recursive and injected providers fully prepaid" {
+  for
+    (contract, literal, primitive) in [
+      ("{\"type\":\"number\",\"nullable\":false}", "1", true),
+      ("{\"type\":\"boolean\",\"nullable\":false}", "true", true),
+      ("{\"type\":\"string\",\"nullable\":false}", "\"text\"", false),
+      (
+        "{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}",
+        "[1,2]", false,
+      ),
+      (
+        "{\"type\":\"object\",\"nullable\":false,\"fields\":{\"x\":{\"type\":\"number\",\"nullable\":false}}}",
+        "{\"x\":1}", false,
+      ),
+    ] {
+    let (chain, _, _) = chain_lifetime_fixture(
+      "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"payload\":" +
+      contract +
+      "},\"rows\":[{\"id\":1,\"payload\":" +
+      literal +
+      "}]},\"as\":\"value\"},{\"from\":\"value\",\"join\":{\"with\":\"value\",\"kind\":\"inner\",\"on\":[{\"left\":\"id\",\"right\":\"id\"}],\"select\":{\"id\":\"left.id\",\"payload\":\"right.payload\"}}}]",
+    )
+    let selected = @execution.select_generated_sequence_step(
+      chain,
+      @execution.generated_sequence_step_index_at(chain, 1).unwrap(),
+    ).unwrap()
+    let registry = @connector.prepare_capability_registry(
+      [
+        {
+          name: "local",
+          acquisition: false,
+          fixed_compute: true,
+          effect: false,
+        },
+      ],
+      1,
+      100,
+    ).unwrap()
+    let registration = @connector.capability_registration_at(registry, 0).unwrap()
+    let original = prepare_local_compute_module(
+      registry,
+      registration,
+      [selected],
+      chain_lifetime_limits(),
+      chain_lifetime_measurement(),
+      100000,
+      1,
+    ).unwrap()
+    let full = local_module_capacity_for_sequence(original, 0, selected).unwrap()
+    let generic = @execution.generated_sequence_capacity(
+      selected,
+      chain_lifetime_limits(),
+      chain_lifetime_measurement(),
+    ).unwrap()
+    let metered = local_module_metered_output_start_capacity(
+      original, 0, selected,
+    )
+    if primitive {
+      assert_true(full.execution_bytes < generic.execution_bytes)
+      assert_true(
+        metered is Some(value) && value.execution_bytes < full.execution_bytes,
+      )
+    } else {
+      assert_true(metered is None)
+      assert_eq(
+        (full.retained_bytes, full.execution_bytes),
+        (generic.retained_bytes, generic.execution_bytes),
+      )
+    }
+    let starts = Ref(0)
+    let replacement = managed_provider(_ => true, _ => Some(generic), (
+      _,
+      _,
+      _,
+      _,
+      _,
+    ) => {
+      starts.val += 1
+      Err(@connector.InvalidLimits)
+    })
+    let injected = prepare_local_compute_module(
+      registry,
+      registration,
+      [selected],
+      chain_lifetime_limits(),
+      chain_lifetime_measurement(),
+      100000,
+      1,
+      managed_providers=[replacement],
+    ).unwrap()
+    assert_true(
+      local_module_metered_output_start_capacity(injected, 0, selected) is None,
+    )
+    let fallback = local_module_capacity_for_sequence(injected, 0, selected).unwrap()
+    assert_eq(
+      (fallback.retained_bytes, fallback.execution_bytes),
+      (generic.retained_bytes, generic.execution_bytes),
+    )
+    assert_eq(starts.val, 0)
+    @connector.close_capability_registry(registry)
+  }
+}
+
+///|
+test "singleton SnapshotMap meters recursive output only with prepaid construction and immediate input" {
+  for
+    (contract, literal, primitive) in [
+      ("{\"type\":\"number\",\"nullable\":false}", "1", true),
+      ("{\"type\":\"boolean\",\"nullable\":false}", "true", true),
+      ("{\"type\":\"string\",\"nullable\":false}", "\"text\"", false),
+      (
+        "{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}",
+        "[1,2]", false,
+      ),
+      (
+        "{\"type\":\"object\",\"nullable\":false,\"fields\":{\"x\":{\"type\":\"number\",\"nullable\":false}}}",
+        "{\"x\":1}", false,
+      ),
+    ] {
+    let (chain, _, _) = chain_lifetime_fixture(
+      "[{\"values\":{\"schema\":{\"payload\":" +
+      contract +
+      "},\"rows\":[{\"payload\":" +
+      literal +
+      "}]},\"as\":\"value\"},{\"from\":\"value\",\"derive\":{\"wrapped\":{\"object\":{\"item\":{\"field\":\"payload\"}}}}}]",
+    )
+    let selected = @execution.select_generated_sequence_step(
+      chain,
+      @execution.generated_sequence_step_index_at(chain, 1).unwrap(),
+    ).unwrap()
+    let registry = @connector.prepare_capability_registry(
+      [
+        {
+          name: "local",
+          acquisition: false,
+          fixed_compute: true,
+          effect: false,
+        },
+      ],
+      1,
+      100,
+    ).unwrap()
+    let registration = @connector.capability_registration_at(registry, 0).unwrap()
+    let original = prepare_local_compute_module(
+      registry,
+      registration,
+      [selected],
+      chain_lifetime_limits(),
+      chain_lifetime_measurement(),
+      100000,
+      1,
+    ).unwrap()
+    let full = local_module_capacity_for_sequence(original, 0, selected).unwrap()
+    let generic = @execution.generated_sequence_capacity(
+      selected,
+      chain_lifetime_limits(),
+      chain_lifetime_measurement(),
+    ).unwrap()
+    let metered = local_module_metered_output_start_capacity(
+      original, 0, selected,
+    )
+    if primitive {
+      assert_true(full.execution_bytes < generic.execution_bytes)
+      assert_true(
+        metered is Some(value) && value.execution_bytes < full.execution_bytes,
+      )
+    } else {
+      assert_true(
+        metered is None ||
+        metered.map(value => value.retained_bytes) == Some(full.retained_bytes),
+      )
+    }
+    let more_output = @execution.generated_bounded_sequence_capacity(
+      selected,
+      {
+        ..chain_lifetime_limits(),
+        rows: {
+          ..chain_lifetime_limits().rows,
+          output_values: {
+            ..chain_lifetime_limits().rows.output_values,
+            max_nodes: chain_lifetime_limits().rows.output_values.max_nodes + 1,
+          },
+        },
+      },
+      chain_lifetime_measurement(),
+    ).unwrap()
+    // Recursive output construction is not removed from the scratch recipe.
+    assert_eq(more_output.retained_bytes - full.retained_bytes, 256L)
+    assert_eq(more_output.execution_bytes - full.execution_bytes, 256L)
+    let starts = Ref(0)
+    let replacement = managed_provider(_ => true, _ => Some(generic), (
+      _,
+      _,
+      _,
+      _,
+      _,
+    ) => {
+      starts.val += 1
+      Err(@connector.InvalidLimits)
+    })
+    let injected = prepare_local_compute_module(
+      registry,
+      registration,
+      [selected],
+      chain_lifetime_limits(),
+      chain_lifetime_measurement(),
+      100000,
+      1,
+      managed_providers=[replacement],
+    ).unwrap()
+    assert_true(
+      local_module_metered_output_start_capacity(injected, 0, selected) is None,
+    )
+    let fallback = local_module_capacity_for_sequence(injected, 0, selected).unwrap()
+    assert_eq(
+      (fallback.retained_bytes, fallback.execution_bytes),
+      (generic.retained_bytes, generic.execution_bytes),
+    )
+    assert_eq(starts.val, 0)
+    @connector.close_capability_registry(registry)
+  }
+}

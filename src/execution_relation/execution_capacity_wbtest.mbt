@@ -280,9 +280,9 @@ test "one original primitive Values constructor keeps logical budgets without ph
 }
 
 ///|
-test "bounded immediate binding input borrows cells while copied schemas retain full allowance" {
+test "bounded projection borrows immediate and recursive input while generic retains full allowance" {
   for
-    (extra_schema, extra_row, immediate) in [
+    (extra_schema, extra_row, _immediate) in [
       ("", "", true),
       (
         ",\"payload\":{\"type\":\"string\",\"nullable\":false}", ",\"payload\":\"x\"",
@@ -325,14 +325,7 @@ test "bounded immediate binding input borrows cells while copied schemas retain 
     }
     let before = generated_bounded_sequence_capacity(selected, limits, measure).unwrap()
     let after = generated_bounded_sequence_capacity(selected, more, measure).unwrap()
-    assert_eq(
-      after.execution_bytes - before.execution_bytes,
-      if immediate {
-        0L
-      } else {
-        264L
-      },
-    )
+    assert_eq(after.execution_bytes - before.execution_bytes, 0L)
     assert_eq(after.retained_bytes, before.retained_bytes)
     let old = generated_sequence_capacity(selected, limits, measure).unwrap()
     let old_more = generated_sequence_capacity(selected, more, measure).unwrap()
