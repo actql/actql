@@ -211,6 +211,23 @@ export function createPackedHostFailureDiagnostics(report = value => {
     if (field !== undefined && !Object.hasOwn(field, 'value')) unavailable = true;
     return field !== undefined && Object.hasOwn(field, 'value') ? field.value : undefined;
   };
+  const numericTag = value => {
+    let owner = value;
+    // MoonBit puts the closed variant tag on its prototype, not necessarily
+    // the instance. Inspect DATA only, with at most two prototype hops.
+    for (let hops = 0; hops <= 2; hops++) {
+      if (owner === null || !['object', 'function'].includes(typeof owner)) return undefined;
+      if (nodeTypes.isProxy(owner)) { unavailable = true; return undefined; }
+      const field = Object.getOwnPropertyDescriptor(owner, '$tag');
+      if (field !== undefined) {
+        if (Object.hasOwn(field, 'value') && Number.isSafeInteger(field.value) &&
+            field.value >= 0 && field.value <= 2147483647) return field.value;
+        unavailable = true; return undefined;
+      }
+      if (hops < 2) owner = Object.getPrototypeOf(owner);
+    }
+    return undefined;
+  };
   const capture = (event, detail) => {
     if (!['dispatch_failed', 'effect_start_failed', 'model_resume_failed', 'model_recovery_failed'].includes(event)) return;
     try {
@@ -221,8 +238,8 @@ export function createPackedHostFailureDiagnostics(report = value => {
         else if (code !== undefined) record.codeOmitted = true;
       }
       const cause = event === 'effect_start_failed' ? own(detail, 'cause') : undefined;
-      const tags = [own(detail, 'issueTag') ?? own(cause, '$tag'),
-        own(detail, 'nestedIssueTag') ?? own(own(cause, '_0'), '$tag')];
+      const tags = [own(detail, 'issueTag') ?? numericTag(cause),
+        own(detail, 'nestedIssueTag') ?? numericTag(own(cause, '_0'))];
       for (const [index, key] of ['issueTag', 'nestedIssueTag'].entries()) {
         if (Number.isSafeInteger(tags[index]) && tags[index] >= 0 && tags[index] <= 2147483647) {
           record[key] = tags[index];

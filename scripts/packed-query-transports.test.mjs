@@ -107,6 +107,42 @@ test('Host failure diagnostics copy only allowlisted codes and own numeric tags 
   assert.equal(JSON.stringify(report).includes('PRIVATE_DIAGNOSTIC_PAYLOAD'), false);
 });
 
+test('Host failure diagnostics read inherited MoonBit tags through only two DATA prototype hops', () => {
+  let reads = 0;
+  const privateGetter = () => { reads++; throw new Error('PRIVATE_PROTOTYPE_PAYLOAD'); };
+  const privateFields = Object.fromEntries(['constructor', 'message', 'stack', 'payload'].map(key =>
+    [key, {get: privateGetter}]));
+  const outer = Object.defineProperties({$tag: 308}, privateFields);
+  const inner = Object.defineProperties({$tag: 4}, privateFields);
+  const diagnostic = createPackedHostFailureDiagnostics(() => {});
+  const authorization = diagnostic.authorization(undefined);
+  for (const hops of [1, 2]) {
+    const wrap = prototype => hops === 1 ? Object.create(prototype) : Object.create(Object.create(prototype));
+    const cause = Object.defineProperty(wrap(outer), '_0', {value: wrap(inner)});
+    authorization.observe('effect_start_failed', {code: 'ClientHostFailure', cause});
+  }
+  authorization.observe('effect_start_failed', {code: 'ClientHostFailure',
+    cause: Object.create(Object.create(Object.create({$tag: 999})))});
+  authorization.observe('effect_start_failed', {code: 'ClientHostFailure',
+    cause: Object.create(new Proxy({$tag: 999}, {
+      getOwnPropertyDescriptor: privateGetter, getPrototypeOf: privateGetter, get: privateGetter,
+    }))});
+  authorization.observe('effect_start_failed', {code: 'ClientHostFailure',
+    cause: Object.create(Object.defineProperty({}, '$tag', {get: privateGetter}))});
+  const report = diagnostic.report();
+  assert.equal(reads, 0);
+  assert.equal(report.available, false);
+  assert.equal(report.unavailable, true);
+  assert.deepEqual(report.records, [
+    {event: 'effect_start_failed', code: 'ClientHostFailure', issueTag: 308, nestedIssueTag: 4},
+    {event: 'effect_start_failed', code: 'ClientHostFailure', issueTag: 308, nestedIssueTag: 4},
+    {event: 'effect_start_failed', code: 'ClientHostFailure'},
+    {event: 'effect_start_failed', code: 'ClientHostFailure'},
+    {event: 'effect_start_failed', code: 'ClientHostFailure'},
+  ]);
+  assert.equal(JSON.stringify(report).includes('PRIVATE_PROTOTYPE_PAYLOAD'), false);
+});
+
 test('Host failure diagnostics retain at most eight recent sanitized records and absence stays unavailable', () => {
   const diagnostic = createPackedHostFailureDiagnostics(() => { throw new Error('ignored-report'); });
   assert.equal(diagnostic.report().available, false);
