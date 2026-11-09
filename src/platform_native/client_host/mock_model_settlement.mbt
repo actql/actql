@@ -6,6 +6,15 @@ let native_mock_model_evidence_key_codec_limits : (Int, Int, Int) = (
 )
 
 ///|
+// One closed scalar in the existing settlement. Prelude is sticky (no retry)
+// but has not entered a Store constructor; its captured Read owns any failure.
+priv enum NativeMockModelStorePhase {
+  ModelStoreUnstarted
+  ModelStorePrelude
+  ModelStoreEntered
+} derive(Eq)
+
+///|
 // A retained child of the existing Native Model caller. Store children own
 // their own physical persistence; this record never creates an ACK or a send.
 priv struct NativeMockModelSettlement {
@@ -23,7 +32,7 @@ priv struct NativeMockModelSettlement {
   mut exporter : @model.ModelCaptureExport?
   mut wire : String
   mut complete : Bool
-  mut store_attempted : Bool
+  mut store_phase : NativeMockModelStorePhase
   mut stored : Int
   mut store_complete : Bool
   mut journal_attempted : Bool
@@ -142,7 +151,7 @@ pub fn NativeClientMockModelWork::prepare_settlement_export(
       exporter: None,
       wire: "",
       complete: false,
-      store_attempted: false,
+      store_phase: ModelStoreUnstarted,
       stored: 0,
       store_complete: false,
       journal_attempted: false,
@@ -233,19 +242,18 @@ pub fn NativeClientMockModelWork::persist_settlement_evidence_in_original_read(
       !self.advancing &&
       self.settlement is Some(saved) &&
       saved.complete &&
-      !saved.store_attempted else {
+      saved.store_phase == ModelStoreUnstarted else {
       return Err(ForeignOriginal)
     }
     self.advancing = true
     defer {
       self.advancing = false
     }
-    saved.store_attempted = true
-    saved.store = Some(store)
+    saved.store_phase = ModelStorePrelude
     // The existing original-record codec has an 8192-byte output envelope.
     // Admit that constructor and the independent 32-byte HMAC output on this
     // SAME consuming Read before codec, epoch read or Crypto. This funds no
-    // Store/AEAD/output frame; those remain the installing caller's overlap.
+    // Store/AEAD/output frame; that separate aggregate is funded below.
     let (key_bytes, key_nodes, key_depth) = native_mock_model_evidence_key_codec_limits
     mock_model_require(
       self.capture
@@ -299,6 +307,12 @@ pub fn NativeClientMockModelWork::persist_settlement_evidence_in_original_read(
     // Only the already retained original Library encrypts. No caller key,
     // key generation, library path or replacement installation is accepted.
     let crypto = self.capture.crypto
+    mock_model_require(self.prepare_settlement_store_construction(store, saved))
+    // A failed pure quote/key prelude has not entered this Store. Its captured
+    // Read still owns any original read/return failure. Latch Store custody
+    // only immediately before its first real constructor, never infer ACK.
+    saved.store_phase = ModelStoreEntered
+    saved.store = Some(store)
     for original in saved.leaves {
       let child = mock_model_require(
         store
@@ -347,6 +361,93 @@ pub fn NativeClientMockModelWork::persist_settlement_evidence_in_original_read(
 }
 
 ///|
+// All children retained by this SAME settlement coexist with the next seal,
+// persist/readback and failed return. Quote them before the first Store call;
+// sequential scratch takes a maximum, retained ciphertext/keys accumulate.
+fn NativeClientMockModelWork::prepare_settlement_store_construction(
+  self : NativeClientMockModelWork,
+  store : @publication_store.Store,
+  saved : NativeMockModelSettlement,
+) -> Result[Unit, NativeClientMockModelIssue] {
+  if !saved.children.is_empty() {
+    return Err(ForeignOriginal)
+  }
+  self.capture.prepare_private_store_children_construction(
+    store,
+    saved.leaves.length(),
+    index => @publication.run_evidence_value_json(saved.leaves[index]),
+  )
+}
+
+///|
+fn NativeLocalJournalCapture::prepare_private_store_children_construction(
+  self : NativeLocalJournalCapture,
+  store : @publication_store.Store,
+  count : Int,
+  wire_at : (Int) -> String,
+  additional_retained? : Int64 = 0L,
+) -> Result[Unit, NativeClientMockModelIssue] {
+  guard self.original_resources is Some(original) &&
+    !original.interrupted &&
+    original.active_phase is Some(@arena.HostRead) &&
+    count >= 0 &&
+    additional_retained >= 0L else {
+    return Err(ForeignOriginal)
+  }
+  let (header, unit, terminator, array_header, pointer) = @bootstrap.native_managed_value_layout()
+  if header <= 0L || unit != 2L || terminator != unit || pointer <= 0L {
+    return Err(Encoding)
+  }
+  let n = count.to_int64()
+  let vector = @execution.preparation_array_representation(1L, n, true).unwrap()
+  // The original derived key remains beside all per-child key copies.
+  let mut retained = @execution.preparation_representation_cost(vector).unwrap() +
+    header +
+    33L +
+    additional_retained
+  let mut workspace = 0L
+  let mut contiguous = array_header + (12L + 3L * n) * pointer
+  for index in 0..<count {
+    guard store.private_evidence_custody_construction(wire_at(index))
+      is Some(layout) &&
+      @execution.preparation_representation_cost(layout.retained) is Some(r) &&
+      @execution.preparation_representation_cost(layout.workspace) is Some(e) &&
+      @execution.checked_preparation_add_product(retained, r, 1L) is Some(next) else {
+      return Err(Encoding)
+    }
+    retained = next
+    workspace = Int64::max(workspace, e)
+    // Pinned Native StringBuilder doubling and Map/Array bucket growth are
+    // independent contiguous constructors, not the logical R/E sum. The
+    // largest malformed envelope collection has at most one entry per byte.
+    let bytes = layout.envelope_bytes.to_int64()
+    let mut capacity = 8L
+    while capacity < bytes * 2L {
+      capacity *= 2L
+    }
+    contiguous = Int64::max(
+      contiguous,
+      Int64::max(
+        header + (capacity + 1L) * unit,
+        array_header + (capacity + 1L) * pointer,
+      ),
+    )
+  }
+  guard @execution.checked_preparation_add_product(retained, workspace, 1L)
+    is Some(execution) else {
+    return Err(Encoding)
+  }
+  original.host
+  .prepare_domain_original_read_construction(
+    original.read,
+    retained,
+    execution,
+    contiguous,
+  )
+  .map_err(issue => Original(OriginalResources(@arena.Read(issue))))
+}
+
+///|
 // Private encryption material from this SAME adopted Host and actual Store
 // binding. The existing epoch secret never leaves its original custody reader;
 // the domain-separated output supplies no signing, Model or execution grant.
@@ -356,6 +457,18 @@ fn native_mock_model_evidence_key(
   binding : String,
   reads : NativeClientJournalReadAccess,
 ) -> Result[Bytes, NativeLocalAdoptionIssue] {
+  native_local_private_evidence_key(
+    host, binding, reads, "actql-native-local-model-evidence-key/0.1",
+  )
+}
+
+///|
+fn native_local_private_evidence_key(
+  host : NativeLocalHostConnection,
+  binding : String,
+  reads : NativeClientJournalReadAccess,
+  domain : String,
+) -> Result[Bytes, NativeLocalAdoptionIssue] {
   let preimage = try {
     let (bytes, nodes, depth) = native_mock_model_evidence_key_codec_limits
     let writer = @encode.writer(bytes, nodes, depth)
@@ -363,7 +476,7 @@ fn native_mock_model_evidence_key(
     @encode.key(writer, "adoption_cid")
     @encode.string_value(writer, host.adoption_cid)
     @encode.key(writer, "domain")
-    @encode.string_value(writer, "actql-native-local-model-evidence-key/0.1")
+    @encode.string_value(writer, domain)
     @encode.key(writer, "store_binding")
     @encode.string_value(writer, binding)
     @encode.end_object(writer)

@@ -2,6 +2,14 @@
 type ModelEvidenceCustody
 
 ///|
+pub fn Store::private_evidence_custody_construction(
+  _self : Store,
+  _wire : String,
+) -> PrivateEvidenceCustodyConstruction? {
+  None
+}
+
+///|
 pub fn Store::prepare_model_evidence_custody(
   _self : Store,
   _definition : @publication.PublicationContract,

@@ -3390,3 +3390,26 @@ Public export and Captured Run preparation children retire before Preview and
 its original proposals pins. Preparing these contracts does not install public
 payloads or commit a waiting transition; encrypted evidence, Checkpoint custody,
 Journal state and physical Store cleanup remain distinct operations.
+
+### Native Mock review custody
+
+The multi-Source Native Mock route retains review custody on its original
+ModelWork and accepted Request. Its private continuation contains the original
+computation contracts, complete Captured Run and Preview, with exact Result
+inventories. A measuring writer and the actual emitter share one closed codec;
+measurement does not check the Program, compile or execute it again.
+
+The original captured Read funds UTF8, AEAD, ciphertext, readback parsing and
+all co-held custody children before Store entry. Per-child retained material
+accumulates while sequential constructor workspace takes its maximum. Disk
+quota remains separate. The original epoch secret derives a purpose-separated
+review encryption key bound to the actual adopted Host and Store location;
+neither raw keys nor an ambient library path enter the caller interface.
+
+Capture, Preview and paired Checkpoint confirmations precede the independent
+revision-bound Journal transition. Known COMMIT is retained before returning
+the Read. Unknown COMMIT retains all original custody; a known pre-COMMIT or
+rolled-back refusal permits only actual child cleanup. After known waiting,
+dropping process-local aliases does not delete durable evidence or acknowledge
+its Store quota release. Waiting is neither approval, mutation, Result delivery
+nor physical cleanup; their existing Owners remain separate.

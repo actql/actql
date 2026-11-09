@@ -285,6 +285,7 @@ fn command_preparation_cleanup_cause(
         Capture(_) => "ModelCapture"
         Store(_) => "ModelStore"
         Start(_) => "ModelStart"
+        Review(_) => "EffectReview"
         Encoding => "ModelEncoding"
       }
     CommandBusinessEffectAcceptance(cause) =>

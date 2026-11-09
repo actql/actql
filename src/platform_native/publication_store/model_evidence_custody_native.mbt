@@ -8,6 +8,24 @@ struct ModelEvidenceCustody {
 }
 
 ///|
+/// Quote this original private wire before UTF8, AEAD or Store construction.
+/// The same private custody constructor/readback serves Model and Effect.
+/// Its disk reservation cannot fund any of this live representation.
+pub fn Store::private_evidence_custody_construction(
+  self : Store,
+  wire : String,
+) -> PrivateEvidenceCustodyConstruction? {
+  if self.closed || self.retiring {
+    return None
+  }
+  guard private_evidence_custody_wire_construction(wire) is Some(layout) &&
+    layout.envelope_bytes <= self.max_record_bytes else {
+    return None
+  }
+  Some(layout)
+}
+
+///|
 /// The trusted Model caller supplies its original admitted evidence and the
 /// same Run/Scope/Slot/attempt. Fund this constructor, encryption, readback and
 /// failed-child overlap BEFORE calling; Store disk quota is independent.

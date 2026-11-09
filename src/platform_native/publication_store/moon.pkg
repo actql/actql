@@ -14,6 +14,7 @@ import {
   "actql/actql/connectors/salesforce/catalog",
   "actql/actql/encode_core" @encode,
   "actql/actql/decode_core" @decode,
+  "actql/actql/decode_scalar" @scalar,
   "actql/actql/decode_shape" @shape,
   "actql/actql/execution_relation" @execution,
   "actql/actql/source_value" @source,

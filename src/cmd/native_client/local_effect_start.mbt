@@ -1,7 +1,7 @@
 ///|
-// Only actual CLI outcomes: a saved original can be observed. The Native
-// Model route can accept/start/capture Sources, but still refuses until its
-// remaining Model/Effect continuation is connected. Neither is approval.
+// Only actual CLI outcomes: an authenticated accepted original is observed
+// through its existing lookup. A newly saved waiting checkpoint is still
+// neither approval nor a completed mutation.
 priv enum LocalEffectPreflightStatus {
   AlreadyAccepted
   AuthoritySupplierUnavailable
@@ -333,6 +333,8 @@ fn local_effect_prepare_start_with_clocks(
     selected.observe_mock_effect_targets()
     selected.prepare_mock_effect_preview(run, binding)
     selected.prepare_mock_effect_computation(run)
+    selected.persist_mock_effect_review(run)
+    return AlreadyAccepted
   }
   AuthoritySupplierUnavailable
 }

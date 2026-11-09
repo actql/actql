@@ -28,6 +28,7 @@ struct NativeClientMockModelWork {
   mut entry_recorded : Bool
   mut entry_issue : NativeLocalAdoptionIssue?
   mut settlement : NativeMockModelSettlement?
+  mut effect_review : NativeMockEffectReview?
   mut publication_capacity : @model.OriginalModelPublicationCapacity?
   mut publication_retained : Int64
   mut publication_execution : Int64
@@ -58,6 +59,7 @@ pub(all) enum NativeClientMockModelIssue {
   Capture(@model.ModelExecutionIssue)
   Store(@publication_store.NativePublicationStoreIssue)
   Start(NativeClientSourceWorkIssue)
+  Review(NativeClientMockEffectReviewIssue)
   Encoding
 }
 
@@ -119,6 +121,7 @@ pub fn prepare_native_client_mock_model_work(
     entry_recorded: false,
     entry_issue: None,
     settlement: None,
+    effect_review: None,
     publication_capacity: None,
     publication_retained: 0L,
     publication_execution: 0L,
@@ -780,6 +783,11 @@ pub fn NativeClientMockModelWork::close(
     self.closing = true
     self.account = None
     self.observation_time = None
+    match self.close_effect_review() {
+      Err(issue) => return Err(issue)
+      Ok(false) => return Ok(false)
+      Ok(true) => ()
+    }
     if self.lookup_entries is Some(entries) {
       for entry in entries {
         if (entry.attempted && !entry.recorded) ||
@@ -824,7 +832,7 @@ pub fn NativeClientMockModelWork::close(
         }
         if self.settlement is Some(saved) &&
           (
-            (saved.store_attempted && !saved.store_complete) ||
+            (saved.store_phase == ModelStoreEntered && !saved.store_complete) ||
             (saved.journal_attempted && !saved.journal_recorded)
           ) {
           // The same failed Store/Journal child owns unresolved persistence.
@@ -881,9 +889,9 @@ fn[T] mock_model_require(
 pub fn native_client_mock_model_work_construction() -> @execution.PreparationRepresentationUnits {
   {
     // Existing controls plus the one retained lookup-entry vector and field.
-    record_headers: 10L,
-    reference_slots: 47L,
-    scalar_words: 15L,
+    record_headers: 12L,
+    reference_slots: 55L,
+    scalar_words: 19L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }

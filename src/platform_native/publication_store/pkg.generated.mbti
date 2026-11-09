@@ -252,6 +252,12 @@ pub fn PayloadWriter::append(Self, Bytes) -> Result[Unit, NativePublicationStore
 pub fn PayloadWriter::cancel(Self) -> Result[Unit, NativePublicationStoreIssue]
 pub fn PayloadWriter::seal(Self) -> Result[NativePublicationPayloadInfo, NativePublicationStoreIssue]
 
+pub(all) struct PrivateEvidenceCustodyConstruction {
+  retained : @execution_relation.PreparationRepresentationUnits
+  workspace : @execution_relation.PreparationRepresentationUnits
+  envelope_bytes : Int
+}
+
 type ResultDelivery
 pub fn ResultDelivery::attempt_cid(Self) -> String
 pub fn ResultDelivery::close(Self) -> Result[Unit, NativePublicationStoreIssue]
@@ -290,6 +296,7 @@ pub fn Store::prepare_effect_source_custody(Self, @run_publication.PublicationCo
 pub fn Store::prepare_local_preparation_raw_observation(Self, @remote_credential.LocalPreparationCredentialGrant, @remote_credential.LocalPreparationCredentialUse, @http_client.Client, @signature.Library, Bytes) -> Result[LocalPreparationRawCustody, NativePublicationStoreIssue]
 pub fn Store::prepare_lookup_raw_custody(Self, @run_publication.PublicationContract, String) -> Result[CapturedContentCustody, NativePublicationStoreIssue]
 pub fn Store::prepare_model_evidence_custody(Self, @run_publication.PublicationContract, String, String, String, @run_publication.RunEvidenceValue, @signature.Library, Bytes) -> Result[ModelEvidenceCustody, NativePublicationStoreIssue]
+pub fn Store::private_evidence_custody_construction(Self, String) -> PrivateEvidenceCustodyConstruction?
 pub fn Store::read_publication_contract(Self, String, String) -> Result[@run_publication.PublicationContract, NativePublicationStoreIssue]
 pub fn Store::read_result_schema(Self, String) -> Result[String, NativePublicationStoreIssue]
 pub fn Store::reclaim_payload(Self, String) -> Result[Unit, NativePublicationStoreIssue]
