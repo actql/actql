@@ -52906,6 +52906,30 @@
               {
                 "path": "src/execution_relation/execution_capacity_wbtest.mbt",
                 "anchor": "test \"bounded unpivot quotes real cursor geometry without copied input or measurement forests\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"pivot retains immutable aggregate and current key on the same Ledger\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"pivot original binding import refusal precedes decode\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"pivot original binding cancellation cannot publish later input\""
+              },
+              {
+                "path": "src/execution_relation/bounded_group_wbtest.mbt",
+                "anchor": "test \"pivot output funds original measured rows before transfer and keeps refusal or close custody\""
+              },
+              {
+                "path": "src/execution_relation/execution_capacity_wbtest.mbt",
+                "anchor": "test \"bounded numeric pivot quotes real aggregate cursor geometry without copied forests\""
+              },
+              {
+                "path": "src/connectors/local/metered_output_start_wbtest.mbt",
+                "anchor": "test \"numeric pivot keeps full retention and recursive text output or injected fallback\""
               }
             ]
           }

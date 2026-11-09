@@ -493,6 +493,31 @@ pub fn local_module_metered_output_start_capacity(
           }
         }
       Some(@lower.RowStep(kernel)) if count == 1 &&
+        @lower.kernel_pivot(kernel) is Some(_) => {
+        // The existing bounded group/PIVOT child reads original scalar
+        // cells, retaining the text axis and aggregate workspace. Preserve
+        // FULL output backing before any aggregate row is constructed.
+        let input = @lower.kernel_input_schema(kernel)
+        let output = @lower.kernel_output_schema(kernel)
+        if !@schema.all_fields_required(input) ||
+          !@schema.all_fields_required(output) {
+          return None
+        }
+        for field in 0..<@schema.field_count(input) {
+          match @schema.field_at(input, field).unwrap().contract.shape {
+            @contract.Number | @contract.Boolean | @contract.Text(_) => ()
+            _ => return None
+          }
+        }
+        for field in 0..<@schema.field_count(output) {
+          match @schema.field_at(output, field).unwrap().contract.shape {
+            @contract.Number | @contract.Boolean => ()
+            _ => return None
+          }
+        }
+        metered_retention = false
+      }
+      Some(@lower.RowStep(kernel)) if count == 1 &&
         @lower.kernel_unpivot_outputs(kernel) is Some(_) => {
         // This bounded constructor borrows original admitted cells, including
         // Text/Array/Object backing, and prepared column labels. Its stepped
@@ -682,7 +707,7 @@ pub fn local_module_metered_output_start_capacity(
     base.execution_bytes >= data else {
     return None
   }
-  // The default singleton UNPIVOT constructs the SAME admitted output row,
+  // These default singleton constructors retain the SAME admitted output row,
   // not an input forest, measurement wire body or second output forest. Its
   // complete original retained envelope pays that row even before transfer.
   // Keep the bounded constructor's real maps/row arrays/cursors/frames/depth
@@ -691,7 +716,10 @@ pub fn local_module_metered_output_start_capacity(
   if count == 1 &&
     @execution.generated_sequence_step_at(sequence, 0)
     is Some(@lower.RowStep(kernel)) &&
-    @lower.kernel_unpivot_outputs(kernel) is Some(_) {
+    (
+      @lower.kernel_unpivot_outputs(kernel) is Some(_) ||
+      @lower.kernel_pivot(kernel) is Some(_)
+    ) {
     // These are separate retained/workspace dimensions. The existing driver
     // adds retained backing alongside workspace exactly once; do not subtract
     // retention from the workspace quote. Preserve the common capacity

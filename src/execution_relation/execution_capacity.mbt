@@ -219,6 +219,30 @@ pub fn generated_bounded_sequence_capacity(
       @schema.all_fields_required(schema)
     _ => false
   }
+  // Bounded numeric PIVOT scans original required scalar cells, including
+  // the immutable text axis. It keeps aggregate/order scratch and the full
+  // retained output; it constructs no copied input or measurement forest.
+  let borrowed_pivot = match operation {
+    @lower.RowStep(kernel) if @lower.kernel_pivot(kernel) is Some(_) => {
+      let input = @lower.kernel_input_schema(kernel)
+      let mut borrowed = @schema.all_fields_required(input) &&
+        @schema.all_fields_required(schema)
+      for field in 0..<@schema.field_count(input) {
+        match @schema.field_at(input, field).unwrap().contract.shape {
+          @contract.Number | @contract.Boolean | @contract.Text(_) => ()
+          _ => borrowed = false
+        }
+      }
+      for field in 0..<@schema.field_count(schema) {
+        match @schema.field_at(schema, field).unwrap().contract.shape {
+          @contract.Number | @contract.Boolean => ()
+          _ => borrowed = false
+        }
+      }
+      borrowed
+    }
+    _ => false
+  }
   let borrowed_row = match operation {
     @lower.RowStep(kernel) => {
       let bounded = @lower.kernel_bindings(kernel) is Some(_) ||
@@ -232,7 +256,13 @@ pub fn generated_bounded_sequence_capacity(
           | @lower.AssertUnique(_) => true
           _ => false
         })
-      (bounded || borrowed_group || borrowed_unnest || borrowed_unpivot) &&
+      (
+        bounded ||
+        borrowed_group ||
+        borrowed_unnest ||
+        borrowed_unpivot ||
+        borrowed_pivot
+      ) &&
       @lower.node_input_count(node) == 1 &&
       // Only the input forest is borrowed. A binding may construct recursive
       // output through its existing logical-root growth owner; its complete
@@ -256,7 +286,8 @@ pub fn generated_bounded_sequence_capacity(
             borrowed_unnest ||
             // UNPIVOT borrows kept and selected original cells, including
             // recursive values, and immutable prepared column labels.
-            borrowed_unpivot
+            borrowed_unpivot ||
+            borrowed_pivot
           ) &&
           @schema.all_fields_required(input) &&
           @schema.all_fields_required(schema)

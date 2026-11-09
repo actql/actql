@@ -660,3 +660,108 @@ test "bounded unpivot quotes real cursor geometry without copied input or measur
   assert_true(cleanup_bounded_unpivot(active).unwrap())
   assert_true(completed_output_available(source))
 }
+
+///|
+test "bounded numeric pivot quotes real aggregate cursor geometry without copied forests" {
+  let captured : Ref[GeneratedSequence?] = Ref(None)
+  let (control, active, source) = bounded_relation_start(
+    bounded_pivot_schema,
+    "[{\"id\":1,\"status\":\"open\",\"amount\":5}]",
+    bounded_pivot_max,
+    "pivot_0",
+    false,
+    constrain=generated => {
+      captured.val = Some(generated)
+      generated
+    },
+  )
+  let active = active.unwrap()
+  let generated = captured.val.unwrap()
+  let selected = select_generated_sequence_step(
+    generated,
+    generated_sequence_step_index_at(generated, 0).unwrap(),
+  ).unwrap()
+  let limits = compute_test_limits()
+  let measurement : FixedInputGuardMeasureLimits = {
+    max_work: 100000,
+    max_bytes: 10000,
+    max_nodes: 10000,
+    max_depth: 100,
+  }
+  let base = generated_bounded_sequence_capacity(selected, limits, measurement).unwrap()
+  let more_input = {
+    ..limits,
+    rows: {
+      ..limits.rows,
+      input_values: {
+        ..limits.rows.input_values,
+        max_nodes: limits.rows.input_values.max_nodes + 1000,
+        max_text_bytes: limits.rows.input_values.max_text_bytes + 1000,
+      },
+    },
+  }
+  let input = generated_bounded_sequence_capacity(
+    selected, more_input, measurement,
+  ).unwrap()
+  assert_eq(
+    (input.retained_bytes, input.execution_bytes),
+    (base.retained_bytes, base.execution_bytes),
+  )
+  let measured = generated_bounded_sequence_capacity(selected, limits, {
+    ..measurement,
+    max_nodes: measurement.max_nodes + 1000,
+    max_bytes: measurement.max_bytes + 1000,
+  }).unwrap()
+  assert_eq(
+    (measured.retained_bytes, measured.execution_bytes),
+    (base.retained_bytes, base.execution_bytes),
+  )
+  let output = generated_bounded_sequence_capacity(
+    selected,
+    {
+      ..limits,
+      rows: {
+        ..limits.rows,
+        output_values: {
+          ..limits.rows.output_values,
+          max_nodes: limits.rows.output_values.max_nodes + 1000,
+        },
+      },
+    },
+    measurement,
+  ).unwrap()
+  assert_true(
+    output.retained_bytes > base.retained_bytes &&
+    output.execution_bytes > base.execution_bytes,
+  )
+  let deeper = generated_bounded_sequence_capacity(selected, limits, {
+    ..measurement,
+    max_depth: measurement.max_depth + 100,
+  }).unwrap()
+  assert_true(deeper.execution_bytes > base.execution_bytes)
+  let framed = generated_bounded_sequence_capacity(
+    selected,
+    { ..limits, max_frames: limits.max_frames + 100, },
+    measurement,
+  ).unwrap()
+  assert_true(framed.execution_bytes > base.execution_bytes)
+  let slots = generated_bounded_sequence_capacity(
+    selected,
+    {
+      ..limits,
+      rows: {
+        ..limits.rows,
+        operation_entries: limits.rows.operation_entries + 100,
+      },
+    },
+    measurement,
+  ).unwrap()
+  assert_true(slots.execution_bytes > base.execution_bytes)
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_group_execution(active, 1).unwrap()
+    is BoundedGroupStopped(_, ..),
+  )
+  assert_true(cleanup_bounded_group_execution(active).unwrap())
+  assert_true(completed_output_available(source))
+}

@@ -285,6 +285,31 @@ fn managed_import_data_chain(
             "managed COUNT slot=\{slot} keys=\{@lower.count_group_key_count(group)} aggregates=\{@lower.count_group_aggregate_count(group)}",
           )
         }
+        if @execution.generated_sequence_step_at(selected, slot)
+          is Some(@lower.RowStep(kernel)) &&
+          @lower.kernel_pivot(kernel) is Some(_) {
+          for
+            schema in [
+              @lower.kernel_input_schema(kernel),
+              @lower.kernel_output_schema(kernel),
+            ] {
+            println(
+              "pivot required=\{@schema.all_fields_required(schema)} fields=\{@schema.field_count(schema)}",
+            )
+            for field in 0..<@schema.field_count(schema) {
+              let kind = match
+                @schema.field_at(schema, field).unwrap().contract.shape {
+                @contract.Number => "number"
+                @contract.Boolean => "boolean"
+                @contract.Text(_) => "text"
+                @contract.Array(_, ..) => "array"
+                @contract.Object(_) => "object"
+                _ => "other"
+              }
+              println("pivot field=\{field} shape=\{kind}")
+            }
+          }
+        }
         if expected_tasks is None &&
           @execution.generated_sequence_step_count(selected) > 1 {
           let child = @execution.select_generated_sequence_step(selected, step).unwrap()
@@ -1074,4 +1099,42 @@ test "borrowed unpivot import refusal precedes decode and retains original curre
 ///|
 test "borrowed unpivot cancellation cannot decode later input or publish copied cells" {
   unpivot_borrowed_original_data_chain(CancelImport)
+}
+
+///|
+fn pivot_original_binding_data_chain(
+  mode : ManagedImportDataCase,
+) -> Unit raise {
+  managed_import_data_chain(
+    mode,
+    numeric_profile_cid=Some(
+      "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df",
+    ),
+    query="SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM records |> SELECT id AS value, -amount, 'A' AS axis |> AS r |> SET value = 7 |> PIVOT(SUM(r.value) AS total FOR axis IN('A')) |> SELECT *) ORDER BY a, b NULLS LAST, c NULLS LAST",
+    source_wire="[{\"id\":1,\"amount\":10},{\"id\":2,\"amount\":20},{\"id\":3,\"amount\":10}]",
+    source_rows=3,
+    expected_tasks=None,
+    two_input_task=None,
+    result_name="main",
+    expected_rows=[
+      "{\"a\":0,\"b\":0,\"c\":0}", "{\"a\":7,\"b\":-20,\"c\":2}", "{\"a\":7,\"b\":-10,\"c\":4}",
+    ],
+    prior_execution=23313268L,
+    expected_policy=None,
+  )
+}
+
+///|
+test "pivot retains immutable aggregate and current key on the same Ledger" {
+  pivot_original_binding_data_chain(Complete)
+}
+
+///|
+test "pivot original binding import refusal precedes decode" {
+  pivot_original_binding_data_chain(RefuseImport)
+}
+
+///|
+test "pivot original binding cancellation cannot publish later input" {
+  pivot_original_binding_data_chain(CancelImport)
 }

@@ -577,16 +577,32 @@ test "bounded analytic admits exact work and rejects one unit short" {
 }
 
 ///|
-test "group output funds original measured rows before transfer and keeps refusal or close custody" {
+fn bounded_group_output_funding_case(pivot : Bool) -> Unit raise {
   for (refuse, close) in [(false, false), (true, false), (false, true)] {
     let calls = Ref(0)
     let before_transfer = Ref(true)
     let active : Ref[BoundedGroupExecution?] = Ref(None)
     let (_, execution, source) = bounded_relation_start(
-      "{\"k\":{\"type\":\"number\",\"nullable\":false}}",
-      "[{\"k\":1}]",
-      "\"group\":{\"by\":[\"k\"],\"aggregates\":{\"m\":{\"fn\":\"max\",\"field\":\"k\"}}}",
-      "group_0",
+      if pivot {
+        bounded_pivot_schema
+      } else {
+        "{\"k\":{\"type\":\"number\",\"nullable\":false}}"
+      },
+      if pivot {
+        "[{\"id\":1,\"status\":\"open\",\"amount\":5}]"
+      } else {
+        "[{\"k\":1}]"
+      },
+      if pivot {
+        bounded_pivot_max
+      } else {
+        "\"group\":{\"by\":[\"k\"],\"aggregates\":{\"m\":{\"fn\":\"max\",\"field\":\"k\"}}}"
+      },
+      if pivot {
+        "pivot_0"
+      } else {
+        "group_0"
+      },
       false,
       constrain=generated => {
         bind_generated_workspace_growth(
@@ -657,4 +673,14 @@ test "group output funds original measured rows before transfer and keeps refusa
     }
     assert_true(completed_output_available(source))
   }
+}
+
+///|
+test "group output funds original measured rows before transfer and keeps refusal or close custody" {
+  bounded_group_output_funding_case(false)
+}
+
+///|
+test "pivot output funds original measured rows before transfer and keeps refusal or close custody" {
+  bounded_group_output_funding_case(true)
 }
