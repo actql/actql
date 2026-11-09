@@ -3372,6 +3372,13 @@ input cannot supply that completion.
 
 The Native caller retains the completed Model observation, its original Run
 Invocation and actual successful invocation evidence at the Preview boundary.
+Opening its configured retained-Model Host keeps that boundary available but
+does not execute the remaining checked computation. The caller consumes that
+same Host's ready-task dispatcher before pinning the Effect Result sources.
+The original finite task inventory bounds dispatch; completed Source and Model
+boundaries are not re-executed. Host preparation/dispatch failures remain typed
+on the original command, and a missing next task supplies no completion or
+retirement acknowledgement. Existing Result pins still require actual output.
 Local Result Artifacts keep their original derived retention; the installation
 base retention cannot substitute for that policy. The selected Run policy
 binding projects its three actual retention dependency bodies under the same

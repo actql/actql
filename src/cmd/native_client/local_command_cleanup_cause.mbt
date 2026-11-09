@@ -92,6 +92,18 @@ fn command_preparation_cleanup_cause(
       }
     CommandBusinessEffectProposals(cause) =>
       match cause {
+        HostPreparation(original) =>
+          match original {
+            ForeignInstallation => "EffectHostForeignInstallation"
+            Installation(_) => "EffectHostInstallation"
+            Dispatch(_) => "EffectHostDispatchPreparation"
+            Estimate(_) => "EffectHostEstimate"
+          }
+        HostDispatch(original) =>
+          match original {
+            MissingImplementation => "EffectHostMissingImplementation"
+            Implementation(_) => "EffectHostImplementation"
+          }
         PublicExport(original) =>
           match original {
             InvalidState => "EffectPublicExportState"

@@ -104,6 +104,18 @@ test('cleanup category never serializes payloads and keeps public error code', {
   const effectProposals = functionSource.slice(proposalStart, proposalEnd);
   assert.equal(effectProposals, `    CommandBusinessEffectProposals(cause) =>
       match cause {
+        HostPreparation(original) =>
+          match original {
+            ForeignInstallation => "EffectHostForeignInstallation"
+            Installation(_) => "EffectHostInstallation"
+            Dispatch(_) => "EffectHostDispatchPreparation"
+            Estimate(_) => "EffectHostEstimate"
+          }
+        HostDispatch(original) =>
+          match original {
+            MissingImplementation => "EffectHostMissingImplementation"
+            Implementation(_) => "EffectHostImplementation"
+          }
         PublicExport(original) =>
           match original {
             InvalidState => "EffectPublicExportState"
@@ -322,7 +334,8 @@ test('cleanup category never serializes payloads and keeps public error code', {
   function enumCases(path, name, kind = 'enum') {
     assert(kind === 'enum' || kind === 'suberror');
     const text = readFileSync(new URL('../' + path, import.meta.url), 'utf8');
-    const start = text.indexOf(kind + ' ' + name + ' {');
+    const header = new RegExp('\\b' + kind + ' ' + name + '(?:\\[E\\])? \\{').exec(text);
+    const start = header?.index ?? -1;
     assert(start >= 0, name);
     const body = text.slice(start).split('\n}')[0].split('\n').slice(1).join('\n');
     // Enum payloads may wrap onto multiple lines, but remain closed type lists.
@@ -332,7 +345,9 @@ test('cleanup category never serializes payloads and keeps public error code', {
     const cases = rows.map(([row, variant, payload]) => {
       residual = residual.replace(row, '');
       const fields = payload === undefined ? [] : payload.split(',').map(value => value.trim());
-      assert(fields.every(value => /^(?:@\w+\.)?[A-Z]\w*\??$/u.test(value)), name);
+      // The two actual Host error payloads have one closed original RunIssue
+      // argument. These are type names only; no arbitrary expression parser.
+      assert(fields.every(value => /^(?:@\w+\.)?[A-Z]\w*(?:\[(?:@\w+\.)?[A-Z]\w*\])?\??$/u.test(value)), name);
       return {name: variant, arity: fields.length};
     });
     assert.equal(residual.trim(), '', 'Unsupported issue declaration: ' + name);
@@ -508,6 +523,15 @@ test('cleanup category never serializes payloads and keeps public error code', {
     PublicCapture: {
       path: 'src/run_publication_host/client_effect_captured_run.mbt', name: 'ClientEffectCapturedRunIssue',
       tags: {ForeignInput: 'EffectPublicCaptureInput'}, fallback: 'EffectPublicCapture',
+    },
+    HostPreparation: {
+      path: 'src/physical_host_dispatch/compute_host.mbt', name: 'ComputeHostIssue',
+      tags: {ForeignInstallation: 'EffectHostForeignInstallation', Installation: 'EffectHostInstallation',
+        Dispatch: 'EffectHostDispatchPreparation', Estimate: 'EffectHostEstimate'},
+    },
+    HostDispatch: {
+      path: 'src/connectors_builtin/compute.generated.mbt', name: 'ConfiguredDispatchIssue',
+      tags: {MissingImplementation: 'EffectHostMissingImplementation', Implementation: 'EffectHostImplementation'},
     },
   };
   assert.deepEqual(proposalIssues, Object.keys(proposalFamilies).map(name => ({name, arity: 1})));

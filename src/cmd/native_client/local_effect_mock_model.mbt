@@ -256,6 +256,30 @@ fn LocalCommandBusinessPreparation::retain_mock_effect_host(
     // These are borrowed aliases, not another execution/cleanup Owner.
     state.effect_capture = Some(captured)
     state.effect_host = Some(host)
+    // Opening the configured Host retains the completed Model boundary; it
+    // does not execute the remaining checked WHERE/Result tasks. Drive only
+    // this original Host's existing ready-task dispatcher before Result pins.
+    // An absent next task is not a success/availability acknowledgement:
+    // pin_captured_effect_sources still checks its actual original outputs.
+    let runtime = @builtin.configured_host_runtime(host)
+    let dag = @strategy.captured_effect_run_dag(captured)
+    let tasks = @strategy.graph_task_count(@strategy.captured_dag_graph(dag))
+    for _ in 0..<tasks {
+      let next = @host_dispatch.prepare_next_compute_task(runtime, ())
+        .map_err(issue => {
+          LocalNativeMockEffectProposalIssue::HostPreparation(issue)
+        })
+        .native_effect_proposal(self.original)
+      match next {
+        None => break
+        Some(task) =>
+          @builtin.execute_configured_in_process(host, task)
+          .map_err(issue => {
+            LocalNativeMockEffectProposalIssue::HostDispatch(issue)
+          })
+          .native_effect_proposal(self.original)
+      }
+    }
   })
 }
 
