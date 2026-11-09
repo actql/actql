@@ -1,5 +1,4 @@
 ///|
-#cfg(target="js")
 fn funded_value_cursor(text : String) -> @decode.Cursor {
   @decode.admit(
     @source.parse_json_literal(text, {

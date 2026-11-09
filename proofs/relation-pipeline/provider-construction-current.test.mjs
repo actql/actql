@@ -44,6 +44,17 @@ test('current five-field candidate component derives 2432 without promoting hist
     '77ab701f6dbd8974eab545bca95b7453e2f494f96450b855b911a87649e5deef');
   assert.throws(() => providerConstructionBound(path => path === countPath ? priorCount : read(path)),
     /Unreviewed current constructor source/);
+  // UNNEST changes the same quote callback without changing its constructor
+  // fields, captures or lifecycle. Its output execution is a separate bound.
+  const unnestPath = 'src/connectors/local/unnest_provider.mbt';
+  const unnest = read(unnestPath).toString();
+  assert.equal(unnest.split(bounded).length, 2, 'Reach the one reviewed UNNEST capacity query');
+  const priorUnnest = unnest.replace(bounded,
+    '      @execution.generated_sequence_capacity(sequence, limits, measurement)');
+  assert.equal(hash(priorUnnest),
+    '73ef7e256f5fc062cad8c00a3e39341a0e138493cbb01a7b9c6a45a05a2e986b');
+  assert.throws(() => providerConstructionBound(path => path === unnestPath ? priorUnnest : read(path)),
+    /Unreviewed current constructor source/);
   const current = providerConstructionBound(read);
   assert.equal(current.recordBytes, 48);
   assert.equal(current.bytes, 11 * (48 + 4 * 40) + 120 + 24);
