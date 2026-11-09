@@ -1031,3 +1031,34 @@ test "export enforces cumulative value wire and physical frame limits before sea
     assert_true(completed_output_available(source))
   }
 }
+
+///|
+test "converted Result receipt identifies its retained original completion" {
+  let owner = capture_fixture()
+  let live = Ref(true)
+  let (original, _) = retained_fixture(owner, live)
+  assert_true(original.table is None)
+  let conversion = prepare_completed_output_import(
+    original,
+    2,
+    stream_value_limits(),
+    row_wire_limits(),
+    64,
+  ).unwrap()
+  for row in 0..<2 {
+    append_completed_output_import(conversion, output_fixture_row(owner, row)).unwrap()
+  }
+  let converted = finish_completed_output_import(conversion).unwrap()
+  assert_true(completed_output_same_occurrence(original, converted))
+  let (receipt, wire) = export_relation_all(converted)
+  assert_eq(wire, "[{\"n\":1,\"s\":\"é\"},{\"n\":2,\"s\":\"😀\"}]")
+  assert_true(completed_relation_export_matches_output(receipt, original))
+  // Equal content/owner/target from another completion never substitutes for
+  // that original, and expired original liveness still refuses the receipt.
+  let (foreign, _) = retained_fixture(owner, Ref(true))
+  assert_false(completed_relation_export_matches_output(receipt, foreign))
+  live.val = false
+  assert_false(completed_relation_export_matches_output(receipt, original))
+  assert_true(completed_output_available(converted))
+  cancel_completed_relation_export_receipt(receipt)
+}
