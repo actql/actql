@@ -4841,7 +4841,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "39bd511cd3e6e5212fd37f384fac30eafd5ae42ffa4a3017fb6417ed86eee271",
+      "sha256": "e4959ec8f8e2409025c285c892770e5dd8bd3fa35b790574eafd5af0d475e584",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -21477,12 +21477,22 @@
           "async": false
         },
         {
+          "name": "prepareInstalledEffectControlConstruction/grant/grant",
+          "parameters": [
+            "receiver",
+            "method",
+            "args"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareInstalledEffectControlConstruction/invoke/invoke",
           "parameters": [
             "receiver",
             "method",
             "args",
-            "inputWire"
+            "inputWire",
+            "grant"
           ],
           "async": false
         },
@@ -22058,7 +22068,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "169b8d09f323dbf121d258f050983c1274b2c7ad3bc24c500999a288d1d66863",
+      "sha256": "e918e502fb807985bfd4b8aeddc234c3094f029f3328e0afa630c3a2fc613f21",
       "contracts": [
         {
           "operations": [
@@ -22606,6 +22616,7 @@
         },
         {
           "operations": [
+            "prepareInstalledEffectControlConstruction/grant/grant",
             "prepareInstalledEffectControlConstruction/invoke/invoke",
             "prepareInstalledEffectControlConstruction/invoke/invoke/observePlan/observePlan",
             "prepareInstalledEffectControlConstruction/parsePreview/parsePreview"
@@ -22662,6 +22673,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The captured Core Plan-shape getter reads only its original immutable Plan's"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same Run's control token has a separate synchronous Grant-construction"
               }
             ],
             "extension": [
@@ -22690,6 +22705,10 @@
               {
                 "path": "adapters/host-node/installed-row-effect-resources.test.mjs",
                 "anchor": "test('managed recovery derives its shared row ceiling from the same current Plan, preserving explicit tighter bounds'"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
+                "anchor": "test \"original Grant constructor keeps retained outputs without reserving unrelated Receipt scratch\""
               }
             ]
           }

@@ -34427,7 +34427,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_borrow.mbt",
-      "sha256": "47c5690679255872b69bebc91739dff9b7d2a1d8c6f117f0e49a38416b6b67af",
+      "sha256": "61ab80403ba96d98006555da368c8abfa7deb025b0e991821ec6e4bc7d052035",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original installed Effect operation borrow and retained same-Run management controls",
@@ -34453,6 +34453,10 @@
         {
           "name": "begin_installed_effect_operation_controls_original",
           "declaration": "begin_installed_effect_operation_controls_original ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , construction_deferred : Bool , ) - > Result [ ClientInstalledEffectManagedPlan , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "begin_installed_effect_operation_grant_construction",
+          "declaration": "begin_installed_effect_operation_grant_construction ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : ClientInstalledEffectManagedPlan , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "begin_installed_effect_operation_input",
@@ -34511,6 +34515,10 @@
           "declaration": "complete_installed_effect_operation_response_projection ( value : ClientInstalledEffectOperationBorrow , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
         },
         {
+          "name": "grow_installed_effect_operation_input",
+          "declaration": "grow_installed_effect_operation_input ( value : ClientInstalledEffectOperationBorrow , input : ClientInstalledEffectOperationExtent , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "installed_effect_control_capacity",
           "declaration": "installed_effect_control_capacity ( control : ClientEffectOperationControls ? , plan : ClientInstalledEffectManagedPlan , input ? : ( String , @ execution . ExecutionCapacity ) ?"
         },
@@ -34553,6 +34561,10 @@
         {
           "name": "resize_installed_effect_operation_control_construction",
           "declaration": "resize_installed_effect_operation_control_construction ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , active : Bool , input_wire ? : String ?"
+        },
+        {
+          "name": "resize_installed_effect_operation_input",
+          "declaration": "resize_installed_effect_operation_input ( value : ClientInstalledEffectOperationBorrow , input : ClientInstalledEffectOperationExtent , growing : Bool , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "retain_installed_effect_captured_input_inventory",
@@ -34681,6 +34693,7 @@
             "begin_installed_effect_operation_construction",
             "begin_installed_effect_operation_control_construction",
             "begin_installed_effect_operation_controls_original",
+            "begin_installed_effect_operation_grant_construction",
             "begin_installed_effect_operation_input",
             "check_installed_effect_construction_original",
             "check_installed_effect_operation_backing_original",
@@ -34690,11 +34703,13 @@
             "complete_installed_effect_operation_construction_owned",
             "complete_installed_effect_operation_control_construction",
             "complete_installed_effect_operation_response_projection",
+            "grow_installed_effect_operation_input",
             "installed_effect_control_execution",
             "installed_effect_operation_reservation_issue",
             "record_effect_operation_lookup_probe",
             "refuse_installed_effect_operation_after_current",
             "resize_installed_effect_operation_control_construction",
+            "resize_installed_effect_operation_input",
             "retain_installed_effect_captured_input_inventory",
             "retain_installed_effect_control_row_inventory",
             "retain_installed_effect_operation_construction",
@@ -34780,6 +34795,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The original staged physical response returns projection workspace only after"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same Run's control token has a separate synchronous Grant-construction"
               }
             ],
             "extension": [
@@ -34816,6 +34835,10 @@
               {
                 "path": "adapters/host-node/installed-effect-credential-operation.test.mjs",
                 "anchor": "test('response projection completion keeps the original preparing latch through reentrant release'"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
+                "anchor": "test \"original Grant constructor keeps retained outputs without reserving unrelated Receipt scratch\""
               }
             ]
           }
@@ -53695,7 +53718,9 @@
             "client_program_installed_effect_operation_control_construction_begin",
             "client_program_installed_effect_operation_control_construction_complete",
             "client_program_installed_effect_operation_controls_retain",
+            "client_program_installed_effect_operation_grant_construction_begin",
             "client_program_installed_effect_operation_input_begin",
+            "client_program_installed_effect_operation_input_grow",
             "client_program_installed_effect_operation_response_projection_complete",
             "client_program_installed_effect_recovered_input_inventory_retain"
           ],
@@ -53775,6 +53800,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The original staged physical response returns projection workspace only after"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same Run's control token has a separate synchronous Grant-construction"
               }
             ],
             "extension": [
@@ -53799,6 +53828,10 @@
               {
                 "path": "adapters/host-node/installed-effect-credential-operation.test.mjs",
                 "anchor": "test('response projection completion keeps the original preparing latch through reentrant release'"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
+                "anchor": "test \"original Grant constructor keeps retained outputs without reserving unrelated Receipt scratch\""
               }
             ]
           }
@@ -53953,7 +53986,7 @@
           }
         }
       ],
-      "sha256": "3e55839c04534aab85d5342fc932469991b5994e0d646011c09f5446a4c15a43",
+      "sha256": "82c6e8d0c8cb736457bfc18825958ca25b8c6b5c9b94f2b585066b525da185fe",
       "operations": [
         {
           "name": "client_program_installed_effect_captured_input_inventory_retain",
@@ -54020,8 +54053,16 @@
           "declaration": "client_program_installed_effect_operation_extent_transfer ( original : @ client_local_host . ClientInstalledEffectOperationExtent , ) - > Int64"
         },
         {
+          "name": "client_program_installed_effect_operation_grant_construction_begin",
+          "declaration": "client_program_installed_effect_operation_grant_construction_begin ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "client_program_installed_effect_operation_input_begin",
           "declaration": "client_program_installed_effect_operation_input_begin ( original : @ client_local_host . ClientInstalledEffectOperationBorrow , input : @ client_local_host . ClientInstalledEffectOperationExtent , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "client_program_installed_effect_operation_input_grow",
+          "declaration": "client_program_installed_effect_operation_input_grow ( original : @ client_local_host . ClientInstalledEffectOperationBorrow , input : @ client_local_host . ClientInstalledEffectOperationExtent , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "client_program_installed_effect_operation_ledger_codec_begin",
