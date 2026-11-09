@@ -1754,6 +1754,8 @@ pub fn client_program_installed_effect_operation_extent_prepare(String, Int64, I
 
 pub fn client_program_installed_effect_operation_extent_transfer(@client_local_host.ClientInstalledEffectOperationExtent) -> Int64
 
+pub fn client_program_installed_effect_operation_grant_construction_begin(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledEffectManagedPlan) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_installed_effect_operation_input_begin(@client_local_host.ClientInstalledEffectOperationBorrow, @client_local_host.ClientInstalledEffectOperationExtent) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_effect_operation_input_grow(@client_local_host.ClientInstalledEffectOperationBorrow, @client_local_host.ClientInstalledEffectOperationExtent) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]

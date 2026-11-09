@@ -130,7 +130,7 @@ export function hubspotUpdateDriver({moon, site, authorization, connection, orig
         const facts = {operation, decision: granted, resource: resourceFor(slot), runInvocationCid,
           dispatchRequestCid, maxUses: 3 * (slot === 'account' ? maxRows + 1 : 2 * maxRows + 1)};
         const original = controlConstruction === undefined ? physical.issueReadGrant(facts)
-          : controlConstruction(undefined, physical.issueReadGrant, [facts]);
+          : (controlConstruction.grant ?? controlConstruction)(undefined, physical.issueReadGrant, [facts]);
         if (occurrence >= Number.MAX_SAFE_INTEGER) fail('HubSpotReadOccurrenceLimit');
         // Keep the actual issuer original for the shared physical child's
         // purpose/provenance check. A useId envelope is not that original.

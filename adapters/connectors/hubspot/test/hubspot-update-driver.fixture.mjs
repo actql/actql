@@ -92,6 +92,32 @@ function fixture(moon, {maxRows = 10, responseRows = 10} = {}) {
 }
 
 export function registerHubSpotUpdateDriverTests(moon) {
+  test('HubSpot metadata uses the shared Grant frame without borrowing Receipt construction or bypassing denial', async () => {
+    for (const denied of [false, true]) {
+      const f = fixture(moon), selected = [];
+      if (denied) f.state.denied = 'account';
+      const construction = Object.assign(() => assert.fail('metadata Grant must not enter full Receipt frame'), {
+        grant(receiver, method, args) {
+          selected.push(args[0]);
+          assert.equal(receiver, undefined);
+          assert.equal(args.length, 1);
+          return Reflect.apply(method, receiver, args);
+        },
+      });
+      const flight = f.driver.describe({...f.describeOptions, controlConstruction: construction});
+      if (denied) await assert.rejects(flight, {code: 'HubSpotMetadataReadDenied'});
+      else {
+        assert(await flight);
+        assert.deepEqual(selected.map(facts => facts.resource), ['account', 'properties']);
+        assert.deepEqual(f.state.physical.map(entry => entry.slot), ['account', 'schema']);
+        assert(f.state.physical.every(entry => f.state.issued.has(entry.authorization)));
+      }
+      assert.equal(selected.length, denied ? 0 : 2);
+      assert.equal(f.state.grants.length, denied ? 0 : 2);
+      assert.equal(f.state.writes.length, 0);
+    }
+  });
+
   test('HubSpot managed metadata preserves the exact Site issuer original before adding useId', async () => {
     const f = fixture(moon), seen = [];
     const readChild = async (authorization, input, row, slot, project) => {

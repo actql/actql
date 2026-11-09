@@ -293,6 +293,19 @@ pub fn client_program_installed_effect_operation_control_construction_begin(
 }
 
 ///|
+#export_name("clientProgramInstalledEffectOperationGrantConstructionBegin")
+pub fn client_program_installed_effect_operation_grant_construction_begin(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.begin_installed_effect_operation_grant_construction(
+    owner, prepared, request, plan,
+  )
+}
+
+///|
 #export_name("clientProgramInstalledEffectOperationControlInputBegin")
 pub fn client_program_installed_effect_operation_control_input_begin(
   owner : @client_local_host.ClientInstalledManagedRun,

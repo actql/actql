@@ -1777,7 +1777,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           decision, resource: owned.check.resource, runInvocationCid,
           dispatchRequestCid: dispatches[index], maxUses: 1};
         const grant = controlConstruction === undefined ? site.issueReadGrant(grantFacts)
-          : controlConstruction(site, site.issueReadGrant, [grantFacts]);
+          : (controlConstruction.grant ?? controlConstruction)(site, site.issueReadGrant, [grantFacts]);
         const useId = `${dispatches[index]}-check-${subjectCid}-${rowIndex}`;
         if (managedPlanRecipe?.credentialOperations !== undefined) {
           await physicalOperations({member, rowIndex, phase: `${operationPhase}-check`,
@@ -1836,7 +1836,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         const grantFacts = {operation: owned.targetRead.operation, decision: approval ?? decision,
           resource: member.resource, runInvocationCid, dispatchRequestCid, maxUses: 1};
         const grant = controlConstruction === undefined ? site.issueReadGrant(grantFacts)
-          : controlConstruction(site, site.issueReadGrant, [grantFacts]);
+          : (controlConstruction.grant ?? controlConstruction)(site, site.issueReadGrant, [grantFacts]);
         const authorization = {...grant, useId: `${dispatchRequestCid}-check-${subjectCid}-${rowIndex}-${use++}`};
         originals?.set(authorization, {grant, rowIndex});
         return authorization;
@@ -2084,7 +2084,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           resource: responseConfirmation.resource, runInvocationCid,
           dispatchRequestCid: dispatches[memberIndex], maxUses: 1};
         const originalAuthorization = controlConstruction === undefined ? site.issueReadGrant(facts)
-          : controlConstruction(site, site.issueReadGrant, [facts]);
+          : (controlConstruction.grant ?? controlConstruction)(site, site.issueReadGrant, [facts]);
         assertClaimedCurrent();
         const confirmed = await physicalOperations({member, rowIndex: sourceIndex,
           phase: `${operationPhase}-confirm`, operation: responseConfirmation.operation,
@@ -2140,7 +2140,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
             decision: commits.get(scopeKey(member)), resource: member.resource,
             runInvocationCid, dispatchRequestCid: dispatches[memberIndex], subjectCid};
           const grant = controlConstruction === undefined ? site.issueEffectGrant(grantFacts)
-            : controlConstruction(site, site.issueEffectGrant, [grantFacts]);
+            : (controlConstruction.grant ?? controlConstruction)(site, site.issueEffectGrant, [grantFacts]);
           const captured = await captureClaimedEffectResponse({ledger,
             claim: ownedClaim, requestCid: entry.requestCid,
             execute: () => {
@@ -2175,7 +2175,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
                     decision, resource: beforeSendCheck.resource, runInvocationCid,
                     dispatchRequestCid: dispatches[memberIndex], maxUses: 1};
                   const originalAuthorization = controlConstruction === undefined ? site.issueReadGrant(checkGrantFacts)
-                    : controlConstruction(site, site.issueReadGrant, [checkGrantFacts]);
+                    : (controlConstruction.grant ?? controlConstruction)(site, site.issueReadGrant, [checkGrantFacts]);
                   await physicalOperations({member, rowIndex: sourceIndex, phase: 'write-check',
                     operation: beforeSendCheck.operation, site, originalAuthorization,
                     useId: `${dispatches[memberIndex]}-write-check-${subjectCid}-${rowIndex}`,

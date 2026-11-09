@@ -99,6 +99,8 @@ pub fn begin_installed_effect_operation_control_input(ClientInstalledManagedRun,
 
 pub fn begin_installed_effect_operation_controls(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan) -> Result[ClientInstalledEffectManagedPlan, ClientInstalledManagedRunIssue]
 
+pub fn begin_installed_effect_operation_grant_construction(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan) -> Result[Unit, ClientInstalledManagedRunIssue]
+
 pub fn begin_installed_effect_operation_input(ClientInstalledEffectOperationBorrow, ClientInstalledEffectOperationExtent) -> Result[Unit, ClientInstalledManagedRunIssue]
 
 pub fn begin_installed_effect_operation_ledger_codec(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan, String?, Int, Int) -> Result[Unit, ClientInstalledManagedRunIssue]

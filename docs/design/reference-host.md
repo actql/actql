@@ -3012,6 +3012,19 @@ path. The same retirement/reentry latch and invalid asynchronous-result handling
 remain active. This metadata read grants no row, physical operation, capacity
 or currentness reusable by later work; Core still owns every resource quantity.
 
+The same Run's control token has a separate synchronous Grant-construction
+entry for the installing Site's read/write issuers. Core uses its existing
+Credential Grant inventory for this workspace, while retaining the complete
+Plan's original outputs and fixed current/quantity frame. It does not reserve
+unrelated Receipt/codec scratch before this issuer. The original Site still
+checks the fresh decision, scope and currentness and signs each distinct Grant;
+this quantity selection is no permission or cached decision. Generic callbacks
+and Receipt work keep their full existing construction allowance. The same
+opening/reentry/retirement latches apply, a failed issuer keeps its workspace,
+and only actual synchronous completion returns it. A Grant cannot nest the
+unrelated Ledger codec. JS forwards the existing issuer and arguments to this
+Core boundary; legacy runtimes retain the complete generic frame.
+
 The ordinary execution installer requires its existing Request preparation
 owner. It receives that owner's original checked/compiler result and retains
 the original Environment, Parameters cursor and restoration associations.

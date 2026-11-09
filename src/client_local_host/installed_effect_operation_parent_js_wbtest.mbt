@@ -2440,3 +2440,148 @@ test "managed row ceiling above a provider batch remains the same finite parent 
   retire_installed_managed_run(run).unwrap()
   assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
 }
+
+///|
+test "original Grant constructor keeps retained outputs without reserving unrelated Receipt scratch" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let baseline = effect_operation_plan_fixture(prepared, request, contracts)
+  let full = standard_create_saved_control_capacity(1000000, 512, 16).unwrap()
+  let grant = standard_create_grant_capacity().unwrap()
+  let plan = effect_operation_plan_with_control_fixture(
+    prepared, request, contracts, baseline, full,
+  ).unwrap()
+  let quote = prepared_installed_effect_managed_requirements(plan)
+  quote[4] = 536870902L
+  quote[5] = 536870902L
+  let calls = Ref(0)
+  let (input, initial, ledger, capacity) = effect_parent_test_preparation(
+    plan,
+    quote,
+    current=() => calls.val += 1,
+  )
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
+  ).unwrap()
+  retain_installed_effect_operation_controls_before_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  |> ignore
+  let control = owner.effect_operation_controls.unwrap()
+  let token = control.reservation
+  let idle = @resources.ledger_usage(ledger)
+  assert_eq(@resources.ledger_limits(ledger).execution_bytes, 536870912L)
+  // Leave enough for this original issuer, but not the future Receipt family.
+  let workspace = @execution.execution_capacity_execution_bytes(grant) -
+    @execution.execution_capacity_retained_bytes(grant)
+  let remaining = @resources.ledger_limits(ledger).execution_bytes -
+    idle.reserved_execution_bytes
+  let increment = Int64::max(
+    0L,
+    workspace -
+    (
+      plan.operation_control_idle_execution -
+      @execution.execution_capacity_retained_bytes(
+        plan.operation_control_capacity,
+      )
+    ),
+  )
+  let pressure = @resources.reserve_capacity(ledger, 0L, remaining - increment).unwrap()
+  let occupied = @resources.ledger_usage(ledger)
+  assert_true(
+    begin_installed_effect_operation_control_construction(
+      owner, prepared, request, plan,
+    )
+    is Err(Ledger(ExecutionLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), occupied)
+  let last_byte = @resources.reserve_capacity(ledger, 0L, 1L).unwrap()
+  let exhausted = @resources.ledger_usage(ledger)
+  assert_true(
+    begin_installed_effect_operation_grant_construction(
+      owner, prepared, request, plan,
+    )
+    is Err(Ledger(ExecutionLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), exhausted)
+  assert_false(control.construction_active)
+  @resources.settle_capacity(ledger, last_byte).unwrap()
+  calls.val = 0
+  begin_installed_effect_operation_grant_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  assert_true(calls.val > 0)
+  let active = @resources.ledger_usage(ledger)
+  assert_eq(active.reserved_retention_bytes, occupied.reserved_retention_bytes)
+  assert_eq(
+    active.reserved_execution_bytes,
+    occupied.reserved_execution_bytes + increment,
+  )
+  assert_true(physical_equal(control.reservation, token))
+  let (same, _) = installed_effect_control_capacity(Some(control), plan).unwrap()
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(same),
+    @execution.execution_capacity_retained_bytes(
+      plan.operation_control_capacity,
+    ),
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(same) <
+    @execution.execution_capacity_execution_bytes(
+      plan.operation_control_capacity,
+    ),
+  )
+  // The original synchronous caller has not reported success yet. Reentry,
+  // foreign owners and a different nested codec cannot return its prefix.
+  assert_true(
+    begin_installed_effect_operation_grant_construction(
+      owner, prepared, request, plan,
+    )
+    is Err(AlreadyBound),
+  )
+  let foreign = { ..owner, }
+  assert_true(
+    complete_installed_effect_operation_control_construction(
+      foreign, prepared, request, plan,
+    )
+    is Err(ForeignOriginal),
+  )
+  assert_true(
+    begin_installed_effect_operation_ledger_codec(
+      owner,
+      prepared,
+      request,
+      plan,
+      Some("{}"),
+      512,
+      16,
+    )
+    is Err(AlreadyBound),
+  )
+  assert_eq(@resources.ledger_usage(ledger), active)
+  complete_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  assert_eq(@resources.ledger_usage(ledger), occupied)
+  assert_true(control.grant_workspace is None)
+  // A second, distinct issuer is admitted afresh; it is not a cached Allow.
+  begin_installed_effect_operation_grant_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  complete_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  assert_true(
+    begin_installed_effect_operation_control_construction(
+      owner, prepared, request, plan,
+    )
+    is Err(Ledger(ExecutionLimit)),
+  )
+  @resources.settle_capacity(ledger, pressure).unwrap()
+  begin_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  complete_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  retire_installed_managed_run(owner).unwrap()
+}

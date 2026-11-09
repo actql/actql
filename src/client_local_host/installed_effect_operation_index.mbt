@@ -43,6 +43,9 @@ priv struct ClientEffectOperationControls {
   coordinates : Map[ClientEffectOperationCoordinate, Int]
   construction_deferred : Bool
   mut construction_active : Bool
+  // Some selects only the original synchronous Grant constructor scratch.
+  // The same Plan retains every output; None keeps the complete generic frame.
+  mut grant_workspace : Int64?
   mut ledger_codec_active : Bool
   mut ledger_codec_workspace : Int64
   mut ledger_codec_retained : Int64

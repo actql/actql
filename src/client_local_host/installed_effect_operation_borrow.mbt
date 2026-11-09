@@ -104,18 +104,19 @@ fn installed_effect_operation_control_capacity(
   // Internal original calls keep the original ledger, not nested wrappers.
   // These are fixed existing implementation holders, not another owner or
   // per-method fee. Source tests pin this inventory to the real declaration.
+  // One Grant-only closure/context (2H9R), held Option/Int64 (1H1R1W).
   let retained : @execution.PreparationRepresentationUnits = {
     // Optional Host input tuple/Some and its retained opaque capacity. Wire
     // text remains with the already-funded original Preview producer.
     // One same-Run optional actual-row inventory adds its field and one Some
     // carrier at most, independently of how many operation bodies are live.
-    record_headers: 10L +
+    record_headers: 13L +
     shared.record_headers +
     11L * count +
     69L +
     4L +
     recovery.record_headers,
-    reference_slots: 12L +
+    reference_slots: 22L +
     slots +
     shared.reference_slots +
     17L * count +
@@ -123,7 +124,7 @@ fn installed_effect_operation_control_capacity(
     4L +
     recovery.reference_slots,
     // The active codec retains its separately charged original output bound.
-    scalar_words: 26L +
+    scalar_words: 27L +
     shared.scalar_words +
     29L * count +
     4L +
@@ -660,6 +661,7 @@ fn retain_installed_effect_operation_controls(
         coordinates: Map([]),
         construction_deferred,
         construction_active: false,
+        grant_workspace: None,
         ledger_codec_active: false,
         ledger_codec_workspace: 0L,
         ledger_codec_retained: 0L,
@@ -1212,6 +1214,26 @@ pub fn begin_installed_effect_operation_control_construction(
 }
 
 ///|
+/// The existing Site issuer still validates the original decision and signs
+/// the Grant. Only its constructor scratch is selected here, on the SAME
+/// current Run/control token; no Receipt or provider callback enters this port.
+pub fn begin_installed_effect_operation_grant_construction(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : ClientInstalledEffectManagedPlan,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  resize_installed_effect_operation_control_construction(
+    owner,
+    prepared,
+    request,
+    plan,
+    true,
+    grant_construction=true,
+  )
+}
+
+///|
 pub fn complete_installed_effect_operation_control_construction(
   owner : ClientInstalledManagedRun,
   prepared : @publication_host.PreparedClientEffectComputation,
@@ -1291,6 +1313,7 @@ fn resize_installed_effect_operation_control_construction(
   expected_plan : ClientInstalledEffectManagedPlan,
   active : Bool,
   input_wire? : String? = None,
+  grant_construction? : Bool = false,
   ledger_codec? : (Bool, String?, Int, Int)? = None,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
   guard owner.original is Some(original) && physical_equal(original, owner) else {
@@ -1331,7 +1354,8 @@ fn resize_installed_effect_operation_control_construction(
       if !active ||
         !control.construction_active ||
         control.ledger_codec_active == entering ||
-        input_wire is Some(_) {
+        input_wire is Some(_) ||
+        control.grant_workspace is Some(_) {
         return Err(AlreadyBound)
       }
   }
@@ -1392,10 +1416,27 @@ fn resize_installed_effect_operation_control_construction(
       }
     }
   }
+  let grant_workspace = if grant_construction {
+    if !active || input_wire is Some(_) || ledger_codec is Some(_) {
+      return Err(Unsupported)
+    }
+    guard standard_create_grant_capacity() is Some(grant) else {
+      return Err(Unsupported)
+    }
+    Some(
+      @execution.execution_capacity_execution_bytes(grant) -
+      @execution.execution_capacity_retained_bytes(grant),
+    )
+  } else if ledger_codec is Some(_) {
+    control.grant_workspace
+  } else {
+    None
+  }
   guard installed_effect_control_capacity(
       Some(control),
       plan,
       input~,
+      grant_workspace=Some(grant_workspace),
       codec_workspace=Some(codec_workspace),
       codec_retained=Some(codec_retained),
     )
@@ -1437,7 +1478,10 @@ fn resize_installed_effect_operation_control_construction(
           control.ledger_codec_workspace = codec_workspace
           control.ledger_codec_retained = codec_retained
         }
-        None => control.construction_active = active
+        None => {
+          control.construction_active = active
+          control.grant_workspace = grant_workspace
+        }
       }
       Ok(())
     }
@@ -1834,6 +1878,7 @@ fn installed_effect_control_capacity(
   codec_workspace? : Int64? = None,
   captured_rows? : Int? = None,
   codec_retained? : Int64? = None,
+  grant_workspace? : Int64?? = None,
 ) -> (@execution.ExecutionCapacity, Int64)? {
   let selected = match input {
     Some(value) => Some(value)
@@ -1871,6 +1916,23 @@ fn installed_effect_control_capacity(
     (plan.operation_control_capacity, plan.operation_control_idle_execution)
   }
   let base_retained = @execution.execution_capacity_retained_bytes(base)
+  // A failed/active Grant keeps its exact scratch on all same-owner current
+  // paths. Only explicit successful completion returns it. Every original
+  // retained output and the fixed current/quantity frame remain charged.
+  let grant_workspace = grant_workspace.unwrap_or(
+    control.bind(value => value.grant_workspace),
+  )
+  let base_execution = match grant_workspace {
+    None => @execution.execution_capacity_execution_bytes(base)
+    Some(workspace) => {
+      guard workspace >= 0L &&
+        @execution.checked_preparation_add_product(base_retained, workspace, 1L)
+        is Some(execution) else {
+        return None
+      }
+      Int64::max(base_idle, execution)
+    }
+  }
   // The next actual wire's decoder coexists with these original controls.
   // Its retained tree/output and scratch are additional demand on the SAME
   // reservation, not limited by an initial zero-row quote. A finite parent
@@ -1886,10 +1948,7 @@ fn installed_effect_control_capacity(
     is Some(codec_execution) &&
     @execution.execution_capacity(
       retained,
-      Int64::max(
-        @execution.execution_capacity_execution_bytes(base),
-        codec_execution,
-      ),
+      Int64::max(base_execution, codec_execution),
     )
     is Some(original) else {
     return None

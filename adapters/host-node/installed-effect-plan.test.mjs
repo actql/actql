@@ -1684,3 +1684,54 @@ test('nested constructor input refusal preserves the first failure and original 
   assert.equal(child.release(), false);f.retireAliases();assert.equal(child.retry(), true);
   assert.equal(f.settlements(), 1);
 });
+
+
+test('original Grant frame selects the same Core issuer capacity and retains generic full funding', () => {
+  let f; const receiver = {}, argument = {}, result = {};
+  f = controlWorkFixture({
+    clientProgramInstalledEffectOperationGrantConstructionBegin(...args) {
+      assert.strictEqual(this, f.runtime);
+      assert.deepEqual(args, [f.run.value, f.run.prepared, f.run.request, f.run.operationPlan]);
+      assert.equal(f.run.selecting, true); f.events.push('grant'); return {$tag: 1};
+    },
+  });
+  const issuer = function(value) {
+    assert.strictEqual(this, receiver); assert.strictEqual(value, argument);
+    assert.equal(f.work.retire(), false);
+    assert.throws(() => f.work.grant(receiver, issuer, [argument]),
+      {code: 'InstalledEffectControlConstructionPending'});
+    return result;
+  };
+  assert.strictEqual(f.work.grant(receiver, issuer, [argument]), result);
+  assert.deepEqual(f.events, ['grant', 'complete']);
+  assert.strictEqual(f.work(receiver, value => value, [result]), result);
+  assert.deepEqual(f.events, ['grant', 'complete', 'begin', 'complete']);
+  assert.equal(f.run.selecting, false);
+  const legacy = controlWorkFixture();
+  assert.strictEqual(legacy.work.grant(receiver, () => result, []), result);
+  assert.deepEqual(legacy.events, ['begin', 'complete']);
+});
+
+test('original Grant frame preserves entry and callback failures without returning constructor scratch', async () => {
+  for (const mode of ['entry', 'callback', 'foreign', 'async']) {
+    let f, settle; const failure = new Error(mode), promise = new Promise(resolve => {settle = resolve;});
+    f = controlWorkFixture({
+      clientProgramInstalledEffectOperationGrantConstructionBegin() {
+        f.events.push('grant'); if (mode === 'entry') throw failure; return {$tag: 1};
+      },
+    });
+    let primary;
+    assert.throws(() => f.work.grant(undefined, () => {
+      if (mode === 'entry') assert.fail('unfunded work');
+      if (mode === 'callback') throw failure;
+      if (mode === 'foreign') {f.run.operationPlan = {}; return 1;}
+      return promise;
+    }, []), cause => {primary = cause; return mode === 'entry' || mode === 'callback'
+      ? cause === failure : !!cause.code;});
+    assert.deepEqual(f.events, ['grant']);
+    assert.throws(() => f.work(undefined, () => assert.fail('failed prefix retry'), []), cause => cause === primary);
+    if (mode === 'async') {assert.equal(f.work.retire(), false); settle(); await new Promise(setImmediate);}
+    else settle();
+    assert.equal(f.run.selecting, false);
+  }
+});
