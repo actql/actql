@@ -38982,7 +38982,7 @@
     {
       "module": "adapters/host-node/effect-ledger.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d9dbae868887468db07eb43fd646545bcadf5cd1215bc99bfc8b030e61d65b3d",
+      "sha256": "74ab53d7078d68aaeb2bb806fc479e4dcbd3b7b7ad12c2cfe714cea95db6ea3c",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -38999,6 +38999,29 @@
         },
         {
           "name": "bindEffectLedgerCodecs/bindEffectLedgerCodecs",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindEffectLedgerConstruction",
+          "parameters": [
+            "ledger",
+            "construction",
+            "policy"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindEffectLedgerConstruction/bindEffectLedgerConstruction",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindEffectLedgerConstruction/bindEffectLedgerConstruction#2",
           "parameters": [
             "args"
           ],
@@ -39548,20 +39571,6 @@
           "async": false
         },
         {
-          "name": "openEffectLedger/openEffectLedger",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "openEffectLedger/openEffectLedger#2",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
           "name": "openEffectLedger/validateStored/validateStored",
           "parameters": [
             "row"
@@ -39929,8 +39938,9 @@
         },
         {
           "operations": [
-            "openEffectLedger/openEffectLedger",
-            "openEffectLedger/openEffectLedger#2"
+            "bindEffectLedgerConstruction",
+            "bindEffectLedgerConstruction/bindEffectLedgerConstruction",
+            "bindEffectLedgerConstruction/bindEffectLedgerConstruction#2"
           ],
           "exports": [],
           "attributes": {
@@ -39980,6 +39990,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "The standard Ledger frontier/intents family selects one closed frame for"
               }
             ],
             "extension": [
@@ -39992,6 +40006,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_host_preview_input_js_wbtest.mbt",
+                "anchor": "test \"standard Ledger family coholds actual snapshot and nested codec on same token through failed current\""
               }
             ]
           }
@@ -40049,6 +40067,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "The standard Ledger frontier/intents family selects one closed frame for"
               }
             ],
             "extension": [
@@ -40069,6 +40091,10 @@
               {
                 "path": "adapters/host-node/installed-effect-plan.test.mjs",
                 "anchor": "test('saved Ledger codec grows the same active frame before each original wire and returns only its local workspace'"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_host_preview_input_js_wbtest.mbt",
+                "anchor": "test \"standard Ledger family coholds actual snapshot and nested codec on same token through failed current\""
               }
             ]
           }
@@ -40079,7 +40105,8 @@
         "../host-common/runtime-core.mjs",
         "./effect-ledger-implementation-bounds.mjs",
         "./sqlite-effect-ledger.mjs",
-        "node:fs"
+        "node:fs",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
@@ -97830,7 +97857,7 @@
     {
       "module": "adapters/host-node/sqlite-effect-ledger.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "42221a71b6d3ca5ac2e62d701200a105691aab6c534af931fcaf3c96d09d1c38",
+      "sha256": "f2d719a163935c537bdaf18711282e7d718dbf95bae11f71629301da54c60e10",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -98470,6 +98497,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "Initial Ledger metadata is returned through a bounded SQL projection before"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "Selected head and entry metadata use bounded SQL text projections before"
               }
             ],
             "extension": [
@@ -98498,6 +98529,10 @@
               {
                 "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
                 "anchor": "test('Effect open metadata accepts original UTF8 and UTF16 exact schema and authority'"
+              },
+              {
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "anchor": "test('standard Ledger snapshot retains exact selected UTF8 and UTF16 heads and missing-head distinction'"
               }
             ]
           }
@@ -98618,6 +98653,10 @@
               {
                 "path": "docs/design/effect-refusal-settlement.md",
                 "anchor": "# Settling Effect evidence after a resume refusal"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "The standard Ledger frontier/intents family selects one closed frame for"
               }
             ],
             "extension": [
@@ -98642,6 +98681,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_host_preview_input_js_wbtest.mbt",
+                "anchor": "test \"standard Ledger family coholds actual snapshot and nested codec on same token through failed current\""
               }
             ]
           }

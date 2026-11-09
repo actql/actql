@@ -21514,7 +21514,8 @@
             "grant",
             "requestProjection",
             "footprintProjection",
-            "ledgerRoot"
+            "ledgerRoot",
+            "ledgerFamily"
           ],
           "async": false
         },
@@ -21530,6 +21531,20 @@
             "method",
             "args",
             "wire",
+            "nodes",
+            "depth"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectControlConstruction/ledgerFamily/ledgerFamily",
+          "parameters": [
+            "receiver",
+            "method",
+            "args",
+            "counts",
+            "entries",
+            "bytes",
             "nodes",
             "depth"
           ],
@@ -22127,7 +22142,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "73d35c9f3f66eb35f1b0e2184434ca04fbbc6d462ba1b5ac48699389e62edac7",
+      "sha256": "9515e40610d66ed41e836499a466909d0f015f9af968f1517deba9df36af8dd1",
       "contracts": [
         {
           "operations": [
@@ -22148,6 +22163,7 @@
             "prepareInstalledEffectConstructorChild",
             "prepareInstalledEffectConstructorChild/drain/drain",
             "prepareInstalledEffectConstructorChild/init:prepare/init:prepare",
+            "prepareInstalledEffectConstructorChild/init:prepare/init:prepare/grow/grow",
             "prepareInstalledEffectConstructorChild/init:prepare/init:prepare/init:prepare",
             "prepareInstalledEffectConstructorChild/init:prepare/init:prepare/init:prepare#2",
             "prepareInstalledEffectConstructorChild/init:prepare/init:prepare/init:prepare/failed/failed",
@@ -22180,6 +22196,7 @@
             "prepareInstalledEffectCredentialChild/prepareInstalledEffectCredentialChild#2",
             "prepareInstalledEffectCredentialChild/prepareInstalledEffectCredentialChild#3",
             "prepareInstalledEffectCredentialChild/prepareInstalledEffectCredentialChild#4",
+            "prepareInstalledEffectCredentialChild/prepareInstalledEffectCredentialChild#5",
             "prepareInstalledEffectCredentialChild/retainFence/retainFence",
             "prepareInstalledEffectCredentialChild/retainFence/retainFence/retainFence",
             "prepareInstalledEffectCredentialChild/retainFence/retainFence/retainFence/settled/settled",
@@ -22195,9 +22212,7 @@
             "prepareInstalledStandardCreatePlanRecipe/originalMethod/originalMethod/originalMethod",
             "prepareInstalledStandardCreatePlanRecipe/physical/physical",
             "prepareInstalledStandardCreatePlanRecipe/prepareInstalledStandardCreatePlanRecipe",
-            "text/text",
-            "prepareInstalledEffectConstructorChild/init:prepare/init:prepare/grow/grow",
-            "prepareInstalledEffectCredentialChild/prepareInstalledEffectCredentialChild#5"
+            "text/text"
           ],
           "exports": [
             "captureInstalledEffectPlanRecipe",
@@ -22420,6 +22435,7 @@
         },
         {
           "operations": [
+            "effectRecoveryPreviewBounds",
             "installedEffectRecipeForControlEntryLimit",
             "installedEffectSavedControlEntryLimit",
             "installedEffectSavedControlEntryLimit/installedEffectSavedControlEntryLimit",
@@ -22430,8 +22446,7 @@
             "prepareInstalledPhysicalWritePlanRecipe/quote/quote",
             "prepareInstalledPhysicalWritePlanRecipe/recoveryInputExtent/recoveryInputExtent",
             "prepareInstalledPhysicalWritePlanRecipe/selected/selected",
-            "prepareInstalledPhysicalWritePlanRecipe/selected/selected/selected",
-            "effectRecoveryPreviewBounds"
+            "prepareInstalledPhysicalWritePlanRecipe/selected/selected/selected"
           ],
           "exports": [
             "installedEffectRecipeForControlEntryLimit",
@@ -22681,6 +22696,7 @@
             "prepareInstalledEffectControlConstruction/grant/grant",
             "prepareInstalledEffectControlConstruction/invoke/invoke",
             "prepareInstalledEffectControlConstruction/invoke/invoke/observePlan/observePlan",
+            "prepareInstalledEffectControlConstruction/ledgerFamily/ledgerFamily",
             "prepareInstalledEffectControlConstruction/ledgerOpen/ledgerOpen",
             "prepareInstalledEffectControlConstruction/parsePreview/parsePreview",
             "prepareInstalledEffectControlConstruction/requestProjection/requestProjection",
@@ -22754,6 +22770,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "Effect Ledger open has its own same-control frame."
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "The standard Ledger frontier/intents family selects one closed frame for"
               }
             ],
             "extension": [
@@ -22802,6 +22822,10 @@
               {
                 "path": "src/client_local_host/installed_effect_host_preview_input_js_wbtest.mbt",
                 "anchor": "test \"Ledger open selects same scope constructor beside original Preview and preserves full retained floor\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_host_preview_input_js_wbtest.mbt",
+                "anchor": "test \"standard Ledger family coholds actual snapshot and nested codec on same token through failed current\""
               }
             ]
           }

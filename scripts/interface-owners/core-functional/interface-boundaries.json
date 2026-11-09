@@ -34435,7 +34435,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_borrow.mbt",
-      "sha256": "5cf91b2dc007c6318bb72172b6e9135e3a07ad94270ce295155f0433d6a1c0bd",
+      "sha256": "c22a166128d174245577153c3a5ac3079fbd135bc6c889c0e93ec0b8af63147f",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original installed Effect operation borrow and retained same-Run management controls",
@@ -34477,6 +34477,10 @@
         {
           "name": "begin_installed_effect_operation_ledger_codec",
           "declaration": "begin_installed_effect_operation_ledger_codec ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : ClientInstalledEffectManagedPlan , wire : String ? , nodes : Int , depth : Int , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "begin_installed_effect_operation_ledger_family",
+          "declaration": "begin_installed_effect_operation_ledger_family ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : ClientInstalledEffectManagedPlan , counts : Array [ Int ] , max_entries : Int , max_entry_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "begin_installed_effect_operation_ledger_open",
@@ -34728,6 +34732,7 @@
             "begin_installed_effect_operation_footprint_construction",
             "begin_installed_effect_operation_grant_construction",
             "begin_installed_effect_operation_input",
+            "begin_installed_effect_operation_ledger_family",
             "begin_installed_effect_operation_ledger_open",
             "begin_installed_effect_operation_request_projection",
             "check_installed_effect_construction_original",
@@ -34853,6 +34858,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "Effect Ledger open has its own same-control frame."
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "The standard Ledger frontier/intents family selects one closed frame for"
               }
             ],
             "extension": [
@@ -34917,6 +34926,10 @@
               {
                 "path": "src/client_local_host/installed_effect_host_preview_input_js_wbtest.mbt",
                 "anchor": "test \"Ledger open selects same scope constructor beside original Preview and preserves full retained floor\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_host_preview_input_js_wbtest.mbt",
+                "anchor": "test \"standard Ledger family coholds actual snapshot and nested codec on same token through failed current\""
               }
             ]
           }
@@ -35000,6 +35013,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "After Compute, the same Run pins its original completed inputs and uses their"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "The standard Ledger frontier/intents family selects one closed frame for"
               }
             ],
             "extension": [
@@ -35020,6 +35037,10 @@
               {
                 "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
                 "anchor": "test \"unknown Effect capture grows its same control from completed original rows before child construction\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_host_preview_input_js_wbtest.mbt",
+                "anchor": "test \"standard Ledger family coholds actual snapshot and nested codec on same token through failed current\""
               }
             ]
           }
@@ -35077,6 +35098,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "The standard Ledger frontier/intents family selects one closed frame for"
               }
             ],
             "extension": [
@@ -35097,6 +35122,10 @@
               {
                 "path": "adapters/host-node/installed-effect-plan.test.mjs",
                 "anchor": "test('saved Ledger codec grows the same active frame before each original wire and returns only its local workspace'"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_host_preview_input_js_wbtest.mbt",
+                "anchor": "test \"standard Ledger family coholds actual snapshot and nested codec on same token through failed current\""
               }
             ]
           }
@@ -35153,6 +35182,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "- Resources: the existing control tariff includes the fixed holder and borrow"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "The standard Ledger frontier/intents family selects one closed frame for"
               }
             ],
             "extension": [
@@ -35173,6 +35206,10 @@
               {
                 "path": "src/client_local_host/installed_effect_operation_borrow_js_wbtest.mbt",
                 "anchor": "test \"recovered input control vector follows actual members independently of future row operations\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_host_preview_input_js_wbtest.mbt",
+                "anchor": "test \"standard Ledger family coholds actual snapshot and nested codec on same token through failed current\""
               }
             ]
           }
@@ -54077,6 +54114,7 @@
             "client_program_installed_effect_operation_grant_construction_begin",
             "client_program_installed_effect_operation_input_begin",
             "client_program_installed_effect_operation_input_grow",
+            "client_program_installed_effect_operation_ledger_family_begin",
             "client_program_installed_effect_operation_ledger_open_begin",
             "client_program_installed_effect_operation_request_projection_begin",
             "client_program_installed_effect_operation_response_projection_complete",
@@ -54174,6 +54212,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "Effect Ledger open has its own same-control frame."
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "The standard Ledger frontier/intents family selects one closed frame for"
               }
             ],
             "extension": [
@@ -54218,6 +54260,10 @@
               {
                 "path": "src/client_local_host/installed_effect_host_preview_input_js_wbtest.mbt",
                 "anchor": "test \"Ledger open selects same scope constructor beside original Preview and preserves full retained floor\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_host_preview_input_js_wbtest.mbt",
+                "anchor": "test \"standard Ledger family coholds actual snapshot and nested codec on same token through failed current\""
               }
             ]
           }
@@ -54372,7 +54418,7 @@
           }
         }
       ],
-      "sha256": "699748fddcce13c4db15cfac531c958e3489bb8bedb669b335a6424307130255",
+      "sha256": "ad525090b3403d942dbe171977c6f16c7ece22a6d9270a8e057af31a453744fc",
       "operations": [
         {
           "name": "client_program_installed_effect_captured_input_inventory_retain",
@@ -54461,6 +54507,10 @@
         {
           "name": "client_program_installed_effect_operation_ledger_codec_complete",
           "declaration": "client_program_installed_effect_operation_ledger_codec_complete ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "client_program_installed_effect_operation_ledger_family_begin",
+          "declaration": "client_program_installed_effect_operation_ledger_family_begin ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , counts : Array [ Int ] , max_entries : Int , max_entry_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "client_program_installed_effect_operation_ledger_open_begin",
