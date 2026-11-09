@@ -407,7 +407,7 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
   let reused = restore_native_saved_run_state(submitted_after, run_before)
     .unwrap()
     .unwrap()
-  assert_true(physical_equal(reused.original, retained_state))
+  assert_true(physical_equal(reused.original.unwrap(), retained_state))
   assert_eq(reused.wire(), saved_wire)
   assert_eq(reused.control_revision(), run_before.revision)
   let restored = host
