@@ -16,6 +16,55 @@ SPEC.loader.exec_module(P)
 
 
 class SignedInputs(unittest.TestCase):
+    @staticmethod
+    def response(raw, url='https://source.example.invalid/original'):
+        class Response:
+            def __enter__(self):return self
+            def __exit__(self,*_):return False
+            def geturl(self):return url
+            def read(self,limit):return raw[:limit]
+        return Response()
+
+    def test_gateway_outage_uses_spaced_retries_of_the_same_pinned_input(self):
+        raw=b'pinned immutable Source'
+        expected={'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest()}
+        now=[0.0];calls=[]
+        def sleep(seconds):now[0]+=seconds
+        def download(request,*,timeout):
+            self.assertEqual(request.full_url,'https://source.example.invalid/original')
+            calls.append((now[0],timeout))
+            if now[0]<45:
+                raise urllib.error.HTTPError(request.full_url,504,'Gateway timeout',None,None)
+            return self.response(raw)
+        with tempfile.TemporaryDirectory() as directory:
+            destination=Path(directory)/'original'
+            with patch.object(P.time,'monotonic',side_effect=lambda:now[0]),\
+                    patch.object(P.time,'sleep',side_effect=sleep),\
+                    patch.object(P.urllib.request,'urlopen',side_effect=download):
+                self.assertEqual(P.acquire('https://source.example.invalid/original',expected,destination,None,120),destination)
+            self.assertEqual(destination.read_bytes(),raw)
+        self.assertEqual([time for time,_ in calls],[0,20,40,60])
+        self.assertTrue(all(timeout<=60 for _,timeout in calls))
+
+    def test_transient_retries_do_not_reset_the_original_download_deadline(self):
+        now=[0.0];calls=[];failures=[]
+        def sleep(seconds):now[0]+=seconds
+        def download(request,*,timeout):
+            calls.append((now[0],timeout))
+            failure=urllib.error.HTTPError(request.full_url,504,'Gateway timeout',None,None)
+            failures.append(failure)
+            raise failure
+        with tempfile.TemporaryDirectory() as directory:
+            destination=Path(directory)/'original'
+            with patch.object(P.time,'monotonic',side_effect=lambda:now[0]),\
+                    patch.object(P.time,'sleep',side_effect=sleep),\
+                    patch.object(P.urllib.request,'urlopen',side_effect=download):
+                with self.assertRaises(urllib.error.HTTPError) as raised:
+                    P.acquire('https://source.example.invalid/original',{'bytes':1,'sha256':'0'*64},destination,None,45)
+                self.assertIs(raised.exception,failures[-1])
+            self.assertFalse(destination.exists())
+        self.assertEqual(calls,[(0,45),(20,25),(40,5)])
+
     def test_release_key_uses_exact_source_or_original_without_network(self):
         key=json.loads((P.ROOT/'scripts/native-http-component-source.json').read_text())['upstream']['releaseKey']
         source=P.ROOT/key['sourcePath']
@@ -319,8 +368,8 @@ class BoundedPinnedDownloads(unittest.TestCase):
             self.assertEqual(destination.read_bytes(),b'pinned')
             self.assertEqual([call.args[0].full_url for call in opened.call_args_list],
                              ['https://source.invalid/original']*2)
-            self.assertEqual([call.kwargs['timeout'] for call in opened.call_args_list],[30,28])
-            self.assertEqual(sleeps,[2])
+            self.assertEqual([call.kwargs['timeout'] for call in opened.call_args_list],[30,10])
+            self.assertEqual(sleeps,[20])
 
     def test_transient_http_and_interrupted_read_restart_same_bounded_get(self):
         error=urllib.error.HTTPError('https://source.invalid/original',503,'unavailable',{},None)
@@ -335,21 +384,21 @@ class BoundedPinnedDownloads(unittest.TestCase):
             self.assertEqual(destination.read_bytes(),b'pinned')
             self.assertEqual([call.args[0].full_url for call in opened.call_args_list],['https://source.invalid/original']*3)
             self.assertEqual([call.kwargs['timeout'] for call in opened.call_args_list],[60]*3)
-            self.assertEqual(sleep.call_args_list,[unittest.mock.call(2),unittest.mock.call(4)])
+            self.assertEqual(sleep.call_args_list,[unittest.mock.call(20),unittest.mock.call(20)])
             self.assertTrue(interrupted.closed)
 
-    def test_repeated_network_failure_returns_last_original_after_three_attempts(self):
+    def test_repeated_network_failure_returns_last_original_after_eight_attempts(self):
         import socket
-        errors=[urllib.error.URLError(socket.gaierror(8,'fixture DNS failure')) for _ in range(3)]
+        errors=[urllib.error.URLError(socket.gaierror(8,'fixture DNS failure')) for _ in range(8)]
         with tempfile.TemporaryDirectory() as raw:
             destination=Path(raw)/'original'
             with patch.object(P.urllib.request,'urlopen',side_effect=errors) as opened, \
                     patch.object(P.time,'monotonic',return_value=0),patch.object(P.time,'sleep') as sleep:
                 with self.assertRaises(urllib.error.URLError) as observed:
-                    P.acquire('https://source.invalid/original',self.expected(),destination,None,30)
+                    P.acquire('https://source.invalid/original',self.expected(),destination,None,240)
             self.assertIs(observed.exception,errors[-1])
-            self.assertEqual(opened.call_count,3)
-            self.assertEqual(sleep.call_args_list,[unittest.mock.call(2),unittest.mock.call(4)])
+            self.assertEqual(opened.call_count,8)
+            self.assertEqual(sleep.call_args_list,[unittest.mock.call(20)]*7)
             self.assertFalse(destination.exists())
 
     def test_expired_original_budget_does_not_retry_or_sleep(self):

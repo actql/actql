@@ -35,7 +35,8 @@ def acquire(url: str, expected: dict, destination: Path, original: Path | None,
     last_failure = None
     # Retry only this same immutable GET, inside the caller's original budget.
     # Integrity, trust and permanent HTTP refusals never become another input.
-    for attempt in range(3):
+    attempts = 8
+    for attempt in range(attempts):
         remaining = deadline - time.monotonic()
         if remaining <= 0 and last_failure is not None:
             raise last_failure
@@ -54,8 +55,10 @@ def acquire(url: str, expected: dict, destination: Path, original: Path | None,
                     isinstance(reason, OSError) and reason.errno in (
                         errno.ECONNRESET, errno.ECONNREFUSED, errno.ENETUNREACH,
                         errno.EHOSTUNREACH, errno.ETIMEDOUT))
-            delay = 2 ** (attempt + 1)
-            if not transient or attempt == 2 or delay >= deadline - time.monotonic():
+            # A short 2/4-second burst does not outlast gateway outages. Space
+            # the same pinned GET within the unchanged whole-input deadline.
+            delay = 20
+            if not transient or attempt + 1 == attempts or delay >= deadline - time.monotonic():
                 raise
             if isinstance(error, urllib.error.HTTPError):
                 error.close()
