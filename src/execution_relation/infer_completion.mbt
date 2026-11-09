@@ -1,15 +1,19 @@
 ///|
-/// Bind the acquisition output contract to the exact completed pure prefix.
+/// Bind the acquisition output contract to the selected completed prefix.
 /// Infer remains outside AoA: this selects only its checked output target and
-/// grants no success authority. The installed ModelTask owner must verify it.
+/// grants no success authority. A retained sequence can include later checked
+/// steps; its selected logical endpoint, not its whole node count, must be the
+/// original pre-Infer producer. The installed ModelTask owner must verify it.
 pub fn prepare_infer_completion(
   prefix : GeneratedSequence,
   rows : PreparedInferRows,
   step : Int,
 ) -> CompletionPreparation? {
   let owner = generated_sequence_owner(prefix)
+  let count = generated_sequence_step_count(prefix)
   guard step > 0 &&
-    @lower.sequence_count(prefix.sequence) == step &&
+    count > 0 &&
+    generated_sequence_step_index_at(prefix, count - 1) == Some(step - 1) &&
     physical_equal(rows.input.expected, owner) else {
     return None
   }

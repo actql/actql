@@ -3362,6 +3362,14 @@ the original fenced Journal. Replacing this metadata row releases no physical
 holding, consumed Model attempt, work or evidence, and cannot issue a Model
 persistence acknowledgement.
 
+The pre-INFER input may execute a selected range of an original sequence that
+also retains later checked operations. Completion checks the selected range's
+last logical step against the original pre-INFER producer, rather than
+requiring the complete retained sequence to end there. The same checked owner,
+actual mapped rows, available completed input, output binding and retirement
+checks remain required. An equal foreign owner, wrong endpoint or reclaimed
+input cannot supply that completion.
+
 The Native caller retains the completed Model observation, its original Run
 Invocation and actual successful invocation evidence at the Preview boundary.
 Local Result Artifacts keep their original derived retention; the installation

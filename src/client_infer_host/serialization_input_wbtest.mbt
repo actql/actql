@@ -1,5 +1,7 @@
 ///|
-fn serialized_infer_fixture_program() -> @publication_host.PreparedClientProgram {
+fn serialized_infer_fixture_program(
+  trailing_projection? : Bool = false,
+) -> @publication_host.PreparedClientProgram {
   // Independently sealed Node crypto vector, not a product-derived oracle.
   let task =
     #|{"authored_model_selector":"fixture-risk-model","connector_id":"models/fixture","contract_cid":"sha256:836444f3888092768af981447509670f2efc05bc047bf2665a951603c93b160d","data_handling":{"accepted_classifications":["public","internal"],"allowed_regions":["fixture-region"],"contract_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","retention":"none","training_use":"forbidden"},"generation_config":{"max_output_tokens":32,"seed_requested":-7,"temperature":0,"top_p":1},"input_contract":{"additional_properties":false,"fields":{"document":{"media_type":"application/x-ndjson","nullable":false,"type":"content_ref"}},"nullable":false,"type":"object"},"input_schema_cid":"sha256:60859537e680a59e68650f78be73ce2c818e3f3f2e37460568c8a54877c03d7a","max_items":2,"output_contract":{"additional_properties":false,"fields":{"reason":{"nullable":true,"type":"string"},"risk":{"nullable":false,"type":"string"}},"nullable":false,"type":"object"},"output_schema_cid":"sha256:d67003c78c0eb8b7ab0499bbed57bc8d5895c43ed0b3ce27755b656a65fd49f3","prompt_template_cid":"sha256:d0ff84aab70965d97df8303954e5ab59e9b554de3251ca53f55da56577eedde2","retrieval_policy":"none","schema":"actql.model_task/0.1","streaming":false,"task_id":"model-task:risk-score.v1","task_kind":"structured_generate","tool_policy":"none","version":"1"}
@@ -19,6 +21,16 @@ fn serialized_infer_fixture_program() -> @publication_host.PreparedClientProgram
     )
   let source =
     #|{"version":"actql/0.1","id":"generated-content-model","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":2},{"id":1}]},"as":"seed"},{"serialize":{"format":"jsonl","fields":["id"],"name":"out.jsonl","preserve_order":true,"bounds":{"max_rows":2,"max_bytes":18}},"as":"attachment"},{"assert_rows":{"unique_by":["name"]},"as":"unique"},{"infer":{"contract":"model-task:risk-score.v1","key":"name","input":{"document":{"field":"content"}}},"as":"inferred"}],"results":{"answer":{"from":"inferred","fields":["name","outcome","value"]}}}],"results":{"answer":{"from":{"stage":"main","result":"answer"}}}}
+  let source = if trailing_projection {
+    source
+    .replace(
+      old="\"as\":\"inferred\"}],",
+      new="\"as\":\"inferred\"},{\"select\":[\"name\",\"outcome\",\"value\"],\"as\":\"projected\"}],",
+    )
+    .replace(old="\"from\":\"inferred\"", new="\"from\":\"projected\"")
+  } else {
+    source
+  }
   fixture_prepared(source~, environment_wire=environment)
 }
 
@@ -1179,6 +1191,93 @@ test "actual serialized Content reaches checked Infer mapping without replaying 
     live.val = false
     assert_false(@relation.completed_output_available(output))
   }
+}
+
+///|
+test "serialized Infer completion uses its selected prefix before a later checked projection" {
+  let prepared = serialized_infer_fixture_program(trailing_projection=true)
+  let (output, _, live) = serialized_infer_fixture_output(prepared)
+  let occurrence = @publication_host.prepared_client_composed_infer_occurrence(
+    prepared,
+  ).unwrap()
+  let limits = standard_limits()
+  let segment = @relation.prepare_serialization_infer_input_segment(
+    output,
+    3,
+    @publication_host.client_standard_values_sequence_limits(),
+    100000,
+    10000,
+  ).unwrap()
+  assert_eq(@relation.generated_sequence_step_count(segment), 1)
+  assert_eq(@relation.generated_sequence_step_index_at(segment, 0), Some(2))
+  let owner = @publication_host.client_infer_occurrence_preparation(occurrence)
+  let semantic = @lower.prepare_sequence_with_infer_boundary(
+    owner,
+    3,
+    @publication_host.client_standard_values_sequence_limits(),
+    serialization=Some(1),
+  ).unwrap()
+  let contracts = @relation.admit_relation_registry(
+    @canonical.from_json(
+      @json.parse(infer_fixture_registry),
+      10000,
+      100,
+      100000,
+    ),
+    @canonical.from_json(@json.parse(infer_fixture_values), 10000, 100, 100000),
+    { max_body_bytes: 100000, max_body_nodes: 10000, max_body_depth: 100, },
+  ).unwrap()
+  let whole = @relation.prepare_generated_sequence(
+    contracts,
+    semantic,
+    [],
+    [
+      @lower.node_id(
+        @lower.node_at(@lower.bound_preparation(owner), 2).unwrap(),
+      ),
+    ],
+    100000,
+    10000,
+  ).unwrap()
+  let selected = @relation.select_generated_sequence_range(whole, 2, 2).unwrap()
+  assert_true(@lower.sequence_count(semantic) > 3)
+  let active = @input.start_client_serialized_infer_input(
+    occurrence,
+    segment,
+    1,
+    output,
+    limits.input,
+    limits.measurement,
+    limits.mapping,
+  ).unwrap()
+  let mut rows = None
+  for _ in 0..<10000 {
+    match @input.advance_client_infer_input(active, 7).unwrap() {
+      Continue(..) => ()
+      Complete(value, ..) => {
+        rows = Some(value)
+        break
+      }
+      _ => abort("original serialized prefix did not complete")
+    }
+  }
+  let rows = rows.unwrap()
+  let completion = @relation.prepare_infer_completion(selected, rows, 3).unwrap()
+  assert_true(@relation.infer_completion_matches_rows(completion, rows))
+  assert_eq(@relation.completion_preparation_terminal_step(completion), 3)
+  assert_true(
+    @relation.prepare_infer_completion(
+      @relation.select_generated_sequence_range(whole, 1, 1).unwrap(),
+      rows,
+      3,
+    )
+    is None,
+  )
+  assert_true(@input.cleanup_client_infer_input(active).unwrap())
+  assert_true(@relation.prepare_infer_completion(selected, rows, 3) is None)
+  assert_true(@relation.completed_output_available(output))
+  live.val = false
+  assert_false(@relation.completed_output_available(output))
 }
 
 ///|
