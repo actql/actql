@@ -18,11 +18,19 @@ test('Native Model local observation retains partial exports before issuer retir
   const grow = capacities.split('///|').find(value => value.includes('fn NativeClientMockModelWork::grow_observation_capacity('));
   const startup = capacities.split('///|').find(value => value.includes('pub fn native_client_mock_model_observation_capacity('));
   assert(grow && startup);
+  const representation = readFileSync(new URL('../src/execution_relation/preparation_representation.mbt', import.meta.url), 'utf8');
+  const arrayRepresentation = representation.split('///|').find(value =>
+    value.includes('pub fn preparation_array_representation('));
+  assert(arrayRepresentation);
   const root = mkdtempSync(join(tmpdir(), 'actql-native-model-observation-order-'));
   t.after(() => rmSync(root, {recursive: true, force: true}));
-  for (const name of ['', 'execution', 'publication', 'infer']) mkdirSync(join(root, 'src', name), {recursive: true});
+  for (const name of ['', 'execution', 'publication', 'infer', 'counts']) mkdirSync(join(root, 'src', name), {recursive: true});
   writeFileSync(join(root, 'moon.mod'), 'name = "actql/model-observation-order-probe"\nsource = "src"\n');
-  for (const name of ['execution', 'publication']) writeFileSync(join(root, `src/${name}/moon.pkg`), 'supported_targets = "js"\n');
+  for (const name of ['execution', 'publication', 'counts']) writeFileSync(join(root, `src/${name}/moon.pkg`), 'supported_targets = "js"\n');
+  writeFileSync(join(root, 'src/execution/moon.pkg'), 'supported_targets = "js"\nimport { "actql/model-observation-order-probe/counts" @preparation_counts }\n');
+  // The pure representation helper is the actual Source, not another byte
+  // tariff or Ledger. Resource growth below remains an explicit refusal port.
+  writeFileSync(join(root, 'src/counts/counts.mbt'), readFileSync(new URL('../src/capacity_arithmetic/preparation_counts.mbt', import.meta.url), 'utf8'));
   writeFileSync(join(root, 'src/moon.pkg'), 'supported_targets = "js"\nimport { "actql/model-observation-order-probe/execution" @execution, "actql/model-observation-order-probe/infer" @infer, "actql/model-observation-order-probe/publication" @publication } for "wbtest"\n');
   writeFileSync(join(root, 'src/infer/moon.pkg'), 'supported_targets = "js"\nimport { "actql/model-observation-order-probe/execution" @execution, "actql/model-observation-order-probe/publication" @publication }\n');
   writeFileSync(join(root, 'src/publication/ports.mbt'), 'pub(all) struct CapturedEffectDependencyBody { marker : Int }\n');
@@ -30,6 +38,7 @@ test('Native Model local observation retains partial exports before issuer retir
 pub(all) enum Issue { Refused } derive(Eq, Debug)
 pub(all) struct ExecutionCapacity { retained : Int64; execution : Int64 } derive(Eq, Debug)
 pub(all) struct PreparationRepresentationUnits { record_headers : Int64; reference_slots : Int64; scalar_words : Int64; owned_utf16_units : Int64; owned_wire_bytes : Int64 } derive(Eq, Debug)
+${arrayRepresentation}
 pub(all) struct PreparationExecutionInventory { retained : PreparationRepresentationUnits; workspace : PreparationRepresentationUnits; retained_nodes : Int64; workspace_nodes : Int64; retained_bytes : Int64; workspace_bytes : Int64 }
 let observed_units : Ref[PreparationExecutionInventory?] = Ref(None)
 pub fn preparation_execution_capacity(value : PreparationExecutionInventory) -> ExecutionCapacity? { observed_units.val = Some(value); Some({retained: 1L, execution: 1L}) }
@@ -182,9 +191,11 @@ test "startup selects fixed controls without reading output maxima" {
   for count in [2, 10000] {
     assert_true(native_client_mock_model_observation_capacity({model: {max_items: count}}) is Some(_))
     let units = @execution.startup_units()
-    assert_eq(units.retained.record_headers, 32L)
-    assert_eq(units.retained.reference_slots, 128L)
-    assert_eq(units.retained.scalar_words, 64L)
+    // Original fixed controls plus dependency-triple/map holders and one
+    // growing two-entry input array (3H/19R/2W), independent of output maxima.
+    assert_eq(units.retained.record_headers, 32L + 4L + 3L)
+    assert_eq(units.retained.reference_slots, 128L + 10L + 13L + 3L * 2L)
+    assert_eq(units.retained.scalar_words, 64L + 1L + 2L)
     assert_eq(units.retained.owned_utf16_units, 0L)
     assert_eq(units.retained.owned_wire_bytes, 0L)
     assert_eq(units.workspace.record_headers, 0L)
@@ -265,7 +276,7 @@ test "exact production exception shell transition matrix" {
 });
 
 // Execute the exact Native caller record and its accounting/close methods.
-// The two dependency packages are explicit typed Resource/transport ports:
+// The dependency packages are explicit typed Resource/transport/DATA ports:
 // this is a caller transition counter, not actual Native IO, debit or ACK.
 function nativeTargetCleanupProbe(t) {
   const source = readFileSync(new URL('../src/cmd/native_client/local_effect_mock_targets.mbt', import.meta.url), 'utf8');
@@ -275,9 +286,10 @@ function nativeTargetCleanupProbe(t) {
   const actual = source.slice(begin, end);
   const root = mkdtempSync(join(tmpdir(), 'actql-target-cleanup-order-'));
   t.after(() => rmSync(root, {recursive: true, force: true}));
-  for (const name of ['src', 'src/resources', 'src/transport']) mkdirSync(join(root, name));
+  for (const name of ['src', 'src/resources', 'src/transport', 'src/execution']) mkdirSync(join(root, name));
   writeFileSync(join(root, 'moon.mod'), 'name = "actql/target-cleanup-order-probe"\nsource = "src"\n');
-  for (const name of ['resources', 'transport']) writeFileSync(join(root, `src/${name}/moon.pkg`), 'supported_targets = "js"\n');
+  for (const name of ['resources', 'transport', 'execution']) writeFileSync(join(root, `src/${name}/moon.pkg`), 'supported_targets = "js"\n');
+  writeFileSync(join(root, 'src/execution/ports.mbt'), 'pub(all) struct ExecutionCapacity { retained : Int64; execution : Int64 }\n');
   writeFileSync(join(root, 'src/resources/ports.mbt'), `
 pub(all) enum LedgerIssue { TransferLimit } derive(Eq, Debug)
 pub(all) enum ClientInstalledManagedRunIssue { ForeignOriginal; Ledger(LedgerIssue) } derive(Eq, Debug)
@@ -321,7 +333,7 @@ pub fn NativeRelationFileTargetIO::close(self : Self) -> Result[Bool, NativeRela
   Ok(true)
 }
 `);
-  writeFileSync(join(root, 'src/moon.pkg'), 'import { "actql/target-cleanup-order-probe/resources" @local_values, "actql/target-cleanup-order-probe/transport" @row_file, } for "wbtest"\nsupported_targets = "js"\n');
+  writeFileSync(join(root, 'src/moon.pkg'), 'import { "actql/target-cleanup-order-probe/resources" @local_values, "actql/target-cleanup-order-probe/transport" @row_file, "actql/target-cleanup-order-probe/execution" @execution, } for "wbtest"\nsupported_targets = "js"\n');
   return {root, actual};
 }
 
@@ -336,9 +348,13 @@ test "same original debt and physical close remain separate" {
     let operation : @local_values.ClientInstalledEffectOperationBorrow = { refusing: true, charged: 0L, retire_calls: 0 }
     let request : @local_values.ClientInstalledEffectOperationBorrow = { refusing: false, charged: 0L, retire_calls: 0 }
     let child : @row_file.NativeRelationFileTargetIO = { close_kind: kind, close_calls: 0, closed: false, advance_refuses: false, advances: 0 }
+    let input : LocalNativeMockEffectRequestInput = {
+      value: Json::Null, before: "original-input-before", version: "original-input-version",
+      initial: {retained: 1L, execution: 2L},
+    }
     let held : LocalNativeMockEffectTarget = {
       operation, child: Some(child), observed: Some(("original-before", "original-version")),
-      request_operation: Some(request), _retained_request: Some(("original-request", "original-cid")),
+      request_operation: Some(request), request_input: Some(input), _retained_request: Some(("original-request", "original-cid")),
       charged: 0L, received: 0L, _retained_account_issue: None,
     }
     let refused = held.close()
@@ -357,6 +373,10 @@ test "same original debt and physical close remain separate" {
     assert_eq(request.retire_calls, 0)
     assert_eq(held.observed, Some(("original-before", "original-version")))
     assert_eq(held._retained_request, Some(("original-request", "original-cid")))
+    assert_true(physical_equal(held.request_input.unwrap(), input))
+    assert_true(input.value is Null)
+    assert_eq(input.before, "original-input-before"); assert_eq(input.version, "original-input-version")
+    assert_eq(input.initial.retained, 1L); assert_eq(input.initial.execution, 2L)
     // Retry only cleanup, without another advance/read or another operation.
     child.close_kind = 0
     operation.refusing = false
@@ -367,7 +387,7 @@ test "same original debt and physical close remain separate" {
     assert_eq(held.charged, 32L)
     assert_eq(operation.retire_calls, 1)
     assert_eq(request.retire_calls, 1)
-    assert_true(held.observed is None && held._retained_request is None)
+    assert_true(held.observed is None && held.request_input is None && held._retained_request is None)
   }
 }
 `);
@@ -410,8 +430,12 @@ test "physical failure survives a distinct accounting refusal" {
   for (physical_failure, accounting_failure) in [(true, true), (false, true), (true, false)] {
     let operation : @local_values.ClientInstalledEffectOperationBorrow = { refusing: accounting_failure, charged: 0L, retire_calls: 0 }
     let child : @row_file.NativeRelationFileTargetIO = { close_kind: 0, close_calls: 0, closed: false, advance_refuses: physical_failure, advances: 0 }
+    let input : LocalNativeMockEffectRequestInput = {
+      value: Json::Null, before: "original-input-before", version: "original-input-version",
+      initial: {retained: 1L, execution: 2L},
+    }
     let held : LocalNativeMockEffectTarget = {
-      operation, child: Some(child), observed: None, request_operation: None, _retained_request: None,
+      operation, child: Some(child), observed: None, request_operation: None, request_input: Some(input), _retained_request: None,
       charged: 0L, received: 0L, _retained_account_issue: None,
     }
     let original : LocalCommandPreparationOriginal = { primary: None }
@@ -433,8 +457,14 @@ test "physical failure survives a distinct accounting refusal" {
     } else { assert_eq(operation.charged, 32L) }
     assert_eq(operation.retire_calls, 0)
     assert_true(held.observed is None)
+    assert_true(physical_equal(held.request_input.unwrap(), input))
+    assert_true(input.value is Null)
+    assert_eq(input.before, "original-input-before"); assert_eq(input.version, "original-input-version")
+    assert_eq(input.initial.retained, 1L); assert_eq(input.initial.execution, 2L)
     held.close() |> ignore
     assert_eq(child.close_calls, 1)
+    if accounting_failure { assert_true(physical_equal(held.request_input.unwrap(), input)) }
+    else { assert_true(held.request_input is None) }
   }
 }
 `);
