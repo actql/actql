@@ -3035,7 +3035,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/hubspot-effect-plan.mjs",
-      "sha256": "4b6d71bb6309492d9d88acc87a6f7ef80ed84218b0b1a4abd78059aa5f930d89",
+      "sha256": "c62f1f4956e290e9d394fe3b2ee190a1efd29f14f1cce663221756486a4afc8c",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common managed Effect Plan and same-issuer HubSpot constructor quantities",
@@ -3054,6 +3054,7 @@
           "name": "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe",
           "parameters": [
             "mappings",
+            "origin",
             "portalId",
             "objectTypeUnits",
             "metadataResources",
@@ -3329,6 +3330,10 @@
               {
                 "path": "src/connectors/hubspot/catalog/effect-construction.md",
                 "anchor": "- Resources:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "The Host passes only original member and operation coordinates. Core resolves"
               }
             ],
             "extension": [
@@ -3341,6 +3346,10 @@
               {
                 "path": "src/connectors/hubspot/catalog/effect-construction.md",
                 "anchor": "- Verification:"
+              },
+              {
+                "path": "adapters/connectors/hubspot/test/hubspot-effect-plan.test.mjs",
+                "anchor": "test('HubSpot fixed footprint binds a scratch-only original member distinct from all physical and capture roles'"
               }
             ]
           }
@@ -3349,7 +3358,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/installed-hubspot-effect.mjs",
-      "sha256": "8e978db13e3d48272cd5c61e5a4618f495446a727ef413a5b82bd0f9caf8c593",
+      "sha256": "9c917f7cc67e24caf080e40abc7d86241677d8e34c1bf81b98d6b9d3182c00db",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Effect, Common initialization/Mapping/Checkpoint/current/dispatch and original Row Site owners",

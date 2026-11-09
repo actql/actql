@@ -34435,7 +34435,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_borrow.mbt",
-      "sha256": "91d38c52088e364f6a2c11aa4d538c9de7ad55f5051497c273cc568487d4fe39",
+      "sha256": "f2d4afdcf9096df5a2aa01f1ccdd5393d1a2abe8b83469f14b2fa71012a69b3d",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original installed Effect operation borrow and retained same-Run management controls",
@@ -34461,6 +34461,10 @@
         {
           "name": "begin_installed_effect_operation_controls_original",
           "declaration": "begin_installed_effect_operation_controls_original ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , construction_deferred : Bool , ) - > Result [ ClientInstalledEffectManagedPlan , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "begin_installed_effect_operation_footprint_construction",
+          "declaration": "begin_installed_effect_operation_footprint_construction ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : ClientInstalledEffectManagedPlan , member_index : Int , operation_index : Int , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "begin_installed_effect_operation_grant_construction",
@@ -34709,6 +34713,7 @@
             "begin_installed_effect_operation_construction",
             "begin_installed_effect_operation_control_construction",
             "begin_installed_effect_operation_controls_original",
+            "begin_installed_effect_operation_footprint_construction",
             "begin_installed_effect_operation_grant_construction",
             "begin_installed_effect_operation_input",
             "begin_installed_effect_operation_request_projection",
@@ -34821,6 +34826,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "After an original row request constructor has completed, its Host facts export"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "A fixed opaque-boundary footprint can declare a scratch-only member extent in"
               }
             ],
             "extension": [
@@ -34869,6 +34878,10 @@
               {
                 "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
                 "anchor": "test \"request projection current retirement keeps failed control scratch until original cleanup\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
+                "anchor": "test \"opaque footprint uses original member scratch on same real Ledger with full retained floor\""
               }
             ]
           }
@@ -53856,6 +53869,7 @@
             "client_program_installed_effect_response_buffer_construction_capacity",
             "client_program_installed_json_effect_request_construction_capacity",
             "client_program_installed_json_effect_response_construction_capacity",
+            "client_program_installed_opaque_boundary_footprint_capacity",
             "client_program_installed_standard_create_constructor_capacities"
           ],
           "exports": [],
@@ -53914,6 +53928,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Initial headers and trailers have separate parser counters and can"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "A fixed opaque-boundary footprint can declare a scratch-only member extent in"
               }
             ],
             "extension": [
@@ -53942,6 +53960,10 @@
               {
                 "path": "adapters/site-node/https-credential-response-accounting.test.mjs",
                 "anchor": "test('original HTTP overflow in either header block stays Unknown without another claim'"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
+                "anchor": "test \"opaque footprint uses original member scratch on same real Ledger with full retained floor\""
               }
             ]
           }
@@ -53956,6 +53978,7 @@
             "client_program_installed_effect_operation_control_construction_begin",
             "client_program_installed_effect_operation_control_construction_complete",
             "client_program_installed_effect_operation_controls_retain",
+            "client_program_installed_effect_operation_footprint_construction_begin",
             "client_program_installed_effect_operation_grant_construction_begin",
             "client_program_installed_effect_operation_input_begin",
             "client_program_installed_effect_operation_input_grow",
@@ -54047,6 +54070,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "After an original row request constructor has completed, its Host facts export"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "A fixed opaque-boundary footprint can declare a scratch-only member extent in"
               }
             ],
             "extension": [
@@ -54083,6 +54110,10 @@
               {
                 "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
                 "anchor": "test \"request projection current retirement keeps failed control scratch until original cleanup\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
+                "anchor": "test \"opaque footprint uses original member scratch on same real Ledger with full retained floor\""
               }
             ]
           }
@@ -54237,7 +54268,7 @@
           }
         }
       ],
-      "sha256": "b78d1ac3da351a3f4d7fb990614f720a9455b55e94e633f18ba268607141ae49",
+      "sha256": "5abfd4aadeb86ab7c890a54c0ecf0d5aeb4eaa463f5889177b52ebe3f87cce1d",
       "operations": [
         {
           "name": "client_program_installed_effect_captured_input_inventory_retain",
@@ -54304,6 +54335,10 @@
           "declaration": "client_program_installed_effect_operation_extent_transfer ( original : @ client_local_host . ClientInstalledEffectOperationExtent , ) - > Int64"
         },
         {
+          "name": "client_program_installed_effect_operation_footprint_construction_begin",
+          "declaration": "client_program_installed_effect_operation_footprint_construction_begin ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , member_index : Int , operation_index : Int , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "client_program_installed_effect_operation_grant_construction_begin",
           "declaration": "client_program_installed_effect_operation_grant_construction_begin ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
         },
@@ -54362,6 +54397,10 @@
         {
           "name": "client_program_installed_json_effect_response_construction_capacity",
           "declaration": "client_program_installed_json_effect_response_construction_capacity ( provider : @ execution . ExecutionCapacity , max_response_bytes : Int , max_nodes : Int , max_depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_installed_opaque_boundary_footprint_capacity",
+          "declaration": "client_program_installed_opaque_boundary_footprint_capacity ( origin : String , account : String , object_units : Int , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "client_program_installed_standard_create_constructor_capacities",

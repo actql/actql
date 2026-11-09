@@ -4841,7 +4841,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "038da746527ebd2e6651dccc1b5730a02fb8ecf2828c6b56b567e8bc42bc59b6",
+      "sha256": "d6565ae6224ce6af69e934ab480b9b12a440262bf50a1a9ac1493d1392b79269",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -21478,6 +21478,24 @@
           "async": false
         },
         {
+          "name": "prepareInstalledEffectControlConstruction/footprint/footprint",
+          "parameters": [
+            "member",
+            "operation",
+            "receiver",
+            "method",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectControlConstruction/footprint/footprint/footprint",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareInstalledEffectControlConstruction/grant/grant",
           "parameters": [
             "receiver",
@@ -21494,7 +21512,8 @@
             "args",
             "inputWire",
             "grant",
-            "requestProjection"
+            "requestProjection",
+            "footprintProjection"
           ],
           "async": false
         },
@@ -22097,7 +22116,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "166579eec8daf0198f6247226001f7615c55f53a1addd8969bc23497a62cb939",
+      "sha256": "20d73f34d7da557741cadbf70352f62fc172534ebc3e891a148e2b4d78573f41",
       "contracts": [
         {
           "operations": [
@@ -22646,6 +22665,8 @@
         },
         {
           "operations": [
+            "prepareInstalledEffectControlConstruction/footprint/footprint",
+            "prepareInstalledEffectControlConstruction/footprint/footprint/footprint",
             "prepareInstalledEffectControlConstruction/grant/grant",
             "prepareInstalledEffectControlConstruction/invoke/invoke",
             "prepareInstalledEffectControlConstruction/invoke/invoke/observePlan/observePlan",
@@ -22713,6 +22734,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "After an original row request constructor has completed, its Host facts export"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "A fixed opaque-boundary footprint can declare a scratch-only member extent in"
               }
             ],
             "extension": [
@@ -22753,6 +22778,10 @@
               {
                 "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
                 "anchor": "test \"request projection current retirement keeps failed control scratch until original cleanup\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
+                "anchor": "test \"opaque footprint uses original member scratch on same real Ledger with full retained floor\""
               }
             ]
           }

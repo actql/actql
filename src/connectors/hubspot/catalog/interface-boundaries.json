@@ -198,7 +198,7 @@
     },
     {
       "module": "src/connectors/hubspot/catalog/effect_construction.mbt",
-      "sha256": "51874c565b4c72e42a52c5875d503a52fe86233705514c0a7dcf58d3f4602d88",
+      "sha256": "d1f3ab2b6e5561a498eb3b8c06d219342eeeed0b438bc89dde7a1b4911847236",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing HubSpot native constructors and shared representation inventory owners",
@@ -313,6 +313,10 @@
               {
                 "path": "src/connectors/hubspot/catalog/effect-construction.md",
                 "anchor": "- Resources:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "The Host passes only original member and operation coordinates. Core resolves"
               }
             ],
             "extension": [
@@ -325,6 +329,10 @@
               {
                 "path": "src/connectors/hubspot/catalog/effect-construction.md",
                 "anchor": "- Verification:"
+              },
+              {
+                "path": "adapters/connectors/hubspot/test/hubspot-effect-plan.test.mjs",
+                "anchor": "test('HubSpot fixed footprint binds a scratch-only original member distinct from all physical and capture roles'"
               }
             ]
           }
