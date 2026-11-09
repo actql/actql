@@ -181,6 +181,23 @@ test "Native README lookup receipt retains every original attempt and measured u
 }
 
 ///|
+// Actual completed Source/Store provenance enters the same dependency decoder
+// used by Effect publication. This is not Model/Preview or Journal acceptance.
+test "Native completed Lookup bodies enter strict Effect dependency admission" {
+  assert_eq(
+    @env.get_env_var("ACTQL_TEST_NATIVE_LOOKUP_DEPENDENCIES"),
+    Some("1"),
+  )
+  native_project_mock_model_backed_read(
+    false,
+    readme_request=true,
+    effect_compilation=true,
+    effect_source_inputs=true,
+    content_join=true,
+  )
+}
+
+///|
 // Actual same Store/SQLite/Root/Writer/Reader, with authored raw metadata DATA.
 // No Source authority, Journal activation, Model send or normal funding proof.
 test "Native lookup raw Store preserves exact bytes and original purpose through reopen" {
@@ -1770,6 +1787,27 @@ fn native_mock_readme_content_join_adopt(
     assert_eq(@execution.supplied_relation_read_row_count(complete), 2)
     if @env.get_env_var("ACTQL_TEST_NATIVE_LOOKUP_COMPLETION") == Some("1") {
       let completed = @run_host.client_keyed_lookup_native_completion(lookup).unwrap()
+      if @env.get_env_var("ACTQL_TEST_NATIVE_LOOKUP_DEPENDENCIES") == Some("1") {
+        for
+          (kind, contract) in [
+            ("lookup_accounting", completed.accounting),
+            ("acquisition_attempt_receipt", completed.receipt),
+            ("lookup_evidence", completed.evidence),
+          ] {
+          let body = @publication.admit_captured_effect_dependency_body(
+            kind,
+            Some(@publication.publication_contract_identity(contract)),
+            @publication.publication_contract_json(contract),
+            16384,
+            1024,
+            20,
+          ).unwrap()
+          assert_eq(
+            @publication.captured_effect_dependency_body_cid(body),
+            @publication.publication_contract_identity(contract),
+          )
+        }
+      }
       guard @json.parse(
           @publication.publication_contract_json(completed.accounting),
         )

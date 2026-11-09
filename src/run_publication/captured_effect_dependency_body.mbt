@@ -73,6 +73,11 @@ pub fn admit_publication_effect_dependency_body(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue] {
+  if is_lookup_effect_dependency_kind(kind) {
+    return admit_lookup_effect_dependency_body(
+      kind, wire, max_bytes, max_nodes, max_depth,
+    )
+  }
   if ![
       "result_artifact", "derivation_evidence", "ordering_evidence", "acquisition_relation",
       "acquisition_scope", "result_retention_policy", "table_input_artifact", "table_input_derivation",
