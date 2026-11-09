@@ -52,7 +52,8 @@ fn client_source_preparation_issue_code(
             | UnsupportedGraph
             | Expression({ issue: UnsupportedFunction | UnsupportedCast, .. }) =>
               "source_implementation_limit"
-            // The checked common selector reports this exact support gap.
+            // The same checked selector cause survives Local or published-Catalog
+            // preparation; the wrapper does not change its support category.
             // Malformed Graph bodies and incomplete bindings retain rejection.
             BindingPreparation(
               LocalProgram(
@@ -67,6 +68,33 @@ fn client_source_preparation_issue_code(
                 Pipeline(
                   _,
                   { kind: GraphMatch(Structure(UnsupportedGraphOperation)), .. }
+                )
+              ),
+              _
+            )
+            | BindingPreparation(
+              SourceProgram(
+                Program(
+                  Pipeline(
+                    _,
+                    {
+                      kind: GraphMatch(Structure(UnsupportedGraphOperation)),
+                      ..
+                    }
+                  )
+                )
+              )
+            )
+            | BindingPreparationSource(
+              SourceProgram(
+                Program(
+                  Pipeline(
+                    _,
+                    {
+                      kind: GraphMatch(Structure(UnsupportedGraphOperation)),
+                      ..
+                    }
+                  )
                 )
               ),
               _
