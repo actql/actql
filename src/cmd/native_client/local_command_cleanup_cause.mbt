@@ -92,6 +92,36 @@ fn command_preparation_cleanup_cause(
       }
     CommandBusinessEffectProposals(cause) =>
       match cause {
+        PublicExport(original) =>
+          match original {
+            InvalidState => "EffectPublicExportState"
+            _ => "EffectPublicExport"
+          }
+        PublicManifest(original) =>
+          match original {
+            ManifestIssuanceEncoding => "EffectPublicManifestEncoding"
+            _ => "EffectPublicManifest"
+          }
+        PublicReceipt(original) =>
+          match original {
+            ReceiptIssuanceEncoding => "EffectPublicReceiptEncoding"
+            _ => "EffectPublicReceipt"
+          }
+        PublicBindings(original) =>
+          match original {
+            ForeignMaterials => "EffectPublicBindingsOwner"
+            _ => "EffectPublicBindings"
+          }
+        PublicNormalization(original) =>
+          match original {
+            MissingOriginalJournal => "EffectPublicNormalizationOriginal"
+            _ => "EffectPublicNormalization"
+          }
+        PublicCapture(original) =>
+          match original {
+            ForeignInput => "EffectPublicCaptureInput"
+            _ => "EffectPublicCapture"
+          }
         CapturedSource(original) =>
           match original {
             CaptureIssuanceReferenceMismatch(_) =>

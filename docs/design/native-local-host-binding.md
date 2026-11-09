@@ -3369,3 +3369,24 @@ and body aliases retire before proposals return those pins; Preview cleanup
 must not release the same input owner a second time. These semantic checks do
 not establish encrypted Store custody, a waiting transition, approval, a
 mutation claim, successful publication or physical cleanup.
+
+
+The public Named Result capture uses the existing captured Effect Run's
+underlying DAG. The ordinary publication exporter selects every checked
+Program Result and retains its own borrow before traversal. It does not use a
+Unit-local Definition, Invocation, Artifact or Manifest as a public Run result.
+The complete original Model/acquisition context projects the public provenance
+references, while the original Artifact supplies its already derived retention.
+The common Result, Manifest, computation Receipt and Captured Run Owners issue
+those separate contracts from the retained originals and actual export receipt.
+
+A completed Model observation retains failed slots as well as successful ones.
+Its immutable verified slot classification can be inspected without issuing
+another slot capture or invoking current/provider callbacks per slot. Only
+successful slots contribute successful invocation/response evidence to Preview;
+a failed slot is neither a missing observation nor a fabricated response.
+
+Public export and Captured Run preparation children retire before Preview and
+its original proposals pins. Preparing these contracts does not install public
+payloads or commit a waiting transition; encrypted evidence, Checkpoint custody,
+Journal state and physical Store cleanup remain distinct operations.

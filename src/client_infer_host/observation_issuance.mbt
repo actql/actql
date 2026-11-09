@@ -824,6 +824,42 @@ pub fn observation_issuance_value(
 }
 
 ///|
+/// Immutable classification of the original already verified slot binding.
+/// Callers first borrow the completed observation at its current boundary;
+/// inspecting each slot adds no callback, capture issuance or output use.
+pub fn observation_issuance_slot_outcome(
+  active : ObservationIssuance,
+  index : Int,
+) -> String? {
+  if !active.accepted ||
+    active.reclaimed ||
+    index < 0 ||
+    active.state.bindings.length() != active.state.count {
+    return None
+  }
+  active.state.bindings
+  .get(index)
+  .bind(binding => @publication.bound_model_slot_capture_outcome(binding))
+}
+
+///|
+/// Original Source evidence inventory already selected by this flat issuer.
+/// Pure projection after the completed-value borrow; no per-Source callback,
+/// independent deduplication or fresh Source observation is performed.
+pub fn observation_issuance_source_originals(
+  active : ObservationIssuance,
+) -> Array[@publication.RunEvidenceValue]? {
+  if !active.accepted || active.reclaimed {
+    return None
+  }
+  Some(
+    active.state.sources.map(source => {
+      @publication.model_source_observation_originals(source).0
+    }),
+  )
+}
+
+///|
 pub fn cancel_observation_issuance(active : ObservationIssuance) -> Bool {
   if active.reclaimed || @bounded.session_stopped(active.session) {
     false

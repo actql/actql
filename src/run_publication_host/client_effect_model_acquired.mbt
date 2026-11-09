@@ -262,21 +262,10 @@ pub fn issue_model_client_effect_local_result_artifact(
     Ok(value) => value
     Err(issue) => return Err(Scope(issue))
   }
-  let relations = acquired.direct.map(value => {
-    @publication.publication_contract_identity(value.relation)
-  })
-  if acquired.keyed is Some((lookup, completed)) {
-    guard !lookup.closed &&
-      lookup.left.lookup_issue is None &&
-      lookup.native_completion is Some(same) &&
-      physical_equal(same, completed) else {
-      return Err(ForeignOwner)
-    }
-    relations.push(
-      @publication.publication_contract_identity(completed.relation),
-    )
+  let relations = match effect_model_acquired_relation_cids(acquired) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
-  relations.sort_by(@canonical_value.compare_utf16)
   build_client_effect_local_result_artifact(
     custody,
     ResultSource(borrow, definition),
@@ -292,5 +281,106 @@ pub fn issue_model_client_effect_local_result_artifact(
     max_nodes,
     max_depth,
     scope=Some(acquired.scope),
+  )
+}
+
+///|
+fn effect_model_acquired_relation_cids(
+  acquired : ClientEffectModelAcquiredEvidence,
+) -> Result[Array[String], ClientEffectLocalResultArtifactIssue] {
+  let relations = acquired.direct.map(value => {
+    @publication.publication_contract_identity(value.relation)
+  })
+  if acquired.keyed is Some((lookup, completed)) {
+    guard !lookup.closed &&
+      lookup.left.lookup_issue is None &&
+      lookup.native_completion is Some(same) &&
+      physical_equal(same, completed) else {
+      return Err(ForeignOwner)
+    }
+    relations.push(
+      @publication.publication_contract_identity(completed.relation),
+    )
+  }
+  relations.sort_by(@canonical_value.compare_utf16)
+  Ok(relations)
+}
+
+///|
+/// Public Result provenance from the same complete Model/local Artifact
+/// owner. The private local Definition/Invocation never substitutes for the
+/// public Named Result. This projects originals without another Model call,
+/// compilation, Source read, policy join or physical custody claim.
+pub fn client_effect_model_public_result_evidence_refs(
+  materials : ClientEffectRunMaterials,
+  inputs : @strategy.CapturedEffectInputs,
+  acquired : ClientEffectModelAcquiredEvidence,
+  artifact : ClientEffectLocalResultArtifact,
+  result : Int,
+  invocation : @publication.PublicationContract,
+  observation : @publication.RunEvidenceValue,
+) -> Result[
+  (String, Array[String], String, String, String),
+  ClientEffectLocalResultArtifactIssue,
+] {
+  if !physical_equal(materials.compilation, materials.allowed.compilation) ||
+    !physical_equal(materials.compilation.owner, materials.prepared) ||
+    !physical_equal(acquired.invocation.owner, materials.prepared) ||
+    !physical_equal(artifact.invocation, acquired.invocation) ||
+    !(acquired.compiled.compilation is Effects(allowed) &&
+    physical_equal(allowed, materials.allowed)) ||
+    !client_effect_local_artifact_matches_computation(
+      artifact,
+      materials.prepared,
+    ) ||
+    !client_effect_local_artifact_matches_inputs(artifact, inputs) {
+    return Err(ForeignOwner)
+  }
+  let graph = @strategy.checked_effect_computation_graph(
+    materials.prepared.graph,
+  )
+  guard @strategy.graph_result_task(graph, result) is Some(task) &&
+    @strategy.graph_result_name(graph, result) is Some(name) &&
+    artifact.source is ResultSource(_, definition) &&
+    @strategy.graph_task_unit_index(graph, task) == Some(definition.unit) &&
+    client_effect_local_result_definition_matches(
+      definition,
+      materials.prepared,
+      definition.unit,
+      name,
+    ) else {
+    return Err(ForeignDefinition)
+  }
+  if client_effect_local_artifact_run_definition_cid(artifact) !=
+    Some(@publication.publication_contract_identity(materials.run_definition)) ||
+    @publication.publication_contract_identity(artifact.run_invocation) !=
+    @publication.publication_contract_identity(invocation) {
+    return Err(ForeignRun)
+  }
+  let (_, policy, authority) = match
+    @publication.resolve_run_local_result_evidence_refs(
+      materials.allowed.admission,
+      materials.run_definition,
+      invocation,
+      observation,
+      artifact.retention,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Context(issue))
+  }
+  let relations = match effect_model_acquired_relation_cids(acquired) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok(
+    (
+      @publication.publication_contract_identity(
+        client_effect_compilation_compiled_plan(materials.compilation),
+      ),
+      relations,
+      @publication.publication_contract_identity(acquired.scope),
+      policy,
+      authority,
+    ),
   )
 }

@@ -382,3 +382,42 @@ test "zero-key saved replay validates its original observation and actual input"
   }
   assert_true(@publication.release_model_capture_bundle_read(bundle))
 }
+
+///|
+test "completed slot projection preserves mixed outcomes without another provider or slot issuer" {
+  let calls = Ref(0)
+  let active = failed_outcome_start(
+    @model.Timeout,
+    calls,
+    rows="[{\"id\":\"b\",\"text\":\"second\"},{\"id\":\"a\",\"text\":\"first\"}]",
+    mixed=true,
+  )
+  evidence_authorize(active)
+  assert_true(fixture_finish(active) is Complete(_, ..))
+  let ledger = issuance_ledger(65792L)
+  let issued = start_observation_issuance(active, ledger, issuance_limits()).unwrap()
+  assert_eq(observation_issuance_slot_outcome(issued, 0), None)
+  assert_true(observation_issuance_source_originals(issued) is None)
+  issuance_finish(issued)
+  assert_eq(observation_issuance_source_originals(issued).unwrap().length(), 0)
+  let originals = observation_issuance_value(issued).unwrap()
+  for _ in 0..<2 {
+    assert_eq(observation_issuance_slot_outcome(issued, -1), None)
+    assert_eq(
+      observation_issuance_slot_outcome(issued, 0),
+      Some("failed:timeout"),
+    )
+    assert_eq(observation_issuance_slot_outcome(issued, 1), Some("ok"))
+    assert_eq(observation_issuance_slot_outcome(issued, 2), None)
+  }
+  assert_eq(calls.val, 2)
+  let retained = observation_issuance_value(issued).unwrap()
+  assert_true(physical_equal(originals.0, retained.0))
+  assert_true(physical_equal(originals.1, retained.1))
+  assert_true(cleanup_observation_issuance(issued).unwrap())
+  assert_eq(observation_issuance_slot_outcome(issued, 0), None)
+  assert_true(observation_issuance_source_originals(issued) is None)
+  assert_true(cleanup(active).unwrap())
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+  assert_eq(calls.val, 2)
+}

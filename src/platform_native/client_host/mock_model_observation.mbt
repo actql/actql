@@ -111,6 +111,7 @@ pub fn NativeClientMockModelWork::completed_observation_originals(
   @publication.RunEvidenceValue,
   @publication.PublicationContract,
   Array[@publication.RunEvidenceValue],
+  Array[@publication.RunEvidenceValue],
 )? {
   guard max_entries >= 0 &&
     !self.closing &&
@@ -133,10 +134,18 @@ pub fn NativeClientMockModelWork::completed_observation_originals(
   }
   let originals = []
   for slot in 0..<count {
-    guard @infer.invocation_evidence(active, slot) is Some(original) else {
+    guard @infer.observation_issuance_slot_outcome(issued, slot)
+      is Some(outcome) else {
       return None
     }
-    originals.push(original)
+    // A response-less failure remains in the original flat observation; it
+    // has no successful invocation/response Artifact to add to Preview.
+    if outcome == "ok" {
+      guard @infer.invocation_evidence(active, slot) is Some(original) else {
+        return None
+      }
+      originals.push(original)
+    }
   }
   if self.closing ||
     self.closed ||
@@ -146,7 +155,10 @@ pub fn NativeClientMockModelWork::completed_observation_originals(
     .unwrap_or(false) {
     return None
   }
-  Some((observation, invocation, originals))
+  guard @infer.observation_issuance_source_originals(issued) is Some(sources) else {
+    return None
+  }
+  Some((observation, invocation, originals, sources))
 }
 
 ///|

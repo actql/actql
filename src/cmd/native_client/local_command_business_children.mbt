@@ -211,6 +211,17 @@ fn LocalCommandPreparationOriginal::close_business_children(
       }
       state.targets.clear()
       state.targets.shrink_to_fit()
+      if state.computation is Some(computation) {
+        if computation.issuer is Some(issuer) {
+          issuer.cancel()
+          computation.issuer = None
+        }
+        computation._retained_captured = None
+        for output in computation.outputs {
+          output.cancel()
+        }
+        state.computation = None
+      }
       if state.preview is Some(preview) {
         // Preview borrows the SAME captured pins; proposals below are their
         // original release owner. Only retire its own verifier continuations.

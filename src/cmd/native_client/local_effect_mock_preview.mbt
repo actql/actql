@@ -6,6 +6,7 @@ priv struct LocalNativeMockEffectPreview {
   _retained_observation : @publication.RunEvidenceValue
   _retained_invocation : @publication.PublicationContract
   _retained_models : Array[@publication.RunEvidenceValue]
+  _retained_source_observations : Array[@publication.RunEvidenceValue]
   _retained_authoring : @publication.RunEvidenceValue
   _retained_sources : Array[@publication.PublicationContract]
   _retained_identities : Array[@run_host.ClientEffectLocalIdentity]
@@ -90,7 +91,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_preview(
     guard business.model_work[0].completed_observation_originals(
         state.first._retained_models[0]._retained_limits.output_rows,
       )
-      is Some((observation, invocation, models)) &&
+      is Some((observation, invocation, models, source_observations)) &&
       @run_host.prepared_client_effect_request_scope(
         materials.prepared,
         state.first.request,
@@ -467,6 +468,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_preview(
       _retained_observation: observation,
       _retained_invocation: invocation,
       _retained_models: models,
+      _retained_source_observations: source_observations,
       _retained_authoring: authoring,
       _retained_sources: sources,
       _retained_identities: identities,

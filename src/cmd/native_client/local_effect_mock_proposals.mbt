@@ -24,6 +24,12 @@ priv enum LocalNativeMockEffectProposalIssue {
   CapturedSource(@publication.CapturedRunIssuanceIssue)
   LocalSource(@publication.CapturedLocalEffectSourceIssue)
   Inventory(@publication.CapturedEffectDependencyIssue)
+  PublicExport(@run_host.PublicationOutputExportIssue)
+  PublicManifest(@publication.ResultManifestIssuanceIssue)
+  PublicReceipt(@publication.RunReceiptIssuanceIssue)
+  PublicBindings(@run_host.ClientEffectReceiptBindingsIssue)
+  PublicNormalization(@run_host.ClientEffectNormalizationIssue)
+  PublicCapture(@run_host.ClientEffectCapturedRunIssue)
 }
 
 ///|

@@ -332,6 +332,7 @@ fn local_effect_prepare_start_with_clocks(
     )
     selected.observe_mock_effect_targets()
     selected.prepare_mock_effect_preview(run, binding)
+    selected.prepare_mock_effect_computation(run)
   }
   AuthoritySupplierUnavailable
 }

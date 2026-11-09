@@ -164,6 +164,10 @@ pub fn matches(Execution, @run_publication_host.PreparedClientProgram) -> Bool
 
 pub fn model_cleanup_progress(Execution) -> Int
 
+pub fn observation_issuance_slot_outcome(ObservationIssuance, Int) -> String?
+
+pub fn observation_issuance_source_originals(ObservationIssuance) -> Array[@run_publication.RunEvidenceValue]?
+
 pub fn observation_issuance_value(ObservationIssuance) -> (@run_publication.RunEvidenceValue, @run_publication.PublicationContract)?
 
 pub fn original_local_model_observation_body(LocalModelObservation) -> @run_publication.CapturedEffectDependencyBody?

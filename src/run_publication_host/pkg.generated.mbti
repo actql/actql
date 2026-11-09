@@ -611,6 +611,8 @@ pub fn client_effect_model_acquired_lookup_barrier(ClientEffectModelAcquiredEvid
 
 pub fn client_effect_model_acquired_matches(ClientEffectModelAcquiredEvidence, ClientCompiledRun, ClientInferCallScope, @run_publication.CapturedEffectDependencyBody) -> Bool
 
+pub fn client_effect_model_public_result_evidence_refs(ClientEffectRunMaterials, @physical_strategy_host.CapturedEffectInputs, ClientEffectModelAcquiredEvidence, ClientEffectLocalResultArtifact, Int, @run_publication.PublicationContract, @run_publication.RunEvidenceValue) -> Result[(String, Array[String], String, String, String), ClientEffectLocalResultArtifactIssue]
+
 pub fn client_effect_normalization_catalog_cid(ClientEffectNormalization) -> String
 
 pub fn client_effect_normalization_materials_cid(ClientEffectRunMaterials) -> String?
