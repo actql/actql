@@ -506,7 +506,7 @@
     },
     {
       "module": "adapters/host-node/installed-update-originals.mjs",
-      "sha256": "969594f816a35b3c08145a2041484cdad7c89063639249e5c59fcb614f02a3c4",
+      "sha256": "4d5cf38c63a523c5699768a787051ba2e170e525c979cbb408c7cdf7c3dd51a3",
       "exports": [
         "installUpdateTargetOriginals"
       ],
@@ -541,7 +541,21 @@
           "async": false
         },
         {
+          "name": "installUpdateTargetOriginals/bind/bind/assertUpdateSelectionCurrent/assertUpdateSelectionCurrent/assertUpdateSelectionCurrent",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "installUpdateTargetOriginals/bind/bind/bind",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installUpdateTargetOriginals/bind/bind/installationData/installationData",
           "parameters": [
             "value"
           ],
@@ -736,7 +750,9 @@
             "installUpdateTargetOriginals/init:validateRecoveredSelectionMembers/init:validateRecoveredSelectionMembers",
             "installUpdateTargetOriginals/init:validateRecoveredSelectionMembers/init:validateRecoveredSelectionMembers/members/members",
             "installUpdateTargetOriginals/init:validateRecoveredSelectionMembers/init:validateRecoveredSelectionMembers/members/members/actual/actual",
-            "installUpdateTargetOriginals/init:validateRecoveredSelectionMembers/init:validateRecoveredSelectionMembers/members/members/selected/selected"
+            "installUpdateTargetOriginals/init:validateRecoveredSelectionMembers/init:validateRecoveredSelectionMembers/members/members/selected/selected",
+            "installUpdateTargetOriginals/bind/bind/assertUpdateSelectionCurrent/assertUpdateSelectionCurrent/assertUpdateSelectionCurrent",
+            "installUpdateTargetOriginals/bind/bind/installationData/installationData"
           ],
           "exports": [
             "installUpdateTargetOriginals"
@@ -794,6 +810,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "Selection and installation metadata retains its 64 KiB bound."
+              },
+              {
+                "path": "src/run_publication_host/client_effect_target_original_data.mbt",
+                "anchor": "pub fn client_effect_target_installations_data_equal("
               }
             ],
             "ownership": [
@@ -940,6 +960,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "Selection and installation metadata retains its 64 KiB bound."
+              },
+              {
+                "path": "adapters/host-node/installed-update-targets.test.mjs",
+                "anchor": "test('actual bound installation repeats complete current checks without generic DATA reconstruction'"
               }
             ]
           }
