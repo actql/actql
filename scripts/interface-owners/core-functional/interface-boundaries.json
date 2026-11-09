@@ -61064,6 +61064,18 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              },
+              {
+                "path": "src/query_integration/graph_membership_custody_wbtest.mbt",
+                "anchor": "test \"explicit traversal text budget charges repeated complete identities before projection\""
+              },
+              {
+                "path": "scripts/packed-graph-host-dependencies.test.mjs",
+                "anchor": "test('any-direction Graph controls are staged and exercised in normal and focused acceptance'"
+              },
+              {
+                "path": "scripts/public-query-profiles.test.mjs",
+                "anchor": "test('full corpus pins every authored occurrence independently of worker selection'"
               }
             ]
           }

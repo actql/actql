@@ -319,12 +319,14 @@ test('full corpus pins every authored occurrence independently of worker selecti
   // refusals retain InvalidInput; no refusal predicate or bound is widened.
   // The two invalid statistical forms retain their authored SQL and refusal;
   // their reviewed InvalidInput projection updates only those corpus preimages.
+  // The complete Graph WALK keeps its original Program, parameters and twenty-row
+  // oracle as a success. Storage sizing does not select a cumulative output cap.
   assert.equal(pin.totalCases, 4240);
-  assert.deepEqual(pin.counts, {"successes":2655,"executionFailures":54,"refusals":1531});
-  assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [["standard",{"successes":2601,"executionFailures":52,"refusals":1492}],["analytic-offset",{"successes":6,"executionFailures":0,"refusals":13}],["analytic-property",{"successes":13,"executionFailures":0,"refusals":7}],["analytic-order",{"successes":35,"executionFailures":2,"refusals":19}]]);
+  assert.deepEqual(pin.counts, {"successes":2656,"executionFailures":53,"refusals":1531});
+  assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [["standard",{"successes":2602,"executionFailures":51,"refusals":1492}],["analytic-offset",{"successes":6,"executionFailures":0,"refusals":13}],["analytic-property",{"successes":13,"executionFailures":0,"refusals":7}],["analytic-order",{"successes":35,"executionFailures":2,"refusals":19}]]);
   assert.deepEqual(pin.repeatedFailures, [
-    {name: 'graph-subtraction-null-is-not-zero', positions: [29, 50]},
-    {name: 'graph-subtraction-conflict-needs-policy', positions: [30, 51]},
+    {name: 'graph-subtraction-null-is-not-zero', positions: [29, 49]},
+    {name: 'graph-subtraction-conflict-needs-policy', positions: [30, 50]},
   ]);
   const {registeredPublicQueryInventory} = await import('./public-query-inventory.mjs');
   const actual = await registeredPublicQueryInventory();
