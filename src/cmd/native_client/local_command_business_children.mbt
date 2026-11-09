@@ -283,6 +283,10 @@ fn LocalCommandPreparationOriginal::close_business_children(
     // Only actual child acknowledgements sever these references. Unknown or
     // partial Model/Store/Journal duties keep the same originals for cleanup.
     business.model_work.clear()
+    // Native clear only resets length. The removed Work slots still retain
+    // the original Journal/Database until their backing buffer is released.
+    // Every Work above has already acknowledged its own child retirement.
+    business.model_work.shrink_to_fit()
     if business.effect_model is Some(state) {
       for failure in state.source_failures {
         match failure.retry_cleanup() {
