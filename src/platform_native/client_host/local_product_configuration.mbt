@@ -19,9 +19,14 @@ struct NativeLocalProductConfigurationSession {
 
 ///|
 fn product_original_names(originals : Array[(String, Bytes)]) -> Bool {
-  // Account plus ten selected configuration originals, including the
-  // distinct Material, File and packaged runtime selections. Per-file and wire intake bounds stay fixed.
-  if originals.is_empty() || originals.length() > 11 {
+  // Account plus ten existing selections and the distinct initialized Host
+  // original. Per-file, wire, resource and execution allowances stay fixed.
+  if originals.is_empty() ||
+    originals.length() > 12 ||
+    (
+      originals.length() == 12 &&
+      !originals.any(original => original.0 == "host.json")
+    ) {
     return false
   }
   for index, original in originals {
@@ -553,7 +558,9 @@ fn restore_native_local_product_configuration_original(
     Err(_) => return Err(CustodyLost)
   }
   keys.sort()
-  if keys.is_empty() || keys.length() > 11 {
+  if keys.is_empty() ||
+    keys.length() > 12 ||
+    (keys.length() == 12 && !keys.contains("host.json")) {
     return Err(CustodyLost)
   }
   let root = match local_adoption_open_child(parent, directory_name, custody) {

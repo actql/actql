@@ -69,7 +69,11 @@ fn prepare_local_existing_adoption_capture(
 ) -> Result[NativeLocalAdoptionCapture, NativeLocalAdoptionIssue] {
   // Reuse the existing configuration limit before copying caller-owned DATA.
   // Selection, ordering and all physical validation remain in Adoption itself.
-  if input.configuration_files.length() > 10 {
+  if input.configuration_files.length() > 11 ||
+    (
+      input.configuration_files.length() == 11 &&
+      !input.configuration_files.contains("host.json")
+    ) {
     return Err(ConfigurationLimit)
   }
   let snapshot = {

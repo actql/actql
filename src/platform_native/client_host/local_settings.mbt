@@ -33,7 +33,10 @@ fn select_native_local_configuration(
   custody? : NativeLocalAdoptionOpenFailure? = None,
   root_opening? : NativeLocalAdoptionRootOpening = LegacyPrivateRoots,
 ) -> Result[NativeLocalConfigurationSelection, NativeLocalAdoptionIssue] {
-  if names.length() > 10 {
+  // The same codec/capture inventory: ten existing configuration originals
+  // plus the distinct initialized Host file, not another implementation slot.
+  if names.length() > 11 ||
+    (names.length() == 11 && !names.contains("host.json")) {
     return Err(ConfigurationLimit)
   }
   let names = names.copy()

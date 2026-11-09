@@ -75,3 +75,15 @@ operation name, decision, key, preimage or unfinished outcome cannot create a
 second original for either artifact. Configured issuer operations keep their
 existing exact-preimage rule. Neither successful signature nor Resolution
 admission implies a resume claim, applied Effect or final Result.
+
+## Selected operator Host input
+
+Pure Native product assembly accepts an explicitly supplied Host configuration
+body and preserves its exact bytes as an additional original. It does not
+observe an operator path, create a Host file, prove absence or select a default
+from a fresh private Product directory. The physical initializer must retain
+the actual public Host selection and its current/custody lifetime before
+supplying that body. Explicit signers, including an empty map, cannot select
+the initialized default key. The additional original extends only the bounded
+configuration inventory; execution, work, retry and memory policy stay with
+their existing Owners. Restored installations never regenerate this input.

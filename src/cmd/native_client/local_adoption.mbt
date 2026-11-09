@@ -284,6 +284,12 @@ fn execute_native_local_adoption(
     }
     selected_files.push(file)
   }
+  // Retain the actual operator Host file separately from the eight existing
+  // implementation originals. Its name supplies no signer or Account grant.
+  if settings.initial_host_signing is Some(_) &&
+    !selected_files.contains("host.json") {
+    selected_files.push("host.json")
+  }
   let selected_source = match settings.source_file {
     None => None
     Some(file) => {

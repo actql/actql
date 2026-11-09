@@ -1039,7 +1039,7 @@ pub fn client_model_resource_invalidation_current(@physical_resources.OriginalRe
 
 pub fn client_model_resource_park_current(@physical_resources.OriginalResourcePark[ClientModelReadOrigin], ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> @physical_resources.OriginalResourcePark[ClientModelReadOrigin]?
 
-pub fn client_native_local_finite_product_originals(String, String, String, String, ClientLocalProductAssets, ClientNativeLocalRuntime, mock? : @execution_authorization.LocalMockAccountSubjects?) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue]
+pub fn client_native_local_finite_product_originals(String, String, String, String, ClientLocalProductAssets, ClientNativeLocalRuntime, mock? : @execution_authorization.LocalMockAccountSubjects?, host_configuration? : String?) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue]
 
 pub fn client_native_local_product_originals(String, String, String, String, ClientLocalProductAssets, ClientNativeLocalRuntime) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue]
 

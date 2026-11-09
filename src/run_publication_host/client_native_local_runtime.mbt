@@ -319,6 +319,7 @@ fn assemble_client_native_local_product_originals(
   runtime : ClientNativeLocalRuntime,
   finite_run_profile? : Bool = false,
   mock? : @authorization.LocalMockAccountSubjects? = None,
+  host_configuration? : String? = None,
 ) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue] {
   try {
     // Packaged asset bytes must match this exact original manifest, not merely
@@ -362,6 +363,27 @@ fn assemble_client_native_local_product_originals(
         )
       },
     )
+    // Trusted first-install Mock selection only. The Account already contains
+    // this explicit Sign tuple; retaining it grants no key use or permission.
+    let initial_host_signing = match (mock, host_configuration) {
+      (Some(subjects), Some(wire)) if finite_run_profile &&
+        subjects.signing_key_resource is Some(resource) => {
+        let configuration = match
+          admit_client_host_signer_configuration(wire, {
+            max_wire_bytes: 65536,
+            max_nodes: 1024,
+            max_depth: 16,
+            max_signers: 64,
+          }) {
+          Ok(value) if !value.has_explicit_signers() => value
+          _ => return Err(UnsupportedAsset)
+        }
+        ignore(configuration)
+        Some((subjects.principal, subjects.control_connection, resource))
+      }
+      (_, Some(_)) => return Err(UnsupportedAsset)
+      _ => None
+    }
     for index, (name, bytes) in originals {
       if name == "config.json" {
         let wire = @utf8.decode(bytes) catch {
@@ -383,12 +405,25 @@ fn assemble_client_native_local_product_originals(
           selected.push("material-read.json")
           selected.push("file-read.json")
         }
+        if initial_host_signing is Some((principal, connection, resource)) {
+          settings["initial_host_signing"] = product_object([
+            ("principal", Json::string(principal)),
+            ("connection", Json::string(connection)),
+            ("resource", Json::string(resource)),
+          ])
+        }
         settings["installation_files"] = product_texts(selected)
         originals[index] = (
           name,
           @utf8.encode(product_require(product_wire(config))),
         )
       }
+    }
+    if initial_host_signing is Some(_) {
+      // Preserve the supplied operator original, including its exact bytes.
+      // Pure assembly proves no path/custody/current or absent-file witness.
+      // The physical initializer must retain the actual selected Host input.
+      originals.push(("host.json", @utf8.encode(host_configuration.unwrap())))
     }
     originals.push(("runtime.json", @utf8.encode(runtime.wire)))
     Ok(originals)
@@ -425,6 +460,7 @@ pub fn client_native_local_finite_product_originals(
   assets : ClientLocalProductAssets,
   runtime : ClientNativeLocalRuntime,
   mock? : @authorization.LocalMockAccountSubjects? = None,
+  host_configuration? : String? = None,
 ) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue] {
   assemble_client_native_local_product_originals(
     configuration_root,
@@ -435,5 +471,6 @@ pub fn client_native_local_finite_product_originals(
     runtime,
     finite_run_profile=true,
     mock~,
+    host_configuration~,
   )
 }

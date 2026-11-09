@@ -148,3 +148,26 @@ test "shared selection codec preserves the ten selected files bound and original
     is Err(Encoding),
   )
 }
+
+///|
+test "selection codec retains one distinct Host original without widening the ten implementation inputs" {
+  let first : ClientLocalOriginalConfigurationFile = {
+    content_cid: local_codec_intent,
+    device: 1UL,
+    inode: 2UL,
+    name: "input.json",
+    size: 3L,
+  }
+  let files = Array::make(10, first)
+  files.push({ ..first, name: "host.json", })
+  assert_true(client_local_configuration_selection_body(files, None) is Ok(_))
+  files.push({ ..first, name: "foreign.json", })
+  assert_true(
+    client_local_configuration_selection_body(files, None)
+    is Err(ConfigurationLimit),
+  )
+  assert_true(
+    client_local_configuration_selection_body(Array::make(11, first), None)
+    is Err(ConfigurationLimit),
+  )
+}

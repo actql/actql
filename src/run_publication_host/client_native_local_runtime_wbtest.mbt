@@ -320,3 +320,127 @@ test "finite packaged profile retains File and runtime within eight installation
     "[\"read.json\",\"run.json\",\"retention.json\",\"store.json\",\"runtime.json\",\"profile.json\",\"material-read.json\",\"file-read.json\"]",
   )
 }
+
+///|
+test "fresh selected Mock signer retains actual Host configuration and independent Sign tuple" {
+  let runtime = runtime_test_admit(runtime_test_manifest()).unwrap()
+  let subjects : @authorization.LocalMockAccountSubjects = {
+    account_id: "local-cli",
+    principal: "local-cli",
+    control_connection: "local",
+    sources: [
+      ("salesforce", "Opportunity"),
+      ("drive", "files"),
+      ("drive", "contents"),
+    ],
+    model_tasks: ["sha256:" + "a".repeat(64)],
+    request_target: None,
+    update_target: Some(("salesforce", "Opportunity")),
+    signing_key_resource: Some("key/initial-host-attestation"),
+  }
+  let select = (subjects, host_configuration) => {
+    client_native_local_finite_product_originals(
+      "/Users/operator/.actql-local",
+      "/product/lib/sqlite.bin",
+      "/product/lib/crypto.bin",
+      "2026-10-12T00:00:00.000Z",
+      product_test_assets(),
+      runtime,
+      mock=Some(subjects),
+      host_configuration~,
+    ).unwrap()
+  }
+  let host_wire = "{\"version\":\"actql-host/0.1\"}"
+  let originals = select(subjects, Some(host_wire))
+  assert_eq(originals.length(), 12)
+  assert_eq(
+    product_test_original(originals, "host.json"),
+    "{\"version\":\"actql-host/0.1\"}",
+  )
+  let host = admit_client_host_signer_configuration(
+    product_test_original(originals, "host.json"),
+    { max_wire_bytes: 65536, max_nodes: 1024, max_depth: 16, max_signers: 64, },
+  ).unwrap()
+  assert_false(host.has_explicit_signers())
+  assert_true(
+    client_native_local_finite_product_originals(
+      "/Users/operator/.actql-local",
+      "/product/lib/sqlite.bin",
+      "/product/lib/crypto.bin",
+      "2026-10-12T00:00:00.000Z",
+      product_test_assets(),
+      runtime,
+      mock=Some(subjects),
+      host_configuration=Some("{\"version\":\"actql-host/0.1\",\"signers\":{}}"),
+    )
+    is Err(UnsupportedAsset),
+  )
+  let config = product_asset_value(
+    product_test_original(originals, "config.json"),
+  ).unwrap()
+  let settings = product_test_field(config, ["native", "local"])
+  assert_eq(
+    product_test_text(
+      product_test_field(settings, ["initial_host_signing", "principal"]),
+    ),
+    "local-cli",
+  )
+  assert_eq(
+    product_test_text(
+      product_test_field(settings, ["initial_host_signing", "connection"]),
+    ),
+    "local",
+  )
+  assert_eq(
+    product_test_text(
+      product_test_field(settings, ["initial_host_signing", "resource"]),
+    ),
+    "key/initial-host-attestation",
+  )
+  guard product_test_field(settings, ["installation_files"])
+    is @canonical.Array(files) else {
+    fail("installation originals missing")
+  }
+  assert_eq(@canonical.array_count(files), 8)
+  let account = @authorization.admit_account_configuration_json(
+    product_test_original(originals, "account.json"),
+  ).unwrap()
+  assert_true(
+    @authorization.evaluate_account(account, {
+      principal: "local-cli",
+      connection: "local",
+      resource: "key/initial-host-attestation",
+      operation: "sign",
+    })
+    is @authorization.Allow(_),
+  )
+  assert_true(
+    @authorization.evaluate_account(account, {
+      principal: "local-cli",
+      connection: "local",
+      resource: "foreign-key",
+      operation: "sign",
+    })
+    is @authorization.Deny(_),
+  )
+  assert_true(
+    @authorization.evaluate_account(account, {
+      principal: "local-cli",
+      connection: "salesforce",
+      resource: "Opportunity",
+      operation: "effect",
+    })
+    is @authorization.Delegate(_),
+  )
+  let absent = select({ ..subjects, signing_key_resource: None, }, None)
+  assert_eq(absent.length(), 11)
+  assert_false(absent.any(entry => entry.0 == "host.json"))
+  let absent = product_asset_value(product_test_original(absent, "config.json")).unwrap()
+  assert_true(
+    @canonical.object_field(
+      product_test_field(absent, ["native", "local"]),
+      "initial_host_signing",
+    )
+    is None,
+  )
+}
