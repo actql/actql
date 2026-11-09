@@ -554,11 +554,11 @@ test "original keyed empty listing keeps Direct custody through assembly cleanup
     assembled_usage.reserved_attempts,
     captured_usage.reserved_attempts + 1,
   )
-  // Same constructor retains original left receipt/identity and optional
-  // Source-cache references plus one consumed-work word: 3*8 + 8 under
-  // the pinned central tariff. The cache payload is funded only on use.
+  // Same constructor retains left receipt/identity, Source cache, start time,
+  // issuer and completion references plus one consumed-work word: 6*8 + 8.
+  // The central tariff is unchanged; later payloads are funded only on use.
   // Preserve this capture's independently supplied retained3/execution2.
-  let original_identity_fields = 3L * 8L + 8L
+  let original_identity_fields = 6L * 8L + 8L
   assert_eq(
     assembled_usage.reserved_retention_bytes,
     4096L + original_identity_fields + 3L,
