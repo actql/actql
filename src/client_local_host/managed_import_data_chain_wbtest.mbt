@@ -275,6 +275,13 @@ fn managed_import_data_chain(
         println(
           "acquired UNNEST task=\{task} slot=\{slot} operation=\{@lower.operation(node)}",
         )
+        if @execution.generated_sequence_step_at(selected, slot)
+          is Some(@lower.RowStep(kernel)) &&
+          @lower.kernel_count_group(kernel) is Some(group) {
+          println(
+            "managed COUNT slot=\{slot} keys=\{@lower.count_group_key_count(group)} aggregates=\{@lower.count_group_aggregate_count(group)}",
+          )
+        }
         if expected_tasks is None &&
           @execution.generated_sequence_step_count(selected) > 1 {
           let child = @execution.select_generated_sequence_step(selected, step).unwrap()
@@ -855,6 +862,56 @@ test "cancelled coalesced USING chain cannot import a later original row" {
       "{\"current\":-3,\"left_original\":3,\"right_original\":3}", "{\"current\":-3,\"left_original\":3,\"right_original\":3}",
     ],
     prior_execution=20770160L,
+    expected_policy=None,
+  )
+}
+
+///|
+test "empty original Source global aggregate retains its singleton through ordering" {
+  managed_import_data_chain(
+    Complete,
+    query="SELECT 1 AS marker FROM records ORDER BY COUNT(*) + 1",
+    source_wire="[]",
+    source_rows=0,
+    expected_tasks=None,
+    two_input_task=None,
+    result_name="main",
+    expected_rows=["{\"marker\":1}"],
+    prior_execution=20400678L,
+    expected_policy=None,
+  )
+}
+
+///|
+test "empty Source count import refusal precedes decode and preserves original parents" {
+  managed_import_data_chain(
+    RefuseImport,
+    input_control_task=1,
+    query="SELECT 1 AS marker FROM records ORDER BY COUNT(*) + 1",
+    source_wire="[]",
+    source_rows=0,
+    expected_tasks=None,
+    two_input_task=None,
+    result_name="main",
+    expected_rows=["{\"marker\":1}"],
+    prior_execution=20400678L,
+    expected_policy=None,
+  )
+}
+
+///|
+test "cancelled empty Source count cannot decode a new row or publish its singleton" {
+  managed_import_data_chain(
+    CancelImport,
+    input_control_task=1,
+    query="SELECT 1 AS marker FROM records ORDER BY COUNT(*) + 1",
+    source_wire="[]",
+    source_rows=0,
+    expected_tasks=None,
+    two_input_task=None,
+    result_name="main",
+    expected_rows=["{\"marker\":1}"],
+    prior_execution=20400678L,
     expected_policy=None,
   )
 }

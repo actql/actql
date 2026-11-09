@@ -15,6 +15,7 @@ fn bounded_global_count_fixture(
   name_bytes? : Int = 10000,
   input_name? : String = "id",
   count_name? : String = "n",
+  output_funding? : ((Int64, Int64) -> Result[Unit, WorkspaceGrowthIssue])? = None,
 ) -> (@bounded.Control, BoundedGlobalCountExecution, CompletedOutput) raise {
   let schema = if count_if {
     "{\"flag\":{\"type\":\"boolean\",\"nullable\":true}}"
@@ -126,6 +127,18 @@ fn bounded_global_count_fixture(
     100000,
     10000,
   ).unwrap()
+  let generated = match output_funding {
+    Some(reserve) =>
+      bind_generated_workspace_growth(
+        generated,
+        compute_test_limits(),
+        536870912L,
+        _ => Ok(()),
+        meter_retained_outputs=true,
+        reserve_retained=Some(reserve),
+      ).unwrap()
+    None => generated
+  }
   let read = prepare_producer_read(
     receiver,
     bind_completed_input(receiver, 0, source_owner, source).unwrap(),
@@ -944,5 +957,88 @@ test "direct count-if retains nullable Boolean results and input quota after sca
     assert_true(done)
     assert_true(cleanup_bounded_global_count(active).unwrap())
     assert_true(completed_output_available(original))
+  }
+}
+
+///|
+test "COUNT funds the complete measured row before transfer and preserves refusal custody" {
+  for empty in [false, true] {
+    for (refuse, close) in [(false, false), (true, false), (false, true)] {
+      let calls = Ref(0)
+      let before_transfer = Ref(true)
+      let active : Ref[BoundedGlobalCountExecution?] = Ref(None)
+      let (_, execution, source) = bounded_global_count_fixture(
+        if empty {
+          "[]"
+        } else {
+          "[{\"id\":null},{\"id\":1},{\"id\":1}]"
+        },
+        max_work=1000,
+        output_funding=Some((retained, execution) => {
+          calls.val += 1
+          before_transfer.val = before_transfer.val &&
+            retained > 0L &&
+            execution >= retained &&
+            active.val
+            .map(value => {
+              value.state.output_row.length() == 2 &&
+              value.state.output
+              .map(output => {
+                output.buffer.rows.is_empty() && output.buffer.budget.nodes > 0
+              })
+              .unwrap_or(false)
+            })
+            .unwrap_or(false)
+          if close {
+            active.val
+            .bind(value => value.state.output)
+            .map(output => cancel_admitted_output(output) |> ignore)
+            |> ignore
+          }
+          if refuse {
+            Err(WorkspaceBudgetUnavailable)
+          } else {
+            Ok(())
+          }
+        }),
+      )
+      active.val = Some(execution)
+      let mut done = false
+      for _ in 0..<1000 {
+        if !done {
+          match advance_bounded_global_count(execution, 1).unwrap() {
+            BoundedGlobalCountContinue(..) => ()
+            BoundedGlobalCountComplete(output, ..) => {
+              assert_false(refuse || close)
+              assert_eq(completed_row_count(output), 1)
+              assert_true(
+                match completed_cell(output, 0, 0) {
+                  Some(Number(n)) => n == (if empty { 0.0 } else { 3.0 })
+                  _ => false
+                },
+              )
+              assert_true(
+                match completed_cell(output, 0, 1) {
+                  Some(Number(n)) => n == (if empty { 0.0 } else { 2.0 })
+                  _ => false
+                },
+              )
+              done = true
+            }
+            BoundedGlobalCountFailed(Capture(CaptureLimit), ..) => {
+              assert_true(refuse || close)
+              done = true
+            }
+            _ =>
+              fail("COUNT did not retain the original output funding outcome")
+          }
+        }
+      }
+      assert_true(done)
+      assert_true(calls.val > 0 && calls.val <= 2)
+      assert_true(before_transfer.val)
+      assert_true(cleanup_bounded_global_count(execution).unwrap())
+      assert_true(completed_output_available(source))
+    }
   }
 }

@@ -52525,6 +52525,14 @@
               {
                 "path": "src/connectors/local/module.mbt",
                 "anchor": "The same bounded JOIN child funds every complete output row before"
+              },
+              {
+                "path": "src/execution_relation/bounded_global_count.mbt",
+                "anchor": "output.buffer.budget.retention = generated.working"
+              },
+              {
+                "path": "src/execution_relation/bounded_global_count.mbt",
+                "anchor": "if !fund_output_retention("
               }
             ],
             "extension": [
@@ -52713,6 +52721,26 @@
               {
                 "path": "src/connectors/local/metered_output_start_wbtest.mbt",
                 "anchor": "test \"chained Join output funding retains recursive and injected provider fallbacks\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"empty original Source global aggregate retains its singleton through ordering\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"empty Source count import refusal precedes decode and preserves original parents\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"cancelled empty Source count cannot decode a new row or publish its singleton\""
+              },
+              {
+                "path": "src/execution_relation/bounded_global_count_wbtest.mbt",
+                "anchor": "test \"COUNT funds the complete measured row before transfer and preserves refusal custody\""
+              },
+              {
+                "path": "src/connectors/local/metered_output_start_wbtest.mbt",
+                "anchor": "test \"Count chains retain text recursive and injected provider funding\""
               }
             ]
           }

@@ -470,6 +470,30 @@ pub fn local_module_metered_output_start_capacity(
             }
           }
         }
+      Some(@lower.RowStep(kernel)) if @lower.kernel_count_group(kernel)
+        is Some(group) => {
+        // Bounded COUNT now shares this task's before-commit output funding.
+        // Keep text, recursive and absent-field inputs on their full recipe;
+        // scalar input/output cells retain all original count/null semantics.
+        if @lower.count_group_aggregate_count(group) < 1 {
+          return None
+        }
+        for
+          schema in [
+            @lower.kernel_input_schema(kernel),
+            @lower.kernel_output_schema(kernel),
+          ] {
+          if !@schema.all_fields_required(schema) {
+            return None
+          }
+          for field in 0..<@schema.field_count(schema) {
+            match @schema.field_at(schema, field).unwrap().contract.shape {
+              @contract.Number | @contract.Boolean => ()
+              _ => return None
+            }
+          }
+        }
+      }
       Some(@lower.RowStep(kernel)) if @lower.kernel_unnest(kernel) is Some(_) =>
         if !@schema.all_fields_required(@lower.kernel_input_schema(kernel)) ||
           !@schema.all_fields_required(@lower.kernel_output_schema(kernel)) {
