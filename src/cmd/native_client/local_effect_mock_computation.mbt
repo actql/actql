@@ -54,12 +54,8 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_computation(
     let run = @strategy.captured_effect_run_dag(captured)
     // Keep every checked Named Result, in original graph order. Each wrapper
     // retains its own captured pin and any managed bridge before further work.
-    let row : @execution.RetainedRowDecodeLimits = {
-      max_bytes: wire.max_bytes,
-      max_nodes: wire.max_nodes,
-      max_depth: wire.max_depth,
-      max_text_bytes: limits.output_values.max_text_bytes,
-    }
+    let bridge = proposals.bridge_limits
+    let row = bridge.row
     for
       index in 0..<@strategy.graph_result_count(
         @strategy.captured_dag_graph(run),
@@ -69,8 +65,8 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_computation(
           run,
           index,
           row,
-          limits.output_work,
-          wire.max_bytes,
+          bridge.entries,
+          bridge.name_bytes,
           {
             max_result_fields: wire.max_columns,
             max_result_mapping_work: wire.max_order_work,

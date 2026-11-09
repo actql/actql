@@ -56,6 +56,7 @@ fn[T] Result::native_effect_proposal(
 // writes retain their separate original Owners and authorizations.
 priv struct LocalNativeMockEffectProposals {
   inputs : @strategy.CapturedEffectInputs
+  bridge_limits : @execution.ManagedPublicationBridgeLimits
   mut construction : LocalNativeMockEffectImportConstruction?
   members : Array[LocalNativeMockEffectProposalMember]
   mut _retained_keyed_identity : @run_host.ClientKeyedLookupRequestIdentity?
@@ -99,6 +100,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
   guard self.original.business is Some(business) &&
     business.effect_model is Some(state) &&
     state.effect_capture is Some(captured) &&
+    state.effect_host is Some(host) &&
     business.request_run is Some(run) &&
     business.model_work.length() == 1 &&
     state.model_use is Some(_) &&
@@ -119,6 +121,16 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
     |> ignore
     let limits = state.first._retained_models[0]._retained_limits
     let wire = limits.identity.wire
+    // The producer's installed IO decoder is distinct from the Model Result
+    // identity codec. Borrow this SAME sealed module/DAG policy once; no bound
+    // is clamped, replaced by a default or inferred from public Result names.
+    let installed = @builtin.configured_local_module(
+      @builtin.configured_host_modules(host),
+    ).unwrap_or_else(() => stop("LocalOriginalEffectResultUnavailable"))
+    let bridge_limits = @local_driver.local_publication_bridge_limits(
+      installed,
+      @strategy.captured_effect_run_dag(captured),
+    ).unwrap_or_else(() => stop("LocalOriginalEffectResultUnavailable"))
     let inputs = @strategy.pin_captured_effect_sources(
         captured,
         limits.input.rows.metadata_entries,
@@ -127,11 +139,12 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
       )
       .map_err(issue => LocalNativeMockEffectProposalIssue::Capture(issue))
       .native_effect_proposal(self.original)
-    // Closed initial Host frame: this record's13 borrowed references and its
+    // Closed initial Host frame: this record's14 borrowed references and its
     // five empty Array headers stay inside the existing fixed4096 call frame.
     // Import bodies/producer exports begin only after the first capture borrow.
     let held : LocalNativeMockEffectProposals = {
       inputs,
+      bridge_limits,
       construction: None,
       members: [],
       _retained_keyed_identity: None,

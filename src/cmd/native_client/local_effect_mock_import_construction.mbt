@@ -210,20 +210,16 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_local_result_export(
   }
   let limits = state.first._retained_models[0]._retained_limits
   let wire = limits.identity.wire
-  let row : @execution.RetainedRowDecodeLimits = {
-    max_bytes: wire.max_bytes,
-    max_nodes: wire.max_nodes,
-    max_depth: wire.max_depth,
-    max_text_bytes: limits.output_values.max_text_bytes,
-  }
+  let bridge = held.bridge_limits
+  let row = bridge.row
   execution
   .prepare_effect_result_export(
     captured,
     held.inputs,
     index,
     row,
-    limits.output_work,
-    wire.max_bytes,
+    bridge.entries,
+    bridge.name_bytes,
     {
       max_result_fields: wire.max_columns,
       max_result_mapping_work: wire.max_order_work,

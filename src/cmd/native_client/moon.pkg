@@ -15,6 +15,7 @@ import {
   "actql/actql/client_source_publication" @source_publication,
   "actql/actql/client_local_host" @local_values,
   "actql/actql/connectors/local" @local_compute,
+  "actql/actql/connectors/local/driver" @local_driver,
   "actql/actql/connector_sdk" @compute_sdk,
   "actql/actql/client_local_preparation" @preparation,
   "actql/actql/logical_request_scope" @request_scope,
