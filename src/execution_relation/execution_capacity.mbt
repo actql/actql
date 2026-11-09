@@ -88,9 +88,10 @@ fn bounded_immediate_binding_schema(schema : @schema.Schema) -> Bool {
 }
 
 ///|
-// The bounded grouped COUNT(*) reader borrows required immediate cells,
+// The bounded direct COUNT/COUNT_IF reader borrows required immediate cells,
 // including nullable scalars. Its sorter/group/aggregate cursors are charged
 // to operation_entries; it does not construct a separate input value forest.
+// Resolving a direct field and testing NULL/Bool use the same bounded cursor.
 // Keep recursive/text/presence and expression aggregates on the full recipe.
 fn bounded_count_group_borrows_input(kernel : @lower.PreparedKernel) -> Bool {
   guard @lower.kernel_count_group(kernel) is Some(group) &&
@@ -98,12 +99,6 @@ fn bounded_count_group_borrows_input(kernel : @lower.PreparedKernel) -> Bool {
     bounded_immediate_binding_schema(@lower.kernel_input_schema(kernel)) &&
     bounded_immediate_binding_schema(@lower.kernel_output_schema(kernel)) else {
     return false
-  }
-  for index in 0..<@lower.count_group_aggregate_count(group) {
-    let aggregate = @lower.count_group_aggregate_at(group, index).unwrap()
-    if aggregate.field is Some(_) || aggregate.count_if {
-      return false
-    }
   }
   true
 }

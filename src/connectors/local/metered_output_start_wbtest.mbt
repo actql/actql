@@ -693,3 +693,78 @@ test "scalar grouped count selects its bounded provider without metering output 
   assert_eq(starts.val, 0)
   @connector.close_capability_registry(registry)
 }
+
+///|
+test "direct field count preserves original provider selection and injected capacity" {
+  let (chain, _, _) = chain_lifetime_fixture(
+    "[{\"from\":\"source\",\"group\":{\"by\":[\"id\"],\"aggregates\":{\"n\":{\"fn\":\"count\",\"field\":\"id\"}}}}]",
+  )
+  let sequence = @execution.select_generated_sequence_step(
+    chain,
+    @execution.generated_sequence_step_index_at(chain, 0).unwrap(),
+  ).unwrap()
+  let limits = chain_lifetime_limits()
+  let measurement = chain_lifetime_measurement()
+  let registry = @connector.prepare_capability_registry(
+    [{ name: "local", acquisition: false, fixed_compute: true, effect: false, }],
+    1,
+    100,
+  ).unwrap()
+  let registration = @connector.capability_registration_at(registry, 0).unwrap()
+  let original = prepare_local_compute_module(
+    registry,
+    registration,
+    [sequence],
+    limits,
+    measurement,
+    100000,
+    1,
+  ).unwrap()
+  let capacity = local_module_capacity_for_sequence(original, 0, sequence).unwrap()
+  let bounded = @execution.generated_bounded_sequence_capacity(
+    sequence, limits, measurement,
+  ).unwrap()
+  let generic = @execution.generated_sequence_capacity(
+    sequence, limits, measurement,
+  ).unwrap()
+  assert_eq(
+    (capacity.retained_bytes, capacity.execution_bytes),
+    (bounded.retained_bytes, bounded.execution_bytes),
+  )
+  assert_true(capacity.execution_bytes < generic.execution_bytes)
+  // GROUP keeps all persistent output prepaid, not the row commit-growth path.
+  assert_true(
+    local_module_metered_output_start_capacity(original, 0, sequence) is None,
+  )
+  let starts = Ref(0)
+  let replacement = managed_provider(_ => true, _ => Some(generic), (
+    _,
+    _,
+    _,
+    _,
+    _,
+  ) => {
+    starts.val += 1
+    Err(@connector.InvalidLimits)
+  })
+  let injected = prepare_local_compute_module(
+    registry,
+    registration,
+    [sequence],
+    limits,
+    measurement,
+    100000,
+    1,
+    managed_providers=[replacement],
+  ).unwrap()
+  let fallback = local_module_capacity_for_sequence(injected, 0, sequence).unwrap()
+  assert_eq(
+    (fallback.retained_bytes, fallback.execution_bytes),
+    (generic.retained_bytes, generic.execution_bytes),
+  )
+  assert_true(
+    local_module_metered_output_start_capacity(injected, 0, sequence) is None,
+  )
+  assert_eq(starts.val, 0)
+  @connector.close_capability_registry(registry)
+}

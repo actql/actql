@@ -368,7 +368,7 @@ test "bounded scalar grouped count keeps full output and falls back for copied i
         ",\"payload\":{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}",
         ",\"payload\":[1]", "", false,
       ),
-      ("", "", ",\"field\":\"id\"", false),
+      ("", "", ",\"field\":\"id\"", true),
     ] {
     let owner = bound_pipeline(
       "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":true}" +
@@ -453,4 +453,69 @@ test "bounded scalar grouped count keeps full output and falls back for copied i
       (generic.retained_bytes, generic.execution_bytes),
     )
   }
+}
+
+///|
+test "nullable direct count-if quote borrows cells and retains complete output workspace" {
+  let owner = bound_pipeline(
+    "[{\"values\":{\"schema\":{\"flag\":{\"type\":\"boolean\",\"nullable\":true}},\"rows\":[{\"flag\":null},{\"flag\":true},{\"flag\":false}]},\"as\":\"seed\"},{\"from\":\"seed\",\"group\":{\"by\":[\"flag\"],\"aggregates\":{\"hits\":{\"fn\":\"count_if\",\"field\":\"flag\"},\"present\":{\"fn\":\"count\",\"field\":\"flag\"}}}}]",
+  )
+  let generated = prepare_generated_sequence(
+    registered_relation_contracts(),
+    prepared_sequence(owner),
+    [],
+    ["group_1"],
+    100000,
+    10000,
+  ).unwrap()
+  let selected = select_generated_sequence_step(generated, 1).unwrap()
+  let limits = compute_test_limits()
+  let measure = managed_test_measure_limits()
+  let capacity = generated_bounded_sequence_capacity(selected, limits, measure).unwrap()
+  let generic = generated_sequence_capacity(selected, limits, measure).unwrap()
+  assert_true(capacity.execution_bytes < generic.execution_bytes)
+  let input = generated_bounded_sequence_capacity(
+    selected,
+    {
+      ..limits,
+      rows: {
+        ..limits.rows,
+        input_values: {
+          ..limits.rows.input_values,
+          max_nodes: limits.rows.input_values.max_nodes + 1,
+          max_text_bytes: limits.rows.input_values.max_text_bytes + 1,
+        },
+      },
+    },
+    measure,
+  ).unwrap()
+  assert_eq(input.execution_bytes, capacity.execution_bytes)
+  let output = generated_bounded_sequence_capacity(
+    selected,
+    {
+      ..limits,
+      rows: {
+        ..limits.rows,
+        output_values: {
+          ..limits.rows.output_values,
+          max_nodes: limits.rows.output_values.max_nodes + 1,
+        },
+      },
+    },
+    measure,
+  ).unwrap()
+  assert_eq(output.retained_bytes - capacity.retained_bytes, 256L)
+  assert_eq(output.execution_bytes - capacity.execution_bytes, 256L)
+  let operation = generated_bounded_sequence_capacity(
+    selected,
+    {
+      ..limits,
+      rows: {
+        ..limits.rows,
+        operation_entries: limits.rows.operation_entries + 1,
+      },
+    },
+    measure,
+  ).unwrap()
+  assert_eq(operation.execution_bytes - capacity.execution_bytes, 256L)
 }

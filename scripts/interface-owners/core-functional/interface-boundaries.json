@@ -52435,6 +52435,10 @@
               {
                 "path": "src/execution_relation/execution_capacity.mbt",
                 "anchor": "fn bounded_count_group_borrows_input("
+              },
+              {
+                "path": "src/execution_relation/bounded_global_count.mbt",
+                "anchor": "fn start_bounded_global_count_with_input("
               }
             ],
             "extension": [
@@ -52523,6 +52527,30 @@
               {
                 "path": "src/connectors/local/metered_output_start_wbtest.mbt",
                 "anchor": "test \"scalar grouped count selects its bounded provider without metering output or injected capacity\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"direct field count borrows nullable original input with retained parents\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"direct field count import refusal precedes decoding on the original Source\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"cancelled direct field count cannot grow or decode its next input\""
+              },
+              {
+                "path": "src/execution_relation/execution_capacity_wbtest.mbt",
+                "anchor": "test \"nullable direct count-if quote borrows cells and retains complete output workspace\""
+              },
+              {
+                "path": "src/execution_relation/bounded_global_count_wbtest.mbt",
+                "anchor": "test \"direct count-if retains nullable Boolean results and input quota after scalar quoting\""
+              },
+              {
+                "path": "src/connectors/local/metered_output_start_wbtest.mbt",
+                "anchor": "test \"direct field count preserves original provider selection and injected capacity\""
               }
             ]
           }

@@ -899,3 +899,50 @@ test "bounded count_if admits exact work and workspace limits" {
     assert_true(completed_output_available(source))
   }
 }
+
+///|
+test "direct count-if retains nullable Boolean results and input quota after scalar quoting" {
+  for refuse in [false, true] {
+    let input = {
+      ..run_limits().input_values,
+      max_nodes: if refuse {
+        1
+      } else {
+        run_limits().input_values.max_nodes
+      },
+    }
+    let (_, active, original) = bounded_global_count_fixture(
+      "[{\"flag\":null},{\"flag\":true},{\"flag\":false},{\"flag\":true}]",
+      count_if=true,
+      input_values=input,
+      max_work=1000,
+    )
+    let mut done = false
+    let mut previous = 0L
+    for _ in 0..<1000 {
+      if !done {
+        match advance_bounded_global_count(active, 1).unwrap() {
+          BoundedGlobalCountContinue(work~, ..) => {
+            assert_true(work >= previous && work - previous <= 1L)
+            previous = work
+          }
+          BoundedGlobalCountComplete(output, ..) => {
+            assert_false(refuse)
+            assert_eq(completed_row_count(output), 1)
+            assert_true(completed_cell(output, 0, 0) is Some(Number(2)))
+            assert_true(completed_cell(output, 0, 1) is Some(Number(4)))
+            done = true
+          }
+          BoundedGlobalCountFailed(InputLimit, ..) => {
+            assert_true(refuse)
+            done = true
+          }
+          _ => fail("direct count-if did not reach its original outcome")
+        }
+      }
+    }
+    assert_true(done)
+    assert_true(cleanup_bounded_global_count(active).unwrap())
+    assert_true(completed_output_available(original))
+  }
+}

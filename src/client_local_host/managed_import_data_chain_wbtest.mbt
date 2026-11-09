@@ -546,3 +546,38 @@ test "post-return current refusal cannot restore workspace or recapture the orig
     refusal_after_workspace=true,
   )
 }
+
+///|
+fn managed_group_direct_count_import(
+  mode : ManagedImportDataCase,
+) -> Unit raise {
+  managed_import_data_chain(
+    mode,
+    query="SELECT *, COUNT(amount) AS n FROM records GROUP BY id, amount ORDER BY id",
+    expected_tasks=None,
+    result_name="main",
+    source_wire="[{\"id\":3,\"amount\":30},{\"id\":1,\"amount\":null},{\"id\":2,\"amount\":20},{\"id\":3,\"amount\":30}]",
+    source_rows=4,
+    two_input_task=None,
+    expected_rows=[
+      "{\"amount\":null,\"id\":1,\"n\":0}", "{\"amount\":20,\"id\":2,\"n\":1}", "{\"amount\":30,\"id\":3,\"n\":2}",
+    ],
+    prior_execution=259814088L,
+    expected_policy=None,
+  )
+}
+
+///|
+test "direct field count borrows nullable original input with retained parents" {
+  managed_group_direct_count_import(Complete)
+}
+
+///|
+test "direct field count import refusal precedes decoding on the original Source" {
+  managed_group_direct_count_import(RefuseImport)
+}
+
+///|
+test "cancelled direct field count cannot grow or decode its next input" {
+  managed_group_direct_count_import(CancelImport)
+}
