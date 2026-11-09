@@ -118,6 +118,7 @@ const httpLifetime = full || args.some(arg => arg.includes('cmd/native_remote_re
 const fixtureEnvironment = {
   ...process.env,
   ACTQL_TEST_NATIVE_CORE_PARTITION: undefined,
+  ACTQL_TEST_NATIVE_IMPORT_QUOTE: undefined,
   // A full selection provisions this one physical case itself. Ambient roots
   // must not activate a different case or reuse an initialized relation Store.
   ...(full ? Object.fromEntries(['ORIGINAL_ROOT', 'RUNTIME_ROOT', 'RUNTIME_SOURCE',
@@ -284,7 +285,10 @@ if (full) {
           ", {timeout: " + timeout + ", expectedTests: 1, evidenceScratch: " +
           JSON.stringify(scopedScratch.path) + "});"],
         {cwd: root, stdio: 'inherit', env: {...fixtureEnvironment, ...scoped.environment,
-          ACTQL_TEST_NATIVE_TARGET_IO_ROOT: undefined, ...physical, ...content}}));
+          ACTQL_TEST_NATIVE_TARGET_IO_ROOT: undefined, ...physical, ...content,
+          ACTQL_TEST_NATIVE_IMPORT_QUOTE:
+            test.source === 'src/cmd/native_client/local_project_mock_request_physical_scoped_wbtest.mbt' &&
+            test.index === 10 ? '1' : undefined}}));
       }
     }
     scopedScratch.passed();

@@ -3,9 +3,48 @@ import {createHash} from 'node:crypto';
 import {mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {runInNewContext} from 'node:vm';
 import test from 'node:test';
 import {nativeProjectConfigurationFixture, nativeProjectContentCaseFixture}
   from './native-project-configuration-fixture.mjs';
+
+test('Native staged import quote belongs only to its exact scoped Request case', () => {
+  const wrapper = readFileSync(new URL('./test-native-core.mjs', import.meta.url), 'utf8');
+  const fixtureStart = wrapper.indexOf('const fixtureEnvironment = {');
+  const fixtureEnd = wrapper.indexOf('\n};', fixtureStart);
+  assert(fixtureStart >= 0 && fixtureEnd > fixtureStart);
+  const fixtureBody = wrapper.slice(fixtureStart + 'const fixtureEnvironment = '.length, fixtureEnd + 2);
+  const base = runInNewContext('(' + fixtureBody + ')', {
+    process: {env: {ACTQL_TEST_NATIVE_IMPORT_QUOTE: 'ambient'}, platform: 'darwin', arch: 'arm64'},
+    full: false, args: [], namespace: '/original', root: '/checkout', join,
+    httpLifetime: {}, clientFiles: {}, bundle: {}, clientCheckpoint: {}, privateHost: {},
+    originalSigning: {}, processRegion: {}, readerCustody: {}, projectConfiguration: {}, walFixture: undefined,
+  });
+  assert.equal(base.ACTQL_TEST_NATIVE_IMPORT_QUOTE, undefined, 'ordinary children must not inherit the marker');
+  const start = wrapper.indexOf('{...fixtureEnvironment, ...scoped.environment,');
+  const end = wrapper.indexOf('}}));', start);
+  assert(start >= 0 && end > start);
+  const environment = wrapper.slice(start, end + 1);
+  const source = 'src/cmd/native_client/local_project_mock_request_physical_scoped_wbtest.mbt';
+  const authored = readFileSync(new URL('../' + source, import.meta.url), 'utf8');
+  const names = [...authored.matchAll(/^test "([^"]+)"/gmu)].map(match => match[1]);
+  assert.equal(names[10], 'Native original two-row staged import construction fits its unchanged facility');
+  for (const [selectedSource, index, expected] of [[source, 10, '1'], [source, 9], [source, 11],
+    [source, '10'], ['src/foreign/local_project_mock_request_physical_scoped_wbtest.mbt', 10],
+    ['src/cmd/native_client/local_project_mock_content_physical_scoped_wbtest.mbt', 10]]) {
+    const selected = runInNewContext('(' + environment + ')', {
+      fixtureEnvironment: {...base, ACTQL_TEST_NATIVE_IMPORT_QUOTE: 'ambient'},
+      scoped: {environment: {ACTQL_TEST_NATIVE_IMPORT_QUOTE: 'profile-ambient'}},
+      physical: {ACTQL_TEST_INSTALLED_PROCESS_ROOT: '/original/physical'},
+      content: {ACTQL_TEST_NATIVE_CONTENT_LOOKUPS: '2', ACTQL_TEST_NATIVE_STORE_ROOT: '/original/content'},
+      test: {source: selectedSource, index},
+    });
+    assert.equal(selected.ACTQL_TEST_NATIVE_IMPORT_QUOTE, expected);
+    assert.equal(selected.ACTQL_TEST_INSTALLED_PROCESS_ROOT, '/original/physical');
+    assert.equal(selected.ACTQL_TEST_NATIVE_CONTENT_LOOKUPS, '2');
+    assert.equal(selected.ACTQL_TEST_NATIVE_STORE_ROOT, '/original/content');
+  }
+});
 
 test('Native project Content ports retain original contracts and independent authored byte digests', t => {
   const root = mkdtempSync(join(tmpdir(), 'native-project-content-'));
