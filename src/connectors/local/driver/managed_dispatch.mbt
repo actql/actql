@@ -696,11 +696,9 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
         }
       ManagedRelationInput(_) => {
         count += 1L
-        if metered_start is Some(_) {
-          import_start
-        } else {
-          per_input
-        }
+        // This bridge's append owns its input construction growth even when
+        // the selected provider keeps its full prepaid output/workspace quote.
+        import_start
       }
       SuppliedRelationInput(_) => 0L
     }
@@ -1419,48 +1417,46 @@ pub fn[T] start_local_managed_dispatch(
             Err(issue) => return Err(Execution(Physical(issue)))
             Ok(_) => ()
           }
-          if setup.metered_output_retention {
-            guard local_managed_import_next_extent(
-                setup.imports,
-                copied_rows.val,
-                copied_nodes.val,
-                copied_text.val,
-                bytes,
-              )
-              is Some((rows, nodes, text, quoted)) else {
-              return Err(Configuration(InvalidLimits))
-            }
-            // Shorter later rows need less transient parsing scratch. Keep
-            // this same copy's reservation monotone, without refunding it.
-            let extent = Int64::max(copied_extent.val, quoted)
-            guard @execution.checked_preparation_add_product(
-                import_extra.val,
-                extent - copied_extent.val,
-                1L,
-              )
-              is Some(next) else {
-              return Err(Configuration(InvalidLimits))
-            }
-            match reserve_import(next) {
-              Err(issue) => return Err(issue)
-              Ok(_) => ()
-            }
-            // A current callback may synchronously cancel and retire this exact
-            // bridge. A successful grow cannot revive it or permit parsing.
-            guard local_managed_input_writes_open(
-                live.val,
-                settled.val,
-                disposed.val,
-              ) &&
-              handle.val is Some(current) &&
-              physical_equal(current, bridge) else {
-              return Err(Configuration(InputUnavailable))
-            }
-            copied_rows.val = rows
-            copied_nodes.val = nodes
-            copied_text.val = text
-            copied_extent.val = extent
+          guard local_managed_import_next_extent(
+              setup.imports,
+              copied_rows.val,
+              copied_nodes.val,
+              copied_text.val,
+              bytes,
+            )
+            is Some((rows, nodes, text, quoted)) else {
+            return Err(Configuration(InvalidLimits))
           }
+          // Shorter later rows need less transient parsing scratch. Keep
+          // this same copy's reservation monotone, without refunding it.
+          let extent = Int64::max(copied_extent.val, quoted)
+          guard @execution.checked_preparation_add_product(
+              import_extra.val,
+              extent - copied_extent.val,
+              1L,
+            )
+            is Some(next) else {
+            return Err(Configuration(InvalidLimits))
+          }
+          match reserve_import(next) {
+            Err(issue) => return Err(issue)
+            Ok(_) => ()
+          }
+          // A current callback may synchronously cancel and retire this exact
+          // bridge. A successful grow cannot revive it or permit parsing.
+          guard local_managed_input_writes_open(
+              live.val,
+              settled.val,
+              disposed.val,
+            ) &&
+            handle.val is Some(current) &&
+            physical_equal(current, bridge) else {
+            return Err(Configuration(InputUnavailable))
+          }
+          copied_rows.val = rows
+          copied_nodes.val = nodes
+          copied_text.val = text
+          copied_extent.val = extent
           @execution.append_managed_producer_bridge_wire(
             bridge,
             row,

@@ -52170,7 +52170,7 @@
     },
     {
       "module": "src/connectors/local/driver/managed_dispatch.mbt",
-      "sha256": "adaa33a3d9d4319eb6c934511d0dc5e29f4736874078e9decda7629a1f0f1674",
+      "sha256": "06f3fcf17fcf11f28ed0fe18afb89d27036d99e260212916628002f9a9e15150",
       "role": "common-semantics",
       "owner": "Existing Local managed task/Source/resource owners; native supplied lifetime and imported producer custody remain distinct",
       "responsibilityFacet": "primary",
@@ -52428,6 +52428,18 @@
               {
                 "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
                 "anchor": "test \"managed DISTINCT equal aliases fit original limits with retained parents\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"unmetered grouped task funds original import independently of output retention\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"unmetered grouped import refusal precedes decoding and retains its original Source\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"cancelled unmetered grouped import cannot grow or decode a later row\""
               },
               {
                 "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",

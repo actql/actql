@@ -10,6 +10,9 @@ priv enum ManagedImportDataCase {
 ///|
 fn managed_import_data_chain(
   mode : ManagedImportDataCase,
+  source_wire? : String = "[{\"id\":2,\"amount\":10},{\"id\":1,\"amount\":20}]",
+  source_rows? : Int = 2,
+  two_input_task? : Int? = Some(2),
   query? : String = "WITH paired AS (WITH seed AS (FROM records |> SELECT amount, id) SELECT l.id AS amount, l.amount AS id FROM seed AS l JOIN seed AS r ON l.id = r.id ORDER BY amount + 1) FROM paired |> RESULT copied_rows",
   expected_tasks? : Int? = Some(8),
   result_name? : String = "copied_rows",
@@ -17,6 +20,9 @@ fn managed_import_data_chain(
     "{\"amount\":1,\"id\":20}", "{\"amount\":2,\"id\":10}",
   ],
   prior_execution? : Int64 = 261216696L,
+  expected_policy? : String? = Some(
+    "sha256:0ab54a0637544a1b96c511cd698af0b3356ccbf0f3da626cfbbbd5fe17a2a589",
+  ),
   ledger_factory? : (
     @publication_host.PreparedClientProgram,
     @resources.LedgerLimits,
@@ -94,11 +100,11 @@ fn managed_import_data_chain(
     239908928L,
   ).unwrap()
   @row_source_host.begin_row_run_with_page_limits(rows, policy.page, 10000).unwrap()
-  let wire = @utf8.encode("[{\"id\":2,\"amount\":10},{\"id\":1,\"amount\":20}]")
+  let wire = @utf8.encode(source_wire)
   let charged = @row_source_host.charge_row_run_page(rows, wire).unwrap()
   assert_eq(
     @row_source_host.accept_charged_row_run_page(rows, charged, wire).unwrap(),
-    2,
+    source_rows,
   )
   @row_source_host.finish_row_run(rows).unwrap()
   @row_source_host.begin_row_capture(rows).unwrap()
@@ -216,7 +222,7 @@ fn managed_import_data_chain(
       completed: None,
     }
     tasks[task] = Some(current)
-    if task == 2 {
+    if two_input_task is Some(original) && task == original {
       assert_eq(operations.inputs.length(), 2)
       assert_false(
         @execution.managed_producer_read_same_binding(
@@ -317,9 +323,9 @@ fn managed_import_data_chain(
     let expected = expected_rows
     assert_eq(
       @execution.managed_completed_output_row_count(result.completed.unwrap()),
-      2,
+      expected.length(),
     )
-    for row in 0..<2 {
+    for row in 0..<expected.length() {
       assert_eq(
         @json.parse((result.operations.output_row)(row).unwrap()),
         @json.parse(expected[row]),
@@ -346,13 +352,15 @@ fn managed_import_data_chain(
   assert_true(failure is None)
   assert_false(selection_missing)
   assert_true(coexistence_fits.val)
-  // The same checked Source and alias-order Program retain their policy.
+  // Every route retains its SAME admitted original policy through import,
+  // execution and cleanup. The original alias fixture also pins its exact CID.
   assert_eq(
+    @publication_host.prepared_client_publication_data_policy_cid(prepared),
     publication_policy,
-    Some(
-      "sha256:0ab54a0637544a1b96c511cd698af0b3356ccbf0f3da626cfbbbd5fe17a2a589",
-    ),
   )
+  if expected_policy is Some(expected) {
+    assert_eq(publication_policy, Some(expected))
+  }
 }
 
 ///|
@@ -380,4 +388,37 @@ test "managed DISTINCT equal aliases fit original limits with retained parents" 
     expected_rows=["{\"a\":2,\"b\":2}", "{\"a\":3,\"b\":3}"],
     prior_execution=261345424L,
   )
+}
+
+///|
+fn managed_group_star_import(mode : ManagedImportDataCase) -> Unit raise {
+  managed_import_data_chain(
+    mode,
+    query="SELECT * FROM records GROUP BY id, amount ORDER BY id",
+    expected_tasks=None,
+    result_name="main",
+    source_wire="[{\"id\":3,\"amount\":30},{\"id\":1,\"amount\":null},{\"id\":2,\"amount\":20},{\"id\":3,\"amount\":30}]",
+    source_rows=4,
+    two_input_task=None,
+    expected_rows=[
+      "{\"amount\":null,\"id\":1}", "{\"amount\":20,\"id\":2}", "{\"amount\":30,\"id\":3}",
+    ],
+    prior_execution=259702694L,
+    expected_policy=None,
+  )
+}
+
+///|
+test "unmetered grouped task funds original import independently of output retention" {
+  managed_group_star_import(Complete)
+}
+
+///|
+test "unmetered grouped import refusal precedes decoding and retains its original Source" {
+  managed_group_star_import(RefuseImport)
+}
+
+///|
+test "cancelled unmetered grouped import cannot grow or decode a later row" {
+  managed_group_star_import(CancelImport)
 }
