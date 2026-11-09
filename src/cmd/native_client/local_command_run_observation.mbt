@@ -33,7 +33,7 @@ fn LocalCommandPreparationOriginal::prepare_run_observation_operation(
     self.pair is Some(pair) &&
     self.journal is Some(capture) &&
     self.runtime is Some(runtime) &&
-    self.business is None &&
+    self.saved_observation_business_disjoint() &&
     self.run_observation is None &&
     !self.phase_open &&
     !self.journal_read_open &&
@@ -90,7 +90,7 @@ fn LocalCommandPreparationOriginal::open_run_observation_store(
   run : LocalRunInstallation,
 ) -> @local_store.Store raise ClientStop {
   guard self.run_observation is Some(original) &&
-    self.business is None &&
+    self.saved_observation_business_disjoint() &&
     self.journal_read_open &&
     !self.closing &&
     !self.closed else {
@@ -320,7 +320,7 @@ fn LocalCommandPreparationOriginal::refresh_run_observation_state(
     self.runtime is Some(actual_runtime) &&
     physical_equal(actual_runtime, runtime.physical) &&
     self.run_observation is Some(observation) &&
-    self.business is None &&
+    self.saved_observation_business_disjoint() &&
     self.journal_read_open &&
     !self.closing &&
     !self.closed &&
@@ -401,5 +401,29 @@ fn LocalCommandPreparationOriginal::refresh_run_observation_state(
   match refreshed {
     Ok(value) => value
     Err(issue) => stop(local_saved_state_issue(issue))
+  }
+}
+
+///|
+// A saved continuation can select the existing physical execution facility,
+// while this same command retains its distinct original observation Store.
+// Never admit fresh Request/Compute state or a second business Store here.
+fn LocalCommandPreparationOriginal::saved_observation_business_disjoint(
+  self : Self,
+) -> Bool {
+  match self.business {
+    None => true
+    Some(business) =>
+      business.profile.kind == SavedEffectApply &&
+      business.request_input is None &&
+      business.request_initial is None &&
+      business.request_parent is None &&
+      business.request_run is None &&
+      business.effect_model is None &&
+      business.values_work is None &&
+      business.model_work.is_empty() &&
+      business.store is None &&
+      business.store_failure is None &&
+      !business.active
   }
 }

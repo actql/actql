@@ -258,8 +258,119 @@ fn LocalCommandPreparationOriginal::resolve_checkpoint_review(
     self.retain_primary(CommandStoreOperation(issue))
   }
   match (answer, returned) {
-    (Ok(wire), Ok(_)) => wire
+    (Ok(wire), Ok(_)) => {
+      if self.business is Some(business) &&
+        business.profile.kind == SavedEffectApply {
+        let continuation = observation.effect_resume.unwrap_or_else(() => {
+          stop("LocalCheckpointOriginalUnavailable")
+        })
+        let original = continuation
+          .application_original_in_original_read()
+          .unwrap_or_else(() => stop("LocalCheckpointOriginalUnavailable"))
+        if self.saved_effect_file_constructor_capacity(original)
+          is Some(capacity) {
+          command_preparation_result(
+            self.prepare_saved_effect_capacity(capture, capacity),
+          )
+        }
+        // The public --wait gate above remains closed until the same caller's
+        // request/Account/IO/receipt/publication chain is complete. Even an
+        // internal caller cannot report this constructor prefix as completion.
+        stop("LocalCheckpointContinuationUnavailable")
+      }
+      wire
+    }
     (Err(message), _) => stop(message)
     (Ok(_), Err(_)) => stop("LocalCheckpointReadReturnUnavailable")
   }
+}
+
+///|
+// Select only the already declared current implementation of the exact Saved
+// member. No Program text classifier, new Mapping, copied key, grant or IO.
+// This is the file constructor prefix only. The actual application must add
+// retained requests/ACKs/receipts and publication overlap before activation;
+// it cannot expose this prefix as a complete Run or physical backing proof.
+fn LocalCommandPreparationOriginal::saved_effect_file_constructor_capacity(
+  self : Self,
+  original : @local_host.NativeLocalSavedEffectApprovalOriginal,
+) -> @execution.ExecutionCapacity? raise ClientStop {
+  guard self.project is Some(project) &&
+    project.mock_declarations is Some(mock) &&
+    !mock.closing &&
+    !mock.retired &&
+    mock.model_failure is None &&
+    mock.write_installations is Some(installations) else {
+    stop("LocalOriginalEffectInstallationUnavailable")
+  }
+  let materials = original.run_materials()
+  let preview = original.effect_preview()
+  let headers = @checked.effect_program_static_headers(
+    @run_host.prepared_client_effect_computation_candidate(materials.prepared),
+  )
+  let policy = @run_host.client_standard_effect_computation_limits()
+  let mut demand : @execution.ExecutionCapacity? = None
+  for member_index in 0..<@publication.effect_preview_member_count(preview) {
+    guard @publication.effect_preview_member_effect_id(preview, member_index)
+      is Some(effect_id) &&
+      @syntax.effect_header_at(headers, member_index) is Some(header) &&
+      @syntax.effect_header_id(header) == effect_id &&
+      @publication.effect_preview_row_count(preview, member_index) is Some(rows) else {
+      stop("LocalOriginalEffectInstallationUnavailable")
+    }
+    let descriptor = @run_host.client_effect_member_descriptor(
+      materials.prepared,
+      @syntax.effect_header_stage(header),
+      effect_id,
+      policy.effects.max_work,
+    ).unwrap_or_else(() => stop("LocalOriginalEffectInstallationUnavailable"))
+    guard descriptor.0 == member_index &&
+      descriptor.2 == "update" &&
+      @publication.effect_preview_member_source_binding_cid(
+        preview, member_index,
+      )
+      is Some(binding_cid) &&
+      @publication.effect_preview_member_resolved_contract(
+        preview, member_index,
+      )
+      is Some(@publication.Mapping(reference, mapping_cid)) &&
+      reference == descriptor.4 &&
+      mapping_cid == descriptor.5 &&
+      installations
+      .iter()
+      .find_first(value => {
+        value.binding == binding_cid &&
+        value.target == descriptor.3 &&
+        value.write.mapping.mapping_ref == reference &&
+        value.write.mapping.mapping_cid == mapping_cid
+      })
+      is Some(installation) &&
+      installation._retained_source._retained_rows
+      .iter()
+      .find_first(value => {
+        value.view.resource == installation.write.mapping.resource
+      })
+      is Some(row_binding) else {
+      stop("LocalOriginalEffectInstallationUnavailable")
+    }
+    if rows == 0 {
+      continue
+    }
+    let physical = @row_file.native_relation_file_target_io_capacity(
+      row_binding.provider,
+      installation.write.mapping.write_fields.length(),
+    ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
+    demand = Some(
+      match demand {
+        None => physical
+        Some(prior) =>
+          native_mock_effect_capacity_envelope(prior, physical).unwrap_or_else(() => {
+            stop("LocalOriginalEffectCapacityUnavailable")
+          })
+      },
+    )
+  }
+  // Explicit no-file-call inventory, not a successful missing constructor.
+  // Zero rows still require the later original Set/Run/publication chain.
+  demand
 }

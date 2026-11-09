@@ -174,6 +174,13 @@ fn local_command_profile_selection(
       static_profile,
     )
     (profile, Some(business))
+  } else if matches.subcommand is Some(("approve", child)) &&
+    child.flags.get("wait").unwrap_or(false) {
+    let (profile, business) = local_command_backed_business_profile(
+      static_profile,
+      SavedEffectApply,
+    )
+    (profile, Some(business))
   } else if matches.subcommand is Some(("result", _)) {
     (static_profile, Some(local_command_saved_result_read_profile()))
   } else {

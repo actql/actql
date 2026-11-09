@@ -4,6 +4,7 @@
 // Neither selection issues resources, permissions or cleanup acknowledgements.
 priv enum LocalCommandBusinessKind {
   SourceFreeCompute
+  SavedEffectApply
   SavedResultRead
 } derive(Eq)
 
@@ -133,6 +134,20 @@ fn local_command_domain_bytes(payload : Int64) -> Int64? {
 fn local_command_source_free_business_profile(
   static_profile : LocalCommandPreparationProfile,
 ) -> (LocalCommandPreparationProfile, LocalCommandBusinessProfile) raise ClientStop {
+  local_command_backed_business_profile(static_profile, SourceFreeCompute)
+}
+
+///|
+// The SAME installed facility owner serves fresh computation and approved
+// continuation. Selecting it is no Request, demand quote, permission or Run.
+// Actual constructor capacity is admitted before backing either domain.
+fn local_command_backed_business_profile(
+  static_profile : LocalCommandPreparationProfile,
+  kind : LocalCommandBusinessKind,
+) -> (LocalCommandPreparationProfile, LocalCommandBusinessProfile) raise ClientStop {
+  if kind == SavedResultRead {
+    stop("LocalBusinessLayoutUnavailable")
+  }
   // The existing Local host admits at most 32 physical tasks. Declare their
   // one-shot attempts, output holdings and bounded transfers before acquiring
   // the facility; the exact Program quote below can still refuse this budget.
@@ -179,12 +194,7 @@ fn local_command_source_free_business_profile(
   }
   (
     profile,
-    {
-      kind: SourceFreeCompute,
-      domain_bytes: bytes,
-      payload_facility_bytes: payload,
-      limits,
-    },
+    { kind, domain_bytes: bytes, payload_facility_bytes: payload, limits, },
   )
 }
 
@@ -283,7 +293,8 @@ fn LocalCommandPreparationOriginal::prepare_business_execution(
       Err(CommandUnavailable)
     }
   }
-  guard business.selected_profile is Some(selected) &&
+  guard business.profile.kind == SourceFreeCompute &&
+    business.selected_profile is Some(selected) &&
     business.domain is Some(domain) &&
     business.execution is None else {
     return Err(CommandUnavailable)
@@ -470,7 +481,7 @@ fn LocalCommandPreparationOriginal::prepare_business_operation(
     Err(issue) => return Err(CommandPair(issue))
   }
   let prepared = match business.profile.kind {
-    SourceFreeCompute => {
+    SourceFreeCompute | SavedEffectApply => {
       guard business.execution is Some(execution) else {
         return Err(CommandUnavailable)
       }

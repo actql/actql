@@ -155,7 +155,7 @@ fn prepare_local_command_preparation_original(
   }
   if business is Some(candidate) {
     match candidate.kind {
-      SourceFreeCompute =>
+      SourceFreeCompute | SavedEffectApply =>
         if candidate.domain_bytes <= 0L ||
           candidate.payload_facility_bytes <= 0L ||
           profile.control_bytes >
