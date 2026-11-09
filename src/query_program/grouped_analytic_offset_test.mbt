@@ -89,10 +89,7 @@ test "grouped navigation offsets preserve literal bounds and refuse computation"
       is Checked(_),
     )
   }
-  for
-    value in [
-      "(9007199254740992)", "(1.5)", "(NULL)", "('2')", "(-0)", "(-(1))",
-    ] {
+  for value in ["(9007199254740992)", "(1.5)", "('2')", "(-0)", "(-(1))"] {
     assert_true(
       compile(
         @query.parse_query(
@@ -121,7 +118,7 @@ test "navigation offsets reject nonliteral forms and proven negative integers as
     for
       value in [
         "id", "(id)", "((amount))", "1 + 1", "(1 + 1)", "(@p + 1)", "-1", "(-1)",
-        "-2", "(-9007199254740991)",
+        "-2", "(-9007199254740991)", "NULL", "(NULL)", "((NULL))",
       ] {
       assert_true(
         compile(
