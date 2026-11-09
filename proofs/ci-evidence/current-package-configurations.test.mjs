@@ -66,11 +66,18 @@ for (const [path, entry] of Object.entries(currentPackageConfigurations)) {
       }
     }
     if (path === 'src/platform_native/publication_store/moon.pkg') {
-      assert.equal(entry.revision, '3feeecd4936fcf156d8b5293354332813913e59f');
+      assert.equal(entry.revision, '5c1a8935e03bfaf9bb95d04e0f6d6d5bb03d82df');
       const successor = selectedTree.read(path).toString();
+      const scalarImport = '  "actql/actql/decode_scalar" @scalar,\n';
+      assert.equal(successor.split(scalarImport).length, 2);
+      const deliverySuccessor = successor.replace(scalarImport, '');
+      assert.equal(deliverySuccessor,
+        gitTree(root, '3feeecd4936fcf156d8b5293354332813913e59f').read(path).toString(),
+        'only the pure scalar admission import extends the delivery configuration');
+      assert.equal(currentPackageConfigurationReviewFor(request(path, hash(deliverySuccessor))), null);
       const deliverySelector = '    "delivery_chunk_native_wbtest.mbt": [ "native" ],\n';
       assert.equal(successor.split(deliverySelector).length, 2);
-      const modelSuccessor = successor.replace(deliverySelector, '');
+      const modelSuccessor = deliverySuccessor.replace(deliverySelector, '');
       assert.equal(modelSuccessor,
         gitTree(root, 'f86f409e62d39511380497cb0fe5639d5259f191').read(path).toString(),
         'only the original Native delivery test selector extends the prior review');
@@ -86,7 +93,8 @@ for (const [path, entry] of Object.entries(currentPackageConfigurations)) {
         assert.equal(currentPackageConfigurationReviewFor(request(path, hash(changed))), null);
       }
       assert.equal(beforeModel, body, 'only the three original Model evidence selectors extend the reviewed Store');
-      assert.deepEqual(packageImports(successor).imports, packageImports(body).imports);
+      assert.deepEqual(packageImports(successor).imports,
+        [...packageImports(body).imports, 'actql/actql/decode_scalar'].sort());
       assert.equal(currentPackageConfigurationReviewFor(request(path, hash(body))), null);
       const precursor = gitTree(root, 'f519f34b2d45d5365c1af3b1d42ad92524514716').read(path).toString();
       const capacityInputs = ['  "actql/actql/decode_shape" @shape,\n',
@@ -687,7 +695,7 @@ test('current remote Client review binds only its Native link driver on JS', () 
 });
 
 // This selector is bound as JS Source input, not Native runtime acceptance.
-test('current Store delivery chunk successor binds the exact Native selector and prior preimage', () => {
+test('current Store scalar successor preserves the exact delivery selector and prior preimages', () => {
   const directory = 'src/platform_native/publication_store', path = directory + '/moon.pkg';
   const revision = '3feeecd4936fcf156d8b5293354332813913e59f';
   const digest = 'dfaf6105d166e28289190c97a9aae16bf4eff037da5cbcd5fa767aeb2ebc8598';
@@ -705,20 +713,35 @@ test('current Store delivery chunk successor binds the exact Native selector and
   assert.equal(prior, gitTree(root, 'f86f409e62d39511380497cb0fe5639d5259f191').read(path).toString());
   assert.equal(prior, gitTree(root, '268d1d9bfd6bf2c97f396172a12cfa38d24b8306').read(path).toString());
   assert.deepEqual(packageImports(body).imports, packageImports(prior).imports);
-  assert.deepEqual(currentPackageConfigurations[path], {revision, digest,
+  const currentRevision = '5c1a8935e03bfaf9bb95d04e0f6d6d5bb03d82df';
+  const currentDigest = 'cd70efa7cfa79c9a765b602ed3550ba518ab66ad6bd3ec7766f00e9e4301818b';
+  const scalarImport = '  "actql/actql/decode_scalar" @scalar,\n';
+  const currentBody = gitTree(root, currentRevision).read(path).toString();
+  assert.equal(Buffer.byteLength(currentBody), 2734);
+  assert.equal(Buffer.byteLength(scalarImport), 39);
+  assert.equal(hash(currentBody), currentDigest);
+  assert.equal(currentBody.split(scalarImport).length, 2);
+  assert.equal(currentBody.replace(scalarImport, ''), body);
+  assert.deepEqual(packageImports(currentBody).imports,
+    [...packageImports(body).imports, 'actql/actql/decode_scalar'].sort());
+  assert.deepEqual(currentPackageConfigurations[path], {revision: currentRevision, digest: currentDigest,
     rule: 'literal-native-options-with-bound-source-membership'});
   execFileSync('git', ['merge-base', '--is-ancestor', revision, 'HEAD'], {cwd: root});
-  assert.equal(currentTree.read(path).toString(), body);
-  assert.deepEqual(currentPackageConfigurationReviewFor(request(path, digest)), {
-    revision, target: 'js', toolchainDigest, moonRevision: packageConfigurationReview.moonRevision,
+  execFileSync('git', ['merge-base', '--is-ancestor', currentRevision, 'HEAD'], {cwd: root});
+  assert.equal(currentTree.read(path).toString(), currentBody);
+  assert.equal(currentPackageConfigurationReviewFor(request(path, digest)), null);
+  assert.deepEqual(currentPackageConfigurationReviewFor(request(path, currentDigest)), {
+    revision: currentRevision, target: 'js', toolchainDigest, moonRevision: packageConfigurationReview.moonRevision,
     rule: 'literal-native-options-with-bound-source-membership',
   });
   const selected = packageSourceInputs({tree: currentTree, packages: [directory], target: 'js'});
-  assert.equal(selected.packageConfigurations.find(entry => entry.path === path)?.review.revision, revision);
+  assert.equal(selected.packageConfigurations.find(entry => entry.path === path)?.review.revision, currentRevision);
   assert(!selected.unresolved.includes('Unreviewed package configuration: ' + path));
   const members = [...currentTree.entries.keys()].filter(member => member.startsWith(directory + '/') &&
     !member.slice(directory.length + 1).includes('/')).sort();
   assert(members.includes(directory + '/delivery_chunk_native_wbtest.mbt'));
+  assert(members.includes(directory + '/private_evidence_construction.mbt'));
+  assert(members.includes(directory + '/private_evidence_construction_wbtest.mbt'));
   assert(members.includes(directory + '/store_format_stub.c'));
   assert.deepEqual(selected.directories.find(entry => entry.path === directory + '/*')?.members, members);
   for (const member of members) {
@@ -726,12 +749,25 @@ test('current Store delivery chunk successor binds the exact Native selector and
     assert.equal(currentTree.entries.get(member)?.mode, '100644');
     assert.equal(currentTree.entries.get(member)?.kind, 'blob');
   }
-  for (const changed of [prior,
-    body.replace(selector, selector.replace('"native"', '"js"')),
-    body.replace(selector, selector + '    "unreviewed_chunk_native_wbtest.mbt": [ "native" ],\n'),
-    body.replace('"actql/actql/sha256"', '"actql/actql/string"'),
-    body + '\noptions(pre_build: {command: "unreviewed"})\n']) {
-    assert.notEqual(changed, body);
+  const scalarDirectory = 'src/decode_scalar';
+  const scalarMembers = [...currentTree.entries.keys()].filter(member => member.startsWith(scalarDirectory + '/') &&
+    !member.slice(scalarDirectory.length + 1).includes('/')).sort();
+  assert(scalarMembers.includes(scalarDirectory + '/moon.pkg'));
+  assert(scalarMembers.includes(scalarDirectory + '/text.mbt'));
+  assert.deepEqual(selected.directories.find(entry => entry.path === scalarDirectory + '/*')?.members, scalarMembers);
+  for (const member of scalarMembers) {
+    assert(selected.paths.includes(member));
+    assert.equal(currentTree.entries.get(member)?.mode, '100644');
+    assert.equal(currentTree.entries.get(member)?.kind, 'blob');
+  }
+  for (const changed of [prior, body,
+    currentBody.replace(selector, selector.replace('"native"', '"js"')),
+    currentBody.replace(selector, selector + '    "unreviewed_chunk_native_wbtest.mbt": [ "native" ],\n'),
+    currentBody.replace(scalarImport, scalarImport.replace('@scalar', '@permission')),
+    currentBody.replace(scalarImport, scalarImport.replace('decode_scalar', 'unreviewed_scalar')),
+    currentBody.replace('"actql/actql/sha256"', '"actql/actql/string"'),
+    currentBody + '\noptions(pre_build: {command: "unreviewed"})\n']) {
+    assert.notEqual(changed, currentBody);
     assert.equal(currentPackageConfigurationReviewFor(request(path, hash(changed))), null);
     const altered = {...currentTree, read: member => member === path ? Buffer.from(changed) : currentTree.read(member)};
     assert(packageSourceInputs({tree: altered, packages: [directory], target: 'js'})
@@ -739,7 +775,7 @@ test('current Store delivery chunk successor binds the exact Native selector and
   }
   for (const delta of [{target: 'native'}, {target: 'wasm'}, {toolchainDigest: '0'.repeat(64)},
     {path: './' + path}, {path: 'src/unreviewed/moon.pkg'}, {digest: priorDigest}])
-    assert.equal(currentPackageConfigurationReviewFor({...request(path, digest), ...delta}), null);
+    assert.equal(currentPackageConfigurationReviewFor({...request(path, currentDigest), ...delta}), null);
   assert.equal(packageConfigurationReviewFor(request(path, reviewedPackageConfigurations[path]))?.revision,
     packageConfigurationReview.revision, 'The historical configuration keeps its own unchanged review');
 });
