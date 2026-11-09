@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
 // The ordinary chain proof-check imports this file. Keep real child/source
 // custody and interruption refusals beside the existing recipe observations.
 import '../bounded-session/mutation-command.test.mjs';
@@ -41,7 +42,26 @@ for(const [label,result,text] of [
 ]) test(`controlled retirement observation refuses ${label}`,()=>assert.throws(()=>requireRetirementDetection(result,text,witness)));
 
 const normalFixture = read(retirementCases[0][4]);
+// Synthetic validator inputs only. The actual normal runner still executes
+// Moon and binds the unchanged Source snapshot before and after the child.
 const normalOutput = 'Total tests: 11, passed: 11, failed: 0.\n';
+test('current lifetime fixture changes only same-sequence binding fragment preparation', () => {
+  const before = '      @lower.kernel_body(kernel) is @lower.Filter(_) {';
+  const after = '      (\n        @lower.kernel_body(kernel) is @lower.Filter(_) ||\n        @lower.kernel_bindings(kernel) is Some(_)\n      ) {';
+  assert.equal(normalFixture.split(after).length, 2, 'Reach the one reviewed fragment selection');
+  const previous = normalFixture.replace(after, before);
+  // Independently retained complete preimage: this single reversal includes
+  // every original case, limit, current check and cleanup assertion unchanged.
+  assert.equal(createHash('sha256').update(previous).digest('hex'),
+    '3ff093fd2c959c5ebcd4027ddc2bbcdf56fc351c86dfe1e1c85a750353ce4e3a');
+  assert.throws(() => requireNormalLifetime({status: 0}, normalOutput, previous),
+    /requires a new independent review/);
+  const foreign = normalFixture.replace('@lower.kernel_bindings(kernel) is Some(_)',
+    '@lower.kernel_bindings(kernel) is None');
+  assert.notEqual(foreign, normalFixture);
+  assert.throws(() => requireNormalLifetime({status: 0}, normalOutput, foreign),
+    /requires a new independent review/);
+});
 test('normal lifetime census admits exactly the independently reviewed eleven cases', () => {
   assert.equal(normalLifetimeCases.length, 11);
   assert.equal(requireNormalLifetime({status: 0}, normalOutput, normalFixture), 11);

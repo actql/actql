@@ -64,7 +64,9 @@ export const normalLifetimeCases = Object.freeze([
   'cancellation after reclaimed Values does not start UNNEST or publish unfinished output',
   'an unaudited first child keeps the complete conservative suffix',
 ]);
-export const normalLifetimeFixtureSha256 = '3ff093fd2c959c5ebcd4027ddc2bbcdf56fc351c86dfe1e1c85a750353ce4e3a';
+// The reviewed successor also prepares the same original fragment for checked
+// Row bindings. All eleven case bodies, limits and custody assertions remain.
+export const normalLifetimeFixtureSha256 = 'ac2e12bc9f2c26d25a1b06ac762c5a818eb69d330661ccd217f6d516e993e931';
 export function requireNormalLifetime(result, output, fixture) {
   // The complete reviewed bytes make the title census unambiguous: comments,
   // strings, unknown additions, and changes to assertions cannot be borrowed.
