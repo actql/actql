@@ -64,6 +64,7 @@ priv struct LocalNativeMockEffectProposals {
     @publication.PublicationContract,
   )?
   members : Array[LocalNativeMockEffectProposalMember]
+  unit_results : Array[LocalNativeMockEffectUnitResult]
   mut _retained_keyed_identity : @run_host.ClientKeyedLookupRequestIdentity?
   mut invocation : @run_host.ClientEffectLocalInvocation?
   mut materials : @run_host.ClientEffectRunMaterials?
@@ -144,8 +145,8 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
       )
       .map_err(issue => LocalNativeMockEffectProposalIssue::Capture(issue))
       .native_effect_proposal(self.original)
-    // Closed initial Host frame: this record's15 borrowed references and its
-    // five empty Array headers stay inside the existing fixed4096 call frame.
+    // Closed initial Host frame: this record's16 borrowed references and its
+    // six empty Array headers stay inside the existing fixed4096 call frame.
     // Import bodies/producer exports begin only after the first capture borrow.
     let held : LocalNativeMockEffectProposals = {
       inputs,
@@ -153,6 +154,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
       construction: None,
       publication_context: None,
       members: [],
+      unit_results: [],
       _retained_keyed_identity: None,
       invocation: None,
       materials: None,
@@ -530,11 +532,16 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
     }
     // The owner requires every declared Result and Effect-consumed Table of
     // the Unit. A consumed subset must not be presented as a whole Manifest.
+    self.prepare_mock_effect_unit_results(state, held, max_capture_bytes)
+    let artifacts = held.members.map(entry => entry._retained_artifact.unwrap())
+    for result in held.unit_results {
+      artifacts.push(result.artifact.unwrap())
+    }
     held._retained_local_manifest = Some(
       @run_host.issue_client_effect_local_manifest(
         state._retained_prepared,
         held.invocation.unwrap(),
-        held.members.map(entry => entry._retained_artifact.unwrap()),
+        artifacts,
         max_capture_bytes,
         wire.max_nodes,
         wire.max_depth,
@@ -560,6 +567,10 @@ fn LocalNativeMockEffectProposals::close(self : Self) -> Bool {
   }
   self.source_imports.clear()
   self._retained_local_manifest = None
+  for result in self.unit_results {
+    result.close()
+  }
+  self.unit_results.clear()
   self._retained_lookup_dependencies.clear()
   self.materials = None
   self.publication_context = None

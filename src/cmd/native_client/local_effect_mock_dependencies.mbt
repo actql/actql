@@ -150,6 +150,18 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_dependency_inventory(
       append(kind, Some(cid), wire)
     }
   }
+  for result in proposals.unit_results {
+    guard result.artifact is Some(artifact) &&
+      result.dependency is Some(capture) &&
+      @run_host.client_effect_dependency_capture_matches_artifact(
+        capture, artifact,
+      ) else {
+      stop("LocalOriginalEffectDependencyInventoryUnavailable")
+    }
+    for body in @run_host.client_effect_dependency_capture_bodies(capture) {
+      retain(body)
+    }
+  }
   for index, entry in proposals.members {
     guard entry._retained_artifact is Some(artifact) &&
       entry._retained_dependency is Some(capture) &&

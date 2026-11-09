@@ -236,3 +236,41 @@ test "Native serial capture retains every row and one original constructor works
   assert_true(physical_equal(original[1], row))
   assert_true(native_mock_effect_serial_capture_recipe([]) is None)
 }
+
+///|
+// Real checked Result declarations and Effect source, no Model, Source IO,
+// Provider, Store or ordinary installation. Aliases of one port stay distinct.
+test "Native complete Unit inventory keeps an unconsumed Result alias" {
+  let environment = @run_host.admit_client_check_environment(
+    local_effect_prefix_fixture_environment_wire,
+    "sha256:67979d9f5507bd9dd0809091d96b7dc96a1dce6e30df75ad0fac523f9c3ad808",
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  let document = local_effect_prefix_fixture_document.replace(
+    old="\"results\":{\"out\":",
+    new="\"results\":{\"unused\":{\"fields\":[\"value\"],\"from\":\"selected\"},\"out\":",
+  )
+  let intent = @run_host.prepare_client_submitted_intent(
+    "{\"kind\":\"program\",\"input\":" + document + ",\"parameters\":null}",
+    65536,
+    8192,
+    64,
+  ).unwrap()
+  let submitted = @local_host.prepare_native_client_submitted_program(
+    intent,
+    environment,
+    None,
+    [],
+    @run_host.client_standard_effect_computation_limits(),
+  ).unwrap()
+  guard @local_host.native_client_submitted_preparation(submitted)
+    is EffectComputation(prepared) else {
+    fail("original Effect owner")
+  }
+  assert_true(native_mock_effect_result_consumed(prepared, 0, "out"))
+  assert_false(native_mock_effect_result_consumed(prepared, 0, "unused"))
+  assert_false(native_mock_effect_result_consumed(prepared, 1, "out"))
+  assert_eq(native_mock_effect_extra_unit_results(prepared, 0), 1)
+  assert_eq(native_mock_effect_extra_unit_results(prepared, 1), 0)
+}

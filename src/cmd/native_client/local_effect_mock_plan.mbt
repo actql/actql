@@ -490,7 +490,7 @@ fn native_mock_effect_import_construction(
     is Some(model) else {
     return (empty, empty)
   }
-  let unit = @run_host.client_infer_occurrence_coordinates(model).0
+  let unit = @run_host.client_infer_occurrence_coordinates(model).1
   let program = @checked.effect_program_static_checked_computation(
     @run_host.prepared_client_effect_computation_candidate(prepared),
   )
@@ -519,6 +519,10 @@ fn native_mock_effect_import_construction(
     })
     results += @results.count(declarations).to_int64()
   }
+  // The original Model Unit also declares its retained Model boundary Result.
+  // Effect members supply their own artifacts; reserve only missing originals.
+  let extra_results = native_mock_effect_extra_unit_results(prepared, unit).to_int64()
+  results += extra_results
   // Per Result: Definition/Artifact/Derivation/Ordering. Per import: original
   // observation and derived Relation. Per producer: Invocation/full Manifest.
   // The imported combined scope and semantic Invocation add two bodies; the
@@ -533,8 +537,8 @@ fn native_mock_effect_import_construction(
     Int64::max(3L, imports + 2L),
   ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
   let arrays = @execution.preparation_array_representation(
-    3L * units + 2L,
-    units + 3L * results + imports,
+    3L * units + 3L,
+    units + 3L * results + imports + extra_results,
     true,
   ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
   let controls = @execution.preparation_representation_cost(
@@ -542,16 +546,18 @@ fn native_mock_effect_import_construction(
       arrays,
       {
         record_headers: 2L +
+        extra_results +
         5L * units +
         5L * results +
         3L * imports +
         4L * 4096L * results,
         reference_slots: 5L +
+        9L * extra_results +
         40L * units +
         24L * results +
         20L * imports +
         8L * 4096L * results,
-        scalar_words: 2L * documents,
+        scalar_words: 2L * documents + extra_results,
         // All static emitted Strings precede their parse callback. Their
         // existing shared byte budget bounds their total original text.
         owned_utf16_units: results * wire.max_bytes.to_int64(),
