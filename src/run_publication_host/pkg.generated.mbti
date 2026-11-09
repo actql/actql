@@ -55,7 +55,7 @@ pub fn admit_client_compiled_run_definition(ClientCompiledRun, String) -> Result
 
 pub fn admit_client_effect_allowed_run(ClientEffectCompilation, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[ClientEffectAllowedRun, ClientEffectCompiledRunIssue]
 
-pub fn admit_client_effect_dependency_capture(ClientEffectRunMaterials, @physical_strategy_host.CapturedEffectInputs, ClientEffectLocalResultArtifact, Int, @physical_strategy_host.CapturedEffectLocalResultExport, @execution_relation.CompletedRelationExportReceipt, String, Int, Int, Int) -> Result[ClientEffectDependencyCapture, ClientEffectDependencyCaptureIssue]
+pub fn admit_client_effect_dependency_capture(ClientEffectRunMaterials, @physical_strategy_host.CapturedEffectInputs, ClientEffectLocalResultArtifact, Int, @physical_strategy_host.CapturedEffectLocalResultExport, @execution_relation.CompletedRelationExportReceipt, String, Int, Int, Int, before_body? : ((Int, Int, Int) -> Bool)?) -> Result[ClientEffectDependencyCapture, ClientEffectDependencyCaptureIssue]
 
 pub fn admit_client_effect_local_source_evidence(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, Int, ClientEffectLocalManifest, ClientEffectLocalInvocation, ClientEffectLocalResultArtifact, @run_publication.CapturedEffectSourceArtifact, Int, Int, Int) -> Result[@run_publication.CapturedLocalEffectSourceEvidence, @run_publication.CapturedLocalEffectSourceIssue]
 
@@ -2858,6 +2858,7 @@ pub(all) enum ClientEffectDependencyCaptureIssue {
   ForeignExport
   Dependency(@run_publication.CapturedEffectDependencyIssue)
   Static(@program_check.LocalDependencyBodyIssue)
+  ConstructionRefused
 }
 
 type ClientEffectImportedEvidence

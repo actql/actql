@@ -3419,6 +3419,21 @@ metadata and closes its export continuations before retiring that backing.
 Result pins, physical sources and the Model output keep their independent
 original cleanup obligations.
 
+That capture uses the existing staged operation extent. Its first phase funds
+the largest single metadata issuer and the complete bounded static-wire
+inventory, rather than eagerly reserving every Result's maximum parser tree.
+The original recipe and its later Preview/row recipe stay on the same command.
+Each returned metadata wire is retained before the next issuer; an export's
+original measured extent precedes snapshot allocation. Dependency parsing
+uses a non-allocating scalar byte count before growing that same operation,
+then checks the original Result again across the actual Host callback. The
+parser's original limits and key-normalization path remain unchanged.
+Retained bodies sum; sequential private workspace keeps its high-water mark.
+Before leaving import preparation, the same operation must grow to the full
+original capture recipe alongside those retained originals. Failure preserves
+the typed primary and its partial holders. The immutable maximum is only a
+refusal bound: it supplies no reservation, row, physical attempt or authority.
+
 Preview metadata borrows the proposals' original pins. Its verifier children
 and body aliases retire before proposals return those pins; Preview cleanup
 must not release the same input owner a second time. These semantic checks do

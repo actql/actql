@@ -5,6 +5,7 @@ priv struct LocalNativeMockEffectPlan {
   first : LocalEffectFirstCompilation
   _retained_prepared : @run_host.PreparedClientEffectComputation
   _retained_plan : @local_values.ClientInstalledEffectManagedPlan
+  _retained_import_recipes : Array[Array[@execution.ExecutionCapacity]]
   graph : @run_host.ClientInferPlanGraph
   mut scope : @run_host.ClientModelReadScope?
   mut source_started_at : String?
@@ -105,6 +106,7 @@ fn native_mock_effect_operations(
   mock : LocalProjectMockDeclarations,
   wire : @execution.RowWireLimits,
   record_bytes : Int,
+  capture_recipes : Array[Array[@execution.ExecutionCapacity]],
 ) -> Array[@local_values.ClientInstalledEffectOperationDemand] raise ClientStop {
   let installations = mock.write_installations.unwrap_or_else(() => {
     stop("LocalOriginalEffectImplementationUnavailable")
@@ -161,19 +163,37 @@ fn native_mock_effect_operations(
     let quantities = native_mock_effect_recipe_capacities(
       wire, record_bytes, request_bytes, physical,
     ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
-    // One shared import construction and holding, on the first original
-    // member. Other members reuse that original; they do not reserve it again.
+    // Retain the SAME initial recipe. The first capture grows only for its
+    // actual original bodies; its maximum is a refusal bound, not a grant.
+    let maximum = quantities.copy()
+    let original_capture = quantities.copy()
     if index == 0 {
-      quantities[0] = @execution.add_execution_capacity(quantities[0], imports).unwrap_or_else(() => {
-          stop("LocalOriginalEffectCapacityUnavailable")
-        },
-      )
+      if @execution.execution_capacity_retained_bytes(imports.0) > 0L {
+        quantities[0] = imports.0
+        quantities[1] = @execution.execution_capacity(0L, 0L).unwrap()
+      }
     }
-    let capture = @local_values.prepare_installed_effect_capture_recipe_extent(
+    maximum[0] = @execution.add_execution_capacity(maximum[0], imports.1).unwrap_or_else(() => {
+        stop("LocalOriginalEffectCapacityUnavailable")
+      },
+    )
+    let initial = @local_values.prepare_installed_effect_capture_recipe_extent(
       "native.mock.file.capture", quantities,
     ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
+    let capture = if index == 0 {
+      capture_recipes.push(quantities)
+      capture_recipes.push(original_capture)
+      @local_values.prepare_installed_effect_staged_extent(
+        initial,
+        @local_values.prepare_installed_effect_capture_recipe_extent(
+          "native.mock.file.capture", maximum,
+        ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable")),
+      ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
+    } else {
+      initial
+    }
     let recovery = @local_values.prepare_installed_effect_capture_recipe_extent(
-      "native.mock.file.recovery", quantities,
+      "native.mock.file.recovery", original_capture,
     ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
     let request = @local_values.prepare_installed_effect_operation_extent(
       "native.mock.file.request",
@@ -221,6 +241,7 @@ fn native_mock_effect_managed_plan(
   provider : @local_compute.ManagedProvider,
   publication : @execution.ExecutionCapacity,
   record_bytes : Int,
+  capture_recipes? : Array[Array[@execution.ExecutionCapacity]] = [],
 ) -> @local_values.ClientInstalledEffectManagedPlan raise ClientStop {
   guard first._retained_models.length() == 1 else {
     stop("LocalOriginalEffectPlanUnavailable")
@@ -265,6 +286,7 @@ fn native_mock_effect_managed_plan(
     mock,
     limits.identity.wire,
     record_bytes,
+    capture_recipes,
   )
   let assets = @run_host.client_local_product_assets()
   let sources = first._retained_sources
@@ -339,6 +361,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_plan(
       },
       _ => @compute_sdk.ComputeUnsupported,
     )
+    let capture_recipes = []
     let plan = native_mock_effect_managed_plan(
       prepared,
       first,
@@ -356,11 +379,13 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_plan(
         stop("LocalOriginalModelPublicationCapacityUnavailable")
       }),
       native_mock_effect_record_bytes(installation),
+      capture_recipes~,
     )
     let state : LocalNativeMockEffectPlan = {
       first,
       _retained_prepared: prepared,
       _retained_plan: plan,
+      _retained_import_recipes: capture_recipes,
       graph: selected.graph,
       scope: None,
       source_started_at: None,
@@ -426,11 +451,11 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_plan(
 fn native_mock_effect_import_construction(
   prepared : @run_host.PreparedClientEffectComputation,
   wire : @execution.RowWireLimits,
-) -> @execution.ExecutionCapacity raise ClientStop {
+) -> (@execution.ExecutionCapacity, @execution.ExecutionCapacity) raise ClientStop {
   let empty = @execution.execution_capacity(0L, 0L).unwrap()
   guard @run_host.prepared_client_effect_infer_occurrence(prepared)
     is Some(model) else {
-    return empty
+    return (empty, empty)
   }
   let unit = @run_host.client_infer_occurrence_coordinates(model).0
   let program = @checked.effect_program_static_checked_computation(
@@ -440,7 +465,7 @@ fn native_mock_effect_import_construction(
     .unwrap_or(0)
     .to_int64()
   if imports == 0L {
-    return empty
+    return (empty, empty)
   }
   let direct = @run_host.select_client_effect_direct_acquisition_occurrences(
     prepared, 1000000,
@@ -468,21 +493,10 @@ fn native_mock_effect_import_construction(
   let json = @local_values.installed_json_effect_response_construction_capacity(
     empty, 16384, 1024, 20,
   ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
-  let rows = @local_values.installed_json_effect_response_construction_capacity(
-    empty,
-    wire.max_bytes,
-    wire.max_nodes,
-    wire.max_depth,
-  ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
-  let row_r = @execution.checked_preparation_add_product(
-    0L,
-    @execution.execution_capacity_retained_bytes(rows),
-    results,
-  ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
   let r = @execution.checked_preparation_add_product(
     0L,
     @execution.execution_capacity_retained_bytes(json),
-    documents,
+    Int64::max(3L, imports + 2L),
   ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
   let arrays = @execution.preparation_array_representation(
     3L * units + 2L,
@@ -493,30 +507,74 @@ fn native_mock_effect_import_construction(
     @execution.compose_preparation_representation([
       arrays,
       {
-        record_headers: 2L + 5L * units + 5L * results + 3L * imports,
-        reference_slots: 5L + 40L * units + 24L * results + 20L * imports,
+        record_headers: 2L +
+        5L * units +
+        5L * results +
+        3L * imports +
+        4L * 4096L * results,
+        reference_slots: 5L +
+        40L * units +
+        24L * results +
+        20L * imports +
+        8L * 4096L * results,
         scalar_words: 2L * documents,
-        owned_utf16_units: 0L,
-        owned_wire_bytes: 0L,
+        // All static emitted Strings precede their parse callback. Their
+        // existing shared byte budget bounds their total original text.
+        owned_utf16_units: results * wire.max_bytes.to_int64(),
+        owned_wire_bytes: results * wire.max_bytes.to_int64(),
       },
     ]).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable")),
   ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
-  let workspace = @execution.checked_preparation_add_product(
-    @execution.execution_capacity_execution_bytes(json) -
-    @execution.execution_capacity_retained_bytes(json),
-    @execution.execution_capacity_execution_bytes(rows) -
-    @execution.execution_capacity_retained_bytes(rows),
+  let retained = @execution.checked_preparation_add_product(r, controls, 1L).unwrap_or_else(() => {
+      stop("LocalOriginalEffectCapacityUnavailable")
+    },
+  )
+  let workspace = @execution.execution_capacity_execution_bytes(json) -
+    @execution.execution_capacity_retained_bytes(json)
+  let initial = @execution.execution_capacity(retained, retained + workspace).unwrap_or_else(() => {
+      stop("LocalOriginalEffectCapacityUnavailable")
+    },
+  )
+  // Each Result's complete dependency set shares max_bytes. Every parsed
+  // node consumes a byte. The extra one-byte envelopes bound per-body fixed
+  // parser controls/depth stacks (at most the existing 4096 body limit), not
+  // another logical byte allowance. This ceiling is never reserved eagerly.
+  let maximum_body = native_mock_effect_dependency_body_capacity(
+    wire.max_bytes,
+    wire.max_bytes,
+    wire.max_depth,
+  ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
+  let fixed_body = native_mock_effect_dependency_body_capacity(
+    1,
+    1,
+    wire.max_depth,
+  ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
+  let metadata = native_mock_effect_dependency_body_capacity(16384, 1024, 20).unwrap_or_else(() => {
+      stop("LocalOriginalEffectCapacityUnavailable")
+    },
+  )
+  let retained_max = @execution.checked_preparation_add_product(
+    retained,
+    @execution.execution_capacity_retained_bytes(metadata),
+    documents,
+  ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
+  let max_r = @execution.checked_preparation_add_product(
+    retained_max,
+    @execution.execution_capacity_retained_bytes(maximum_body) +
+    4096L * @execution.execution_capacity_retained_bytes(fixed_body),
+    2L * results,
+  ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
+  let max_e = @execution.checked_preparation_add_product(
+    max_r,
+    @execution.execution_capacity_execution_bytes(maximum_body) -
+    @execution.execution_capacity_retained_bytes(maximum_body) +
+    workspace,
     1L,
   ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
-  let retained = @execution.checked_preparation_add_product(r, row_r, 1L)
-    .bind(value => {
-      @execution.checked_preparation_add_product(value, controls, 1L)
-    })
-    .unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
-  let execution = @execution.checked_preparation_add_product(
-    retained, workspace, 1L,
-  ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
-  @execution.execution_capacity(retained, execution).unwrap_or_else(() => {
-    stop("LocalOriginalEffectCapacityUnavailable")
-  })
+  (
+    initial,
+    @execution.execution_capacity(max_r, max_e).unwrap_or_else(() => {
+      stop("LocalOriginalEffectCapacityUnavailable")
+    }),
+  )
 }

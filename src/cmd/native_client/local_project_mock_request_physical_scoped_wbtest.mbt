@@ -1066,13 +1066,55 @@ fn native_mock_readme_effect_recipe(
   assert_true(control_r >= 2L * codec.response_bytes.to_int64())
   assert_true(control_e >= control_r)
   if @env.get_env_var("ACTQL_TEST_NATIVE_IMPORT_QUOTE") == Some("1") {
-    let imports = native_mock_effect_import_construction(prepared, wire)
-    let capture_r = @execution.execution_capacity_retained_bytes(quantities[0]) +
-      2L * @execution.execution_capacity_retained_bytes(quantities[1]) +
-      @execution.execution_capacity_retained_bytes(imports)
-    let capture_e = @execution.execution_capacity_execution_bytes(quantities[0]) +
-      2L * @execution.execution_capacity_execution_bytes(quantities[1]) +
-      @execution.execution_capacity_execution_bytes(imports)
+    let (imports, maximum) = native_mock_effect_import_construction(
+      prepared, wire,
+    )
+    assert_true(
+      @execution.execution_capacity_retained_bytes(maximum) >
+      @execution.execution_capacity_retained_bytes(imports),
+    )
+    assert_true(
+      @execution.execution_capacity_execution_bytes(maximum) > 536870912L,
+    )
+    let initial_recipe = quantities.copy()
+    initial_recipe[0] = imports
+    initial_recipe[1] = @execution.execution_capacity(0L, 0L).unwrap()
+    let maximum_recipe = quantities.copy()
+    maximum_recipe[0] = @execution.add_execution_capacity(
+      quantities[0],
+      maximum,
+    ).unwrap()
+    assert_true(
+      @local_values.prepare_installed_effect_staged_extent(
+        @local_values.prepare_installed_effect_capture_recipe_extent(
+          "native.mock.file.capture", initial_recipe,
+        ).unwrap(),
+        @local_values.prepare_installed_effect_capture_recipe_extent(
+          "native.mock.file.capture", maximum_recipe,
+        ).unwrap(),
+      )
+      is Ok(_),
+    )
+    println(
+      "Initial imports R=" +
+      @execution.execution_capacity_retained_bytes(imports).to_string() +
+      ",E=" +
+      @execution.execution_capacity_execution_bytes(imports).to_string(),
+    )
+    println(
+      "Base fixed E=" +
+      @execution.execution_capacity_execution_bytes(quantities[0]).to_string() +
+      ",per-row E=" +
+      @execution.execution_capacity_execution_bytes(quantities[1]).to_string(),
+    )
+    let capture_r = @execution.execution_capacity_retained_bytes(
+        initial_recipe[0],
+      ) +
+      2L * @execution.execution_capacity_retained_bytes(initial_recipe[1])
+    let capture_e = @execution.execution_capacity_execution_bytes(
+        initial_recipe[0],
+      ) +
+      2L * @execution.execution_capacity_execution_bytes(initial_recipe[1])
     println(
       "Original import/capture quote R=" +
       capture_r.to_string() +
@@ -1102,7 +1144,7 @@ test "Native README Effect recipe uses its selected row and original storage cod
 }
 
 ///|
-test "Native original two-row import and capture construction fits its unchanged facility" {
+test "Native original two-row staged import construction fits its unchanged facility" {
   assert_eq(@env.get_env_var("ACTQL_TEST_NATIVE_IMPORT_QUOTE"), Some("1"))
   native_project_mock_model_backed_read(
     false,

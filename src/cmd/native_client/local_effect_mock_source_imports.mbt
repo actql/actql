@@ -73,6 +73,26 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_source_imports(
   }
   let limits = state.first._retained_models[0]._retained_limits
   let wire = limits.identity.wire
+  guard state._retained_import_recipes.length() == 2 &&
+    held.members.get(0) is Some(first_member) &&
+    first_member.capture_operation is Some(operation) else {
+    stop("LocalOriginalEffectImportsUnavailable")
+  }
+  let recipe = state._retained_import_recipes[0]
+  @local_values.prepare_installed_effect_capture_recipe_extent(
+    "native.mock.file.capture", recipe,
+  )
+  .bind(input => {
+    @local_values.begin_installed_effect_operation_input(operation, input)
+  })
+  .map_err(issue => LocalNativeMockEffectProposalIssue::Managed(issue))
+  .native_effect_proposal(self.original)
+  let construction : LocalNativeMockEffectImportConstruction = {
+    operation,
+    recipe,
+    retained: 0L,
+    workspace: 0L,
+  }
   // The complete original source occurrence inventory, not import names or
   // counts as a substitute for producer custody. Canonical metadata is funded
   // in this same capture extent before any of these constructors are called.
@@ -111,6 +131,12 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_source_imports(
       receipt: None,
     }
     held.source_imports.push(source)
+    construction.retain_wire(
+      self.original,
+      @run_host.client_effect_local_invocation_json(
+        @run_host.client_effect_acquired_invocation(acquired),
+      ),
+    )
     for index in 0..<@strategy.captured_effect_local_result_count(held.inputs) {
       let result = @strategy.captured_effect_local_result_at(held.inputs, index).unwrap_or_else(() => {
           stop("LocalOriginalEffectImportsUnavailable")
@@ -188,6 +214,10 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_source_imports(
         )
         .map_err(issue => LocalNativeMockEffectProposalIssue::Definition(issue))
         .native_effect_proposal(self.original)
+      construction.retain_wire(
+        self.original,
+        @run_host.client_effect_local_result_definition_json(definition),
+      )
       let artifact = @run_host.issue_acquired_client_effect_local_result_artifact(
           state._retained_prepared,
           held.inputs,
@@ -207,6 +237,29 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_source_imports(
         .native_effect_proposal(self.original)
       source.artifacts.push(artifact)
       source.names.push(name)
+      for
+        retained_wire in [
+          @run_host.client_effect_local_result_artifact_json(artifact),
+          @run_host.client_effect_local_result_derivation_json(artifact),
+          @run_host.client_effect_local_result_ordering_json(artifact),
+        ] {
+        construction.retain_wire(self.original, retained_wire)
+      }
+      let (bytes, nodes, _, depth) = @execution.completed_relation_export_snapshot_extent(
+          stream, receipt,
+        )
+        .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
+        .native_effect_proposal(self.original)
+      // Original writer measurements precede snapshot allocation. This is an
+      // additional retained original, not an assumption that parsing freed it.
+      if !construction.prepare(
+          self.original,
+          Int::max(1, bytes),
+          Int::max(1, nodes),
+          Int::max(1, depth),
+        ) {
+        stop("LocalOriginalEffectProposalsUnavailable")
+      }
       let snapshot = @execution.start_completed_relation_export_snapshot(
           stream,
           receipt,
@@ -243,6 +296,9 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_source_imports(
           wire.max_bytes,
           wire.max_nodes,
           wire.max_depth,
+          before_body=Some((bytes, nodes, depth) => {
+            construction.prepare(self.original, bytes, nodes, depth)
+          }),
         )
         .map_err(issue => LocalNativeMockEffectProposalIssue::Dependency(issue))
         .native_effect_proposal(self.original),
@@ -260,6 +316,10 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_source_imports(
       )
       .map_err(issue => LocalNativeMockEffectProposalIssue::Manifest(issue))
       .native_effect_proposal(self.original),
+    )
+    construction.retain_wire(
+      self.original,
+      @run_host.client_effect_local_manifest_json(source.manifest.unwrap()),
     )
   }
   for index in 0..<count {
@@ -312,6 +372,12 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_source_imports(
       })
       .native_effect_proposal(self.original),
     )
+    construction.retain_wire(
+      self.original,
+      @run_host.client_effect_result_import_observation_json(
+        held.import_observations[index],
+      ),
+    )
   }
   held.imports = Some(
     @run_host.issue_client_effect_imported_evidence(
@@ -326,4 +392,24 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_source_imports(
     .map_err(issue => LocalNativeMockEffectProposalIssue::Imports(issue))
     .native_effect_proposal(self.original),
   )
+  let imported = held.imports.unwrap()
+  construction.retain_wire(
+    self.original,
+    @run_host.client_effect_imported_scope_json(imported),
+  )
+  construction.retain_wire(
+    self.original,
+    @run_host.client_effect_local_invocation_json(
+      @run_host.client_effect_imported_invocation(imported),
+    ),
+  )
+  for wire in @run_host.client_effect_imported_relation_bodies(imported) {
+    construction.retain_wire(self.original, wire)
+  }
+  // Only now can the next capture phase start. Restore the original full
+  // Preview/row recipe beside ALL retained import originals, before the
+  // caller constructs Model evidence, member output or target requests.
+  if !construction.finish(self.original, state._retained_import_recipes[1]) {
+    stop("LocalOriginalEffectProposalsUnavailable")
+  }
 }
