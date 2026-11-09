@@ -62,3 +62,21 @@ test('HubSpot fixed footprint binds a scratch-only original member distinct from
   assert.deepEqual(original.extent.capacity,{opaqueBoundary:true,origin:f.options.origin,account:f.options.portalId,units:f.options.objectTypeUnits});
   assert(recipe.credentialOperations.every(entry=>entry.perRow!==false||entry.operationIndex!==index));
 });
+
+
+test('HubSpot every reachable read binds same empty header contract without changing full constructor quantities', () => {
+  const f=fixture(),recipe=f.build(f.options),reads=recipe.credentialOperations.slice(0,-1);
+  assert.equal(reads.length,18);
+  for(const read of reads){
+    const original=(read.perRow===false?recipe.memberOperations:recipe.rowOperations)[read.operationIndex].extent;
+    assert.equal(original.initial.emptyHeaders,16384);assert.equal(original.maximum.emptyHeaders,16384);
+    assert.equal(original.initial.capacity.index,read.slot==='target'?6:7);
+    if(read.slot==='schema-after')assert(original.initial.discardedProjection);
+    const body=new Uint8Array(16),received=read.responseExtent(16,body);
+    assert.equal(received.emptyHeaders,original.initial.emptyHeaders);
+    assert.equal(received.capacity.index,original.initial.capacity.index);
+    assert.equal(received.capacity.call.original[3]._0.input[0],read.slot==='target'?0:16);
+  }
+  const write=recipe.rowOperations[recipe.credentialOperations.at(-1).operationIndex].extent;
+  assert.equal(write.emptyHeaders,undefined,'Unspecified write keeps full original bound');
+});

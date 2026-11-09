@@ -438,6 +438,32 @@ pub fn client_program_installed_effect_operation_response_projection_complete(
 }
 
 ///|
+#export_name("clientProgramInstalledEffectOperationEmptyResponseHeadersExtentPrepare")
+pub fn client_program_installed_effect_operation_empty_response_headers_extent_prepare(
+  original : @client_local_host.ClientInstalledEffectOperationExtent,
+  max_header_bytes : Int,
+) -> Result[
+  @client_local_host.ClientInstalledEffectOperationExtent,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_installed_effect_empty_response_headers_extent(
+    original, max_header_bytes,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectOperationResponseHeadersRequire")
+pub fn client_program_installed_effect_operation_response_headers_require(
+  original : @client_local_host.ClientInstalledEffectOperationBorrow,
+  selected_names : Array[String],
+  max_header_bytes : Int,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.require_installed_effect_operation_response_headers(
+    original, selected_names, max_header_bytes,
+  )
+}
+
+///|
 #export_name("clientProgramInstalledEffectOperationDiscardedProjectionExtentPrepare")
 pub fn client_program_installed_effect_operation_discarded_projection_extent_prepare(
   original : @client_local_host.ClientInstalledEffectOperationExtent,

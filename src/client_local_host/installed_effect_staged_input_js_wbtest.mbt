@@ -6,6 +6,7 @@ fn staged_effect_input_fixture(
   physical_initial? : @execution.ExecutionCapacity? = None,
   parent_limit? : Int64? = None,
   projection_retained? : @execution.ExecutionCapacity? = None,
+  empty_header_limit? : Int? = None,
 ) -> (
   @publication_host.PreparedClientEffectComputation,
   @publication_host.ClientRequestIdentity,
@@ -29,10 +30,15 @@ fn staged_effect_input_fixture(
     ).unwrap(),
   ).unwrap()
   let bind_projection = (extent : ClientInstalledEffectOperationExtent) => {
-    match projection_retained {
+    let extent = match projection_retained {
       None => extent
       Some(remaining) =>
         prepare_installed_effect_discarded_projection_extent(extent, remaining).unwrap()
+    }
+    match empty_header_limit {
+      None => extent
+      Some(limit) =>
+        prepare_installed_effect_empty_response_headers_extent(extent, limit).unwrap()
     }
   }
   let send = prepare_installed_effect_staged_extent(

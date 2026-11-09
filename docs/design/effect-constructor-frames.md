@@ -208,3 +208,39 @@ partial constructor into successful output; the original duty remains until
 its existing retirement path finishes. Cold Request preparation retains its
 complete original path and quantity model. JavaScript forwards the original
 owner's begin/completion and owns no pricing or numeric shrink argument.
+
+### Explicit empty response-header observation
+
+The installed HubSpot read operations declare no observed response-header names.
+Their existing Credential exchange still parses the complete bounded raw/header
+and trailer blocks. Its successful return contains only the selected frozen
+pairs, the original body and its retained snapshot; private physical facts keep
+only primitive header multiplicities. Request/socket retirement and the existing
+received-response alias cut still precede this return.
+
+An installing recipe may bind that explicit empty selection to the same physical
+extent before Plan admission. Initial, maximum and received-input extents must
+retain the identical header policy. Common derives the successful return from
+its existing full header inventory and the still-live empty outer Array. Initial
+retention, full receive/parser/native execution peak and all failure prefixes
+stay unchanged. Unspecified and nonempty observation contracts keep their full
+existing allowance; this is not general selected-name counting.
+
+Before requesting bytes, the fixed Host freezes the actual operation's names
+through the existing exchange helper and passes them to the same original Core
+child. Core checks the original empty selection, transport header bound and
+fresh current/lifetime/reentry fences. Its private checked-state word never
+leaves that owner as permission or reusable current proof. The exact frozen
+names are forwarded to the physical exchange, so mutable caller aliases cannot
+change them after that check.
+
+Only after the actual request flight and provider projection succeed does the
+existing response-projection completion reduce that same token's absolute
+retained remainder. The Unit-projector path composes this return with its
+existing Plan-bound disposal. All body/snapshot, secret, returned native output,
+empty observed Array and pending physical cleanup remain backed. Repeated
+completion cannot subtract twice. Failed/current/foreign/partial paths keep
+their original responsibility, and attempts, transfer, spent coordinates and
+historical peaks remain unchanged. JavaScript selects no price or shrink amount.
+The added policy, original method, phase word and argument/name carriers are
+funded by the existing installation, Plan and operation-control inventories.

@@ -747,6 +747,8 @@ pub fn prepare_installed_effect_discarded_projection_extent(ClientInstalledEffec
 
 pub fn prepare_installed_effect_duckdb_source_input(String, String, String, String, String, String) -> Result[ClientInstalledEffectSourceInput, ClientInstalledManagedRunIssue]
 
+pub fn prepare_installed_effect_empty_response_headers_extent(ClientInstalledEffectOperationExtent, Int) -> Result[ClientInstalledEffectOperationExtent, ClientInstalledManagedRunIssue]
+
 pub fn prepare_installed_effect_host_input_capture_recipe_extent(String, Array[@execution_relation.ExecutionCapacity], Int, Int, Int) -> Result[ClientInstalledEffectOperationExtent, ClientInstalledManagedRunIssue]
 
 pub fn prepare_installed_effect_managed_plan(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, Array[@client_row_source_host.RowDeclaration], String, String, Array[Int64], Array[Int64], ClientInstalledSequenceContracts, String, String?, String?, Array[ClientInstalledEffectOperationDemand], provider_factory~ : (@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider], query_time? : @run_publication_host.ClientQueryTimePreparation?, source_providers? : Array[@execution_relation.ExecutionCapacity]?, model? : ClientInstalledEffectModelDemand?, content? : ClientInstalledEffectContentPreparation?, runtime_admission? : Bool) -> Result[ClientInstalledEffectManagedPlan, ClientInstalledManagedRunIssue]
@@ -1094,6 +1096,8 @@ pub fn[I] request_query_syntax_work(ClientRequestPreparation[I], I) -> Result[(I
 pub fn[I] request_source_input_parts(ClientRequestPreparation[I], I) -> Result[(String, @source_frontend.Format, String?, @decode_core.Cursor?), ClientRequestPreparationIssue]
 
 pub fn[I] request_submitted_intent_original(ClientRequestPreparation[I], I) -> @run_publication_host.ClientSubmittedIntent?
+
+pub fn require_installed_effect_operation_response_headers(ClientInstalledEffectOperationBorrow, Array[String], Int) -> Result[Unit, ClientInstalledManagedRunIssue]
 
 pub fn reserve_installed_effect_capture_decoded(ClientInstalledEffectCaptureRecovery, String) -> Result[Unit, ClientInstalledManagedRunIssue]
 

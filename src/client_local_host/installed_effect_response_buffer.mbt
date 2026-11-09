@@ -168,6 +168,42 @@ fn installed_effect_response_headers_retained_representation(
 }
 
 ///|
+// Only an explicitly installed empty observation returns the outer Array with
+// no pairs/text. Full receive/parser backing is unchanged until success.
+fn installed_effect_empty_response_header_return(
+  max_header_bytes : Int,
+) -> (Int64, Int64)? {
+  guard installed_effect_response_headers_retained_representation(
+      max_header_bytes,
+    )
+    is Some(full) &&
+    @shape.collection_construction_extent({
+      records: 0L,
+      record_references: 0L,
+      record_words: 0L,
+      reference_arrays: 1L,
+      reference_items: 0L,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(empty) &&
+    @execution.preparation_representation_cost(full) is Some(full_bytes) &&
+    @execution.preparation_representation_cost({
+      record_headers: empty.record_headers,
+      reference_slots: empty.reference_slots,
+      scalar_words: empty.scalar_words,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(empty_bytes) else {
+    return None
+  }
+  Some((full_bytes, full_bytes - empty_bytes))
+}
+
+///|
 /// Body and both raw/normalized header blocks coexist until this SAME
 /// response owner severs them. This remains only response construction DATA;
 /// native/provider output, requests, secrets, saved/failed overlap and control

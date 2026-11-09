@@ -9,6 +9,9 @@ struct ClientInstalledEffectOperationExtent {
   // Original installation-bound remainder after its Unit projector disposes
   // all native output/cursor callbacks. Never selected at completion time.
   response_projection_retained : @execution.ExecutionCapacity?
+  // Explicit empty header-selection contract and its successful-only return.
+  // Unspecified/nonempty installations keep their original complete bound.
+  empty_response_headers : (Int, Int64)?
   transfer_bytes : Int64
   physical_attempt : Bool
   // Pure capture templates are resolved once from the SAME completed Plan.
@@ -44,6 +47,7 @@ pub fn prepare_installed_effect_operation_extent(
     operation,
     capacity,
     response_projection_retained: None,
+    empty_response_headers: None,
     transfer_bytes,
     physical_attempt,
     checked_row_capacity: None,
@@ -66,10 +70,38 @@ pub fn prepare_installed_effect_discarded_projection_extent(
   guard original.physical_attempt &&
     original.maximum is None &&
     original.response_projection_retained is None &&
+    original.empty_response_headers is None &&
     installed_effect_capacity_within(remaining, original.capacity) else {
     return Err(Unsupported)
   }
   Ok({ ..original, response_projection_retained: Some(remaining), })
+}
+
+///|
+/// Install only the exact empty observed-header contract before Plan admission.
+/// The transport/header peak stays full; no nonempty-name counting is selected.
+pub fn prepare_installed_effect_empty_response_headers_extent(
+  original : ClientInstalledEffectOperationExtent,
+  max_header_bytes : Int,
+) -> Result[
+  ClientInstalledEffectOperationExtent,
+  ClientInstalledManagedRunIssue,
+] {
+  guard original.physical_attempt &&
+    original.maximum is None &&
+    original.empty_response_headers is None &&
+    installed_effect_empty_response_header_return(max_header_bytes)
+    is Some((full_headers, returned)) &&
+    @execution.execution_capacity_retained_bytes(original.capacity) >=
+    full_headers &&
+    (match original.response_projection_retained {
+      None => true
+      Some(value) =>
+        @execution.execution_capacity_retained_bytes(value) >= full_headers
+    }) else {
+    return Err(Unsupported)
+  }
+  Ok({ ..original, empty_response_headers: Some((max_header_bytes, returned)), })
 }
 
 ///|
@@ -113,6 +145,7 @@ pub fn prepare_installed_effect_staged_extent(
     initial.operation != maximum.operation ||
     initial.physical_attempt != maximum.physical_attempt ||
     initial.transfer_bytes != maximum.transfer_bytes ||
+    initial.empty_response_headers != maximum.empty_response_headers ||
     (initial.checked_row_capacity is Some(_)) !=
     (maximum.checked_row_capacity is Some(_)) ||
     (initial.checked_effect_id_capacity is Some(_)) !=
@@ -159,6 +192,7 @@ pub fn prepare_installed_effect_capture_extent(
     operation,
     capacity: fixed_capacity,
     response_projection_retained: None,
+    empty_response_headers: None,
     transfer_bytes: 0L,
     physical_attempt: false,
     checked_row_capacity: Some(capacity_per_checked_row),
@@ -1151,8 +1185,8 @@ fn prepare_installed_effect_managed_plan_owned(
   // Existing generated sequences and acquisition bodies remain charged by
   // their original Compute/capture components, not decoded/copied here.
   // Each staged maximum retains its resolved extent/capacity and Some pair
-  // beside the initial extent (4H10R8W), including their two borrowed
-  // projection-remainder references. Immutable installation inputs are borrowed.
+  // beside the initial extent (4H12R8W), including their two borrowed
+  // projection-remainder and two empty-header policy references. Immutable installation inputs are borrowed.
   let composed_roots = []
   if model is Some(selected) {
     let model_owner = @execution.generated_sequence_owner(
@@ -1197,12 +1231,12 @@ fn prepare_installed_effect_managed_plan_owned(
     6L * members +
     members +
     controlled_members +
-    extent_count +
+    2L * extent_count +
     2L * sources +
     time_holder +
     9L * model_holder +
     7L * provider_sources.to_int64() +
-    10L * staged_extents,
+    12L * staged_extents,
     scalar_words: 27L +
     (if closed_rows is Some(_) { 1L } else { 0L }) -
     model_holder +

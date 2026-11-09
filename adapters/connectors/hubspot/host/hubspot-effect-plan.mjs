@@ -44,6 +44,9 @@ export function captureHubSpotEffectPlanRecipeBuilder({moon}) {
   const extent = method(moon, 'clientProgramInstalledEffectOperationExtentFromCapacityPrepare');
   const capture = method(moon, 'clientProgramInstalledEffectHostInputCaptureRecipeExtentPrepare');
   const discardProjection = method(moon, 'clientProgramInstalledEffectOperationDiscardedProjectionExtentPrepare');
+  const emptyResponseHeaders = method(moon, 'clientProgramInstalledEffectOperationEmptyResponseHeadersExtentPrepare');
+  // Matching Common must enforce this exact selection before the request.
+  method(moon, 'clientProgramInstalledEffectOperationResponseHeadersRequire');
   return function prepareHubSpotEffectPlanRecipe({mappings, origin, portalId, objectTypeUnits,
     metadataResources, credentialSite, limits, inputLimits, maxRecoveryBytes}) {
     if (!Array.isArray(mappings) || nodeTypes.isProxy(mappings) || !Object.isFrozen(mappings) ||
@@ -173,8 +176,11 @@ export function captureHubSpotEffectPlanRecipeBuilder({moon}) {
         ? quantities(profile(0, 0, 9))[position] : undefined;
       const extentOf = values => {
         const original = operationExtent(operation, values[position], transfer, true);
-        return discardedProjection === undefined ? original : checked(
+        const output = discardedProjection === undefined ? original : checked(
           discardProjection(original, discardedProjection));
+        // This original HubSpot read declares no observed response headers.
+        // Keep the full receive/parse peak; Common owns the success-only cut.
+        return checked(emptyResponseHeaders(output, httpsCredentialResponseHeaderByteLimit));
       };
       // The original physical backing and its received-input growth must use
       // the SAME constructor. A generic Account/schema maximum is appropriate

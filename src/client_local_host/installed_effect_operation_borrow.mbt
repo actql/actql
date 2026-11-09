@@ -9,6 +9,9 @@ pub struct ClientInstalledEffectOperationBorrow {
   // One original extent selection: owned input or detached successful output.
   priv mut input_selected : Bool
   priv mut construction_completed : Bool
+  // A private completed constraint check on this same original operation,
+  // never a transferable permission or header-count assertion from JS.
+  priv mut empty_headers_checked : Bool
   priv mut backing : @resources.NodeManagedRunOperationBacking?
   // The SAME immutable extent's execution upper; never Host-supplied DATA.
   priv mut execution_limit : Int64
@@ -67,7 +70,12 @@ fn installed_effect_operation_control_capacity(
   // current fence, and pending binding close. Native settlement wrappers use
   // fewer Promise/closure alternatives than the former then/finally chains;
   // retain that existing record upper. One cleanup retirement cursor is a
-  // scalar in the same fixed capture/cleanup frame, not another owner. Each
+  // scalar in the same fixed capture/cleanup frame, not another owner. The
+  // empty-header selection adds its original method reference, one private
+  // checked-state word and actual input-extent policy tuple/Some (2H1R3W).
+  // Two additional bounded Arrays cover its argument vector and still-live
+  // immutable declared empty names; completed header DATA stays on the body.
+  // Each
   // original token also retains its captured Int64 execution upper, one word
   // until retirement even while its constructor workspace is inactive. The
   // corresponding child/payload wrapper's synchronous flight-opening latch
@@ -77,17 +85,17 @@ fn installed_effect_operation_control_capacity(
       // Optional owned output retains one wire callback frame and its
       // original method/output references; the wire DATA has its own extent.
       // Same-token staged input retains one grow method/context pair.
-      records: (27L + 2L) * calls,
+      records: (27L + 2L + 2L) * calls,
       // One original response-projection completion method is retained by
       // the physical child; its existing preparation latch owns the flight.
       // Optional same-response preflight object and its two original methods,
       // plus the installing original field, remain with this physical child.
-      record_references: (64L + 3L + 2L + 4L + 1L + 8L + 4L) * calls,
-      record_words: (12L + 2L + 3L + 2L) * calls,
+      record_references: (64L + 3L + 2L + 4L + 1L + 8L + 4L + 3L) * calls,
+      record_words: (12L + 2L + 3L + 2L + 4L) * calls,
       // Deferred member construction retains one original preparation-method
       // vector. Its length is bounded by these same checked child slots.
-      reference_arrays: 3L * calls + 1L,
-      reference_items: 15L * calls + count,
+      reference_arrays: 5L * calls + 1L,
+      reference_items: 18L * calls + count,
       scalar_arrays: 0L,
       scalar_items: 0L,
       maps: 1L,
@@ -429,6 +437,7 @@ fn borrow_installed_effect_operation_original(
     extent: Some(extent),
     input_selected: false,
     construction_completed: false,
+    empty_headers_checked: false,
     backing: Some(backing),
     execution_limit: execution,
     started: !extent.physical_attempt && !defer_construction,
@@ -882,6 +891,8 @@ fn resize_installed_effect_operation_input(
   if input.operation != extent.operation ||
     input.physical_attempt != extent.physical_attempt ||
     input.transfer_bytes != extent.transfer_bytes ||
+    input.empty_response_headers != extent.empty_response_headers ||
+    (extent.empty_response_headers is Some(_) && !value.empty_headers_checked) ||
     !same_effect_projection_remainder(
       input.response_projection_retained,
       extent.response_projection_retained,
@@ -1014,6 +1025,52 @@ pub fn complete_installed_effect_operation_response_projection(
 }
 
 ///|
+/// Check the actual immutable operation's selected names BEFORE its request.
+/// All legacy/unspecified extents keep the complete original header allowance.
+pub fn require_installed_effect_operation_response_headers(
+  value : ClientInstalledEffectOperationBorrow,
+  selected_names : Array[String],
+  max_header_bytes : Int,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  guard value.original is Some(original) &&
+    physical_equal(original, value) &&
+    value.owner is Some(owner) &&
+    value.extent is Some(extent) else {
+    return Err(ForeignOriginal)
+  }
+  if owner.effect_operation_opening || owner.effect_operation_closing {
+    return Err(AlreadyBound)
+  }
+  owner.effect_operation_opening = true
+  defer {
+    owner.effect_operation_opening = false
+  }
+  match require_installed_effect_operation(value) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard value.started &&
+    !value.input_selected &&
+    extent.physical_attempt &&
+    value.extent is Some(current) &&
+    physical_equal(current, extent) else {
+    return Err(ForeignOriginal)
+  }
+  match extent.empty_response_headers {
+    None => Ok(())
+    Some((limit, _)) => {
+      if value.empty_headers_checked ||
+        !selected_names.is_empty() ||
+        limit != max_header_bytes {
+        return Err(ForeignOriginal)
+      }
+      value.empty_headers_checked = true
+      Ok(())
+    }
+  }
+}
+
+///|
 /// Same child only after its installed Unit projector has severed all output
 /// and cursor callbacks. The remainder comes from the admitted Plan, not JS.
 pub fn complete_installed_effect_discarded_response_projection(
@@ -1060,6 +1117,23 @@ fn complete_installed_effect_response_projection(
     Some(@execution.execution_capacity_retained_bytes(capacity))
   } else {
     None
+  }
+  let remaining = match value.extent {
+    Some(extent) =>
+      match extent.empty_response_headers {
+        None => remaining
+        Some((_, returned)) => {
+          guard value.empty_headers_checked else { return Err(ForeignOriginal) }
+          let retained = remaining.unwrap_or(
+            @execution.execution_capacity_retained_bytes(extent.capacity),
+          )
+          if retained < returned {
+            return Err(InsufficientCapacity)
+          }
+          Some(retained - returned)
+        }
+      }
+    None => return Err(Retired)
   }
   @resources.complete_prepared_run_operation_response_projection(
     admission,

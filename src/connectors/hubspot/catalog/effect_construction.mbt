@@ -88,14 +88,18 @@ pub fn effect_installation_construction_capacity(
       // Some wrappers and borrowed extent/closure references for the original
       // Unit-projection remainder. Include their full logical representation
       // even on a backend that unboxes reference Options; no body copy.
-      records: 2L * (96L + 96L + 16L) + 72L + 5L * m + 1L + 9L,
+      // Eighteen reads bind initial/max empty-header policy on36 extents:
+      // each new extent/tuple/Some is3H9R5W; two new method captures4H14R.
+      records: 2L * (96L + 96L + 16L) + 72L + 5L * m + 1L + 9L + 108L + 4L,
       record_references: 14L * (96L + 96L + 16L) +
       536L +
       24L * m +
       2L * f +
       1L +
-      15L,
-      record_words: 138L + 12L * m + 2L + 12L,
+      15L +
+      324L +
+      14L,
+      record_words: 138L + 12L * m + 2L + 12L + 180L,
       reference_arrays: 48L + 2L * m,
       reference_items: 512L + 9L + 15L + 19L + 2L * f,
       scalar_arrays: 12L,

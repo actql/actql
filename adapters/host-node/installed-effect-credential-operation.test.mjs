@@ -546,3 +546,56 @@ test('Unit projector disposal followed by changed current keeps the original ful
   assert.equal(reduced,0);assert.equal(f.controls.settles,0);assert.equal(child.status().pending,true);
   disposed=false;f.controls.retiredAliases=true;assert.equal(await child.release(),true);
 });
+
+
+test('empty header original is checked before actual TLS and success keeps body through same completion and cleanup',async t=>{
+  const f=await operationFixture(t,{reply:()=>({headers:{etag:'"original"','x-fixture':'received'},body:'{"ok":true}'})});
+  const events=[],extent={};
+  f.runtime.clientProgramInstalledEffectOperationResponseHeadersRequire=function(original,names,limit){
+    assert.equal(this,f.runtime);assert.equal(original,f.token);assert.deepEqual(names,[]);
+    assert(Object.isFrozen(names));assert.equal(limit,maxHeaderSize);assert.equal(f.server.seen().length,0);
+    events.push('empty-before-request');return {$tag:1,_0:undefined};
+  };
+  f.runtime.clientProgramInstalledEffectOperationInputBegin=function(original,input){
+    assert.equal(original,f.token);assert.equal(input,extent);events.push('grow');return {$tag:1,_0:undefined};
+  };
+  f.runtime.clientProgramInstalledEffectOperationResponseProjectionComplete=function(original){
+    assert.equal(original,f.token);assert.equal(f.controls.settles,0);
+    events.push('complete-original');return {$tag:1,_0:undefined};
+  };
+  const child=f.create(async context=>{
+    const response=await f.send(context);assert.deepEqual(response.headers,[]);
+    assert.equal(response.body.toString(),'{"ok":true}');events.push('consumer');return response;
+  },{responseExtent:()=>extent});
+  const response=await child.prepare();
+  assert.deepEqual(events,['empty-before-request','grow','consumer','complete-original']);
+  assert.equal(f.server.seen().length,1);assert.equal(response.body.toString(),'{"ok":true}');
+  assert.equal(await child.release(),false);assert.equal(f.controls.settles,0);
+  f.controls.retiredAliases=true;assert.equal(await child.retry(),true);assert.equal(f.controls.settles,1);
+});
+
+test('empty header mismatch current and failed consumers preserve full original duty without success completion',async t=>{
+  for(const mode of ['foreign','current','consumer','completion']){
+    const f=await operationFixture(t),cause=new Error('original '+mode),extent={};
+    let checks=0,completions=0;
+    f.runtime.clientProgramInstalledEffectOperationResponseHeadersRequire=function(original,names){
+      assert.equal(original,f.token);checks++;assert.equal(f.server.seen().length,0);
+      if(mode==='foreign'){assert.deepEqual(names,['etag']);throw cause;}
+      assert.deepEqual(names,[]);if(mode==='current')throw cause;return {$tag:1,_0:undefined};
+    };
+    f.runtime.clientProgramInstalledEffectOperationInputBegin=()=>({$tag:1,_0:undefined});
+    f.runtime.clientProgramInstalledEffectOperationResponseProjectionComplete=function(original){
+      assert.equal(original,f.token);completions++;throw cause;
+    };
+    const child=f.create(async context=>{
+      const response=mode==='foreign'?await invokeScopedCredentialOperation({...context,operation:'create',
+        method:'POST',path:'/create',body:'{}',responseHeaders:['etag'],maxRequestBytes:1024,maxResponseBytes:64}):await f.send(context);
+      if(mode==='consumer')throw cause;return response;
+    },{responseExtent:()=>extent});
+    await assert.rejects(child.prepare(),error=>error===cause);
+    assert.equal(checks,1);assert.equal(completions,mode==='completion'?1:0);
+    assert.equal(f.server.seen().length,['foreign','current'].includes(mode)?0:1);
+    assert.equal(await child.release(),false);assert.equal(f.controls.settles,0);
+    f.controls.retiredAliases=true;assert.equal(await child.retry(),true);assert.equal(f.controls.settles,1);
+  }
+});

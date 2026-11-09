@@ -7,6 +7,7 @@ import {httpsCredentialResponseWindowBytes, httpsCredentialResponseHeaderByteLim
   from '../site-node/https-credential-resource.mjs';
 import {effectLedgerImplementationBounds} from './effect-ledger-implementation-bounds.mjs';
 import {credentialInvocationBindingKeys} from '../host-common/credential-scope-fields.generated.mjs';
+import {ownResponseHeaderNames} from '../host-common/http-exchange.mjs';
 const NativePromise = Promise;
 const nativePromiseThen = Promise.prototype.then;
 const fail = code => {throw Object.assign(new Error(code), {code});};
@@ -868,6 +869,7 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
     beginInput=runtime?.clientProgramInstalledEffectOperationInputBegin,
     responseComplete=runtime?.clientProgramInstalledEffectOperationResponseProjectionComplete,
     discardedResponseComplete=runtime?.clientProgramInstalledEffectOperationDiscardedResponseProjectionComplete,
+    responseHeadersRequire=runtime?.clientProgramInstalledEffectOperationResponseHeadersRequire,
     charge=runtime?.clientProgramInstalledEffectOperationCharge,
     retire=runtime?.clientProgramInstalledEffectOperationRetire;
   if (![readPlan,select,isPhysical,transfer,responseBackingFits,borrow,start,charge,retire].every(value=>typeof value==='function')) {
@@ -877,6 +879,9 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
     fail('InstalledEffectOperationRuntimeUnavailable');
   }
   if (discardResponseProjection && (typeof discardedResponseComplete !== 'function' || responsePreparation === undefined)) {
+    fail('InstalledEffectOperationRuntimeUnavailable');
+  }
+  if (responseHeadersRequire !== undefined && typeof responseHeadersRequire !== 'function') {
     fail('InstalledEffectOperationRuntimeUnavailable');
   }
   const originalRecord=()=>{
@@ -961,11 +966,20 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
     if(body!==undefined&&typeof body!=='string')fail('UnsupportedInstalledEffectHttpRepresentation');
     const bytes=body===undefined?0:Buffer.byteLength(body);
     if(bytes>maxRequestBytes)fail('InstalledEffectRequestByteLimit');
+    // Freeze the same declared names through the existing exchange owner;
+    // Common checks only its original empty-selection constraint, no pricing.
+    const names=responseHeadersRequire===undefined?undefined:
+      ownResponseHeaderNames(fields.responseHeaders?.value);
+    if(names!==undefined) {
+      checked(Reflect.apply(responseHeadersRequire,runtime,[token,names,httpsCredentialResponseHeaderByteLimit]));
+      originalRecord();
+    }
     callStarted=true;
     chargeBytes(BigInt(bytes));
     // Preserve exact original method/path/headers/body/CID semantics. The
     // existing Resource still performs its own current/transport validation.
-    const result=Reflect.apply(physical,site,[{...options,operations:new Map([[operation,selected]]),
+    const result=Reflect.apply(physical,site,[{...options,operations:new Map([[operation,
+      names===undefined?selected:Object.freeze({...selected,responseHeaders:names})]]),
       observeResponseBytes:bytes=>{chargeBytes(BigInt(bytes));}}]);
     // Join the SAME call even if a provider omits its await or throws after
     // starting it. The envelope keeps rejection handled without discarding it;
