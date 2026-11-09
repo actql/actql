@@ -131,6 +131,43 @@ fn installed_effect_response_headers_representation(
 }
 
 ///|
+// The successful Credential call returns only the selected [name, value]
+// pairs and their outer Array. Its unique names select at most H actual
+// fields: each received field has a nonempty name under the same H counter.
+// Keep the old full String bound conservatively, including borrowed names.
+// Raw/trailer dictionaries, parser flush vectors and byte prefixes belong to
+// the complete constructor peak, not this returned immutable header DATA.
+fn installed_effect_response_headers_retained_representation(
+  max_header_bytes : Int,
+) -> @execution.PreparationRepresentationUnits? {
+  if max_header_bytes < 1 {
+    return None
+  }
+  let h = max_header_bytes.to_int64()
+  guard @shape.collection_construction_extent({
+      records: 0L,
+      record_references: 0L,
+      record_words: 0L,
+      reference_arrays: 1L + h,
+      reference_items: 3L * h,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(headers) else {
+    return None
+  }
+  Some({
+    record_headers: headers.record_headers,
+    reference_slots: headers.reference_slots,
+    scalar_words: headers.scalar_words,
+    owned_utf16_units: 20L * h,
+    owned_wire_bytes: 0L,
+  })
+}
+
+///|
 /// Body and both raw/normalized header blocks coexist until this SAME
 /// response owner severs them. This remains only response construction DATA;
 /// native/provider output, requests, secrets, saved/failed overlap and control
@@ -146,17 +183,19 @@ pub fn installed_effect_http_response_construction_capacity(
     )
     is Some(body) &&
     installed_effect_response_headers_representation(max_header_bytes)
-    is Some(headers) else {
+    is Some(peak) &&
+    installed_effect_response_headers_retained_representation(max_header_bytes)
+    is Some(retained) else {
     return None
   }
   guard @execution.preparation_execution_capacity({
-      retained: headers,
+      retained,
       workspace: {
-        record_headers: 0L,
-        reference_slots: 0L,
-        scalar_words: 0L,
-        owned_utf16_units: 0L,
-        owned_wire_bytes: 0L,
+        record_headers: peak.record_headers - retained.record_headers,
+        reference_slots: peak.reference_slots - retained.reference_slots,
+        scalar_words: peak.scalar_words - retained.scalar_words,
+        owned_utf16_units: peak.owned_utf16_units - retained.owned_utf16_units,
+        owned_wire_bytes: peak.owned_wire_bytes - retained.owned_wire_bytes,
       },
       retained_nodes: 0L,
       workspace_nodes: 0L,

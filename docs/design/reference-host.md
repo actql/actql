@@ -2420,8 +2420,17 @@ includes chunk Buffer headers and the original Array growth inventory.
 
 Successful original concatenation severs the same copied prefix and reader
 listener before returning the exact body. Only that returned Buffer remains in
-body retention; initial headers and trailers stay separately retained. The
-whole HTTP extent also retains the existing optional original-response byte
+body retention. Initial/raw/trailer dictionaries, normalization and parser
+vectors remain covered by the complete header construction peak. A successful
+Credential call returns only its declared, unique header-name/value pairs;
+the shared constructor retains those pairs and their outer Array, while
+conservatively keeping the complete old header String bound. It does not keep
+raw dictionaries, parser vectors or byte prefixes as returned header storage.
+The existing checked response-projection completion returns this private
+workspace only after the original request/socket, current, Journal and provider
+projection have succeeded. Failure or pending cleanup keeps the full execution
+peak on that same original token. No header policy or pair selection changes.
+The whole HTTP extent also retains the existing optional original-response byte
 snapshot. It is constructed only after the copied receive prefix is severed,
 so both returned bodies fit within the unchanged full receive peak. Failed
 receive or concatenation keeps its original prefix under the unchanged full

@@ -123,3 +123,16 @@ before the decoder; received bodies and rejected/pending prefixes remain with
 that owner. Complete grammar/current/identity/schema checks and logical cursor
 retirement are unchanged. The quote is not an allocator, GC or physical-close
 claim, and it does not establish that an entire installed operation will fit.
+
+The common physical HTTP response quote separates the original header
+construction peak from successful selected-header storage. The Credential
+receiver waits for its original request/socket close events; its complete call
+performs current and Journal duties before returning only declared immutable
+name/value pairs. The same physical child's checked projection-complete cut
+therefore keeps those pairs, both original body backings and the full provider
+output, while returning raw/normalized header construction vectors and byte
+prefix workspace. The full old header String bound stays conservative.
+The construction execution peak is unchanged, including failed and pending
+prefixes; no failed constructor takes the successful return. Quantities remain
+in the shared MoonBit owner, with no connector-specific Host arithmetic,
+transport cap change or physical-cleanup inference.
