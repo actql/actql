@@ -39,6 +39,11 @@ test('current census binds state, metadata preparation and all provider construc
   assert.throws(()=>checkParentCensus(path=>path===p?
     source.replace(joined,'Some(@lower.JoinStep(_)) => ()'):read(path)),
     /Changed reviewed reclaimed-prefix source body or arity/);
+  const window='Some(@lower.WindowStep(_)) => ()';
+  assert.equal(source.split(window).length,2,'Reach the reviewed Window scratch branch');
+  assert.throws(()=>checkParentCensus(path=>path===p?
+    source.replace(window,'Some(@lower.WindowStep(_)) => return index'):read(path)),
+    /Changed reviewed reclaimed-prefix source body or arity/);
   const singletonSet='Some(@lower.SetStep(_)) if @execution.generated_sequence_step_count(\n          sequence,\n        ) ==\n        1 => ()';
   assert.equal(source.split(singletonSet).length,2,'Reach the reviewed singleton Set guard');
   assert.throws(()=>checkParentCensus(path=>path===p?
