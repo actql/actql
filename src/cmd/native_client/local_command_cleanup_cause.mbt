@@ -92,6 +92,12 @@ fn command_preparation_cleanup_cause(
       }
     CommandBusinessEffectProposals(cause) =>
       match cause {
+        Manifest(original) =>
+          match original {
+            IncompleteResults => "EffectProposalsIncompleteResults"
+            IncompleteTableInputs => "EffectProposalsIncompleteTableInputs"
+            _ => "EffectProposalsManifest"
+          }
         Dependency(original) =>
           match original {
             ForeignInput => "EffectProposalsDependencyForeignInput"

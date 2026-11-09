@@ -13,6 +13,7 @@ priv enum LocalNativeMockEffectProposalIssue {
   Definition(@run_host.ClientEffectLocalResultDefinitionIssue)
   Artifact(@run_host.ClientEffectLocalResultArtifactIssue)
   Dependency(@run_host.ClientEffectDependencyCaptureIssue)
+  Manifest(@run_host.ClientEffectLocalManifestIssue)
 }
 
 ///|
@@ -40,6 +41,7 @@ priv struct LocalNativeMockEffectProposals {
   mut invocation : @run_host.ClientEffectLocalInvocation?
   mut materials : @run_host.ClientEffectRunMaterials?
   mut acquired : @run_host.ClientEffectModelAcquiredEvidence?
+  mut _retained_local_manifest : @run_host.ClientEffectLocalManifest?
   _retained_lookup_dependencies : Array[
     @publication.CapturedEffectDependencyBody,
   ]
@@ -55,6 +57,9 @@ priv struct LocalNativeMockEffectProposalMember {
   mut exported : @strategy.CapturedEffectLocalResultExport?
   mut stream : @execution.CompletedOutputExport?
   mut receipt : @execution.CompletedRelationExportReceipt?
+  mut snapshot : @execution.CompletedRelationSnapshotPreparation?
+  mut _retained_snapshot_wire : String?
+  mut _retained_dependency : @run_host.ClientEffectDependencyCapture?
   mut _retained_definition : @run_host.ClientEffectLocalResultDefinition?
   mut _retained_artifact : @run_host.ClientEffectLocalResultArtifact?
   rows : Array[(String, String)]
@@ -104,6 +109,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
       invocation: None,
       materials: None,
       acquired: None,
+      _retained_local_manifest: None,
       _retained_lookup_dependencies: [],
       _retained_direct_evidence: [],
     }
@@ -134,6 +140,9 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
         exported: None,
         stream: None,
         receipt: None,
+        snapshot: None,
+        _retained_snapshot_wire: None,
+        _retained_dependency: None,
         _retained_definition: None,
         _retained_artifact: None,
         rows: [],
@@ -362,6 +371,48 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
         .map_err(issue => LocalNativeMockEffectProposalIssue::Artifact(issue))
         .native_effect_proposal(self.original)
       current._retained_artifact = Some(artifact)
+      // Preserve the SAME finished export/receipt. This first durable row
+      // snapshot neither re-exports a Result nor reruns its identity scan.
+      let snapshot = @execution.start_completed_relation_export_snapshot(
+          stream,
+          receipt,
+          wire.max_bytes,
+          wire.max_nodes,
+          wire.max_depth,
+          limits.output_workspace,
+        )
+        .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
+        .native_effect_proposal(self.original)
+      current.snapshot = Some(snapshot)
+      while !snapshot
+            .advance(256)
+            .map_err(issue => {
+              LocalNativeMockEffectProposalIssue::Completed(issue)
+            })
+            .native_effect_proposal(self.original).0 {
+        ()
+      }
+      let (rows_wire, _) = snapshot
+        .finish()
+        .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
+        .native_effect_proposal(self.original)
+      current._retained_snapshot_wire = Some(rows_wire)
+      current._retained_dependency = Some(
+        @run_host.admit_client_effect_dependency_capture(
+          held.materials.unwrap(),
+          inputs,
+          artifact,
+          index,
+          exported,
+          receipt,
+          rows_wire,
+          max_capture_bytes,
+          wire.max_nodes,
+          wire.max_depth,
+        )
+        .map_err(issue => LocalNativeMockEffectProposalIssue::Dependency(issue))
+        .native_effect_proposal(self.original),
+      )
       @strategy.finish_captured_effect_proposal_plan(
         plan,
         current.rows.length(),
@@ -369,6 +420,20 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
       .map_err(issue => LocalNativeMockEffectProposalIssue::Proposal(issue))
       .native_effect_proposal(self.original)
     }
+    // The owner requires every declared Result and Effect-consumed Table of
+    // the Unit. A consumed subset must not be presented as a whole Manifest.
+    held._retained_local_manifest = Some(
+      @run_host.issue_client_effect_local_manifest(
+        state._retained_prepared,
+        held.invocation.unwrap(),
+        held.members.map(entry => entry._retained_artifact.unwrap()),
+        max_capture_bytes,
+        wire.max_nodes,
+        wire.max_depth,
+      )
+      .map_err(issue => LocalNativeMockEffectProposalIssue::Manifest(issue))
+      .native_effect_proposal(self.original),
+    )
   })
 }
 
@@ -377,6 +442,12 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
 // pins. No file, pending write, Store or physical owner is acknowledged here.
 fn LocalNativeMockEffectProposals::close(self : Self) -> Bool {
   for entry in self.members {
+    entry._retained_dependency = None
+    entry._retained_snapshot_wire = None
+    if entry.snapshot is Some(snapshot) {
+      snapshot.cancel()
+      entry.snapshot = None
+    }
     entry._retained_artifact = None
     entry._retained_definition = None
     @strategy.cancel_captured_effect_proposal_plan(entry.plan)
@@ -412,6 +483,7 @@ fn LocalNativeMockEffectProposals::close(self : Self) -> Bool {
     }
   }
   self.acquired = None
+  self._retained_local_manifest = None
   self._retained_lookup_dependencies.clear()
   self.materials = None
   self._retained_keyed_identity = None
