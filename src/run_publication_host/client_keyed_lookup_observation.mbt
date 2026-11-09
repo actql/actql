@@ -23,19 +23,6 @@ pub fn issue_client_keyed_lookup_observation(
     @execution.supplied_relation_read_available(read) else {
     return Err(Assembly("observation_unavailable"))
   }
-  let facts = lookup.left.acquisition.facts
-  guard @planning.keyed_source_evidence_facts(facts) is Some(source) else {
-    return Err(Assembly("source_facts"))
-  }
-  let members = match @planning.keyed_source_evidence_members(facts) {
-    Ok(value) => value
-    Err(_) => return Err(Assembly("source_members"))
-  }
-  if !@environment.connector_source_evidence_supports(members, [
-      @planning.query_evidence_contract_identity(),
-    ]) {
-    return Err(Assembly("source_capability"))
-  }
   let (logical_cid, schema_cid) = if lookup.identity_receipt is Some(receipt) {
     (
       @execution.logical_relation_cid(
@@ -75,6 +62,82 @@ pub fn issue_client_keyed_lookup_observation(
       @execution.relation_schema_cid(schema),
     )
   }
+  if lookup.native_completion is Some(completed) {
+    if authority_scope_cid != completed.authority_scope_cid {
+      return Err(Assembly("foreign_native_observation_authority"))
+    }
+    return Ok({
+      lookup,
+      input: completed.input,
+      source: completed.source,
+      logical_relation_cid: logical_cid,
+    })
+  }
+  let (input, source) = match
+    build_keyed_lookup_source_observation(
+      lookup, logical_cid, schema_cid, snapshot, authority_scope_cid, observed_at,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok({ lookup, input, source, logical_relation_cid: logical_cid, })
+}
+
+///|
+pub fn client_keyed_lookup_observation_wires(
+  value : ClientKeyedLookupObservation,
+) -> (String, String)? {
+  if client_keyed_lookup_input_identity(value.lookup) is None {
+    return None
+  }
+  Some(
+    (
+      @publication.run_evidence_value_json(value.input),
+      @publication.run_evidence_value_json(value.source),
+    ),
+  )
+}
+
+///|
+/// Read the original immutable evidence and computed identity while its lookup
+/// is live. No serialization, JSON admission or replacement Source is issued.
+pub fn client_keyed_lookup_observation_originals(
+  value : ClientKeyedLookupObservation,
+) -> (@publication.RunEvidenceValue, @publication.RunEvidenceValue, String)? {
+  if client_keyed_lookup_input_identity(value.lookup) is None {
+    return None
+  }
+  Some((value.input, value.source, value.logical_relation_cid))
+}
+
+///|
+// Reuse the existing Source evidence issuer with exact completed identities.
+// Native completion calls this before holding conversion; the ordinary path
+// keeps its established finished-read/current boundary above.
+fn build_keyed_lookup_source_observation(
+  lookup : ClientKeyedLookupInput,
+  logical_cid : String,
+  schema_cid : String,
+  snapshot : String,
+  authority_scope_cid : String,
+  observed_at : String,
+) -> Result[
+  (@publication.RunEvidenceValue, @publication.RunEvidenceValue),
+  ClientKeyedRequestIssue,
+] {
+  let facts = lookup.left.acquisition.facts
+  guard @planning.keyed_source_evidence_facts(facts) is Some(source) else {
+    return Err(Assembly("source_facts"))
+  }
+  let members = match @planning.keyed_source_evidence_members(facts) {
+    Ok(value) => value
+    Err(_) => return Err(Assembly("source_members"))
+  }
+  if !@environment.connector_source_evidence_supports(members, [
+      @planning.query_evidence_contract_identity(),
+    ]) {
+    return Err(Assembly("source_capability"))
+  }
   let input = match
     seal_client_source_input_logical(
       logical_cid,
@@ -104,32 +167,5 @@ pub fn issue_client_keyed_lookup_observation(
     Ok(value) => value
     Err(_) => return Err(Assembly("source_evidence"))
   }
-  Ok({ lookup, input, source: evidence, logical_relation_cid: logical_cid, })
-}
-
-///|
-pub fn client_keyed_lookup_observation_wires(
-  value : ClientKeyedLookupObservation,
-) -> (String, String)? {
-  if client_keyed_lookup_input_identity(value.lookup) is None {
-    return None
-  }
-  Some(
-    (
-      @publication.run_evidence_value_json(value.input),
-      @publication.run_evidence_value_json(value.source),
-    ),
-  )
-}
-
-///|
-/// Read the original immutable evidence and computed identity while its lookup
-/// is live. No serialization, JSON admission or replacement Source is issued.
-pub fn client_keyed_lookup_observation_originals(
-  value : ClientKeyedLookupObservation,
-) -> (@publication.RunEvidenceValue, @publication.RunEvidenceValue, String)? {
-  if client_keyed_lookup_input_identity(value.lookup) is None {
-    return None
-  }
-  Some((value.input, value.source, value.logical_relation_cid))
+  Ok((input, evidence))
 }

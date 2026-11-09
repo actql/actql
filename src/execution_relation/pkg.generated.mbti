@@ -558,6 +558,8 @@ pub fn completed_relation_export_content_field(CompletedRelationExportReceipt, I
 
 pub fn completed_relation_export_content_reference(CompletedRelationExportReceipt, Int, Int) -> @value_admission.ReferenceValue?
 
+pub fn completed_relation_export_content_reference_cids(CompletedRelationExportReceipt, Int, Int) -> Result[Array[String], CompletedExportIssue]
+
 pub fn completed_relation_export_field_names(CompletedRelationExportReceipt) -> Array[String]
 
 pub fn completed_relation_export_identity(CompletedRelationExportReceipt) -> LogicalRelationIdentity

@@ -204,7 +204,7 @@ const supportedKeywords = new Set([
   'anyOf', 'not', 'if', 'then', 'else',
   'maximum', 'properties', 'required', 'additionalProperties',
   'minProperties', 'maxProperties', 'maxLength', 'propertyNames', 'items',
-  'minItems', 'maxItems', 'uniqueItems', 'prefixItems',
+  'minItems', 'maxItems', 'uniqueItems', 'prefixItems', 'contains',
 ]);
 const annotationKeywords = new Set([
   '$schema', '$id', 'title', 'description', '$comment', 'examples',
@@ -238,6 +238,25 @@ function emitSchema(schema, assumedType) {
     if (!supportedKeywords.has(key)) {
       throw new Error(`Unsupported publication schema keyword: ${key}`);
     }
+  }
+  if (schema.contains !== undefined) {
+    if (!schema.contains || typeof schema.contains !== 'object' ||
+        Array.isArray(schema.contains)) {
+      throw new Error('Unsupported publication contains schema');
+    }
+    const child = schema.contains;
+    const item = emitSchema(child, child.type ??
+      (child.properties !== undefined || child.required !== undefined ? 'object' : undefined));
+    nodes.push(`ContainsRule(${item})`);
+    const contains = nodes.length - 1;
+    const siblings = {...schema};
+    delete siblings.contains;
+    if (Object.keys(siblings).some(key => !annotationKeywords.has(key))) {
+      const sibling = emitSchema(siblings, assumedType);
+      nodes.push(`AllOfRule([${contains}, ${sibling}])`);
+      return nodes.length - 1;
+    }
+    return contains;
   }
   if (schema.maxLength !== undefined || schema.maxProperties !== undefined) {
     const rest = {...schema};
@@ -677,6 +696,15 @@ registerArtifactSchema('lookup_barrier', {
 });
 registerArtifactSchema('native_file_lookup_batch_plan', {
   schema: 'batch_plan', identity: 'self_cid', registry: 'lookup',
+});
+registerArtifactSchema('lookup_accounting', {
+  schema: 'accounting', identity: 'self_cid', registry: 'lookup',
+});
+registerArtifactSchema('acquisition_attempt_receipt', {
+  schema: 'attempt_receipt', identity: 'self_cid', registry: 'lookup',
+});
+registerArtifactSchema('lookup_evidence', {
+  schema: 'lookup_evidence', identity: 'evidence_cid', registry: 'profiles',
 });
 for (const [name, schema] of [
   ['native_file_lookup_request', 'request'],

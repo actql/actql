@@ -3301,6 +3301,19 @@ and Store cleanup remain separate duties. Neither a captured event nor its
 adoption alone constitutes the cumulative accounting/attempt receipt or the
 validated whole lookup Relation required for final lookup evidence.
 
+The completed Native lookup closes its accounting, attempt receipt, validated
+right Relation and LookupEvidence before converting its original reservation
+to a holding and before claiming the Model Read. It consumes the original
+activation/page associations and measured attempt counters, preserves repeated
+left occurrences separately from distinct physical requests, and borrows
+Content identities from the original export inventory without reissuing Refs.
+The right producer is the checked barrier's output contract; its derivation
+retains the original left Relation and barrier. Requested-key completion does
+not upgrade an upstream LIMIT/TopK or unknown candidate extent. UTC observations
+and monotonic elapsed time retain their separate original clocks, including an
+empty request set. These immutable protocol bodies grant no permission and do
+not replace the Native Journal's independent activation/adoption COMMIT duties.
+
 The original shared Model startup retains the exact selected provider and
 component Limits alongside its original row/Scope/capacity seal. A component
 ceiling may exceed a smaller aggregate parent ceiling: it is not an allocation

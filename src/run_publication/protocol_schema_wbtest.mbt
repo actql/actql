@@ -81,6 +81,89 @@ fn protocol_test_accepts(
 }
 
 ///|
+test "Lookup attempt receipt keeps its mandatory accounting lifecycle evidence" {
+  let cid = "sha256:" + "a".repeat(64)
+  let body = fn(lifecycle : String) -> String {
+    "{\"attempts\":[],\"barrier_cid\":\"" +
+    cid +
+    "\",\"batch_plan_cid\":\"" +
+    cid +
+    "\",\"input_relation_artifact_cid\":\"" +
+    cid +
+    "\",\"lifecycle_evidence\":" +
+    lifecycle +
+    ",\"previous_receipt_cid\":null,\"recorded_at\":\"2000-01-01T00:00:00.001Z\",\"request_key_set_cid\":\"" +
+    cid +
+    "\",\"source_request_egress_admission_cid\":null,\"started_at\":\"2000-01-01T00:00:00.000Z\",\"state\":\"succeeded\",\"version\":\"actql-lookup-attempt-receipt/0.1\"}"
+  }
+  assert_true(
+    seal_publication_contract(
+      "acquisition_attempt_receipt",
+      body("[{\"cid\":\"" + cid + "\",\"kind\":\"accounting\"}]"),
+      8192,
+      4096,
+      20,
+    )
+    is Ok(_),
+  )
+  let accounting = "{\"cid\":\"" + cid + "\",\"kind\":\"accounting\"}"
+  let adoption = "{\"cid\":\"" + cid + "\",\"kind\":\"adoption\"}"
+  let second = "{\"cid\":\"sha256:" +
+    "b".repeat(64) +
+    "\",\"kind\":\"accounting\"}"
+  assert_true(
+    seal_publication_contract(
+      "acquisition_attempt_receipt",
+      body("[" + accounting + "," + adoption + "]"),
+      8192,
+      4096,
+      20,
+    )
+    is Ok(_),
+  )
+  for
+    lifecycle in [
+      "[]",
+      "[" + adoption + "]",
+      "[" + adoption + "," + accounting + "]",
+      "[" + accounting + "," + second + "]",
+    ] {
+    assert_true(
+      seal_publication_contract(
+        "acquisition_attempt_receipt",
+        body(lifecycle),
+        8192,
+        4096,
+        20,
+      )
+      is Err(_),
+    )
+  }
+}
+
+///|
+test "protocol contains retains array semantics and one shared work budget" {
+  let nodes = [
+    protocol_string_rule(Some("accounting"), [], 0, 0),
+    ContainsRule(0),
+  ]
+  assert_true(protocol_test_accepts(nodes, 1, "[\"adoption\",\"accounting\"]"))
+  assert_false(protocol_test_accepts(nodes, 1, "[]"))
+  assert_false(protocol_test_accepts(nodes, 1, "[\"adoption\"]"))
+  // Type is a separate sibling keyword, not an implicit contains constraint.
+  assert_true(protocol_test_accepts(nodes, 1, "null"))
+  let value = parse_contract_wire("[\"adoption\",\"accounting\"]", 4096, 64, 8).unwrap()
+  assert_false(
+    validate_protocol_node(value, 1, nodes, {
+      remaining: 2,
+      max_wire_bytes: 4096,
+      max_nodes: 64,
+      max_depth: 8,
+    }),
+  )
+}
+
+///|
 test "protocol array ceilings apply before traversing items" {
   let nodes = [protocol_any_rule(), protocol_array_rule(0, 0, false, 2)]
   assert_true(protocol_test_accepts(nodes, 1, "[]"))

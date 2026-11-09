@@ -12,6 +12,7 @@ priv enum ProtocolSchemaRule {
   NumberRule
   IntegerRule(Int64?, Int64?)
   ArrayRule(Int, Int, Bool, Int)
+  ContainsRule(Int)
   TupleRule(Array[Int])
   ObjectRule(Array[(String, Int)], Array[String], Int, Int, String?, Int)
   OneOfRule(Array[Int])

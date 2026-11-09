@@ -130,6 +130,27 @@ fn common_grant_fields() -> Array[FieldSpec] {
 ///|
 fn contract_spec(name : String) -> ContractSpec? {
   match name {
+    "lookup_accounting" =>
+      Some({
+        name,
+        version: "actql-lookup-accounting-evidence/0.1",
+        identity: "self_cid",
+        fields: [],
+      })
+    "acquisition_attempt_receipt" =>
+      Some({
+        name,
+        version: "actql-lookup-attempt-receipt/0.1",
+        identity: "self_cid",
+        fields: [],
+      })
+    "lookup_evidence" =>
+      Some({
+        name,
+        version: "actql-lookup-evidence/0.1",
+        identity: "evidence_cid",
+        fields: [],
+      })
     "native_file_lookup_request" =>
       Some({
         name,
@@ -1158,6 +1179,17 @@ fn validate_bounded_contract(
         !effect_apply_receipt_consistent(value) {
         return Err(ConditionalField("status"))
       }
+      if spec.name == "acquisition_attempt_receipt" &&
+        !lookup_lifecycle_order_valid(value) {
+        return Err(InvalidField("lifecycle_evidence"))
+      }
+      if spec.name == "lookup_evidence" &&
+        (
+          !lookup_cid_set_order_valid(value, "input_content_ref_cids") ||
+          !lookup_cid_set_order_valid(value, "request_input_data_policy_cids")
+        ) {
+        return Err(InvalidField("lookup_cid_sets"))
+      }
       return Ok(())
     }
     return Err(InvalidField("protocol_schema"))
@@ -1382,6 +1414,7 @@ pub fn admit_publication_contract(
       "acquisition_relation", "acquisition_scope", "request_key_set", "native_file_lookup_batch_plan",
       "native_file_lookup_request", "native_file_lookup_call_slot", "native_file_lookup_activation",
       "native_file_lookup_raw_response", "native_file_lookup_attempt_event", "native_file_lookup_adoption",
+      "lookup_accounting", "acquisition_attempt_receipt", "lookup_evidence",
     ].contains(name) &&
     wire != complete_wire {
     return Err(InvalidWire)

@@ -55,10 +55,14 @@ fn keyed_lookup_body_grow(
 // existing identity path and cannot be upgraded by replaying an equal input.
 fn finish_keyed_lookup_identity_bodies(
   lookup : ClientKeyedLookupInput,
+  native_completion? : (String, Int64, Int, Int, Int)? = None,
 ) -> Result[@execution.SuppliedRelationRead, ClientKeyedRequestIssue] {
   if lookup.identity_receipt is Some(_) {
     if lookup.identity_output is None || lookup.identity_bodies is None {
       return Err(Assembly("incomplete_body_receipt"))
+    }
+    if native_completion is Some(_) && lookup.native_completion is None {
+      return Err(Assembly("late_native_completion_purpose"))
     }
     return finish_client_keyed_lookup_input(lookup)
   }
@@ -71,7 +75,7 @@ fn finish_keyed_lookup_identity_bodies(
     return Err(Assembly("unavailable_body_purpose"))
   }
   lookup.identifying = true
-  let result = build_keyed_lookup_identity_bodies(lookup)
+  let result = build_keyed_lookup_identity_bodies(lookup, native_completion~)
   lookup.identifying = false
   match result {
     Err(issue) => {
@@ -85,6 +89,7 @@ fn finish_keyed_lookup_identity_bodies(
 ///|
 fn build_keyed_lookup_identity_bodies(
   lookup : ClientKeyedLookupInput,
+  native_completion? : (String, Int64, Int, Int, Int)? = None,
 ) -> Result[Unit, ClientKeyedRequestIssue] {
   guard lookup.completed is Some(rows) && lookup.left.composed is Some(original) else {
     return Err(Assembly("body_original_sequence"))
@@ -247,6 +252,15 @@ fn build_keyed_lookup_identity_bodies(
   lookup.identity_bodies = Some((body, @execution.relation_schema_wire(schema)))
   @execution.cancel_completed_relation_identity_scan(scan) |> ignore
   lookup.identity_scan = None
+  if native_completion is Some((at, now_ms, max_bytes, max_nodes, max_depth)) {
+    match
+      prepare_native_keyed_lookup_completion(
+        lookup, at, now_ms, max_bytes, max_nodes, max_depth,
+      ) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+  }
   if lookup.closed || lookup.left.lookup_issue is Some(_) {
     return Err(Assembly("retired_publication_input"))
   }
@@ -310,6 +324,9 @@ fn clear_keyed_lookup_identity_bodies(lookup : ClientKeyedLookupInput) -> Unit {
     state.request = None
   }
   lookup.native_sources = None
+  lookup.native_started_at = None
+  lookup.native_issuer = None
+  lookup.native_completion = None
   lookup.native_left_identity = None
   if lookup.native_left_receipt is Some(receipt) {
     @execution.cancel_completed_relation_export_receipt(receipt)

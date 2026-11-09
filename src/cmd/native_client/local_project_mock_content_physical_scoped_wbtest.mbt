@@ -167,6 +167,20 @@ test "Native README binds each actual captured page to its original activation b
 }
 
 ///|
+// Actual original Source/Store attempts and protocol closure. Journal COMMIT,
+// Model execution, Preview and ordinary CLI acceptance are separate scopes.
+test "Native README lookup receipt retains every original attempt and measured usage" {
+  assert_eq(@env.get_env_var("ACTQL_TEST_NATIVE_LOOKUP_COMPLETION"), Some("1"))
+  native_project_mock_model_backed_read(
+    false,
+    readme_request=true,
+    effect_compilation=true,
+    effect_source_inputs=true,
+    content_join=true,
+  )
+}
+
+///|
 // Actual same Store/SQLite/Root/Writer/Reader, with authored raw metadata DATA.
 // No Source authority, Journal activation, Model send or normal funding proof.
 test "Native lookup raw Store preserves exact bytes and original purpose through reopen" {
@@ -1101,6 +1115,18 @@ fn native_mock_readme_content_join_adopt(
       native_read_profile=@run_host.client_infer_plan_native_keyed_read_profile(
         graph,
       ),
+      native_start=if @env.get_env_var("ACTQL_TEST_NATIVE_LOOKUP_COMPLETION") ==
+        Some("1") {
+        Some(
+          (
+            "2026-10-26T00:00:00.000Z",
+            local_status_watch_now_ffi(),
+            "explicit-native-component-issuer",
+          ),
+        )
+      } else {
+        None
+      },
     ).native_content_join_stage("same original Native request plan")
     for row in 0..<requests {
       let preparation = @run_host.start_client_keyed_lookup_request(lookup, row).unwrap()
@@ -1729,11 +1755,154 @@ fn native_mock_readme_content_join_adopt(
         1024,
         20,
         retain_body=true,
+        native_completion=if @env.get_env_var(
+            "ACTQL_TEST_NATIVE_LOOKUP_COMPLETION",
+          ) ==
+          Some("1") {
+          Some(("2026-10-26T00:00:00.002Z", local_status_watch_now_ffi()))
+        } else {
+          None
+        },
       )
     } else {
       @run_host.finish_client_keyed_lookup_input(lookup)
     }).native_content_join_stage("both original keyed responses")
     assert_eq(@execution.supplied_relation_read_row_count(complete), 2)
+    if @env.get_env_var("ACTQL_TEST_NATIVE_LOOKUP_COMPLETION") == Some("1") {
+      let completed = @run_host.client_keyed_lookup_native_completion(lookup).unwrap()
+      guard @json.parse(
+          @publication.publication_contract_json(completed.accounting),
+        )
+        is Object(accounting) &&
+        accounting.get("totals") is Some(Object(totals)) &&
+        accounting.get("attempts") is Some(Array(accounted)) &&
+        @json.parse(@publication.publication_contract_json(completed.receipt))
+        is Object(receipt) &&
+        receipt.get("attempts") is Some(Array(attempts)) &&
+        receipt.get("lifecycle_evidence") is Some(Array(lifecycle)) else {
+        fail("completed original Lookup protocol")
+      }
+      let usage = @run_host.client_keyed_lookup_usage(left)
+      assert_eq(
+        totals.get("network_attempts"),
+        Some(Json::number(usage.1.to_double())),
+      )
+      assert_eq(
+        totals.get("request_bytes"),
+        Some(Json::number(usage.2.to_double())),
+      )
+      assert_eq(
+        totals.get("response_wire_bytes"),
+        Some(Json::number(usage.3.to_double())),
+      )
+      assert_eq(
+        totals.get("response_decoded_bytes"),
+        Some(Json::number(usage.4.to_double())),
+      )
+      assert_eq(
+        accounting.get("elapsed_ms"),
+        Some(Json::number(usage.5.to_double())),
+      )
+      assert_eq(
+        (accounted.length(), attempts.length(), lifecycle.length()),
+        (2, 2, 7),
+      )
+      assert_eq(receipt.get("state"), Some(Json::string("succeeded")))
+      assert_eq(
+        receipt.get("started_at"),
+        Some(Json::string("2026-10-26T00:00:00.000Z")),
+      )
+      guard @json.parse(
+          @publication.publication_contract_json(completed.relation),
+        )
+        is Object(relation) &&
+        @json.parse(@publication.publication_contract_json(completed.evidence))
+        is Object(evidence) &&
+        @json.parse(
+          @publication.publication_contract_json(
+            @publication.result_ordering_derivation_contract(completed.ordering),
+          ),
+        )
+        is Object(derivation) else {
+        fail("original right Relation and LookupEvidence")
+      }
+      assert_eq(relation.get("actual_row_count"), Some(Json::number(2)))
+      assert_eq(
+        relation.get("actual_completeness"),
+        Some(Json::string("complete")),
+      )
+      assert_eq(
+        relation.get("provenance_evidence"),
+        Some(
+          @json.parse(
+            "[{\"cid\":\"" +
+            @publication.publication_contract_identity(completed.receipt) +
+            "\",\"kind\":\"attempt_receipt\"},{\"cid\":\"" +
+            @publication.run_evidence_value_identity(completed.source) +
+            "\",\"kind\":\"source\"}]",
+          ),
+        ),
+      )
+      assert_eq(
+        relation.get("producer_contract_cid"),
+        derivation.get("producer_contract_cid"),
+      )
+      assert_eq(
+        derivation.get("computation_contract_cid"),
+        evidence.get("barrier_cid"),
+      )
+      assert_eq(
+        evidence.get("validated_lookup_relation_cid"),
+        Some(
+          Json::string(
+            @publication.publication_contract_identity(completed.relation),
+          ),
+        ),
+      )
+      assert_eq(
+        evidence.get("attempt_receipt_cid"),
+        Some(
+          Json::string(
+            @publication.publication_contract_identity(completed.receipt),
+          ),
+        ),
+      )
+      assert_eq(evidence.get("attempts"), receipt.get("attempts"))
+      assert_eq(evidence.get("input_content_ref_cids"), Some(Json::array([])))
+      assert_eq(
+        evidence.get("excluded_null_key_row_count"),
+        Some(Json::number(0)),
+      )
+      assert_eq(
+        evidence.get("upstream_candidate_extent"),
+        Some(Json::string("complete")),
+      )
+      assert_eq(
+        evidence.get("lookup_for_requested_keys"),
+        Some(Json::string("complete")),
+      )
+      for index, attempt in attempts {
+        guard attempt is Object(fields) else { fail("original attempt") }
+        assert_eq(
+          fields.get("batch_index"),
+          Some(Json::number(index.to_double())),
+        )
+        assert_eq(
+          fields.get("raw_response_artifact_cid"),
+          Some(
+            Json::string(
+              @publication.publication_contract_identity(
+                captured_pages[index].raw,
+              ),
+            ),
+          ),
+        )
+        assert_eq(
+          fields.get("call_slot_cid"),
+          Some(Json::string(captured_pages[index].call_slot_cid)),
+        )
+      }
+    }
     let mut content_values = 0
     for row in 0..<2 {
       for column in 0..<3 {
@@ -1770,6 +1939,13 @@ fn native_mock_readme_content_join_adopt(
       let keyed_observation = @run_host.issue_client_keyed_lookup_observation(
         lookup, source_authority, source_completed,
       ).native_content_join_stage("actual keyed Source observation")
+      if @env.get_env_var("ACTQL_TEST_NATIVE_LOOKUP_COMPLETION") == Some("1") {
+        let completed = @run_host.client_keyed_lookup_native_completion(lookup).unwrap()
+        assert_eq(
+          @run_host.client_keyed_lookup_observation_wires(keyed_observation).unwrap().1,
+          @publication.run_evidence_value_json(completed.source),
+        )
+      }
       let admit = (
         selected,
         originals : Array[NativeMockSourceEvidenceOriginal],

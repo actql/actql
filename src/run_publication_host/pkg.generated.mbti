@@ -833,6 +833,8 @@ pub fn client_keyed_lookup_input_identity(ClientKeyedLookupInput) -> String?
 
 pub fn client_keyed_lookup_input_work(ClientKeyedLookupInput) -> Int64
 
+pub fn client_keyed_lookup_native_completion(ClientKeyedLookupInput) -> ClientKeyedNativeCompletion?
+
 pub fn client_keyed_lookup_native_transport(ClientKeyedLookupInput) -> @run_publication.PublicationContract?
 
 pub fn client_keyed_lookup_next_planned_row(ClientKeyedLookupInput) -> Int?
@@ -1567,7 +1569,7 @@ pub fn find_client_keyed_lookup_response(ClientKeyedLookupInput, ClientKeyedRequ
 
 pub fn finish_client_keyed_lookup_input(ClientKeyedLookupInput) -> Result[@execution_relation.SuppliedRelationRead, ClientKeyedRequestIssue]
 
-pub fn finish_client_keyed_lookup_publication_input(ClientKeyedLookupInput, Int, Int, Int, retain_body? : Bool) -> Result[@execution_relation.SuppliedRelationRead, ClientKeyedRequestIssue]
+pub fn finish_client_keyed_lookup_publication_input(ClientKeyedLookupInput, Int, Int, Int, retain_body? : Bool, native_completion? : (String, Int64)?) -> Result[@execution_relation.SuppliedRelationRead, ClientKeyedRequestIssue]
 
 pub fn finish_client_keyed_lookup_request_plan(ClientKeyedLookupInput, Int, Int, Int) -> Result[ClientKeyedLookupRequestIdentity, ClientKeyedRequestIssue]
 
@@ -2431,7 +2433,7 @@ pub fn start_client_keyed_lookup_input(ClientKeyedLeftRead, @physical_resources.
 
 pub fn start_client_keyed_lookup_request(ClientKeyedLookupInput, Int) -> Result[ClientKeyedRequestPreparation, ClientKeyedRequestIssue]
 
-pub fn start_client_keyed_lookup_request_plan(ClientKeyedLookupInput, native_read_profile? : @run_publication.PublicationContract?) -> Result[Unit, ClientKeyedRequestIssue]
+pub fn start_client_keyed_lookup_request_plan(ClientKeyedLookupInput, native_read_profile? : @run_publication.PublicationContract?, native_start? : (String, Int64, String)?) -> Result[Unit, ClientKeyedRequestIssue]
 
 pub fn start_client_keyed_row_request(ClientKeyedLeftRead, Int, @sourceview_resolution.RequestLimits) -> Result[ClientKeyedRequestPreparation, ClientKeyedRequestIssue]
 
@@ -3417,6 +3419,18 @@ pub struct ClientKeyedNativeCapturedPage {
   logical_value_cid : String
   body : String
   schema_wire : String
+}
+
+pub struct ClientKeyedNativeCompletion {
+  accounting : @run_publication.PublicationContract
+  receipt : @run_publication.PublicationContract
+  relation : @run_publication.PublicationContract
+  ordering : @run_publication.ResultOrderingEvidence
+  retention : @run_publication.PublicationContract
+  evidence : @run_publication.PublicationContract
+  input : @run_publication.RunEvidenceValue
+  source : @run_publication.RunEvidenceValue
+  authority_scope_cid : String
 }
 
 pub struct ClientKeyedNativeLeftIdentity {

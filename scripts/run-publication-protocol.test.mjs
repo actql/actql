@@ -57,6 +57,16 @@ test('generator preserves operation-specific array ceilings', () => {
   }));
 });
 
+test('generator retains the existing Lookup receipt contains obligations', () => {
+  const lookup = JSON.parse(readFileSync(new URL('../spec/contracts/actql-lookup-identities.json', import.meta.url), 'utf8'));
+  assert.doesNotThrow(() => emitSchema(lookup.schemas.attempt_receipt));
+  assert.doesNotThrow(() => emitSchema({contains: {const: 'accounting'}}));
+  for (const schema of [
+    {contains: false}, {contains: []},
+    {contains: {}, minContains: 2}, {contains: {}, maxContains: 1},
+  ]) assert.throws(() => emitSchema(schema), /Unsupported/);
+});
+
 test('generator admits the existing lookup UTC-millisecond spelling without a permissive pattern fallback', () => {
   assert.doesNotThrow(() => emitSchema({type: 'string',
     pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$'}));

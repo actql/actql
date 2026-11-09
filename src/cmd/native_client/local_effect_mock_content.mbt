@@ -344,6 +344,13 @@ fn LocalCommandBusinessPreparation::capture_mock_effect_content(
     @run_host.start_client_keyed_lookup_request_plan(
       lookup,
       native_read_profile=Some(profile),
+      native_start=Some(
+        (
+          local_utc_now(),
+          local_status_watch_now_ffi(),
+          self.host.adoption_cid(),
+        ),
+      ),
     ).unwrap_or_else(() => stop("LocalOriginalModelKeyedPlanUnavailable"))
   })
   for row in 0..<rows {
@@ -628,6 +635,7 @@ fn LocalCommandBusinessPreparation::capture_mock_effect_content(
       1024,
       20,
       retain_body=true,
+      native_completion=Some((local_utc_now(), local_status_watch_now_ffi())),
     ).unwrap_or_else(() => stop("LocalOriginalContentAssemblyUnavailable"))
     |> ignore
   })

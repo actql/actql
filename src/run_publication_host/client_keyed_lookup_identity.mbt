@@ -198,7 +198,11 @@ pub fn finish_client_keyed_lookup_publication_input(
   max_nodes : Int,
   max_depth : Int,
   retain_body? : Bool = false,
+  native_completion? : (String, Int64)? = None,
 ) -> Result[@execution.SuppliedRelationRead, ClientKeyedRequestIssue] {
+  if native_completion is Some(_) && !retain_body {
+    return Err(Assembly("native_completion_requires_original_body"))
+  }
   if lookup.publication_identity is Some(_) {
     if lookup.planned_requests is Some(_) && lookup.completed is None {
       guard !lookup.closed &&
@@ -232,7 +236,12 @@ pub fn finish_client_keyed_lookup_publication_input(
       lookup.completed = Some(rows)
     }
     return if retain_body {
-      finish_keyed_lookup_identity_bodies(lookup)
+      finish_keyed_lookup_identity_bodies(
+        lookup,
+        native_completion=native_completion.map(value => {
+          (value.0, value.1, max_bytes, max_nodes, max_depth)
+        }),
+      )
     } else {
       finish_client_keyed_lookup_input(lookup)
     }
@@ -272,7 +281,12 @@ pub fn finish_client_keyed_lookup_publication_input(
   lookup.completed = Some(rows)
   lookup.publication_identity = Some(identity)
   if retain_body {
-    finish_keyed_lookup_identity_bodies(lookup)
+    finish_keyed_lookup_identity_bodies(
+      lookup,
+      native_completion=native_completion.map(value => {
+        (value.0, value.1, max_bytes, max_nodes, max_depth)
+      }),
+    )
   } else {
     finish_client_keyed_lookup_input(lookup)
   }

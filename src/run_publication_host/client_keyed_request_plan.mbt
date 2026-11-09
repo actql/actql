@@ -63,6 +63,7 @@ fn keyed_lookup_plan_grow(
 pub fn start_client_keyed_lookup_request_plan(
   state : ClientKeyedLookupInput,
   native_read_profile? : @publication.PublicationContract? = None,
+  native_start? : (String, Int64, String)? = None,
 ) -> Result[Unit, ClientKeyedRequestIssue] {
   guard !state.closed &&
     !state.growing &&
@@ -83,14 +84,33 @@ pub fn start_client_keyed_lookup_request_plan(
       Ok(_) => ()
     }
   }
+  if native_start is Some((at, now_ms, issuer)) &&
+    (
+      native_read_profile is None ||
+      at.length() != 24 ||
+      @values.timestamp_epoch_milliseconds(at) is None ||
+      now_ms < 0L ||
+      issuer.is_empty() ||
+      state.left.started_ms is Some(_) ||
+      state.left.observed_ms > now_ms
+    ) {
+    return Err(InvalidObservation)
+  }
   // One additional empty grow-only reference Array (3H13R2W) and its
   // original Some (1H1R1W). The existing known array is already backed.
   let initial = @execution.preparation_representation_cost({
-    record_headers: 4L + (if native_read_profile is Some(_) { 1L } else { 0L }),
+    record_headers: 4L +
+    (if native_read_profile is Some(_) { 1L } else { 0L }) +
+    (if native_start is Some(_) { 5L } else { 0L }),
     reference_slots: 14L +
-    (if native_read_profile is Some(_) { 1L } else { 0L }),
-    scalar_words: 3L + (if native_read_profile is Some(_) { 1L } else { 0L }),
-    owned_utf16_units: 0L,
+    (if native_read_profile is Some(_) { 1L } else { 0L }) +
+    (if native_start is Some(_) { 2L } else { 0L }),
+    scalar_words: 3L +
+    (if native_read_profile is Some(_) { 1L } else { 0L }) +
+    (if native_start is Some(_) { 3L } else { 0L }),
+    owned_utf16_units: native_start
+    .map(value => value.0.length().to_int64() + value.2.length().to_int64())
+    .unwrap_or(0L),
     owned_wire_bytes: 0L,
   }).unwrap()
   match keyed_lookup_plan_grow(state, initial) {
@@ -98,6 +118,14 @@ pub fn start_client_keyed_lookup_request_plan(
     Ok(_) => ()
   }
   state.native_read_profile = native_read_profile
+  if native_start is Some((at, now_ms, issuer)) {
+    // Observe the actual interval even when there are no request keys. The
+    // monotonic clock is never converted into a fabricated UTC timestamp.
+    state.native_started_at = Some(at)
+    state.native_issuer = Some(issuer)
+    state.left.started_ms = Some(now_ms)
+    state.left.observed_ms = now_ms
+  }
   state.planned_requests = Some([])
   Ok(())
 }
