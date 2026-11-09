@@ -113,3 +113,29 @@ This implementation boundary does not restrict the public Host contract or
 make a successful configuration capture an approval/resume proof. The npm
 initializer forwards an explicit Host selector unchanged to that same Native
 entrance and never reads or creates the authority file itself.
+
+## Continuation after the answer
+
+An acknowledged Approved Resolution advances the Journal revision. The
+pre-answer signing scope remains bound to its original revision; continuation
+must not overwrite that scope, re-sign or issue another Run to make it current.
+The actual signing wrapper may retain a continuation view only from its own
+successful Resolution commit. That view keeps the original subject, Client
+reference, Reviewer registration, independent Host public-key original and
+admitted authentication. It contains no new signing grant or physical ACK.
+
+Before claiming, the existing Host rechecks current Client RunRead, Reviewer
+resolve authority, adopted Host/key custody and the same subject lifetime.
+The existing Journal readmits the stored Resolution and alone claims/fences
+its original intent and generation. This uses the current continuation clock;
+the historical verification instant cannot extend approval expiry. Claim entry
+is once-only, including failure or Unknown. A returned settlement-only fence
+cannot authorize another send.
+
+The saved command backs the view/callback/claim frame in its same original
+Read, retains the view before fallible signer close, and returns it only after
+that original close acknowledges. Signer retirement does not invalidate the
+already admitted answer or grant a mutation. Alias retirement invalidates the
+view without changing durable intent, consumed work or physical cleanup duties.
+Provider dispatch, response/outcome receipts and final publication remain
+separate operations under the same original Journal/Store owners.

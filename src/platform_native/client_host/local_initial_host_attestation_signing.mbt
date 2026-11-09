@@ -8,6 +8,9 @@ struct NativeLocalInitialHostAttestationSigning {
   mut closed : Bool
   mut original_use : @credential.LocalSigningCredentialUse?
   mut signature : String?
+  mut admitted_record : NativeClientRunRecord?
+  mut resume_original : NativeLocalEffectResumeOriginal?
+  mut resume_entered : Bool
 }
 
 ///|
@@ -129,6 +132,9 @@ pub fn NativeLocalInitialHostAttestationPreparation::prepare_signing(
     closed: false,
     original_use: None,
     signature: None,
+    admitted_record: None,
+    resume_original: None,
+    resume_entered: false,
   }
   host.host_attestation_signing_attempt = Some(signing)
   self.require_current().map(_ => signing)
@@ -475,5 +481,11 @@ pub fn NativeLocalInitialHostAttestationSigning::admit_original_resolution(
     current,
     now,
   )
+  .map(record => {
+    // Retain the actual acknowledged commit before another callback or the
+    // caller's physical signer close. No incoming record can issue this view.
+    self.admitted_record = Some(record)
+    record
+  })
   .map_err(issue => HostAttestationJournal(issue))
 }

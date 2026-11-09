@@ -9,7 +9,8 @@ fn[T, E] paired_approval_require(value : Result[T, E], step~ : Int) -> T raise {
 ///|
 // Actual existing adopted Host/key + paired original Source/Preview scope.
 // This verifies the original Approved Resolution and physical retention cleanup.
-// Its Run remains Resuming: no resume claim, business update or Result is tested.
+// The default probe leaves its Run Resuming. The optional continuation probe
+// claims its original lease; neither branch performs business update or Result.
 fn paired_initial_approved_proof_probe(
   fixture : PairedInitialReviewerFixture,
   binding : @client.NativeLocalEffectReviewerBinding,
@@ -189,6 +190,7 @@ fn paired_initial_approved_proof_probe(
   assert_true(verified.contains("\"approval_evidence\":"))
   assert_true(verified.contains("\"decision\":\"approved\""))
   assert_true(host_signing.sign_once() is Err(_))
+  assert_true(host_signing.prepare_effect_resume_original() is Err(_))
   let applied = host_signing.admit_original_resolution()
     |> paired_approval_require(step=21)
   assert_eq(
@@ -196,8 +198,30 @@ fn paired_initial_approved_proof_probe(
     @publication.Resuming,
   )
   fixture.host_applied = true
+  let continuation = if fixture.probe_resume {
+    Some(
+      host_signing.prepare_effect_resume_original()
+      |> paired_approval_require(step=28),
+    )
+  } else {
+    None
+  }
   host_signing.close_checked() |> paired_approval_require(step=19)
   signing.close_checked() |> paired_approval_require(step=20)
+  if continuation is Some(original) {
+    let action = original.claim(10000L) |> paired_approval_require(step=29)
+    assert_true(action is @client.Claimed(_))
+    assert_eq(
+      original.fence() |> paired_approval_require(step=30),
+      @client.Current,
+    )
+    // A repeated entry cannot replace the original generation or refund work.
+    assert_true(original.claim(10000L) is Err(_))
+    original.retire_read_aliases()
+    assert_true(original.fence() is Err(_))
+    assert_true(original.claim(10000L) is Err(_))
+    fixture.resume_claimed = true
+  }
 }
 
 ///|
@@ -208,4 +232,17 @@ test "initial original Approval Resolution and independent Host signatures prese
   )
   native_local_effect_capture_acceptance(true, initial_reviewer=Some(fixture))
   assert_true(fixture.restored && fixture.host_applied)
+}
+
+///|
+test "original approved Host answer claims the same Run after signer close without reopening its signing scope" {
+  let fixture = paired_initial_reviewer_fixture(
+    attest_host=true,
+    probe_approval=true,
+    probe_resume=true,
+  )
+  native_local_effect_capture_acceptance(true, initial_reviewer=Some(fixture))
+  assert_true(
+    fixture.restored && fixture.host_applied && fixture.resume_claimed,
+  )
 }

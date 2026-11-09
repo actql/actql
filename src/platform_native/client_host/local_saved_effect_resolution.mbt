@@ -83,11 +83,18 @@ fn emit_saved_effect_approval(
 /// same original Journal Read. Every physical attempt is retained by that Host
 /// before fallible current/claim work. Failure leaves those original duties;
 /// successful Resolution admission alone never claims an Effect was applied.
-pub fn NativeLocalSavedEffectReview::resolve_initial_in_original_read(
+fn NativeLocalSavedEffectReview::resolve_initial_original(
   self : NativeLocalSavedEffectReview,
   action : String,
   host_configuration_file : String,
-) -> Result[NativeClientRunRecord, NativeLocalSavedEffectResolutionIssue] {
+  retain_resume : Bool,
+) -> Result[
+  (NativeClientRunRecord, NativeLocalEffectResumeOriginal?),
+  NativeLocalSavedEffectResolutionIssue,
+] {
+  if retain_resume && action != "approve" {
+    return Err(SavedResolutionUnavailable)
+  }
   let decision = match action {
     "approve" => "approved"
     "reject" => "rejected"
@@ -110,9 +117,10 @@ pub fn NativeLocalSavedEffectReview::resolve_initial_in_original_read(
         // Reuse the existing Native review emitter's larger fixed frame:
         // twelve borrowed field tuples, Writer controls and two digest slots.
         // This emitter has eleven pairs and two shorter original operation IDs.
-        record_headers: 40L,
-        reference_slots: 64L,
-        scalar_words: 400L,
+        // Two retained slots plus the acknowledged record option/map frame.
+        record_headers: 42L,
+        reference_slots: 68L,
+        scalar_words: 401L,
         owned_utf16_units: 256L,
         owned_wire_bytes: 192L,
       }),
@@ -252,8 +260,48 @@ pub fn NativeLocalSavedEffectReview::resolve_initial_in_original_read(
     Ok(value) => value
     Err(issue) => return Err(SavedResolutionHost(issue))
   }
+  let continuation = if retain_resume {
+    match signing.prepare_effect_resume_original() {
+      Ok(value) => Some(value)
+      Err(issue) => return Err(SavedResolutionHost(issue))
+    }
+  } else {
+    None
+  }
+  // The actual wrapper retains the view before this fallible physical close.
+  // A failed close exposes no fresh continuation and retains original custody.
   match host.close_original_signing_attempts() {
-    Ok(_) => Ok(record)
+    Ok(_) => Ok((record, continuation))
     Err(issue) => Err(SavedResolutionOriginal(issue))
+  }
+}
+
+///|
+pub fn NativeLocalSavedEffectReview::resolve_initial_in_original_read(
+  self : NativeLocalSavedEffectReview,
+  action : String,
+  host_configuration_file : String,
+) -> Result[NativeClientRunRecord, NativeLocalSavedEffectResolutionIssue] {
+  self
+  .resolve_initial_original(action, host_configuration_file, false)
+  .map(value => value.0)
+}
+
+///|
+/// The same acknowledged Approved answer and original lease supplier. It does
+/// not start a second Run or execute a mutation. The caller retains the returned
+/// view before claim/constructor callbacks and retires it with that same Read.
+pub fn NativeLocalSavedEffectReview::resolve_initial_resume_in_original_read(
+  self : NativeLocalSavedEffectReview,
+  host_configuration_file : String,
+) -> Result[
+  (NativeClientRunRecord, NativeLocalEffectResumeOriginal),
+  NativeLocalSavedEffectResolutionIssue,
+] {
+  match
+    self.resolve_initial_original("approve", host_configuration_file, true) {
+    Ok((record, Some(original))) => Ok((record, original))
+    Ok(_) => Err(SavedResolutionUnavailable)
+    Err(issue) => Err(issue)
   }
 }

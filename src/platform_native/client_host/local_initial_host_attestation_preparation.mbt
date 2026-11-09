@@ -1,6 +1,7 @@
 ///|
 pub(all) enum NativeLocalInitialHostAttestationIssue {
   HostAttestationUnavailable
+  HostAttestationOriginal(NativeLocalAdoptionIssue)
   HostAttestationAccount(NativeLocalSigningAccountIssue)
   HostAttestationReviewer(NativeLocalEffectReviewerBindingIssue)
   HostAttestationProof(NativeLocalInitialResolutionSigningIssue)

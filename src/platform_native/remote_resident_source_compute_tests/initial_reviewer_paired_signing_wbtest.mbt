@@ -11,6 +11,8 @@ priv struct PairedInitialReviewerFixture {
   mut restored : Bool
   attest_host : Bool
   probe_approval : Bool
+  probe_resume : Bool
+  mut resume_claimed : Bool
   mut host_applied : Bool
 }
 
@@ -18,6 +20,7 @@ priv struct PairedInitialReviewerFixture {
 fn paired_initial_reviewer_fixture(
   attest_host? : Bool = false,
   probe_approval? : Bool = false,
+  probe_resume? : Bool = false,
 ) -> PairedInitialReviewerFixture raise {
   let top = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
   let name = "paired-initial-reviewer-" + @env.now().to_string()
@@ -111,6 +114,8 @@ fn paired_initial_reviewer_fixture(
     restored: false,
     attest_host,
     probe_approval,
+    probe_resume,
+    resume_claimed: false,
     host_applied: false,
   }
 }
@@ -285,6 +290,8 @@ fn paired_initial_reviewer_signing(
         fail("initial Host wrapper body: " + @debug.to_string(issue))
       Err(@client.HostAttestationUnavailable) =>
         fail("initial Host original signature/current unavailable")
+      Err(@client.HostAttestationOriginal(_)) =>
+        fail("initial Host original Read construction unavailable")
       Err(@client.HostAttestationAccount(_)) =>
         fail("initial Host explicit Account Sign unavailable")
       Err(@client.HostAttestationProof(_)) =>
