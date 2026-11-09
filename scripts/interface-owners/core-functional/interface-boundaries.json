@@ -40626,7 +40626,7 @@
     },
     {
       "module": "src/client_local_host/preparation_program_compile.mbt",
-      "sha256": "ec7e7599be8b8126984a154fed24a71d43541ad2aaf560d59b529d2e59233fa5",
+      "sha256": "9cbdeaa1bebf0645791ee9bd408797de0d95d71623f66f0ccd9ed71525801798",
       "exports": [],
       "operations": [
         {
@@ -40656,6 +40656,10 @@
         {
           "name": "[T]same_effect_publication",
           "declaration": "[ T ] same_effect_publication ( left : T ? , right : T ? ) - > Bool"
+        },
+        {
+          "name": "program_effect_selection_extent_cost",
+          "declaration": "program_effect_selection_extent_cost ( occurrences : Int ) - > Int64 ?"
         }
       ],
       "responsibilityFacet": "primary",
@@ -40672,7 +40676,8 @@
             "[I,P]compile_program_check_preparation",
             "[I,P]compile_program_check_preparation_owned",
             "[I,P]take_program_compilation_preparation",
-            "[T]same_effect_publication"
+            "[T]same_effect_publication",
+            "program_effect_selection_extent_cost"
           ],
           "exports": [],
           "attributes": {

@@ -77921,7 +77921,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "db576b698fcb9b2fe39fa62ea0ee06262321368fd5411ebfa7d03b66359c48a5",
+      "sha256": "ac107c0e0e9b38334858a2b6f00ad6c81ae0f9a437f7d3288b73c34519ed3b1f",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -77931,6 +77931,7 @@
         "installedRowEffectDescriptors",
         "installedRowEffectOwnerBinding",
         "installedRowEffectUnit",
+        "installedRowEffectUpdateObservation",
         "installedRowEffectUpdateObservations",
         "resolveInstalledRowEffectConstruction",
         "retainInstalledRowEffectAdapter",
@@ -80606,6 +80607,14 @@
           "async": false
         },
         {
+          "name": "installedRowEffectUpdateObservation",
+          "parameters": [
+            "adapters",
+            "ownerCid"
+          ],
+          "async": false
+        },
+        {
           "name": "installedRowEffectUpdateObservations",
           "parameters": [
             "adapter"
@@ -80744,6 +80753,35 @@
           "async": false
         },
         {
+          "name": "updateObservation/updateObservation",
+          "parameters": [
+            "owner",
+            "installation"
+          ],
+          "async": false
+        },
+        {
+          "name": "updateObservation/updateObservation/updateObservation",
+          "parameters": [
+            "mapping"
+          ],
+          "async": false
+        },
+        {
+          "name": "updateObservation/updateObservation/updateObservation/updateObservation",
+          "parameters": [
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "updateObservation/updateObservation/updateObservation/updateObservation#2",
+          "parameters": [
+            "rule"
+          ],
+          "async": false
+        },
+        {
           "name": "updateObservations/updateObservations",
           "parameters": [
             "owners"
@@ -80754,27 +80792,6 @@
           "name": "updateObservations/updateObservations/updateObservations",
           "parameters": [
             "owner"
-          ],
-          "async": false
-        },
-        {
-          "name": "updateObservations/updateObservations/updateObservations/updateObservations",
-          "parameters": [
-            "mapping"
-          ],
-          "async": false
-        },
-        {
-          "name": "updateObservations/updateObservations/updateObservations/updateObservations/updateObservations",
-          "parameters": [
-            "rule"
-          ],
-          "async": false
-        },
-        {
-          "name": "updateObservations/updateObservations/updateObservations/updateObservations/updateObservations#2",
-          "parameters": [
-            "rule"
           ],
           "async": false
         },
@@ -83867,19 +83884,22 @@
             "createRowEffectStage/selectionFence/selectionFence/selectedMembers/selectedMembers/selected/selected",
             "installationFacts/installationFacts",
             "installedRowEffectOwnerBinding",
+            "installedRowEffectUpdateObservation",
             "installedRowEffectUpdateObservations",
             "ownerBinding/ownerBinding",
             "selectionChanged/selectionChanged",
+            "updateObservation/updateObservation",
+            "updateObservation/updateObservation/updateObservation",
+            "updateObservation/updateObservation/updateObservation/updateObservation",
+            "updateObservation/updateObservation/updateObservation/updateObservation#2",
             "updateObservations/updateObservations",
             "updateObservations/updateObservations/updateObservations",
-            "updateObservations/updateObservations/updateObservations/updateObservations",
-            "updateObservations/updateObservations/updateObservations/updateObservations/updateObservations",
-            "updateObservations/updateObservations/updateObservations/updateObservations/updateObservations#2",
             "validateInstalledUpdateOwnerSelections",
             "validateOwnerSelections/validateOwnerSelections"
           ],
           "exports": [
             "installedRowEffectOwnerBinding",
+            "installedRowEffectUpdateObservation",
             "installedRowEffectUpdateObservations",
             "validateInstalledUpdateOwnerSelections"
           ],
