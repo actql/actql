@@ -84,13 +84,14 @@ const foreignLibraryConfigurations = Object.freeze({
 // docs/reviews/2026-11-08-session-whole-input-text-target-review.md and
 // docs/reviews/2026-11-08-session-original-effect-selector-review.md and
 // docs/reviews/2026-11-09-session-native-keyed-plan-selector-review.md and
-// docs/reviews/2026-11-09-session-native-delivery-chunk-selector-review.md.
+// docs/reviews/2026-11-09-session-native-delivery-chunk-selector-review.md and
+// docs/reviews/2026-11-09-session-managed-import-reentry-selector-review.md.
 // Constants below are reviewed bytes, never hashes computed from current files.
 // A per-entry revision records only that exact reviewed input; the default
 // revision still applies to every unchanged entry.
 export const currentConfigurationReviewRevision = '38e95bfac2907700456de6c53ed0cad3620bb72d';
 export const currentPackageConfigurations = Object.freeze({
-  'src/client_local_host/moon.pkg': Object.freeze({digest: '1ce3256e4f3b1dc32ee5136fcbbe5076fd996ad0a05c901a5cd175a3b16af326', rule: 'literal-target-selectors-with-bound-source-membership', revision: 'db039dc07a845fc420be9f95b750fe5208183735'}),
+  'src/client_local_host/moon.pkg': Object.freeze({digest: 'e48db6b1683f6b841e56439452a65388f5298549e6c8b740e117a40359d8c8b5', rule: 'literal-target-selectors-with-bound-source-membership', revision: '1d65ca8b449c6a6edae8ba0b5a0b0bfbed05a243'}),
   'src/connectors_builtin_node/moon.pkg': Object.freeze({digest: 'd515c9868140c30ef68b5778b71863813cad0d53cc7300e4ba8fcc3e00405d9d', rule: 'literal-js-foreign-library-with-bound-source-membership', revision: '6f27dfdf10aa232977277ec8580557463e44e81f'}),
   'src/execution_relation/moon.pkg': Object.freeze({digest: '2a223e06a52cbb8c01280e9d5c5132485434728f59271ff02900f74ea582d079', rule: 'literal-target-selectors-with-bound-source-membership', revision: '6813ab0330a17f99c8eef5c9f4a70480ecc7e96c'}),
   'src/native_values_integration/moon.pkg': Object.freeze({digest: 'aa3777f1835f552da0ea34a13bbcb0de9afeb6c96adeadfbb26b483ce683c54f', rule: 'literal-native-options-with-bound-source-membership'}),

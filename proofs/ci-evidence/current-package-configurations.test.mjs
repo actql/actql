@@ -244,10 +244,23 @@ test('current Local Host successor binds its original keyed Plan JS selector and
   const revision = 'db039dc07a845fc420be9f95b750fe5208183735';
   const digest = '1ce3256e4f3b1dc32ee5136fcbbe5076fd996ad0a05c901a5cd175a3b16af326';
   const rule = 'literal-target-selectors-with-bound-source-membership';
-  assert.deepEqual(currentPackageConfigurations[path], {revision, digest, rule});
+  const currentRevision = '1d65ca8b449c6a6edae8ba0b5a0b0bfbed05a243';
+  const currentDigest = 'e48db6b1683f6b841e56439452a65388f5298549e6c8b740e117a40359d8c8b5';
+  assert.deepEqual(currentPackageConfigurations[path], {revision: currentRevision, digest: currentDigest, rule});
+  execFileSync('git', ['merge-base', '--is-ancestor', currentRevision, 'HEAD'], {cwd: root});
   execFileSync('git', ['merge-base', '--is-ancestor', revision, 'HEAD'], {cwd: root});
   const reviewed = gitTree(root, revision), body = reviewed.read(path).toString();
   const keyedSelector = '    "request_native_keyed_plan_js_wbtest.mbt": [ "js" ],\n';
+  const currentBody = gitTree(root, currentRevision).read(path).toString();
+  const reentrySelector = '    "managed_import_reentry_js_wbtest.mbt": [ "js" ],\n';
+  assert.equal(Buffer.byteLength(currentBody), 9904);
+  assert.equal(Buffer.byteLength(reentrySelector), 54);
+  assert.equal(hash(currentBody), currentDigest);
+  assert.equal(currentBody.split(reentrySelector).length, 2);
+  assert.equal(currentBody.replace(reentrySelector, ''), body,
+    'only the actual original Node Resource current regression selector extends the keyed Plan descriptor');
+  assert.deepEqual(packageImports(currentBody).imports, packageImports(body).imports);
+
   const effectBody = gitTree(root, '70ab00c1fae78c176ac34e65857f7332d6619aa7').read(path).toString();
   assert.equal(hash(effectBody), '64220f07f198e537a6d9c785fd6abd93a2a3293f3959a24fc313f63135ae1d66');
   assert.equal(Buffer.byteLength(body), 9850);
@@ -302,9 +315,10 @@ test('current Local Host successor binds its original keyed Plan JS selector and
   assert.equal(currentPackageConfigurationReviewFor(request(path, hash(intakeRevision))), null);
   assert.deepEqual(packageImports(body).imports,
     [...packageImports(previous).imports, 'actql/actql/capacity_policy'].sort());
-  assert.equal(currentTree.read(path).toString(), body);
+  assert.equal(currentTree.read(path).toString(), currentBody);
   assert.equal(hash(currentTree.read('toolchain.json')), toolchainDigest);
-  assert.equal(currentPackageConfigurationReviewFor(request(path, digest))?.revision, revision);
+  assert.equal(currentPackageConfigurationReviewFor(request(path, currentDigest))?.revision, currentRevision);
+  assert.equal(currentPackageConfigurationReviewFor(request(path, digest)), null);
   assert.equal(currentPackageConfigurationReviewFor(request(path, hash(previous))), null);
   assert.equal(currentPackageConfigurationReviewFor(request(path, hash(introduced))), null);
   const selected = packageSourceInputs({tree: currentTree, packages: ['src/client_local_host'], target: 'js'});
@@ -313,24 +327,24 @@ test('current Local Host successor binds its original keyed Plan JS selector and
     !member.slice('src/capacity_policy/'.length).includes('/')).sort();
   assert(members.includes('src/capacity_policy/moon.pkg'));
   assert.deepEqual(selected.directories.find(entry => entry.path === 'src/capacity_policy/*')?.members, members);
-  for (const member of [...members, ...[keyedSelector, originalSelector, valuesSelector, ...selectors, ...successorSelectors].map(selector =>
+  for (const member of [...members, ...[reentrySelector, keyedSelector, originalSelector, valuesSelector, ...selectors, ...successorSelectors].map(selector =>
     'src/client_local_host/' + JSON.parse(selector.trim().split(':')[0]))]) {
     assert(selected.paths.includes(member), member);
     assert.equal(currentTree.entries.get(member)?.kind, 'blob');
     assert.equal(currentTree.entries.get(member)?.mode, '100644');
   }
-  for (const changed of [previous, callbackBody, valuesBody, effectBody, body.replace(dependency, ''), body.replace('@capacity,', '@permission,'),
-    body.replace('"moonbitlang/core/encoding/utf8"', '"moonbitlang/core/encoding/utf16"'),
-    ...[keyedSelector, originalSelector, valuesSelector, ...selectors, ...successorSelectors].map(selector => body.replace(selector, selector.replace('"js"', '"native"'))),
-    body.replace(keyedSelector, keyedSelector + '    "unreviewed_keyed_target.mbt": [ "js" ],\n'),
-    body + '\noptions(pre_build: {command: "unreviewed"})\n']) {
+  for (const changed of [previous, callbackBody, valuesBody, effectBody, body, currentBody.replace(dependency, ''), currentBody.replace('@capacity,', '@permission,'),
+    currentBody.replace('"moonbitlang/core/encoding/utf8"', '"moonbitlang/core/encoding/utf16"'),
+    ...[reentrySelector, keyedSelector, originalSelector, valuesSelector, ...selectors, ...successorSelectors].map(selector => currentBody.replace(selector, selector.replace('"js"', '"native"'))),
+    currentBody.replace(keyedSelector, keyedSelector + '    "unreviewed_keyed_target.mbt": [ "js" ],\n'),
+    currentBody + '\noptions(pre_build: {command: "unreviewed"})\n']) {
     assert.equal(currentPackageConfigurationReviewFor(request(path, hash(changed))), null);
     const altered = {...currentTree, read: member => member === path ? Buffer.from(changed) : currentTree.read(member)};
     assert(packageSourceInputs({tree: altered, packages: ['src/client_local_host'], target: 'js'})
       .unresolved.includes('Unreviewed package configuration: ' + path));
   }
   for (const delta of [{target: 'native'}, {target: 'wasm'}, {toolchainDigest: '0'.repeat(64)}])
-    assert.equal(currentPackageConfigurationReviewFor({...request(path, digest), ...delta}), null);
+    assert.equal(currentPackageConfigurationReviewFor({...request(path, currentDigest), ...delta}), null);
 });
 
 test('historical Local Host review preserves the original carrier, Source builder and Model completion preimages', () => {

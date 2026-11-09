@@ -30,7 +30,7 @@ test('Native Content case indices retain every original role in distinct fresh S
   const root = mkdtempSync(join(tmpdir(), 'native-content-cases-'));
   t.after(() => rmSync(root, {recursive: true, force: true}));
   const project = nativeProjectConfigurationFixture(root).ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT;
-  const names = [
+  const originalNames = [
     'Native README metadata returns completed codec workspace before both keyed captures',
     'Native original README joins its two physical Sources and original keyed Content Store',
     'Native original README retains both keyed Content originals for its Model input',
@@ -48,6 +48,13 @@ test('Native Content case indices retain every original role in distinct fresh S
     'Native README Source originals retain the keyed Model closure',
     'Native README original file Effect Plan admits actual operations before children',
   ];
+  const names = [...originalNames.slice(0, 13),
+    'Native README lookup receipt retains every original attempt and measured usage',
+    'Native completed Lookup bodies enter strict Effect dependency admission',
+    'Native original Lookup closes dependency graph over exact Carrier and Catalog bodies',
+    ...originalNames.slice(13)];
+  const originalIndices = [...Array.from({length: 13}, (_, index) => index), 16, 17, 18];
+  assert.deepEqual(originalIndices.map(index => names[index]), originalNames);
   const source = readFileSync(new URL('../src/cmd/native_client/local_project_mock_content_physical_scoped_wbtest.mbt', import.meta.url), 'utf8');
   assert.deepEqual([...source.matchAll(/^test "([^"]+)"/gmu)].map(match => match[1]), names,
     'Every compiler-owned Content case needs its reviewed per-case inputs');
@@ -55,8 +62,9 @@ test('Native Content case indices retain every original role in distinct fresh S
     const path = join(root, String(index)); mkdirSync(path); return path;
   });
   const cases = namespaces.map((path, index) => nativeProjectContentCaseFixture(path, index, project));
-  assert.deepEqual(cases.map(value => value.ACTQL_TEST_NATIVE_CONTENT_LOOKUPS), ['2', '1', ...Array(14).fill('2')]);
-  assert.equal(new Set(cases.map(value => value.ACTQL_TEST_NATIVE_STORE_ROOT)).size, 16);
+  const originals = originalIndices.map(index => cases[index]);
+  assert.deepEqual(originals.map(value => value.ACTQL_TEST_NATIVE_CONTENT_LOOKUPS), ['2', '1', ...Array(14).fill('2')]);
+  assert.equal(new Set(cases.map(value => value.ACTQL_TEST_NATIVE_STORE_ROOT)).size, 19);
   const roles = {
     METADATA_REMAINDER: [0],
     RAW_SNAPSHOT: [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
@@ -69,6 +77,14 @@ test('Native Content case indices retain every original role in distinct fresh S
   };
   for (const [role, selected] of Object.entries(roles)) {
     const key = 'ACTQL_TEST_NATIVE_' + role;
+    assert.deepEqual(originals.map(value => value[key]), originalNames.map((_, index) => selected.includes(index) ? '1' : undefined), role);
+    for (const index of [13, 14, 15]) assert.equal(cases[index][key], cases[12][key], role);
+    for (const value of cases) assert.equal(({[key]: 'ambient', ...value})[key], value[key]);
+  }
+  for (const [role, selected] of Object.entries({
+    LOOKUP_COMPLETION: [13, 14, 15], LOOKUP_DEPENDENCIES: [14, 15], LOOKUP_CLOSURE: [15],
+  })) {
+    const key = 'ACTQL_TEST_NATIVE_' + role;
     assert.deepEqual(cases.map(value => value[key]), names.map((_, index) => selected.includes(index) ? '1' : undefined), role);
     for (const value of cases) assert.equal(({[key]: 'ambient', ...value})[key], value[key]);
   }
@@ -77,7 +93,7 @@ test('Native Content case indices retain every original role in distinct fresh S
     assert.deepEqual(readdirSync(value.ACTQL_TEST_NATIVE_STORE_ROOT), []);
   }
   assert.throws(() => nativeProjectContentCaseFixture(namespaces[0], 0, project), {code: 'EEXIST'});
-  for (const index of [-1, 16, 0.5, '1', undefined]) {
+  for (const index of [-1, 19, 0.5, '1', undefined]) {
     assert.throws(() => nativeProjectContentCaseFixture(root, index), /exact original/u);
   }
 });
