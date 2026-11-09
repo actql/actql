@@ -312,6 +312,10 @@ fn LocalCommandPreparationOriginal::execute_product_command(
           _ => None
         },
       ).unwrap_or_else(() => stop("LocalProductDefaultsNotAdmitted"))
+      let selected = local_product_model_policy_originals(
+        selected,
+        Some(@local_values.client_local_resource_policy()),
+      )
       if !(parent.bootstrap_parent_ownership() is Ok(current) &&
         current == ownership) {
         stop("LocalProductHomeUntrusted")

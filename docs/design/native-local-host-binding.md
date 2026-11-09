@@ -3309,3 +3309,15 @@ bytes and quantities, while each real reservation on the same parent enforces
 the aggregate limits and all consumed or uncertain history. Startup must not
 reject that supported intersection merely by comparing the two maxima. The
 dedicated Model startup keeps its exact Ledger configuration correspondence.
+
+Fresh default Native Product construction selects the same nominal Local
+Resource policy and existing standard Model request window as the Node Local
+installation. It projects this policy into the initial Environment and updates
+its canonical evidence CID and configuration reference before the existing
+initialization Owner signs or stages the tuple. Raw packaged assets are not
+mutated. Explicit configuration and retained initialization Intent restore
+their original policy and bytes; they never acquire a larger ceiling from a
+current default. The ordinary configuration consumer admits the projected
+Environment once. This selection grants no Model access or physical capacity;
+the same checked Plan, per-request writer and original parent still admit the
+complete actual work and concurrent holdings.

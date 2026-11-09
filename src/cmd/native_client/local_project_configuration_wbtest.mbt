@@ -961,3 +961,62 @@ test "Mock initial adoption refuses incomplete declarations before document IO" 
     assert_true(refused)
   }
 }
+
+///|
+// Pure first-adoption DATA correspondence, not Host/Account/runtime admission.
+// Explicit policy and retained Intent paths never call the default projector.
+test "Native default Model policy retains original assets and explicit lower environments" {
+  let assets = @run_host.client_local_product_assets()
+  let originals = @run_host.client_local_product_finite_originals(
+    "/operator/native-model-policy", "/product/sqlite.dylib", "/product/crypto.dylib",
+    "2026-11-09T00:00:00.000Z", assets,
+  ).unwrap()
+  let text = fn(values : Array[(String, Bytes)], name : String) -> String {
+    @utf8.decode(values.iter().find_first(pair => pair.0 == name).unwrap().1) catch {
+      _ => abort("invalid original policy bytes")
+    }
+  }
+  let ceiling = fn(value : String) -> Json {
+    guard (@json.parse(value) catch { _ => abort("invalid policy JSON") })
+      is Object(body) &&
+      body.get("host_policy_profile") is Some(Object(host)) &&
+      host.get("capacity") is Some(Object(capacity)) else {
+      abort("missing original capacity")
+    }
+    capacity["max_model_request_bytes_per_item"]
+  }
+  let environment = text(originals, "environment.json")
+  let config = text(originals, "config.json")
+  assert_eq(ceiling(environment), Json::number(1000))
+  let explicit = local_product_model_policy_originals(originals, None)
+  assert_true(physical_equal(explicit, originals))
+  assert_eq(text(explicit, "environment.json"), environment)
+  assert_eq(text(explicit, "config.json"), config)
+  let selected = local_product_model_policy_originals(
+    originals,
+    Some(@local_values.client_local_resource_policy()),
+  )
+  let selected_environment = text(selected, "environment.json")
+  assert_eq(ceiling(selected_environment), Json::number(65536))
+  assert_eq(ceiling(assets.environment), Json::number(1000))
+  assert_eq(text(originals, "environment.json"), environment)
+  assert_eq(text(originals, "config.json"), config)
+  for (name, bytes) in originals {
+    if name != "environment.json" && name != "config.json" {
+      assert_eq(
+        selected.iter().find_first(pair => pair.0 == name).unwrap().1,
+        bytes,
+      )
+    }
+  }
+  let (file, cid) = local_configuration(text(selected, "config.json"))
+  assert_eq(file, "environment.json")
+  assert_true(
+    local_admitted_check_environment(selected_environment, cid) is Some(_),
+  )
+  // A retained installation restores its exact selected tuple; it does not
+  // regenerate a default under the current Resource/Model policy.
+  let retained = local_product_model_policy_originals(selected, None)
+  assert_true(physical_equal(retained, selected))
+  assert_eq(text(retained, "environment.json"), selected_environment)
+}
