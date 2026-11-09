@@ -387,6 +387,23 @@ fn NativeLocalJournalCapture::prepare_private_store_children_construction(
   wire_at : (Int) -> String,
   additional_retained? : Int64 = 0L,
 ) -> Result[Unit, NativeClientMockModelIssue] {
+  self.prepare_private_store_layouts_construction(
+    count,
+    index => store.private_evidence_custody_construction(wire_at(index)),
+    additional_retained~,
+  )
+}
+
+///|
+// The same Native constructor fold also consumes scalar observed ciphertext
+// geometry. No plaintext placeholder or synthetic wire is allocated to quote a
+// cold read. Existing Store limits remain admission, not physical backing.
+fn NativeLocalJournalCapture::prepare_private_store_layouts_construction(
+  self : NativeLocalJournalCapture,
+  count : Int,
+  layout_at : (Int) -> @publication_store.PrivateEvidenceCustodyConstruction?,
+  additional_retained? : Int64 = 0L,
+) -> Result[Unit, NativeClientMockModelIssue] {
   guard self.original_resources is Some(original) &&
     !original.interrupted &&
     original.active_phase is Some(@arena.HostRead) &&
@@ -408,8 +425,7 @@ fn NativeLocalJournalCapture::prepare_private_store_children_construction(
   let mut workspace = 0L
   let mut contiguous = array_header + (12L + 3L * n) * pointer
   for index in 0..<count {
-    guard store.private_evidence_custody_construction(wire_at(index))
-      is Some(layout) &&
+    guard layout_at(index) is Some(layout) &&
       @execution.preparation_representation_cost(layout.retained) is Some(r) &&
       @execution.preparation_representation_cost(layout.workspace) is Some(e) &&
       @execution.checked_preparation_add_product(retained, r, 1L) is Some(next) else {

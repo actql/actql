@@ -480,7 +480,10 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
     stage=Some("journal-open"),
   )
   |> ignore
-  if operation == "status" || operation == "cancel" {
+  if operation == "status" ||
+    operation == "cancel" ||
+    operation == "approve" ||
+    operation == "reject" {
     command_preparation_result(self.prepare_run_observation_operation())
   }
   let crypto = self.inner_library.unwrap()
@@ -591,6 +594,7 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
             operation,
             child,
             capture=Some(capture),
+            prepared=Some((self, configuration)),
           )
         } else if operation == "status" {
           let runtime = preparation_runtime.unwrap_or_else(() => {

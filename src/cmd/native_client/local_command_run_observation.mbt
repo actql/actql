@@ -10,6 +10,7 @@ priv struct LocalCommandRunObservationOriginal {
   mut parent_failure : @local_filesystem.NativeRootOpenFailure?
   mut root : @local_filesystem.Root?
   mut root_failure : @local_filesystem.NativeRootOpenFailure?
+  mut saved_effect_review : @local_host.NativeLocalSavedEffectReview?
   mut selected_namespace : String?
   mut attempted : Bool
   // Retain the exact failed Store receipt with this original across cleanup.
@@ -54,6 +55,7 @@ fn LocalCommandPreparationOriginal::prepare_run_observation_operation(
     parent_failure: None,
     root: None,
     root_failure: None,
+    saved_effect_review: None,
     selected_namespace: None,
     attempted: false,
     _retained_store_issue: None,
@@ -166,6 +168,11 @@ fn LocalCommandPreparationOriginal::close_run_observation(
   guard self.run_observation is Some(original) else { return Ok(()) }
   if self.journal_read_open || self.phase_open {
     return Err(CommandRunObservationPending)
+  }
+  if original.saved_effect_review is Some(review) {
+    // Read aliases do not own deletion of the historical encrypted evidence.
+    review.retire_read_aliases()
+    original.saved_effect_review = None
   }
   if original.store is Some(store) {
     match store.reconcile_original_return() {

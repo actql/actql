@@ -474,7 +474,12 @@ fn PrivateEffectEvidenceCustody::read(
   if self.transaction_uncertain {
     return Err(CleanupPending)
   }
-  let row = match self.store.database.read(self.table, self.holding) {
+  let row = match
+    self.store.database.read_with_body_limit(
+      self.table,
+      self.holding,
+      self.reservation_bytes,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Database(issue))
   }
@@ -897,16 +902,102 @@ fn Store::restore_effect_checkpoint_custody_in_scope(
 /// mandatory. Unlike an unfinished-persist continuation, missing/retired
 /// records cannot produce a confirmed handle. This grants no disclosure or
 /// resume permission and makes no Store write or capacity reservation.
+pub fn Store::effect_checkpoint_restore_construction(
+  self : Store,
+  checkpoint : @checkpoint.SealedCheckpoint,
+) -> Result[
+  (@sqlite.NativeJournalHeader, PrivateEvidenceCustodyConstruction),
+  NativePublicationStoreIssue,
+] {
+  self.with_original_read(false, false, fn() {
+    match require_store_open(self) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+    guard checkpoint.checkpoint.subject is @checkpoint.RunUnit(..) &&
+      checkpoint.checkpoint.kind == @checkpoint.EffectSet else {
+      return Err(InvalidConfiguration)
+    }
+    // Scalar SQLite metadata only, before ciphertext, plaintext or JSON is
+    // constructed. The coupled read below rechecks this exact revision/extent.
+    let header = match
+      self.database.observe_body_extent(
+        "effect_continuation_custody",
+        checkpoint.checkpoint_cid,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Database(issue))
+    }
+    if header.revision != 0L ||
+      header.body_bytes <= 0L ||
+      header.body_bytes > self.max_record_bytes.to_int64() {
+      return Err(RecoveryRequired)
+    }
+    // A canonical encrypted envelope is larger than its plaintext. Until
+    // authentication proves that envelope, charge its observed extent as an
+    // upper bound, including malformed-envelope parsing and refusal.
+    guard private_evidence_custody_construction(header.body_bytes.to_int())
+      is Some(continuation) &&
+      private_evidence_custody_wire_construction(checkpoint.wire)
+      is Some(checkpoint_layout) else {
+      return Err(InvalidConfiguration)
+    }
+    let a = continuation.retained
+    let b = checkpoint_layout.retained
+    let e = continuation.workspace
+    let f = checkpoint_layout.workspace
+    Ok(
+      (
+        header,
+        {
+          retained: {
+            record_headers: a.record_headers + b.record_headers + 2L,
+            reference_slots: a.reference_slots + b.reference_slots + 2L,
+            scalar_words: a.scalar_words + b.scalar_words,
+            // The newly decrypted continuation survives beside both restored
+            // custody handles. The Checkpoint wire remains its original borrow.
+            owned_utf16_units: a.owned_utf16_units +
+            b.owned_utf16_units +
+            header.body_bytes,
+            owned_wire_bytes: a.owned_wire_bytes + b.owned_wire_bytes,
+          },
+          // Both conservative workspaces cover the pair's sequential confirm and
+          // the first decrypted continuation while its wrappers are constructed.
+          workspace: {
+            record_headers: e.record_headers + f.record_headers,
+            reference_slots: e.reference_slots + f.reference_slots,
+            scalar_words: e.scalar_words + f.scalar_words,
+            owned_utf16_units: e.owned_utf16_units + f.owned_utf16_units,
+            owned_wire_bytes: e.owned_wire_bytes + f.owned_wire_bytes,
+          },
+          envelope_bytes: Int::max(
+            continuation.envelope_bytes,
+            checkpoint_layout.envelope_bytes,
+          ),
+        },
+      ),
+    )
+  })
+}
+
+///|
+/// Observe construction first when restoring under a funded caller. An exact
+/// extent is a bounded-read precondition, never custody, capacity or authority.
 pub fn Store::restore_confirmed_effect_checkpoint_custody(
   self : Store,
   checkpoint : @checkpoint.SealedCheckpoint,
   store_authority : String,
   crypto : @signature.Library,
   key : Bytes,
+  continuation_extent? : @sqlite.NativeJournalHeader? = None,
 ) -> Result[EffectCheckpointCustody, NativePublicationStoreIssue] {
   self.with_original_read(false, false, fn() {
     self.restore_confirmed_effect_checkpoint_custody_in_scope(
-      checkpoint, store_authority, crypto, key,
+      checkpoint,
+      store_authority,
+      crypto,
+      key,
+      continuation_extent~,
     )
   })
 }
@@ -918,6 +1009,7 @@ fn Store::restore_confirmed_effect_checkpoint_custody_in_scope(
   store_authority : String,
   crypto : @signature.Library,
   key : Bytes,
+  continuation_extent? : @sqlite.NativeJournalHeader? = None,
 ) -> Result[EffectCheckpointCustody, NativePublicationStoreIssue] {
   match require_store_open(self) {
     Ok(_) => ()
@@ -934,7 +1026,19 @@ fn Store::restore_confirmed_effect_checkpoint_custody_in_scope(
     return Err(InvalidConfiguration)
   }
   let holding = checkpoint.checkpoint_cid
-  let row = match self.database.read("effect_continuation_custody", holding) {
+  let observed = match continuation_extent {
+    Some(header) =>
+      self.database.read_exact_body_extent(
+        "effect_continuation_custody", holding, header,
+      )
+    None =>
+      self.database.read_with_body_limit(
+        "effect_continuation_custody",
+        holding,
+        self.max_record_bytes.to_int64(),
+      )
+  }
+  let row = match observed {
     Ok(value) => value
     Err(issue) => return Err(Database(issue))
   }

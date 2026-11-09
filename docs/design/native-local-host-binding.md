@@ -3449,3 +3449,15 @@ rolled-back refusal permits only actual child cleanup. After known waiting,
 dropping process-local aliases does not delete durable evidence or acknowledge
 its Store quota release. Waiting is neither approval, mutation, Result delivery
 nor physical cleanup; their existing Owners remain separate.
+
+The cold command retains a read-only review receiver before restoring that
+pair. Its current captured Read authenticates the same Submission, Request,
+Checkpoint revision and physical Store binding. SQLite first observes the
+encrypted continuation's scalar revision and extent; the same Read backs the
+existing custody constructor layout before the exact bounded copy, AEAD and
+plaintext construction. Metadata is neither permission nor memory backing.
+The Journal is rejoined after Store and crypto callbacks, so retirement,
+cancellation or a changed Checkpoint cannot leave a current saved observation.
+Retiring this command's aliases never invokes historical evidence cleanup or
+releases its Store quota. This observation does not issue approval, a signing
+use, a resume claim, a write or a fresh computation.

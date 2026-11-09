@@ -165,7 +165,20 @@ pub fn Store::restore_confirmed_effect_checkpoint_custody(
   _store_authority : String,
   _crypto : @signature.Library,
   _key : Bytes,
+  continuation_extent? : @sqlite.NativeJournalHeader? = None,
 ) -> Result[EffectCheckpointCustody, NativePublicationStoreIssue] {
+  ignore(continuation_extent)
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Store::effect_checkpoint_restore_construction(
+  _self : Store,
+  _checkpoint : @checkpoint.SealedCheckpoint,
+) -> Result[
+  (@sqlite.NativeJournalHeader, PrivateEvidenceCustodyConstruction),
+  NativePublicationStoreIssue,
+] {
   Err(UnsupportedTarget)
 }
 
