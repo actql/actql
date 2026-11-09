@@ -48,6 +48,7 @@ fn target_io_fixture_update_work(directory : String) -> Unit raise {
     "first",
   ).unwrap()
   assert_eq(read.snapshot(), None)
+  assert_true(read.replacement_acknowledgment() is None)
   assert_eq(read.byte_counts(), (0L, 0L))
   target_io_fixture_run(read)
   let (before, version) = read.snapshot().unwrap()
@@ -88,7 +89,27 @@ fn target_io_fixture_update_work(directory : String) -> Unit raise {
     ),
   )
   assert_true(update.replacement_attempted)
+  let ack = update.replacement_acknowledgment().unwrap()
+  assert_eq(ack.identity(), "first")
+  assert_eq(ack.expected_version(), version)
+  assert_eq(ack.changes_wire(), "{\"value\":9}")
+  assert_eq(ack.selection().name, "target-update.json")
+  let expected = target_io_fixture_text.replace_all(
+    old="\"value\":1",
+    new="\"value\":9",
+  )
+  assert_eq(ack.replacement(), @utf8.encode(expected))
+  assert_eq(ack.generation().size, expected.length().to_int64())
+  assert_true(
+    update.root
+    .unwrap()
+    .verify_file_generation("target-update.json", ack.generation()),
+  )
   assert_true(update.close().unwrap())
+  assert_true(update.replacement_acknowledgment() is None)
+  // This retained immutable observation is historical evidence, not another
+  // physical child, current target proof or permission to repeat replacement.
+  assert_eq(ack.replacement(), @utf8.encode(expected))
   let fresh = prepare_native_relation_file_target_io(
     provider,
     ["value"],
@@ -125,6 +146,7 @@ fn target_io_fixture_update_work(directory : String) -> Unit raise {
   )
   assert_true(stale.advance() is Err(Document(@rows.ForeignSource)))
   assert_eq(stale.snapshot(), None)
+  assert_true(stale.replacement_acknowledgment() is None)
   assert_true(stale.close().unwrap())
 }
 
@@ -263,6 +285,7 @@ fn target_io_fixture_sync_work(directory : String) -> Unit raise {
   target_io_fail_root_sync(child.root.unwrap(), 1)
   assert_true(child.advance() is Err(Filesystem(@files.Write(_))))
   assert_true(child.replacement_attempted)
+  assert_true(child.replacement_acknowledgment() is None)
   assert_eq(child.snapshot(), None)
   let observed = child.byte_counts()
   assert_eq(

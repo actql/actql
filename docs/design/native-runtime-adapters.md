@@ -477,3 +477,21 @@ observation's currentness check still precede witness issuance. This does not
 change permission, storage identity, resource admission or cleanup credit.
 
 This consolidation does not broaden native Host or bootstrap platform support.
+
+### Original file replacement observation
+
+The Native row-file child retains the original Writer replacement acknowledgment
+instead of discarding its returned generation. Its opaque immutable observation
+binds the selected file and row, checked expected version and changes, exact
+submitted replacement bytes, and the returned device/inode/size generation.
+The existing filesystem owner returns this observation only after its staging
+and directory synchronization and generation confirmation succeed. Attempted
+replacement, submitted bytes, a later read or successful cleanup cannot create
+it. A post-rename synchronization error retains uncertainty without a retry.
+
+The original update quote includes the returned generation, observation and
+optional holder beside the existing replacement buffer. The shared child census
+includes its retained slot. A receiving Host must retain the same observation
+on its own backing before child retirement; closing the child only severs that
+child's alias. Historical replacement evidence is separate from current write
+permission, a Journal receipt commit, Result publication and physical cleanup.

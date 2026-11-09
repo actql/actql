@@ -129,6 +129,14 @@ pub fn NativeRelationFileListingProvider::capacity(Self) -> @execution_relation.
 type NativeRelationFilePreparedProvider
 pub fn NativeRelationFilePreparedProvider::capacity(Self) -> @execution_relation.ExecutionCapacity
 
+type NativeRelationFileReplacementAck
+pub fn NativeRelationFileReplacementAck::changes_wire(Self) -> String
+pub fn NativeRelationFileReplacementAck::expected_version(Self) -> String
+pub fn NativeRelationFileReplacementAck::generation(Self) -> @filesystem.NativeFileGeneration
+pub fn NativeRelationFileReplacementAck::identity(Self) -> String
+pub fn NativeRelationFileReplacementAck::replacement(Self) -> Bytes
+pub fn NativeRelationFileReplacementAck::selection(Self) -> NativeRelationFileSelection
+
 pub(all) struct NativeRelationFileSelection {
   directory : String
   name : String
@@ -143,6 +151,7 @@ pub fn NativeRelationFileTargetIO::advance(Self) -> Result[Bool, NativeRelationF
 pub fn NativeRelationFileTargetIO::byte_counts(Self) -> (Int64, Int64)
 pub fn NativeRelationFileTargetIO::check_update(Self, String) -> Result[Unit, NativeRelationFileIssue]
 pub fn NativeRelationFileTargetIO::close(Self) -> Result[Bool, NativeRelationFileIssue]
+pub fn NativeRelationFileTargetIO::replacement_acknowledgment(Self) -> NativeRelationFileReplacementAck?
 pub fn NativeRelationFileTargetIO::snapshot(Self) -> (String, String)?
 
 // Type aliases

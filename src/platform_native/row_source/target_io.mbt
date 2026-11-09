@@ -40,11 +40,62 @@ struct NativeRelationFileTargetIO {
   mut document : @rows.RelationTargetDocument?
   mut row : @rows.RelationTargetRow?
   mut replacement : Bytes?
+  mut replacement_ack : NativeRelationFileReplacementAck?
   mut observed_row : (String, String)?
   mut received : Int64
   mut submitted : Int64
   mut offset : Int
   mut replacement_attempted : Bool
+}
+
+///|
+/// The actual existing Writer's acknowledged replacement, not a Journal commit,
+/// permission, cleanup ACK or reconstruction from current target contents.
+/// Only the original physical child constructs this immutable observation.
+struct NativeRelationFileReplacementAck {
+  selection : NativeRelationFileSelection
+  identity : String
+  expected_version : String
+  changes_wire : String
+  replacement : Bytes
+  generation : @files.NativeFileGeneration
+}
+
+///|
+pub fn NativeRelationFileReplacementAck::selection(
+  self : Self,
+) -> NativeRelationFileSelection {
+  self.selection
+}
+
+///|
+pub fn NativeRelationFileReplacementAck::identity(self : Self) -> String {
+  self.identity
+}
+
+///|
+pub fn NativeRelationFileReplacementAck::expected_version(
+  self : Self,
+) -> String {
+  self.expected_version
+}
+
+///|
+pub fn NativeRelationFileReplacementAck::changes_wire(self : Self) -> String {
+  self.changes_wire
+}
+
+///|
+/// Borrow the exact submitted replacement; no copy, decode or target reread.
+pub fn NativeRelationFileReplacementAck::replacement(self : Self) -> Bytes {
+  self.replacement
+}
+
+///|
+pub fn NativeRelationFileReplacementAck::generation(
+  self : Self,
+) -> @files.NativeFileGeneration {
+  self.generation
 }
 
 ///|
@@ -83,7 +134,18 @@ pub fn native_relation_file_target_io_capacity(
     is Some(controls) &&
     @files.native_filesystem_write_layout() is Some(writer) &&
     native_relation_target_observation_capacity(provider, writable_fields)
-    is Some(observation) else {
+    is Some(observation) &&
+    // Original returned generation (one header/three words), immutable ACK
+    // (one header/six borrowed references), and retained Some (one header/one
+    // reference). The child field itself is in the shared metadata census.
+    @execution.preparation_representation_cost({
+      record_headers: 3L,
+      reference_slots: 7L,
+      scalar_words: 3L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(acknowledgment) else {
     return None
   }
   // Original receive/document storage is already in `construction`. Add the
@@ -103,8 +165,8 @@ pub fn native_relation_file_target_io_capacity(
     6L +
     limits.page.max_bytes.to_int64()
   guard @execution.execution_capacity(
-      controls + observation + native,
-      controls + observation + native,
+      controls + observation + native + acknowledgment,
+      controls + observation + native + acknowledgment,
     )
     is Some(extra) else {
     return None
@@ -168,6 +230,7 @@ pub fn prepare_native_relation_file_target_io(
     document: None,
     row: None,
     replacement: None,
+    replacement_ack: None,
     observed_row: None,
     received: 0L,
     submitted: 0L,
@@ -343,7 +406,8 @@ fn NativeRelationFileTargetIO::project(
 
 ///|
 fn NativeRelationFileTargetIO::write(self : Self) -> Unit raise FileCaptureStop {
-  guard self.update is Some((_, _, staging)) && !self.replacement_attempted else {
+  guard self.update is Some((expected_version, changes_wire, staging)) &&
+    !self.replacement_attempted else {
     raise FileCaptureStop(Unavailable)
   }
   let root = self.root.unwrap()
@@ -362,12 +426,21 @@ fn NativeRelationFileTargetIO::write(self : Self) -> Unit raise FileCaptureStop 
   self.submitted = output.length().to_int64()
   self.replacement_attempted = true
   file_require(writer.append(output).map_err(issue => Filesystem(issue)))
-  file_require(
+  let generation = file_require(
     writer
     .replace_observed_file(self.observation.unwrap(), self.lock.unwrap())
     .map_err(issue => Filesystem(issue)),
   )
-  |> ignore
+  // The FS Owner returns only after staging and directory synchronization and
+  // generation confirmation. A post-rename failure never reaches this branch.
+  self.replacement_ack = Some({
+    selection: self.provider.selection,
+    identity: self.identity,
+    expected_version,
+    changes_wire,
+    replacement: output,
+    generation,
+  })
   self.phase = TargetReady
 }
 
@@ -432,6 +505,20 @@ pub fn NativeRelationFileTargetIO::snapshot(self : Self) -> (String, String)? {
     self.root is Some(root) &&
     root.require_current_original_read() is Ok(_) {
     self.observed_row
+  } else {
+    None
+  }
+}
+
+///|
+/// Preserve the same immutable physical ACK before retiring this child. The
+/// receiving Host must retain/back it before close; it cannot infer success
+/// from replacement_attempted, submitted bytes, current contents or cleanup.
+pub fn NativeRelationFileTargetIO::replacement_acknowledgment(
+  self : Self,
+) -> NativeRelationFileReplacementAck? {
+  if self.same() && self.phase is TargetReady && self.issue is None {
+    self.replacement_ack
   } else {
     None
   }
@@ -546,6 +633,7 @@ pub fn NativeRelationFileTargetIO::close(
     self.buffer = None
     self.before_response = None
     self.replacement = None
+    self.replacement_ack = None
     self.observed_row = None
     self.original = None
     self.phase = TargetClosed
