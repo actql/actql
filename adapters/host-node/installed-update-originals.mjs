@@ -48,8 +48,17 @@ export function installUpdateTargetOriginals({moon, control, installedEffect, li
   const bind = (selections, installations) => {
     if (selections === undefined || !installationsShape(installations, moon)) fail();
     installations = Object.freeze(installations.map(value => Object.freeze({...value})));
+    // Full admission above fixes the closed canonical cid/wire DATA. Borrow
+    // its immutable strings; live selection observations still run each time.
+    const installationData = Object.freeze(installations.flatMap(value => [value.cid, value.wire]));
     const assertUpdateSelectionCurrent = () => {
-      if (!same(current(selections), installations)) fail();
+      const observed = current(selections);
+      let equal = false;
+      try {
+        equal = moon.clientProgramEffectTargetInstallationsDataEqual(
+          observed.flatMap(value => [value.cid, value.wire]), installationData);
+      } catch { /* A missing or failed physical bridge cannot establish equality. */ }
+      if (equal !== true) fail();
     };
     assertUpdateSelectionCurrent();
     return Object.freeze({updateTargetSelections: selections,

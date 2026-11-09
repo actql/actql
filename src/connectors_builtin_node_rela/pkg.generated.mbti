@@ -904,6 +904,8 @@ pub fn client_program_effect_table_source_artifact_preview_binding(@run_publicat
 
 pub fn client_program_effect_table_write_binding(@run_publication_host.PreparedClientEffectComputation, Int, String, Int) -> Result[(String, String, String?, String?, String, String)?, @run_publication_host.ClientEffectMemberDescriptorIssue]
 
+pub fn client_program_effect_target_installations_data_equal(Array[String], Array[String]) -> Bool
+
 pub fn client_program_effect_target_installations_shape(String) -> Bool
 
 pub fn client_program_effect_target_original_codec_limits() -> Array[Int]

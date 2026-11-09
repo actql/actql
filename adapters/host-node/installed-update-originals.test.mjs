@@ -27,6 +27,7 @@ const updateTargetSelectionsCid = value => selectionsCid(value, dataOwner);
 // nominal ports below remain composition doubles, not execution evidence.
 const dataPorts = Object.fromEntries([
   'clientProgramIssueEffectTargetInstallation', 'clientProgramEffectTargetInstallationsShape',
+  'clientProgramEffectTargetInstallationsDataEqual',
   'clientProgramEffectTargetPreparedOriginalShape', 'clientProgramEffectTargetRunOriginalShape',
   'clientProgramEffectTargetOriginalDataEqual', 'clientProgramEffectTargetSelectionDataCid',
   'clientProgramEffectTargetRunSelectionCid',

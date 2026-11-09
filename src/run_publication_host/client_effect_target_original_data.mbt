@@ -313,6 +313,34 @@ pub fn client_effect_target_installations_shape(wire : String) -> Bool {
 }
 
 ///|
+/// Compare borrowed canonical cid/wire pairs after full installation admission.
+/// This is DATA equality only: it neither admits an installation nor replaces
+/// the original selection's current purpose and Mapping observations.
+pub fn client_effect_target_installations_data_equal(
+  left : Array[String],
+  right : Array[String],
+) -> Bool {
+  if left.length() < 2 ||
+    left.length() > 2048 ||
+    left.length() % 2 != 0 ||
+    left.length() != right.length() {
+    return false
+  }
+  let mut units = 0
+  for index in 0..<left.length() {
+    if left[index].length() > CLIENT_EFFECT_TARGET_ORIGINAL_MAX_BYTES ||
+      left[index] != right[index] {
+      return false
+    }
+    units += left[index].length()
+    if units > CLIENT_EFFECT_TARGET_ORIGINAL_MAX_BYTES {
+      return false
+    }
+  }
+  true
+}
+
+///|
 pub fn client_effect_target_prepared_original_shape(wire : String) -> Bool {
   try {
     let object = @decode.closed_object(

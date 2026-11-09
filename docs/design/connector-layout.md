@@ -150,6 +150,15 @@ private request-journal installation uses the same runtime's bounded DATA
 reader, and owner-only recovery returns the original saved admission evidence;
 neither path grants disclosure, write, dispatch or retry authority.
 
+Installed UPDATE/DELETE/STORE reobservation retains the fully admitted, closed
+installation records. Their canonical `cid` and `wire` strings may be borrowed
+for ordered DATA comparison in Common without rebuilding a JSON envelope on
+each observation. This comparison does not admit a record or prove permission:
+initial binding and cold restoration retain the complete installation validator,
+and every reobservation still checks the original selection's live purpose and
+Mapping observations. Complete Prepared/Run equality, cancellation, continuation
+retirement and current fences keep their existing paths.
+
 The generated private DATA codec snapshots values once and transports JSON. Its
 byte/node/depth ceilings come from that same Owner; it has no semantic field list,
 normalization, CID or opaque constructor. Public DATA named `$tag`, `_0` or `_1`

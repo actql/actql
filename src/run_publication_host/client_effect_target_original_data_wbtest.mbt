@@ -79,6 +79,50 @@ fn target_original_installation_wire() -> String {
 }
 
 ///|
+test "admitted installation DATA equality borrows complete ordered cid and wire strings" {
+  let cid = "sha256:9ee844e04eda0aa8f6e901a0fdc3fcd2694aa4bf94ad053b2308a5ae3ef4a2ca"
+  let wire = target_original_installation_wire()
+  assert_true(
+    client_effect_target_installations_data_equal([cid, wire], [cid, wire]),
+  )
+  assert_false(
+    client_effect_target_installations_data_equal([cid, wire], [cid, wire + " "]),
+  )
+  assert_false(
+    client_effect_target_installations_data_equal([cid, wire], [
+      "sha256:" + "a".repeat(64),
+      wire,
+    ]),
+  )
+  assert_false(client_effect_target_installations_data_equal([], []))
+  assert_false(client_effect_target_installations_data_equal([cid], [cid]))
+  assert_false(
+    client_effect_target_installations_data_equal([cid, wire], [
+      cid, wire, cid, wire,
+    ]),
+  )
+  assert_false(
+    client_effect_target_installations_data_equal([wire, cid], [cid, wire]),
+  )
+  let too_large = "x".repeat(65537)
+  assert_false(
+    client_effect_target_installations_data_equal([cid, too_large], [
+      cid, too_large,
+    ]),
+  )
+  let aggregate = [cid, "x".repeat(32768), cid, "x".repeat(32768)]
+  assert_false(
+    client_effect_target_installations_data_equal(aggregate, aggregate),
+  )
+  assert_false(
+    client_effect_target_installations_data_equal(
+      Array::make(2050, cid),
+      Array::make(2050, cid),
+    ),
+  )
+}
+
+///|
 test "original DATA Owner retains independent installation bytes CID and NFC without newline rewriting" {
   let wire = target_original_installation_wire()
   // Node crypto SHA-256 over the independently authored literal, not an

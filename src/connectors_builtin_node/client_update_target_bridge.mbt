@@ -297,6 +297,15 @@ pub fn client_program_effect_target_installations_shape(wire : String) -> Bool {
 }
 
 ///|
+#export_name("clientProgramEffectTargetInstallationsDataEqual")
+pub fn client_program_effect_target_installations_data_equal(
+  left : Array[String],
+  right : Array[String],
+) -> Bool {
+  @publication_host.client_effect_target_installations_data_equal(left, right)
+}
+
+///|
 #export_name("clientProgramEffectTargetPreparedOriginalShape")
 pub fn client_program_effect_target_prepared_original_shape(
   wire : String,
