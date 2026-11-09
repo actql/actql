@@ -554,11 +554,28 @@ fn effect_metadata_capacity_with_geometry(
   // actual response sizing. That SAME cursor's grammar/projection follows;
   // the two workspace alternatives do not overlap. All failed prefixes stay
   // on this original token and its completed projection alone returns scratch.
-  guard @execution.add_execution_capacity(catalog, preflight) is Some(prelude) &&
+  // During projection the Catalog borrows value Strings from the SAME
+  // parsed/admitted tree (decode.text returns Text(value) directly). The
+  // parser quote already owns that full text envelope. Catalog headers,
+  // references, final digest and the separately decoded input String remain
+  // coheld, but those borrowed values are not another body-sized copy.
+  // Keep the complete eventual Catalog retention above and Source Reader's
+  // independent failed-prefix envelope unchanged; refine only this Effect
+  // constructor's simultaneous execution peak, using the shared unit owner.
+  guard @execution.preparation_representation_cost({
+      record_headers: 0L,
+      reference_slots: 0L,
+      scalar_words: 0L,
+      owned_utf16_units: body_bytes.to_int64(),
+      owned_wire_bytes: 0L,
+    })
+    is Some(shared_text) &&
+    @execution.execution_capacity_execution_bytes(peak) >= shared_text &&
+    @execution.add_execution_capacity(catalog, preflight) is Some(prelude) &&
     @execution.execution_capacity(
       retained,
       Int64::max(
-        @execution.execution_capacity_execution_bytes(peak),
+        @execution.execution_capacity_execution_bytes(peak) - shared_text,
         @execution.execution_capacity_execution_bytes(prelude),
       ),
     )

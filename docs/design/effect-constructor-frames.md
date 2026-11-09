@@ -105,3 +105,21 @@ native-to-JavaScript String materialization. Accepted CIDs/digests and UTF16
 files are unchanged; oversized values still fail original integrity checks,
 and a corrupt head is never changed into an absent head. Schema, snapshot,
 duplicate/scope/basis/active-flight and transaction/physical-close checks remain.
+
+The Effect Properties response quote keeps its full eventual Catalog retention
+while accounting for the value Strings shared with the parsed tree during
+projection. The Source parser owns decoded value text; indexed admission stores
+`Text(value)`, `decode.text` returns that same String, and the Property projector
+stores it directly in the Catalog. The simultaneous Effect execution peak
+therefore does not add another body-sized value-text backing for the Catalog.
+The common representation owner still prices that backing once. Headers,
+references, options arrays, input text, normalized keys, parser/index/NFC scratch,
+both complete digest duties, preflight, staging, receive and secret demand stay.
+
+This refinement applies at the existing Effect metadata constructor. Its
+Catalog retained amount and the independent Source Reader's failed-prefix model
+remain unchanged. The original physical child still grows its same token
+before the decoder; received bodies and rejected/pending prefixes remain with
+that owner. Complete grammar/current/identity/schema checks and logical cursor
+retirement are unchanged. The quote is not an allocator, GC or physical-close
+claim, and it does not establish that an entire installed operation will fit.
