@@ -659,17 +659,20 @@ const historicalFixtureWriters = new WeakMap();
 
 // Fixture server shutdown does not acknowledge its Host's physical cleanup.
 // Retain the same Host after refusal and join overlapping calls to its flight.
-function remoteHostClose(server, host) {
-  let serverClosed = false, closed = false, flight;
+function remoteHostClose(server, selectHost) {
+  let serverClosed = false, closed = false, flight, selectedHost;
   return () => {
     if (closed) return Promise.resolve();
+    // Historical seeding replaces the fixture Host before teardown begins.
+    // Select once, then keep that exact owner through pending close retries.
+    selectedHost ??= selectHost();
     flight ??= (async () => {
       if (!serverClosed) {
         server.closeAllConnections?.();
         await new Promise(resolve => server.close(resolve));
         serverClosed = true;
       }
-      const result = await host.close();
+      const result = await selectedHost.close();
       closed = true;
       return result;
     })().finally(() => {flight = undefined;});
@@ -731,7 +734,7 @@ test('Remote Host fixture retains its same close owner after refusal and joins o
   const close = remoteHostClose({
     closeAllConnections() {connections++;},
     close(done) {servers++; queueMicrotask(done);},
-  }, {async close() {closes++; if (!released) throw original; return confirmed;}});
+  }, () => ({async close() {closes++; if (!released) throw original; return confirmed;}}));
   const first = close();
   assert.equal(close(), first, 'overlapping close must join the original flight');
   await assert.rejects(first, error => error === original);
@@ -760,6 +763,48 @@ test('Remote Host fixture retains its same close owner after refusal and joins o
   await assert.rejects(closeRetainedStoreFixtureHost({async close() {throw failing;}}, t), error =>
     error instanceof AggregateError && error.cause === failing &&
     error.errors[0] === failing && error.errors[1] === retryFailure);
+});
+
+test('Remote Host fixture selects the seeded replacement once and retains it through pending close', async () => {
+  const original = new Error('OriginalReplacementCleanupPending');
+  const confirmed = Object.freeze({pending: []});
+  const events = [];
+  let initialCloses = 0, replacementCloses = 0, selections = 0, acknowledged = false;
+  const initial = {async close() {initialCloses++; events.push('initial-close');}};
+  const replacement = {async close() {
+    assert.equal(this, replacement);
+    replacementCloses++; events.push('replacement-close');
+    if (!acknowledged) throw original;
+    return confirmed;
+  }};
+  const foreign = {async close() {assert.fail('A pending original must not switch Hosts');}};
+  let current = initial;
+  const close = remoteHostClose({
+    closeAllConnections() {events.push('connections-close');},
+    close(done) {events.push('server-close'); queueMicrotask(done);},
+  }, () => {selections++; return current;});
+  // The real historical writer closes its first Host before opening its
+  // replacement. The fixture's eventual close must select that replacement.
+  await current.close();
+  current = replacement;
+  const first = close();
+  assert.equal(close(), first);
+  await assert.rejects(first, error => error === original);
+  assert.equal(initialCloses, 1);
+  assert.equal(replacementCloses, 1);
+  assert.deepEqual(events,
+    ['initial-close', 'connections-close', 'server-close', 'replacement-close']);
+  current = foreign;
+  acknowledged = true;
+  const retry = close();
+  assert.equal(close(), retry);
+  assert.equal(await retry, confirmed);
+  await close();
+  assert.equal(selections, 1);
+  assert.equal(initialCloses, 1);
+  assert.equal(replacementCloses, 2);
+  assert.deepEqual(events,
+    ['initial-close', 'connections-close', 'server-close', 'replacement-close', 'replacement-close']);
 });
 
 async function remoteHost(t, authorization, {directory,
@@ -821,7 +866,7 @@ async function remoteHost(t, authorization, {directory,
   try { httpObserver?.server(server); }
   catch { /* Optional diagnostics do not change the original server. */ }
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-  const close = remoteHostClose(server, host);
+  const close = remoteHostClose(server, () => host);
   // Close the Host (and its Store owner) before removing its state.
   t.after(async () => {
     await close();
