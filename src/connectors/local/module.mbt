@@ -318,11 +318,36 @@ pub fn local_module_metered_output_start_capacity(
         | @lower.AppendStep(_)
         | @lower.SetStep(_)
         | @lower.JoinStep(_)
+        | @lower.CrossJoinStep(_)
       )
     ) &&
     relation_chain_reclaimed_prefix(sequence) == count &&
     local_module_capacity_for_sequence(installed, slot, sequence) is Some(full) else {
     return None
+  }
+  if count == 1 &&
+    @execution.generated_sequence_step_at(sequence, 0)
+    is Some(@lower.CrossJoinStep(_)) {
+    let prepared = @lower.bound_preparation(
+      @execution.generated_sequence_owner(sequence),
+    )
+    guard @execution.generated_sequence_step_index_at(sequence, 0) is Some(step) &&
+      @lower.node_at(prepared, step) is Some(node) &&
+      @lower.node_input_count(node) == 2 else {
+      return None
+    }
+    for index in -1..<2 {
+      let target = if index < 0 {
+        Some(@pipeline.Step(step))
+      } else {
+        @lower.node_input_target(node, index)
+      }
+      guard target.bind(target => @lower.preparation_schema_at(prepared, target))
+        is Some(schema) &&
+        @schema.all_fields_required(schema) else {
+        return None
+      }
+    }
   }
   if count == 1 &&
     @execution.generated_sequence_step_at(sequence, 0)

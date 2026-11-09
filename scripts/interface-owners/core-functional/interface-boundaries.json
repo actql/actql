@@ -32738,7 +32738,7 @@
     },
     {
       "module": "src/client_local_host/captured_ledger.mbt",
-      "sha256": "65c4eb94227ac47f8898b2ac343d01b932a5b853e88982a1d3d09de860c95dd8",
+      "sha256": "4bff94ccfbc8ddd1863d6d1115ee962c7f235d12fd880ebd61a51fb01080d574",
       "exports": [],
       "operations": [
         {
@@ -33001,6 +33001,14 @@
               {
                 "path": "src/client_local_host/captured_requirements_capacity_wbtest.mbt",
                 "anchor": "test \"captured simultaneous quote selects original step occurrences after the Source offset\""
+              },
+              {
+                "path": "src/client_local_host/source_free_left_capture_plan_wbtest.mbt",
+                "anchor": "test \"source-free expanded left preserves the independent acquired right capture plan\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"runtime optional estimate cannot start an injected over-budget provider\""
               }
             ]
           }
@@ -52459,6 +52467,26 @@
               {
                 "path": "src/execution_relation/bounded_output_row_charge.mbt",
                 "anchor": "if !fund_output_retention("
+              },
+              {
+                "path": "src/execution_relation/execution_capacity.mbt",
+                "anchor": "bounded_measurement=(borrowed_row && !borrowed_group) || borrowed_cross"
+              },
+              {
+                "path": "src/execution_relation/value_budget.mbt",
+                "anchor": "fn push_stepped_measure("
+              },
+              {
+                "path": "src/execution_relation/bounded_binary_input_scan.mbt",
+                "anchor": "fn binary_input_push("
+              },
+              {
+                "path": "src/execution_relation/fragment_capacity_geometry.mbt",
+                "anchor": "let mut properties = 0L"
+              },
+              {
+                "path": "src/execution_relation/expression.mbt",
+                "anchor": "capture(selected_value)"
               }
             ],
             "extension": [
@@ -52591,6 +52619,26 @@
               {
                 "path": "src/execution_relation/bounded_unnest_wbtest.mbt",
                 "anchor": "test \"bounded unnest funds persistent original values before row transfer\""
+              },
+              {
+                "path": "src/execution_relation/fragment_capacity_geometry_wbtest.mbt",
+                "anchor": "test \"bounded property geometry borrows only original receivers and retains computed fallback\""
+              },
+              {
+                "path": "src/connectors/local/metered_output_start_wbtest.mbt",
+                "anchor": "test \"singleton CROSS JOIN borrows original inputs and refuses injected constructor credit\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"source-free expanded parent and acquired right execute on the original finite Ledger\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"expanded left import refusal precedes decoding with its independent Source retained\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"cancelled expanded left import cannot grow or decode a later original row\""
               }
             ]
           }

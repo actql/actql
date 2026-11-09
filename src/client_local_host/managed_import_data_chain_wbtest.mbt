@@ -44,6 +44,11 @@ fn managed_import_data_chain(
     @local_driver.LocalManagedDispatchOperations[Int],
   ) -> Unit = (_, _, _, _, _) => (),
   append_observation? : () -> Bool = () => true,
+  provider_factory? : (@execution.ExecutionCapacity) -> Array[
+    @local.ManagedProvider,
+  ] = _ => [],
+  expect_budget_refusal? : Bool = false,
+  input_control_task? : Int = 1,
 ) -> Unit raise {
   let prepared = before_limit_standard_prepared(
     query,
@@ -93,7 +98,7 @@ fn managed_import_data_chain(
     Some(source_query_original_fragment),
     None,
     retained_output=false,
-    provider_factory=_ => [],
+    provider_factory~,
     runtime_admission=true,
   ).unwrap()
   let limits = {
@@ -304,7 +309,7 @@ fn managed_import_data_chain(
         ),
       )
     }
-    if task == 1 && mode != Complete {
+    if task == input_control_task && mode != Complete {
       assert_eq(operations.inputs.length(), 1)
       if mode == RefuseImport {
         // A malformed row must fail at funding BEFORE the parser can observe
@@ -341,9 +346,18 @@ fn managed_import_data_chain(
       control_observed = true
       break
     }
-    for transfer in operations.inputs {
-      let input = @execution.managed_producer_read_input_index(transfer.input)
-      let producer = tasks[producers[input]].unwrap()
+    // Physical task input slots and operation-local port ordinals can differ
+    // when a source-free left branch precedes an independent captured Source.
+    // Transfers retain physical managed-input order; supplied Source ports do
+    // not allocate a managed transfer. Check each exact completed occurrence.
+    let mut transfer_index = 0
+    for input, producer_task in producers {
+      if producer_task < 0 {
+        continue
+      }
+      let transfer = operations.inputs[transfer_index]
+      transfer_index += 1
+      let producer = tasks[producer_task].unwrap()
       let original_output = producer.completed.unwrap()
       assert_true(
         @execution.managed_producer_read_matches_reference(
@@ -363,6 +377,7 @@ fn managed_import_data_chain(
       }
       (transfer.finish)().unwrap()
     }
+    assert_eq(transfer_index, operations.inputs.length())
     match (operations.execute)() {
       Ok(_) => ()
       Err(issue) => {
@@ -422,9 +437,19 @@ fn managed_import_data_chain(
   assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
   assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
   assert_true(mode == Complete || control_observed)
-  assert_true(failure is None)
+  if expect_budget_refusal {
+    assert_true(
+      failure
+      is Some(
+        @local_driver.Execution(@strategy.Physical(@resources.ExecutionLimit))
+      ),
+    )
+    assert_false(coexistence_fits.val)
+  } else {
+    assert_true(failure is None)
+    assert_true(coexistence_fits.val)
+  }
   assert_false(selection_missing)
-  assert_true(coexistence_fits.val)
   // Every route retains its SAME admitted original policy through import,
   // execution and cleanup. The original alias fixture also pins its exact CID.
   assert_eq(
@@ -640,4 +665,80 @@ test "acquired correlated UNNEST refuses import growth before original row decod
 ///|
 test "acquired correlated UNNEST cancellation retains original Source and parents" {
   managed_correlated_unnest_import(CancelImport)
+}
+
+///|
+test "runtime optional estimate cannot start an injected over-budget provider" {
+  let starts = Ref(0)
+  let currents = Ref(0)
+  managed_import_data_chain(
+    Complete,
+    expected_tasks=None,
+    expected_policy=None,
+    prior_execution=21170378L,
+    source_current=_ => {
+      currents.val += 1
+      true
+    },
+    expect_budget_refusal=true,
+    provider_factory=_ => {
+      [
+        @local.managed_provider(
+          _ => true,
+          _ => @execution.execution_capacity(0L, 733600000L),
+          (_, _, _, _, _) => {
+            starts.val += 1
+            Err(@connector.InvalidLimits)
+          },
+        ),
+      ]
+    },
+  )
+  assert_true(currents.val > 0)
+  assert_eq(starts.val, 0)
+}
+
+///|
+fn managed_source_free_expanded_import(
+  mode : ManagedImportDataCase,
+) -> Unit raise {
+  managed_import_data_chain(
+    mode,
+    input_control_task=2,
+    query="SELECT p.id, element, position FROM UNNEST(@parents) p CROSS JOIN UNNEST(p.items) element WITH OFFSET position CROSS JOIN records r MAX_OUTPUT_ROWS 10 ORDER BY p.id, position",
+    parameter_declarations=Some(
+      "{\"parents\":{\"type\":\"array\",\"max_items\":4,\"items\":{\"type\":\"object\",\"fields\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"items\":{\"type\":\"array\",\"nullable\":true,\"max_items\":3,\"items\":{\"type\":\"number\",\"nullable\":true}}}}}}",
+    ),
+    parameter_values=Some(
+      "{\"parents\":[{\"id\":2,\"items\":[2,null,2]},{\"id\":1,\"items\":[1]},{\"id\":3,\"items\":[]},{\"id\":4,\"items\":null}]}",
+    ),
+    source_wire="[{\"id\":1,\"amount\":10},{\"id\":2,\"amount\":20}]",
+    source_rows=2,
+    expected_tasks=None,
+    result_name="main",
+    two_input_task=None,
+    expected_rows=[
+      "{\"id\":1,\"element\":1,\"position\":0}", "{\"id\":1,\"element\":1,\"position\":0}",
+      "{\"id\":2,\"element\":2,\"position\":0}", "{\"id\":2,\"element\":2,\"position\":0}",
+      "{\"id\":2,\"element\":null,\"position\":1}", "{\"id\":2,\"element\":null,\"position\":1}",
+      "{\"id\":2,\"element\":2,\"position\":2}", "{\"id\":2,\"element\":2,\"position\":2}",
+    ],
+    prior_execution=21170378L,
+    expected_policy=None,
+  )
+}
+
+///|
+test "source-free expanded parent and acquired right execute on the original finite Ledger" {
+  managed_source_free_expanded_import(Complete)
+}
+
+///|
+test "expanded left import refusal precedes decoding with its independent Source retained" {
+  managed_source_free_expanded_import(RefuseImport)
+}
+
+///|
+test "cancelled expanded left import cannot grow or decode a later original row" {
+  managed_source_free_expanded_import(CancelImport)
 }

@@ -1,8 +1,9 @@
 ///|
 // Constructor proof for the bounded, selected, single binding-row provider.
-// This is not a bound inferred from an AST's encoded size. The three accepted
-// evaluator cases (expression.mbt) return an input/prior-slot alias, capture an
-// immutable admitted literal (scalar.mbt), or return inline Null. None builds
+// This is not a bound inferred from an AST's encoded size. The accepted
+// evaluator paths (expression.mbt) return an input/prior-slot alias, capture an
+// immutable admitted literal (scalar.mbt), return inline Null, or select a
+// checked property of an original input/prior-slot value. None builds
 // a new value tree. A separately inventoried scalar pipeline below admits
 // Number CAST of a two-argument SUBSTRING over one original Text field and
 // an admitted numeric literal. Logical live-byte guards execute unchanged.
@@ -30,9 +31,36 @@ fn bounded_leaf_fragment_capacity(
   let count = @lower.bindings_count(bindings)
   let ordered = @lower.bindings_ordered(bindings)
   let mut text_number = false
+  let mut properties = 0L
   for index in 0..<count {
     guard @lower.binding_at(bindings, index) is Some((_, expression)) else {
       return None
+    }
+    // Property continuations retain the original receiver and return its
+    // selected immutable child (or Null). Their name/selection cursors and
+    // logical result measurements still use the original workspace/guards.
+    // Only a chain rooted in an original input/prior slot uses this proof;
+    // computed receivers and dynamic subscripts keep the generic envelope.
+    let mut leaf = expression
+    let mut property = false
+    while @lower.expression_body(leaf) is @lower.Property(child, _, ordinal) {
+      if ordinal < 0 {
+        return None
+      }
+      property = true
+      properties += 1L
+      leaf = child
+    }
+    if property {
+      match @lower.expression_body(leaf) {
+        @lower.Field(_, @relation.InputField(_)) => ()
+        @lower.Field(_, @relation.PriorSlot(slot)) =>
+          if !bounded_leaf_prior_slot_supported(ordered, index, slot) {
+            return None
+          }
+        _ => return None
+      }
+      continue
     }
     match @lower.expression_body(expression) {
       @lower.Field(_, @relation.InputField(_))
@@ -68,10 +96,13 @@ fn bounded_leaf_fragment_capacity(
   // full sides, every binding occurrence (including repeated prior-slot reads),
   // plus the active result and output-before-input-release transition. This
   // also covers any failed prefix; no cleanup/release credit is assumed.
-  let roots = 2L * limits.rows.max_rows.to_int64() + count.to_int64() + 2L
+  let roots = 2L * limits.rows.max_rows.to_int64() +
+    count.to_int64() +
+    2L +
+    2L * properties
   // Current-row snapshot, binding values, and output aliases are separate
   // occurrences. Their immutable backing remains with its original owner.
-  let aliases = inputs + outputs + count.to_int64()
+  let aliases = inputs + outputs + count.to_int64() + properties
   let aliases_bytes = preparation_representation_cost({
     // Per root: LogicalRoot, measurement+Some, lease, scope Some, value/tag
     // carriers, plus conservative spare headers. References include both

@@ -30,7 +30,8 @@ fn selected_binding_rows_supported(kernel : @lower.PreparedKernel) -> Bool {
 
 ///|
 // These evaluator leaves return an existing input/prior value or capture an
-// immutable admitted literal. They build no text/container forest. Keep the
+// immutable admitted literal, including checked property selection rooted in
+// an input/prior slot. They build no text/container forest. Keep the
 // complete fragment/traversal workspace and fund persistent output on the
 // original bounded row budget before CommitOutputRow transfers it.
 fn selected_binding_outputs_borrowed(kernel : @lower.PreparedKernel) -> Bool {
@@ -46,6 +47,26 @@ fn selected_binding_outputs_borrowed(kernel : @lower.PreparedKernel) -> Bool {
   for index in 0..<@lower.bindings_count(bindings) {
     guard @lower.binding_at(bindings, index) is Some((_, expression)) else {
       return false
+    }
+    let mut leaf = expression
+    let mut property = false
+    while @lower.expression_body(leaf) is @lower.Property(child, _, ordinal) {
+      if ordinal < 0 {
+        return false
+      }
+      property = true
+      leaf = child
+    }
+    if property {
+      match @lower.expression_body(leaf) {
+        @lower.Field(_, @relation.InputField(_)) => ()
+        @lower.Field(_, @relation.PriorSlot(slot)) =>
+          if !ordered || slot < 0 || slot >= index {
+            return false
+          }
+        _ => return false
+      }
+      continue
     }
     match @lower.expression_body(expression) {
       @lower.Field(_, @relation.InputField(_))

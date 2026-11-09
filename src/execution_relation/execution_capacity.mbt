@@ -105,7 +105,8 @@ fn bounded_count_group_borrows_input(kernel : @lower.PreparedKernel) -> Bool {
 
 ///|
 /// Constructor-specific recipe for bounded Values, Append, primitive Set/Join,
-/// scalar grouped COUNT, UNNEST and binding-row providers; not a claim about
+/// required-field CROSS JOIN, scalar grouped COUNT, UNNEST and binding-row
+/// providers; not a claim about
 /// arbitrary executors of the same kernel.
 /// The bounded single-operation constructors use an operation workspace, not
 /// the legacy sequence wiring/table store. Their completed port retains exact
@@ -130,6 +131,7 @@ pub fn generated_bounded_sequence_capacity(
     | @lower.AppendStep(_)
     | @lower.SetStep(_)
     | @lower.JoinStep(_)
+    | @lower.CrossJoinStep(_)
     | @lower.RowStep(_) => ()
     _ => return generated_sequence_capacity(generated, limits, measurement)
   }
@@ -187,11 +189,13 @@ pub fn generated_bounded_sequence_capacity(
       .bind(target => @lower.preparation_schema_at(prepared, target))
       .map(input => {
         bounded_immediate_binding_schema(input) ||
-        // These constructors forward original immutable cells; recursive
-        // recheck returns the same value, not an input tree copy. Preserve the
-        // full output, measurement and traversal allowances independently.
+        // Binding snapshots and these forwarding constructors borrow the
+        // original immutable cells. Recursive recheck returns the same value,
+        // not an input tree copy. Preserve the complete independent output
+        // and recheck/traversal inventories.
         (
           (
+            @lower.kernel_bindings(kernel) is Some(_) ||
             @lower.kernel_body(kernel) is @lower.StableSort(_) ||
             @lower.kernel_body(kernel) is @lower.Select(_) ||
             // UNNEST scans original arrays and rechecks the same immutable
@@ -206,6 +210,27 @@ pub fn generated_bounded_sequence_capacity(
       .unwrap_or(false)
     }
     _ => false
+  }
+  // The bounded CROSS JOIN scans both original ProducerReads with its
+  // operation workspace. It constructs names/column maps and output row
+  // arrays, but rechecks the same immutable cells without copying input DATA.
+  let cross = operation is @lower.CrossJoinStep(_)
+  let mut borrowed_cross = cross &&
+    @lower.node_input_count(node) == 2 &&
+    @schema.all_fields_required(schema)
+  if borrowed_cross {
+    for index in 0..<2 {
+      if @lower.node_input_target(node, index)
+        .bind(target => @lower.preparation_schema_at(prepared, target))
+        .map(@schema.all_fields_required)
+        .unwrap_or(false) ==
+        false {
+        borrowed_cross = false
+      }
+    }
+  }
+  if cross && !borrowed_cross {
+    return generated_sequence_capacity(generated, limits, measurement)
   }
   let binary = operation is @lower.SetStep(_) || operation is @lower.JoinStep(_)
   let mut borrowed_binary = binary &&
@@ -239,7 +264,9 @@ pub fn generated_bounded_sequence_capacity(
     true,
     borrowed_input_values=operation is @lower.AppendStep(_) ||
       borrowed_row ||
-      borrowed_binary,
+      borrowed_binary ||
+      borrowed_cross,
+    bounded_measurement=(borrowed_row && !borrowed_group) || borrowed_cross,
   )
   guard ordinary is Some(ordinary) else { return None }
   // The Values provider does not pass FixedInputGuardMeasureLimits to its
@@ -330,9 +357,15 @@ fn generated_sequence_capacity_with_roots(
   metadata_scratch : Int64,
   bounded_single : Bool,
   borrowed_input_values? : Bool = false,
+  bounded_measurement? : Bool = false,
 ) -> ExecutionCapacity? {
   let rows = limits.rows
-  if rows.retained_entries < 0 || rows.metadata_entries < 0 {
+  if rows.retained_entries < 0 ||
+    rows.metadata_entries < 0 ||
+    rows.input_values.max_nodes < 0 ||
+    rows.input_values.max_text_bytes < 0 ||
+    measurement.max_nodes < 0 ||
+    measurement.max_bytes < 0 {
     return None
   }
   guard execution_capacity_inventory_bytes([
@@ -377,7 +410,15 @@ fn generated_sequence_capacity_with_roots(
       },
       {
         unit: ValueNodeSlots,
-        count: measurement.max_nodes.to_int64(),
+        // Bounded row/UNNEST constructors use SteppedValueMeasure over the
+        // same immutable cells. Every continuation reserves a RowWorkspace
+        // slot before allocation; operation_entries funds those slots above.
+        // No physical-measurement value forest is constructed on this path.
+        count: if bounded_measurement {
+          0L
+        } else {
+          measurement.max_nodes.to_int64()
+        },
         copies: 1,
       },
       {
@@ -401,7 +442,14 @@ fn generated_sequence_capacity_with_roots(
       },
       {
         unit: CanonicalWireBytes,
-        count: measurement.max_bytes.to_int64(),
+        // The same stepped traversal charges the logical text/work budgets
+        // without encoding a second canonical body. Output, recheck, fragment
+        // and depth inventories remain independent of this unused buffer.
+        count: if bounded_measurement {
+          0L
+        } else {
+          measurement.max_bytes.to_int64()
+        },
         copies: 1,
       },
     ])

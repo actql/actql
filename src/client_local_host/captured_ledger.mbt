@@ -185,7 +185,12 @@ fn client_local_sequence_capacity_original(
         ),
       )
     }
-    if retained < 0L || retained > client_local_retained_byte_ceiling() {
+    // The runtime path funds the selected provider/import/output on its same
+    // finite Ledger before allocation. A generated full-DATA maximum is an
+    // optional estimate, not a startup reservation. Legacy and simultaneous
+    // inventory callers still require this complete envelope to fit.
+    if retained < 0L ||
+      (!runtime_inventory && retained > client_local_retained_byte_ceiling()) {
       return None
     }
     if !runtime_inventory {

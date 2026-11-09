@@ -431,3 +431,62 @@ test "bounded text-number leaf geometry retains the actual scalar copy allowance
     is Err({ kind: Scalar(InvalidOperand), .. }),
   )
 }
+
+///|
+test "bounded property geometry borrows only original receivers and retains computed fallback" {
+  for
+    (wire, borrowed) in [
+      (
+        "[{\"values\":{\"schema\":{\"payload\":{\"type\":\"object\",\"nullable\":false,\"fields\":{\"items\":{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":true}}}}},\"rows\":[]},\"as\":\"seed\"},{\"derive\":{\"selected\":{\"property\":{\"value\":{\"field\":\"payload\"},\"name\":\"items\"}}}}]",
+        true,
+      ),
+      (
+        "[{\"values\":{\"schema\":{\"payload\":{\"type\":\"object\",\"nullable\":false,\"fields\":{\"items\":{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":true}}}}},\"rows\":[]},\"as\":\"seed\"},{\"derive\":{\"selected\":{\"property\":{\"value\":{\"object\":{\"wrapped\":{\"field\":\"payload\"}}},\"name\":\"wrapped\"}}}}]",
+        false,
+      ),
+    ] {
+    let sequence = prepared_sequence(bound_pipeline(wire))
+    let context = sequence_fragment_context(sequence, 1, 3L)
+    let generated = prepare_generated_sequence(
+      registered_relation_contracts(),
+      sequence,
+      [context],
+      ["derive_1"],
+      100000,
+      10000,
+    ).unwrap()
+    let selected = select_generated_sequence_step(generated, 1).unwrap()
+    let limits = leaf_geometry_limits(3)
+    let original = bounded_leaf_fragment_capacity(selected, context, limits)
+    assert_eq(original is Some(_), borrowed)
+    let larger = {
+      ..context,
+      limits: {
+        ..context.limits,
+        max_live_value_bytes: context.limits.max_live_value_bytes + 1L,
+      },
+    }
+    let measurement = {
+      max_work: 100000,
+      max_nodes: 10000,
+      max_bytes: 100000,
+      max_depth: 100,
+    }
+    let before = generated_bounded_sequence_capacity(
+      selected, limits, measurement,
+    ).unwrap()
+    let after = generated_bounded_sequence_capacity(
+      { ..selected, contexts: [larger], },
+      limits,
+      measurement,
+    ).unwrap()
+    assert_eq(
+      after.execution_bytes - before.execution_bytes,
+      if borrowed {
+        0L
+      } else {
+        264L
+      },
+    )
+  }
+}

@@ -126,11 +126,50 @@ test "bounded selected capacity funds exact completion metadata and preserves op
   // One output field and one input identity, not a legacy whole-owner table.
   assert_eq(ordinary.retained_bytes - bounded.retained_bytes, 19998L * 256L)
   // The original immediate input cells are borrowed: no second 100-node,
-  // 100-byte-text forest. Operation and measurement workspace stay prepaid.
+  // 100-byte-text forest. Measurement uses the same operation cursor slots,
+  // without a second value forest or canonical body; depth stays prepaid.
   assert_eq(
     ordinary.execution_bytes - bounded.execution_bytes,
-    9998L * 256L + 100L * 256L + 100L * 8L,
+    9998L * 256L + 2L * (100L * 256L + 100L * 8L),
   )
+  let unused_measurement = {
+    ..measurement,
+    max_nodes: 2830000,
+    max_bytes: 10000000,
+  }
+  let same = generated_bounded_sequence_capacity(
+    selected, limits, unused_measurement,
+  ).unwrap()
+  assert_eq(same.execution_bytes, bounded.execution_bytes)
+  assert_eq(same.retained_bytes, bounded.retained_bytes)
+  assert_true(
+    generated_sequence_capacity(selected, limits, unused_measurement).unwrap().execution_bytes >
+    ordinary.execution_bytes,
+  )
+  assert_true(
+    generated_bounded_sequence_capacity(selected, limits, {
+      ..measurement,
+      max_nodes: -1,
+    })
+    is None,
+  )
+  assert_true(
+    generated_bounded_sequence_capacity(selected, limits, {
+      ..measurement,
+      max_bytes: -1,
+    })
+    is None,
+  )
+  for input in [{ ..values, max_nodes: -1, }, { ..values, max_text_bytes: -1, }] {
+    assert_true(
+      generated_bounded_sequence_capacity(
+        selected,
+        { ..limits, rows: { ..limits.rows, input_values: input, }, },
+        measurement,
+      )
+      is None,
+    )
+  }
   let more = { ..limits, rows: { ..limits.rows, operation_entries: 10001, }, }
   let larger = generated_bounded_sequence_capacity(selected, more, measurement).unwrap()
   assert_eq(larger.execution_bytes - bounded.execution_bytes, 256L)
