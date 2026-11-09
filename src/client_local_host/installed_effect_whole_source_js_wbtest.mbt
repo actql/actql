@@ -453,7 +453,9 @@ test "Source and Compute attempt inventory refuses checked Int overflow" {
 // Actual checked Effect, two complete Direct Source inputs in one task, the
 // existing admitted managed parent, two RowRuns and the same physical host.
 #cfg(target="js")
-test "Retained Effect dispatcher preserves whole Source originals through managed Result completion" {
+fn retained_effect_whole_source_export_control(
+  export_results? : Bool = false,
+) -> Unit raise {
   let plan = effect_operation_source_plan_fixture(whole_inputs=true)
   assert_eq(plan.captures.length(), 0)
   assert_eq(plan.whole_sources.length(), 2)
@@ -599,6 +601,89 @@ test "Retained Effect dispatcher preserves whole Source originals through manage
   assert_true(@strategy.captured_task_completed(dag, 1))
   assert_true(@strategy.next_captured_task(dag) is None)
   assert_eq(execution.rows().unwrap(), ["{\"id\":3}"])
+  if export_results {
+    assert_eq(
+      @strategy.graph_result_task(@strategy.captured_dag_graph(dag), 0),
+      Some(1),
+    )
+    let inputs = @strategy.pin_captured_effect_sources(captured, 10).unwrap()
+    assert_eq(@strategy.captured_effect_local_result_count(inputs), 2)
+    let row : @execution.RetainedRowDecodeLimits = {
+      max_bytes: 1024,
+      max_nodes: 100,
+      max_depth: 10,
+      max_text_bytes: 1024,
+    }
+    let wire : @execution.RowWireLimits = {
+      max_columns: 10,
+      max_order_work: 10000,
+      max_bytes: 10000,
+      max_nodes: 1000,
+      max_depth: 20,
+    }
+    let export_limits : @publication_host.PublicationOutputExportLimits = {
+      max_result_fields: 10,
+      max_result_mapping_work: 10000,
+      max_result_order_work: 10000,
+      max_result_workspace_entries: 1000,
+      max_rows: 100,
+      values: {
+        max_nodes: 1000,
+        max_text_bytes: 10000,
+        max_depth: 20,
+        max_work: 10000,
+      },
+      payload_wire: wire,
+      logical_wire: wire,
+      schema: {
+        max_fields: 10,
+        max_bytes: 10000,
+        max_nodes: 1000,
+        max_depth: 20,
+      },
+      max_batch_bytes: 128,
+    }
+    for index in 0..<2 {
+      let result = @strategy.captured_effect_local_result_at(inputs, index).unwrap()
+      assert_eq(@strategy.captured_effect_local_result_task(result), index)
+      let owned = match
+        execution.prepare_effect_result_export(
+          captured, inputs, index, row, 1000, 10000, export_limits,
+        ) {
+        Ok(value) => value
+        Err(ForeignInput) =>
+          fail("Exact original producer Result refused as ForeignInput")
+        Err(_) =>
+          fail("Original managed export refused before Result conversion")
+      }
+      let exported = owned.captured_export().unwrap()
+      let preparation = @strategy.captured_effect_local_result_export_preparation(
+        exported,
+      )
+      while !@execution.advance_completed_result_relation_export(
+              preparation, 31,
+            ).unwrap().0 {
+        continue
+      }
+      let stream = @execution.finish_completed_result_relation_export_preparation(
+        preparation,
+      ).unwrap()
+      let actual = []
+      while @execution.next_completed_output_export_canonical_row(
+              stream, 1000, 20, 10000,
+            ).unwrap()
+            is Some((_, wire, _)) {
+        actual.push(wire)
+      }
+      assert_eq(actual, ["{\"id\":3}"])
+      let (receipt, _) = @execution.finish_completed_relation_export(stream).unwrap()
+      @execution.cancel_completed_relation_export_receipt(receipt)
+      @execution.cancel_completed_output_export(stream)
+      owned.close()
+      assert_true(owned.captured_export() is None)
+    }
+    assert_true(@strategy.release_captured_effect_inputs(inputs))
+  }
   assert_true(execution.close())
   assert_true(retire_installed_effect_captured_consumers(owner).unwrap())
   for read in reads {
@@ -611,4 +696,16 @@ test "Retained Effect dispatcher preserves whole Source originals through manage
   @resources.settle_capacity(ledger, sibling).unwrap()
   retire_installed_managed_run(owner).unwrap()
   assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+}
+
+///|
+#cfg(target="js")
+test "Retained Effect dispatcher preserves whole Source originals through managed Result completion" {
+  retained_effect_whole_source_export_control()
+}
+
+///|
+#cfg(target="js")
+test "managed Effect exports exact producer Results independently of the public Result task" {
+  retained_effect_whole_source_export_control(export_results=true)
 }
