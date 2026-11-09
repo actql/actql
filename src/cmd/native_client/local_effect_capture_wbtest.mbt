@@ -169,3 +169,70 @@ test "Native first member retains one original capture before input and full rec
     fail(message)
   }
 }
+
+///|
+test "Native completed canonical dependencies retain data without accumulating parser scratch" {
+  let wire = "{\"a\":[1,{\"key\":\"value\"}],\"text\":\"original\"}"
+  let cid = "sha256:" + @sha.text_hex(wire).unwrap()
+  let body = @publication.admit_hashed_effect_dependency_body(
+    "schema_evidence", cid, wire, 16384, 1024, 20,
+  ).unwrap()
+  // The actual returned dependency keeps the original immutable text. Its
+  // admission/identity rules are unchanged; a foreign identity still refuses.
+  assert_eq(@publication.captured_effect_dependency_body_json(body), wire)
+  assert_true(
+    @publication.admit_hashed_effect_dependency_body(
+      "schema_evidence",
+      "sha256:" + "0".repeat(64),
+      wire,
+      16384,
+      1024,
+      20,
+    )
+    is Err(_),
+  )
+  let old = native_mock_effect_dependency_body_capacity(16384, 1024, 20).unwrap()
+  let returned = native_mock_effect_canonical_body_capacity(16384, 1024, 20).unwrap()
+  // Failure and callback-time backing keep the complete original peak. Only
+  // nonescaping parser/index/Unicode families stop accumulating as outputs.
+  assert_true(
+    @execution.execution_capacity_execution_bytes(returned) >=
+    @execution.execution_capacity_execution_bytes(old),
+  )
+  assert_true(
+    @execution.execution_capacity_retained_bytes(returned) <
+    @execution.execution_capacity_retained_bytes(old),
+  )
+  assert_true(native_mock_effect_canonical_body_capacity(0, 1024, 20) is None)
+  assert_true(native_mock_effect_canonical_body_capacity(16384, 0, 20) is None)
+  assert_true(
+    native_mock_effect_canonical_body_capacity(16384, 1024, 0) is None,
+  )
+}
+
+///|
+test "Native serial capture retains every row and one original constructor workspace" {
+  let empty = @execution.execution_capacity(0L, 0L).unwrap()
+  let fixed = @execution.execution_capacity(100L, 120L).unwrap()
+  let row = @execution.execution_capacity(10L, 50L).unwrap()
+  let physical = @execution.execution_capacity(11L, 17L).unwrap()
+  let original = [fixed, row, empty, physical, empty, empty]
+  let serial = native_mock_effect_serial_capture_recipe(original).unwrap()
+  // Two retained rows still cost120. The selected Native serial decoder uses
+  // one40-byte workspace, including the original20-byte fixed scratch.
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(serial[0]) +
+    2L * @execution.execution_capacity_retained_bytes(serial[1]),
+    120L,
+  )
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(serial[0]) +
+    2L * @execution.execution_capacity_execution_bytes(serial[1]),
+    160L,
+  )
+  assert_true(physical_equal(serial[3], physical))
+  // No mutation of the separate original cold-recovery recipe or IO roles.
+  assert_true(physical_equal(original[0], fixed))
+  assert_true(physical_equal(original[1], row))
+  assert_true(native_mock_effect_serial_capture_recipe([]) is None)
+}

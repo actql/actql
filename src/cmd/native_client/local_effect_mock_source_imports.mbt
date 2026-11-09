@@ -272,7 +272,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_source_imports(
           wire.max_nodes,
           wire.max_depth,
           before_body=Some((bytes, nodes, depth) => {
-            construction.prepare(self.original, bytes, nodes, depth)
+            construction.prepare_canonical(self.original, bytes, nodes, depth)
           }),
         )
         .map_err(issue => LocalNativeMockEffectProposalIssue::Dependency(issue))

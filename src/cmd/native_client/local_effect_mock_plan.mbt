@@ -97,6 +97,36 @@ fn native_mock_effect_recipe_capacities(
 }
 
 ///|
+// This Native caller decodes/projections one proposal at a time, returns its
+// row Strings, and constructs Preview only after that loop has returned. Keep
+// every row's retained output, but one maximum synchronous workspace alongside
+// the fixed capture. Recovery retains its independently selected old recipe.
+fn native_mock_effect_serial_capture_recipe(
+  original : Array[@execution.ExecutionCapacity],
+) -> Array[@execution.ExecutionCapacity]? {
+  if original.length() != 6 {
+    return None
+  }
+  let fixed = original[0]
+  let row = original[1]
+  let retained = @execution.execution_capacity_retained_bytes(fixed)
+  let workspace = Int64::max(
+    @execution.execution_capacity_execution_bytes(fixed) - retained,
+    @execution.execution_capacity_execution_bytes(row) -
+    @execution.execution_capacity_retained_bytes(row),
+  )
+  guard @execution.checked_preparation_add_product(retained, workspace, 1L)
+    is Some(execution) else {
+    return None
+  }
+  let recipe = original.copy()
+  recipe[0] = @execution.execution_capacity(retained, execution).unwrap()
+  let row_retained = @execution.execution_capacity_retained_bytes(row)
+  recipe[1] = @execution.execution_capacity(row_retained, row_retained).unwrap()
+  Some(recipe)
+}
+
+///|
 // The same two member and five row occurrences as the existing file UPDATE
 // implementation. Read occurrences are physical here: this Native adapter
 // performs its own file I/O rather than borrowing a separate reader service.
@@ -160,13 +190,16 @@ fn native_mock_effect_operations(
       installation.binding,
       installation.write.mapping.mapping_cid,
     ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
-    let quantities = native_mock_effect_recipe_capacities(
+    let original_capture = native_mock_effect_recipe_capacities(
       wire, record_bytes, request_bytes, physical,
+    ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
+    let warm_capture = native_mock_effect_serial_capture_recipe(
+      original_capture,
     ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
     // Retain the SAME initial recipe. The first capture grows only for its
     // actual original bodies; its maximum is a refusal bound, not a grant.
-    let maximum = quantities.copy()
-    let original_capture = quantities.copy()
+    let quantities = warm_capture.copy()
+    let maximum = warm_capture.copy()
     if index == 0 {
       if @execution.execution_capacity_retained_bytes(imports.0) > 0L {
         quantities[0] = imports.0
@@ -182,7 +215,7 @@ fn native_mock_effect_operations(
     ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
     let capture = if index == 0 {
       capture_recipes.push(quantities)
-      capture_recipes.push(original_capture)
+      capture_recipes.push(warm_capture)
       @local_values.prepare_installed_effect_staged_extent(
         initial,
         @local_values.prepare_installed_effect_capture_recipe_extent(
@@ -488,8 +521,9 @@ fn native_mock_effect_import_construction(
   }
   // Per Result: Definition/Artifact/Derivation/Ordering. Per import: original
   // observation and derived Relation. Per producer: Invocation/full Manifest.
-  // The imported combined scope and its semantic Invocation add two bodies.
-  let documents = 4L * results + 2L * imports + 2L * units + 2L
+  // The imported combined scope and semantic Invocation add two bodies; the
+  // once-selected original-observation retention projection adds one more.
+  let documents = 4L * results + 2L * imports + 2L * units + 3L
   let json = @local_values.installed_json_effect_response_construction_capacity(
     empty, 16384, 1024, 20,
   ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))

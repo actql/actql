@@ -46,7 +46,7 @@ fn LocalNativeMockEffectImportConstruction::retain_wire(
     )
     stop("LocalOriginalEffectProposalsUnavailable")
   })
-  if !self.prepare(
+  if !self.prepare_canonical(
       original,
       Int::max(1, bytes),
       Int::min(1024, Int::max(1, bytes)),
@@ -85,6 +85,68 @@ fn native_mock_effect_dependency_body_capacity(
 }
 
 ///|
+// PublicationContract/RunEvidenceValue and CapturedEffectDependencyBody return
+// immutable span-free canonical values, original wire and typed edge records.
+// Their Source parser/index/NFC controls cannot escape. Keep the COMPLETE old
+// construction/failure peak, but only these actual returned families accumulate
+// beside later constructors. The row decoder below keeps its separate recipe.
+fn native_mock_effect_canonical_body_capacity(
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+) -> @execution.ExecutionCapacity? {
+  guard native_mock_effect_dependency_body_capacity(bytes, nodes, depth)
+    is Some(peak) &&
+    @source.json_tree_retained_construction_extent(
+      nodes,
+      nodes - 1,
+      nodes,
+      0,
+      bytes.to_int64(),
+      keep_spans=false,
+    )
+    is Some(tree) &&
+    @execution.preparation_representation_cost({
+      // One body/node/wire/contract wrapper family and at most one typed
+      // dependency-reference record per original JSON node. Reference strings
+      // borrow the SAME canonical tree; the original wire remains alongside it.
+      record_headers: tree.record_headers + 8L + nodes.to_int64(),
+      reference_slots: tree.reference_slots + 32L + 4L * nodes.to_int64(),
+      scalar_words: tree.scalar_words + 8L,
+      owned_utf16_units: tree.owned_utf16_units + bytes.to_int64() + 71L,
+      owned_wire_bytes: bytes.to_int64(),
+    })
+    is Some(retained) &&
+    @execution.checked_preparation_add_product(
+      retained,
+      @execution.execution_capacity_execution_bytes(peak) -
+      @execution.execution_capacity_retained_bytes(peak),
+      1L,
+    )
+    is Some(complete) else {
+    return None
+  }
+  @execution.execution_capacity(
+    retained,
+    Int64::max(complete, @execution.execution_capacity_execution_bytes(peak)),
+  )
+}
+
+///|
+fn LocalNativeMockEffectImportConstruction::prepare_canonical(
+  self : Self,
+  original : LocalCommandPreparationOriginal,
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+) -> Bool {
+  self.prepare_body(
+    original,
+    native_mock_effect_canonical_body_capacity(bytes, nodes, depth),
+  )
+}
+
+///|
 fn LocalNativeMockEffectImportConstruction::prepare(
   self : Self,
   original : LocalCommandPreparationOriginal,
@@ -92,8 +154,19 @@ fn LocalNativeMockEffectImportConstruction::prepare(
   nodes : Int,
   depth : Int,
 ) -> Bool {
-  guard native_mock_effect_dependency_body_capacity(bytes, nodes, depth)
-    is Some(body) &&
+  self.prepare_body(
+    original,
+    native_mock_effect_dependency_body_capacity(bytes, nodes, depth),
+  )
+}
+
+///|
+fn LocalNativeMockEffectImportConstruction::prepare_body(
+  self : Self,
+  original : LocalCommandPreparationOriginal,
+  capacity : @execution.ExecutionCapacity?,
+) -> Bool {
+  guard capacity is Some(body) &&
     @execution.checked_preparation_add_product(
       self.retained,
       @execution.execution_capacity_retained_bytes(body),

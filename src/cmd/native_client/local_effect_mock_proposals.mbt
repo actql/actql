@@ -512,6 +512,11 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
           max_capture_bytes,
           wire.max_nodes,
           wire.max_depth,
+          before_body=Some((bytes, nodes, depth) => {
+            held.construction
+            .unwrap()
+            .prepare_canonical(self.original, bytes, nodes, depth)
+          }),
         )
         .map_err(issue => LocalNativeMockEffectProposalIssue::Dependency(issue))
         .native_effect_proposal(self.original),
