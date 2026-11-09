@@ -96,8 +96,8 @@ pub fn client_program_hubspot_effect_constructor_capacity(
         input[3],
         input[4],
       )
-    4 if input.length() == 7 && output.is_empty() && counts.is_empty() =>
-      @hubspot_catalog.effect_metadata_construction_capacity(
+    4 if input.length() == 7 && output.is_empty() =>
+      @hubspot_catalog.effect_metadata_observed_construction_capacity(
         input[0],
         input[1],
         {
@@ -107,6 +107,7 @@ pub fn client_program_hubspot_effect_constructor_capacity(
           max_properties: input[5],
           max_name_units: input[6],
         },
+        counts,
       )
     5 if input.length() == 8 && output.is_empty() && counts.is_empty() => {
       guard @hubspot_catalog.effect_account_construction_capacity(

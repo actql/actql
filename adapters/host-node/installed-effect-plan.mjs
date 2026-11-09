@@ -819,7 +819,7 @@ function prepareInstalledEffectConstructorChild({run, memberIndex, rowIndex,
 export function prepareInstalledEffectCredentialChild({run, memberIndex, rowIndex,
   operationIndex, operation, perRow = true, originalSite, originalAuthorization, useId, resource,
   purpose, runInvocationCid, dispatchRequestCid, maxRequestBytes, maxResponseBytes,
-  assertCurrent, observeCurrent, requestsRetired, invoke: originalInvoke, responseExtent: originalResponseExtent}) {
+  assertCurrent, observeCurrent, requestsRetired, invoke: originalInvoke, responseExtent: originalResponseExtent, responsePreparation: originalResponsePreparation}) {
   if (run === undefined || typeof perRow !== 'boolean' || ![originalInvoke, assertCurrent, observeCurrent, requestsRetired]
       .every(value => typeof value === 'function') || !text(useId) || !text(resource) ||
       !['read', 'target-read', 'effect'].includes(purpose) || !text(runInvocationCid) || !text(dispatchRequestCid) ||
@@ -833,10 +833,17 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
     return field.value;
   };
   const method = (value,name) => {const fn=own(value,name);if(typeof fn!=='function')fail('InstalledEffectCredentialOperationUnavailable');return fn;};
-  let site=originalSite,authorization=originalAuthorization,invoke=originalInvoke,responseExtent=originalResponseExtent;
+  let site=originalSite,authorization=originalAuthorization,invoke=originalInvoke,responseExtent=originalResponseExtent,
+    responsePreparation=originalResponsePreparation;
+  let prepareResponse,retireResponse;
+  if(responsePreparation!==undefined){
+    if(typeof responseExtent!=='function')fail('InvalidInstalledEffectResponsePreparation');
+    prepareResponse=method(responsePreparation,'prepare');retireResponse=method(responsePreparation,'retire');
+    if([prepareResponse,retireResponse].some(fn=>nodeTypes.isProxy(fn)||nodeTypes.isAsyncFunction(fn)))fail('InvalidInstalledEffectResponsePreparation');
+  }
   let bind=method(site,'bindRunAcquisition'),readPurpose=method(site,'authorizationPurpose'),
     referenceCurrent=method(site,'referenceCurrent'),physical=method(site,'callResource');
-  originalSite=originalAuthorization=originalInvoke=originalResponseExtent=undefined;
+  originalSite=originalAuthorization=originalInvoke=originalResponseExtent=originalResponsePreparation=undefined;
   const {runtime,value:parent,prepared,request,operationPlan:plan,readPlan}=run;
   const select=runtime?.clientProgramInstalledEffectManagedPlanOperation,
     isPhysical=runtime?.clientProgramInstalledEffectOperationExtentPhysical,
@@ -951,7 +958,16 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
     const response = responseExtent === undefined ? result : Promise.resolve(result).then(value=>{
       originalRecord();
       if(!Buffer.isBuffer(value?.body)&&!(value?.body instanceof Uint8Array))fail('InvalidInstalledEffectResponseBody');
-      const extent=responseExtent(value.body.byteLength, value.body);
+      // This same physical child prepaid the fixed Source preflight before
+      // receiving bytes. The provider keeps its opaque cursor; only sizing
+      // scalars cross into the independently installed Common constructor.
+      const geometry=responsePreparation===undefined?undefined:
+        Reflect.apply(prepareResponse,responsePreparation,[value.body]);
+      if(geometry!==undefined&&(!Array.isArray(geometry)||nodeTypes.isProxy(geometry))){
+        retainFence(geometry);fail('InvalidInstalledEffectResponsePreparation');
+      }
+      originalRecord();
+      const extent=responseExtent(value.body.byteLength, value.body, geometry);
       originalRecord();
       checked(Reflect.apply(beginInput,runtime,[token,extent]));
       originalRecord();return value;
@@ -982,6 +998,11 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
       }
     }
     if(preparing||accountingFailed||(acquisition!==undefined&&!bindingClosed)||requestsRetired()!==true)return false;
+    if(retireResponse!==undefined){
+      const returned=Reflect.apply(retireResponse,responsePreparation,[]);
+      if(returned!==undefined){retainFence(returned);fail('InvalidInstalledEffectResponsePreparation');}
+    }
+    responsePreparation=prepareResponse=retireResponse=undefined;
     invoke=responseExtent=authorization=acquisition=boundCredential=closeBinding=bind=readPurpose=referenceCurrent=physical=site=physicalFlight=undefined;
     if(checked(Reflect.apply(retire,runtime,[token,true]))!==true)return false;
     token=undefined;state='retired';return true;

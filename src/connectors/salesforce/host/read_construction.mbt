@@ -748,28 +748,5 @@ pub fn named_describe_response_geometry(
 fn sf_read_describe_preflight_capacity(
   max_bytes : Int,
 ) -> @execution.ExecutionCapacity? {
-  if max_bytes < 1 {
-    return None
-  }
-  let controls = @source.json_source_preflight_control_extent()
-  @execution.preparation_execution_capacity({
-    retained: {
-      record_headers: 0L,
-      reference_slots: 0L,
-      scalar_words: 0L,
-      owned_utf16_units: 0L,
-      owned_wire_bytes: 0L,
-    },
-    workspace: {
-      record_headers: controls.record_headers + 4L,
-      reference_slots: controls.reference_slots + 10L,
-      scalar_words: controls.scalar_words + 4L,
-      owned_utf16_units: max_bytes.to_int64(),
-      owned_wire_bytes: 0L,
-    },
-    retained_nodes: 0L,
-    workspace_nodes: 0L,
-    retained_bytes: 0L,
-    workspace_bytes: 0L,
-  })
+  @execution.json_source_preflight_capacity(max_bytes)
 }

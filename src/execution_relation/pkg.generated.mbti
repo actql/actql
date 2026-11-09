@@ -854,6 +854,8 @@ pub fn infer_rows_preparation_usage(InferRowsPreparation) -> (Int, Int, Int)
 
 pub fn issue_managed_execution_attempt() -> ManagedExecutionAttempt
 
+pub fn json_source_preflight_capacity(Int) -> ExecutionCapacity?
+
 pub fn local_compute_result(LocalComputeAttempt) -> Result[CompletedSequence, LocalComputeIssue]
 
 pub fn logical_relation_canonical_contract_cid() -> String

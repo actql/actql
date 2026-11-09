@@ -40,7 +40,9 @@ export function createHubSpotUpdateObservationAdapter({moon, portalId, installed
       nodeTypes.isProxy(installedFor) || nodeTypes.isAsyncFunction(installedFor)) fail('InvalidHubSpotUpdateObservation');
   const native = capture(moon, ['hubspotRecheckAccountIdentityJson', 'hubspotProjectProperties',
     'hubspotRecheckPropertyCatalog', 'hubspotPropertyCatalogObjectType',
-    'hubspotRecordReadBody', 'hubspotRecheckRecordReadRequest', 'hubspotProjectRecordRead', 'hubspotRecordReadWire']);
+    'hubspotRecordReadBody', 'hubspotRecheckRecordReadRequest', 'hubspotProjectRecordRead', 'hubspotRecordReadWire',
+    'hubspotPreparePropertyResponseSource', 'hubspotPropertyResponseSourceGeometryData',
+    'hubspotConsumePropertyResponseSource', 'hubspotRetirePropertyResponseSource']);
   if (Object.values(native).some(method => typeof method !== 'function' || nodeTypes.isProxy(method) ||
       nodeTypes.isAsyncFunction(method))) fail('InvalidHubSpotUpdateObservation');
   const policy = Object.freeze(capture(limits, limitNames));
@@ -91,13 +93,16 @@ export function createHubSpotUpdateObservationAdapter({moon, portalId, installed
           headers: http.headers, ...(http.body === undefined ? {} : {body: http.body})})]]),
         maxRequestBytes: policy.maxRequestBytes, maxResponseBytes: policy.maxResponseBytes,
         returnRejectedResponse: true, signal, currentBeforeSend: () => current(slot)};
-      const result = await readChild(authorization, input, rowIndex, slot, response => {
+      const consume = response => {
         // The original child retains failed response custody. Snapshot and
         // decode before that child's projection-complete/shrink boundary.
         observations.push(response);
         if (!response.accepted || response.statusCode !== 200) fail('HubSpotUpdateReadRejected');
         return project(response.body);
-      });
+      };
+      if(project.responsePreparation!==undefined)Object.defineProperty(consume,'responsePreparation',
+        {value:project.responsePreparation});
+      const result = await readChild(authorization, input, rowIndex, slot, consume);
       await current(slot);
       return result;
     };
@@ -105,13 +110,37 @@ export function createHubSpotUpdateObservationAdapter({moon, portalId, installed
   const account = (read, rowIndex) => read('account', HUBSPOT_ACCOUNT_DETAILS_OPERATION,
     'GET', '/account-info/v3/details', undefined, rowIndex,
     body => projectHubSpotAccountIdentity({moon: native, body, originalPortalId: portalId, limits: policy}));
-  const catalog = (read, slot, original, rowIndex) => read(slot, HUBSPOT_PROPERTIES_READ_OPERATION,
-    'GET', '/crm/v3/properties/' + segment(original.objectType), undefined, rowIndex, body => {
-      const current = checked(native.hubspotProjectProperties(body, original.objectType,
-        policy.maxResponseBytes, policy.maxNodes, policy.maxDepth, policy.maxProperties, policy.maxNameUnits));
-      checked(native.hubspotRecheckPropertyCatalog(original.catalog, current, policy.maxProperties));
+  const catalog = (read, slot, original, rowIndex) => {
+    const path='/crm/v3/properties/'+segment(original.objectType);
+    // This original per-read projector retains the same provider cursor on a
+    // refused grow. It is neither a shared Catalog cache nor a Resource owner.
+    let prepared,retired=false;
+    const project = body => {
+      if(retired)fail('HubSpotPropertyResponseRetired');
+      const current=checked(prepared===undefined
+        ? native.hubspotProjectProperties(body,original.objectType,
+          policy.maxResponseBytes,policy.maxNodes,policy.maxDepth,policy.maxProperties,policy.maxNameUnits)
+        : native.hubspotConsumePropertyResponseSource(prepared,path,body));
+      checked(native.hubspotRecheckPropertyCatalog(original.catalog,current,policy.maxProperties));
       return current;
+    };
+    const responsePreparation=Object.freeze({
+      prepare(body){
+        if(retired||prepared!==undefined)fail('HubSpotPropertyResponseAlreadyPrepared');
+        // Keep a failed Result until accepted/status, preserving refusal order.
+        prepared=native.hubspotPreparePropertyResponseSource(body,path,original.objectType,
+          policy.maxResponseBytes,policy.maxNodes,policy.maxDepth,policy.maxProperties,policy.maxNameUnits);
+        return Object.freeze([...native.hubspotPropertyResponseSourceGeometryData(prepared)]);
+      },
+      retire(){
+        if(retired)return;
+        if(prepared!==undefined)native.hubspotRetirePropertyResponseSource(prepared);
+        prepared=undefined;retired=true;
+      },
     });
+    Object.defineProperty(project,'responsePreparation',{value:responsePreparation});
+    return read(slot,HUBSPOT_PROPERTIES_READ_OPERATION,'GET',path,undefined,rowIndex,project);
+  };
   return Object.freeze({
     async describe(options) {
       const original = selected(options.member), observations = [];

@@ -477,42 +477,84 @@ pub fn effect_account_construction_capacity(
 }
 
 ///|
-/// ProjectProperties retains only PropertyMetadata, option/name/type Strings,
-/// object type and response digest. The complete old bounded constructor peak
-/// safely includes its parser/index/sort/contract prefixes, all as workspace.
+/// ProjectProperties/recheck retains the Catalog, not a derived ObjectSchema.
+/// Its unchanged full byte-only fallback uses the same native Property role
+/// as Source rechecks; received-body geometry can refine only its workspace.
 pub fn effect_metadata_construction_capacity(
   body_bytes : Int,
   object_units : Int,
   limits : PropertyLimits,
 ) -> @execution.ExecutionCapacity? {
-  guard object_initialization_peak_capacity(
-      body_bytes,
-      0,
-      object_units,
-      limits,
-      limits.max_properties,
-      limits.max_name_units,
-      limits.max_bytes,
-      limits.max_nodes,
-      limits.max_depth,
-    )
-    is Some((peak, _)) else {
+  effect_metadata_capacity_with_geometry(body_bytes, object_units, limits, None)
+}
+
+///|
+/// The same provider-owned preflight supplies sizing DATA only. Opaque Source
+/// cursors remain in that provider and transfer once after original growth.
+pub fn effect_metadata_observed_construction_capacity(
+  body_bytes : Int,
+  object_units : Int,
+  limits : PropertyLimits,
+  data : Array[Int],
+) -> @execution.ExecutionCapacity? {
+  guard property_response_geometry_data(data, body_bytes) is Some(geometry) else {
     return None
   }
-  guard hubspot_effect_capacity(
+  effect_metadata_capacity_with_geometry(
+    body_bytes, object_units, limits, geometry,
+  )
+}
+
+///|
+fn effect_metadata_capacity_with_geometry(
+  body_bytes : Int,
+  object_units : Int,
+  limits : PropertyLimits,
+  geometry : @source.JsonSourceGeometry?,
+) -> @execution.ExecutionCapacity? {
+  guard property_observation_construction_capacity(
+      body_bytes, object_units, limits, geometry,
+    )
+    is Some(peak) &&
+    hubspot_effect_capacity(
       property_catalog_retained_units(body_bytes, object_units, limits),
       [],
     )
-    is Some(retained) &&
-    @execution.add_execution_capacity(
-      retained,
-      @execution.execution_capacity(
-        0L,
-        @execution.execution_capacity_execution_bytes(peak),
-      ).unwrap(),
+    is Some(catalog) &&
+    property_response_staging_capacity() is Some(staging) &&
+    @execution.json_source_preflight_capacity(limits.max_bytes)
+    is Some(preflight) &&
+    hubspot_effect_capacity(
+      {
+        // Per-read project/prepare/retire closures and their captured Source
+        // Result, native methods and retired flag on the existing physical child.
+        record_headers: 8L,
+        reference_slots: 32L,
+        scalar_words: 4L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      },
+      [],
     )
-    is Some(result) else {
+    is Some(host) &&
+    @execution.add_execution_capacity(staging, host) is Some(staging) else {
     return None
   }
-  Some(result)
+  let retained = @execution.execution_capacity_retained_bytes(catalog)
+  // The initial byte-zero extent prepays the bounded text/preflight before
+  // actual response sizing. That SAME cursor's grammar/projection follows;
+  // the two workspace alternatives do not overlap. All failed prefixes stay
+  // on this original token and its completed projection alone returns scratch.
+  guard @execution.add_execution_capacity(catalog, preflight) is Some(prelude) &&
+    @execution.execution_capacity(
+      retained,
+      Int64::max(
+        @execution.execution_capacity_execution_bytes(peak),
+        @execution.execution_capacity_execution_bytes(prelude),
+      ),
+    )
+    is Some(complete) else {
+    return None
+  }
+  @execution.add_execution_capacity(complete, staging)
 }

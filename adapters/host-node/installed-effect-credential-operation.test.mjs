@@ -452,3 +452,47 @@ test('response projection completion keeps the original preparing latch through 
   assert.equal(f.controls.settles,0);assert.equal(child.status().pending,true);
   assert.equal(await child.retry(),true);assert.equal(f.controls.settles,1);
 });
+
+test('same response Source staging precedes grow and stays on the original child through every failure',async t=>{
+  for(const mode of ['success','preflight','grow','consumer']){
+    const f=await operationFixture(t,{reply:()=>({body:'{"ok":true}'})});
+    const events=[],failure=new Error('original '+mode),geometry=Object.freeze([11]),extent={};
+    let originalBody;
+    const responsePreparation=Object.freeze({
+      prepare(body){originalBody=body;events.push('preflight');if(mode==='preflight')throw failure;return geometry;},
+      retire(){events.push('retire-source');},
+    });
+    f.runtime.clientProgramInstalledEffectOperationInputBegin=function(original,input){
+      assert.strictEqual(original,f.token);assert.strictEqual(input,extent);events.push('grow');
+      if(mode==='grow')throw failure;return {$tag:1,_0:undefined};
+    };
+    f.runtime.clientProgramInstalledEffectOperationResponseProjectionComplete=function(original){
+      assert.strictEqual(original,f.token);events.push('complete');return {$tag:1,_0:undefined};
+    };
+    const child=f.create(async context=>{
+      const response=await f.send(context);assert.strictEqual(response.body,originalBody);
+      events.push('consumer');if(mode==='consumer')throw failure;return response;
+    },{responsePreparation,responseExtent(bytes,body,data){
+      assert.equal(bytes,11);assert.strictEqual(body,originalBody);assert.strictEqual(data,geometry);
+      events.push('extent');return extent;
+    }});
+    if(mode==='success')await child.prepare();else await assert.rejects(child.prepare(),error=>error===failure);
+    assert.deepEqual(events,mode==='preflight'?['preflight']:mode==='grow'?['preflight','extent','grow']:
+      mode==='consumer'?['preflight','extent','grow','consumer']:['preflight','extent','grow','consumer','complete']);
+    assert.equal(await child.release(),false);assert.equal(events.includes('retire-source'),false);
+    assert.equal(f.controls.settles,0);assert.equal(f.controls.borrows,1);assert.equal(f.controls.starts,1);
+    f.controls.retiredAliases=true;assert.equal(await child.retry(),true);
+    assert.equal(events.at(-1),'retire-source');assert.equal(f.controls.settles,1);
+    assert.equal(await child.retry(),true);assert.equal(events.filter(e=>e==='retire-source').length,1);
+  }
+});
+
+test('response Source hooks require the original extent and synchronous own methods before borrowing',async t=>{
+  const f=await operationFixture(t);
+  for(const overrides of [
+    {responsePreparation:{prepare(){},retire(){}}},
+    {responseExtent:()=>({}),responsePreparation:{async prepare(){},retire(){}}},
+    {responseExtent:()=>({}),responsePreparation:new Proxy({prepare(){},retire(){}},{})},
+  ])assert.throws(()=>f.create(undefined,overrides));
+  assert.equal(f.controls.borrows,0);assert.equal(f.controls.bindings,0);assert.equal(f.server.seen().length,0);
+});

@@ -26,7 +26,8 @@ function fixture(moon) {
   const prepared = f.adapter.prepare({member: f.member, value, selector: recordId});
   f.adapter.prepareTargetRead(prepared.request, Object.freeze({maxColumns: limits.maxColumns,
     maxRequestBytes: limits.maxRequestBytes, maxRequestNodes: limits.maxRequestNodes, maxRequestDepth: limits.maxRequestDepth}));
-  const state = {calls: [], events: [], authorize: [], verifies: [], responseHook: undefined, verifyHook: undefined};
+  const state = {calls: [], events: [], authorize: [], verifies: [], responseHook: undefined, verifyHook: undefined,
+    stage: false, afterStage: undefined, staged: [], retired: 0};
   const options = {member: f.member, entries: [{request: prepared.request}],
     async verify(slot) {state.verifies.push(slot); await state.verifyHook?.(slot);},
     async authorizationFor(slot, row) {
@@ -45,7 +46,16 @@ function fixture(moon) {
         ? {status: 'COMPLETE', results: [record()]} : properties;
       const response = {accepted: true, statusCode: 200, body: Buffer.from(JSON.stringify(body))};
       await state.responseHook?.(slot, response);
-      const output = project(response);
+      const preparation=state.stage?project.responsePreparation:undefined;
+      let output;
+      try{
+        if(preparation!==undefined){
+          const data=preparation.prepare(response.body);state.staged.push(data);
+          assert(Object.isFrozen(data));assert.equal(data.length===0||data.length===12,true);
+          await state.afterStage?.(slot,response,preparation);
+        }
+        output = project(response);
+      }finally{if(preparation!==undefined){preparation.retire();state.retired++;}}
       assert.equal(typeof output?.then, 'undefined'); state.events.push(slot + ':projected');
       return output;
     }};
@@ -55,6 +65,26 @@ function fixture(moon) {
 }
 
 export function registerHubSpotUpdateObservationTests(moon) {
+  test('HubSpot Effect reuses the same provider Source cursor and preserves rejection and body identity',async()=>{
+    for(const mode of ['success','copy','retired','rejected','grammar']){
+      const f=fixture(moon);f.state.stage=true;
+      if(mode==='grammar')f.state.responseHook=(slot,response)=>{
+        if(slot==='schema')response.body=Buffer.from('{"results":[],"unselected":NaN}');
+      };
+      f.state.afterStage=(slot,response,preparation)=>{
+        assert.equal(slot,'schema');
+        if(mode==='copy')response.body=Buffer.from(response.body);
+        if(mode==='retired')preparation.retire();
+        if(mode==='rejected')response.accepted=false;
+      };
+      if(mode==='success')await f.describe();
+      else await assert.rejects(f.describe(),error=>error instanceof HubSpotUpdateObservationFailure&&
+        (mode!=='rejected'||error.cause?.code==='HubSpotUpdateReadRejected'));
+      assert.equal(f.state.staged.length,1);assert.equal(f.state.retired,1);
+      assert.deepEqual(f.state.calls.map(call=>call.slot),['account','schema']);
+    }
+  });
+
   test('HubSpot update reads exact account schema target schema through distinct original child slots', async () => {
     const f = fixture(moon), current = await f.describe(), rows = await f.observe(current);
     assert.deepEqual(f.state.calls.map(({slot}) => slot), ['account', 'schema', 'account', 'schema-before', 'target', 'schema-after']);

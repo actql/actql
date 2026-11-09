@@ -38,11 +38,14 @@ test('HubSpot typed Effect recipe retains captured quantities and checks exact r
   const target = recipe.credentialOperations.find(o => o.phase === 'apply-target' && o.slot === 'target');
   const before = f.quotes.length;
   account.responseExtent(16, new Uint8Array(16));
-  schema.responseExtent(128, new Uint8Array(128));
+  const geometry=Object.freeze([128,128,2,1,4,8,40,12,2,1,3,16]);
+  schema.responseExtent(128, new Uint8Array(128),geometry);
   target.responseExtent(256, new Uint8Array(256));
   const actual = f.quotes.slice(before);
   assert(actual.some(q => q.kind === 3 && q.input[0] === 16 && q.input[2] === 30000));
   assert(actual.some(q => q.kind === 4 && q.input[0] === 128 && q.input[2] === 30000));
+  assert.deepEqual(actual.find(q=>q.kind===4).counts,geometry);
+  assert(actual.filter(q=>q.kind===3).every(q=>q.counts.length===0));
   assert(actual.some(q => q.kind === 1 && q.input[0] === 256));
   for (const [bytes, body] of [[16, new Uint8Array(15)], [30001, new Uint8Array(30001)], [-1, new Uint8Array(0)]]) {
     assert.throws(() => target.responseExtent(bytes, body), {code: 'HubSpotEffectRecipeUnavailable'});

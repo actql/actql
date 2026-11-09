@@ -101,7 +101,7 @@ export function captureHubSpotEffectPlanRecipeBuilder({moon}) {
     const requestCapacity = quote(0, requestInput, [], counts), finalization = quote(6, requestInput, [], counts);
     const responseCapacity = quote(2, [write.maxResponseBytes, write.maxNodes, write.maxDepth]);
     const targetOutput = Object.freeze([read.maxOutputBytes, read.maxOutputNodes, read.maxOutputDepth]);
-    const profile = (targetBytes, metadataBytes, metadataKind = 5) => {
+    const profile = (targetBytes, metadataBytes, metadataKind = 5, geometry = []) => {
       const bytes = Math.max(1, targetBytes);
       const target = quote(1, [bytes, Math.min(read.maxNodes, bytes), Math.min(read.maxDepth, bytes), 1,
         read.maxColumns, read.maxCursorUnits, read.maxValueNodes, read.maxValueTextBytes], targetOutput, counts);
@@ -109,7 +109,8 @@ export function captureHubSpotEffectPlanRecipeBuilder({moon}) {
         ? [metadataBytes, portalId.length, read.maxResponseBytes, read.maxNodes, read.maxDepth]
         : metadataKind === 4
         ? [metadataBytes, objectTypeUnits, read.maxResponseBytes, read.maxNodes, read.maxDepth, read.maxProperties, read.maxNameUnits]
-        : [metadataBytes, portalId.length, objectTypeUnits, read.maxResponseBytes, read.maxNodes, read.maxDepth, read.maxProperties, read.maxNameUnits]);
+        : [metadataBytes, portalId.length, objectTypeUnits, read.maxResponseBytes, read.maxNodes, read.maxDepth, read.maxProperties, read.maxNameUnits],
+        [], metadataKind === 4 ? geometry : []);
       return [requestCapacity, target, responseCapacity, metadata].map(value =>
         runtimeTupleFromFields([value, undefined, undefined]));
     };
@@ -166,11 +167,11 @@ export function captureHubSpotEffectPlanRecipeBuilder({moon}) {
       // the SAME constructor. A generic Account/schema maximum is appropriate
       // for the shared capture, but its retained schema output cannot become
       // an Account operation's initial backing and then shrink at InputBegin.
-      const physicalProfile = bytes => kind === 1 ? profile(bytes, 0) : profile(0, bytes, kind);
-      const responseExtent = (bytes, body) => {
+      const physicalProfile = (bytes, geometry) => kind === 1 ? profile(bytes, 0) : profile(0, bytes, kind, geometry);
+      const responseExtent = (bytes, body, geometry) => {
         if (!Number.isSafeInteger(bytes) || bytes < 0 || bytes > responseBytes ||
             !(body instanceof Uint8Array) || body.byteLength !== bytes) fail();
-        return extentOf(quantities(physicalProfile(bytes)));
+        return extentOf(quantities(physicalProfile(bytes, geometry)));
       };
       selected.push({operation, extent: checked(stage(extentOf(quantities(physicalProfile(0))),
         extentOf(quantities(physicalProfile(responseBytes)))))});

@@ -1641,7 +1641,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   const prepareCredentialOperation = async ({member, rowIndex, phase, operation,
     site, originalAuthorization, useId, resource, purpose, invoke,
     managedEffect, requestChildren, retireRequestAliases, runInvocationCid,
-    dispatchRequestCid, assertCurrent, signal, maxResponseBytes, constructChild, credentialSlot}) => {
+    dispatchRequestCid, assertCurrent, signal, maxResponseBytes, constructChild, credentialSlot, responsePreparation}) => {
     const recipe = recipeOf(member);
     const ownedRead = recipe?.ownedReadOperations?.find(entry => entry.phase === phase);
     if (ownedRead !== undefined) {
@@ -1692,7 +1692,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         operationIndex: selected.operationIndex, operation, perRow, originalSite,
         originalAuthorization, useId, resource, purpose, runInvocationCid, dispatchRequestCid,
         maxRequestBytes: selected.maxRequestBytes, maxResponseBytes: responseBytes,
-        responseExtent: selected.responseExtent,
+        responseExtent: selected.responseExtent, responsePreparation,
         assertCurrent, observeCurrent: async () => {assertCurrent();},
         requestsRetired: retireRequestAliases, invoke}), assertCurrent, signal});
   };
@@ -1731,7 +1731,15 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       if (input?.grant !== originalAuthorization?.grant || input.useId === undefined ||
           !Number.isSafeInteger(input.maxResponseBytes) || input.maxResponseBytes < 1 ||
           input.maxResponseBytes > selected.maxResponseBytes) fail('ForeignInstalledEffectReadChild');
+      let responsePreparation;
+      if(project!==undefined){
+        if(typeof project!=='function'||nodeTypes.isProxy(project))fail('InvalidInstalledEffectReadProjector');
+        const field=Object.getOwnPropertyDescriptor(project,'responsePreparation');
+        if(field!==undefined&&!Object.hasOwn(field,'value'))fail('InvalidInstalledEffectReadProjector');
+        responsePreparation=field?.value;
+      }
       return physicalOperations({member, rowIndex, phase, operation, site, originalAuthorization,
+        responsePreparation,
         useId: input.useId, resource: selected.resource ?? member.resource,
         purpose: selected.perRow === false || selected.resource !== undefined ? 'read' : 'target-read',
         credentialSlot: slot,

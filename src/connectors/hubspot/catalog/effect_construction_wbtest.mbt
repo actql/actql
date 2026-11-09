@@ -102,7 +102,7 @@ test "HubSpot Effect constructor quantities separate actual returned representat
 }
 
 ///|
-test "HubSpot metadata and Account quote keep original peaks but not completed parser forests" {
+test "HubSpot metadata quotes only native Property role while Account keeps its original peak" {
   let property_limits : PropertyLimits = {
     max_bytes: 8192,
     max_nodes: 2000,
@@ -119,7 +119,7 @@ test "HubSpot metadata and Account quote keep original peaks but not completed p
     @execution.execution_capacity_retained_bytes(old),
   )
   assert_true(
-    @execution.execution_capacity_execution_bytes(selected) >=
+    @execution.execution_capacity_execution_bytes(selected) <
     @execution.execution_capacity_execution_bytes(old),
   )
   let old_account = account_initialization_construction_capacity(
@@ -297,4 +297,219 @@ test "HubSpot installation quote retains only its closed holders and digests whi
   assert_true(effect_installation_construction_capacity(2, 1, 2, 1) is None)
   assert_true(effect_installation_construction_capacity(2, 2, 1, 1) is None)
   assert_true(effect_installation_construction_capacity(1, 1, 1, 0) is None)
+}
+
+///|
+test "Effect Catalog response funds only its real projection beside retained original response" {
+  let limits : PropertyLimits = {
+    max_bytes: 524288,
+    max_nodes: 65536,
+    max_depth: 32,
+    max_properties: 256,
+    max_name_units: 6003,
+  }
+  // Independent same-scale input, including unknown fields and many nested
+  // nodes. No provider response, credential or stopped business state is read.
+  let properties = Array::makei(245, index => {
+    "{\"name\":\"field_" +
+    index.to_string() +
+    "\",\"type\":\"string\",\"fieldType\":\"text\",\"description\":\"" +
+    String::make(1050, 'x') +
+    "\",\"shape\":[" +
+    Array::make(11, "{\"a\":0,\"b\":0,\"c\":0,\"d\":0,\"e\":0}").join(",") +
+    "]}"
+  })
+  let body = @utf8.encode("{\"results\":[" + properties.join(",") + "]}")
+  assert_true(body.length() > 300000 && body.length() < limits.max_bytes)
+  let selected = effect_metadata_construction_capacity(body.length(), 9, limits).unwrap()
+  let reference = source_property_recheck_construction_capacity(
+    [
+      limits.max_bytes,
+      limits.max_nodes,
+      limits.max_depth,
+      limits.max_properties,
+      limits.max_name_units,
+    ],
+    body.length(),
+  ).unwrap()
+  println(
+    "Effect metadata body=\{body.length()} selectedE=\{@execution.execution_capacity_execution_bytes(selected)} nativePropertyRoleE=\{@execution.execution_capacity_execution_bytes(reference)}",
+  )
+  // The actual installed adapter projects/rechecks a Catalog. It constructs
+  // no ObjectSchema/Contract/export or second Host schema JSON forest.
+  assert_true(
+    @execution.execution_capacity_execution_bytes(selected) <=
+    @execution.execution_capacity_execution_bytes(reference),
+  )
+  let ledger = @resources.create_ledger({
+    planning_work: 1000000,
+    attempts: 16,
+    holdings: 16,
+    transfer_bytes: 10000000L,
+    retained_bytes: 536870912L,
+    execution_bytes: 536870912L,
+  }).unwrap()
+  let initial = effect_metadata_construction_capacity(0, 9, limits).unwrap()
+  let token = @resources.reserve_capacity(
+    ledger,
+    @execution.execution_capacity_retained_bytes(initial),
+    @execution.execution_capacity_execution_bytes(initial),
+  ).unwrap()
+  // Keep the same actual remaining execution allowance as the captured
+  // refusal. This represents retained raw response/other live dependencies;
+  // it does not classify or retire those originals, or claim normal gain.
+  let other = @resources.reserve_capacity(
+    ledger,
+    0L,
+    536870912L -
+    60234615L -
+    @execution.execution_capacity_execution_bytes(initial),
+  ).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  assert_true(
+    @resources.grow_capacity_reservation(
+      ledger,
+      token,
+      @execution.execution_capacity_retained_bytes(selected),
+      @execution.execution_capacity_execution_bytes(selected),
+    )
+    is Err(ExecutionLimit),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
+  // The byte-zero initial quote already funded this SAME input's preflight.
+  let path = "/crm/v3/properties/companies"
+  let prepared = prepare_property_response_source(
+    body, path, "companies", limits,
+  )
+  let data = property_response_source_geometry_data(prepared)
+  assert_eq(data.length(), 12)
+  let observed = effect_metadata_observed_construction_capacity(
+    body.length(),
+    9,
+    limits,
+    data,
+  ).unwrap()
+  println(
+    "Effect observed R=\{@execution.execution_capacity_retained_bytes(observed)} E=\{@execution.execution_capacity_execution_bytes(observed)} nodes=\{data[11]}",
+  )
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(observed),
+    @execution.execution_capacity_retained_bytes(selected),
+  )
+  @resources.grow_capacity_reservation(
+    ledger,
+    token,
+    @execution.execution_capacity_retained_bytes(observed),
+    @execution.execution_capacity_execution_bytes(observed),
+  ).unwrap()
+  let catalog = consume_property_response_source(prepared, path, body).unwrap()
+  recheck_property_catalog(catalog, catalog, limits.max_properties).unwrap()
+  assert_eq(catalog.properties.length(), 245)
+  retire_property_response_source(prepared)
+  @resources.settle_capacity(ledger, token).unwrap()
+  @resources.settle_capacity(ledger, other).unwrap()
+}
+
+///|
+test "Effect observed metadata sizes never replace original byte grammar or cursor bounds" {
+  let body = b"{\"results\":[]}"
+  let limits : PropertyLimits = {
+    max_bytes: 256,
+    max_nodes: 32,
+    max_depth: 8,
+    max_properties: 4,
+    max_name_units: 32,
+  }
+  let prepared = prepare_property_response_source(
+    body, "/properties", "companies", limits,
+  )
+  let data = property_response_source_geometry_data(prepared)
+  assert_eq(data.length(), 12)
+  let quote = effect_metadata_observed_construction_capacity(
+    body.length(),
+    9,
+    limits,
+    data,
+  ).unwrap()
+  let full = effect_metadata_construction_capacity(body.length(), 9, limits).unwrap()
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(quote),
+    @execution.execution_capacity_retained_bytes(full),
+  )
+  assert_true(
+    effect_metadata_observed_construction_capacity(
+      body.length() + 1,
+      9,
+      limits,
+      data,
+    )
+    is None,
+  )
+  assert_true(
+    effect_metadata_observed_construction_capacity(body.length(), 9, limits, [1])
+    is None,
+  )
+  let invalid = data.copy()
+  invalid[11] = -1
+  assert_true(
+    effect_metadata_observed_construction_capacity(
+      body.length(),
+      9,
+      limits,
+      invalid,
+    )
+    is None,
+  )
+  assert_true(
+    effect_metadata_observed_construction_capacity(
+      body.length(),
+      9,
+      { ..limits, max_bytes: body.length() - 1, },
+      data,
+    )
+    is None,
+  )
+  let fallback = effect_metadata_observed_construction_capacity(
+    body.length(),
+    9,
+    limits,
+    [],
+  ).unwrap()
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(fallback),
+    @execution.execution_capacity_retained_bytes(full),
+  )
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(fallback),
+    @execution.execution_capacity_execution_bytes(full),
+  )
+  // Geometry can be copied, but cannot supply or replace the original source.
+  let _ = consume_property_response_source(prepared, "/properties", body).unwrap()
+  assert_true(
+    consume_property_response_source(prepared, "/properties", body) is Err(_),
+  )
+  retire_property_response_source(prepared)
+  for
+    bad in [
+      b"{\"results\":[],\"other\":NaN}", b"{\"results\":[],\"x\":0,\"x\":1}",
+    ] {
+    let staged = prepare_property_response_source(
+      bad, "/properties", "companies", limits,
+    )
+    let sizes = property_response_source_geometry_data(staged)
+    // A successful preflight/quote is still not a full grammar admission.
+    assert_true(
+      effect_metadata_observed_construction_capacity(
+        bad.length(),
+        9,
+        limits,
+        sizes,
+      )
+      is Some(_),
+    )
+    assert_true(
+      consume_property_response_source(staged, "/properties", bad) is Err(_),
+    )
+    retire_property_response_source(staged)
+  }
 }

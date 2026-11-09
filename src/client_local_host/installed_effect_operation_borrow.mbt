@@ -80,7 +80,9 @@ fn installed_effect_operation_control_capacity(
       records: (27L + 2L) * calls,
       // One original response-projection completion method is retained by
       // the physical child; its existing preparation latch owns the flight.
-      record_references: (64L + 3L + 2L + 4L + 1L + 8L) * calls,
+      // Optional same-response preflight object and its two original methods,
+      // plus the installing original field, remain with this physical child.
+      record_references: (64L + 3L + 2L + 4L + 1L + 8L + 4L) * calls,
       record_words: (12L + 2L + 3L + 2L) * calls,
       // Deferred member construction retains one original preparation-method
       // vector. Its length is bounded by these same checked child slots.

@@ -33,6 +33,9 @@
   configured limits still reject the original parser. Previous/failed prefix
   peaks and raw bodies remain held; later unknown-role responses keep the full
   metadata/page envelope. No Ledger tariff or budget is increased.
+  Effect Property reads reuse the same view on their existing physical child.
+  Their initial quote explicitly prepays the shared decoded-text/preflight
+  inventory; their own successful consumer return is the scratch boundary.
 - Extension: This internal sizing vector is not a public wire, authority tuple
   or transport API. New parser families must preserve same-input transfer,
   normalizing HubSpot mode and explicitly fund their actual representations.

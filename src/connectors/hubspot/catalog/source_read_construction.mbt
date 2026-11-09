@@ -20,37 +20,17 @@ pub fn source_read_observed_construction_capacity(
   received : Array[Int],
   data : Array[Int],
 ) -> @execution.ExecutionCapacity? {
-  let geometry = if data.is_empty() {
-    None
-  } else {
-    if data.length() != 12 || received.length() < 2 || data[0] != received[1] {
-      return None
-    }
-    for v in data {
-      if v < 0 || v > data[0] {
-        return None
-      }
-    }
-    if data[7] > data[6] || data[6] > data[1] {
-      return None
-    }
-    Some(
-      (
-        {
-          input_bytes: data[0],
-          input_utf16_units: data[1],
-          objects: data[2],
-          arrays: data[3],
-          fields: data[4],
-          quoted_tokens: data[5],
-          quoted_raw_utf16_units: data[6],
-          longest_quoted_raw_utf16: data[7],
-          atoms: data[8],
-          longest_atom_utf16: data[9],
-          depth_upper: data[10],
-          node_upper: data[11],
-        } : @source.JsonSourceGeometry),
-    )
+  let geometry = match
+    property_response_geometry_data(
+      data,
+      if received.length() < 2 {
+        -1
+      } else {
+        received[1]
+      },
+    ) {
+    Some(value) => value
+    None => return None
   }
   guard source_read_capacity_with_geometry(
       limits, target_units, received, geometry,
@@ -312,71 +292,18 @@ fn source_property_recheck_capacity_with_geometry(
   bytes : Int,
   geometry : @source.JsonSourceGeometry?,
 ) -> @execution.ExecutionCapacity? {
-  let b = Int::max(1, bytes)
-  let n = Int::min(
-    geometry.map(g => Int::max(1, g.node_upper)).unwrap_or(b),
-    limits[1],
+  property_observation_construction_capacity(
+    bytes,
+    limits[4],
+    {
+      max_bytes: limits[0],
+      max_nodes: limits[1],
+      max_depth: limits[2],
+      max_properties: limits[3],
+      max_name_units: limits[4],
+    },
+    geometry,
   )
-  let depth = Int::max(
-    1,
-    Int::min(
-      geometry.map(g => g.depth_upper).unwrap_or(n),
-      Int::min(n, limits[2]),
-    ),
-  )
-  let f = Int::min(n, limits[3])
-  let parsed = match geometry {
-    None => initialization_decoded_construction(b, n, depth, true)
-    Some(g) => property_response_observed_construction(g, n, depth)
-  }
-  guard parsed is Some(parsed) &&
-    property_projection_construction_extent(n, f) is Some(metadata) &&
-    @shape.collection_construction_extent({
-      // recheck_property_catalog indexes the original only after confirming
-      // equal field counts. Its names/PropertyMetadata remain borrowed.
-      records: 16L + 4L * f.to_int64(),
-      record_references: 24L + 8L * f.to_int64(),
-      record_words: 16L + 4L * f.to_int64(),
-      reference_arrays: 2L,
-      reference_items: f.to_int64(),
-      scalar_arrays: 0L,
-      scalar_items: 0L,
-      maps: 1L,
-      map_entries: f.to_int64(),
-    })
-    is Some(recheck) &&
-    @encode.hash_writer_live_key_inventory(0, 0) is Some(hash) else {
-    return None
-  }
-  // Key normalization returns only its String before parse_json_bytes can
-  // return. Its private scalar/text workspace never overlaps the later native
-  // PropertyMetadata projection. Keep the complete parser peak as one phase,
-  // and every returned tree/key/index/output dependency in the later phase.
-  // This is a pre-construction peak quote, not a refund or physical GC claim.
-  let key_units = geometry.map(g => g.longest_quoted_raw_utf16).unwrap_or(b)
-  guard @execution.compose_preparation_representation([
-      property_catalog_retained_units(bytes, limits[4], {
-        max_bytes: limits[0],
-        max_nodes: limits[1],
-        max_depth: limits[2],
-        max_properties: limits[3],
-        max_name_units: limits[4],
-      }),
-      initialization_collection_units(recheck),
-      {
-        record_headers: hash.record_headers,
-        reference_slots: hash.reference_slots,
-        scalar_words: hash.scalar_words,
-        owned_utf16_units: hash.owned_utf16_units + 4L * b.to_int64() + 128L,
-        owned_wire_bytes: hash.owned_wire_bytes + bytes.to_int64(),
-      },
-    ])
-    is Some(fixed) else {
-    return None
-  }
-  source_normalization_phase_capacity(parsed, key_units, fixed, [
-    initialization_collection_units(metadata),
-  ])
 }
 
 ///|
@@ -464,4 +391,126 @@ fn property_response_observed_construction(
     owned_utf16_units: parsed.owned_utf16_units,
     owned_wire_bytes: 0L,
   })
+}
+
+///|
+// Same twelve sizing scalars, never a Catalog/permission/parser transfer.
+fn property_response_geometry_data(
+  data : Array[Int],
+  expected_bytes : Int,
+) -> @source.JsonSourceGeometry?? {
+  if data.is_empty() {
+    Some(None)
+  } else {
+    if data.length() != 12 || data[0] != expected_bytes {
+      return None
+    }
+    for v in data {
+      if v < 0 || v > data[0] {
+        return None
+      }
+    }
+    if data[7] > data[6] || data[6] > data[1] {
+      return None
+    }
+    Some(
+      Some(
+        (
+          {
+            input_bytes: data[0],
+            input_utf16_units: data[1],
+            objects: data[2],
+            arrays: data[3],
+            fields: data[4],
+            quoted_tokens: data[5],
+            quoted_raw_utf16_units: data[6],
+            longest_quoted_raw_utf16: data[7],
+            atoms: data[8],
+            longest_atom_utf16: data[9],
+            depth_upper: data[10],
+            node_upper: data[11],
+          } : @source.JsonSourceGeometry),
+      ),
+    )
+  }
+}
+
+///|
+// Shared Catalog projection/recheck role. Schema/Contract emission and Host
+// schema JSON parsing are different constructors and do not run here.
+fn property_observation_construction_capacity(
+  bytes : Int,
+  object_units : Int,
+  limits : PropertyLimits,
+  geometry : @source.JsonSourceGeometry?,
+) -> @execution.ExecutionCapacity? {
+  if bytes < 0 ||
+    bytes > limits.max_bytes ||
+    object_units < 0 ||
+    limits.max_bytes < 1 ||
+    limits.max_nodes < 1 ||
+    limits.max_depth < 1 ||
+    limits.max_properties < 1 ||
+    limits.max_name_units < 1 {
+    return None
+  }
+  let b = Int::max(1, bytes)
+  let n = Int::min(
+    geometry.map(g => Int::max(1, g.node_upper)).unwrap_or(b),
+    limits.max_nodes,
+  )
+  let depth = Int::max(
+    1,
+    Int::min(
+      geometry.map(g => g.depth_upper).unwrap_or(n),
+      Int::min(n, limits.max_depth),
+    ),
+  )
+  let f = Int::min(n, limits.max_properties)
+  let parsed = match geometry {
+    None => initialization_decoded_construction(b, n, depth, true)
+    Some(g) => property_response_observed_construction(g, n, depth)
+  }
+  guard parsed is Some(parsed) &&
+    property_projection_construction_extent(n, f) is Some(metadata) &&
+    @shape.collection_construction_extent({
+      // recheck_property_catalog indexes the original only after confirming
+      // equal field counts. Its names/PropertyMetadata remain borrowed.
+      records: 16L + 4L * f.to_int64(),
+      record_references: 24L + 8L * f.to_int64(),
+      record_words: 16L + 4L * f.to_int64(),
+      reference_arrays: 2L,
+      reference_items: f.to_int64(),
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 1L,
+      map_entries: f.to_int64(),
+    })
+    is Some(recheck) &&
+    @encode.hash_writer_live_key_inventory(0, 0) is Some(hash) else {
+    return None
+  }
+  // Key normalization returns only its String before parse_json_bytes can
+  // return. Its private scalar/text workspace never overlaps the later native
+  // PropertyMetadata projection. Keep the complete parser peak as one phase,
+  // and every returned tree/key/index/output dependency in the later phase.
+  // This is a pre-construction peak quote, not a refund or physical GC claim.
+  let key_units = geometry.map(g => g.longest_quoted_raw_utf16).unwrap_or(b)
+  guard @execution.compose_preparation_representation([
+      property_catalog_retained_units(bytes, object_units, limits),
+      initialization_collection_units(recheck),
+      {
+        record_headers: hash.record_headers,
+        reference_slots: hash.reference_slots,
+        scalar_words: hash.scalar_words,
+        owned_utf16_units: hash.owned_utf16_units + 4L * b.to_int64() + 128L,
+        owned_wire_bytes: hash.owned_wire_bytes + bytes.to_int64(),
+      },
+    ])
+    is Some(fixed) else {
+    return None
+  }
+  source_normalization_phase_capacity(parsed, key_units, fixed, [
+    initialization_collection_units(metadata),
+  ])
 }
