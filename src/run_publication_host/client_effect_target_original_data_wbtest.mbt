@@ -236,6 +236,66 @@ test "same-call typed installation shares full current purpose Mapping and uncha
 }
 
 ///|
+test "virtual installation bytes preserve empty unrelated objects exactly at original limit" {
+  let (cid, _, data) = issue_client_effect_target_installation_data(
+    target_original_installation_facts(),
+  ).unwrap()
+  let unrelated_facts = target_original_installation_facts()
+  unrelated_facts[1] = "unrelated"
+  let (unrelated_cid, _, unrelated) = issue_client_effect_target_installation_data(
+    unrelated_facts,
+  ).unwrap()
+  let (prepared, _, _, _) = target_selection_fixture(owner_cid=cid)
+  let original = client_effect_target_selection_original(prepared)[0]
+  let selected_observation =
+    #|{"update":true,"mappings":[{"target":"connector://crm/account","mappingRef":"mapping:crm.account.v1","mappingCid":"sha256:ce8b7dc9c08beafcd15440c15026a857361f9e04a2c1d9dec4bc8c9ab9f40283","update":true}]}
+  let compact = "[" + selected_observation + ",{}]"
+  let full_member = selected_observation.replace(
+    old="{\"update\":true",
+    new="{\"installation\":{\"cid\":\"" +
+      cid +
+      "\",\"wire\":" +
+      target_original_quote(data.wire) +
+      "},\"update\":true",
+  )
+  let full = "[" +
+    full_member +
+    ", {\"installation\":{\"cid\":\"" +
+    unrelated_cid +
+    "\",\"wire\":" +
+    target_original_quote(unrelated.wire) +
+    "}}]"
+  // The unrelated installation is valid DATA but has no selected occurrence,
+  // so the existing raw path lawfully skips its absent purpose and Mapping.
+  // Keep the one space in BOTH representations for exact enclosing bytes.
+  let compact = compact.replace(old=",{}]", new=", {}]")
+  assert_eq(
+    @utf8.encode(full).length(),
+    @utf8.encode(compact).length() +
+    data.observation_extra_bytes +
+    unrelated.observation_extra_bytes -
+    1,
+  )
+  let pad = 65536 - @utf8.encode(full).length()
+  for over in [0, 1] {
+    let padding = " ".repeat(pad + over)
+    assert_eq(
+      client_effect_target_selection_current(original, prepared, full + padding),
+      over == 0,
+    )
+    assert_eq(
+      client_effect_target_selection_current_data(
+        original,
+        prepared,
+        [data, unrelated],
+        compact + padding,
+      ),
+      over == 0,
+    )
+  }
+}
+
+///|
 test "admitted installation DATA equality borrows complete ordered cid and wire strings" {
   let cid = "sha256:9ee844e04eda0aa8f6e901a0fdc3fcd2694aa4bf94ad053b2308a5ae3ef4a2ca"
   let wire = target_original_installation_wire()

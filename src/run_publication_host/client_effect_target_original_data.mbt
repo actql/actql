@@ -584,7 +584,7 @@ fn client_effect_target_selection_current_owned(
         raise InvalidUpdateTargetOriginal
       }
       let mut virtual_bytes = @utf8.encode(observations).length().to_int64()
-      for installation in data {
+      for index, installation in data {
         if !physical_equal(
             installation.origin,
             client_effect_target_installation_data_origin,
@@ -592,6 +592,11 @@ fn client_effect_target_selection_current_owned(
           raise InvalidUpdateTargetOriginal
         }
         virtual_bytes += installation.observation_extra_bytes.to_int64()
+        // The measured insertion includes a comma for a nonempty object.
+        // An unrelated empty observation lawfully needs no such separator.
+        if @decode.object_length(current[index]) == Some(0) {
+          virtual_bytes -= 1L
+        }
       }
       if virtual_bytes > CLIENT_EFFECT_TARGET_ORIGINAL_MAX_BYTES.to_int64() {
         raise InvalidUpdateTargetOriginal
