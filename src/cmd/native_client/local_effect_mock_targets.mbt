@@ -7,10 +7,21 @@ priv struct LocalNativeMockEffectTarget {
   mut child : @row_file.NativeRelationFileTargetIO?
   mut observed : (String, String)?
   mut request_operation : @local_values.ClientInstalledEffectOperationBorrow?
+  mut request_input : LocalNativeMockEffectRequestInput?
   mut _retained_request : (String, String)?
   mut charged : Int64
   mut received : Int64
   mut _retained_account_issue : @local_values.ClientInstalledManagedRunIssue?
+}
+
+///|
+// Original row-scoped input only, retained before fallible child close. It
+// grants no permission and cannot select another member/row/operation.
+priv struct LocalNativeMockEffectRequestInput {
+  value : Json
+  before : String
+  version : String
+  initial : @execution.ExecutionCapacity
 }
 
 ///|
@@ -67,6 +78,7 @@ fn LocalNativeMockEffectTarget::close(
   // Drop this caller's escaped DATA before settling its actual backing. The
   // physical child above, not a successful logical result, supplies the ACK.
   self.observed = None
+  self.request_input = None
   self._retained_request = None
   if self.request_operation is Some(operation) {
     match @local_values.retire_installed_effect_operation(operation, true) {
@@ -175,6 +187,7 @@ fn LocalCommandBusinessPreparation::observe_mock_effect_targets(
           child: None,
           observed: None,
           request_operation: None,
+          request_input: None,
           _retained_request: None,
           charged: 0L,
           received: 0L,
@@ -298,16 +311,11 @@ fn LocalCommandBusinessPreparation::observe_mock_effect_targets(
         if received < 0L || received > binding.limits.page.max_bytes.to_int64() {
           stop("LocalOriginalEffectRequestUnavailable")
         }
-        let capacity = native_mock_effect_request_input_capacity(
-          binding.provider,
+        let capacity = native_mock_effect_changes_input_capacity(
           binding.limits.page,
           installation.write.mapping.write_fields.length(),
-          received.to_int(),
-          proposal.0,
           proposal.1,
           before,
-          installation.binding,
-          installation.write.mapping.mapping_cid,
           version,
         ).unwrap_or_else(() => stop("LocalOriginalEffectRequestUnavailable"))
         let extent = @local_values.prepare_installed_effect_operation_extent(
@@ -337,6 +345,54 @@ fn LocalCommandBusinessPreparation::observe_mock_effect_targets(
           }
           Ok(_) => ()
         }
+        held.request_input = Some({ value, before, version, initial: capacity, })
+        match child.close() {
+          Err(issue) => {
+            self.original.retain_primary(CommandBusinessSource(issue))
+            stop("LocalOriginalEffectTargetCleanupPending")
+          }
+          Ok(false) => stop("LocalOriginalEffectTargetCleanupPending")
+          Ok(true) => held.child = None
+        }
+        held.observed = None
+      })
+      // The original validation frame has returned; its replacement Bytes,
+      // parser/writer temporaries and full Target document are no longer live.
+      // Only the retained request input remains on its own same-Plan backing.
+      self.original.with_business_request(self.capture, () => {
+        if !@local_values.retire_installed_effect_operation(
+            held.operation,
+            true,
+          )
+          .map_err(issue => LocalNativeMockEffectProposalIssue::Managed(issue))
+          .native_effect_proposal(self.original) {
+          stop("LocalOriginalEffectTargetCleanupPending")
+        }
+      })
+      self.original.with_business_request(self.capture, () => {
+        let request = held.request_operation.unwrap()
+        let input = held.request_input.unwrap()
+        let capacity = native_mock_effect_request_json_capacity(
+            proposal.0,
+            proposal.1,
+            input.before,
+            installation.binding,
+            installation.write.mapping.mapping_cid,
+            input.version,
+          )
+          .bind(final_capacity => {
+            native_mock_effect_capacity_envelope(input.initial, final_capacity)
+          })
+          .unwrap_or_else(() => stop("LocalOriginalEffectRequestUnavailable"))
+        let extent = @local_values.prepare_installed_effect_operation_extent(
+          "native.mock.file.request", capacity, 0L, false,
+        ).unwrap_or_else(() => stop("LocalOriginalEffectRequestUnavailable"))
+        @local_values.grow_installed_effect_operation_input(request, extent)
+        .map_err(issue => LocalNativeMockEffectProposalIssue::Managed(issue))
+        .native_effect_proposal(self.original)
+        let value = input.value
+        let before = input.before
+        let version = input.version
         let target = @json.parse(proposal.0) catch {
           _ => stop("LocalOriginalEffectSelectorUnavailable")
         }
@@ -363,41 +419,17 @@ fn LocalCommandBusinessPreparation::observe_mock_effect_targets(
             stop("LocalOriginalEffectRequestUnavailable")
           })
         held._retained_request = Some((wire, cid))
-        match child.close() {
-          Err(issue) => {
-            self.original.retain_primary(CommandBusinessSource(issue))
-            stop("LocalOriginalEffectTargetCleanupPending")
-          }
-          Ok(false) => stop("LocalOriginalEffectTargetCleanupPending")
-          Ok(true) => held.child = None
-        }
-        held.observed = None
+        held.request_input = None
       })
-      // The constructor frame and its parsed aliases have returned. Only the
-      // original detached request/cid remain on this same retained record.
+      // Final JSON constructor aliases have returned before output completion.
       self.original.with_business_request(self.capture, () => {
         let request = held.request_operation.unwrap()
         let wire = held._retained_request.unwrap().0
-        // The SAME original physical child has acknowledged close. Retain
-        // only its already-owned detached canonical request, with the existing
-        // output completion port; no reparse, reissue, attempt refund or size-
-        // based physical acknowledgement is introduced here.
         @local_values.complete_installed_effect_operation_construction_output(
           request, wire,
         )
         .map_err(issue => LocalNativeMockEffectProposalIssue::Managed(issue))
         .native_effect_proposal(self.original)
-        // The detached canonical request has its OWN same-Plan pure backing.
-        // Release the completed read's live holdings now; its occurrence and
-        // consumed physical attempt/bytes remain spent on the original Run.
-        if !@local_values.retire_installed_effect_operation(
-            held.operation,
-            true,
-          )
-          .map_err(issue => LocalNativeMockEffectProposalIssue::Managed(issue))
-          .native_effect_proposal(self.original) {
-          stop("LocalOriginalEffectTargetCleanupPending")
-        }
       })
     }
   }

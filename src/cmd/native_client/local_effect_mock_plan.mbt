@@ -240,13 +240,22 @@ fn native_mock_effect_operations(
     let read_maximum = native_mock_effect_capacity_envelope(
       physical, read_maximum,
     ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
+    // Initial fixed controls/replacement slots, not another Target document.
+    // Actual original changes/before/version refine this SAME staged extent.
+    let request_initial = native_mock_effect_changes_input_capacity(
+      binding.limits.page,
+      installation.write.mapping.write_fields.length(),
+      "",
+      "",
+      "",
+    ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
     let request_maximum = native_mock_effect_capacity_envelope(
       quantities[2],
-      read_initial,
+      request_initial,
     ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
     let request = @local_values.prepare_installed_effect_staged_extent(
       @local_values.prepare_installed_effect_operation_extent(
-        "native.mock.file.request", read_initial, 0L, false,
+        "native.mock.file.request", request_initial, 0L, false,
       ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable")),
       @local_values.prepare_installed_effect_operation_extent(
         "native.mock.file.request", request_maximum, 0L, false,
@@ -286,6 +295,19 @@ fn native_mock_effect_operations(
       }
       rows.push(extent)
     }
+    // The existing Native Target holder has one additional optional input
+    // reference. It survives physical Target retirement, so its SAME checked
+    // row control owns that slot until Run retirement, not the read operation.
+    let input_slot = @execution.preparation_representation_cost({
+      record_headers: 0L,
+      reference_slots: 1L,
+      scalar_words: 0L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    }).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
+    let controls_per_row = @execution.execution_capacity(input_slot, input_slot)
+      .bind(slot => @execution.add_execution_capacity(quantities[4], slot))
+      .unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
     selected.push(
       @local_values.prepare_installed_effect_operation_demand_with_controls(
         prepared,
@@ -293,7 +315,7 @@ fn native_mock_effect_operations(
         id,
         [capture, recovery],
         rows,
-        quantities[4],
+        controls_per_row,
       ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable")),
     )
   }

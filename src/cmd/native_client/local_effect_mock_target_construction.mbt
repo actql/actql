@@ -17,15 +17,9 @@ fn native_mock_effect_capacity_envelope(
 }
 
 ///|
-// SAME already-owned selector/changes/before and installation Strings. The
-// Canonical Owner supplies the NFC expansion bound; six bytes per output unit
-// cover escaping. Keep raw inputs beside the bounded original writer too.
-// These are construction bounds only; all old parser/writer guards remain.
-fn native_mock_effect_request_input_capacity(
-  provider : @row_file.NativeRelationFilePreparedProvider,
-  page : @row_host.RowPageLimits,
-  writable_fields : Int,
-  received : Int,
+// SAME original owned Strings; no provider/document/transport is constructed
+// by this pure JSON phase. The live Target has its own original reservation.
+fn native_mock_effect_request_json_capacity(
   target : String,
   changes : String,
   before : String,
@@ -61,24 +55,33 @@ fn native_mock_effect_request_input_capacity(
   }
   let bytes = Int::max(1, bytes.to_int())
   let empty = @execution.execution_capacity(0L, 0L).unwrap()
-  guard @local_values.installed_json_effect_request_construction_capacity(
-      empty,
-      bytes,
-      bytes,
-      Int::min(
-        bytes,
-        Int::max(local_project_mock_relation_wire_depth, page.max_depth),
-      ),
-    )
+  // The original Native adapter normalizes through canonical.from_json.
+  // Keep its existing normalizing/NFC peak, not the preserving-only quote.
+  @local_values.installed_json_effect_response_construction_capacity(
+    empty,
+    bytes,
+    bytes,
+    Int::min(bytes, local_project_mock_relation_wire_depth),
+  )
+}
+
+///|
+// check_update borrows the SAME ready Target document/writer allowance; it
+// creates no second Reader, receive buffer or document. Its temporary field
+// replacements and returned whole-document Bytes are additional. They die
+// before the final request JSON phase. Keep original parser/admission guards.
+fn native_mock_effect_changes_input_capacity(
+  page : @row_host.RowPageLimits,
+  writable_fields : Int,
+  changes : String,
+  before : String,
+  version : String,
+) -> @execution.ExecutionCapacity? {
+  if writable_fields < 1 || writable_fields > page.max_nodes {
+    return None
+  }
+  guard native_mock_effect_request_json_capacity("", changes, "", "", "", "")
     is Some(json) &&
-    @row_file.native_relation_file_target_read_io_capacity(
-      provider,
-      writable_fields,
-      response_bytes=Some(received),
-    )
-    is Some(document) &&
-    // check_update can retain each field's replacement plus the final whole
-    // original document. Its independent old page guard bounds every copy.
     @execution.execution_capacity_inventory(
       [
         {
@@ -91,8 +94,21 @@ fn native_mock_effect_request_input_capacity(
       RetainedAlongsideExecution,
     )
     is Some(replacements) &&
-    @execution.add_execution_capacity(json, document) is Some(complete) else {
+    @execution.preparation_representation_cost({
+      // Original input record H1/R4 + Some H1/R1/W1. The fixed
+      // caller slot belongs to the same Plan controls_per_row for its lifetime.
+      // Before/version transfer to this same request before Target retirement.
+      record_headers: 2L,
+      reference_slots: 5L,
+      scalar_words: 1L,
+      owned_utf16_units: before.length().to_int64() +
+      version.length().to_int64(),
+      owned_wire_bytes: 0L,
+    })
+    is Some(input) &&
+    @execution.execution_capacity(input, input) is Some(input) &&
+    @execution.add_execution_capacity(json, replacements) is Some(phase) else {
     return None
   }
-  @execution.add_execution_capacity(complete, replacements)
+  @execution.add_execution_capacity(phase, input)
 }
