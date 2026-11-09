@@ -1062,3 +1062,48 @@ test "converted Result receipt identifies its retained original completion" {
   assert_true(completed_output_available(converted))
   cancel_completed_relation_export_receipt(receipt)
 }
+
+///|
+test "Result receipt match fences reentrant cancellation after source availability" {
+  let owner = result_export_owner()
+  let raw = export_fixture(owner)
+  let armed = Ref(false)
+  let retained : Ref[CompletedRelationExportReceipt?] = Ref(None)
+  let source = restrict_completed_output(raw, () => {
+    if armed.val && retained.val is Some(receipt) {
+      cancel_completed_relation_export_receipt(receipt)
+    }
+    true
+  })
+  let occurrence = result_export_occurrence(
+    owner, "r", "{\"r\":{\"from\":\"selected\",\"fields\":[\"s\",\"n\"]}}",
+  )
+  let preparation = start_completed_result_relation_export(
+    source,
+    occurrence,
+    result_view_limits(),
+    2,
+    stream_value_limits(),
+    row_wire_limits(),
+    row_wire_limits(),
+    publication_schema_limits(),
+    64,
+  ).unwrap()
+  while !advance_completed_result_relation_export(preparation, 64).unwrap().0 {
+    ()
+  }
+  let stream = finish_completed_result_relation_export_preparation(preparation).unwrap()
+  while next_completed_output_export(stream).unwrap() is Some(_) {
+    ()
+  }
+  let (receipt, _) = finish_completed_relation_export(stream).unwrap()
+  assert_true(
+    completed_result_export_preparation_matches_receipt(preparation, receipt),
+  )
+  retained.val = Some(receipt)
+  armed.val = true
+  assert_false(
+    completed_result_export_preparation_matches_receipt(preparation, receipt),
+  )
+  assert_true(completed_output_available(raw))
+}
