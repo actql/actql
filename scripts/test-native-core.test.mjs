@@ -953,8 +953,11 @@ process.exitCode=process.env.ACTQL_FIXTURE_SOURCE_FAILED==='1'?9:0;
       'Original compiler-input fixture\n');
     if (effectTargets) {
       for (const path of ['src/cmd/native_client/local_project_mock_content_physical_scoped_wbtest.mbt',
-        'src/platform_native/row_source/target_io_physical_scoped_wbtest.mbt'])
-        writeFileSync(join(checkout, path), 'Original compiler-input fixture\n');
+        'src/platform_native/row_source/target_io_physical_scoped_wbtest.mbt']) {
+        if (path.endsWith('/target_io_physical_scoped_wbtest.mbt'))
+          copyFileSync(new URL('../' + path, import.meta.url), join(checkout, path));
+        else writeFileSync(join(checkout, path), 'Original compiler-input fixture\n');
+      }
     }
     // This test observes routing only. Physical compilation is covered by the
     // selected-provider helper and actual Native cases, not this explicit port.
@@ -1029,8 +1032,9 @@ if (process.argv[2] === 'generate-test-driver') {
   require('node:fs').mkdirSync(require('node:path').dirname(metadata), {recursive:true});
   const tests = Object.fromEntries(args.filter(value => value.startsWith('src/') && value.endsWith('.mbt'))
     .map(value => [require('node:path').basename(value), value.startsWith('src/fixture-empty/') ? [] :
-      Array.from({length: value.endsWith('/root_control_physical_scoped_wbtest.mbt') ||
-          value.endsWith('/target_io_physical_scoped_wbtest.mbt') ? 3 :
+      Array.from({length: value.endsWith('/root_control_physical_scoped_wbtest.mbt') ? 3 :
+          value.endsWith('/target_io_physical_scoped_wbtest.mbt')
+            ? [...require('node:fs').readFileSync(value, 'utf8').matchAll(/^test /gm)].length :
           value.endsWith('/local_effect_capture_wbtest.mbt') ? 5 :
           value.endsWith('/local_project_mock_content_physical_scoped_wbtest.mbt') ? 20 : 1},
         (_, index) => ({index,name:'original fixture case '+index,attrs:[],line_number:index+1}))]));
@@ -1131,7 +1135,7 @@ if (['runtime-values','scoped-review-values'].includes(process.env.ACTQL_FIXTURE
     assert.equal(process.env.ACTQL_TEST_INSTALLED_PROCESS_ROOT, undefined);
     assert.equal(process.env.ACTQL_TEST_NATIVE_EFFECT_PLAN_ONLY, undefined);
     const index = Number(process.argv[process.argv.indexOf('--index') + 1]);
-    const suffix = ['update', 'cancel', 'sync'][index]; assert(suffix);
+    const suffix = ['update', 'cancel', 'sync', 'funding'][index]; assert(suffix);
     const root = process.env.ACTQL_TEST_NATIVE_TARGET_IO_ROOT;
     assert.equal(statSync(root).mode & 0o777, 0o700);
     assert.equal(statSync(join(root, 'target-backing-' + suffix)).size, 384 * 1024 ** 2);
@@ -2182,7 +2186,7 @@ test('Core Native prepares existing scoped producer dependencies before expensiv
   }
 });
 
-test('Native Core routes twenty Content and three target I/O originals with nonzero selected execution', t => {
+test('Native Core routes twenty Content and four target I/O originals with nonzero selected execution', t => {
   const contentFile = 'src/cmd/native_client/local_project_mock_content_physical_scoped_wbtest.mbt';
   const targetFile = 'src/platform_native/row_source/target_io_physical_scoped_wbtest.mbt';
   for (const zero of [false, true]) {
@@ -2246,7 +2250,7 @@ test('Native Core routes twenty Content and three target I/O originals with nonz
     }
     assert(content.every(call => call.profile === 'runtime-values'));
     const targets = selected.filter(call => call.args.includes(targetFile));
-    assert.deepEqual(targets.map(call => call.args[call.args.indexOf('--index') + 1]), zero ? ['0'] : ['0', '1', '2']);
+    assert.deepEqual(targets.map(call => call.args[call.args.indexOf('--index') + 1]), zero ? ['0'] : ['0', '1', '2', '3']);
     assert.equal(new Set(targets.map(call => call.targetRoot)).size, targets.length);
     for (const call of targets) {
       assert.equal(call.profile, 'scoped-review-values');
@@ -2258,8 +2262,8 @@ test('Native Core routes twenty Content and three target I/O originals with nonz
     for (const call of selected.filter(call => !targets.includes(call))) assert.equal(call.targetRoot, undefined);
     for (const call of selected.filter(call => !content.includes(call))) assert.equal(call.effectPlanOnly, undefined);
     if (!zero) {
-      assert.equal(calls.length, 20 + 3 + 10, 'all original cases remain alongside twenty Content and three target originals');
-      assert.match(result.stdout, /"scoped":30,"physical":29,"repeatedGeometry":1/u);
+      assert.equal(calls.length, 20 + 4 + 10, 'all original cases remain alongside twenty Content and four target originals');
+      assert.match(result.stdout, /"scoped":31,"physical":30,"repeatedGeometry":1/u);
     } else assert.match(result.stderr + result.stdout, /no successfully executed test cases|expected tests=1/u);
     f.verifyExternal();
   }

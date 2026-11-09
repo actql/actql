@@ -675,14 +675,16 @@ test('Native physical consumers retain scoped file/index identities and exclude 
     ['src/cmd/native_client', 'local_project_mock_request_physical_scoped_wbtest.mbt', 2, 'runtime-values'],
     ['src/cmd/native_client', 'local_effect_capture_wbtest.mbt', 5, 'runtime-values'],
     ['src/cmd/native_client', 'local_project_mock_content_physical_scoped_wbtest.mbt', 4, 'runtime-values'],
-    ['src/platform_native/row_source', 'target_io_physical_scoped_wbtest.mbt', 3, 'scoped-review-values'],
+    ['src/platform_native/row_source', 'target_io_physical_scoped_wbtest.mbt', 4, 'scoped-review-values'],
   ]) {
     const root = fixture(t);
     const indexes = Array.from({length: cases}, (_, index) => index);
+    const ordinaryFile = file === 'target_io_physical_scoped_wbtest.mbt'
+      ? 'target_io_physical_foreign_wbtest.mbt' : 'ordinary_wbtest.mbt';
     mkdirSync(join(root, directory), {recursive: true});
-    for (const name of [file, 'ordinary_wbtest.mbt']) writeFileSync(join(root, directory, name), 'test {}\n');
+    for (const name of [file, ordinaryFile]) writeFileSync(join(root, directory, name), 'test {}\n');
     const command = ['moon', 'generate-test-driver', '--output-driver', '_build/driver.mbt',
-      '--output-metadata', '_build/info.json', directory+'/'+file, directory+'/ordinary_wbtest.mbt',
+      '--output-metadata', '_build/info.json', directory+'/'+file, directory+'/'+ordinaryFile,
       '--target', 'native', '--pkg-name', 'fixture/installed_arena_control', '--driver-kind', 'whitebox'].join(' ');
     const execute = (tool, args) => {
       assert.equal(tool, 'moon');
@@ -692,7 +694,7 @@ test('Native physical consumers retain scoped file/index identities and exclude 
       mkdirSync(dirname(output), {recursive: true});
       writeFileSync(output, JSON.stringify({tests: {
         [file]: indexes.map(index => ({index, name:'Source original '+index, attrs:[], line_number:index+1})),
-        'ordinary_wbtest.mbt': [{index:0, name:'ordinary sibling', attrs:[], line_number:1}],
+        [ordinaryFile]: [{index:0, name:'ordinary sibling', attrs:[], line_number:1}],
       }}));
       return '';
     };
@@ -702,7 +704,7 @@ test('Native physical consumers retain scoped file/index identities and exclude 
       tests:indexes.map(index => ({source:directory+'/'+file, index})),
     });
     assert.deepEqual(selected.profiles.ordinary, {
-      args:['--release', directory+'/ordinary_wbtest.mbt'], cases:1,
+      args:['--release', directory+'/'+ordinaryFile], cases:1,
     });
     assert.equal(selected.profiles.physicalCases, cases);
     assert.equal(selected.profiles.uniqueCases, cases + 1);

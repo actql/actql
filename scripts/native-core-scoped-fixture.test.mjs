@@ -21,8 +21,13 @@ const libraries = {cryptoLibrary: '/actual/crypto.dylib', sqliteLibrary: '/usr/l
 test('target I/O cases own exact original inputs and fresh backings without namespace reuse', t => {
   assert.equal(nativeScopedTestFiles.filter(file => file === nativeRelationTargetIOTestFile).length, 1);
   assert.equal(nativeCoreScopedAllocationProfile(nativeRelationTargetIOTestFile), 'scoped-review-values');
+  const suffixes = ['update', 'cancel', 'sync', 'funding'];
+  const source = readFileSync(new URL('../' + nativeRelationTargetIOTestFile, import.meta.url), 'utf8');
+  const declared = [...source.matchAll(/^test "[^"]+" \{\n  target_io_fixture_physical\((\d+)\)\n\}/gmu)];
+  assert.equal([...source.matchAll(/^test "/gmu)].length, suffixes.length);
+  assert.deepEqual(declared.map(match => Number(match[1])), suffixes.map((_, index) => index));
   const roots = [];
-  for (const [index, suffix] of ['update', 'cancel', 'sync'].entries()) {
+  for (const [index, suffix] of suffixes.entries()) {
     const namespace = fixture(t), environment = nativeRelationTargetIOFixture(namespace, index);
     const root = join(namespace, 'target-io'); roots.push(root);
     assert.deepEqual(environment, {ACTQL_TEST_NATIVE_TARGET_IO_ROOT: root});
@@ -49,9 +54,9 @@ test('target I/O cases own exact original inputs and fresh backings without name
     assert.equal(statSync(backing).ino, before.ino);
     assert.equal(readFileSync(backing, 'utf8'), 'original initialized owner');
   }
-  assert.equal(new Set(roots).size, 3);
+  assert.equal(new Set(roots).size, suffixes.length);
   const namespace = fixture(t);
-  for (const index of [-1, 3, 0.5, '1', undefined]) {
+  for (const index of [-1, suffixes.length, 0.5, '1', undefined]) {
     assert.throws(() => nativeRelationTargetIOFixture(namespace, index), /exact original/u);
   }
   assert.deepEqual(readdirSync(namespace), []);

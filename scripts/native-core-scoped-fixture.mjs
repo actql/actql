@@ -129,11 +129,12 @@ export function nativeRelationFileCaptureFixture(namespace) {
 // case's initialized Arena backing. The sparse file is the authored 384 MiB
 // physical-component fixture, not an ordinary Host capacity or permission.
 export function nativeRelationTargetIOFixture(namespace, index) {
-  assert(Number.isInteger(index) && index >= 0 && index <= 2,
+  const suffixes = ['update', 'cancel', 'sync', 'funding'];
+  assert(Number.isInteger(index) && index >= 0 && index < suffixes.length,
     'An exact original Native target I/O case index is required');
   const root = join(realpathSync(namespace), 'target-io');
   mkdirSync(root, {mode: 0o700});
-  const suffix = ['update', 'cancel', 'sync'][index];
+  const suffix = suffixes[index];
   const input = Buffer.from(' {"items":[{"id":"first","value":1},{"id":"second","value":2}],"keep":"untouched"}\n');
   for (const [name, content] of [
     ['target-' + suffix + '.json', input],
