@@ -105,9 +105,7 @@ fn[I, P] begin_program_compilation_work(
     // Their seven Strings are borrowed; price records, the array and its holder
     // before the Effect constructor, without another wire or text allocation.
     let occurrences = if owner.effect_candidate is Some(_) {
-      @syntax.program_preparation_data(
-        @checked.checked_source_program(checked),
-      ).effect_members
+      @syntax.program_preparation_data(@checked.checked_source_program(checked)).effect_members
     } else {
       0
     }
@@ -168,16 +166,17 @@ fn program_effect_selection_extent_cost(occurrences : Int) -> Int64? {
   }
   let count = occurrences.to_int64()
   guard @shape.collection_construction_extent({
-    records: count,
-    record_references: count * 7L + 1L,
-    record_words: count,
-    reference_arrays: 1L,
-    reference_items: count,
-    scalar_arrays: 0L,
-    scalar_items: 0L,
-    maps: 0L,
-    map_entries: 0L,
-  }) is Some(extent) else {
+      records: count,
+      record_references: count * 7L + 1L,
+      record_words: count,
+      reference_arrays: 1L,
+      reference_items: count,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(extent) else {
     return None
   }
   @execution.preparation_representation_cost({
