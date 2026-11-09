@@ -259,6 +259,62 @@ fn client_captured_task_tuple_matches(
 }
 
 ///|
+// A checked slice can add unknown provenance without changing any original
+// Source contributor. Reuse only the already checked conservative policy:
+// equal CIDs alone cannot substitute foreign occurrences, roles or copies.
+fn client_publication_unknown_policy_join(
+  left : @checked.PublicationSourcePolicy,
+  right : @checked.PublicationSourcePolicy,
+) -> @checked.PublicationSourcePolicy? {
+  let count = @checked.effective_policy_occurrence_count(left.effective)
+  guard left.cid != right.cid &&
+    left.unknown_provenance != right.unknown_provenance &&
+    count > 0 &&
+    count == @checked.effective_policy_occurrence_count(right.effective) &&
+    @checked.effective_policy_source_count(left.effective) ==
+    @checked.effective_policy_source_count(right.effective) else {
+    return None
+  }
+  for index in 0..<count {
+    let same = match
+      (
+        @checked.effective_policy_occurrence_at(left.effective, index),
+        @checked.effective_policy_occurrence_at(right.effective, index),
+      ) {
+      (Some(@checked.DirectPolicy(a)), Some(@checked.DirectPolicy(b))) =>
+        physical_equal(a, b)
+      (
+        Some(@checked.KeyedResponsePolicy(a)),
+        Some(@checked.KeyedResponsePolicy(b)),
+      ) => physical_equal(a, b)
+      (
+        Some(@checked.KeyedStaticRequestPolicy(a)),
+        Some(@checked.KeyedStaticRequestPolicy(b)),
+      ) => physical_equal(a, b)
+      _ => false
+    }
+    if !same {
+      return None
+    }
+  }
+  for index in 0..<@checked.effective_policy_source_count(left.effective) {
+    if @checked.effective_policy_source_at(left.effective, index) !=
+      @checked.effective_policy_source_at(right.effective, index) {
+      return None
+    }
+  }
+  // The immutable nominal occurrences above also bind their original response
+  // policies. No response CID is inferred from a surrounding Catalog or source.
+  let conservative = if left.unknown_provenance { left } else { right }
+  if @checked.publication_policy_classification(conservative)
+    is @environment.Unknown {
+    Some(conservative)
+  } else {
+    None
+  }
+}
+
+///|
 /// Resolve effective policy from every exact checked final Result occurrence.
 /// Missing, incompatible, or incomplete two-source provenance is rejected;
 /// the first acquisition policy is never promoted to a Run-wide policy.
@@ -271,7 +327,7 @@ pub fn prepared_client_publication_data_policy_cid(
   if count == 0 {
     return None
   }
-  let mut selected : String? = None
+  let mut selected : @checked.PublicationSourcePolicy? = None
   for result in 0..<count {
     guard @strategy.graph_result_task(graph, result) is Some(task) &&
       @strategy.graph_task_unit_index(graph, task) is Some(unit) &&
@@ -309,11 +365,17 @@ pub fn prepared_client_publication_data_policy_cid(
       return None
     }
     match selected {
-      None => selected = Some(policy.cid)
-      Some(cid) => if cid != policy.cid { return None }
+      None => selected = Some(policy)
+      Some(prior) =>
+        if prior.cid != policy.cid {
+          selected = client_publication_unknown_policy_join(prior, policy)
+          if selected is None {
+            return None
+          }
+        }
     }
   }
-  selected
+  selected.map(policy => policy.cid)
 }
 
 ///|

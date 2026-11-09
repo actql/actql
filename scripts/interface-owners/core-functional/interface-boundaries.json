@@ -68461,7 +68461,7 @@
     {
       "module": "src/run_publication_host/client_acquisition.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "65d41a6fb83e7166166554415494d1b4009dc6df8c2f35dcc09db7635ae75e24",
+      "sha256": "173edc31aca19c1e0896ef469950e2ad6e75133cf3df919f5534f1313f5f4184",
       "exports": [],
       "operations": [
         {
@@ -68471,6 +68471,10 @@
         {
           "name": "client_publication_policy_covers_source_responses",
           "declaration": "client_publication_policy_covers_source_responses ( program : @ checked . CheckedProgram , policy : @ checked . PublicationSourcePolicy , ) - > Bool"
+        },
+        {
+          "name": "client_publication_unknown_policy_join",
+          "declaration": "client_publication_unknown_policy_join ( left : @ checked . PublicationSourcePolicy , right : @ checked . PublicationSourcePolicy , ) - > @ checked . PublicationSourcePolicy ?"
         },
         {
           "name": "client_query_requirement_matches_effect_program",
@@ -68529,6 +68533,7 @@
             "<module>",
             "client_captured_task_tuple_matches",
             "client_publication_policy_covers_source_responses",
+            "client_publication_unknown_policy_join",
             "client_query_requirement_matches_effect_program",
             "client_query_requirement_matches_program",
             "prepare_client_effect_query_acquisition",
@@ -68564,6 +68569,10 @@
               {
                 "path": "src/client_local_host/installed_source_read.mbt",
                 "anchor": "guard value.original is Some(original) && physical_equal(original, value) else {"
+              },
+              {
+                "path": "src/run_publication_host/client_acquisition.mbt",
+                "anchor": "@checked.effective_policy_occurrence_at(left.effective, index),"
               }
             ],
             "ownership": [
@@ -68610,6 +68619,14 @@
               {
                 "path": "src/run_publication_host/client_multi_source_wbtest.mbt",
                 "anchor": "test \"whole Run policy covers same original responses and refuses equal foreign or missing coverage\""
+              },
+              {
+                "path": "src/run_publication_host/client_publication_policy_join_wbtest.mbt",
+                "anchor": "test \"Result policy join refuses equal-CID foreign nominal contributors\""
+              },
+              {
+                "path": "src/client_local_host/result_before_limit_task_chain_wbtest.mbt",
+                "anchor": "test \"Result before LIMIT retains both original outputs through the actual task selection\""
               }
             ]
           }
