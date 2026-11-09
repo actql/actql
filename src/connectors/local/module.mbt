@@ -447,6 +447,21 @@ pub fn local_module_metered_output_start_capacity(
     }
   }
   window_chain = window_chain && has_window
+  // The same bounded INNER JOIN chain can merge its original branch outputs
+  // with Append. Every child detaches accepted output and confirms scratch
+  // cleanup before its successor; no legacy sequence table is constructed.
+  let mut join_chain = count > 1
+  let mut has_join = false
+  for index in 0..<count {
+    if @execution.generated_sequence_step_at(sequence, index)
+      is Some(@lower.JoinStep(kernel)) {
+      has_join = true
+      if !selected_join_borrows_carried_values(kernel) {
+        join_chain = false
+      }
+    }
+  }
+  join_chain = join_chain && has_join
   let mut metered_retention = true
   for index in 0..<count {
     match @execution.generated_sequence_step_at(sequence, index) {
@@ -455,7 +470,41 @@ pub fn local_module_metered_output_start_capacity(
         @lower.kernel_body(kernel) is @lower.Groups(_) =>
         metered_retention = false
       Some(@lower.CrossJoinStep(_)) => ()
-      Some(@lower.AppendStep(_)) if count == 1 => ()
+      Some(@lower.AppendStep(_)) if count == 1 || join_chain =>
+        if count > 1 {
+          let prepared = @lower.bound_preparation(
+            @execution.generated_sequence_owner(sequence),
+          )
+          guard @execution.generated_sequence_step_index_at(sequence, index)
+            is Some(step) &&
+            @lower.node_at(prepared, step) is Some(node) &&
+            @lower.node_input_count(node) == 2 else {
+            return None
+          }
+          // Append's existing row-charge owner funds the SAME checked row
+          // before push. Preserve both exact original input occurrences;
+          // recursive/text/presence shapes retain their prior full recipe.
+          for port in -1..<2 {
+            let target = if port < 0 {
+              Some(@pipeline.Step(step))
+            } else {
+              @lower.node_input_target(node, port)
+            }
+            guard target.bind(target => {
+                @lower.preparation_schema_at(prepared, target)
+              })
+              is Some(schema) &&
+              @schema.all_fields_required(schema) else {
+              return None
+            }
+            for field in 0..<@schema.field_count(schema) {
+              match @schema.field_at(schema, field).unwrap().contract.shape {
+                @contract.Number | @contract.Boolean => ()
+                _ => return None
+              }
+            }
+          }
+        }
       Some(@lower.SetStep(_)) if count == 1 => ()
       Some(@lower.JoinStep(kernel)) =>
         // The same bounded JOIN child funds every complete output row before
@@ -742,7 +791,8 @@ pub fn local_module_metered_output_start_capacity(
     )
   }
   let mut fixed = 0L
-  let constructor_chain = (unnest_chain && metered_retention) || window_chain
+  let constructor_chain = ((unnest_chain || join_chain) && metered_retention) ||
+    window_chain
   let mut scratch = if constructor_chain {
     0L
   } else {

@@ -1138,3 +1138,59 @@ test "pivot original binding import refusal precedes decode" {
 test "pivot original binding cancellation cannot publish later input" {
   pivot_original_binding_data_chain(CancelImport)
 }
+
+///|
+fn set_join_original_operands_data_chain(
+  mode : ManagedImportDataCase,
+  distinct? : Bool = false,
+) -> Unit raise {
+  managed_import_data_chain(
+    mode,
+    format=@frontend.Sql,
+    numeric_profile_cid=Some(
+      "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df",
+    ),
+    query="SELECT l.id AS id, r.amount AS amount FROM records AS l JOIN records AS r ON l.id = r.id MAX_OUTPUT_ROWS 10 WHERE l.id = 1 " +
+      (if distinct { "UNION DISTINCT" } else { "UNION ALL" }) +
+      " SELECT l.id AS id, r.amount AS amount FROM records AS l JOIN records AS r ON l.id = r.id MAX_OUTPUT_ROWS 10 WHERE l.id >= 2 ORDER BY amount NULLS LAST, id",
+    source_wire="[{\"id\":3,\"amount\":null},{\"id\":1,\"amount\":10},{\"id\":2,\"amount\":20},{\"id\":2,\"amount\":20}]",
+    source_rows=4,
+    expected_tasks=None,
+    two_input_task=None,
+    result_name="main",
+    expected_rows=if distinct {
+      [
+        "{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":20}", "{\"id\":3,\"amount\":null}",
+      ]
+    } else {
+      [
+        "{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":20}", "{\"id\":2,\"amount\":20}",
+        "{\"id\":2,\"amount\":20}", "{\"id\":2,\"amount\":20}", "{\"id\":3,\"amount\":null}",
+      ]
+    },
+    // The related DISTINCT control keeps the existing fixture's stricter
+    // retained-prefix pressure, not an inferred ordinary runtime quantity.
+    prior_execution=if distinct { 261216696L } else { 22532982L },
+    expected_policy=None,
+  )
+}
+
+///|
+test "set JOIN preserves both original operands duplicates and nullable output on the same Ledger" {
+  set_join_original_operands_data_chain(Complete)
+}
+
+///|
+test "set JOIN original operands import refusal precedes decode" {
+  set_join_original_operands_data_chain(RefuseImport)
+}
+
+///|
+test "set JOIN original operands cancellation cannot publish later input" {
+  set_join_original_operands_data_chain(CancelImport)
+}
+
+///|
+test "set JOIN distinct merge preserves original nullable identity and duplicate comparison" {
+  set_join_original_operands_data_chain(Complete, distinct=true)
+}

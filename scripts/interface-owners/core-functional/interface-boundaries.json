@@ -52578,7 +52578,7 @@
               },
               {
                 "path": "src/connectors/local/module.mbt",
-                "anchor": "let constructor_chain = (unnest_chain && metered_retention) || window_chain"
+                "anchor": "let constructor_chain = ((unnest_chain || join_chain) && metered_retention) ||"
               },
               {
                 "path": "src/connectors/local/unnest_provider.mbt",
@@ -52951,6 +52951,34 @@
               {
                 "path": "src/connectors/local/metered_output_start_wbtest.mbt",
                 "anchor": "test \"numeric pivot keeps full retention and recursive text output or injected fallback\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"set JOIN preserves both original operands duplicates and nullable output on the same Ledger\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"set JOIN distinct merge preserves original nullable identity and duplicate comparison\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"set JOIN original operands import refusal precedes decode\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"set JOIN original operands cancellation cannot publish later input\""
+              },
+              {
+                "path": "src/connectors/local/metered_output_start_wbtest.mbt",
+                "anchor": "test \"joined branch Append keeps recursive outer and injected provider fallbacks\""
+              },
+              {
+                "path": "src/execution_relation/bounded_append_wbtest.mbt",
+                "anchor": "test \"bounded Append refuses original output funding before persistent row transfer\""
+              },
+              {
+                "path": "src/connectors/local/relation_chain_lifetime_wbtest.mbt",
+                "anchor": "test \"intermediate cleanup false and error preserve child custody until parent retry\""
               }
             ]
           }
