@@ -675,6 +675,34 @@ fn prepare_client_local_configuration(
 }
 
 ///|
+// Preserve the existing Local implementation's original typed failure. This
+// private carrier is diagnostic data, never a new execution or cleanup owner.
+priv suberror ClientLocalImplementationFailure {
+  Dispatch(@local_driver.LocalDispatchIssue)
+  Estimate(@local_driver.LocalEstimateIssue)
+}
+
+///|
+fn client_local_dispatch_run_issue(
+  issue : @local_driver.LocalDispatchIssue,
+) -> @strategy.RunIssue {
+  match issue {
+    Execution(original) => original
+    _ => Implementation(ClientLocalImplementationFailure::Dispatch(issue))
+  }
+}
+
+///|
+fn client_local_estimate_run_issue(
+  issue : @local_driver.LocalEstimateIssue,
+) -> @strategy.RunIssue {
+  match issue {
+    Dispatch(original) => client_local_dispatch_run_issue(original)
+    _ => Implementation(ClientLocalImplementationFailure::Estimate(issue))
+  }
+}
+
+///|
 fn bind_client_local_configuration(
   run : @strategy.CapturedDAG,
   original : ClientPreparedLocalConfiguration,
@@ -721,9 +749,7 @@ fn bind_client_local_configuration(
       _ => @strategy.RunIssue::ForeignCandidate,
       with_local=Some(
         (
-          installed,
-          _ => @strategy.RunIssue::ForeignCandidate,
-          _ => @strategy.RunIssue::ForeignCandidate,
+          installed, client_local_dispatch_run_issue, client_local_estimate_run_issue,
         ),
       ),
     ) {
