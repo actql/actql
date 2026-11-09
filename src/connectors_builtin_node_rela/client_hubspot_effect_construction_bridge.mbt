@@ -13,6 +13,8 @@ pub fn client_program_hubspot_effect_constructor_capacity(
   counts : Array[Int],
 ) -> @execution.ExecutionCapacity? {
   match kind {
+    8 if input.length() == 1 && output.is_empty() && counts.is_empty() =>
+      @hubspot_catalog.effect_catalog_recheck_construction_capacity(input[0])
     7 if input.is_empty() && output.is_empty() && counts.length() == 4 =>
       @hubspot_catalog.effect_installation_construction_capacity(
         counts[0],
