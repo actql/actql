@@ -52384,6 +52384,14 @@
               {
                 "path": "src/connectors/local/driver/managed_dispatch.mbt",
                 "anchor": "let import_extra = Ref(0L)"
+              },
+              {
+                "path": "src/connectors/local/global_count_provider.mbt",
+                "anchor": "fn global_count_provider("
+              },
+              {
+                "path": "src/execution_relation/execution_capacity.mbt",
+                "anchor": "fn bounded_count_group_borrows_input("
               }
             ],
             "extension": [
@@ -52452,6 +52460,26 @@
               {
                 "path": "src/client_local_host/managed_import_reentry_js_wbtest.mbt",
                 "anchor": "test \"managed import grow current cannot reenter either original input copy\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"grouped scalar count borrows original input with retained parents and complete output\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"grouped scalar count import refusal precedes decode and preserves original Source\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"cancelled grouped scalar count cannot grow or decode later input\""
+              },
+              {
+                "path": "src/execution_relation/execution_capacity_wbtest.mbt",
+                "anchor": "test \"bounded scalar grouped count keeps full output and falls back for copied inputs\""
+              },
+              {
+                "path": "src/connectors/local/metered_output_start_wbtest.mbt",
+                "anchor": "test \"scalar grouped count selects its bounded provider without metering output or injected capacity\""
               }
             ]
           }

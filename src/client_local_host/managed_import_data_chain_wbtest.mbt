@@ -422,3 +422,36 @@ test "unmetered grouped import refusal precedes decoding and retains its origina
 test "cancelled unmetered grouped import cannot grow or decode a later row" {
   managed_group_star_import(CancelImport)
 }
+
+///|
+fn managed_group_star_count_import(mode : ManagedImportDataCase) -> Unit raise {
+  managed_import_data_chain(
+    mode,
+    query="SELECT *, COUNT(*) AS n FROM records GROUP BY id, amount ORDER BY id",
+    expected_tasks=None,
+    result_name="main",
+    source_wire="[{\"id\":3,\"amount\":30},{\"id\":1,\"amount\":null},{\"id\":2,\"amount\":20},{\"id\":3,\"amount\":30}]",
+    source_rows=4,
+    two_input_task=None,
+    expected_rows=[
+      "{\"amount\":null,\"id\":1,\"n\":1}", "{\"amount\":20,\"id\":2,\"n\":1}", "{\"amount\":30,\"id\":3,\"n\":2}",
+    ],
+    prior_execution=259814088L,
+    expected_policy=None,
+  )
+}
+
+///|
+test "grouped scalar count borrows original input with retained parents and complete output" {
+  managed_group_star_count_import(Complete)
+}
+
+///|
+test "grouped scalar count import refusal precedes decode and preserves original Source" {
+  managed_group_star_count_import(RefuseImport)
+}
+
+///|
+test "cancelled grouped scalar count cannot grow or decode later input" {
+  managed_group_star_count_import(CancelImport)
+}

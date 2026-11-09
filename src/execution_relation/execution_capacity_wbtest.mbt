@@ -354,3 +354,103 @@ test "bounded projection borrows immediate and recursive input while generic ret
     assert_eq(output_more.execution_bytes - before.execution_bytes, 256L)
   }
 }
+
+///|
+test "bounded scalar grouped count keeps full output and falls back for copied inputs" {
+  for
+    (extra_schema, extra_row, count_field, borrowed) in [
+      ("", "", "", true),
+      (
+        ",\"payload\":{\"type\":\"string\",\"nullable\":false}", ",\"payload\":\"x\"",
+        "", false,
+      ),
+      (
+        ",\"payload\":{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}",
+        ",\"payload\":[1]", "", false,
+      ),
+      ("", "", ",\"field\":\"id\"", false),
+    ] {
+    let owner = bound_pipeline(
+      "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":true}" +
+      extra_schema +
+      "},\"rows\":[{\"id\":null" +
+      extra_row +
+      "}]},\"as\":\"seed\"},{\"from\":\"seed\",\"group\":{\"by\":[\"id\"],\"aggregates\":{\"n\":{\"fn\":\"count\"" +
+      count_field +
+      "}}}}]",
+    )
+    let generated = prepare_generated_sequence(
+      registered_relation_contracts(),
+      prepared_sequence(owner),
+      [],
+      ["group_1"],
+      100000,
+      10000,
+    ).unwrap()
+    let selected = select_generated_sequence_step(generated, 1).unwrap()
+    let limits = compute_test_limits()
+    let measure = managed_test_measure_limits()
+    let full = generated_sequence_capacity(selected, limits, measure).unwrap()
+    let capacity = generated_bounded_sequence_capacity(
+      selected, limits, measure,
+    ).unwrap()
+    let input_more = {
+      ..limits,
+      rows: {
+        ..limits.rows,
+        input_values: {
+          ..limits.rows.input_values,
+          max_nodes: limits.rows.input_values.max_nodes + 1,
+          max_text_bytes: limits.rows.input_values.max_text_bytes + 1,
+        },
+      },
+    }
+    let larger = generated_bounded_sequence_capacity(
+      selected, input_more, measure,
+    ).unwrap()
+    if borrowed {
+      assert_true(capacity.execution_bytes < full.execution_bytes)
+      assert_eq(larger.execution_bytes, capacity.execution_bytes)
+      // Output is prepaid in BOTH dimensions; no output-growth hook is assumed.
+      let output_more = {
+        ..limits,
+        rows: {
+          ..limits.rows,
+          output_values: {
+            ..limits.rows.output_values,
+            max_nodes: limits.rows.output_values.max_nodes + 1,
+          },
+        },
+      }
+      let output = generated_bounded_sequence_capacity(
+        selected, output_more, measure,
+      ).unwrap()
+      assert_eq(output.retained_bytes - capacity.retained_bytes, 256L)
+      assert_eq(output.execution_bytes - capacity.execution_bytes, 256L)
+      let operation = generated_bounded_sequence_capacity(
+        selected,
+        {
+          ..limits,
+          rows: {
+            ..limits.rows,
+            operation_entries: limits.rows.operation_entries + 1,
+          },
+        },
+        measure,
+      ).unwrap()
+      assert_eq(operation.execution_bytes - capacity.execution_bytes, 256L)
+    } else {
+      assert_eq(
+        (capacity.retained_bytes, capacity.execution_bytes),
+        (full.retained_bytes, full.execution_bytes),
+      )
+      assert_eq(larger.execution_bytes - capacity.execution_bytes, 264L)
+    }
+    let whole = generated_bounded_sequence_capacity(generated, limits, measure).unwrap()
+    let generic = generated_sequence_capacity(generated, limits, measure).unwrap()
+    assert_eq(
+      (whole.retained_bytes, whole.execution_bytes),
+      (generic.retained_bytes, generic.execution_bytes),
+    )
+  }
+}

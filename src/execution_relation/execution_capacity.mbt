@@ -88,7 +88,28 @@ fn bounded_immediate_binding_schema(schema : @schema.Schema) -> Bool {
 }
 
 ///|
-/// Constructor-specific recipe for bounded Values, Append, primitive Set/Join and binding-row
+// The bounded grouped COUNT(*) reader borrows required immediate cells,
+// including nullable scalars. Its sorter/group/aggregate cursors are charged
+// to operation_entries; it does not construct a separate input value forest.
+// Keep recursive/text/presence and expression aggregates on the full recipe.
+fn bounded_count_group_borrows_input(kernel : @lower.PreparedKernel) -> Bool {
+  guard @lower.kernel_count_group(kernel) is Some(group) &&
+    @lower.count_group_aggregate_count(group) > 0 &&
+    bounded_immediate_binding_schema(@lower.kernel_input_schema(kernel)) &&
+    bounded_immediate_binding_schema(@lower.kernel_output_schema(kernel)) else {
+    return false
+  }
+  for index in 0..<@lower.count_group_aggregate_count(group) {
+    let aggregate = @lower.count_group_aggregate_at(group, index).unwrap()
+    if aggregate.field is Some(_) || aggregate.count_if {
+      return false
+    }
+  }
+  true
+}
+
+///|
+/// Constructor-specific recipe for bounded Values, Append, primitive Set/Join, scalar grouped COUNT and binding-row
 /// providers; not a claim about arbitrary executors of the same kernel.
 /// The bounded single-operation constructors use an operation workspace, not
 /// the legacy sequence wiring/table store. Their completed port retains exact
@@ -127,6 +148,15 @@ pub fn generated_bounded_sequence_capacity(
     is Some(schema) else {
     return generated_sequence_capacity(generated, limits, measurement)
   }
+  let borrowed_group = match operation {
+    @lower.RowStep(kernel) => bounded_count_group_borrows_input(kernel)
+    _ => false
+  }
+  if operation is @lower.RowStep(kernel) &&
+    @lower.kernel_count_group(kernel) is Some(_) &&
+    !borrowed_group {
+    return generated_sequence_capacity(generated, limits, measurement)
+  }
   let borrowed_row = match operation {
     @lower.RowStep(kernel) => {
       let bounded = @lower.kernel_bindings(kernel) is Some(_) ||
@@ -140,7 +170,7 @@ pub fn generated_bounded_sequence_capacity(
           | @lower.AssertUnique(_) => true
           _ => false
         })
-      bounded &&
+      (bounded || borrowed_group) &&
       @lower.node_input_count(node) == 1 &&
       // Only the input forest is borrowed. A binding may construct recursive
       // output through its existing logical-root growth owner; its complete
