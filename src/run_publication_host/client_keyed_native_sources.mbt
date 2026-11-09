@@ -9,6 +9,8 @@ pub struct ClientKeyedNativeSourceEvidence {
   ordering : @publication.PublicationContract
   scope : @publication.PublicationContract
   retention : @publication.PublicationContract
+  request : @encode.EncodedDocument
+  request_cid : String
 }
 
 ///|
@@ -185,13 +187,14 @@ fn build_client_keyed_native_whole_source_evidence(
       state
     }
   }
-  // Entry record7R, scan/identity/result/tuple/Some refusal frontiers, old/new
+  // Entry record9R plus the retained EncodedDocument H1/R1/W3,
+  // scan/identity/result/tuple/Some refusal frontiers, old/new
   // cache backing and the later Native borrowed identity/logical/observation
   // arrays. All counts use this actual Source index, not a policy maximum.
   let controls = @execution.preparation_representation_cost({
-    record_headers: 24L,
-    reference_slots: 36L + 16L * (index.to_int64() + 1L),
-    scalar_words: 22L,
+    record_headers: 25L,
+    reference_slots: 39L + 16L * (index.to_int64() + 1L),
+    scalar_words: 25L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }).unwrap()
@@ -352,6 +355,8 @@ fn build_client_keyed_native_whole_source_evidence(
     ordering,
     scope,
     retention: source_retention,
+    request: request_document,
+    request_cid,
   }
   state.sources.push(result)
   state.source_identity = None
@@ -363,7 +368,7 @@ fn build_client_keyed_native_whole_source_evidence(
       max_depth,
       [relation, ordering, scope, source_retention],
       evidence=[logical, observation],
-      texts=[@encode.document_text(request_document)],
+      texts=[@encode.document_text(request_document), request_cid],
     ) {
     Err(issue) => return Err(issue)
     Ok(_) => ()

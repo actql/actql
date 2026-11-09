@@ -53,7 +53,7 @@ fn admit_lookup_effect_dependency_body(
       [
         ("source_view_contract_cid", "source_view_contract"),
         ("request_schema_cid", "request_schema"),
-        ("output_contract_cid", "carrier_contract"),
+        ("output_contract_cid", "relation_carrier"),
         ("effective_request_data_policy_cid", "data_policy"),
         ("response_source_data_policy_cid", "data_policy"),
         ("effective_response_data_policy_cid", "data_policy"),

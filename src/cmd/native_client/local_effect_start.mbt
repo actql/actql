@@ -326,7 +326,10 @@ fn local_effect_prepare_start_with_clocks(
     selected.prepare_mock_effect_observation()
     selected.retain_mock_effect_host(bound)
     selected.prepare_mock_effect_local_observation()
-    selected.prepare_mock_effect_proposals(run.retention)
+    selected.prepare_mock_effect_proposals(
+      run.retention,
+      native_mock_effect_record_bytes(run),
+    )
     selected.observe_mock_effect_targets()
   }
   AuthoritySupplierUnavailable

@@ -1478,7 +1478,7 @@ type LocalCompletionFreeInventory
 pub(all) enum LocalDependencyBodyIssue {
   MissingUnit
   MissingDependency
-  Encoding
+  Encoding(@encode_core.EncodeFailure)
   ForeignBody
   BudgetExceeded
 } derive(Eq, @debug.Debug)

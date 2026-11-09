@@ -137,6 +137,28 @@ pub fn NativeRelationFileKeyedReadProfile::contract(
 }
 
 ///|
+/// Borrow the SAME physical provider's retained declaration body. The logical
+/// keyed Source Catalog may deliberately omit this implementation-only view.
+/// No new declaration, identity hash, provider or read authority is issued.
+pub fn NativeRelationFileKeyedReadProfile::physical_source_body(
+  self : Self,
+) -> (String, String)? {
+  for index, view in self.physical.declaration.views {
+    if view.resource == self.physical.selection.resource {
+      guard self.physical.declaration.view_bodies.get(index) is Some(wire) &&
+        @publication.native_file_read_profile_physical_source_contract_cid(
+          self.contract,
+        ) ==
+        Some(view.view_cid) else {
+        return None
+      }
+      return Some((view.view_cid, wire))
+    }
+  }
+  None
+}
+
+///|
 fn native_file_keyed_read_profile_matches(
   profile : NativeRelationFileKeyedReadProfile,
   declaration : @rows.RowDeclaration,

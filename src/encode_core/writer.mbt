@@ -7,7 +7,7 @@ pub(all) suberror EncodeFailure {
   InvalidNumber
   OutputLimit
   ClosedWriter
-} derive(Debug)
+} derive(Eq, Debug)
 
 ///|
 priv enum Frame {

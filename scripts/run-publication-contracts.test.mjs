@@ -198,6 +198,27 @@ test('independent private Table Preview and member identity vectors', () => {
     version: 'actql-effect-member-preview/0.1'}), memberCid);
 });
 
+test('CapturedRun generated contract retains existing Native Lookup dependency kinds', () => {
+  const registry = read('spec/contracts/actql-protocol-schemas.json');
+  const cli = read('spec/contracts/actql-cli-run-response.schema.json');
+  const kinds = document => document.artifact_schemas.captured_run.properties
+    .effect_context.properties.effect_dependency_inventory.items.properties.kind.enum;
+  const generated = kinds(correctedContracts(registry, cli).registry);
+  assert.deepEqual(kinds(registry), generated);
+  assert.equal(new Set(generated).size, generated.length);
+  for (const kind of ['request_schema', 'request_key_set', 'carrier_schema',
+    'carrier_contract', 'task_fragment', 'lookup_execution_policy',
+    'lookup_evidence', 'lookup_accounting', 'acquisition_attempt_receipt',
+    'lookup_barrier', 'native_file_content_read', 'native_file_lookup_transport',
+    'native_file_lookup_batch_plan', 'native_file_lookup_request',
+    'native_file_lookup_call_slot', 'native_file_lookup_activation',
+    'native_file_lookup_raw_response', 'native_file_lookup_attempt_event',
+    'native_file_lookup_adoption']) assert.ok(generated.includes(kind), kind);
+  for (const kind of ['lookup_capacity_proof', 'arbitrary_dependency', '']) {
+    assert.ok(!generated.includes(kind), kind);
+  }
+});
+
 test('independent local Effect source inventory binds its Stage Result', () => {
   const registry = read('spec/contracts/actql-protocol-schemas.json');
   const stage = read('spec/contracts/actql-stage-contracts.json');

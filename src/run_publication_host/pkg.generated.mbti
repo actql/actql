@@ -843,6 +843,8 @@ pub fn client_keyed_lookup_input_work(ClientKeyedLookupInput) -> Int64
 
 pub fn client_keyed_lookup_native_completion(ClientKeyedLookupInput) -> ClientKeyedNativeCompletion?
 
+pub fn client_keyed_lookup_native_dependency_bodies(ClientKeyedLookupInput, @run_publication.PublicationContract, @run_publication.CapturedEffectDependencyLimits, Int, Int, physical_source? : (String, String)?) -> Result[Array[@run_publication.CapturedEffectDependencyBody], ClientEffectDependencyCaptureIssue]
+
 pub fn client_keyed_lookup_native_transport(ClientKeyedLookupInput) -> @run_publication.PublicationContract?
 
 pub fn client_keyed_lookup_next_planned_row(ClientKeyedLookupInput) -> Int?
@@ -3428,6 +3430,7 @@ pub struct ClientKeyedNativeCapturedPage {
   batch_plan_cid : String
   activation_cid : String
   raw : @run_publication.PublicationContract
+  raw_retention : @run_publication.PublicationContract
   event : @run_publication.PublicationContract
   adoption : @run_publication.PublicationContract
   logical_value_cid : String
@@ -3479,6 +3482,8 @@ pub struct ClientKeyedNativeSourceEvidence {
   ordering : @run_publication.PublicationContract
   scope : @run_publication.PublicationContract
   retention : @run_publication.PublicationContract
+  request : @encode_core.EncodedDocument
+  request_cid : String
 }
 
 type ClientKeyedRequest

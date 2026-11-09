@@ -134,7 +134,7 @@ pub(all) suberror EncodeFailure {
   InvalidNumber
   OutputLimit
   ClosedWriter
-} derive(@debug.Debug)
+} derive(Eq, @debug.Debug)
 
 // Types and methods
 pub(all) struct BufferedWriterConstructionInventory {

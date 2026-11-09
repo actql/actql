@@ -153,8 +153,22 @@ pub fn admit_publication_effect_dependency_body(
       ]
     "derivation_evidence" | "table_input_derivation" =>
       [
-        ("producer_contract_cid", producer_kind),
-        ("computation_contract_cid", "local_dependencies"),
+        (
+          "producer_contract_cid",
+          if table {
+            producer_kind
+          } else {
+            "relation_producer"
+          },
+        ),
+        (
+          "computation_contract_cid",
+          if table {
+            "local_dependencies"
+          } else {
+            "relation_computation"
+          },
+        ),
         ("logical_value_cid", "relation_value"),
         ("relation_schema_cid", "relation_schema"),
         ("scope_cid", "acquisition_scope"),
@@ -286,6 +300,21 @@ pub fn captured_effect_dependency_body_kind(
   value : CapturedEffectDependencyBody,
 ) -> String {
   value.node.kind
+}
+
+///|
+/// Bounded metadata from the SAME admitted body's reference interpretation.
+/// This neither resolves a Catalog nor attests current authority or custody.
+pub fn captured_effect_dependency_body_references(
+  value : CapturedEffectDependencyBody,
+  max_references : Int,
+) -> Array[(String, String)]? {
+  if max_references < 0 || value.node.references.length() > max_references {
+    return None
+  }
+  Some(
+    value.node.references.map(reference => (reference.kind, reference.identity)),
+  )
 }
 
 ///|
@@ -635,10 +664,17 @@ pub fn validate_captured_effect_dependency_bodies(
     let references : Array[CapturedEffectDependencyReference] = []
     for reference in body.node.references {
       let allowed = match reference.kind {
-        "relation_producer" => ["local_result_definition", "source_contract"]
+        "relation_producer" =>
+          [
+            "local_result_definition", "source_contract", "carrier_contract", "relation_schema",
+          ]
+        "relation_computation" =>
+          ["local_dependencies", "task_fragment", "lookup_barrier"]
+        "relation_carrier" => ["carrier_contract", "relation_schema"]
         "local_observation" =>
           [
             "source_evidence", "result_import_observation", "local_model_observation",
+            "lookup_evidence",
           ]
         _ => []
       }

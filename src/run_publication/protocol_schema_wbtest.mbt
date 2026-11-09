@@ -533,3 +533,30 @@ test "Effect Preview Command forbids both former approval spellings" {
     assert_false(protocol_test_accepts(nodes, member_index, invalid))
   }
 }
+
+///|
+test "CapturedRun dependency kind admission retains the complete Native Lookup closure" {
+  let (nodes, index) = protocol_test_property_node("captured_run", [
+    "effect_context", "effect_dependency_inventory",
+  ])
+  guard nodes[index] is ArrayRule(item, _, _, _) else {
+    fail("Expected dependency item schema")
+  }
+  let kind = protocol_test_find_property(nodes, item, "kind").unwrap()
+  for
+    name in [
+      "request_schema", "request_key_set", "carrier_schema", "carrier_contract",
+      "task_fragment", "lookup_execution_policy", "lookup_evidence", "lookup_accounting",
+      "acquisition_attempt_receipt", "lookup_barrier", "native_file_content_read",
+      "native_file_lookup_transport", "native_file_lookup_batch_plan", "native_file_lookup_request",
+      "native_file_lookup_call_slot", "native_file_lookup_activation", "native_file_lookup_raw_response",
+      "native_file_lookup_attempt_event", "native_file_lookup_adoption",
+    ] {
+    assert_true(protocol_test_accepts(nodes, kind, "\"" + name + "\""))
+  }
+  // No static capacity-proof implementation or arbitrary future body is
+  // introduced by the existing runtime-policy Native Lookup connection.
+  for name in ["lookup_capacity_proof", "arbitrary_dependency", ""] {
+    assert_false(protocol_test_accepts(nodes, kind, "\"" + name + "\""))
+  }
+}

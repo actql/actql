@@ -172,6 +172,17 @@ pub fn lookup_execution_cid(v : LookupExecutionPolicy) -> String {
 }
 
 ///|
+/// Serialize the SAME checked policy for durable dependency custody. This
+/// uses its original bounded cursor emitter; it grants no execution budget,
+/// supplies no defaults and does not recheck or rehash the policy.
+pub fn emit_lookup_execution_policy(
+  value : LookupExecutionPolicy,
+  writer : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  emit_cursor(value.source, writer, false)
+}
+
+///|
 pub fn lookup_execution_ceiling(
   v : LookupExecutionPolicy,
   field : LookupExecutionCeiling,

@@ -198,6 +198,31 @@ test "Native completed Lookup bodies enter strict Effect dependency admission" {
 }
 
 ///|
+// This uses the same actual checked two-Source prefix, keyed file Store and
+// completed attempts. The distinct fixture supplies real policy leaf bodies;
+// old metadata-only cases keep their original placeholder CIDs unchanged.
+test "Native original Lookup closes dependency graph over exact Carrier and Catalog bodies" {
+  assert_eq(@env.get_env_var("ACTQL_TEST_NATIVE_LOOKUP_CLOSURE"), Some("1"))
+  native_project_mock_model_backed_read(
+    false,
+    readme_request=true,
+    effect_compilation=true,
+    effect_source_inputs=true,
+    content_join=true,
+  )
+}
+
+///|
+fn native_lookup_closure_retention_leaves() -> Array[(String, String, String)] {
+  ["retention_contract", "metadata_retention_policy", "clock_contract"].map(kind => {
+    let wire = "{\"name\":\"native-lookup-closure-" +
+      kind +
+      "\",\"version\":\"actql-installed-local-policy/0.1\"}"
+    (kind, "sha256:" + @sha.hex(@utf8.encode(wire)), wire)
+  })
+}
+
+///|
 // Actual same Store/SQLite/Root/Writer/Reader, with authored raw metadata DATA.
 // No Source authority, Journal activation, Model send or normal funding proof.
 test "Native lookup raw Store preserves exact bytes and original purpose through reopen" {
@@ -960,17 +985,24 @@ fn native_mock_readme_content_join_adopt(
   let scope_cid = @run_host.client_request_authority_scope_cid(first.request)
   let raw_retention = if raw_store {
     let cid = "sha256:" + "d".repeat(64)
+    let leaves = if @env.get_env_var("ACTQL_TEST_NATIVE_LOOKUP_CLOSURE") ==
+      Some("1") {
+      native_lookup_closure_retention_leaves()
+    } else {
+      []
+    }
+    let leaf = index => if leaves.is_empty() { cid } else { leaves[index].1 }
     Some(
       @publication.seal_publication_contract(
         "result_retention_policy",
         "{\"version\":\"actql-result-retention-policy/0.1\",\"retention_contract_cid\":\"" +
-        cid +
+        leaf(0) +
         "\",\"effective_data_policy_cid\":\"" +
         cid +
         "\",\"available_until\":\"2099-01-01T00:00:00.000Z\",\"delete_by\":\"2099-01-02T00:00:00.000Z\",\"extension_ceiling_at\":\"2099-01-02T00:00:00.000Z\",\"metadata_retention_policy_cid\":\"" +
-        cid +
+        leaf(1) +
         "\",\"metadata_delete_by\":\"2099-01-03T00:00:00.000Z\",\"clock_contract_cid\":\"" +
-        cid +
+        leaf(2) +
         "\"}",
         65536,
         4096,
@@ -1787,6 +1819,129 @@ fn native_mock_readme_content_join_adopt(
     assert_eq(@execution.supplied_relation_read_row_count(complete), 2)
     if @env.get_env_var("ACTQL_TEST_NATIVE_LOOKUP_COMPLETION") == Some("1") {
       let completed = @run_host.client_keyed_lookup_native_completion(lookup).unwrap()
+      if @env.get_env_var("ACTQL_TEST_NATIVE_LOOKUP_CLOSURE") == Some("1") {
+        let physical_source = original.file_sources.unwrap()[0]._retained_listings[0].1._retained_read_profile
+          .physical_source_body()
+          .unwrap()
+        let small_bounds : @publication.CapturedEffectDependencyLimits = {
+          max_entries: 4096,
+          max_total_bytes: 65536,
+          max_depth: 64,
+          max_references: 65536,
+        }
+        // The original 64 KiB metadata-only fixture cannot contain this full
+        // closure. Keep that refusal; use the existing capture recipe's
+        // selected artifact codec for the separate complete inventory below.
+        assert_true(
+          @run_host.client_keyed_lookup_native_dependency_bodies(
+            lookup,
+            raw_retention.unwrap(),
+            small_bounds,
+            10000,
+            64,
+            physical_source=Some(physical_source),
+          )
+          is Err(@run_host.Static(@checked.Encoding(@encode.OutputLimit))),
+        )
+        let codec = @run_host.client_standard_effect_computation_limits().program.checking.compilation.artifacts
+        let bounds : @publication.CapturedEffectDependencyLimits = {
+          ..small_bounds,
+          max_total_bytes: Int::min(codec.bytes, 16777216),
+        }
+        let bodies = match
+          @run_host.client_keyed_lookup_native_dependency_bodies(
+            lookup,
+            raw_retention.unwrap(),
+            bounds,
+            codec.nodes,
+            Int::min(codec.depth, 64),
+            physical_source=Some(physical_source),
+          ) {
+          Ok(value) => value
+          Err(@run_host.Dependency(issue)) =>
+            match issue {
+              InvalidBody => fail("Lookup dependency body invalid")
+              ByteLimit => fail("Lookup dependency byte limit")
+              EntryLimit => fail("Lookup dependency entry limit")
+              _ => fail("Lookup dependency extraction refused")
+            }
+          Err(@run_host.Static(issue)) =>
+            match issue {
+              MissingDependency => fail("Lookup checked Catalog member missing")
+              ForeignBody => fail("Lookup checked Catalog member foreign")
+              BudgetExceeded => fail("Lookup checked Catalog budget exceeded")
+              Encoding(issue) =>
+                match issue {
+                  @encode.OutputLimit =>
+                    fail("Lookup checked Catalog encoder OutputLimit")
+                  @encode.InvalidStructure =>
+                    fail("Lookup checked Catalog encoder InvalidStructure")
+                  @encode.InvalidUnicode =>
+                    fail("Lookup checked Catalog encoder InvalidUnicode")
+                  @encode.InvalidNumber =>
+                    fail("Lookup checked Catalog encoder InvalidNumber")
+                  @encode.ClosedWriter =>
+                    fail("Lookup checked Catalog encoder ClosedWriter")
+                }
+              MissingUnit => fail("Lookup checked Catalog Unit missing")
+            }
+          _ => fail("Lookup dependency original foreign")
+        }
+        for (kind, cid, wire) in native_lookup_closure_retention_leaves() {
+          bodies.push(
+            @publication.admit_captured_effect_dependency_body(
+              kind,
+              Some(cid),
+              wire,
+              bounds.max_total_bytes,
+              codec.nodes,
+              Int::min(codec.depth, 64),
+            ).unwrap(),
+          )
+        }
+        let root = @publication.admit_captured_effect_dependency_body(
+          "lookup_evidence",
+          Some(@publication.publication_contract_identity(completed.evidence)),
+          @publication.publication_contract_json(completed.evidence),
+          bounds.max_total_bytes,
+          codec.nodes,
+          Int::min(codec.depth, 64),
+        ).unwrap()
+        let inventory = match
+          @publication.issue_captured_effect_dependency_inventory(
+            bodies,
+            [root],
+            bounds,
+            codec.nodes,
+            Int::min(codec.depth, 64),
+          ) {
+          Ok(value) => value
+          Err(issue) =>
+            match issue {
+              MissingDependency => fail("Lookup closure missing dependency")
+              WrongDependencyKind =>
+                fail("Lookup closure wrong dependency role")
+              UnusedDependency =>
+                fail("Lookup closure contains unused dependency")
+              _ => fail("Lookup closure refused")
+            }
+        }
+        assert_true(
+          @publication.captured_effect_dependency_inventory_json(inventory).contains(
+            "carrier_contract",
+          ),
+        )
+        assert_true(
+          @publication.captured_effect_dependency_inventory_json(inventory).contains(
+            "carrier_schema",
+          ),
+        )
+        assert_true(
+          @publication.captured_effect_dependency_inventory_json(inventory).contains(
+            "task_fragment",
+          ),
+        )
+      }
       if @env.get_env_var("ACTQL_TEST_NATIVE_LOOKUP_DEPENDENCIES") == Some("1") {
         for
           (kind, contract) in [

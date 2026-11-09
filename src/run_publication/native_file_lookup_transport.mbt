@@ -19,6 +19,20 @@ pub fn native_file_read_profile_contract_bindings(
 }
 
 ///|
+/// Original physical SourceView identity of this admitted Native descriptor.
+/// It selects an immutable body, never permission to read that Source.
+pub fn native_file_read_profile_physical_source_contract_cid(
+  profile : PublicationContract,
+) -> String? {
+  if profile.name != "native_file_content_read" {
+    return None
+  }
+  optional_string(
+    @json.object_field(profile.value, "physical_source_view_contract_cid"),
+  )
+}
+
+///|
 /// The actual existing Native reader performs single-key version-checked file
 /// reads, without pagination or retry. This closes only its implementation
 /// transport DATA; neither an HTTP profile nor another execution is implied.

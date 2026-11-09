@@ -92,6 +92,12 @@ fn command_preparation_cleanup_cause(
       }
     CommandBusinessEffectProposals(cause) =>
       match cause {
+        Dependency(original) =>
+          match original {
+            ForeignInput => "EffectProposalsDependencyForeignInput"
+            Dependency(_) => "EffectProposalsDependencyClosure"
+            _ => "EffectProposalsDependency"
+          }
         Materials(original) =>
           match original {
             RunMismatch => "EffectProposalsMaterialsRunMismatch"

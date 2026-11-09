@@ -58,6 +58,54 @@ fn build_model_effect_direct_sources(
 ] {
   let entries = []
   for input in sources.inputs {
+    let cached = sources.keyed.bind(value => {
+      let lookup = value.1.lookup
+      if lookup.closed || lookup.left.lookup_issue is Some(_) {
+        return None
+      }
+      lookup.native_sources.bind(state => {
+        state.sources
+        .iter()
+        .find_first(original => {
+          physical_equal(original.identity, input.identity) &&
+          physical_equal(
+            original.logical,
+            @publication.model_source_observation_originals(input.observation).1,
+          ) &&
+          physical_equal(
+            original.observation,
+            @publication.model_source_observation_originals(input.observation).0,
+          )
+        })
+      })
+    })
+    if cached is Some(original) {
+      if !@publication.result_retention_bounds_equal(
+          original.retention,
+          retention,
+        ) {
+        return Err(Relation(@publication.WrongRetention))
+      }
+      // Reuse the exact metadata completed before the Model Read. No second
+      // Request encoding/hash, Source admission or Relation issuer is needed.
+      entries.push({
+        owner: invocation.owner,
+        identity: input.identity,
+        captured: input.source,
+        purpose: ModelContribution,
+        invocation,
+        input: original.logical,
+        observation: original.observation,
+        request: original.request,
+        request_cid: original.request_cid,
+        retention: original.retention,
+        publication_retention: retention,
+        relation: original.relation,
+        ordering: original.ordering,
+        scope: original.scope,
+      })
+      continue
+    }
     let material = match input.original {
       Query(requirement) => {
         let material = @planning.query_requirement_material(requirement)

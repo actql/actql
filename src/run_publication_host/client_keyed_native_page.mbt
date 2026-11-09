@@ -20,6 +20,7 @@ pub struct ClientKeyedNativeCapturedPage {
   batch_plan_cid : String
   activation_cid : String
   raw : @publication.PublicationContract
+  raw_retention : @publication.PublicationContract
   event : @publication.PublicationContract
   adoption : @publication.PublicationContract
   logical_value_cid : String
@@ -157,7 +158,7 @@ fn build_client_keyed_native_captured_page(
   // writers have their own existing dynamic constructor quotes below.
   let controls = @execution.preparation_representation_cost({
     record_headers: 20L,
-    reference_slots: 38L,
+    reference_slots: 39L,
     scalar_words: 19L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
@@ -394,6 +395,7 @@ fn build_client_keyed_native_captured_page(
     batch_plan_cid: batch,
     activation_cid,
     raw: raw.metadata,
+    raw_retention: raw.retention,
     event,
     adoption,
     logical_value_cid: page_cid,

@@ -15,7 +15,7 @@ pub fn admit_hashed_effect_dependency_body(
       "local_body", "parameter_declarations", "used_values", "local_contracts", "local_policy",
       "result_import_type", "request_values", "schema_evidence", "capability_evidence",
       "relation_schema", "relation_value", "retention_contract", "metadata_retention_policy",
-      "clock_contract",
+      "clock_contract", "carrier_contract", "task_fragment", "lookup_execution_policy",
     ].contains(kind) {
     return Err(WrongDependencyKind)
   }
@@ -47,6 +47,9 @@ pub fn admit_hashed_effect_dependency_body(
     "local_contracts" =>
       (Some("actql-local-contracts/0.1"), ["version", "contracts"])
     "local_policy" => (Some("actql-capacity-host-policy/0.1"), [])
+    "task_fragment" =>
+      (Some("aoa-pipeline/0.1"), ["version", "sources", "steps", "output"])
+    "lookup_execution_policy" => (Some("actql-lookup-execution-policy/0.1"), [])
     "retention_contract" | "metadata_retention_policy" | "clock_contract" =>
       (Some("actql-installed-local-policy/0.1"), ["name", "version"])
     _ => (None, [])
@@ -65,6 +68,19 @@ pub fn admit_hashed_effect_dependency_body(
   if kind == "local_contracts" &&
     dependency_list_references(value, "contracts", "selected_contract") is None {
     return Err(InvalidBody)
+  }
+  if kind == "carrier_contract" {
+    guard material_cursor(wire, max_bytes, max_nodes, max_depth) is Some(cursor) &&
+      @contract.read_checked(cursor, {
+        max_nodes,
+        max_depth,
+        max_text_bytes: max_bytes,
+      })
+      is Ok(contract) &&
+      !contract.nullable &&
+      contract.shape is @contract.Object(_) else {
+      return Err(InvalidBody)
+    }
   }
   if ["retention_contract", "metadata_retention_policy", "clock_contract"].contains(
       kind,

@@ -105,6 +105,7 @@ pub(all) enum NativeRelationFileIssue {
 
 type NativeRelationFileKeyedReadProfile
 pub fn NativeRelationFileKeyedReadProfile::contract(Self) -> @run_publication.PublicationContract
+pub fn NativeRelationFileKeyedReadProfile::physical_source_body(Self) -> (String, String)?
 
 pub(all) struct NativeRelationFileLimits {
   page : @client_row_source_host.RowPageLimits

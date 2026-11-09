@@ -28,6 +28,7 @@ pub fn admit_captured_effect_dependency_body(
     )
   } else if [
       "source_contract", "source_view_contract", "data_policy", "request_schema",
+      "carrier_schema",
     ].contains(kind) {
     admit_catalog_effect_dependency_body(
       kind, wire, max_bytes, max_nodes, max_depth,
@@ -40,7 +41,7 @@ pub fn admit_captured_effect_dependency_body(
       "local_body", "parameter_declarations", "used_values", "local_contracts", "local_policy",
       "result_import_type", "request_values", "schema_evidence", "capability_evidence",
       "relation_schema", "relation_value", "retention_contract", "metadata_retention_policy",
-      "clock_contract",
+      "clock_contract", "carrier_contract", "task_fragment", "lookup_execution_policy",
     ].contains(kind) {
     guard identity is Some(cid) else { return Err(InvalidBody) }
     admit_hashed_effect_dependency_body(

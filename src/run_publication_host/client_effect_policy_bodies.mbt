@@ -103,6 +103,7 @@ fn checked_client_source_policy_bodies(
   max_depth : Int,
   work : Int,
   retain_catalog? : Bool = false,
+  retained_body_keys? : Map[String, String]? = None,
 ) -> Result[Array[(String, String, String)], @checked.LocalDependencyBodyIssue] {
   let mut remaining_work = work
   let cid = policy.cid
@@ -113,6 +114,11 @@ fn checked_client_source_policy_bodies(
     identity : String,
     emit : (@encode.Writer) -> Unit raise @encode.EncodeFailure,
   ) -> Result[Unit, @checked.LocalDependencyBodyIssue] {
+    if retained_body_keys
+      .map(keys => keys.contains("data_policy\u0000" + identity))
+      .unwrap_or(false) {
+      return Ok(())
+    }
     if seen.contains(identity) {
       return Ok(())
     }
@@ -120,9 +126,11 @@ fn checked_client_source_policy_bodies(
       _ => return Err(BudgetExceeded)
     }
     emit(writer) catch {
-      _ => return Err(Encoding)
+      issue => return Err(Encoding(issue))
     }
-    let wire = @encode.finish(writer) catch { _ => return Err(Encoding) }
+    let wire = @encode.finish(writer) catch {
+      issue => return Err(Encoding(issue))
+    }
     let bytes = @utf8.encode(wire)
     if "sha256:" + @sha.hex(bytes) != identity {
       return Err(ForeignBody)
@@ -181,6 +189,11 @@ fn checked_client_source_policy_bodies(
       }
       remaining_work -= references.length()
       for (kind, identity) in references {
+        if retained_body_keys
+          .map(keys => keys.contains(kind + "\u0000" + identity))
+          .unwrap_or(false) {
+          continue
+        }
         if seen.contains(identity) {
           guard bodies.iter().find_first(body => body.1 == identity)
             is Some(body) &&
@@ -221,7 +234,10 @@ fn checked_client_source_policy_bodies(
       }
     }
   }
-  if retain_catalog {
+  // Filtered contributions reuse originals on the enclosing collector. They
+  // are not standalone closures; that caller validates the complete graph.
+  // Complete legacy projections retain their original self-contained check.
+  if retain_catalog && retained_body_keys is None {
     let admitted : Array[@publication.CapturedEffectDependencyBody] = []
     for (kind, identity, wire) in bodies {
       match

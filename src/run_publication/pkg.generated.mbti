@@ -173,6 +173,8 @@ pub fn captured_effect_dependency_body_json(CapturedEffectDependencyBody) -> Str
 
 pub fn captured_effect_dependency_body_kind(CapturedEffectDependencyBody) -> String
 
+pub fn captured_effect_dependency_body_references(CapturedEffectDependencyBody, Int) -> Array[(String, String)]?
+
 pub fn captured_effect_dependency_inventory_count(CapturedEffectDependencyInventory) -> Int
 
 pub fn captured_effect_dependency_inventory_json(CapturedEffectDependencyInventory) -> String
@@ -718,6 +720,8 @@ pub fn model_source_observation_originals(ModelSourceObservation) -> (RunEvidenc
 pub fn native_effect_source_custody_record_json(PublicationContract, CapturedEffectSourceArtifact, String, String, String, Int64, Bool, Int) -> Result[String, PublicationContractIssue]
 
 pub fn native_file_read_profile_contract_bindings(PublicationContract) -> (String, String, String)?
+
+pub fn native_file_read_profile_physical_source_contract_cid(PublicationContract) -> String?
 
 pub fn next_result_delivery_row(ResultDeliverySerializer, String) -> Result[String, DeliverySerializationIssue]
 

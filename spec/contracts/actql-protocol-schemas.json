@@ -17279,7 +17279,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:632eb2f5bde239a51bc4d70c0c6db578e50db967bcd3baee537194b1a9465984",
+  "artifact_registry_cid": "sha256:169baac7a413da1a46aa6fe0b5a20da9342348e24e7c501ed426673f79d28723",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:cf421ba9a3d602be0bf53fc646eb822c0fa96151a2c5cf72a2f271cc7c3a6d77",
@@ -17316,7 +17316,7 @@
     "plan_document": "sha256:8faa3038775b916b1446c42b8ef3a2349bed1fb9f4341a96025f668a6d199232",
     "plan_result": "sha256:30b762e781c467c305110ca83ad9b724275422380eb060b3c6654d7d6807583b",
     "run_state": "sha256:3fbfc2cc5a79449fd05fce58e0fad25f6eef0ecde8314a222417a2e233db28c2",
-    "captured_run": "sha256:feed43823ca2721a948906e49866261d6dff991d20aec1dd7330ea7b433e86fd",
+    "captured_run": "sha256:448867a9bd6adcded16d4314552713764837d77719419272ff56e814e8f40fb2",
     "execution_account_config": "sha256:12fabf23550cc9bb9ab5023865de0a8e6393a271d7f8c68d31fc1f6dfa41db20",
     "caller_input_intent": "sha256:513e966082bc64cdc0e6bfd0aa05b0bab90cfd37cd429ddef21a3052e037263d",
     "initial_input_artifact_set": "sha256:ee4569cb2e67186da874a8115acf455276927362d6ee724cdca7ec3389b0176d",
@@ -86522,7 +86522,26 @@
                       "data_policy",
                       "retention_contract",
                       "metadata_retention_policy",
-                      "clock_contract"
+                      "clock_contract",
+                      "request_schema",
+                      "request_key_set",
+                      "carrier_schema",
+                      "carrier_contract",
+                      "task_fragment",
+                      "lookup_execution_policy",
+                      "lookup_evidence",
+                      "lookup_accounting",
+                      "acquisition_attempt_receipt",
+                      "lookup_barrier",
+                      "native_file_content_read",
+                      "native_file_lookup_transport",
+                      "native_file_lookup_batch_plan",
+                      "native_file_lookup_request",
+                      "native_file_lookup_call_slot",
+                      "native_file_lookup_activation",
+                      "native_file_lookup_raw_response",
+                      "native_file_lookup_attempt_event",
+                      "native_file_lookup_adoption"
                     ]
                   },
                   "cid": {

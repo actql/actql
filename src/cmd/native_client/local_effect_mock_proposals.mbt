@@ -12,6 +12,7 @@ priv enum LocalNativeMockEffectProposalIssue {
   Materials(@run_host.ClientEffectRunMaterialsIssue)
   Definition(@run_host.ClientEffectLocalResultDefinitionIssue)
   Artifact(@run_host.ClientEffectLocalResultArtifactIssue)
+  Dependency(@run_host.ClientEffectDependencyCaptureIssue)
 }
 
 ///|
@@ -39,6 +40,9 @@ priv struct LocalNativeMockEffectProposals {
   mut invocation : @run_host.ClientEffectLocalInvocation?
   mut materials : @run_host.ClientEffectRunMaterials?
   mut acquired : @run_host.ClientEffectModelAcquiredEvidence?
+  _retained_lookup_dependencies : Array[
+    @publication.CapturedEffectDependencyBody,
+  ]
   mut _retained_direct_evidence : Array[@run_host.ClientEffectAcquiredEvidence]
 }
 
@@ -60,6 +64,7 @@ priv struct LocalNativeMockEffectProposalMember {
 fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
   self : LocalCommandBusinessPreparation,
   retention : @publication.PublicationContract,
+  max_capture_bytes : Int,
 ) -> Unit raise ClientStop {
   guard self.original.business is Some(business) &&
     business.effect_model is Some(state) &&
@@ -99,6 +104,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
       invocation: None,
       materials: None,
       acquired: None,
+      _retained_lookup_dependencies: [],
       _retained_direct_evidence: [],
     }
     state.proposals = Some(held)
@@ -186,6 +192,54 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
           .map_err(issue => LocalNativeMockEffectProposalIssue::Materials(issue))
           .native_effect_proposal(self.original),
         )
+        guard self.original.project is Some(project) &&
+          project.mock_declarations is Some(mock) &&
+          mock.file_sources is Some(files) &&
+          @run_host.client_infer_plan_native_keyed_read_profile(state.graph)
+          is Some(profile) else {
+          stop("LocalOriginalModelKeyedPlanUnavailable")
+        }
+        let mut physical_source = None
+        for file in files {
+          for (_, binding) in file._retained_listings {
+            if physical_equal(
+                binding._retained_read_profile.contract(),
+                profile,
+              ) {
+              guard physical_source is None &&
+                binding._retained_read_profile.physical_source_body()
+                is Some(body) else {
+                stop("LocalOriginalModelKeyedPlanUnavailable")
+              }
+              physical_source = Some(body)
+            }
+          }
+        }
+        guard physical_source is Some(_) else {
+          stop("LocalOriginalModelKeyedPlanUnavailable")
+        }
+        let dependencies = @run_host.client_keyed_lookup_native_dependency_bodies(
+            state.lookup.unwrap_or_else(() => {
+              stop("LocalOriginalEffectLookupUnavailable")
+            }),
+            retention,
+            {
+              max_entries: Int::min(4096, limits.output_work),
+              max_total_bytes: max_capture_bytes,
+              max_depth: Int::min(64, wire.max_depth),
+              max_references: Int::min(65536, limits.output_work),
+            },
+            wire.max_nodes,
+            wire.max_depth,
+            physical_source~,
+          )
+          .map_err(issue => {
+            LocalNativeMockEffectProposalIssue::Dependency(issue)
+          })
+          .native_effect_proposal(self.original)
+        for dependency in dependencies {
+          held._retained_lookup_dependencies.push(dependency)
+        }
       }
       let invocation = held.invocation.unwrap()
       guard @strategy.captured_effect_input_at(inputs, entry) is Some(input) &&
@@ -358,6 +412,7 @@ fn LocalNativeMockEffectProposals::close(self : Self) -> Bool {
     }
   }
   self.acquired = None
+  self._retained_lookup_dependencies.clear()
   self.materials = None
   self._retained_keyed_identity = None
   self.invocation = None
