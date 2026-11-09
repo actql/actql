@@ -273,7 +273,7 @@ if (full) {
             ACTQL_TEST_NATIVE_LEFT_IDENTITY: undefined, ACTQL_TEST_NATIVE_SOURCE_ARTIFACTS: undefined,
             ACTQL_TEST_NATIVE_ATTEMPT_USAGE: undefined, ACTQL_TEST_NATIVE_CAPTURED_PAGE: undefined,
             ACTQL_TEST_NATIVE_LOOKUP_COMPLETION: undefined, ACTQL_TEST_NATIVE_LOOKUP_DEPENDENCIES: undefined,
-            ACTQL_TEST_NATIVE_LOOKUP_CLOSURE: undefined};
+            ACTQL_TEST_NATIVE_LOOKUP_CLOSURE: undefined, ACTQL_TEST_NATIVE_SOURCE_UNIT_EVIDENCE: undefined};
         const scopedArgs = ['--target', 'native', ...args, test.source, '--index', String(test.index),
           '--target-dir', scoped.targetDirectory];
         const timeout = scopedDeadline - Date.now();

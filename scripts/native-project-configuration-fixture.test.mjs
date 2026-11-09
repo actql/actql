@@ -52,7 +52,8 @@ test('Native Content case indices retain every original role in distinct fresh S
     'Native README lookup receipt retains every original attempt and measured usage',
     'Native completed Lookup bodies enter strict Effect dependency admission',
     'Native original Lookup closes dependency graph over exact Carrier and Catalog bodies',
-    ...originalNames.slice(13)];
+    ...originalNames.slice(13),
+    'Native original whole Source Unit evidence preserves original captures and retired refusal'];
   const originalIndices = [...Array.from({length: 13}, (_, index) => index), 16, 17, 18];
   assert.deepEqual(originalIndices.map(index => names[index]), originalNames);
   const source = readFileSync(new URL('../src/cmd/native_client/local_project_mock_content_physical_scoped_wbtest.mbt', import.meta.url), 'utf8');
@@ -64,7 +65,9 @@ test('Native Content case indices retain every original role in distinct fresh S
   const cases = namespaces.map((path, index) => nativeProjectContentCaseFixture(path, index, project));
   const originals = originalIndices.map(index => cases[index]);
   assert.deepEqual(originals.map(value => value.ACTQL_TEST_NATIVE_CONTENT_LOOKUPS), ['2', '1', ...Array(14).fill('2')]);
-  assert.equal(new Set(cases.map(value => value.ACTQL_TEST_NATIVE_STORE_ROOT)).size, 19);
+  assert.equal(new Set(cases.map(value => value.ACTQL_TEST_NATIVE_STORE_ROOT)).size, 20);
+  for (const key of ['ACTQL_TEST_NATIVE_RAW_SNAPSHOT_CID', 'ACTQL_TEST_NATIVE_RAW_SNAPSHOT_BYTES'])
+    assert.equal(cases[19][key], cases[9][key], 'whole Source Unit uses the same authored raw file: ' + key);
   const roles = {
     METADATA_REMAINDER: [0],
     RAW_SNAPSHOT: [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
@@ -79,10 +82,12 @@ test('Native Content case indices retain every original role in distinct fresh S
     const key = 'ACTQL_TEST_NATIVE_' + role;
     assert.deepEqual(originals.map(value => value[key]), originalNames.map((_, index) => selected.includes(index) ? '1' : undefined), role);
     for (const index of [13, 14, 15]) assert.equal(cases[index][key], cases[12][key], role);
+    assert.equal(cases[19][key], cases[9][key], 'whole Source Unit retains original Source-artifact role: ' + role);
     for (const value of cases) assert.equal(({[key]: 'ambient', ...value})[key], value[key]);
   }
   for (const [role, selected] of Object.entries({
     LOOKUP_COMPLETION: [13, 14, 15], LOOKUP_DEPENDENCIES: [14, 15], LOOKUP_CLOSURE: [15],
+    SOURCE_UNIT_EVIDENCE: [19],
   })) {
     const key = 'ACTQL_TEST_NATIVE_' + role;
     assert.deepEqual(cases.map(value => value[key]), names.map((_, index) => selected.includes(index) ? '1' : undefined), role);
@@ -93,7 +98,7 @@ test('Native Content case indices retain every original role in distinct fresh S
     assert.deepEqual(readdirSync(value.ACTQL_TEST_NATIVE_STORE_ROOT), []);
   }
   assert.throws(() => nativeProjectContentCaseFixture(namespaces[0], 0, project), {code: 'EEXIST'});
-  for (const index of [-1, 19, 0.5, '1', undefined]) {
+  for (const index of [-1, 20, 0.5, '1', undefined]) {
     assert.throws(() => nativeProjectContentCaseFixture(root, index), /exact original/u);
   }
 });

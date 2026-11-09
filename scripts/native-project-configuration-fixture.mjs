@@ -114,15 +114,18 @@ export function nativeProjectConfigurationFixture(namespace) {
 }
 
 // Every compiler-selected case retains a fresh Store. Later component cases
-// require their original earlier ports too; the last two keep their separate
-// Source-closure/Effect selections. Ambient flags cannot retarget another case.
+// require their original earlier ports too; the original Source-closure/Effect
+// cases keep their separate selections. Ambient flags cannot retarget a case.
 export function nativeProjectContentCaseFixture(namespace, index, projectRoot) {
-  assert(Number.isInteger(index) && index >= 0 && index <= 18,
+  assert(Number.isInteger(index) && index >= 0 && index <= 19,
     'An exact original Native Content case index is required');
   // The three authored Lookup cases extend the original captured-page inputs.
   // Existing cases 13..15 moved to 16..18 and retain every original role.
   const lookupCompletion = index >= 13 && index <= 15;
-  const originalIndex = index === 0 || lookupCompletion ? 11 :
+  // The appended whole-Source Unit case uses the existing Source-artifact
+  // inputs, including their original raw file, in its own fresh Store.
+  const sourceUnitEvidence = index === 19;
+  const originalIndex = sourceUnitEvidence ? 8 : index === 0 || lookupCompletion ? 11 :
     index >= 16 ? index - 4 : index - 1;
   const selected = (first, last = 11) => originalIndex >= first && originalIndex <= last;
   const raw = selected(2) ? readFileSync(join(projectRoot, 'deal-review/mock/data.json')) : undefined;
@@ -133,6 +136,7 @@ export function nativeProjectContentCaseFixture(namespace, index, projectRoot) {
     ACTQL_TEST_NATIVE_LOOKUP_COMPLETION: lookupCompletion ? '1' : undefined,
     ACTQL_TEST_NATIVE_LOOKUP_DEPENDENCIES: index === 14 || index === 15 ? '1' : undefined,
     ACTQL_TEST_NATIVE_LOOKUP_CLOSURE: index === 15 ? '1' : undefined,
+    ACTQL_TEST_NATIVE_SOURCE_UNIT_EVIDENCE: sourceUnitEvidence ? '1' : undefined,
     ACTQL_TEST_NATIVE_RAW_SNAPSHOT: selected(2) ? '1' : undefined,
     // The actual authored input file, independently of any capture/Store output.
     ACTQL_TEST_NATIVE_RAW_SNAPSHOT_CID: raw === undefined ? undefined :
