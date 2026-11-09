@@ -22298,6 +22298,7 @@
       "imports": [
         "../host-common/credential-scope-fields.generated.mjs",
         "../host-common/effect-preparation-result.mjs",
+        "../host-common/http-exchange.mjs",
         "../host-common/runtime-result.mjs",
         "../site-node/https-credential-resource.mjs",
         "./effect-ledger-implementation-bounds.mjs",
@@ -22305,7 +22306,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "fb419203e6b79a63f5120337315cf2f397e3830c3371c6f9e35de441e65029a9",
+      "sha256": "95a2ef0bd2a69f0c2e69e10318596214c27def7650bcd9dd460623f4bfedd095",
       "contracts": [
         {
           "operations": [
@@ -22394,6 +22395,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
               }
             ],
             "inputsOutputs": [
@@ -22404,6 +22409,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
               }
             ],
             "identity": [
@@ -22414,6 +22423,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
               }
             ],
             "ownership": [
@@ -22424,6 +22437,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
               }
             ],
             "synchronization": [
@@ -22434,6 +22451,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
               }
             ],
             "failure": [
@@ -22444,6 +22465,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
               }
             ],
             "cancellation": [
@@ -22454,6 +22479,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
               }
             ],
             "resources": [
@@ -22472,6 +22501,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
               }
             ],
             "extension": [
@@ -22482,6 +22515,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
               }
             ],
             "verification": [
@@ -22524,6 +22561,10 @@
               {
                 "path": "src/client_local_host/installed_effect_discarded_projection_js_wbtest.mbt",
                 "anchor": "test \"discarded Unit projection keeps full failed peak then reduces only the admitted remainder\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_empty_headers_js_wbtest.mbt",
+                "anchor": "test \"explicit empty headers keep full failed peak then SAME token retains body native output and pending cleanup\""
               }
             ]
           }

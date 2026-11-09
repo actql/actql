@@ -3084,7 +3084,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/hubspot-effect-plan.mjs",
-      "sha256": "b0b8e70871a56ce044420e97f594c67acfe2b13d0bd38c1d7568c443b729ffee",
+      "sha256": "b51e371d9c7f23283820fdb9c62d2c02c4615b5e179845cdb3b58765930e66a5",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common managed Effect Plan and same-issuer HubSpot constructor quantities",
@@ -3341,6 +3341,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
               }
             ],
             "inputsOutputs": [
@@ -3351,6 +3355,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
               }
             ],
             "identity": [
@@ -3361,6 +3369,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
               }
             ],
             "ownership": [
@@ -3371,6 +3383,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
               }
             ],
             "synchronization": [
@@ -3381,6 +3397,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
               }
             ],
             "failure": [
@@ -3391,6 +3411,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
               }
             ],
             "cancellation": [
@@ -3401,6 +3425,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
               }
             ],
             "resources": [
@@ -3415,6 +3443,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
               }
             ],
             "extension": [
@@ -3425,6 +3457,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
               }
             ],
             "verification": [
@@ -3439,6 +3475,10 @@
               {
                 "path": "src/client_local_host/installed_effect_discarded_projection_js_wbtest.mbt",
                 "anchor": "test \"discarded Unit projection keeps full failed peak then reduces only the admitted remainder\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_empty_headers_js_wbtest.mbt",
+                "anchor": "test \"explicit empty headers keep full failed peak then SAME token retains body native output and pending cleanup\""
               }
             ]
           }
