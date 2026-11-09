@@ -50270,7 +50270,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual}));"
+                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
               },
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
@@ -57649,7 +57649,8 @@
             "openInstalledHost/retireModelRuntime",
             "openInstalledHost/runtimeOriginals/runtimeOriginals",
             "openInstalledHost/runtimeTarget/runtimeTarget",
-            "openInstalledHost/selectedInstalledEffect"
+            "openInstalledHost/selectedInstalledEffect",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/retainFrame/retainFrame"
           ],
           "exports": [],
           "attributes": {
@@ -57985,6 +57986,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "Within one Local wait invocation, the next poll may borrow the last completed"
               }
             ],
             "ownership": [
@@ -57997,7 +58002,7 @@
                 "path": "docs/development/js-compiler-bindings.md"
               },
               {
-                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual}));",
+                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));",
                 "path": "adapters/host-node/embedded-local.mjs"
               },
               {
@@ -58875,6 +58880,10 @@
               {
                 "anchor": "## Verification",
                 "path": "adapters/host-node/installed-funded-environment.md"
+              },
+              {
+                "path": "adapters/host-node/client-run-observation-reuse.test.mjs",
+                "anchor": "test('actual wait borrows one same-Journal frame while fresh SQL and current gates remain live'"
               }
             ]
           }
@@ -60723,7 +60732,9 @@
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/observeRun/observeRun",
           "parameters": [
             "ref",
-            "actual"
+            "actual",
+            "originalFrame",
+            "retainFrame"
           ],
           "async": true
         },
@@ -61896,6 +61907,13 @@
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/observeStep/observeStep/interrupted/interrupted/interrupted",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/retainFrame/retainFrame",
+          "parameters": [
+            "frame"
+          ],
           "async": false
         },
         {
@@ -63995,7 +64013,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "2c93941cec5b3e9dacb38f8c5351c1334b64ffcec3ca17f508c943ce5f3c9cc5"
+      "sha256": "aeb442a259f5e1ce2d79fe68b3fde8571faf57492844d2d0f22bb5f9d8e15825"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",

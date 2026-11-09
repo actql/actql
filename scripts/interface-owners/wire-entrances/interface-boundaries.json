@@ -5167,7 +5167,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual}));"
+                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
               }
             ],
             "synchronization": [
@@ -5273,7 +5273,7 @@
             "ownership": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual}));"
+                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
               }
             ],
             "synchronization": [
@@ -11582,7 +11582,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual}));"
+                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
               }
             ],
             "synchronization": [
@@ -11698,7 +11698,7 @@
             "ownership": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual}));"
+                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
               }
             ],
             "synchronization": [

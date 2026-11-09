@@ -1531,7 +1531,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual}));"
+                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
               },
               {
                 "path": "docs/design/check-sdk.md",
@@ -1689,7 +1689,7 @@
             "ownership": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual}));"
+                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
               }
             ],
             "synchronization": [
