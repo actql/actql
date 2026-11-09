@@ -4841,7 +4841,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "e4959ec8f8e2409025c285c892770e5dd8bd3fa35b790574eafd5af0d475e584",
+      "sha256": "7fef911e0b4ec4f05a4fccc6a95dee837b597474c451ff45ba816e430cf34cde",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -6426,7 +6426,8 @@
             "signal",
             "maxResponseBytes",
             "constructChild",
-            "credentialSlot"
+            "credentialSlot",
+            "responsePreparation"
           ],
           "async": true
         },
@@ -21612,7 +21613,8 @@
             "observeCurrent",
             "requestsRetired",
             "originalInvoke",
-            "originalResponseExtent"
+            "originalResponseExtent",
+            "originalResponsePreparation"
           ],
           "async": false
         },
@@ -21752,12 +21754,19 @@
         {
           "name": "prepareInstalledEffectCredentialChild/prepareInstalledEffectCredentialChild#3",
           "parameters": [
-            "value"
+            "fn"
           ],
           "async": false
         },
         {
           "name": "prepareInstalledEffectCredentialChild/prepareInstalledEffectCredentialChild#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectCredentialChild/prepareInstalledEffectCredentialChild#5",
           "parameters": [],
           "async": false
         },
@@ -22068,7 +22077,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "e918e502fb807985bfd4b8aeddc234c3094f029f3328e0afa630c3a2fc613f21",
+      "sha256": "33afb5fbce85b939965f96d4519fce0720e11fd82a3a9fe8068a5f03bf41ef1a",
       "contracts": [
         {
           "operations": [
@@ -22137,7 +22146,8 @@
             "prepareInstalledStandardCreatePlanRecipe/physical/physical",
             "prepareInstalledStandardCreatePlanRecipe/prepareInstalledStandardCreatePlanRecipe",
             "text/text",
-            "prepareInstalledEffectConstructorChild/init:prepare/init:prepare/grow/grow"
+            "prepareInstalledEffectConstructorChild/init:prepare/init:prepare/grow/grow",
+            "prepareInstalledEffectCredentialChild/prepareInstalledEffectCredentialChild#5"
           ],
           "exports": [
             "captureInstalledEffectPlanRecipe",

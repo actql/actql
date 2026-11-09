@@ -198,7 +198,7 @@
     },
     {
       "module": "src/connectors/hubspot/catalog/effect_construction.mbt",
-      "sha256": "cbf90d3e019a91e87c5d5ccadadef974b253506ce6753d5893182da93722621e",
+      "sha256": "51874c565b4c72e42a52c5875d503a52fe86233705514c0a7dcf58d3f4602d88",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing HubSpot native constructors and shared representation inventory owners",
@@ -217,8 +217,16 @@
           "declaration": "effect_installation_construction_capacity ( mappings : Int , fields : Int , resources : Int , text_units : Int , ) - > @ execution . ExecutionCapacity ?"
         },
         {
+          "name": "effect_metadata_capacity_with_geometry",
+          "declaration": "effect_metadata_capacity_with_geometry ( body_bytes : Int , object_units : Int , limits : PropertyLimits , geometry : @ source . JsonSourceGeometry ? , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
           "name": "effect_metadata_construction_capacity",
           "declaration": "effect_metadata_construction_capacity ( body_bytes : Int , object_units : Int , limits : PropertyLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "effect_metadata_observed_construction_capacity",
+          "declaration": "effect_metadata_observed_construction_capacity ( body_bytes : Int , object_units : Int , limits : PropertyLimits , data : Array [ Int ] , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "effect_request_construction_capacity",
@@ -253,7 +261,9 @@
             "effect_response_construction_capacity",
             "effect_target_construction_capacity",
             "hubspot_effect_body_limits_valid",
-            "hubspot_effect_capacity"
+            "hubspot_effect_capacity",
+            "effect_metadata_capacity_with_geometry",
+            "effect_metadata_observed_construction_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -323,9 +333,17 @@
     },
     {
       "module": "src/connectors/hubspot/catalog/source_read_construction.mbt",
-      "sha256": "1ca1679961bafdd7936e28da8d32cbee15d744b8867270967974920be7f5b9df",
+      "sha256": "a40e8e84b28ea7eb465c683ebab775a88f96484cd5034751494066be3ff2c122",
       "exports": [],
       "operations": [
+        {
+          "name": "property_observation_construction_capacity",
+          "declaration": "property_observation_construction_capacity ( bytes : Int , object_units : Int , limits : PropertyLimits , geometry : @ source . JsonSourceGeometry ? , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "property_response_geometry_data",
+          "declaration": "property_response_geometry_data ( data : Array [ Int ] , expected_bytes : Int , ) - > @ source . JsonSourceGeometry ? ?"
+        },
         {
           "name": "property_response_observed_construction",
           "declaration": "property_response_observed_construction ( geometry : @ source . JsonSourceGeometry , n : Int , depth : Int , ) - > @ execution . PreparationRepresentationUnits ?"
@@ -373,7 +391,9 @@
             "source_property_recheck_construction_capacity",
             "source_read_capacity_with_geometry",
             "source_read_observed_construction_capacity",
-            "source_normalization_phase_capacity"
+            "source_normalization_phase_capacity",
+            "property_observation_construction_capacity",
+            "property_response_geometry_data"
           ],
           "exports": [],
           "attributes": {

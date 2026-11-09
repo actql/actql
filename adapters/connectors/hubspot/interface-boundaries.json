@@ -2207,7 +2207,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/hubspot-update-observations.mjs",
-      "sha256": "79b53ca4ffeb3dba8461725ff45ced4e1eedec52f7693665694d6013000d2033",
+      "sha256": "5020df35d59870b80d5a545b484154239fcb6e872ba214cfb282bcba41b89150",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing HubSpot Native request/target decoders and common installed row Effect",
@@ -2276,10 +2276,22 @@
           "async": false
         },
         {
-          "name": "createHubSpotUpdateObservationAdapter/catalog/catalog/catalog",
+          "name": "createHubSpotUpdateObservationAdapter/catalog/catalog/project/project",
           "parameters": [
             "body"
           ],
+          "async": false
+        },
+        {
+          "name": "createHubSpotUpdateObservationAdapter/catalog/catalog/responsePreparation/init:prepare/init:prepare",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHubSpotUpdateObservationAdapter/catalog/catalog/responsePreparation/init:retire/init:retire",
+          "parameters": [],
           "async": false
         },
         {
@@ -2350,15 +2362,15 @@
           "async": false
         },
         {
-          "name": "createHubSpotUpdateObservationAdapter/scope/scope/scope/input/input",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createHubSpotUpdateObservationAdapter/scope/scope/scope/result/result",
+          "name": "createHubSpotUpdateObservationAdapter/scope/scope/scope/consume/consume",
           "parameters": [
             "response"
           ],
+          "async": false
+        },
+        {
+          "name": "createHubSpotUpdateObservationAdapter/scope/scope/scope/input/input",
+          "parameters": [],
           "async": false
         },
         {
@@ -2441,7 +2453,6 @@
             "createHubSpotUpdateObservationAdapter/account/account",
             "createHubSpotUpdateObservationAdapter/account/account/account",
             "createHubSpotUpdateObservationAdapter/catalog/catalog",
-            "createHubSpotUpdateObservationAdapter/catalog/catalog/catalog",
             "createHubSpotUpdateObservationAdapter/createHubSpotUpdateObservationAdapter",
             "createHubSpotUpdateObservationAdapter/createHubSpotUpdateObservationAdapter#2",
             "createHubSpotUpdateObservationAdapter/createHubSpotUpdateObservationAdapter#3",
@@ -2452,14 +2463,17 @@
             "createHubSpotUpdateObservationAdapter/scope/scope/current/current",
             "createHubSpotUpdateObservationAdapter/scope/scope/scope",
             "createHubSpotUpdateObservationAdapter/scope/scope/scope/input/input",
-            "createHubSpotUpdateObservationAdapter/scope/scope/scope/result/result",
             "createHubSpotUpdateObservationAdapter/scope/scope/scope#2",
             "createHubSpotUpdateObservationAdapter/selected/selected",
             "encode/encode",
             "fail/fail",
             "HubSpotUpdateObservationFailure/constructor:constructor/constructor:constructor",
             "segment/segment",
-            "segment/segment/segment"
+            "segment/segment/segment",
+            "createHubSpotUpdateObservationAdapter/catalog/catalog/project/project",
+            "createHubSpotUpdateObservationAdapter/catalog/catalog/responsePreparation/init:prepare/init:prepare",
+            "createHubSpotUpdateObservationAdapter/catalog/catalog/responsePreparation/init:retire/init:retire",
+            "createHubSpotUpdateObservationAdapter/scope/scope/scope/consume/consume"
           ],
           "exports": [
             "HubSpotUpdateObservationFailure",
@@ -3021,7 +3035,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/hubspot-effect-plan.mjs",
-      "sha256": "b67472dea54dc743f31302a7b01c9ebeec79c19d13502d0242d8a95b1e2f2690",
+      "sha256": "4b6d71bb6309492d9d88acc87a6f7ef80ed84218b0b1a4abd78059aa5f930d89",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common managed Effect Plan and same-issuer HubSpot constructor quantities",
@@ -3101,7 +3115,8 @@
         {
           "name": "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/physical/physical/physicalProfile/physicalProfile",
           "parameters": [
-            "bytes"
+            "bytes",
+            "geometry"
           ],
           "async": false
         },
@@ -3109,7 +3124,8 @@
           "name": "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/physical/physical/responseExtent/responseExtent",
           "parameters": [
             "bytes",
-            "body"
+            "body",
+            "geometry"
           ],
           "async": false
         },
@@ -3139,7 +3155,8 @@
           "parameters": [
             "targetBytes",
             "metadataBytes",
-            "metadataKind"
+            "metadataKind",
+            "geometry"
           ],
           "async": false
         },
