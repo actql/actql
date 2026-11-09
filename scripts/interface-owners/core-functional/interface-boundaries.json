@@ -52885,7 +52885,27 @@
               },
               {
                 "path": "src/connectors/local/metered_output_start_wbtest.mbt",
-                "anchor": "test \"unpivot startup preserves recursive text and injected full provider capacities\""
+                "anchor": "test \"unpivot borrowed cells keep full retention and original injected provider capacities\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"unpivot name collision preserves borrowed current text and complete positional rows on the same Ledger\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"borrowed unpivot import refusal precedes decode and retains original current fields\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"borrowed unpivot cancellation cannot decode later input or publish copied cells\""
+              },
+              {
+                "path": "src/execution_relation/bounded_unpivot_wbtest.mbt",
+                "anchor": "test \"unpivot borrows original text array and object backing through funded transfer and cleanup\""
+              },
+              {
+                "path": "src/execution_relation/execution_capacity_wbtest.mbt",
+                "anchor": "test \"bounded unpivot quotes real cursor geometry without copied input or measurement forests\""
               }
             ]
           }

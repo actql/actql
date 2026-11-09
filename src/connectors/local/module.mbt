@@ -494,20 +494,14 @@ pub fn local_module_metered_output_start_capacity(
         }
       Some(@lower.RowStep(kernel)) if count == 1 &&
         @lower.kernel_unpivot_outputs(kernel) is Some(_) => {
-        // Immediate input cells and the original prepared column labels are
-        // borrowed by this bounded constructor. Preserve complete input and
-        // traversal scratch and the full retained output (including labels);
-        // the same before-commit growth owner funds each persistent row.
-        let input = @lower.kernel_input_schema(kernel)
-        if !@schema.all_fields_required(input) ||
+        // This bounded constructor borrows original admitted cells, including
+        // Text/Array/Object backing, and prepared column labels. Its stepped
+        // contract recheck returns the SAME immutable value, not a copied
+        // forest. Preserve all input/decode/traversal scratch and the FULL
+        // retained output, while the existing row-charge owner funds transfer.
+        if !@schema.all_fields_required(@lower.kernel_input_schema(kernel)) ||
           !@schema.all_fields_required(@lower.kernel_output_schema(kernel)) {
           return None
-        }
-        for field in 0..<@schema.field_count(input) {
-          match @schema.field_at(input, field).unwrap().contract.shape {
-            @contract.Number | @contract.Boolean => ()
-            _ => return None
-          }
         }
         metered_retention = false
       }
@@ -687,6 +681,37 @@ pub fn local_module_metered_output_start_capacity(
     is Some(data) &&
     base.execution_bytes >= data else {
     return None
+  }
+  // The default singleton UNPIVOT constructs the SAME admitted output row,
+  // not an input forest, measurement wire body or second output forest. Its
+  // complete original retained envelope pays that row even before transfer.
+  // Keep the bounded constructor's real maps/row arrays/cursors/frames/depth
+  // and every fragment allowance alongside it. The generic provider bound
+  // remains unchanged; an injected provider never enters this recipe.
+  if count == 1 &&
+    @execution.generated_sequence_step_at(sequence, 0)
+    is Some(@lower.RowStep(kernel)) &&
+    @lower.kernel_unpivot_outputs(kernel) is Some(_) {
+    // These are separate retained/workspace dimensions. The existing driver
+    // adds retained backing alongside workspace exactly once; do not subtract
+    // retention from the workspace quote. Preserve the common capacity
+    // owner's existing execution >= retention floor as well.
+    guard base.execution_bytes >= data &&
+      full.retained_bytes >= base.retained_bytes &&
+      @execution.execution_capacity_inventory_add(
+        base.execution_bytes - data,
+        @execution.CursorRootSlots,
+        2L * count.to_int64() + 2L,
+        1,
+      )
+      is Some(scratch) &&
+      Int64::max(full.retained_bytes, scratch) <= full.execution_bytes else {
+      return None
+    }
+    return @execution.execution_capacity(
+      full.retained_bytes,
+      Int64::max(full.retained_bytes, scratch),
+    )
   }
   let mut fixed = 0L
   let constructor_chain = (unnest_chain && metered_retention) || window_chain

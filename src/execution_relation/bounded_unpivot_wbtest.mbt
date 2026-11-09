@@ -2,6 +2,8 @@
 fn bounded_unpivot_fixture(
   rows : String,
   unused_payload? : Bool = false,
+  carried_contract? : String? = None,
+  constrain? : (GeneratedSequence) -> GeneratedSequence = generated => generated,
   input_values? : ValueLimits = run_limits().input_values,
   max_rows? : Int = 10,
   max_work? : Int = 10000,
@@ -11,7 +13,9 @@ fn bounded_unpivot_fixture(
   output_funding? : ((Int64, Int64) -> Result[Unit, WorkspaceGrowthIssue])? = None,
 ) -> (@bounded.Control, BoundedUnpivotExecution, CompletedOutput) raise {
   let schema = "{\"id\":{\"type\":\"number\",\"nullable\":false},\"jan\":{\"type\":\"number\",\"nullable\":true},\"feb\":{\"type\":\"number\",\"nullable\":true}" +
-    (if unused_payload {
+    (if carried_contract is Some(contract) {
+      ",\"payload\":" + contract + "}"
+    } else if unused_payload {
       ",\"payload\":{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}}"
     } else {
       "}"
@@ -39,9 +43,16 @@ fn bounded_unpivot_fixture(
     @lower.pipeline(@lower.bound_preparation(source_owner)),
     @pipeline.Step(0),
   ).unwrap()
+  let kept = if carried_contract is Some(_) {
+    "[\"id\",\"jan\",\"payload\"]"
+  } else {
+    "[\"id\",\"jan\"]"
+  }
   let checked = @pipeline.check_with_evidence(
     input_cursor(
-      "[{\"from\":\"seed\",\"unpivot\":{\"columns\":[\"jan\",\"feb\",\"jan\"],\"keep\":[\"id\",\"jan\"],\"name_column\":\"metric\",\"value_column\":\"amount\"}}]",
+      "[{\"from\":\"seed\",\"unpivot\":{\"columns\":[\"jan\",\"feb\",\"jan\"],\"keep\":" +
+      kept +
+      ",\"name_column\":\"metric\",\"value_column\":\"amount\"}}]",
     ),
     [("seed", @pipeline.ProducedInput(producer))],
     None,
@@ -91,6 +102,7 @@ fn bounded_unpivot_fixture(
       ).unwrap()
     None => generated
   }
+  let generated = constrain(generated)
   let read = prepare_producer_read(
     receiver,
     bind_completed_input(receiver, 0, source_owner, source).unwrap(),
@@ -495,5 +507,138 @@ test "unpivot funds original labelled rows before transfer and preserves refusal
       assert_true(completed_output_available(output))
     }
     assert_true(completed_output_available(source))
+  }
+}
+
+///|
+fn unpivot_fixture_column(schema : @schema.Schema, name : String) -> Int {
+  for column in 0..<@schema.field_count(schema) {
+    if @schema.reference_name(@schema.field_at(schema, column).unwrap().name) ==
+      name {
+      return column
+    }
+  }
+  -1
+}
+
+///|
+test "unpivot borrows original text array and object backing through funded transfer and cleanup" {
+  for
+    (contract, payload) in [
+      (
+        "{\"type\":\"string\",\"nullable\":false}",
+        "\"" + "λ".repeat(80) + "\"",
+      ),
+      (
+        "{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}",
+        "[1,2,3]",
+      ),
+      (
+        "{\"type\":\"object\",\"nullable\":false,\"fields\":{\"x\":{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}}}",
+        "{\"x\":[1,2]}",
+      ),
+    ] {
+    for (refuse, close) in [(false, false), (true, false), (false, true)] {
+      let calls = Ref(0)
+      let before_transfer = Ref(true)
+      let active : Ref[BoundedUnpivotExecution?] = Ref(None)
+      let (_, execution, source) = bounded_unpivot_fixture(
+        "[{\"id\":1,\"jan\":10,\"feb\":20,\"payload\":" + payload + "}]",
+        carried_contract=Some(contract),
+        max_entries=1000,
+        output_funding=Some((retained, execution) => {
+          calls.val += 1
+          before_transfer.val = before_transfer.val &&
+            retained > 0L &&
+            execution >= retained &&
+            active.val
+            .map(value => {
+              value.state.checked_row.length() == 5 &&
+              value.state.output
+              .map(output => {
+                output.buffer.rows.length() == value.state.emitted &&
+                output.buffer.budget.nodes > 0
+              })
+              .unwrap_or(false)
+            })
+            .unwrap_or(false)
+          if close {
+            active.val
+            .bind(value => value.state.output)
+            .map(output => cancel_admitted_output(output) |> ignore)
+            |> ignore
+          }
+          if refuse {
+            Err(WorkspaceBudgetUnavailable)
+          } else {
+            Ok(())
+          }
+        }),
+      )
+      active.val = Some(execution)
+      let source_column = unpivot_fixture_column(
+        unpivot_input_schema(execution.state.input),
+        "payload",
+      )
+      let output_column = unpivot_fixture_column(
+        execution.state.output_schema,
+        "payload",
+      )
+      let label_column = unpivot_fixture_column(
+        execution.state.output_schema,
+        "metric",
+      )
+      assert_true(source_column >= 0 && output_column >= 0 && label_column >= 0)
+      let original = unpivot_input_cell(execution.state.input, 0, source_column).unwrap()
+      let mut accepted = None
+      let mut done = false
+      for _ in 0..<10000 {
+        if !done {
+          match advance_bounded_unpivot(execution, 1).unwrap() {
+            BoundedUnpivotContinue(..) => ()
+            BoundedUnpivotComplete(output, ..) => {
+              assert_false(refuse || close)
+              assert_eq(completed_row_count(output), 3)
+              for row in 0..<3 {
+                match
+                  (
+                    original,
+                    completed_cell(output, row, output_column).unwrap(),
+                  ) {
+                  (Text(left), Text(right)) => assert_eq(left, right)
+                  (Captured(left), Captured(right)) =>
+                    assert_true(physical_equal(left, right))
+                  _ => fail("unpivot reconstructed its original carried cell")
+                }
+                assert_true(
+                  completed_cell(output, row, label_column) is Some(Text(label)) &&
+                  label == (if row == 1 { "feb" } else { "jan" }),
+                )
+              }
+              accepted = Some(output)
+              done = true
+            }
+            BoundedUnpivotFailed(Capture(CaptureLimit), ..) => {
+              assert_true(refuse || close)
+              assert_true(execution.state.rows.val is None)
+              done = true
+            }
+            _ => fail("borrowed unpivot lost its original transfer outcome")
+          }
+        }
+      }
+      assert_true(done && calls.val > 0 && before_transfer.val)
+      assert_true(cleanup_bounded_unpivot(execution).unwrap())
+      if accepted is Some(output) {
+        assert_true(completed_output_available(output))
+        match (original, completed_cell(output, 0, output_column).unwrap()) {
+          (Text(left), Text(right)) => assert_eq(left, right)
+          (Captured(left), Captured(right)) =>
+            assert_true(physical_equal(left, right))
+          _ => fail("cleanup lost its accepted original backing")
+        }
+      }
+      assert_true(completed_output_available(source))
+    }
   }
 }

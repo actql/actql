@@ -209,6 +209,16 @@ pub fn generated_bounded_sequence_capacity(
     !borrowed_unnest {
     return generated_sequence_capacity(generated, limits, measurement)
   }
+  // The bounded UNPIVOT input and output checks retain original admitted
+  // cells. Its RowWorkspace funds maps, rows and resumable cursor frames;
+  // no input forest or canonical measurement body is constructed here.
+  let borrowed_unpivot = match operation {
+    @lower.RowStep(kernel) =>
+      @lower.kernel_unpivot_outputs(kernel) is Some(_) &&
+      @schema.all_fields_required(@lower.kernel_input_schema(kernel)) &&
+      @schema.all_fields_required(schema)
+    _ => false
+  }
   let borrowed_row = match operation {
     @lower.RowStep(kernel) => {
       let bounded = @lower.kernel_bindings(kernel) is Some(_) ||
@@ -222,7 +232,7 @@ pub fn generated_bounded_sequence_capacity(
           | @lower.AssertUnique(_) => true
           _ => false
         })
-      (bounded || borrowed_group || borrowed_unnest) &&
+      (bounded || borrowed_group || borrowed_unnest || borrowed_unpivot) &&
       @lower.node_input_count(node) == 1 &&
       // Only the input forest is borrowed. A binding may construct recursive
       // output through its existing logical-root growth owner; its complete
@@ -243,7 +253,10 @@ pub fn generated_bounded_sequence_capacity(
             // UNNEST scans original arrays and rechecks the same immutable
             // carried/element values. Its maps, row arrays, complete input
             // charge and recheck/measurement cursors remain funded below.
-            borrowed_unnest
+            borrowed_unnest ||
+            // UNPIVOT borrows kept and selected original cells, including
+            // recursive values, and immutable prepared column labels.
+            borrowed_unpivot
           ) &&
           @schema.all_fields_required(input) &&
           @schema.all_fields_required(schema)

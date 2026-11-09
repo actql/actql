@@ -1035,3 +1035,43 @@ test "renamed unpivot import refusal precedes decode and keeps original label an
 test "renamed unpivot cancellation cannot decode new input or publish a later label" {
   renamed_unpivot_original_data_chain(CancelImport)
 }
+
+///|
+fn unpivot_borrowed_original_data_chain(
+  mode : ManagedImportDataCase,
+) -> Unit raise {
+  managed_import_data_chain(
+    mode,
+    format=@frontend.Sql,
+    numeric_profile_cid=Some(
+      "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df",
+    ),
+    query="SELECT 'anchor' AS a, 0 AS b, 0 AS c, 'anchor' AS d UNION ALL (FROM records |> SELECT id AS kept, 'user' AS extra, -amount |> UNPIVOT INCLUDE NULLS(value FOR extra IN(kept)) |> SELECT *) ORDER BY a, b NULLS LAST, c, d",
+    source_wire="[{\"id\":1,\"amount\":10},{\"id\":2,\"amount\":20}]",
+    source_rows=2,
+    expected_tasks=None,
+    two_input_task=None,
+    result_name="main",
+    expected_rows=[
+      "{\"a\":\"anchor\",\"b\":0,\"c\":0,\"d\":\"anchor\"}", "{\"a\":\"user\",\"b\":-20,\"c\":2,\"d\":\"kept\"}",
+      "{\"a\":\"user\",\"b\":-10,\"c\":1,\"d\":\"kept\"}",
+    ],
+    prior_execution=23647512L,
+    expected_policy=None,
+  )
+}
+
+///|
+test "unpivot name collision preserves borrowed current text and complete positional rows on the same Ledger" {
+  unpivot_borrowed_original_data_chain(Complete)
+}
+
+///|
+test "borrowed unpivot import refusal precedes decode and retains original current fields" {
+  unpivot_borrowed_original_data_chain(RefuseImport)
+}
+
+///|
+test "borrowed unpivot cancellation cannot decode later input or publish copied cells" {
+  unpivot_borrowed_original_data_chain(CancelImport)
+}

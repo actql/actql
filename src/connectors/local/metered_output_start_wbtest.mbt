@@ -1260,7 +1260,7 @@ test "ROW_NUMBER startup keeps nonprimitive other-function and injected provider
 }
 
 ///|
-test "unpivot startup preserves recursive text and injected full provider capacities" {
+test "unpivot borrowed cells keep full retention and original injected provider capacities" {
   for
     (contract, literal) in [
       ("{\"type\":\"string\",\"nullable\":false}", "\"text\""),
@@ -1316,9 +1316,11 @@ test "unpivot startup preserves recursive text and injected full provider capaci
       (full.retained_bytes, full.execution_bytes),
       (generic.retained_bytes, generic.execution_bytes),
     )
-    assert_true(
-      local_module_metered_output_start_capacity(original, 0, sequence) is None,
-    )
+    let startup = local_module_metered_output_start_capacity(
+      original, 0, sequence,
+    ).unwrap()
+    assert_eq(startup.retained_bytes, full.retained_bytes)
+    assert_true(startup.execution_bytes < full.execution_bytes)
     let starts = Ref(0)
     let replacement = managed_provider(_ => true, _ => Some(full), (
       _,
