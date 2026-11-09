@@ -493,6 +493,25 @@ pub fn local_module_metered_output_start_capacity(
           }
         }
       Some(@lower.RowStep(kernel)) if count == 1 &&
+        @lower.kernel_unpivot_outputs(kernel) is Some(_) => {
+        // Immediate input cells and the original prepared column labels are
+        // borrowed by this bounded constructor. Preserve complete input and
+        // traversal scratch and the full retained output (including labels);
+        // the same before-commit growth owner funds each persistent row.
+        let input = @lower.kernel_input_schema(kernel)
+        if !@schema.all_fields_required(input) ||
+          !@schema.all_fields_required(@lower.kernel_output_schema(kernel)) {
+          return None
+        }
+        for field in 0..<@schema.field_count(input) {
+          match @schema.field_at(input, field).unwrap().contract.shape {
+            @contract.Number | @contract.Boolean => ()
+            _ => return None
+          }
+        }
+        metered_retention = false
+      }
+      Some(@lower.RowStep(kernel)) if count == 1 &&
         @lower.kernel_analytic(kernel) is Some(analytic) => {
         // The existing bounded analytic child funds its accepted buffer row
         // before transfer. Keep all ordering/input/evaluation scratch prepaid;

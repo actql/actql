@@ -995,3 +995,43 @@ test "opposing analytic import refusal precedes decode and retains original rank
 test "opposing analytic cancellation cannot decode later input or publish replacement ranks" {
   opposing_analytic_original_data_chain(CancelImport)
 }
+
+///|
+fn renamed_unpivot_original_data_chain(
+  mode : ManagedImportDataCase,
+) -> Unit raise {
+  managed_import_data_chain(
+    mode,
+    format=@frontend.Text,
+    numeric_profile_cid=Some(
+      "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df",
+    ),
+    query="SELECT 0 AS a, 0 AS b, 'anchor' AS c UNION ALL (FROM records |> SELECT id AS kept, -amount |> SET kept = 7 |> RENAME kept AS renamed |> UNPIVOT INCLUDE NULLS(value FOR label IN(renamed)) AS fresh |> SELECT *) ORDER BY a NULLS LAST, b NULLS LAST, c",
+    source_wire="[{\"id\":1,\"amount\":10},{\"id\":2,\"amount\":20}]",
+    source_rows=2,
+    expected_tasks=None,
+    two_input_task=None,
+    result_name="main",
+    expected_rows=[
+      "{\"a\":-20,\"b\":7,\"c\":\"renamed\"}", "{\"a\":-10,\"b\":7,\"c\":\"renamed\"}",
+      "{\"a\":0,\"b\":0,\"c\":\"anchor\"}",
+    ],
+    prior_execution=23116774L,
+    expected_policy=None,
+  )
+}
+
+///|
+test "renamed unpivot label preserves original current columns union and ordering on the same Ledger" {
+  renamed_unpivot_original_data_chain(Complete)
+}
+
+///|
+test "renamed unpivot import refusal precedes decode and keeps original label and Source" {
+  renamed_unpivot_original_data_chain(RefuseImport)
+}
+
+///|
+test "renamed unpivot cancellation cannot decode new input or publish a later label" {
+  renamed_unpivot_original_data_chain(CancelImport)
+}

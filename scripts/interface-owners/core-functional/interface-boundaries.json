@@ -52829,6 +52829,26 @@
               {
                 "path": "src/connectors/local/metered_output_start_wbtest.mbt",
                 "anchor": "test \"ROW_NUMBER startup keeps nonprimitive other-function and injected providers fully prepaid\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"renamed unpivot label preserves original current columns union and ordering on the same Ledger\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"renamed unpivot import refusal precedes decode and keeps original label and Source\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"renamed unpivot cancellation cannot decode new input or publish a later label\""
+              },
+              {
+                "path": "src/execution_relation/bounded_unpivot_wbtest.mbt",
+                "anchor": "test \"unpivot funds original labelled rows before transfer and preserves refusal or close custody\""
+              },
+              {
+                "path": "src/connectors/local/metered_output_start_wbtest.mbt",
+                "anchor": "test \"unpivot startup preserves recursive text and injected full provider capacities\""
               }
             ]
           }

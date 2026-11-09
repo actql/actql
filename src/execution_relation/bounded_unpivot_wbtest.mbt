@@ -8,6 +8,7 @@ fn bounded_unpivot_fixture(
   max_entries? : Int = 100,
   name_bytes? : Int = 10000,
   selected_ceiling? : Int64? = None,
+  output_funding? : ((Int64, Int64) -> Result[Unit, WorkspaceGrowthIssue])? = None,
 ) -> (@bounded.Control, BoundedUnpivotExecution, CompletedOutput) raise {
   let schema = "{\"id\":{\"type\":\"number\",\"nullable\":false},\"jan\":{\"type\":\"number\",\"nullable\":true},\"feb\":{\"type\":\"number\",\"nullable\":true}" +
     (if unused_payload {
@@ -76,6 +77,18 @@ fn bounded_unpivot_fixture(
   let generated = match selected_ceiling {
     Some(ceiling) =>
       constrain_generated_expansion_output(generated, 0, ceiling).unwrap()
+    None => generated
+  }
+  let generated = match output_funding {
+    Some(reserve) =>
+      bind_generated_workspace_growth(
+        generated,
+        compute_test_limits(),
+        536870912L,
+        _ => Ok(()),
+        meter_retained_outputs=true,
+        reserve_retained=Some(reserve),
+      ).unwrap()
     None => generated
   }
   let read = prepare_producer_read(
@@ -411,4 +424,76 @@ test "bounded unpivot enforces the output row ceiling incrementally" {
   assert_true(failed)
   assert_true(cleanup_bounded_unpivot(execution).unwrap())
   assert_true(completed_output_available(source))
+}
+
+///|
+test "unpivot funds original labelled rows before transfer and preserves refusal or close custody" {
+  for (refuse, close) in [(false, false), (true, false), (false, true)] {
+    let calls = Ref(0)
+    let before_transfer = Ref(true)
+    let active : Ref[BoundedUnpivotExecution?] = Ref(None)
+    let (_, execution, source) = bounded_unpivot_fixture(
+      "[{\"id\":1,\"jan\":10,\"feb\":20}]",
+      output_funding=Some((retained, execution) => {
+        calls.val += 1
+        before_transfer.val = before_transfer.val &&
+          retained > 0L &&
+          execution >= retained &&
+          active.val
+          .map(value => {
+            value.state.checked_row.length() == 4 &&
+            value.state.output
+            .map(output => {
+              output.buffer.rows.length() == value.state.emitted &&
+              output.buffer.budget.nodes > 0
+            })
+            .unwrap_or(false)
+          })
+          .unwrap_or(false)
+        if close {
+          active.val
+          .bind(value => value.state.output)
+          .map(output => cancel_admitted_output(output) |> ignore)
+          |> ignore
+        }
+        if refuse {
+          Err(WorkspaceBudgetUnavailable)
+        } else {
+          Ok(())
+        }
+      }),
+    )
+    active.val = Some(execution)
+    let mut done = false
+    let mut accepted = None
+    for _ in 0..<2000 {
+      if !done {
+        match advance_bounded_unpivot(execution, 1).unwrap() {
+          BoundedUnpivotContinue(..) => ()
+          BoundedUnpivotComplete(output, ..) => {
+            assert_false(refuse || close)
+            assert_eq(completed_row_count(output), 3)
+            assert_true(completed_cell(output, 0, 0) is Some(Number(10)))
+            assert_true(completed_cell(output, 0, 3) is Some(Text("jan")))
+            assert_true(completed_cell(output, 1, 3) is Some(Text("feb")))
+            assert_true(completed_cell(output, 2, 3) is Some(Text("jan")))
+            accepted = Some(output)
+            done = true
+          }
+          BoundedUnpivotFailed(Capture(CaptureLimit), ..) => {
+            assert_true(refuse || close)
+            assert_true(execution.state.rows.val is None)
+            done = true
+          }
+          _ => fail("unpivot lost its original output funding outcome")
+        }
+      }
+    }
+    assert_true(done && calls.val > 0 && before_transfer.val)
+    assert_true(cleanup_bounded_unpivot(execution).unwrap())
+    if accepted is Some(output) {
+      assert_true(completed_output_available(output))
+    }
+    assert_true(completed_output_available(source))
+  }
 }

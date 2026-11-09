@@ -639,6 +639,8 @@ fn start_bounded_unpivot_input(
     Ok(value) => value
     Err(issue) => return Err(Capture(issue))
   }
+  // The existing row-charge cursor funds complete output before transfer.
+  output.buffer.budget.retention = generated.working
   let rows : Ref[AdmittedOutputRows?] = Ref(None)
   let live = Ref(true)
   let accepted = Ref(false)
