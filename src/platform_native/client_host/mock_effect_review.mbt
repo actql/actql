@@ -314,25 +314,25 @@ fn NativeClientMockModelWork::close_effect_review(
   if saved.waiting_attempted {
     return Err(CleanupPending)
   }
+  // Each Store wrapper confirms terminal readback/retirement before returning
+  // Ok(changed). False means no quota row changed (including never reserved
+  // and already released), not a pending child. Every Err retains that child.
   if saved.checkpoint is Some(child) {
     match child.retry_cleanup() {
       Err(issue) => return Err(Store(issue))
-      Ok(false) => return Err(CleanupPending)
-      Ok(true) => saved.checkpoint = None
+      Ok(_) => saved.checkpoint = None
     }
   }
   if saved.preview is Some(child) {
     match child.retry_cleanup() {
       Err(issue) => return Err(Store(issue))
-      Ok(false) => return Err(CleanupPending)
-      Ok(true) => saved.preview = None
+      Ok(_) => saved.preview = None
     }
   }
   if saved.capture is Some(child) {
     match child.retry_cleanup() {
       Err(issue) => return Err(Store(issue))
-      Ok(false) => return Err(CleanupPending)
-      Ok(true) => saved.capture = None
+      Ok(_) => saved.capture = None
     }
   }
   self.effect_review = None
