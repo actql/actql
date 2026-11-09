@@ -60,6 +60,20 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_preview(
     ),
   )
   self.original.with_business_request(self.capture, () => {
+    // Target/request construction has returned its own scratch and each read
+    // child acknowledged close. Re-enter this SAME capture's original warm
+    // workspace before any Preview/receipt constructors, never a new slot.
+    let construction = proposals.construction.unwrap_or_else(() => {
+      stop("LocalOriginalEffectPreviewUnavailable")
+    })
+    if !construction.resize(
+        self.original,
+        construction.recipe,
+        construction.retained,
+        construction.workspace,
+      ) {
+      stop("LocalOriginalEffectPreviewUnavailable")
+    }
     let policy = @run_host.client_standard_effect_computation_limits()
     let codec = policy.program.checking.compilation.artifacts
     let max_bytes = native_mock_effect_record_bytes(installation)

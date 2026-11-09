@@ -1048,7 +1048,18 @@ pub fn complete_installed_effect_operation_response_projection(
 pub fn complete_installed_effect_operation_construction(
   value : ClientInstalledEffectOperationBorrow,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
-  complete_installed_effect_operation_construction_owned(value, None)
+  complete_installed_effect_operation_construction_owned(value, None, true)
+}
+
+///|
+/// A synchronous phase has returned and dropped its private scratch. Keep all
+/// retained inputs/outputs and the SAME staged constructor/coordinate open.
+/// A later phase must grow this original again BEFORE its callback. This is
+/// not final output completion, a work refund or physical cleanup evidence.
+pub fn yield_installed_effect_operation_construction_workspace(
+  value : ClientInstalledEffectOperationBorrow,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  complete_installed_effect_operation_construction_owned(value, None, false)
 }
 
 ///|
@@ -1061,13 +1072,18 @@ pub fn complete_installed_effect_operation_construction_output(
   value : ClientInstalledEffectOperationBorrow,
   wire : String,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
-  complete_installed_effect_operation_construction_owned(value, Some(wire))
+  complete_installed_effect_operation_construction_owned(
+    value,
+    Some(wire),
+    true,
+  )
 }
 
 ///|
 fn complete_installed_effect_operation_construction_owned(
   value : ClientInstalledEffectOperationBorrow,
   output_wire : String?,
+  finished : Bool,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
   guard value.original is Some(original) && physical_equal(original, value) else {
     return Err(ForeignOriginal)
@@ -1083,6 +1099,14 @@ fn complete_installed_effect_operation_construction_owned(
   }
   if !value.started {
     return Err(Unsupported)
+  }
+  if !finished {
+    guard value.extent is Some(extent) &&
+      extent.maximum is Some(_) &&
+      value.input_selected &&
+      !value.construction_completed else {
+      return Err(Unsupported)
+    }
   }
   guard owner.preparation is Some(preparation) &&
     preparation is PlannedEffectManaged(admission, plan) else {
@@ -1152,7 +1176,9 @@ fn complete_installed_effect_operation_construction_owned(
   let result = result.map_err(installed_effect_operation_reservation_issue)
   owner.effect_operation_opening = false
   if result is Ok(_) {
-    value.construction_completed = true
+    if finished {
+      value.construction_completed = true
+    }
     if output_retained is Some(_) {
       value.input_selected = true
     }

@@ -261,6 +261,8 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_unit_results(
       .finish()
       .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
       .native_effect_proposal(self.original)
+    snapshot.cancel()
+    entry.snapshot = None
     entry._retained_wire = Some(rows)
     entry.dependency = Some(
       @run_host.admit_client_effect_dependency_capture(

@@ -1257,6 +1257,8 @@ pub fn[I, P] take_program_json_preparation_input(ClientProgramJsonPreparation[I,
 
 pub fn[I, P] take_program_json_preparation_program(ClientProgramJsonPreparation[I, P]) -> Result[@stage_syntax.Program, ClientProgramJsonPreparationIssue]
 
+pub fn yield_installed_effect_operation_construction_workspace(ClientInstalledEffectOperationBorrow) -> Result[Unit, ClientInstalledManagedRunIssue]
+
 // Errors
 pub suberror ClientInstalledCaptureHostIssue {
   Managed(ClientInstalledManagedRunIssue)

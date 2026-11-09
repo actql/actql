@@ -501,6 +501,10 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
         .finish()
         .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
         .native_effect_proposal(self.original)
+      // Only the returned immutable wire survives this synchronous writer.
+      // Drop the closed writer/workspace before yielding capture scratch.
+      snapshot.cancel()
+      current.snapshot = None
       current._retained_snapshot_wire = Some(rows_wire)
       current._retained_dependency = Some(
         @run_host.admit_client_effect_dependency_capture(
@@ -549,6 +553,20 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
       .map_err(issue => LocalNativeMockEffectProposalIssue::Manifest(issue))
       .native_effect_proposal(self.original),
     )
+  })
+  // The entire proposal/Manifest constructor frame has returned. Its owned
+  // originals remain on `held`; only that phase's private scratch can return
+  // before the separate target reader. No physical child is acknowledged.
+  self.original.with_business_request(self.capture, () => {
+    guard state.proposals is Some(held) &&
+      held.construction is Some(construction) else {
+      stop("LocalOriginalEffectProposalsUnavailable")
+    }
+    @local_values.yield_installed_effect_operation_construction_workspace(
+      construction.operation,
+    )
+    .map_err(issue => LocalNativeMockEffectProposalIssue::Managed(issue))
+    .native_effect_proposal(self.original)
   })
 }
 
