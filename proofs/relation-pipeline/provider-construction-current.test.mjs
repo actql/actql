@@ -22,6 +22,15 @@ test('retained constructor fixtures bind every provider to its original source i
   }
 });
 test('current five-field candidate component derives 2432 without promoting historical observations', () => {
+  // The reviewed Set change replaces only the capacity callback's query.
+  // Its constructor arguments, binding, captures and lifecycle callbacks keep
+  // the complete preimage from before 06f0975a12, independently of its quote.
+  const set = read('src/connectors/local/set_provider.mbt').toString();
+  const bounded = '      @execution.generated_bounded_sequence_capacity(\n        sequence, limits, measurement,\n      )';
+  assert.equal(set.split(bounded).length, 2, 'Reach the one reviewed Set capacity query');
+  assert.equal(hash(set.replace(bounded,
+    '      @execution.generated_sequence_capacity(sequence, limits, measurement)')),
+    '8fbb2829e812b1d7e09a2bcf9d3d05958acbb72ee8fd25c8fa2d445c90002d7d');
   const current = providerConstructionBound(read);
   assert.equal(current.recordBytes, 48);
   assert.equal(current.bytes, 11 * (48 + 4 * 40) + 120 + 24);

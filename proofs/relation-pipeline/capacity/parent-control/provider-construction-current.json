@@ -4,7 +4,7 @@
     {
       "name": "selected_relation_provider",
       "path": "src/connectors/local/selected_relation_provider.mbt",
-      "sourceDigest": "8306a4b54517c60208adda20bbd83ae4f1b894a6a32b497a58f13517bc27e003",
+      "sourceDigest": "202767e06e52fae6214184510152ba5430b33845381669040b3766bcf722622d",
       "binding": "managed_provider_with_numeric"
     },
     {
@@ -22,7 +22,7 @@
     {
       "name": "set_provider",
       "path": "src/connectors/local/set_provider.mbt",
-      "sourceDigest": "8fbb2829e812b1d7e09a2bcf9d3d05958acbb72ee8fd25c8fa2d445c90002d7d",
+      "sourceDigest": "4701d7aea4306368b4823e6850bcd385555fcc9d4341bc6db16b399cfb7e9296",
       "binding": "managed_provider"
     },
     {

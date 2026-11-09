@@ -36,9 +36,10 @@ export function checkChainSource(source) {
   // it issues no Owner/current operation and never receives the private Refs.
   // Bind its body and arity before admitting its one generated custody call.
   const prefix = clean(reviewedFunction(source, 'relation_chain_reclaimed_prefix')).replace(/\s+/g, ' ').trim();
-  // CrossJoin shares the reviewed Join scratch-retirement branch. This changes
-  // no query arguments, captured roles, construction or cleanup callback.
-  assert.equal(hash(prefix), 'ab4aaa5e66799c462de01f3fbf529406618573bd8a72533ab85ffa2d8c783d73',
+  // CrossJoin shares Join scratch retirement. The later Set branch applies
+  // only to a singleton, so it changes no multi-step parent prefix, query
+  // arguments, captured roles, construction or cleanup callback.
+  assert.equal(hash(prefix), 'c4745da50428b14f133035eca2b5b72679da23d4ed71511d627350b67147b956',
     'Changed reviewed reclaimed-prefix source body or arity');
   const constructor = clean(reviewedFunction(source, 'bounded_relation_chain_execution_state'));
   const open = '  let start_next = fn(';
