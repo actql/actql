@@ -456,6 +456,7 @@ test "Source and Compute attempt inventory refuses checked Int overflow" {
 fn retained_effect_whole_source_export_control(
   export_results? : Bool = false,
   export_public? : Bool = false,
+  verify_provenance? : Bool = false,
 ) -> Unit raise {
   let plan = effect_operation_source_plan_fixture(whole_inputs=true)
   assert_eq(plan.captures.length(), 0)
@@ -488,6 +489,7 @@ fn retained_effect_whole_source_export_control(
   )
   let sibling = @resources.reserve_capacity(ledger, 0L, 1L).unwrap()
   let sources = []
+  let identities : Array[@query.CapturedSourceRelationIdentity] = []
   let reads = []
   let rows = []
   for occurrence in 0..<2 {
@@ -561,6 +563,35 @@ fn retained_effect_whole_source_export_control(
     assert_true(
       @query.captured_source_matches_input_acquisition(actual, original),
     )
+    if verify_provenance {
+      let original = @query.identify_captured_source_relation(
+        actual,
+        3,
+        {
+          max_nodes: 1000,
+          max_depth: 20,
+          max_text_bytes: 10000,
+          max_work: 10000,
+        },
+        {
+          max_columns: 10,
+          max_order_work: 10000,
+          max_bytes: 10000,
+          max_nodes: 1000,
+          max_depth: 20,
+        },
+        {
+          max_columns: 10,
+          max_order_work: 10000,
+          max_bytes: 10000,
+          max_nodes: 1000,
+          max_depth: 20,
+        },
+        { max_fields: 10, max_bytes: 10000, max_nodes: 1000, max_depth: 20, },
+        128,
+      ).unwrap()
+      identities.push(original)
+    }
     sources.push(actual)
     reads.push(read)
     rows.push(capture)
@@ -602,13 +633,28 @@ fn retained_effect_whole_source_export_control(
   assert_true(@strategy.captured_task_completed(dag, 1))
   assert_true(@strategy.next_captured_task(dag) is None)
   assert_eq(execution.rows().unwrap(), ["{\"id\":3}"])
-  if export_results || export_public {
+  if export_results || export_public || verify_provenance {
     assert_eq(
       @strategy.graph_result_task(@strategy.captured_dag_graph(dag), 0),
       Some(1),
     )
     let inputs = @strategy.pin_captured_effect_sources(captured, 10).unwrap()
     assert_eq(@strategy.captured_effect_local_result_count(inputs), 2)
+    if verify_provenance {
+      for original in identities {
+        assert_true(
+          @strategy.captured_effect_inputs_acquired_source_matches(
+            inputs, 0, original,
+          ),
+          msg="Same whole Source original refused by its computed input slot",
+        )
+        assert_false(
+          @strategy.captured_effect_inputs_acquired_source_matches(
+            inputs, 1, original,
+          ),
+        )
+      }
+    }
     let row : @execution.RetainedRowDecodeLimits = {
       max_bytes: 1024,
       max_nodes: 100,
@@ -765,4 +811,10 @@ test "managed Effect exports exact producer Results independently of the public 
 #cfg(target="js")
 test "managed Effect public Result keeps its captured pin after a refused bridge row" {
   retained_effect_whole_source_export_control(export_public=true)
+}
+
+///|
+#cfg(target="js")
+test "whole Source Effect provenance keeps original supplied inputs outside completed Source slots" {
+  retained_effect_whole_source_export_control(verify_provenance=true)
 }
