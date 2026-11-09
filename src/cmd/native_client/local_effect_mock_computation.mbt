@@ -91,7 +91,10 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_computation(
       held.outputs.push(output.output_export())
     }
     for index, output in held.outputs {
-      let original = proposals.members
+      // Public Named Results include the complete Model Unit, not only the
+      // subset consumed by an Effect member. Select by the same checked
+      // occurrence; neither equal rows nor an export failure chooses a source.
+      let consumed = proposals.members
         .iter()
         .find_first(entry => {
           entry._retained_artifact
@@ -106,9 +109,28 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_computation(
           .unwrap_or(false)
         })
         .bind(entry => entry._retained_artifact)
-        .unwrap_or_else(() => {
-          stop("LocalOriginalEffectComputationResultUnavailable")
-        })
+      let original = match consumed {
+        Some(artifact) => artifact
+        None =>
+          proposals.unit_results
+          .iter()
+          .find_first(entry => {
+            entry.artifact
+            .map(artifact => {
+              @run_host.client_effect_local_result_artifact_matches_public_result(
+                materials.prepared,
+                proposals.inputs,
+                artifact,
+                index,
+              )
+            })
+            .unwrap_or(false)
+          })
+          .bind(entry => entry.artifact)
+          .unwrap_or_else(() => {
+            stop("LocalOriginalEffectComputationResultUnavailable")
+          })
+      }
       let (computation, relations, scope, data_policy, authority) = @run_host.client_effect_model_public_result_evidence_refs(
           materials,
           proposals.inputs,
