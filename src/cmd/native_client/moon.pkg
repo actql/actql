@@ -10,7 +10,7 @@ import {
   "actql/actql/decode_scalar" @scalar,
   "actql/actql/sha256" @sha,
   "actql/actql/canonical_json" @canonical,
-  "actql/actql/canonical_value" @canonical_value,
+  "actql/actql/canonical_value",
   "actql/actql/run_publication" @publication,
   "actql/actql/run_publication_host" @run_host,
   "actql/actql/client_source_publication" @source_publication,
