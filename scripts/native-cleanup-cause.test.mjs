@@ -104,6 +104,16 @@ test('cleanup category never serializes payloads and keeps public error code', {
   const effectProposals = functionSource.slice(proposalStart, proposalEnd);
   assert.equal(effectProposals, `    CommandBusinessEffectProposals(cause) =>
       match cause {
+        ImportObservation(original) =>
+          match original {
+            ForeignInput => "EffectImportForeignInput"
+            _ => "EffectImportObservation"
+          }
+        Imports(original) =>
+          match original {
+            MissingScope => "EffectImportedScopeMissing"
+            _ => "EffectImportedEvidence"
+          }
         HostExecution(original) =>
           match original {
             InvalidLimits => "EffectHostLimits"
@@ -255,11 +265,20 @@ test('cleanup category never serializes payloads and keeps public error code', {
             RowCountMismatch => "EffectProposalsRowCountMismatch"
             _ => "EffectProposalsProjection"
           }
-        Export(original) =>
+        ManagedExport(original) =>
           match original {
-            ForeignOutput => "EffectProposalsForeignOutput"
+            ForeignInput | Binding(ForeignOutput) =>
+              "EffectProposalsForeignOutput"
             Export(_) => "EffectProposalsExportBody"
+            Bridge(_) => "EffectProposalsExportBridge"
             _ => "EffectProposalsExport"
+          }
+        ManagedPublicExport(original) =>
+          match original {
+            Export(InvalidState) => "EffectPublicExportState"
+            Transformation(_) => "EffectPublicExportTransformation"
+            Bridge(_) => "EffectPublicExportBridge"
+            _ => "EffectPublicExport"
           }
         Completed(original) =>
           match original {
@@ -416,10 +435,16 @@ test('cleanup category never serializes payloads and keeps public error code', {
       tags: {ForeignBinding: 'EffectProposalsForeignBinding', RowCountMismatch: 'EffectProposalsRowCountMismatch'},
       fallback: 'EffectProposalsProjection',
     },
-    Export: {
-      path: 'src/physical_strategy_host/effect_dependency_ports.mbt', name: 'CapturedEffectLocalResultExportIssue',
-      tags: {ForeignOutput: 'EffectProposalsForeignOutput', Export: 'EffectProposalsExportBody'},
+    ManagedExport: {
+      path: 'src/client_local_host/effect_result_export.mbt', name: 'LocalValuesEffectResultExportIssue',
+      tags: {ForeignInput: 'EffectProposalsForeignOutput', Export: 'EffectProposalsExportBody',
+        Bridge: 'EffectProposalsExportBridge'},
       fallback: 'EffectProposalsExport',
+    },
+    ManagedPublicExport: {
+      path: 'src/client_local_host/publication.mbt', name: 'LocalValuesResultExportIssue',
+      tags: {Transformation: 'EffectPublicExportTransformation', Bridge: 'EffectPublicExportBridge'},
+      fallback: 'EffectPublicExport',
     },
     Completed: {
       path: 'src/execution_relation/completed_output_export.mbt', name: 'CompletedExportIssue',
@@ -530,18 +555,42 @@ test('cleanup category never serializes payloads and keeps public error code', {
         Driver: 'EffectHostDriver', Estimate: 'EffectHostEstimate',
         FinalizationLimit: 'EffectHostFinalization', MissingOutput: 'EffectHostOutput'},
     },
+    ImportObservation: {
+      path: 'src/run_publication_host/client_effect_result_import.mbt', name: 'ClientEffectResultImportIssue',
+      tags: {ForeignInput: 'EffectImportForeignInput'}, fallback: 'EffectImportObservation',
+    },
+    Imports: {
+      path: 'src/run_publication_host/client_effect_imported_evidence.mbt', name: 'ClientEffectImportedEvidenceIssue',
+      tags: {MissingScope: 'EffectImportedScopeMissing'}, fallback: 'EffectImportedEvidence',
+    },
   };
   assert.deepEqual(proposalIssues, Object.keys(proposalFamilies).map(name => ({name, arity: 1})));
+  // The managed facades retain the original export failures. Exercise those
+  // nested Owners too, including every PRIVATE payload behind each fallback.
+  const effectExportBindings = enumCases('src/physical_strategy_host/effect_dependency_ports.mbt',
+    'CapturedEffectLocalResultExportIssue');
+  declare('ProbeEffectExportBinding', effectExportBindings);
+  const publicExports = enumCases(proposalFamilies.PublicExport.path, proposalFamilies.PublicExport.name);
   const proposalTypes = {};
   for (const [family, owner] of Object.entries(proposalFamilies)) {
     const cases = enumCases(owner.path, owner.name);
     assert(Object.keys(owner.tags).every(name => cases.some(item => item.name === name)));
     if (owner.fallback === undefined) assert.deepEqual(Object.keys(owner.tags), cases.map(item => item.name));
     const type = 'ProbeEffectProposals' + family;
-    declare(type, cases);
+    const typed = family === 'ManagedExport' ? {Binding: ['ProbeEffectExportBinding']}
+      : family === 'ManagedPublicExport' ? {Export: ['ProbeEffectProposalsPublicExport']} : {};
+    declare(type, cases, typed);
     proposalTypes[family] = [type];
-    for (const item of cases) assertions.push(
-      `  assert_eq(command_preparation_cleanup_cause(CommandBusinessEffectProposals(${family}(${value(item)}))), "${owner.tags[item.name] ?? owner.fallback}")`);
+    for (const item of cases) {
+      if (family === 'ManagedExport' && item.name === 'Binding') {
+        for (const binding of effectExportBindings) assertions.push(
+          `  assert_eq(command_preparation_cleanup_cause(CommandBusinessEffectProposals(ManagedExport(Binding(${value(binding)})))), "${binding.name === 'ForeignOutput' ? 'EffectProposalsForeignOutput' : 'EffectProposalsExport'}")`);
+      } else if (family === 'ManagedPublicExport' && item.name === 'Export') {
+        for (const exported of publicExports) assertions.push(
+          `  assert_eq(command_preparation_cleanup_cause(CommandBusinessEffectProposals(ManagedPublicExport(Export(${value(exported)})))), "${exported.name === 'InvalidState' ? 'EffectPublicExportState' : 'EffectPublicExport'}")`);
+      } else assertions.push(
+        `  assert_eq(command_preparation_cleanup_cause(CommandBusinessEffectProposals(${family}(${value(item)}))), "${owner.tags[item.name] ?? owner.fallback}")`);
+    }
   }
   declare('ProbeCommandBusinessEffectProposals', proposalIssues, proposalTypes);
   outer.push('  CommandBusinessEffectProposals(ProbeCommandBusinessEffectProposals)');
