@@ -21515,7 +21515,8 @@
             "requestProjection",
             "footprintProjection",
             "ledgerRoot",
-            "ledgerFamily"
+            "ledgerFamily",
+            "nativeConstruction"
           ],
           "async": false
         },
@@ -21585,7 +21586,8 @@
           "parameters": [
             "receiver",
             "method",
-            "args"
+            "args",
+            "nativeConstruction"
           ],
           "async": false
         },
@@ -22142,7 +22144,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "9515e40610d66ed41e836499a466909d0f015f9af968f1517deba9df36af8dd1",
+      "sha256": "35c4b1a52b2e6e0789dd30b457b90fb4f23dac0adbed0c744f91e6a798212b0d",
       "contracts": [
         {
           "operations": [
@@ -22413,6 +22415,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "After Compute, the same Run pins its original completed inputs and uses their"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "A retained Catalog recheck has a different constructor from receiving and"
               }
             ],
             "extension": [
@@ -22429,6 +22435,10 @@
               {
                 "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
                 "anchor": "test \"unknown Effect capture grows its same control from completed original rows before child construction\""
+              },
+              {
+                "path": "adapters/host-node/effect-control-native.test.mjs",
+                "anchor": "test('same control forwards opaque native quote before Reflect and preserves the legacy no-quote call'"
               }
             ]
           }
@@ -22774,6 +22784,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "The standard Ledger frontier/intents family selects one closed frame for"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "A retained Catalog recheck has a different constructor from receiving and"
               }
             ],
             "extension": [
@@ -22826,6 +22840,10 @@
               {
                 "path": "src/client_local_host/installed_effect_host_preview_input_js_wbtest.mbt",
                 "anchor": "test \"standard Ledger family coholds actual snapshot and nested codec on same token through failed current\""
+              },
+              {
+                "path": "adapters/host-node/effect-control-native.test.mjs",
+                "anchor": "test('same control forwards opaque native quote before Reflect and preserves the legacy no-quote call'"
               }
             ]
           }

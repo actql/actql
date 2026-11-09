@@ -3,7 +3,7 @@
   "declarations": [
     {
       "module": "src/connectors_builtin_node/client_hubspot_effect_construction_bridge.mbt",
-      "sha256": "ec1b6cdd421ee7dc80923fe8b7f07ad3eb1a9f99c7188419d5dbdf528b96fcc3",
+      "sha256": "a9b596c671e04912c536e3793d756ec331ee9833503870f471117bbc40a82f5c",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common constructor/Plan/Grant/HTTP quantity owners",
@@ -73,6 +73,10 @@
               {
                 "path": "src/connectors/hubspot/catalog/effect-construction.md",
                 "anchor": "- Resources:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "A retained Catalog recheck has a different constructor from receiving and"
               }
             ],
             "extension": [
@@ -85,6 +89,10 @@
               {
                 "path": "src/connectors/hubspot/catalog/effect-construction.md",
                 "anchor": "- Verification:"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_hubspot_recheck_capacity_js_wbtest.mbt",
+                "anchor": "test \"Common recheck selector preserves its native Map quote and rejects other geometry\""
               }
             ]
           }

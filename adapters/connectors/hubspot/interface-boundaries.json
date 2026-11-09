@@ -2550,7 +2550,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/hubspot-update-driver.mjs",
-      "sha256": "527f9bf878c9a6065008f76b51702ebd0bb8a0e3e2ca1e548ba7051473ad2a1c",
+      "sha256": "bf097f3847ad2b760a9c041bbd8b9298013bd394801246ba6cc5e8e87e3dc31d",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing common Row Effect and HubSpot Native request/response/target owners",
@@ -2622,7 +2622,8 @@
             "writeLimits",
             "maxRows",
             "maxMembers",
-            "maxRecoveryBytes"
+            "maxRecoveryBytes",
+            "requestRecheckCapacity"
           ],
           "async": false
         },
@@ -3011,6 +3012,10 @@
               {
                 "path": "adapters/connectors/hubspot/host/installed-update.md",
                 "anchor": "- Resources:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "A retained Catalog recheck has a different constructor from receiving and"
               }
             ],
             "extension": [
@@ -3027,6 +3032,10 @@
               {
                 "path": "adapters/connectors/hubspot/test/hubspot-update-driver.fixture.mjs",
                 "anchor": "test('HubSpot installed one-response decoder preserves two serial targets"
+              },
+              {
+                "path": "adapters/host-node/effect-control-native.test.mjs",
+                "anchor": "test('same control forwards opaque native quote before Reflect and preserves the legacy no-quote call'"
               }
             ]
           }
@@ -3358,7 +3367,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/installed-hubspot-effect.mjs",
-      "sha256": "9c917f7cc67e24caf080e40abc7d86241677d8e34c1bf81b98d6b9d3182c00db",
+      "sha256": "f750465a3f5595d2dce986a8f94af4ceb34ea07c3b746f352b9223fba15b4594",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Effect, Common initialization/Mapping/Checkpoint/current/dispatch and original Row Site owners",
@@ -3834,6 +3843,10 @@
               {
                 "path": "adapters/connectors/hubspot/host/installed-update.md",
                 "anchor": "- Resources:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "A retained Catalog recheck has a different constructor from receiving and"
               }
             ],
             "extension": [
@@ -3858,6 +3871,10 @@
               {
                 "path": "adapters/host-node/installed-hubspot-returned-capacity.actual.test.mjs",
                 "anchor": "test('wide HubSpot Effect keeps the admitted Source Catalog limit"
+              },
+              {
+                "path": "adapters/host-node/effect-control-native.test.mjs",
+                "anchor": "test('same control forwards opaque native quote before Reflect and preserves the legacy no-quote call'"
               }
             ]
           }

@@ -198,7 +198,7 @@
     },
     {
       "module": "src/connectors/hubspot/catalog/effect_construction.mbt",
-      "sha256": "d78988dbcad0c34df3c2a3ddcd8d56dd4f5eb82dda05b5fd22d016f0d7a230c9",
+      "sha256": "bf0622db4749099839861bfccd3b5a7fe30660da3d1cf637d27357b40b1835a3",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing HubSpot native constructors and shared representation inventory owners",
@@ -207,6 +207,10 @@
         {
           "name": "effect_account_construction_capacity",
           "declaration": "effect_account_construction_capacity ( body_bytes : Int , portal_units : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "effect_catalog_recheck_construction_capacity",
+          "declaration": "effect_catalog_recheck_construction_capacity ( max_properties : Int , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "effect_finalization_construction_capacity",
@@ -254,16 +258,17 @@
           "operations": [
             "<module>",
             "effect_account_construction_capacity",
+            "effect_catalog_recheck_construction_capacity",
             "effect_finalization_construction_capacity",
             "effect_installation_construction_capacity",
+            "effect_metadata_capacity_with_geometry",
             "effect_metadata_construction_capacity",
+            "effect_metadata_observed_construction_capacity",
             "effect_request_construction_capacity",
             "effect_response_construction_capacity",
             "effect_target_construction_capacity",
             "hubspot_effect_body_limits_valid",
-            "hubspot_effect_capacity",
-            "effect_metadata_capacity_with_geometry",
-            "effect_metadata_observed_construction_capacity"
+            "hubspot_effect_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -321,6 +326,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "The Effect Properties response quote keeps its full eventual Catalog retention"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "A retained Catalog recheck has a different constructor from receiving and"
               }
             ],
             "extension": [
@@ -345,6 +354,10 @@
               {
                 "path": "src/connectors/hubspot/catalog/effect_metadata_text_alias_wbtest.mbt",
                 "anchor": "test \"Effect shared Catalog text keeps independent retention refusal and complete malformed-prefix validation\""
+              },
+              {
+                "path": "src/connectors/hubspot/catalog/effect_recheck_construction_wbtest.mbt",
+                "anchor": "test \"Catalog recheck retains full native meaning and rejects an undersupplied original workspace\""
               }
             ]
           }

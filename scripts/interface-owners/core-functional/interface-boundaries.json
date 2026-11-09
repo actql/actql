@@ -34435,7 +34435,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_borrow.mbt",
-      "sha256": "c22a166128d174245577153c3a5ac3079fbd135bc6c889c0e93ec0b8af63147f",
+      "sha256": "bb96a8ac53216798bfe3f1c5ee44303bd92b8bb33ee67999116f42109059d7b2",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original installed Effect operation borrow and retained same-Run management controls",
@@ -34448,7 +34448,7 @@
         },
         {
           "name": "begin_installed_effect_operation_control_construction",
-          "declaration": "begin_installed_effect_operation_control_construction ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : ClientInstalledEffectManagedPlan , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+          "declaration": "begin_installed_effect_operation_control_construction ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : ClientInstalledEffectManagedPlan , native ? : @ execution . ExecutionCapacity ?"
         },
         {
           "name": "begin_installed_effect_operation_control_input",
@@ -34862,6 +34862,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "The standard Ledger frontier/intents family selects one closed frame for"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "A retained Catalog recheck has a different constructor from receiving and"
               }
             ],
             "extension": [
@@ -34930,6 +34934,14 @@
               {
                 "path": "src/client_local_host/installed_effect_host_preview_input_js_wbtest.mbt",
                 "anchor": "test \"standard Ledger family coholds actual snapshot and nested codec on same token through failed current\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_native_control_js_wbtest.mbt",
+                "anchor": "test \"native scratch refuses one byte short before caller work and preserves original Ledger\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_native_control_js_wbtest.mbt",
+                "anchor": "test \"native scratch still rejects reentry after the original current callback\""
               }
             ]
           }
@@ -54209,6 +54221,7 @@
             "client_program_installed_effect_operation_input_grow",
             "client_program_installed_effect_operation_ledger_family_begin",
             "client_program_installed_effect_operation_ledger_open_begin",
+            "client_program_installed_effect_operation_native_construction_begin",
             "client_program_installed_effect_operation_request_projection_begin",
             "client_program_installed_effect_operation_response_projection_complete",
             "client_program_installed_effect_recovered_input_inventory_retain"
@@ -54309,6 +54322,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "The standard Ledger frontier/intents family selects one closed frame for"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "A retained Catalog recheck has a different constructor from receiving and"
               }
             ],
             "extension": [
@@ -54357,6 +54374,14 @@
               {
                 "path": "src/client_local_host/installed_effect_host_preview_input_js_wbtest.mbt",
                 "anchor": "test \"standard Ledger family coholds actual snapshot and nested codec on same token through failed current\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_native_control_js_wbtest.mbt",
+                "anchor": "test \"native scratch refuses one byte short before caller work and preserves original Ledger\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_native_control_js_wbtest.mbt",
+                "anchor": "test \"native scratch still rejects reentry after the original current callback\""
               }
             ]
           }
@@ -54511,7 +54536,7 @@
           }
         }
       ],
-      "sha256": "ad525090b3403d942dbe171977c6f16c7ece22a6d9270a8e057af31a453744fc",
+      "sha256": "13d941215f0aea112180ebff951d264dd0870bfb3ec16df56b8c2c0c4a80de14",
       "operations": [
         {
           "name": "client_program_installed_effect_captured_input_inventory_retain",
@@ -54608,6 +54633,10 @@
         {
           "name": "client_program_installed_effect_operation_ledger_open_begin",
           "declaration": "client_program_installed_effect_operation_ledger_open_begin ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , root : String , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "client_program_installed_effect_operation_native_construction_begin",
+          "declaration": "client_program_installed_effect_operation_native_construction_begin ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , native : @ execution . ExecutionCapacity , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "client_program_installed_effect_operation_request_projection_begin",
