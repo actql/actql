@@ -62,8 +62,17 @@ fn property_catalog_retained_units(
   body_bytes : Int,
   object_units : Int,
   limits : PropertyLimits,
+  object_bound? : Int,
 ) -> @execution.PreparationRepresentationUnits {
-  let n = Int::min(Int::max(1, body_bytes), limits.max_nodes).to_int64()
+  let full = Int::min(Int::max(1, body_bytes), limits.max_nodes)
+  // The returned Catalog keeps property records and option String arrays,
+  // not arbitrary parsed JSON nodes. Every option/property is an object;
+  // include all objects (even unknown ones) as a conservative output bound.
+  // Keep the complete original source-text envelope independently below.
+  let n = object_bound
+    .map(value => Int::min(full, Int::max(1, value)))
+    .unwrap_or(full)
+    .to_int64()
   let f = Int64::min(n, limits.max_properties.to_int64())
   {
     record_headers: 8L + 4L * f + n,

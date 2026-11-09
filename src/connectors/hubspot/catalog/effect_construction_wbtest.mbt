@@ -392,8 +392,8 @@ test "Effect Catalog response funds only its real projection beside retained ori
   println(
     "Effect observed R=\{@execution.execution_capacity_retained_bytes(observed)} E=\{@execution.execution_capacity_execution_bytes(observed)} nodes=\{data[11]}",
   )
-  assert_eq(
-    @execution.execution_capacity_retained_bytes(observed),
+  assert_true(
+    @execution.execution_capacity_retained_bytes(observed) <
     @execution.execution_capacity_retained_bytes(selected),
   )
   @resources.grow_capacity_reservation(
@@ -432,8 +432,8 @@ test "Effect observed metadata sizes never replace original byte grammar or curs
     data,
   ).unwrap()
   let full = effect_metadata_construction_capacity(body.length(), 9, limits).unwrap()
-  assert_eq(
-    @execution.execution_capacity_retained_bytes(quote),
+  assert_true(
+    @execution.execution_capacity_retained_bytes(quote) <=
     @execution.execution_capacity_retained_bytes(full),
   )
   assert_true(

@@ -512,7 +512,12 @@ fn property_observation_construction_capacity(
   // This is a pre-construction peak quote, not a refund or physical GC claim.
   let key_units = geometry.map(g => g.longest_quoted_raw_utf16).unwrap_or(b)
   guard @execution.compose_preparation_representation([
-      property_catalog_retained_units(bytes, object_units, limits),
+      property_catalog_retained_units(
+        bytes,
+        object_units,
+        limits,
+        object_bound?=geometry.map(g => g.objects),
+      ),
       initialization_collection_units(recheck),
       {
         record_headers: hash.record_headers,

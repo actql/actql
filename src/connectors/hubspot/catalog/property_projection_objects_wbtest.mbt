@@ -34,9 +34,9 @@ test "Observed property projection counts objects while full JSON admission coun
   ).unwrap()
   let retained = @execution.execution_capacity_retained_bytes(quote)
   let execution = @execution.execution_capacity_execution_bytes(quote)
-  // This fixed pre-change component result is independent of product output.
-  // Retained Catalog/body ownership is deliberately unchanged by this cut.
-  assert_eq(retained, 2873924L)
+  // Full byte-only fallback remains unchanged. Observed output retains only
+  // its object-bound Catalog inventory, beside the same complete source text.
+  assert_true(retained < 2873924L)
   let all_node_projection = data.copy()
   all_node_projection[2] = data[11]
   let previous_bound = effect_metadata_observed_construction_capacity(
@@ -141,8 +141,8 @@ test "Observed object projection preserves malformed prefixes options and comple
       data,
     ).unwrap()
     let full = effect_metadata_construction_capacity(body.length(), 9, limits).unwrap()
-    assert_eq(
-      @execution.execution_capacity_retained_bytes(quote),
+    assert_true(
+      @execution.execution_capacity_retained_bytes(quote) <=
       @execution.execution_capacity_retained_bytes(full),
     )
     let staged = consume_property_response_source(original, "/properties", body)
@@ -157,4 +157,51 @@ test "Observed object projection preserves malformed prefixes options and comple
     }
     retire_property_response_source(original)
   }
+}
+
+///|
+test "Observed Catalog retention bounds returned objects and keeps complete source text" {
+  let limits : PropertyLimits = {
+    max_bytes: 524288,
+    max_nodes: 65536,
+    max_depth: 32,
+    max_properties: 256,
+    max_name_units: 6003,
+  }
+  // Current diagnostic exposes only sizing scalars; no retained provider body
+  // or business state is used. Full text and all other quantities are unchanged.
+  let full = property_catalog_retained_units(361489, 9, limits)
+  let selected = property_catalog_retained_units(
+    361489,
+    9,
+    limits,
+    object_bound=3031,
+  )
+  assert_eq(selected.owned_utf16_units, full.owned_utf16_units)
+  assert_eq(selected.owned_wire_bytes, full.owned_wire_bytes)
+  assert_eq(
+    @execution.preparation_representation_cost(full).unwrap() -
+    @execution.preparation_representation_cost(selected).unwrap(),
+    2000160L,
+  )
+  let body = b"{\"results\":[{\"name\":\"kind\",\"type\":\"enumeration\",\"fieldType\":\"select\",\"options\":[{\"value\":\"one\"},{\"value\":\"two\"}],\"modificationMetadata\":{\"readOnlyValue\":false}}],\"unknown\":{\"large\":\"payload text is still fully validated\"}}"
+  let source = prepare_property_response_source(
+    body, "/properties", "companies", limits,
+  )
+  let geometry = property_response_source_geometry(source).unwrap()
+  let units = property_catalog_retained_units(
+    body.length(),
+    9,
+    limits,
+    object_bound=geometry.objects,
+  )
+  let output = consume_property_response_source(source, "/properties", body).unwrap()
+  assert_eq(output.properties.length(), 1)
+  assert_eq(output.properties[0].options, ["one", "two"])
+  // Catalog/Array/Metadata/options/flags and all borrowed-text dependencies
+  // stay covered. Unknown objects may only make this output upper bound larger.
+  assert_true(units.record_headers >= 8L)
+  assert_true(units.reference_slots >= 16L)
+  assert_true(units.owned_utf16_units >= body.length().to_int64() + 73L)
+  retire_property_response_source(source)
 }

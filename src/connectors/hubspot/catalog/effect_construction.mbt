@@ -479,7 +479,8 @@ pub fn effect_account_construction_capacity(
 ///|
 /// ProjectProperties/recheck retains the Catalog, not a derived ObjectSchema.
 /// Its unchanged full byte-only fallback uses the same native Property role
-/// as Source rechecks; received-body geometry can refine only its workspace.
+/// as Source rechecks; received-body geometry bounds native output objects
+/// and parser workspace.
 pub fn effect_metadata_construction_capacity(
   body_bytes : Int,
   object_units : Int,
@@ -517,7 +518,12 @@ fn effect_metadata_capacity_with_geometry(
     )
     is Some(peak) &&
     hubspot_effect_capacity(
-      property_catalog_retained_units(body_bytes, object_units, limits),
+      property_catalog_retained_units(
+        body_bytes,
+        object_units,
+        limits,
+        object_bound?=geometry.map(g => g.objects),
+      ),
       [],
     )
     is Some(catalog) &&

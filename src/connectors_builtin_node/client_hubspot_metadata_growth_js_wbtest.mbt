@@ -75,18 +75,18 @@ test "HubSpot original physical metadata grow keeps old token and coheld capture
   let token = @resources.reserve_attempt(ledger, 0L, old_r, old_e).unwrap()
   let other = @resources.reserve_capacity(
     ledger,
-    441336923L - old_r,
-    499513054L - old_e,
+    444323151L - old_r,
+    502499282L - old_e,
   ).unwrap()
   @resources.consume_reserved_attempt(ledger, token).unwrap()
   let before = @resources.ledger_usage(ledger)
   assert_eq(before.held_bytes, 27452533L)
-  assert_eq(before.reserved_retention_bytes, 441336923L)
-  assert_eq(before.reserved_execution_bytes, 499513054L)
+  assert_eq(before.reserved_retention_bytes, 444323151L)
+  assert_eq(before.reserved_execution_bytes, 502499282L)
   // Exact actual old refusal vector: grow, not a new zero-start reservation.
   assert_true(
     @resources.grow_execution_reservation_capacity(
-      ledger, token, 13553144L, 70087086L,
+      ledger, token, 13553144L, 48788910L,
     )
     is Err(ExecutionLimit),
   )

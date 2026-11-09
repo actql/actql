@@ -102,6 +102,12 @@ including unknown objects and the root, rather than assuming a successful
 property count. This also covers a malformed next value's original refusal.
 ObjectView Maps keep the complete field-count bound, including unknown scalar
 keys, plus the object-bound option seen entries. Object count never substitutes
-for Map width. The recheck Map uses the same conservative property bound. The returned Catalog
-retention and the complete byte-only fallback remain unchanged. This is sizing
+for Map width. The recheck Map uses the same conservative property bound. The complete byte-only fallback remains unchanged. This is sizing
 DATA for the original constructor, not a Catalog, permission or currentness proof.
+
+The same object bound also sizes the returned Catalog: property records and
+option String arrays are native output, while unrelated parsed nodes are not.
+The complete source-text, object-name and digest envelope is retained unchanged.
+Full parser/index and partial-failure workspace stay in the execution quote;
+only the original successful projection completion returns that workspace.
+No physical stop or cleanup is inferred from a smaller output quantity.
