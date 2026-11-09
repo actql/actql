@@ -4841,7 +4841,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "d6565ae6224ce6af69e934ab480b9b12a440262bf50a1a9ac1493d1392b79269",
+      "sha256": "534746982ec95c6f2e3e7fc31845c59b19305ab2542d1ed04619529c0823bad3",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -21513,7 +21513,8 @@
             "inputWire",
             "grant",
             "requestProjection",
-            "footprintProjection"
+            "footprintProjection",
+            "ledgerRoot"
           ],
           "async": false
         },
@@ -21531,6 +21532,16 @@
             "wire",
             "nodes",
             "depth"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectControlConstruction/ledgerOpen/ledgerOpen",
+          "parameters": [
+            "root",
+            "receiver",
+            "method",
+            "args"
           ],
           "async": false
         },
@@ -22116,7 +22127,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "20d73f34d7da557741cadbf70352f62fc172534ebc3e891a148e2b4d78573f41",
+      "sha256": "73d35c9f3f66eb35f1b0e2184434ca04fbbc6d462ba1b5ac48699389e62edac7",
       "contracts": [
         {
           "operations": [
@@ -22670,6 +22681,7 @@
             "prepareInstalledEffectControlConstruction/grant/grant",
             "prepareInstalledEffectControlConstruction/invoke/invoke",
             "prepareInstalledEffectControlConstruction/invoke/invoke/observePlan/observePlan",
+            "prepareInstalledEffectControlConstruction/ledgerOpen/ledgerOpen",
             "prepareInstalledEffectControlConstruction/parsePreview/parsePreview",
             "prepareInstalledEffectControlConstruction/requestProjection/requestProjection",
             "prepareInstalledEffectControlConstruction/requestProjection/requestProjection/requestProjection"
@@ -22738,6 +22750,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "A fixed opaque-boundary footprint can declare a scratch-only member extent in"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "Effect Ledger open has its own same-control frame."
               }
             ],
             "extension": [
@@ -22782,6 +22798,10 @@
               {
                 "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
                 "anchor": "test \"opaque footprint uses original member scratch on same real Ledger with full retained floor\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_host_preview_input_js_wbtest.mbt",
+                "anchor": "test \"Ledger open selects same scope constructor beside original Preview and preserves full retained floor\""
               }
             ]
           }

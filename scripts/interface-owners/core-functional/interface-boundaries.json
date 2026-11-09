@@ -34435,7 +34435,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_borrow.mbt",
-      "sha256": "45e245e462bbb1ef67c59943281aa79779116dee699e2c3c9fa08ef260736b61",
+      "sha256": "5cf91b2dc007c6318bb72172b6e9135e3a07ad94270ce295155f0433d6a1c0bd",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original installed Effect operation borrow and retained same-Run management controls",
@@ -34477,6 +34477,10 @@
         {
           "name": "begin_installed_effect_operation_ledger_codec",
           "declaration": "begin_installed_effect_operation_ledger_codec ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : ClientInstalledEffectManagedPlan , wire : String ? , nodes : Int , depth : Int , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "begin_installed_effect_operation_ledger_open",
+          "declaration": "begin_installed_effect_operation_ledger_open ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : ClientInstalledEffectManagedPlan , root : String , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "begin_installed_effect_operation_request_projection",
@@ -34553,6 +34557,10 @@
         {
           "name": "installed_effect_host_preview_input_capacity",
           "declaration": "installed_effect_host_preview_input_capacity ( plan : ClientInstalledEffectManagedPlan , wire : String , ) - > Result [ @ execution . ExecutionCapacity , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "installed_effect_ledger_open_workspace",
+          "declaration": "installed_effect_ledger_open_workspace ( root : String ) - > Int64 ?"
         },
         {
           "name": "installed_effect_operation_control_capacity",
@@ -34720,6 +34728,7 @@
             "begin_installed_effect_operation_footprint_construction",
             "begin_installed_effect_operation_grant_construction",
             "begin_installed_effect_operation_input",
+            "begin_installed_effect_operation_ledger_open",
             "begin_installed_effect_operation_request_projection",
             "check_installed_effect_construction_original",
             "check_installed_effect_operation_backing_original",
@@ -34732,6 +34741,7 @@
             "complete_installed_effect_operation_response_projection",
             "grow_installed_effect_operation_input",
             "installed_effect_control_execution",
+            "installed_effect_ledger_open_workspace",
             "installed_effect_operation_reservation_issue",
             "record_effect_operation_lookup_probe",
             "refuse_installed_effect_operation_after_current",
@@ -34839,6 +34849,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "The existing Preview-input entry selects its frame from the complete geometry"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "Effect Ledger open has its own same-control frame."
               }
             ],
             "extension": [
@@ -34899,6 +34913,10 @@
               {
                 "path": "src/client_local_host/installed_effect_operation_borrow_js_wbtest.mbt",
                 "anchor": "test \"staged constructor phase yields only scratch and grows the same original before continuing\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_host_preview_input_js_wbtest.mbt",
+                "anchor": "test \"Ledger open selects same scope constructor beside original Preview and preserves full retained floor\""
               }
             ]
           }
@@ -54039,6 +54057,7 @@
             "client_program_installed_effect_operation_grant_construction_begin",
             "client_program_installed_effect_operation_input_begin",
             "client_program_installed_effect_operation_input_grow",
+            "client_program_installed_effect_operation_ledger_open_begin",
             "client_program_installed_effect_operation_request_projection_begin",
             "client_program_installed_effect_operation_response_projection_complete",
             "client_program_installed_effect_recovered_input_inventory_retain"
@@ -54131,6 +54150,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "A fixed opaque-boundary footprint can declare a scratch-only member extent in"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "Effect Ledger open has its own same-control frame."
               }
             ],
             "extension": [
@@ -54171,6 +54194,10 @@
               {
                 "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
                 "anchor": "test \"opaque footprint uses original member scratch on same real Ledger with full retained floor\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_host_preview_input_js_wbtest.mbt",
+                "anchor": "test \"Ledger open selects same scope constructor beside original Preview and preserves full retained floor\""
               }
             ]
           }
@@ -54325,7 +54352,7 @@
           }
         }
       ],
-      "sha256": "5abfd4aadeb86ab7c890a54c0ecf0d5aeb4eaa463f5889177b52ebe3f87cce1d",
+      "sha256": "699748fddcce13c4db15cfac531c958e3489bb8bedb669b335a6424307130255",
       "operations": [
         {
           "name": "client_program_installed_effect_captured_input_inventory_retain",
@@ -54414,6 +54441,10 @@
         {
           "name": "client_program_installed_effect_operation_ledger_codec_complete",
           "declaration": "client_program_installed_effect_operation_ledger_codec_complete ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "client_program_installed_effect_operation_ledger_open_begin",
+          "declaration": "client_program_installed_effect_operation_ledger_open_begin ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , root : String , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "client_program_installed_effect_operation_request_projection_begin",

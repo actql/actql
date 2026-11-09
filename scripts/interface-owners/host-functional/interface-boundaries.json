@@ -97830,7 +97830,7 @@
     {
       "module": "adapters/host-node/sqlite-effect-ledger.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "33c266d4a5c3dc4ed020932d1689f784d3d8998943694083bdb03141aec72c7a",
+      "sha256": "42221a71b6d3ca5ac2e62d701200a105691aab6c534af931fcaf3c96d09d1c38",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -98466,6 +98466,10 @@
               {
                 "path": "docs/design/effect-refusal-settlement.md",
                 "anchor": "# Settling Effect evidence after a resume refusal"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "Initial Ledger metadata is returned through a bounded SQL projection before"
               }
             ],
             "extension": [
@@ -98490,6 +98494,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "anchor": "test('Effect open metadata accepts original UTF8 and UTF16 exact schema and authority'"
               }
             ]
           }
