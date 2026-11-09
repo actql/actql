@@ -504,6 +504,8 @@ pub fn[I, P] reconcile_working_preparation_phase(PreparationCapacity[I, P], I, I
 
 pub fn reduce_execution_reservation(Ledger, Reservation, Int64) -> Result[Unit, LedgerIssue]
 
+pub fn reduce_execution_reservation_capacity(Ledger, Reservation, Int64, Int64) -> Result[Unit, LedgerIssue]
+
 pub fn release_allocation(Ledger, Holding) -> Result[Unit, LedgerIssue]
 
 pub fn[P] release_backed_preparation_holder(BackedPreparedRunAdmission[P]) -> Result[Bool, ImportedChildLedgerIssue]

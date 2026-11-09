@@ -277,7 +277,7 @@ fn build_client_keyed_native_captured_page(
   if logical_bytes > 16777216 || schema_bytes > 16777216 - logical_bytes {
     return Err(Assembly("native_page_dependency_limit"))
   }
-  match
+  let metadata_phase = match
     grow_keyed_lookup_protocol_metadata(
       state,
       max_bytes,
@@ -286,7 +286,7 @@ fn build_client_keyed_native_captured_page(
       extra_controls=controls,
     ) {
     Err(issue) => return Err(issue)
-    Ok(_) => ()
+    Ok(value) => value
   }
   guard @row_host.keyed_row_capture_matches_request(capture, request.request) &&
     !state.closed &&
@@ -403,6 +403,27 @@ fn build_client_keyed_native_captured_page(
   partial.result = Some(result)
   @execution.cancel_completed_relation_identity_scan(scan) |> ignore
   partial.scan = None
+  match
+    finish_keyed_lookup_protocol_metadata(
+      state,
+      metadata_phase,
+      max_nodes,
+      max_depth,
+      [event, adoption],
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if !client_keyed_native_captured_page_matches(
+      result,
+      request,
+      activation.client_request,
+      original.compiled,
+      original.definition,
+      original.plan,
+    ) {
+    return Err(Assembly("retired_native_captured_page"))
+  }
   Ok(result)
 }
 

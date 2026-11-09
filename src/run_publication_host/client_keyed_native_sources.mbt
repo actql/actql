@@ -247,7 +247,7 @@ fn build_client_keyed_native_whole_source_evidence(
   state.source_scan = None
   // Existing metadata codec grows the same reservation before any body is
   // encoded. Keep completed identity/body backing alive beside these outputs.
-  match
+  let metadata_phase = match
     grow_keyed_lookup_protocol_metadata(
       lookup,
       max_bytes,
@@ -256,7 +256,7 @@ fn build_client_keyed_native_whole_source_evidence(
       extra_controls=controls,
     ) {
     Err(issue) => return Err(issue)
-    Ok(_) => ()
+    Ok(value) => value
   }
   guard !lookup.closed &&
     lookup.left.lookup_issue is None &&
@@ -355,6 +355,27 @@ fn build_client_keyed_native_whole_source_evidence(
   }
   state.sources.push(result)
   state.source_identity = None
+  match
+    finish_keyed_lookup_protocol_metadata(
+      lookup,
+      metadata_phase,
+      max_nodes,
+      max_depth,
+      [relation, ordering, scope, source_retention],
+      evidence=[logical, observation],
+      texts=[@encode.document_text(request_document)],
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard !lookup.closed &&
+    lookup.left.lookup_issue is None &&
+    lookup.planned_requests is None &&
+    lookup.left.attempts == 0L &&
+    state.sources.get(index) is Some(same) &&
+    physical_equal(same, result) else {
+    return Err(Assembly("retired_native_source_metadata"))
+  }
   Ok(result)
 }
 
@@ -418,7 +439,7 @@ pub fn prepare_client_keyed_native_left_relation(
   }
   // All Source logical/observation issuers above admitted complete original
   // captures. Never reinterpret unknown/partial external envelopes as complete.
-  match
+  let metadata_phase = match
     grow_keyed_lookup_protocol_metadata(
       lookup,
       max_bytes,
@@ -426,7 +447,7 @@ pub fn prepare_client_keyed_native_left_relation(
       copies=5,
     ) {
     Err(issue) => return Err(issue)
-    Ok(_) => ()
+    Ok(value) => value
   }
   guard native_left_relation_phase(lookup, state, composed.sources.length()) &&
     lookup.native_left_identity is Some(same_left) &&
@@ -494,6 +515,31 @@ pub fn prepare_client_keyed_native_left_relation(
   }
   let result = { artifact, ordering, scope, retention: selected_retention, }
   state.relation = Some(result)
+  match
+    finish_keyed_lookup_protocol_metadata(
+      lookup,
+      metadata_phase,
+      max_nodes,
+      max_depth,
+      [
+        artifact,
+        scope,
+        selected_retention,
+        @publication.result_ordering_evidence_contract(ordering),
+        @publication.result_ordering_derivation_contract(ordering),
+      ],
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard !lookup.closed &&
+    lookup.left.lookup_issue is None &&
+    lookup.planned_requests is None &&
+    lookup.left.attempts == 0L &&
+    state.relation is Some(same) &&
+    physical_equal(same, result) else {
+    return Err(Assembly("retired_native_left_relation"))
+  }
   Ok(result)
 }
 

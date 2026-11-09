@@ -71,14 +71,14 @@ fn prepare_client_keyed_native_transport(
   let (_, nodes, _) = @encode.document_usage(document)
   // Reuse the same bounded protocol-metadata recipe with the actual static
   // subtree nodes,16 envelope values,16 field names and the final CID pair.
-  match
+  let metadata_phase = match
     grow_keyed_lookup_protocol_metadata(
       lookup,
       max_bytes,
       34L + nodes.to_int64(),
     ) {
     Err(issue) => return Err(issue)
-    Ok(_) => ()
+    Ok(value) => value
   }
   lookup.growing = true
   let result = @publication.issue_native_file_lookup_transport(
@@ -93,6 +93,17 @@ fn prepare_client_keyed_native_transport(
     Err(issue) => return Err(Identity(@publication.Contract(issue)))
   }
   lookup.native_transport = Some(transport)
+  match
+    finish_keyed_lookup_protocol_metadata(
+      lookup,
+      metadata_phase,
+      max_nodes,
+      max_depth,
+      [transport],
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   Ok(())
 }
 

@@ -65,7 +65,7 @@ pub fn prepare_client_keyed_native_raw_response(
     owned_utf16_units: 71L,
     owned_wire_bytes: 0L,
   }).unwrap()
-  match
+  let metadata_phase = match
     grow_keyed_lookup_protocol_metadata(
       state,
       Int::max(limits.max_bytes, 2048),
@@ -74,7 +74,7 @@ pub fn prepare_client_keyed_native_raw_response(
       extra_controls=controls,
     ) {
     Err(issue) => return Err(issue)
-    Ok(_) => ()
+    Ok(value) => value
   }
   match keyed_lookup_observation(request, now_ms) {
     Err(issue) => return Err(issue)
@@ -202,5 +202,30 @@ pub fn prepare_client_keyed_native_raw_response(
   } catch {
     _ => return Err(Assembly("native_raw_holding"))
   }
-  Ok({ metadata, retention: source_retention, holding, })
+  let result = { metadata, retention: source_retention, holding, }
+  match
+    finish_keyed_lookup_protocol_metadata(
+      state,
+      metadata_phase,
+      limits.max_nodes,
+      limits.max_depth,
+      [metadata, source_retention],
+      texts=[holding],
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard !state.closed &&
+    state.left.lookup_issue is None &&
+    state.selected_request is Some(same) &&
+    physical_equal(same, request) &&
+    request.attempts == 1L &&
+    !request.io_complete &&
+    state.known.get(slot) is Some((_, None, Some(same_history))) &&
+    physical_equal(same_history, history) &&
+    history._retained_activation is Some(same_activation) &&
+    physical_equal(same_activation, activation) else {
+    return Err(Assembly("retired_native_raw_response"))
+  }
+  Ok(result)
 }

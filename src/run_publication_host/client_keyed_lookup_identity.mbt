@@ -313,7 +313,7 @@ fn prepare_keyed_lookup_request_metadata(
   let slots = role_count.to_int64() * lookup.known.length().to_int64() +
     role_count.to_int64() +
     lookup.known.length().to_int64()
-  match
+  let metadata_phase = match
     grow_keyed_lookup_protocol_metadata(
       lookup,
       max_bytes,
@@ -326,7 +326,7 @@ fn prepare_keyed_lookup_request_metadata(
       },
     ) {
     Err(issue) => return Err(issue)
-    Ok(_) => ()
+    Ok(value) => value
   }
   // Reference key projection can invoke its original current observer. Keep
   // the original input/response holders until that synchronous borrow ends.
@@ -350,6 +350,18 @@ fn prepare_keyed_lookup_request_metadata(
     let issue = Assembly("retired_publication_input")
     keyed_lookup_fail(lookup.left, issue) |> ignore
     return Err(issue)
+  }
+  match
+    finish_keyed_lookup_protocol_metadata(
+      lookup,
+      metadata_phase,
+      max_nodes,
+      max_depth,
+      [identity.keys, identity.scope],
+      texts=[identity.static_request, identity.static_request_cid],
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
   Ok((identity, order))
 }
@@ -434,7 +446,7 @@ fn grow_keyed_lookup_protocol_metadata(
   slots : Int64,
   extra_controls? : Int64 = 0L,
   copies? : Int = 1,
-) -> Result[Unit, ClientKeyedRequestIssue] {
+) -> Result[(Int64, Int64, Int64), ClientKeyedRequestIssue] {
   guard copies > 0 &&
     @execution.checked_preparation_add_product(
       0L,
@@ -442,22 +454,26 @@ fn grow_keyed_lookup_protocol_metadata(
       copies.to_int64(),
     )
     is Some(bodies) &&
-    @execution.checked_preparation_add_product(bodies, 128L, slots)
-    is Some(fields) &&
+    @execution.checked_preparation_add_product(0L, 128L, slots) is Some(fields) &&
     @execution.checked_preparation_add_product(fields, extra_controls, 1L)
+    is Some(controls) &&
+    @execution.checked_preparation_add_product(bodies, controls, 1L)
     is Some(metadata) else {
     return Err(Assembly("capacity_overflow"))
   }
-  if metadata > 9223372036854775807L - lookup.retained_bytes {
+  if metadata > 9223372036854775807L - lookup.retained_bytes ||
+    metadata > 9223372036854775807L - lookup.execution_bytes {
     return Err(Assembly("capacity_overflow"))
   }
+  let basis = (lookup.retained_bytes, lookup.execution_bytes, controls)
   let retained = lookup.retained_bytes + metadata
+  let execution = lookup.execution_bytes + metadata
   lookup.growing = true
   let grown = @resources.grow_execution_reservation_capacity(
     lookup.ledger,
     lookup.reservation,
     retained,
-    Int64::max(lookup.execution_bytes, metadata),
+    execution,
   )
   lookup.growing = false
   match grown {
@@ -467,7 +483,7 @@ fn grow_keyed_lookup_protocol_metadata(
     }
     Ok(_) => {
       lookup.retained_bytes = retained
-      lookup.execution_bytes = Int64::max(lookup.execution_bytes, metadata)
+      lookup.execution_bytes = execution
     }
   }
   if lookup.closed ||
@@ -476,6 +492,151 @@ fn grow_keyed_lookup_protocol_metadata(
     let issue = Assembly("retired_publication_input")
     keyed_lookup_fail(lookup.left, issue) |> ignore
     return Err(issue)
+  }
+  Ok(basis)
+}
+
+///|
+// Price only the original closed protocol backing, using the shared tariff.
+// Canonical nodes are conservatively charged as payload-bearing variants;
+// FrozenArray/Array/backing and object entry tuples include spare slots.
+// Contract/evidence control, optional wire-usage tuple and Strings remain.
+fn keyed_lookup_protocol_extent_cost(
+  extent : @publication.PublicationRepresentationExtent,
+) -> Int64? {
+  let tree = extent.canonical
+  let containers = tree.arrays + tree.objects
+  @execution.preparation_representation_cost({
+    record_headers: 3L * extent.contract_records +
+    extent.contract_strings +
+    tree.nodes +
+    tree.strings +
+    3L * containers +
+    tree.object_backing_slots,
+    reference_slots: 7L * extent.contract_records +
+    tree.nodes +
+    2L * containers +
+    tree.array_backing_slots +
+    3L * tree.object_backing_slots,
+    scalar_words: 5L * extent.contract_records +
+    2L * tree.nodes +
+    2L * containers,
+    owned_utf16_units: extent.contract_text_utf16_units + tree.text_utf16_units,
+    owned_wire_bytes: 0L,
+  })
+}
+
+///|
+// Called only after the actual writers/scans have returned and their outputs
+// are retained on this same lookup (or the original returning frame). Failure
+// keeps the construction peak. Success returns only unused codec workspace;
+// all previous backing, actual bodies and call controls remain charged.
+fn finish_keyed_lookup_protocol_metadata(
+  lookup : ClientKeyedLookupInput,
+  phase : (Int64, Int64, Int64),
+  max_nodes : Int,
+  max_depth : Int,
+  contracts : Array[@publication.PublicationContract],
+  evidence? : Array[@publication.RunEvidenceValue] = [],
+  texts? : Array[String] = [],
+) -> Result[Unit, ClientKeyedRequestIssue] {
+  if max_nodes < 1 || max_depth < 1 || lookup.closed || lookup.growing {
+    return Err(Assembly("unavailable_protocol_workspace_return"))
+  }
+  // Bound the existing immutable extent walk BEFORE allocating its depth
+  // stack. No wire is re-encoded/hashed/admitted and no permission is observed.
+  let frames = 4L * (max_depth.to_int64() + 1L) +
+    4L * (contracts.length().to_int64() + evidence.length().to_int64() + 1L)
+  let scratch = @execution.preparation_representation_cost({
+    record_headers: 12L + frames,
+    reference_slots: 24L + 4L * frames,
+    scalar_words: 16L + 4L * frames,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).unwrap()
+  match
+    keyed_lookup_body_grow(
+      lookup,
+      lookup.retained_bytes,
+      lookup.execution_bytes,
+      scratch,
+      None,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let mut retained = phase.2
+  for contract in contracts {
+    let extent = match
+      @publication.publication_contract_representation_extent(
+        contract, max_nodes, max_depth, 2147483647,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Identity(@publication.Contract(issue)))
+    }
+    guard keyed_lookup_protocol_extent_cost(extent) is Some(bytes) &&
+      @execution.checked_preparation_add_product(retained, bytes, 1L)
+      is Some(total) else {
+      return Err(Assembly("capacity_overflow"))
+    }
+    retained = total
+  }
+  for original in evidence {
+    let extent = match
+      @publication.run_evidence_value_representation_extent(
+        original, max_nodes, max_depth, 2147483647,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Identity(@publication.Contract(issue)))
+    }
+    guard keyed_lookup_protocol_extent_cost(extent) is Some(bytes) &&
+      @execution.checked_preparation_add_product(retained, bytes, 1L)
+      is Some(total) else {
+      return Err(Assembly("capacity_overflow"))
+    }
+    retained = total
+  }
+  for text in texts {
+    guard @execution.preparation_representation_cost({
+        record_headers: 1L,
+        reference_slots: 0L,
+        scalar_words: 0L,
+        owned_utf16_units: text.length().to_int64(),
+        owned_wire_bytes: 0L,
+      })
+      is Some(bytes) &&
+      @execution.checked_preparation_add_product(retained, bytes, 1L)
+      is Some(total) else {
+      return Err(Assembly("capacity_overflow"))
+    }
+    retained = total
+  }
+  guard @execution.checked_preparation_add_product(phase.0, retained, 1L)
+    is Some(r) &&
+    @execution.checked_preparation_add_product(phase.1, retained, 1L) is Some(e) else {
+    return Err(Assembly("capacity_overflow"))
+  }
+  lookup.growing = true
+  let reduced = @resources.reduce_execution_reservation_capacity(
+    lookup.ledger,
+    lookup.reservation,
+    r,
+    e,
+  )
+  match reduced {
+    Err(issue) => {
+      lookup.growing = false
+      return Err(Physical(issue))
+    }
+    Ok(_) => {
+      lookup.retained_bytes = r
+      lookup.execution_bytes = e
+    }
+  }
+  let available = client_keyed_left_available(lookup.left)
+  lookup.growing = false
+  if lookup.closed || lookup.left.lookup_issue is Some(_) || !available {
+    return Err(Assembly("retired_publication_input"))
   }
   Ok(())
 }

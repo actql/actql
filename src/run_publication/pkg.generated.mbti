@@ -1025,6 +1025,8 @@ pub fn run_evidence_value_json(RunEvidenceValue) -> String
 
 pub fn run_evidence_value_name(RunEvidenceValue) -> String
 
+pub fn run_evidence_value_representation_extent(RunEvidenceValue, Int, Int, Int) -> Result[PublicationRepresentationExtent, PublicationContractIssue]
+
 pub fn run_observation_key(String, Int64, Bool?, Bool?) -> String?
 
 pub fn run_publication_authorization(RunPublicationAdmission) -> RunEvidenceValue

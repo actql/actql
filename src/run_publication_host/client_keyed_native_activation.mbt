@@ -119,7 +119,7 @@ pub fn prepare_client_keyed_native_activation(
     owned_utf16_units: 24L,
     owned_wire_bytes: 0L,
   }).unwrap()
-  match
+  let metadata_phase = match
     grow_keyed_lookup_protocol_metadata(
       state,
       max_bytes,
@@ -128,7 +128,7 @@ pub fn prepare_client_keyed_native_activation(
       copies=3,
     ) {
     Err(issue) => return Err(issue)
-    Ok(_) => ()
+    Ok(value) => value
   }
   let policy = match keyed_lookup_observation(request, now_ms) {
     Ok(value) => value
@@ -280,6 +280,28 @@ pub fn prepare_client_keyed_native_activation(
     reserved_duration_ms: remaining,
   }
   history._retained_activation = Some(result)
+  match
+    finish_keyed_lookup_protocol_metadata(
+      state,
+      metadata_phase,
+      max_nodes,
+      max_depth,
+      [semantic_request, slot, activation],
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard !state.closed &&
+    state.left.lookup_issue is None &&
+    state.selected_request is Some(same_request) &&
+    physical_equal(same_request, request) &&
+    state.selected_index == Some(-1) &&
+    request.attempts == 0L &&
+    !request.io_complete &&
+    history._retained_activation is Some(same) &&
+    physical_equal(same, result) else {
+    return Err(Assembly("retired_native_activation"))
+  }
   Ok(result)
 }
 

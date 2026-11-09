@@ -2,6 +2,20 @@
 // One joined physical Source component on the actual README Request/Plan.
 // The metadata authority and future UPDATE provider remain explicit ports;
 // neither is an ordinary CLI/Account/Journal/Model-send qualification.
+test "Native README metadata returns completed codec workspace before both keyed captures" {
+  assert_eq(@env.get_env_var("ACTQL_TEST_NATIVE_METADATA_REMAINDER"), Some("1"))
+  assert_eq(@env.get_env_var("ACTQL_TEST_NATIVE_CONTENT_LOOKUPS"), Some("2"))
+  assert_eq(@env.get_env_var("ACTQL_TEST_NATIVE_CAPTURED_PAGE"), Some("1"))
+  native_project_mock_model_backed_read(
+    false,
+    readme_request=true,
+    effect_compilation=true,
+    effect_source_inputs=true,
+    content_join=true,
+  )
+}
+
+///|
 test "Native original README joins its two physical Sources and original keyed Content Store" {
   native_project_mock_model_backed_read(
     false,
@@ -936,6 +950,11 @@ fn native_mock_readme_content_join_adopt(
     None
   }
   if source_artifacts {
+    let metadata_remainder = @env.get_env_var(
+        "ACTQL_TEST_NATIVE_METADATA_REMAINDER",
+      ) ==
+      Some("1")
+    let metadata_bytes = if metadata_remainder { 1048576 } else { 65536 }
     let retention = raw_retention.unwrap()
     let before_work = @run_host.client_keyed_lookup_input_work(lookup)
     // A complete left cannot be claimed before its actual two Source originals.
@@ -952,6 +971,7 @@ fn native_mock_readme_content_join_adopt(
       is Err(_),
     )
     for index, original in source_originals {
+      let before_metadata = @initial_resources.ledger_usage(ledger)
       guard original is Whole(source_original, acquisition) else {
         fail("original whole Source profile")
       }
@@ -971,10 +991,21 @@ fn native_mock_readme_content_join_adopt(
         limits.identity.schema,
         limits.identity.work,
         limits.identity.workspace,
-        65536,
+        metadata_bytes,
         4096,
         32,
       ).native_content_lookup_stage("original Source metadata before dispatch")
+      if metadata_remainder {
+        // These two authored Sources have only two small rows. Their original
+        // six closed metadata bodies remain, while a 1MiB codec ceiling must
+        // not leave its 7*16MiB construction window retained between calls.
+        let after_metadata = @initial_resources.ledger_usage(ledger)
+        assert_true(
+          after_metadata.reserved_retention_bytes -
+          before_metadata.reserved_retention_bytes <
+          1048576L,
+        )
+      }
       assert_true(
         physical_equal(
           @run_host.client_keyed_native_source_evidence(lookup, index).unwrap(),
@@ -992,7 +1023,7 @@ fn native_mock_readme_content_join_adopt(
       first.request,
       retention,
       "native-source-component",
-      65536,
+      metadata_bytes,
       4096,
       32,
     ).native_content_lookup_stage("original computed left acquisition Relation")

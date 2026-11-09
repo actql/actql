@@ -3142,6 +3142,20 @@ cannot be substituted with an invented transport or successful receipt.
 
 ### Original Native keyed transport before dispatch
 
+Lookup protocol construction reserves its codec workspace beside the original
+lookup basis. After a successful constructor returns, the same reservation
+retains the actual admitted protocol trees, strings, wrapper controls and all
+previous backing. Only the unused codec workspace is returned. Policy codec
+ceilings remain intake limits, rather than permanent retained payload amounts.
+Original canonical representation facts supply the retained tree inventory;
+the shared representation tariff prices it without re-admission or re-encoding.
+
+Failed construction keeps its original peak until that same lookup retires.
+The byte reduction preserves the original reservation, live holdings, spent
+attempts, transfers, quantities and pending cleanup. It cannot reduce a fixed
+imported allocation or the preparation bootstrap. Returning logical unused
+workspace does not return a physical mapping or acknowledge Source/Store close.
+
 The selected file reader's original `native_file_content_read` profile is retained
 by the same checked Source declaration and its live provider binding. Predispatch
 planning requires that exact profile CID in the selected Source capability and

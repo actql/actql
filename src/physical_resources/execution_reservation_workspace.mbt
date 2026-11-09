@@ -67,11 +67,46 @@ pub fn reduce_execution_reservation(
 }
 
 ///|
+/// Return unused byte workspace after its original consumer has dropped the
+/// completed construction scratch. Retained bodies and live holdings must
+/// remain covered by the absolute remainders. This neither acknowledges
+/// physical cleanup nor refunds attempts, transfers, quantities or token slots.
+pub fn reduce_execution_reservation_capacity(
+  ledger : Ledger,
+  reservation : Reservation,
+  remaining_retention : Int64,
+  remaining_execution : Int64,
+) -> Result[Unit, LedgerIssue] {
+  match reservation_check(ledger, reservation) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  reduce_execution_reservation_capacity_current(
+    ledger, reservation, remaining_retention, remaining_execution,
+  )
+}
+
+///|
 // Same closed original/current boundary used by managed response projection.
 // Do not call another original current observer between this fence and disposal.
 fn reduce_execution_reservation_current(
   ledger : Ledger,
   reservation : Reservation,
+  remaining_execution : Int64,
+) -> Result[Unit, LedgerIssue] {
+  reduce_execution_reservation_capacity_current(
+    ledger,
+    reservation,
+    reservation.retention,
+    remaining_execution,
+  )
+}
+
+///|
+fn reduce_execution_reservation_capacity_current(
+  ledger : Ledger,
+  reservation : Reservation,
+  remaining_retention : Int64,
   remaining_execution : Int64,
 ) -> Result[Unit, LedgerIssue] {
   match reservation_check_current(ledger, reservation) {
@@ -87,15 +122,22 @@ fn reduce_execution_reservation_current(
     physical_equal(inventory.bootstrap.reservation, reservation) {
     return Err(InvalidCharge)
   }
-  if remaining_execution < 0L || remaining_execution > reservation.execution {
+  if remaining_retention < 0L ||
+    remaining_retention > reservation.retention ||
+    remaining_execution < 0L ||
+    remaining_execution > reservation.execution {
     return Err(InvalidCharge)
   }
   ledger.usage = {
     ..ledger.usage,
+    reserved_retention_bytes: ledger.usage.reserved_retention_bytes -
+    reservation.retention +
+    remaining_retention,
     reserved_execution_bytes: ledger.usage.reserved_execution_bytes -
     reservation.execution +
     remaining_execution,
   }
+  reservation.retention = remaining_retention
   reservation.execution = remaining_execution
   Ok(())
 }

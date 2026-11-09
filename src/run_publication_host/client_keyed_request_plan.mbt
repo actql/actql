@@ -361,7 +361,7 @@ pub fn prepare_client_keyed_native_batch_plan(
     is Some(controls) else {
     return Err(Assembly("native_batch_plan_capacity"))
   }
-  match
+  let metadata_phase = match
     grow_keyed_lookup_protocol_metadata(
       state,
       max_bytes,
@@ -369,7 +369,7 @@ pub fn prepare_client_keyed_native_batch_plan(
       extra_controls=controls,
     ) {
     Err(issue) => return Err(issue)
-    Ok(_) => ()
+    Ok(value) => value
   }
   // This measured nested walk visits actual key/occurrence controls, not
   // provider Values or a policy quota. Spend work before constructing output.
@@ -404,5 +404,16 @@ pub fn prepare_client_keyed_native_batch_plan(
   }
   state.native_batch_plan = Some(plan)
   state.planned_dispatch_order = Some(order)
+  match
+    finish_keyed_lookup_protocol_metadata(
+      state,
+      metadata_phase,
+      max_nodes,
+      max_depth,
+      [plan],
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   Ok(plan)
 }
