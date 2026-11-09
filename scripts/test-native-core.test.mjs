@@ -481,7 +481,7 @@ test('Native partition marker reaches only its ordinary oracle and never other f
   assert(start >= 0 && end > start);
   for (const partition of ['1/2', '2/2']) {
     const process = {env: {ACTQL_TEST_NATIVE_CORE_PARTITION: partition, original: 'preserved'}, execPath: '/node'};
-    const compilerLine = source.match(/^const compilerEnvironment = .+;$/mu)?.[0];
+    const compilerLine = source.match(/^const compilerEnvironment = [\s\S]+?;\n/mu)?.[0];
     assert(compilerLine);
     const compiler = runInNewContext(compilerLine + '\ncompilerEnvironment;', {process, testCompiler: {PATH: '/original-compiler'}});
     assert.equal(compiler.ACTQL_TEST_NATIVE_CORE_PARTITION, undefined);
@@ -953,8 +953,11 @@ process.exitCode=process.env.ACTQL_FIXTURE_SOURCE_FAILED==='1'?9:0;
       'Original compiler-input fixture\n');
     if (effectTargets) {
       for (const path of ['src/cmd/native_client/local_project_mock_content_physical_scoped_wbtest.mbt',
-        'src/platform_native/row_source/target_io_physical_scoped_wbtest.mbt']) {
-        if (path.endsWith('/target_io_physical_scoped_wbtest.mbt'))
+        'src/platform_native/row_source/target_io_physical_scoped_wbtest.mbt',
+        'src/platform_native/row_source/target_io_lineage_physical_scoped_wbtest.mbt',
+        'src/platform_native/client_host/run_effect_file_response_wbtest.mbt']) {
+        mkdirSync(dirname(join(checkout, path)), {recursive: true});
+        if (!path.endsWith('/local_project_mock_content_physical_scoped_wbtest.mbt'))
           copyFileSync(new URL('../' + path, import.meta.url), join(checkout, path));
         else writeFileSync(join(checkout, path), 'Original compiler-input fixture\n');
       }
@@ -1033,7 +1036,8 @@ if (process.argv[2] === 'generate-test-driver') {
   const tests = Object.fromEntries(args.filter(value => value.startsWith('src/') && value.endsWith('.mbt'))
     .map(value => [require('node:path').basename(value), value.startsWith('src/fixture-empty/') ? [] :
       Array.from({length: value.endsWith('/root_control_physical_scoped_wbtest.mbt') ? 3 :
-          value.endsWith('/target_io_physical_scoped_wbtest.mbt')
+          ['/target_io_physical_scoped_wbtest.mbt','/target_io_lineage_physical_scoped_wbtest.mbt',
+            '/run_effect_file_response_wbtest.mbt'].some(name => value.endsWith(name))
             ? [...require('node:fs').readFileSync(value, 'utf8').matchAll(/^test /gm)].length :
           value.endsWith('/local_effect_capture_wbtest.mbt') ? 5 :
           value.endsWith('/local_project_mock_content_physical_scoped_wbtest.mbt') ? 20 : 1},
@@ -1077,8 +1081,14 @@ if (process.argv.includes('--dry-run')) {
       '--output-metadata _build/native/release/test/platform_native/row_source/info.json ' +
       'src/platform_native/row_source/capture_physical_scoped_wbtest.mbt ' +
       (process.env.ACTQL_FIXTURE_CORE_EFFECT_TARGETS === '1'
-        ? 'src/platform_native/row_source/target_io_physical_scoped_wbtest.mbt ' : '') +
+        ? 'src/platform_native/row_source/target_io_physical_scoped_wbtest.mbt ' +
+          'src/platform_native/row_source/target_io_lineage_physical_scoped_wbtest.mbt ' : '') +
       '--target native --pkg-name fixture/row_source --driver-kind whitebox');
+    if (process.env.ACTQL_FIXTURE_CORE_EFFECT_TARGETS === '1') console.log('moon generate-test-driver ' +
+      '--output-driver _build/native/release/test/platform_native/client_host/driver.mbt ' +
+      '--output-metadata _build/native/release/test/platform_native/client_host/info.json ' +
+      'src/platform_native/client_host/run_effect_file_response_wbtest.mbt ' +
+      '--target native --pkg-name fixture/client_host --driver-kind whitebox');
     if (process.env.ACTQL_FIXTURE_CORE_RELATION_WORK === '1') console.log('moon generate-test-driver ' +
       '--output-driver _build/native/release/test/platform_native/relation_file_work_tests/driver.mbt ' +
       '--output-metadata _build/native/release/test/platform_native/relation_file_work_tests/info.json ' +
@@ -1104,6 +1114,9 @@ if (process.env.ACTQL_FIXTURE_NATIVE_COMMANDS) {
       relationRuntime:process.env.ACTQL_TEST_RELATION_RUNTIME_ROOT,
       installedProcess:process.env.ACTQL_TEST_INSTALLED_PROCESS_ROOT,
       targetRoot:process.env.ACTQL_TEST_NATIVE_TARGET_IO_ROOT,
+      fileReceiptRoot:process.env.ACTQL_TEST_NATIVE_FILE_RECEIPT_ROOT,
+      fileReceiptCheckpoint:process.env.ACTQL_TEST_CLIENT_FILE_RECEIPT_APPROVE_RESOLUTION_WIRE === undefined ? undefined
+        : JSON.parse(process.env.ACTQL_TEST_CLIENT_FILE_RECEIPT_APPROVE_RESOLUTION_WIRE).checkpoint_cid,
       contentStore:process.env.ACTQL_TEST_NATIVE_STORE_ROOT,
       metadataRemainder:process.env.ACTQL_TEST_NATIVE_METADATA_REMAINDER,
       contentLookups:process.env.ACTQL_TEST_NATIVE_CONTENT_LOOKUPS,
@@ -1130,12 +1143,44 @@ if (['runtime-values','scoped-review-values'].includes(process.env.ACTQL_FIXTURE
   assert(process.argv.includes('--target-dir'));
   assert(process.env.ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT);
   assert(process.env.ACTQL_TEST_NATIVE_UNCLOSED_SQLITE_FIXTURE);
-  if (process.argv.includes('src/platform_native/row_source/target_io_physical_scoped_wbtest.mbt')) {
+  if (process.argv.includes('src/platform_native/client_host/run_effect_file_response_wbtest.mbt')) {
+    assert.equal(process.env.ACTQL_FIXTURE_PROFILE, 'scoped-review-values');
+    assert.equal(process.env.ACTQL_TEST_INSTALLED_PROCESS_ROOT, undefined);
+    assert.equal(process.env.ACTQL_TEST_NATIVE_TARGET_IO_ROOT, undefined);
+    const index = Number(process.argv[process.argv.indexOf('--index') + 1]);
+    assert(Number.isInteger(index) && index >= 0 && index < 4);
+    const resolution = JSON.parse(process.env.ACTQL_TEST_CLIENT_FILE_RECEIPT_APPROVE_RESOLUTION_WIRE);
+    assert.equal(resolution.checkpoint_cid, 'sha256:' + '9'.repeat(64));
+    assert.equal(resolution.required_artifact_cid, 'sha256:' + '8'.repeat(64));
+    const {host_attestation, verified_resolution_cid, ...wire} = JSON.parse(process.env.ACTQL_TEST_CLIENT_FILE_RECEIPT_APPROVE_VERIFIED_WIRE);
+    assert.equal(wire.resolution.resolution_cid, resolution.resolution_cid);
+    const canonical = value => Array.isArray(value) ? '[' + value.map(canonical).join(',') + ']'
+      : value !== null && typeof value === 'object'
+        ? '{' + Object.keys(value).sort().map(key => JSON.stringify(key) + ':' + canonical(value[key])).join(',') + '}'
+        : JSON.stringify(value);
+    assert(verify(null, Buffer.from('sha256:' + createHash('sha256').update(canonical(wire)).digest('hex')),
+      process.env.ACTQL_TEST_CLIENT_HOST_PUBLIC_KEY, Buffer.from(host_attestation.signature, 'base64')));
+    const root = process.env.ACTQL_TEST_NATIVE_FILE_RECEIPT_ROOT;
+    if (index === 0) assert.equal(root, undefined);
+    else {
+      assert.equal(process.env.ACTQL_TEST_NATIVE_SQLITE_ROOT, root);
+      assert.equal(statSync(join(root, 'backing')).size, 384 * 1024 ** 2);
+      assert.equal(require('node:fs').readFileSync(join(root, 'original.json'), 'utf8'), '{"items":[{"id":"row-1","value":1}]}\\n');
+    }
+    console.log(process.env.ACTQL_FIXTURE_FILE_RESPONSE_ZERO === '1' && index === 1
+      ? 'Total tests: 0, passed: 0, failed: 0.' : 'Total tests: 1, passed: 1, failed: 0.');
+    process.exit(0);
+  }
+  assert.equal(process.env.ACTQL_TEST_NATIVE_FILE_RECEIPT_ROOT, undefined);
+  assert.equal(process.env.ACTQL_TEST_CLIENT_FILE_RECEIPT_APPROVE_RESOLUTION_WIRE, undefined);
+  if (process.argv.includes('src/platform_native/row_source/target_io_physical_scoped_wbtest.mbt') ||
+      process.argv.includes('src/platform_native/row_source/target_io_lineage_physical_scoped_wbtest.mbt')) {
     assert.equal(process.env.ACTQL_FIXTURE_PROFILE, 'scoped-review-values');
     assert.equal(process.env.ACTQL_TEST_INSTALLED_PROCESS_ROOT, undefined);
     assert.equal(process.env.ACTQL_TEST_NATIVE_EFFECT_PLAN_ONLY, undefined);
     const index = Number(process.argv[process.argv.indexOf('--index') + 1]);
-    const suffix = ['update', 'cancel', 'sync', 'funding'][index]; assert(suffix);
+    const lineage = process.argv.includes('src/platform_native/row_source/target_io_lineage_physical_scoped_wbtest.mbt');
+    const suffix = (lineage ? ['chain', 'inplace', 'replaced'] : ['update', 'cancel', 'sync', 'funding'])[index]; assert(suffix);
     const root = process.env.ACTQL_TEST_NATIVE_TARGET_IO_ROOT;
     assert.equal(statSync(root).mode & 0o777, 0o700);
     assert.equal(statSync(join(root, 'target-backing-' + suffix)).size, 384 * 1024 ** 2);
@@ -1215,17 +1260,21 @@ if (['runtime-values','scoped-review-values'].includes(process.env.ACTQL_FIXTURE
   console.log('Total tests: 1, passed: 1, failed: 0.'); process.exit(0);
 }
 if (['src/platform_native/client_host/run_checkpoint_wbtest.mbt',
-     'src/platform_native/client_host/run_effect_receipt_wbtest.mbt'].some(file => process.argv.includes(file)) &&
+     'src/platform_native/client_host/run_effect_receipt_wbtest.mbt',
+     'src/platform_native/client_host/run_effect_file_response_wbtest.mbt'].some(file => process.argv.includes(file)) &&
     process.argv.includes('--index')) {
   assert.equal(process.env.ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT, undefined,
     'checkpoint producers must not receive Reader injection');
   assert.equal(process.env.DYLD_INSERT_LIBRARIES, undefined);
   assert.equal(process.env.LD_PRELOAD, undefined);
+  assert.equal(process.env.ACTQL_TEST_NATIVE_FILE_RECEIPT_ROOT, undefined);
+  assert.equal(process.env.ACTQL_TEST_CLIENT_FILE_RECEIPT_APPROVE_RESOLUTION_WIRE, undefined);
+  const fileReceipt = process.argv.includes('src/platform_native/client_host/run_effect_file_response_wbtest.mbt');
   const fixed = digit => 'sha256:' + digit.repeat(64);
   console.log('ACTQL_CLIENT_CHECKPOINT ' + JSON.stringify({
-    checkpoint_id: 'mock-checkpoint', checkpoint_cid: fixed('1'),
+    checkpoint_id: 'mock-checkpoint', checkpoint_cid: fixed(fileReceipt ? '9' : '1'),
     run_id: 'mock-run', run_definition_cid: fixed('2'),
-    required_artifact: {artifact_cid: fixed('3')}, review_projection_cid: fixed('4'),
+    required_artifact: {artifact_cid: fixed(fileReceipt ? '8' : '3')}, review_projection_cid: fixed('4'),
     requirements: ['effect_scope_approved'], created_at: '2026-10-10T00:00:00.000Z',
   }));
   console.log('Total tests: 1, passed: 1, failed: 0.');
@@ -2186,16 +2235,23 @@ test('Core Native prepares existing scoped producer dependencies before expensiv
   }
 });
 
-test('Native Core routes twenty Content and four target I/O originals with nonzero selected execution', t => {
+test('Native Core routes Content, target lineage and original file receipts with nonzero selected execution', t => {
   const contentFile = 'src/cmd/native_client/local_project_mock_content_physical_scoped_wbtest.mbt';
   const targetFile = 'src/platform_native/row_source/target_io_physical_scoped_wbtest.mbt';
-  for (const zero of [false, true]) {
+  const lineageFile = 'src/platform_native/row_source/target_io_lineage_physical_scoped_wbtest.mbt';
+  const responseFile = 'src/platform_native/client_host/run_effect_file_response_wbtest.mbt';
+  for (const mode of ['normal', 'target-zero', 'file-zero']) {
+    const zero = mode === 'target-zero', fileZero = mode === 'file-zero', failed = mode !== 'normal';
     const f = fixture(t, {scoped: true, effectTargets: true});
     const commands = join(f.root, 'effect-target-commands.jsonl');
     const result = spawnSync(process.execPath, ['scripts/test-native-core.mjs', '--deny-warn'], {
       cwd: f.checkout, encoding: 'utf8', timeout: 20000,
       env: {...f.env, ACTQL_FIXTURE_NATIVE_COMMANDS: commands,
         ACTQL_FIXTURE_TARGET_ZERO: zero ? '1' : '0',
+        ACTQL_FIXTURE_FILE_RESPONSE_ZERO: fileZero ? '1' : '0',
+        ACTQL_TEST_NATIVE_FILE_RECEIPT_ROOT: f.parent,
+        ACTQL_TEST_CLIENT_FILE_RECEIPT_APPROVE_RESOLUTION_WIRE: 'ambient-receipt',
+        ACTQL_TEST_CLIENT_FILE_RECEIPT_APPROVE_VERIFIED_WIRE: 'ambient-verified',
         ACTQL_TEST_NATIVE_EFFECT_PLAN_ONLY: 'ambient-plan',
         ACTQL_TEST_NATIVE_MODEL_SOURCE_CLOSURE: 'ambient-closure',
         ACTQL_TEST_NATIVE_METADATA_REMAINDER: 'ambient-metadata',
@@ -2218,7 +2274,7 @@ test('Native Core routes twenty Content and four target I/O originals with nonze
         ACTQL_TEST_NATIVE_TARGET_IO_ROOT: f.parent},
     });
     assert.ifError(result.error); assert.equal(result.signal, null);
-    assert.equal(result.status === 0, !zero, result.stdout + result.stderr);
+    assert.equal(result.status === 0, !failed, result.stdout + result.stderr);
     const calls = readFileSync(commands, 'utf8').trim().split('\n').map(JSON.parse);
     const selected = calls.filter(call => call.profile !== 'ordinary');
     const content = selected.filter(call => call.args.includes(contentFile));
@@ -2257,13 +2313,36 @@ test('Native Core routes twenty Content and four target I/O originals with nonze
       assert.notEqual(call.targetRoot, f.parent);
       assert.equal(call.installedProcess, undefined);
       assert.equal(call.effectPlanOnly, undefined);
-      assert.equal(existsSync(call.targetRoot), zero, 'failed execution retains its exact original fixture');
+      assert.equal(existsSync(call.targetRoot), failed, 'failed execution retains its exact original fixture');
     }
-    for (const call of selected.filter(call => !targets.includes(call))) assert.equal(call.targetRoot, undefined);
+    const lineage = selected.filter(call => call.args.includes(lineageFile));
+    assert.deepEqual(lineage.map(call => call.args[call.args.indexOf('--index') + 1]), zero ? [] : ['0', '1', '2']);
+    assert.equal(new Set([...targets, ...lineage].map(call => call.targetRoot)).size, targets.length + lineage.length);
+    for (const call of lineage) {
+      assert.equal(call.profile, 'scoped-review-values');
+      assert.notEqual(call.targetRoot, f.parent);
+      assert.equal(call.installedProcess, undefined);
+    }
+    for (const call of selected.filter(call => !targets.includes(call) && !lineage.includes(call))) assert.equal(call.targetRoot, undefined);
+    const responses = selected.filter(call => call.args.includes(responseFile));
+    assert.deepEqual(responses.map(call => call.args[call.args.indexOf('--index') + 1]), zero ? [] : fileZero ? ['0', '1'] : ['0', '1', '2', '3']);
+    assert.equal(new Set(responses.slice(1).map(call => call.fileReceiptRoot)).size, Math.max(0, responses.length - 1));
+    for (const [index, call] of responses.entries()) {
+      assert.equal(call.profile, 'scoped-review-values');
+      assert.equal(call.fileReceiptCheckpoint, 'sha256:' + '9'.repeat(64));
+      assert.equal(call.installedProcess, undefined);
+      if (index === 0) assert.equal(call.fileReceiptRoot, undefined, 'pure export has no physical fixture');
+      else assert.notEqual(call.fileReceiptRoot, f.parent);
+    }
+    for (const call of calls.filter(call => !responses.includes(call))) {
+      assert.equal(call.fileReceiptRoot, undefined);
+      assert.equal(call.fileReceiptCheckpoint, undefined);
+    }
     for (const call of selected.filter(call => !content.includes(call))) assert.equal(call.effectPlanOnly, undefined);
-    if (!zero) {
-      assert.equal(calls.length, 20 + 4 + 10, 'all original cases remain alongside twenty Content and four target originals');
-      assert.match(result.stdout, /"scoped":31,"physical":30,"repeatedGeometry":1/u);
+    if (!failed) {
+      assert.equal(calls.length, 20 + 4 + 3 + 4 + 11,
+        'all old cases plus three lineage/four file-response cases and their original signing producer');
+      assert.match(result.stdout, /"scoped":38,"physical":37,"repeatedGeometry":1/u);
     } else assert.match(result.stderr + result.stdout, /no successfully executed test cases|expected tests=1/u);
     f.verifyExternal();
   }

@@ -35,12 +35,15 @@ function originalReference(root, env, referenceFile, strip = false, denyWarn = f
   return references[0];
 }
 
-export function nativeClientCheckpointFixture(root, env = process.env, strip = false, denyWarn = false, release = false) {
+export function nativeClientCheckpointFixture(root, env = process.env, strip = false, denyWarn = false, release = false,
+  fileReceipt = false) {
+  if (typeof fileReceipt !== 'boolean') throw new TypeError('An exact file receipt selection is required');
   const signers = {reviewer: generateKeyPairSync('ed25519'), host: generateKeyPairSync('ed25519')};
   const result = {};
   for (const [prefix, file] of [
     ['', 'src/platform_native/client_host/run_checkpoint_wbtest.mbt'],
     ['RECEIPT_', 'src/platform_native/client_host/run_effect_receipt_wbtest.mbt'],
+    ...(fileReceipt ? [['FILE_RECEIPT_', 'src/platform_native/client_host/run_effect_file_response_wbtest.mbt']] : []),
   ]) {
     const reference = originalReference(root, env, file, strip, denyWarn, release);
     const fixtures = {

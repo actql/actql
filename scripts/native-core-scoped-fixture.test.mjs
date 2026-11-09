@@ -8,8 +8,10 @@ import test from 'node:test';
 import {createHash} from 'node:crypto';
 import {nativeProjectConfigurationFixture} from './native-project-configuration-fixture.mjs';
 import {nativeCoreOrdinaryProcessFixture, nativeCoreScopedFixture, nativeRelationFileCaptureFixture, nativeCoreModelFrameFixture,
-  nativeRelationTargetIOFixture} from './native-core-scoped-fixture.mjs';
-import {nativeRelationCaptureTestFiles, nativeRelationTargetIOTestFile, nativeScopedTestFiles, nativeCoreScopedAllocationProfile} from './native-core-test-selection.mjs';
+  nativeRelationTargetIOFixture, nativeRelationTargetIOLineageFixture,
+  nativeClientFileResponseFixture} from './native-core-scoped-fixture.mjs';
+import {nativeRelationCaptureTestFiles, nativeRelationTargetIOTestFile, nativeRelationTargetIOLineageTestFile,
+  nativeClientFileResponseTestFile, nativeScopedTestFiles, nativeCoreScopedAllocationProfile} from './native-core-test-selection.mjs';
 
 function fixture(t) {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-scoped-case-fixture-')));
@@ -59,6 +61,73 @@ test('target I/O cases own exact original inputs and fresh backings without name
   for (const index of [-1, suffixes.length, 0.5, '1', undefined]) {
     assert.throws(() => nativeRelationTargetIOFixture(namespace, index), /exact original/u);
   }
+  assert.deepEqual(readdirSync(namespace), []);
+});
+
+test('Native lineage fixtures bind the three original kinds and only the replacement gets a foreign inode input', t => {
+  assert.equal(nativeScopedTestFiles.filter(file => file === nativeRelationTargetIOLineageTestFile).length, 1);
+  assert.equal(nativeCoreScopedAllocationProfile(nativeRelationTargetIOLineageTestFile), 'scoped-review-values');
+  const source = readFileSync(new URL('../' + nativeRelationTargetIOLineageTestFile, import.meta.url), 'utf8');
+  const kinds = [...source.matchAll(/^test "[^"]+" \{\n  target_io_fixture_physical\((\d+)\)\n\}/gmu)];
+  assert.deepEqual(kinds.map(match => Number(match[1])), [4, 5, 6]);
+  const roots = [];
+  for (const [index, suffix] of ['chain', 'inplace', 'replaced'].entries()) {
+    const namespace = fixture(t), env = nativeRelationTargetIOLineageFixture(namespace, index);
+    const root = join(namespace, 'target-io'); roots.push(root);
+    assert.deepEqual(env, {ACTQL_TEST_NATIVE_TARGET_IO_ROOT: root});
+    assert.deepEqual(readdirSync(root).sort(), ['target-' + suffix + '.json', 'target-backing-' + suffix,
+      ...(index === 2 ? ['foreign-copy.json'] : [])].sort());
+    const original = ' {"items":[{"id":"first","value":1},{"id":"second","value":2}],"keep":"untouched"}\n';
+    assert.equal(readFileSync(join(root, 'target-' + suffix + '.json'), 'utf8'), original);
+    if (index === 2) assert.equal(readFileSync(join(root, 'foreign-copy.json'), 'utf8'),
+      original.replace('"value":1', '"value":9'));
+    const backing = join(root, 'target-backing-' + suffix);
+    assert.equal(statSync(backing).size, 384 * 1024 ** 2);
+    for (const name of readdirSync(root)) {
+      const s = statSync(join(root, name)); assert(s.isFile()); assert.equal(s.nlink, 1); assert.equal(s.mode & 0o777, 0o600);
+    }
+    writeFileSync(backing, 'same initialized lineage owner');
+    assert.throws(() => nativeRelationTargetIOLineageFixture(namespace, index), {code: 'EEXIST'});
+    assert.equal(readFileSync(backing, 'utf8'), 'same initialized lineage owner');
+  }
+  assert.equal(new Set(roots).size, 3);
+  const namespace = fixture(t);
+  for (const index of [-1, 3, 0.5, '1', undefined]) assert.throws(
+    () => nativeRelationTargetIOLineageFixture(namespace, index), /exact original/u);
+  assert.deepEqual(readdirSync(namespace), []);
+});
+
+test('Native file response fixtures keep export input-free and isolate all three actual file and Journal namespaces', t => {
+  assert.equal(nativeScopedTestFiles.filter(file => file === nativeClientFileResponseTestFile).length, 1);
+  assert.equal(nativeCoreScopedAllocationProfile(nativeClientFileResponseTestFile), 'scoped-review-values');
+  assert.equal(nativeCoreScopedAllocationProfile('src/platform_native/client_host/run_effect_receipt_wbtest.mbt'), 'runtime-values');
+  const source = readFileSync(new URL('../' + nativeClientFileResponseTestFile, import.meta.url), 'utf8');
+  assert.equal([...source.matchAll(/^test /gmu)].length, 4);
+  assert.match(source, /test "export original Native file receipt Checkpoint signing references" \{[\s\S]*?receipt_test_checkpoint\(definition, file=true\)/u);
+  assert.deepEqual([...source.matchAll(/^test "[^"]+" \{\n  file_receipt_fixture_physical\((\d+)\)\n\}/gmu)]
+    .map(match => Number(match[1])), [0, 1, 2]);
+  const exported = fixture(t);
+  assert.deepEqual(nativeClientFileResponseFixture(exported, 0), {});
+  assert.deepEqual(readdirSync(exported), []);
+  const roots = [];
+  for (const index of [1, 2, 3]) {
+    const namespace = fixture(t), env = nativeClientFileResponseFixture(namespace, index);
+    const root = join(namespace, 'file-receipt'); roots.push(root);
+    assert.deepEqual(env, {ACTQL_TEST_NATIVE_FILE_RECEIPT_ROOT: root, ACTQL_TEST_NATIVE_SQLITE_ROOT: root});
+    assert.deepEqual(readdirSync(root).sort(), ['backing', 'original.json']);
+    assert.equal(readFileSync(join(root, 'original.json'), 'utf8'), '{"items":[{"id":"row-1","value":1}]}\n');
+    assert.equal(statSync(join(root, 'backing')).size, 384 * 1024 ** 2);
+    for (const name of readdirSync(root)) {
+      const s = statSync(join(root, name)); assert(s.isFile()); assert.equal(s.nlink, 1); assert.equal(s.mode & 0o777, 0o600);
+    }
+    writeFileSync(join(root, 'backing'), 'same initialized receipt owner');
+    assert.throws(() => nativeClientFileResponseFixture(namespace, index), {code: 'EEXIST'});
+    assert.equal(readFileSync(join(root, 'backing'), 'utf8'), 'same initialized receipt owner');
+  }
+  assert.equal(new Set(roots).size, 3);
+  const namespace = fixture(t);
+  for (const index of [-1, 4, 0.5, '1', undefined]) assert.throws(
+    () => nativeClientFileResponseFixture(namespace, index), /exact original/u);
   assert.deepEqual(readdirSync(namespace), []);
 });
 

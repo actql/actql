@@ -20,6 +20,12 @@ export const nativeProjectMockContentTestFile =
 export const nativeRelationTargetIOTestFile =
   'src/platform_native/row_source/target_io_physical_scoped_wbtest.mbt';
 
+export const nativeRelationTargetIOLineageTestFile =
+  'src/platform_native/row_source/target_io_lineage_physical_scoped_wbtest.mbt';
+
+export const nativeClientFileResponseTestFile =
+  'src/platform_native/client_host/run_effect_file_response_wbtest.mbt';
+
 // Both consume the same original file/Backing namespace constructor.
 export const nativeRelationCaptureTestFiles = Object.freeze([
   'src/platform_native/row_source/capture_physical_scoped_wbtest.mbt',
@@ -41,6 +47,7 @@ export function nativeCoreScopedBackingPages(source) {
 // joins them; its package siblings and client_host retain their prior profile.
 export function nativeCoreScopedAllocationProfile(source) {
   return source === nativeRequestEffectHandoffTestFile || source === nativeRelationWorkTestFile ||
+    source === nativeClientFileResponseTestFile ||
     source === 'src/cmd/native_client/local_command_business_window_scoped_wbtest.mbt' ||
     source === 'src/platform_native/host_bootstrap/request_preparation_physical_scoped_wbtest.mbt' ||
     source === 'src/platform_native/host_bootstrap/root_control_physical_scoped_wbtest.mbt' ||
@@ -81,6 +88,8 @@ export const nativeScopedTestFiles = Object.freeze([
   'src/platform_native/installed_arena_control/store_wal_original_physical_scoped_wbtest.mbt',
   ...nativeRelationCaptureTestFiles,
   nativeRelationTargetIOTestFile,
+  nativeRelationTargetIOLineageTestFile,
+  nativeClientFileResponseTestFile,
   nativeRelationWorkTestFile,
   nativeNonModelEntryTestFile,
 ]);

@@ -7,6 +7,7 @@ import {runInNewContext} from 'node:vm';
 import test from 'node:test';
 import {nativeProjectConfigurationFixture, nativeProjectContentCaseFixture}
   from './native-project-configuration-fixture.mjs';
+import {nativeClientFileResponseTestFile} from './native-core-test-selection.mjs';
 
 test('Native staged import quote belongs only to its exact scoped Request case', () => {
   const wrapper = readFileSync(new URL('./test-native-core.mjs', import.meta.url), 'utf8');
@@ -15,12 +16,16 @@ test('Native staged import quote belongs only to its exact scoped Request case',
   assert(fixtureStart >= 0 && fixtureEnd > fixtureStart);
   const fixtureBody = wrapper.slice(fixtureStart + 'const fixtureEnvironment = '.length, fixtureEnd + 2);
   const base = runInNewContext('(' + fixtureBody + ')', {
-    process: {env: {ACTQL_TEST_NATIVE_IMPORT_QUOTE: 'ambient'}, platform: 'darwin', arch: 'arm64'},
+    process: {env: {ACTQL_TEST_NATIVE_IMPORT_QUOTE: 'ambient',
+      ACTQL_TEST_NATIVE_FILE_RECEIPT_ROOT: '/ambient/file',
+      ACTQL_TEST_CLIENT_FILE_RECEIPT_APPROVE_RESOLUTION_WIRE: 'ambient-file-receipt'}, platform: 'darwin', arch: 'arm64'},
     full: false, args: [], namespace: '/original', root: '/checkout', join,
-    httpLifetime: {}, clientFiles: {}, bundle: {}, clientCheckpoint: {}, privateHost: {},
+    httpLifetime: {}, clientFiles: {}, bundle: {}, clientCheckpoint: {}, fileReceiptCheckpoint: {}, privateHost: {},
     originalSigning: {}, processRegion: {}, readerCustody: {}, projectConfiguration: {}, walFixture: undefined,
   });
   assert.equal(base.ACTQL_TEST_NATIVE_IMPORT_QUOTE, undefined, 'ordinary children must not inherit the marker');
+  assert.equal(base.ACTQL_TEST_NATIVE_FILE_RECEIPT_ROOT, undefined);
+  assert.equal(base.ACTQL_TEST_CLIENT_FILE_RECEIPT_APPROVE_RESOLUTION_WIRE, undefined);
   const start = wrapper.indexOf('{...fixtureEnvironment, ...scoped.environment,');
   const end = wrapper.indexOf('}}));', start);
   assert(start >= 0 && end > start);
@@ -37,9 +42,12 @@ test('Native staged import quote belongs only to its exact scoped Request case',
       scoped: {environment: {ACTQL_TEST_NATIVE_IMPORT_QUOTE: 'profile-ambient'}},
       physical: {ACTQL_TEST_INSTALLED_PROCESS_ROOT: '/original/physical'},
       content: {ACTQL_TEST_NATIVE_CONTENT_LOOKUPS: '2', ACTQL_TEST_NATIVE_STORE_ROOT: '/original/content'},
+      nativeClientFileResponseTestFile,
+      fileReceiptCheckpoint: {ACTQL_TEST_CLIENT_FILE_RECEIPT_APPROVE_RESOLUTION_WIRE: 'original-file-receipt'},
       test: {source: selectedSource, index},
     });
     assert.equal(selected.ACTQL_TEST_NATIVE_IMPORT_QUOTE, expected);
+    assert.equal(selected.ACTQL_TEST_CLIENT_FILE_RECEIPT_APPROVE_RESOLUTION_WIRE, undefined);
     assert.equal(selected.ACTQL_TEST_INSTALLED_PROCESS_ROOT, '/original/physical');
     assert.equal(selected.ACTQL_TEST_NATIVE_CONTENT_LOOKUPS, '2');
     assert.equal(selected.ACTQL_TEST_NATIVE_STORE_ROOT, '/original/content');

@@ -15,7 +15,8 @@ import {nativeCoreCCompiler} from './native-core-c-compiler.mjs';
 import {nativeProjectConfigurationFixture, nativeProjectContentCaseFixture} from './native-project-configuration-fixture.mjs';
 import {nativeCoreTestSelection, nativeCoreScopedAllocationProfile, nativeCoreScopedBackingPages,
   nativeRelationWorkTestFile, nativeRelationCaptureTestFiles, nativeCorePartitionProfiles,
-  nativeProjectMockContentTestFile, nativeRelationTargetIOTestFile} from './native-core-test-selection.mjs';
+  nativeProjectMockContentTestFile, nativeRelationTargetIOTestFile, nativeRelationTargetIOLineageTestFile,
+  nativeClientFileResponseTestFile} from './native-core-test-selection.mjs';
 import {nativeProcessRegionFixture} from './native-process-region-fixture.mjs';
 import {nativeCoreOrdinaryProcessFixture} from './native-core-scoped-fixture.mjs';
 import {nativeHttpLifetimeFixture} from './native-http-lifetime-fixture.mjs';
@@ -54,7 +55,10 @@ if (partition && !full) throw new Error('Native Core partitions require the comp
 const testCompiler = full && args.lastIndexOf('--release') >
     Math.max(args.lastIndexOf('--debug'), args.lastIndexOf('-g'))
   ? nativeCoreCCompiler(root, namespace) : {};
-const compilerEnvironment = {...process.env, ACTQL_TEST_NATIVE_CORE_PARTITION: undefined, ...testCompiler};
+const compilerEnvironment = {...process.env, ACTQL_TEST_NATIVE_CORE_PARTITION: undefined, ...testCompiler,
+  ACTQL_TEST_NATIVE_FILE_RECEIPT_ROOT: undefined,
+  ...Object.fromEntries(['APPROVE', 'REJECT', 'CONFLICT'].flatMap(mode =>
+    ['RESOLUTION', 'VERIFIED'].map(kind => [`ACTQL_TEST_CLIENT_FILE_RECEIPT_${mode}_${kind}_WIRE`, undefined])))};
 // Keep the original full classification and fixture/budget decisions. These
 // compiler-selected directories omit only packages with no Native test cases.
 const selection = full ? nativeCoreTestSelection(root, args,
@@ -93,7 +97,10 @@ const clientCheckpoint = full || args.some(arg => arg.includes('platform_native/
   // dependencies even when the physical test source has not changed.
   ? nativeClientCheckpointFixture(root, compilerEnvironment,
     args.lastIndexOf('--strip') > args.lastIndexOf('--no-strip'),
-    args.includes('--deny-warn') || args.includes('-d'), args.includes('--release')) : {};
+    args.includes('--deny-warn') || args.includes('-d'), args.includes('--release'),
+    selection?.profiles.scoped.tests.some(test => test.source === nativeClientFileResponseTestFile) ?? false) : {};
+const fileReceiptCheckpoint = Object.fromEntries(Object.entries(clientCheckpoint)
+  .filter(([key]) => key.startsWith('ACTQL_TEST_CLIENT_FILE_RECEIPT_')));
 // Only the final Native test child receives the injection environment. The
 // existing checkpoint producers and other preparation commands do not.
 const readerCustody = full || args.some(arg =>
@@ -119,6 +126,9 @@ const fixtureEnvironment = {
   ...process.env,
   ACTQL_TEST_NATIVE_CORE_PARTITION: undefined,
   ACTQL_TEST_NATIVE_IMPORT_QUOTE: undefined,
+  ACTQL_TEST_NATIVE_FILE_RECEIPT_ROOT: undefined,
+  ...Object.fromEntries(['APPROVE', 'REJECT', 'CONFLICT'].flatMap(mode =>
+    ['RESOLUTION', 'VERIFIED'].map(kind => [`ACTQL_TEST_CLIENT_FILE_RECEIPT_${mode}_${kind}_WIRE`, undefined]))),
   // A full selection provisions this one physical case itself. Ambient roots
   // must not activate a different case or reuse an initialized relation Store.
   ...(full ? Object.fromEntries(['ORIGINAL_ROOT', 'RUNTIME_ROOT', 'RUNTIME_SOURCE',
@@ -128,6 +138,7 @@ const fixtureEnvironment = {
   ...clientFiles,
   ...bundle,
   ...clientCheckpoint,
+  ...Object.fromEntries(Object.keys(fileReceiptCheckpoint).map(key => [key, undefined])),
   ...privateHost,
   ...originalSigning,
   ...processRegion,
@@ -209,7 +220,8 @@ if (full) {
       prefix: 'profile-', label: 'Native Core scoped compiler', preserve: true});
     const {prepareNativeCoreScopedProfile} = await import('./native-core-scoped-profile.mjs');
     const {nativeCoreScopedFixture, nativeRelationFileCaptureFixture, nativeCoreModelFrameFixture,
-      nativeRelationTargetIOFixture} = await import('./native-core-scoped-fixture.mjs');
+      nativeRelationTargetIOFixture, nativeRelationTargetIOLineageFixture,
+      nativeClientFileResponseFixture} = await import('./native-core-scoped-fixture.mjs');
     const {prepareNativeRuntimeBundleLibraries} = await import('./native-runtime-bundle-fixture.mjs');
     // The scoped component entrance binds its owned API to this executable's
     // provider. Raw system SQLite/OpenSSL remain the ordinary fixture inputs.
@@ -256,6 +268,10 @@ if (full) {
           ? nativeRelationFileCaptureFixture(caseNamespace)
           : test.source === nativeRelationTargetIOTestFile
           ? nativeRelationTargetIOFixture(caseNamespace, test.index)
+          : test.source === nativeRelationTargetIOLineageTestFile
+          ? nativeRelationTargetIOLineageFixture(caseNamespace, test.index)
+          : test.source === nativeClientFileResponseTestFile
+          ? nativeClientFileResponseFixture(caseNamespace, test.index)
           : test.source === 'src/platform_native/installed_arena_control/model_read_frame_physical_scoped_wbtest.mbt'
           ? nativeCoreModelFrameFixture(caseNamespace)
           : nativeCoreScopedFixture(caseNamespace, {
@@ -286,6 +302,7 @@ if (full) {
           JSON.stringify(scopedScratch.path) + "});"],
         {cwd: root, stdio: 'inherit', env: {...fixtureEnvironment, ...scoped.environment,
           ACTQL_TEST_NATIVE_TARGET_IO_ROOT: undefined, ...physical, ...content,
+          ...(test.source === nativeClientFileResponseTestFile ? fileReceiptCheckpoint : {}),
           ACTQL_TEST_NATIVE_IMPORT_QUOTE:
             test.source === 'src/cmd/native_client/local_project_mock_request_physical_scoped_wbtest.mbt' &&
             test.index === 10 ? '1' : undefined}}));
