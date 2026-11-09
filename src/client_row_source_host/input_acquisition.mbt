@@ -609,8 +609,60 @@ fn capture_input_row_run(
       }
     }
     physical.holding = Some(holding)
-    // Same original reservation retains provider/response cleanup and the
-    // original input until both have actually retired. Capture is no release.
+    // The same holding, reservation and cleanup observer retain the original
+    // input. Ordinary Host-backed input has completed its page construction
+    // and both validation cursors here; later consumers cannot resume it.
+    // Return ONLY that caller's construction scratch, not the retained input,
+    // provider backing or the remaining receiver/evidence workspace. The
+    // existing captured phase quote is an independent lower bound. Listing
+    // and supplementary provider lifetimes keep their original full envelope.
+    if physical.provider_capacity is None &&
+      preparation.file_listing is None &&
+      preparation.listing_rows is None {
+      guard run.input_progress is Some(progress) &&
+        progress.preflight is None &&
+        progress.parser is None &&
+        validation.phase == 6 &&
+        validation.keys is None &&
+        validation.scores is None &&
+        !validation.constructing else {
+        return Err(InvalidState)
+      }
+      if !input_row_capture_live(run) ||
+        !(run.attempt.state is InputCaptured(actual) &&
+        physical_equal(actual, observation)) {
+        return Err(Evidence(UnverifiedTransport))
+      }
+      let (_, execution) = match
+        @resources.reservation_capacity_amounts(
+          physical.ledger,
+          physical.reservation,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Physical(issue))
+      }
+      if execution < physical.execution_scratch ||
+        execution - physical.execution_scratch < retained {
+        return Err(Physical(InvalidLimits))
+      }
+      match
+        @resources.reduce_execution_reservation(
+          physical.ledger,
+          physical.reservation,
+          execution - physical.execution_scratch,
+        ) {
+        Ok(_) => ()
+        Err(issue) => return Err(Physical(issue))
+      }
+      // A current observer may cancel/reenter. A returned byte allowance is
+      // monotonic; keep this same captured original on every failed boundary.
+      // This cut neither acknowledges physical stop nor permits recapture.
+      if !input_row_capture_live(run) ||
+        !(run.attempt.state is InputCaptured(actual) &&
+        physical_equal(actual, observation)) {
+        return Err(Evidence(UnverifiedTransport))
+      }
+    }
   }
   Ok({ run, observation: InputObservation(observation), source, })
 }

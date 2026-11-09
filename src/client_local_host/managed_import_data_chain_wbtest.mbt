@@ -5,6 +5,7 @@ priv enum ManagedImportDataCase {
   Complete
   RefuseImport
   CancelImport
+  RefuseCapture
 } derive(Eq)
 
 ///|
@@ -12,6 +13,9 @@ fn managed_import_data_chain(
   mode : ManagedImportDataCase,
   source_wire? : String = "[{\"id\":2,\"amount\":10},{\"id\":1,\"amount\":20}]",
   source_rows? : Int = 2,
+  source_current? : (@resources.Ledger) -> Bool = _ => true,
+  check_capture_workspace? : Bool = false,
+  refusal_after_workspace? : Bool = false,
   two_input_task? : Int? = Some(2),
   query? : String = "WITH paired AS (WITH seed AS (FROM records |> SELECT amount, id) SELECT l.id AS amount, l.amount AS id FROM seed AS l JOIN seed AS r ON l.id = r.id ORDER BY amount + 1) FROM paired |> RESULT copied_rows",
   expected_tasks? : Int? = Some(8),
@@ -20,6 +24,7 @@ fn managed_import_data_chain(
     "{\"amount\":1,\"id\":20}", "{\"amount\":2,\"id\":10}",
   ],
   prior_execution? : Int64 = 261216696L,
+  host_preparation_execution? : Int64? = None,
   expected_policy? : String? = Some(
     "sha256:0ab54a0637544a1b96c511cd698af0b3356ccbf0f3da626cfbbbd5fe17a2a589",
   ),
@@ -94,7 +99,7 @@ fn managed_import_data_chain(
     source.acquisition,
     source.provider,
     "cte-join-alias-source",
-    _ => true,
+    _ => source_current(ledger),
     ledger,
     10000000L,
     239908928L,
@@ -116,7 +121,54 @@ fn managed_import_data_chain(
     }
   }
   assert_true(captured)
-  let capture = @row_source_host.capture_row_run(rows).unwrap()
+  let before_capture = @resources.ledger_usage(ledger)
+  let capture_result = @row_source_host.capture_row_run(rows)
+  if mode == RefuseCapture {
+    assert_true(
+      capture_result is Err(@row_source_host.Evidence(UnverifiedTransport)),
+    )
+    let failed = @resources.ledger_usage(ledger)
+    assert_true(failed.held_bytes > before_capture.held_bytes)
+    if refusal_after_workspace {
+      assert_eq(
+        before_capture.reserved_execution_bytes -
+        failed.reserved_execution_bytes,
+        239908928L,
+      )
+    } else {
+      assert_eq(
+        failed.reserved_execution_bytes,
+        before_capture.reserved_execution_bytes,
+      )
+    }
+    // The same partially captured original owns its holding and cleanup.
+    // Re-entering capture cannot create a second holding or return bytes.
+    assert_true(@row_source_host.capture_row_run(rows) is Err(_))
+    assert_eq(@resources.ledger_usage(ledger), failed)
+    @row_source_host.close_accounted_row_run(rows).unwrap()
+    assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+    assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
+    return
+  }
+  let capture = capture_result.unwrap()
+  if check_capture_workspace {
+    let after = @resources.ledger_usage(ledger)
+    assert_eq(
+      before_capture.reserved_execution_bytes - after.reserved_execution_bytes,
+      239908928L,
+    )
+    assert_eq(after.attempts, before_capture.attempts)
+    assert_eq(after.transferred_bytes, before_capture.transferred_bytes)
+    assert_eq(
+      after.reserved_transfer_bytes,
+      before_capture.reserved_transfer_bytes,
+    )
+    assert_true(after.held_bytes > before_capture.held_bytes)
+    assert_true(@row_source_host.row_capture_source(capture) is Ok(_))
+    let current = @resources.ledger_usage(ledger)
+    assert_true(@row_source_host.capture_row_run(rows) is Err(_))
+    assert_eq(@resources.ledger_usage(ledger), current)
+  }
   let actual_source = @row_source_host.row_capture_source(capture).unwrap()
   let source_matches = Array::makei(
     @publication_host.prepared_client_acquisition_count(prepared),
@@ -153,7 +205,7 @@ fn managed_import_data_chain(
   let host_context = @resources.reserve_capacity(
     ledger,
     0L,
-    prior_execution - original_prior,
+    host_preparation_execution.unwrap_or(prior_execution - original_prior),
   ).unwrap()
   let count = @strategy.graph_task_count(plan.graph)
   let tasks : Array[LocalValuesTaskExecution?] = Array::make(count, None)
@@ -454,4 +506,43 @@ test "grouped scalar count import refusal precedes decode and preserves original
 ///|
 test "cancelled grouped scalar count cannot grow or decode later input" {
   managed_group_star_count_import(CancelImport)
+}
+
+///|
+test "captured Whole Source returns completed transport scratch before its CTE consumers" {
+  managed_import_data_chain(
+    Complete,
+    query="WITH chosen AS (SELECT id, amount FROM records) SELECT *, COUNT(*) AS n FROM chosen GROUP BY amount, id ORDER BY id",
+    expected_tasks=None,
+    result_name="main",
+    source_wire="[{\"id\":3,\"amount\":30},{\"id\":1,\"amount\":null},{\"id\":2,\"amount\":20},{\"id\":3,\"amount\":30}]",
+    source_rows=4,
+    two_input_task=None,
+    expected_rows=[
+      "{\"amount\":null,\"id\":1,\"n\":1}", "{\"amount\":20,\"id\":2,\"n\":1}", "{\"amount\":30,\"id\":3,\"n\":2}",
+    ],
+    // Same observed non-Row preparation remains alongside the actual RowRun.
+    // Unlike a fixed total floor, it cannot refill returned transport scratch.
+    host_preparation_execution=Some(19950040L),
+    check_capture_workspace=true,
+    expected_policy=None,
+  )
+}
+
+///|
+test "captured input current refusal keeps original holding and scratch until cleanup" {
+  managed_import_data_chain(RefuseCapture, source_current=ledger => {
+    @resources.ledger_usage(ledger).held_bytes == 0L
+  })
+}
+
+///|
+test "post-return current refusal cannot restore workspace or recapture the original input" {
+  managed_import_data_chain(
+    RefuseCapture,
+    source_current=ledger => {
+      @resources.ledger_usage(ledger).reserved_execution_bytes >= 239908928L
+    },
+    refusal_after_workspace=true,
+  )
 }

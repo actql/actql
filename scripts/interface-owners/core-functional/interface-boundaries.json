@@ -48802,7 +48802,7 @@
     },
     {
       "module": "src/client_row_source_host/input_acquisition.mbt",
-      "sha256": "35f6accc0cf5ef288f2e6690c89e47626d050bbce08ce6200baab43b2a7d6c4f",
+      "sha256": "beb34eefe826f1a457cccd86721abc7159e3c30ba9c979d58cfdef90f2c26064",
       "exports": [],
       "operations": [
         {
@@ -48991,6 +48991,14 @@
               {
                 "path": "src/client_row_source_host/input_listing_capacity.mbt",
                 "anchor": "fn grow_row_input_listing_phase("
+              },
+              {
+                "path": "src/physical_resources/execution_reservation_workspace.mbt",
+                "anchor": "pub fn reduce_execution_reservation("
+              },
+              {
+                "path": "src/client_row_source_host/input_capacity_growth.mbt",
+                "anchor": "fn row_input_capture_retained("
               }
             ],
             "extension": [
@@ -49023,6 +49031,18 @@
               {
                 "path": "src/client_local_host/installed_whole_listing_parent_js_wbtest.mbt",
                 "anchor": "test \"Effect preparation parent grows its original listing RowRun"
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"captured Whole Source returns completed transport scratch before its CTE consumers\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"captured input current refusal keeps original holding and scratch until cleanup\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"post-return current refusal cannot restore workspace or recapture the original input\""
               }
             ]
           }
