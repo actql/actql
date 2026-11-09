@@ -87,6 +87,8 @@ pub fn[I, P] begin_effect_program_check_preparation(@physical_resources.Preparat
 
 pub fn[I] begin_host_initialization_preparation(@physical_resources.NodePreparationAdmission[I], I, ClientLocalResourcePolicy) -> Result[ClientHostInitializationPreparation[I], ClientHostInitializationIssue]
 
+pub fn begin_installed_effect_capture_recovery(ClientInstalledEffectCaptureRecovery) -> Result[Unit, ClientInstalledManagedRunIssue]
+
 pub fn begin_installed_effect_managed_source_read(ClientInstalledManagedRun, @client_row_source_host.RowDeclaration, Int) -> Result[(ClientInstalledSourceRead, @query_planning.QueryRequirement, @client_row_source_host.RowAcquisition, ClientInstalledCaptureCapacity), ClientInstalledManagedRunIssue]
 
 pub fn begin_installed_effect_managed_whole_source_read(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @client_row_source_host.RowDeclaration, Int) -> Result[(ClientInstalledSourceRead, @sourceview_resolution.SourceAcquisition, @client_row_source_host.RowInputAcquisition, ClientInstalledWholeSourceCapacity), ClientInstalledManagedRunIssue]

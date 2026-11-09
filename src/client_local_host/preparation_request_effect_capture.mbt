@@ -11,11 +11,15 @@ fn request_effect_capture_recovery_capacity(
   max_nodes : Int,
   max_depth : Int,
   nodes? : Int? = None,
+  definition_nodes? : Int? = None,
 ) -> @execution.ExecutionCapacity? {
   let tree_nodes = nodes.unwrap_or(encrypted_bytes)
+  let definition_tree_nodes = definition_nodes.unwrap_or(definition_units)
   if encrypted_bytes < 0 ||
     tree_nodes < 0 ||
     definition_units < 0 ||
+    definition_tree_nodes < 0 ||
+    definition_tree_nodes > definition_units ||
     max_wire_bytes <= 0 ||
     max_nodes <= 0 ||
     max_depth <= 0 {
@@ -44,7 +48,13 @@ fn request_effect_capture_recovery_capacity(
       // The original Definition wire getter is an alias; re-admitting that
       // contract creates one additional bounded tree/text backing before
       // capture metadata is known. Admit it in the initial zero-extent phase.
-      { unit: ValueNodeSlots, count: definition_units.to_int64(), copies: 1, },
+      // Only the live owner's successful constructor may select its recorded
+      // final node count. Initial/cold/failed calls keep the original peak.
+      {
+        unit: ValueNodeSlots,
+        count: definition_tree_nodes.to_int64(),
+        copies: 1,
+      },
       { unit: DecodedTextBytes, count: definition_units.to_int64(), copies: 1, },
       // Capture JSON, retained typed contracts, and prepared schema/member
       // inventory coexist during construction. Successful Store return cuts

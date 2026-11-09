@@ -298,6 +298,8 @@ pub fn client_program_begin_effect_local_command_key_workspace(ClientEffectComma
 
 pub fn client_program_begin_host_initialization_preparation(@physical_resources.NodePreparationAdmission[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientLocalResourcePolicy) -> Result[@client_local_host.ClientHostInitializationPreparation[ClientLocalPreparationInputOriginal], @client_local_host.ClientHostInitializationIssue]
 
+pub fn client_program_begin_installed_effect_capture_recovery(@client_local_host.ClientInstalledEffectCaptureRecovery) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_begin_request_preparation(@physical_resources.NodePreparationAdmission[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientLocalResourcePolicy) -> Result[@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], @client_local_host.ClientRequestPreparationIssue]
 
 pub fn client_program_bigquery_accept_response(@actql/actql/connectors/bigquery/read.JobRead, @actql/actql/connectors/bigquery/read.JobResponse, Bytes) -> Result[Unit, @actql/actql/connectors/bigquery/read.JobIssue]

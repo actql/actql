@@ -1,7 +1,9 @@
 ///|
 // Actual checked Effect/nominal Request/Definition. Resource admission is the
 // existing explicit ordinary Node fixture, not an installed Host or IO grant.
-fn capture_recovery_originals() -> (
+fn capture_recovery_originals(
+  run_id? : String = "capture-recovery",
+) -> (
   @publication_host.PreparedClientEffectComputation,
   @publication_host.ClientRequestIdentity,
   @publication.PublicationContract,
@@ -24,7 +26,7 @@ fn capture_recovery_originals() -> (
     "2027-01-01T00:00:00.000Z",
   ).unwrap()
   let definition = @publication_host.issue_client_effect_run_definition(
-    allowed, "scope", "capture-recovery", "2026-10-25T00:00:00.000Z", "2027-01-01T00:00:00.000Z",
+    allowed, "scope", run_id, "2026-10-25T00:00:00.000Z", "2027-01-01T00:00:00.000Z",
   ).unwrap()
   (prepared, request, definition)
 }
@@ -203,6 +205,7 @@ test "live capture reserves and returns actual SAME adopted Effect Ledger withou
   // No Store read means no decoded output. Keep the original empty retirement
   // path; once a read starts, only the same admitted plaintext permits finish.
   complete_installed_effect_capture_recovery(recovery).unwrap()
+  begin_installed_effect_capture_recovery(recovery).unwrap()
   reserve_installed_effect_capture_recovery(recovery, 128).unwrap()
   assert_true(
     complete_installed_effect_capture_recovery(recovery) is Err(ForeignOriginal),
@@ -243,15 +246,28 @@ test "live capture reserves and returns actual SAME adopted Effect Ledger withou
   ]).unwrap()
   assert_true(scratch > 0L)
   complete_installed_effect_capture_recovery(recovery).unwrap()
+  let (_, definition_nodes, _) = @publication.publication_contract_wire_usage(
+    definition,
+  ).unwrap()
+  let definition_scratch = @execution.execution_capacity_inventory_bytes([
+    {
+      unit: ValueNodeSlots,
+      count: (@publication.publication_contract_json(definition).length() -
+      definition_nodes).to_int64(),
+      copies: 1,
+    },
+  ]).unwrap()
   let completed = {
     ..held,
     reserved_retention_bytes: held.reserved_retention_bytes -
     container -
-    buffers,
+    buffers -
+    definition_scratch,
     reserved_execution_bytes: held.reserved_execution_bytes -
     scratch -
     container -
-    buffers,
+    buffers -
+    definition_scratch,
   }
   assert_eq(@resources.ledger_usage(ledger), completed)
   assert_true(physical_equal(recovery.material.unwrap(), material))
@@ -260,8 +276,10 @@ test "live capture reserves and returns actual SAME adopted Effect Ledger withou
   // The original retained output still prevents parent retirement. A later
   // SAME-extent read must fund its full workspace on the SAME original first.
   assert_true(retire_installed_managed_run(run) is Err(CleanupPending))
+  begin_installed_effect_capture_recovery(recovery).unwrap()
+  let before_repeat = @resources.ledger_usage(ledger)
   let free = @resources.ledger_limits(ledger).execution_bytes -
-    completed.reserved_execution_bytes
+    before_repeat.reserved_execution_bytes
   let pressure = @resources.reserve_capacity(
     ledger,
     0L,

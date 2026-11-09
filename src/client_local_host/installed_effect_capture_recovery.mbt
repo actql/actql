@@ -81,6 +81,23 @@ pub fn prepare_installed_effect_capture_recovery(
 }
 
 ///|
+/// Before the SAME Host re-admits its Definition, fund the full original peak
+/// on its existing fixed token. Successful prior output does not authorize a
+/// later constructor to borrow its reduced retained-only envelope.
+pub fn begin_installed_effect_capture_recovery(
+  owner : ClientInstalledEffectCaptureRecovery,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  if owner.transitioning || owner.closing || owner.fixed is None {
+    return Err(Retired)
+  }
+  owner.transitioning = true
+  preparation_module_call(
+    () => resize_installed_effect_capture_recovery_definition(owner, false),
+    () => owner.transitioning = false,
+  )
+}
+
+///|
 /// Exact selected encrypted extent, before the Store allocates ciphertext,
 /// plaintext, String, JSON, typed values or schemas. Repeat of this SAME read
 /// is idempotent; another extent cannot replace an in-flight original.
@@ -227,9 +244,93 @@ pub fn complete_installed_effect_capture_recovery(
   }
   owner.transitioning = true
   preparation_module_call(
-    () => resize_installed_effect_capture_recovery_material(owner, true),
+    () => {
+      match resize_installed_effect_capture_recovery_material(owner, true) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+      resize_installed_effect_capture_recovery_definition(owner, true)
+    },
     () => owner.transitioning = false,
   )
+}
+
+///|
+// The fixed Definition reservation is distinct from encrypted capture material.
+// Keep its complete text/control floor and actual returned canonical tree; only
+// the completed constructor's character-count node ceiling may be discarded.
+fn resize_installed_effect_capture_recovery_definition(
+  owner : ClientInstalledEffectCaptureRecovery,
+  completed : Bool,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  guard !owner.closing &&
+    owner.transitioning &&
+    owner.parent is Some(parent) &&
+    owner.prepared is Some(prepared) &&
+    owner.request is Some(request) &&
+    owner.definition is Some(definition) &&
+    owner.ledger is Some(ledger) &&
+    owner.fixed is Some(fixed) &&
+    parent.preparation is Some(preparation) &&
+    preparation is PlannedEffectManaged(admission, plan) else {
+    return Err(Retired)
+  }
+  match check_installed_effect_managed_run_binding(parent, prepared, request) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let original : () -> Result[Unit, ClientInstalledManagedRunIssue] = () => {
+    guard !owner.closing &&
+      owner.transitioning &&
+      owner.parent is Some(p) &&
+      physical_equal(p, parent) &&
+      owner.prepared is Some(p) &&
+      physical_equal(p, prepared) &&
+      owner.request is Some(r) &&
+      physical_equal(r, request) &&
+      owner.definition is Some(d) &&
+      physical_equal(d, definition) &&
+      owner.ledger is Some(l) &&
+      physical_equal(l, ledger) &&
+      owner.fixed is Some(f) &&
+      physical_equal(f, fixed) else {
+      return Err(Retired)
+    }
+    check_installed_managed_run_original(parent, ledger, preparation).map(_ => {
+      ()
+    })
+  }
+  let definition_nodes = if completed {
+    guard @publication.publication_contract_wire_usage(definition)
+      is Some((_, nodes, _)) else {
+      return Err(ForeignOriginal)
+    }
+    Some(nodes)
+  } else {
+    None
+  }
+  guard request_effect_capture_recovery_capacity(
+      0,
+      @publication.publication_contract_json(definition).length(),
+      owner.max_wire_bytes,
+      owner.max_nodes,
+      owner.max_depth,
+      definition_nodes~,
+    )
+    is Some(required) else {
+    return Err(InsufficientCapacity)
+  }
+  let retained = @execution.execution_capacity_retained_bytes(required)
+  let execution = @execution.execution_capacity_execution_bytes(required)
+  let backing = @resources.NodeManagedRunOperationBacking::Construction(fixed)
+  if completed {
+    return @resources.complete_prepared_run_operation_construction_output(
+      admission, plan, ledger, original, backing, retained,
+    ).map_err(installed_effect_operation_reservation_issue)
+  }
+  @resources.grow_prepared_run_operation_capacity(
+    admission, plan, ledger, original, backing, retained, execution,
+  ).map_err(installed_effect_operation_reservation_issue)
 }
 
 ///|

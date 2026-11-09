@@ -186,3 +186,25 @@ The original token stays open, with its raw HTTP response, secret/credential and
 physical cleanup responsibility. Consumed attempts, transfer, uncertainty,
 historical peaks and pending cleanup are not refunded. Default full-output
 projection completion and existing exported call signatures remain unchanged.
+
+### Completed capture-recovery Definition construction
+
+The adopted Run's capture-recovery owner reserves its original full Definition
+admission peak before the Host re-admits that contract. The conservative
+character-count node ceiling remains appropriate before construction and on
+failure. After the original Store consumer succeeds, the same owner keeps the
+additional returned canonical tree using the original admitted contract's final
+encoder node count. It retains the complete existing text, read-piece, crypto
+and control allowances. The separate capture-material reservation keeps its
+existing successful-output reduction and cleanup responsibility.
+
+Reading the recorded immutable wire usage neither traverses nor admits a new
+value. It is DATA, not currentness, permission, an allocation measurement or a
+cleanup acknowledgment. All original validation and physical/current fences
+remain. A later re-admission first enters the same amount-free MoonBit begin
+operation and regrows that same fixed reservation to its full original peak.
+Foreign ownership, failed currentness, cancellation or reentry cannot turn a
+partial constructor into successful output; the original duty remains until
+its existing retirement path finishes. Cold Request preparation retains its
+complete original path and quantity model. JavaScript forwards the original
+owner's begin/completion and owns no pricing or numeric shrink argument.

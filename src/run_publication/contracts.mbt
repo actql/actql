@@ -1652,6 +1652,15 @@ pub fn publication_contract_json(contract : PublicationContract) -> String {
 }
 
 ///|
+/// Immutable DATA from this contract's original final encoder. This projection
+/// performs no admission, traversal, permission or physical-current check.
+pub fn publication_contract_wire_usage(
+  contract : PublicationContract,
+) -> (Int, Int, Int)? {
+  contract.wire_usage
+}
+
+///|
 /// Apply tighter serialization limits to this same immutable admitted contract.
 /// Usage comes from its original final encoder, not its preimage or caller facts.
 /// This checks no permission, lifetime or physical capacity.

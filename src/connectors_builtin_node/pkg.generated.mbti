@@ -424,6 +424,8 @@ pub fn client_program_begin_infer_original_model_invalidation(@client_infer_host
 
 pub fn client_program_begin_infer_original_read_scope(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @model_execution.ModelQuantityCapacity?, Int64, Int64, Int, Int, Int) -> Result[@run_publication_host.ClientModelReadScope, @client_infer_host.Issue]
 
+pub fn client_program_begin_installed_effect_capture_recovery(@client_local_host.ClientInstalledEffectCaptureRecovery) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_begin_installed_source_io(@physical_resources.PreparationCapacity[ClientLocalPreparationInputOriginal, (ClientLocalPreparationInputOriginal, @client_source_publication.PreparedPublishedQueryEnvironment)], ClientLocalPreparationInputOriginal, Int64) -> Result[@physical_resources.PreparationIo, @physical_resources.PreparationCapacityIssue]
 
 pub fn client_program_begin_request_preparation(@physical_resources.NodePreparationAdmission[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientLocalResourcePolicy) -> Result[@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], @client_local_host.ClientRequestPreparationIssue]

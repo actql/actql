@@ -27,6 +27,14 @@ pub fn client_program_prepare_installed_effect_capture_recovery(
 }
 
 ///|
+#export_name("clientProgramBeginInstalledEffectCaptureRecovery")
+pub fn client_program_begin_installed_effect_capture_recovery(
+  original : @client_local_host.ClientInstalledEffectCaptureRecovery,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.begin_installed_effect_capture_recovery(original)
+}
+
+///|
 #export_name("clientProgramReserveInstalledEffectCaptureRecovery")
 pub fn client_program_reserve_installed_effect_capture_recovery(
   original : @client_local_host.ClientInstalledEffectCaptureRecovery,

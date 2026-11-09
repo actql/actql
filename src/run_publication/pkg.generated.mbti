@@ -887,6 +887,8 @@ pub fn publication_contract_representation_extent(PublicationContract, Int, Int,
 
 pub fn publication_contract_run_definition_scope(PublicationContract) -> String?
 
+pub fn publication_contract_wire_usage(PublicationContract) -> (Int, Int, Int)?
+
 pub fn publication_evidence_workspace(Int) -> Int
 
 pub fn publication_finalization_action_code(PublicationFinalizationAction) -> Int
