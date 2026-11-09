@@ -126,13 +126,17 @@ pub fn prepare_effect_file_operation(
   guard effect_preview_member_kind(preview, member_index) == Some("update") &&
     effect_preview_member_identity(preview, member_index)
     is Some(member_preview_cid) &&
-    effect_preview_row_identity(preview, member_index, row_index)
+    // The caller and terminal reducer use the execution ordinal. Guard
+    // storage uses the raw changes index; join them through the original CID.
+    effect_preview_ordered_row_identity(preview, member_index, row_index)
     is Some(row_preview_cid) &&
+    effect_preview_row_index(preview, member_index, row_preview_cid)
+    is Some(raw_row_index) &&
     effect_preview_member_source_binding_cid(preview, member_index) ==
     Some(installation_cid) &&
     effect_preview_member_authority_scope_cid(preview, member_index) ==
     Some(authorization_context_cid) &&
-    effect_preview_row_guard_version_cid(preview, member_index, row_index) ==
+    effect_preview_row_guard_version_cid(preview, member_index, raw_row_index) ==
     Some(target_version_cid) else {
     return Err(ForeignRow)
   }

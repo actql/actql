@@ -50,3 +50,34 @@ for(const [name,change] of [
   ['unobserved outcome',{typed_outcome:{state:'unknown'}}],
   ['false typed identity',{typed_outcome_cid:C('0')}],
 ])mutations.push({name,wire:canonicalText(seal({...body,...change}))});
+
+// Independent two-row semantic preimage. Raw changes are CID ordered while
+// execution row_order is reversed; never use one index space for the other.
+export const reorderedPreview=(()=>{
+  const p=structuredClone(preview.preview), member=p.effects[0], first=member.changes[0];
+  const rows=['A','B'].map((id,i)=>{
+    const row={...structuredClone(first),target_row_identity:id,row_idempotency_key:C(i?'5':'4'),
+      target_guard:{state:'version',version_cid:C(i?'b':'a')},
+      before:{state:'present',value:{id,value:1}},after:{state:'present',value:{id,value:2}},
+      intended_changes:{state:'present',value:{value:2}}};
+    row.row_preview_cid=hash({version:'actql-effect-preview-row/0.1',
+      program_definition_cid:p.program_definition_cid,invocation_cid:p.invocation_cid,
+      effect_identity_cid:member.effect_identity_cid,resolved_contract_cid:member.resolved_mapping_contract_cid,
+      operation:member.effect_kind,target_row_identity:row.target_row_identity,
+      preview_strength:member.preview_strength,target_guard:row.target_guard,
+      intended_changes:row.intended_changes,before:row.before,after:row.after});
+    return row;
+  }).sort((a,b)=>a.row_preview_cid < b.row_preview_cid ? -1 : a.row_preview_cid > b.row_preview_cid ? 1 : 0);
+  member.changes=rows;member.row_order=rows.map(r=>r.row_preview_cid).reverse();member.count=2;member.max_items=2;
+  const {effect_member_preview_cid:ignored,...m}=member;void ignored;
+  m.changes=rows.map(({row_idempotency_key:excluded,...r})=>{void excluded;return r;});
+  member.effect_member_preview_cid=hash({version:'actql-effect-member-preview/0.1',member:m});
+  const {effect_preview_cid:old,run_identity_cid:run,authoring_context:context,...semantic}=p;void old;void run;void context;
+  semantic.effects=[{...m,effect_member_preview_cid:member.effect_member_preview_cid}];
+  p.effect_preview_cid=hash(semantic);
+  return p;
+})();
+export const reorderedPreviewWire=canonicalText(reorderedPreview);
+export const reorderedRawA=reorderedPreview.effects[0].changes[0];
+export const reorderedRawB=reorderedPreview.effects[0].changes[1];
+export const reorderedExpectedPins={preview:'sha256:852e6a4986a8522861a48db32e78de8cb704dcac25c89f3ad29c8fd6a56e6558',rawA:'sha256:0426447180fcebf4aa8c57983b23050b177e74be6eabf33d1bdf07408cab5a50',rawB:'sha256:2bb1bd032e4791127080a468bbca5dc144371bcdfe39efe0bfc44132a8d7f7ac'};

@@ -8,7 +8,7 @@ import {dirname, join} from 'node:path';
 import {resolveControlSchema} from './interactive-run-control-schema.mjs';
 import {amountMicroPattern} from './interactive-run-control-contract.mjs';
 import {generateEffectLocalOperationVectors} from './effect-local-operation-vectors.mjs';
-import {generateEffectFileOperationVectors} from './effect-file-operation-vectors.mjs';
+import {generateEffectFileOperationVectors,generateEffectFileLedgerVectors} from './effect-file-operation-vectors.mjs';
 import {generateEffectReviewVectors} from './effect-review-projection-vectors.mjs';
 import {checkInstallationPublicationStorageSchema} from './installation-publication-storage-contract.mjs';
 
@@ -782,6 +782,10 @@ if (readFileSync(localVectors, 'utf8') !== generateEffectLocalOperationVectors()
 const fileVectors = join(root, 'src/run_publication/effect_file_operation.generated_wbtest.mbt');
 if (readFileSync(fileVectors, 'utf8') !== generateEffectFileOperationVectors()) {
   throw new Error(`Independent file-operation vectors are stale: ${fileVectors}`);
+}
+const fileLedgerVectors = join(root, 'src/effect_application/file_outcome_receipt.generated_wbtest.mbt');
+if (readFileSync(fileLedgerVectors, 'utf8') !== generateEffectFileLedgerVectors()) {
+  throw new Error(`Independent reordered file Ledger vectors are stale: ${fileLedgerVectors}`);
 }
 // Count actual registered names, including value-only and appended private
 // descriptors. A second handwritten offset drifts when a consumer is added.
