@@ -116,6 +116,34 @@ fn client_source_preparation_issue_code(
               | RetentionLimit(_, ..)
               | Decode({ kind: BudgetExceeded, .. })
             ) => "source_analysis_limit"
+            // Closed strategy values are authored DATA, not case-folded field
+            // names. Preserve the Common owner's exact invalid-input cause.
+            BindingPreparation(
+              LocalProgram(
+                Pipeline(_, { kind: Graph(InvalidPropertyStrategy(_)), .. })
+              )
+            )
+            | BindingPreparationSource(
+              LocalProgram(
+                Pipeline(_, { kind: Graph(InvalidPropertyStrategy(_)), .. })
+              ),
+              _
+            )
+            | BindingPreparation(
+              SourceProgram(
+                Program(
+                  Pipeline(_, { kind: Graph(InvalidPropertyStrategy(_)), .. })
+                )
+              )
+            )
+            | BindingPreparationSource(
+              SourceProgram(
+                Program(
+                  Pipeline(_, { kind: Graph(InvalidPropertyStrategy(_)), .. })
+                )
+              ),
+              _
+            ) => "source_invalid_input"
             // The published-Catalog wrapper retains this exact authored
             // missing Event field from the common pipeline owner.
             BindingPreparation(
