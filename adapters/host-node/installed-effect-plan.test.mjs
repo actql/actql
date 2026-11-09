@@ -1926,3 +1926,54 @@ test('standard Ledger family revoked metadata proxies keep original generic fail
     assert.equal(generic,1);
   }
 });
+
+test('standard Ledger single head reuses original family before physical current and same nested admission', () => {
+  const source=readFileSync(new URL('./effect-ledger.mjs',import.meta.url),'utf8');
+  const tree=parse(source,{ecmaVersion:'latest',sourceType:'module'});
+  const declaration=tree.body.find(node=>node.type==='FunctionDeclaration'&&node.id?.name==='bindEffectLedgerConstruction');
+  const bind=Function('nodeTypes',source.slice(declaration.start,declaration.end)+';return bindEffectLedgerConstruction;')(nodeTypes);
+  for(const name of ['current','currentAdmitted'])for(const existing of [false,true]){
+    let f,reads=0,admitted=0;const locator={},row={},entry={},scope={};
+    f=controlWorkFixture({
+      clientProgramInstalledEffectOperationLedgerFamilyBegin(...args){assert.deepEqual(args.slice(4),[[1],100000,1000000,64,4]);f.events.push('family');return {$tag:1};},
+      clientProgramInstalledEffectOperationLedgerCodecBegin(){f.events.push('codec');return {$tag:1};},
+      clientProgramInstalledEffectOperationLedgerCodecComplete(){f.events.push('codec-complete');return {$tag:1};},
+    });
+    const original=Object.freeze({[name](actual){
+      assert.strictEqual(this,original);assert.strictEqual(actual,locator);reads++;
+      assert.deepEqual(f.events,['family']);if(!existing)return undefined;
+      return f.work.ledgerCodec(scope,function(){assert.strictEqual(this,scope);admitted++;return name==='current'?row:entry;},[],'{"n":1}',64,4);
+    }});
+    const selected=bind(original,f.work,effectLedgerImplementationBounds);
+    assert.strictEqual(selected[name](locator),existing?(name==='current'?row:entry):undefined);
+    assert.equal(reads,1);assert.equal(admitted,existing?1:0);
+    assert.deepEqual(f.events,existing?['family','codec','codec-complete','complete']:['family','complete']);
+    assert.equal(f.work.retire(),true);
+  }
+});
+
+test('standard Ledger single head keeps original refusal cleanup and legacy generic without assuming absence', () => {
+  const source=readFileSync(new URL('./effect-ledger.mjs',import.meta.url),'utf8');
+  const tree=parse(source,{ecmaVersion:'latest',sourceType:'module'});
+  const declaration=tree.body.find(node=>node.type==='FunctionDeclaration'&&node.id?.name==='bindEffectLedgerConstruction');
+  const bind=Function('nodeTypes',source.slice(declaration.start,declaration.end)+';return bindEffectLedgerConstruction;')(nodeTypes);
+  for(const role of ['entry','physical','codec']){
+    let f,physical=0,closes=0;const primary=new Error('original failure');
+    f=controlWorkFixture({
+      clientProgramInstalledEffectOperationLedgerFamilyBegin(){f.events.push('family');if(role==='entry')throw primary;return {$tag:1};},
+      clientProgramInstalledEffectOperationLedgerCodecBegin(){f.events.push('codec');return {$tag:1};},
+      clientProgramInstalledEffectOperationLedgerCodecComplete(){assert.fail('failed codec completed');},
+    });
+    const original=Object.freeze({currentAdmitted(){assert.strictEqual(this,original);physical++;if(role==='physical')throw primary;return f.work.ledgerCodec({},()=>{throw primary;},[],'{"n":1}',64,4);},
+      history(){assert.fail('failed owner reused');},close(){assert.strictEqual(this,original);closes++;}});
+    const selected=bind(original,f.work,effectLedgerImplementationBounds);
+    assert.throws(()=>selected.currentAdmitted('original CID'),cause=>cause===primary);
+    assert.throws(()=>selected.history('original CID',1),cause=>cause===primary);
+    assert.equal(physical,role==='entry'?0:1);assert.equal(f.events.includes('complete'),false);
+    selected.close();assert.equal(closes,1);assert.equal(f.work.retire(),true);
+  }
+  const f=controlWorkFixture(),calls=[];const original=Object.freeze({currentAdmitted(value){assert.strictEqual(this,original);calls.push(value);return undefined;}});
+  const legacy=(receiver,method,args)=>f.work(receiver,method,args);
+  assert.strictEqual(bind(original,legacy,effectLedgerImplementationBounds).currentAdmitted('original CID'),undefined);
+  assert.deepEqual(f.events,['begin','complete']);assert.deepEqual(calls,['original CID']);
+});

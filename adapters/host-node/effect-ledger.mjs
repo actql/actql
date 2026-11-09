@@ -33,7 +33,7 @@ function bindEffectLedgerCodecs(original, construction) {
 
 // MoonBit admits the canonical fact and its transition. SQLite only owns
 // durable bytes and the atomic compare-and-swap of one item head.
-// Same original receiver and methods; only these entry/frontier constructors
+// Same original receiver and methods; only these single-head/frontier constructors
 // use the finite family. Receipt/history/unknown work keeps the generic frame.
 function bindEffectLedgerConstruction(ledger, construction, policy) {
   const caller = {};
@@ -46,7 +46,13 @@ function bindEffectLedgerConstruction(ledger, construction, policy) {
         // Mutable/nonstandard callers keep their exact original generic path.
         const members = args[1];
         let counts;
-        if ((name === 'frontierFromDurableHeads' || name === 'frontierFromCapturedHeads' ||
+        if ((name === 'current' || name === 'currentAdmitted') &&
+            typeof construction.ledgerFamily === 'function') {
+          // One original CID lookup returns at most one durable head. Reuse
+          // the SAME common family quote; validation and absence remain with
+          // physical.current/validateStored, including their nested codec.
+          counts = [1];
+        } else if ((name === 'frontierFromDurableHeads' || name === 'frontierFromCapturedHeads' ||
              name === 'recoveredTargetGuards' || name === 'prepareSetIntents' ||
              name === 'prepareCapturedSetIntents') && typeof construction.ledgerFamily === 'function' &&
             !nodeTypes.isProxy(members) && Array.isArray(members) && Object.isFrozen(members) &&

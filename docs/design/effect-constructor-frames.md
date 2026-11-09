@@ -66,8 +66,13 @@ Store history limit, transaction or native cleanup outcome.
 
 The standard Ledger frontier/intents family selects one closed frame for
 `frontierFromDurableHeads`, `frontierFromCapturedHeads`, `recoveredTargetGuards`,
-`prepareSetIntents` and `prepareCapturedSetIntents`. The original wrapper reads
-only immutable member/claim-array lengths through DATA descriptors. It passes
+`prepareSetIntents` and `prepareCapturedSetIntents`. Its existing `current` and
+`currentAdmitted` methods use the same family for their single original CID
+lookup, which returns at most one selected head. They retain full
+`physical.current`/`validateStored`/nested admission and never replace an
+unknown or corrupt head with absence. There is no additional quantity recipe
+or mode for these two methods. The original wrapper reads only immutable
+member/claim-array lengths through DATA descriptors for the frontier methods. It passes
 those coordinates and the original Ledger policy to MoonBit. Mutable or
 unknown inventories, larger policies and all other methods retain the complete
 generic frame. This is a quantity selection, not Preview membership, current
