@@ -247,33 +247,51 @@ test('current Source JSON review binds only its checked normalization count depe
   }
 });
 
-test('current Local Host successor binds its reviewed HubSpot WB import and preserves prior preimages', () => {
+test('current Local Host successor binds its pure Ledger-open import and preserves prior preimages', () => {
   const path = 'src/client_local_host/moon.pkg';
   const revision = 'db039dc07a845fc420be9f95b750fe5208183735';
   const digest = '1ce3256e4f3b1dc32ee5136fcbbe5076fd996ad0a05c901a5cd175a3b16af326';
   const rule = 'literal-target-selectors-with-bound-source-membership';
-  const currentRevision = 'f213d49c0748b99a69ae25fd462e8f9d500d7109';
-  const currentDigest = '11e08f7a636e2e73d47863ea626632b5dbf6e45e16ba00a32a27952c72e4007e';
+  const currentRevision = 'ff4e214d60984ee7b5c42ae57943d0b6d3e95437';
+  const currentDigest = '590ae12dd0826dd9143d9cc62babaf713cff15d82cdf5efafe0621234f5fefee';
+  const catalogRevision = 'f213d49c0748b99a69ae25fd462e8f9d500d7109';
+  const catalogDigest = '11e08f7a636e2e73d47863ea626632b5dbf6e45e16ba00a32a27952c72e4007e';
   assert.deepEqual(currentPackageConfigurations[path], {revision: currentRevision, digest: currentDigest, rule});
   execFileSync('git', ['merge-base', '--is-ancestor', currentRevision, 'HEAD'], {cwd: root});
   execFileSync('git', ['merge-base', '--is-ancestor', revision, 'HEAD'], {cwd: root});
   const reviewed = gitTree(root, revision), body = reviewed.read(path).toString();
   const keyedSelector = '    "request_native_keyed_plan_js_wbtest.mbt": [ "js" ],\n';
   const currentBody = gitTree(root, currentRevision).read(path).toString();
+  const catalogBody = gitTree(root, catalogRevision).read(path).toString();
+  execFileSync('git', ['merge-base', '--is-ancestor', catalogRevision, currentRevision], {cwd: root});
+  const scopeImport = '  "actql/actql/logical_request_scope" @request_scope,\n';
+  assert.equal(Buffer.byteLength(currentBody), 10019);
+  assert.equal(Buffer.byteLength(scopeImport), 54);
+  assert.equal(hash(currentBody), currentDigest);
+  assert.equal(currentBody.split(scopeImport).length, 2);
+  assert.equal(currentBody.replace(scopeImport, ''), catalogBody,
+    'only the pure scope-construction inventory import extends the complete reviewed descriptor');
+  const productionImports = currentBody.match(/\nimport \{([^{}]*)\}\n/u);
+  assert(productionImports && productionImports[1].includes(scopeImport),
+    'the actual Ledger-open quantity consumer retains its production dependency');
+  assert.deepEqual(packageImports(currentBody).imports,
+    [...packageImports(catalogBody).imports, 'actql/actql/logical_request_scope'].sort());
+  assert.equal(currentPackageConfigurationReviewFor(request(path, hash(catalogBody))), null,
+    'the earlier WB descriptor cannot qualify this current production dependency');
   const reentryRevision = '1d65ca8b449c6a6edae8ba0b5a0b0bfbed05a243';
   const reentryBody = gitTree(root, reentryRevision).read(path).toString();
   execFileSync('git', ['merge-base', '--is-ancestor', reentryRevision, currentRevision], {cwd: root});
   const catalogImport = '  "actql/actql/connectors/hubspot/catalog" @hubspot_catalog,\n';
-  assert.equal(Buffer.byteLength(currentBody), 9965);
+  assert.equal(Buffer.byteLength(catalogBody), 9965);
   assert.equal(Buffer.byteLength(catalogImport), 61);
-  assert.equal(hash(currentBody), currentDigest);
-  assert.equal(currentBody.split(catalogImport).length, 2);
-  assert.equal(currentBody.replace(catalogImport, ''), reentryBody,
+  assert.equal(hash(catalogBody), catalogDigest);
+  assert.equal(catalogBody.split(catalogImport).length, 2);
+  assert.equal(catalogBody.replace(catalogImport, ''), reentryBody,
     'only the reviewed literal HubSpot Catalog WB import extends the complete prior descriptor');
-  const whiteboxImports = currentBody.match(/\nimport \{([^{}]*)\} for "wbtest"/u);
+  const whiteboxImports = catalogBody.match(/\nimport \{([^{}]*)\} for "wbtest"/u);
   assert(whiteboxImports);
   assert(whiteboxImports[1].includes(catalogImport), 'the Catalog dependency remains whitebox-only');
-  assert.deepEqual(packageImports(currentBody).imports,
+  assert.deepEqual(packageImports(catalogBody).imports,
     [...packageImports(reentryBody).imports, 'actql/actql/connectors/hubspot/catalog'].sort());
   assert.equal(currentPackageConfigurationReviewFor(request(path, hash(reentryBody))), null);
   const reentrySelector = '    "managed_import_reentry_js_wbtest.mbt": [ "js" ],\n';
@@ -356,13 +374,23 @@ test('current Local Host successor binds its reviewed HubSpot WB import and pres
   assert(catalogMembers.includes('src/connectors/hubspot/catalog/moon.pkg'));
   assert(catalogMembers.includes('src/connectors/hubspot/catalog/source_read_construction.mbt'));
   assert.deepEqual(selected.directories.find(entry => entry.path === 'src/connectors/hubspot/catalog/*')?.members, catalogMembers);
-  for (const member of [...members, ...catalogMembers, ...[reentrySelector, keyedSelector, originalSelector, valuesSelector, ...selectors, ...successorSelectors].map(selector =>
+  const scopeMembers = [...currentTree.entries.keys()].filter(member => member.startsWith('src/logical_request_scope/') &&
+    !member.slice('src/logical_request_scope/'.length).includes('/')).sort();
+  assert(scopeMembers.includes('src/logical_request_scope/scope.mbt'));
+  assert(scopeMembers.includes('src/logical_request_scope/pkg.generated.mbti'));
+  assert.deepEqual(selected.directories.find(entry => entry.path === 'src/logical_request_scope/*')?.members, scopeMembers);
+  assert.deepEqual(packageImports(currentTree.read('src/logical_request_scope/moon.pkg').toString()).imports,
+    ['actql/actql/canonical_value', 'actql/actql/encode_core', 'actql/actql/sha256', 'moonbitlang/core/encoding/utf8'].sort());
+  for (const member of [...members, ...catalogMembers, ...scopeMembers, ...[reentrySelector, keyedSelector, originalSelector, valuesSelector, ...selectors, ...successorSelectors].map(selector =>
     'src/client_local_host/' + JSON.parse(selector.trim().split(':')[0]))]) {
     assert(selected.paths.includes(member), member);
     assert.equal(currentTree.entries.get(member)?.kind, 'blob');
     assert.equal(currentTree.entries.get(member)?.mode, '100644');
   }
-  for (const changed of [previous, callbackBody, valuesBody, effectBody, body, reentryBody,
+  for (const changed of [previous, callbackBody, valuesBody, effectBody, body, reentryBody, catalogBody,
+    currentBody.replace('@request_scope,', '@unreviewed_scope,'),
+    currentBody.replace('actql/actql/logical_request_scope', 'actql/actql/unreviewed_scope'),
+    currentBody.replace(scopeImport, scopeImport + '  "actql/actql/unreviewed_scope" @extra,\n'),
     currentBody.replace('@hubspot_catalog,', '@unreviewed_hubspot,'),
     currentBody.replace('actql/actql/connectors/hubspot/catalog', 'actql/actql/unreviewed_catalog'),
     currentBody.replace(dependency, ''), currentBody.replace('@capacity,', '@permission,'),
