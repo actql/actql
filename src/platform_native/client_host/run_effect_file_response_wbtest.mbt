@@ -23,7 +23,10 @@ extern "C" fn file_receipt_fixture_open(path : Bytes, flags : Int) -> Int = "ope
 extern "C" fn file_receipt_fixture_close(fd : Int) -> Int = "close"
 
 ///|
-fn file_receipt_fixture_work(directory : String) -> Unit raise {
+fn file_receipt_fixture_work(
+  directory : String,
+  binding_case : Int,
+) -> Unit raise {
   let declaration = @rows.generate_row_declaration(
     "native-file-fixture",
     "fixture",
@@ -129,6 +132,113 @@ fn file_receipt_fixture_work(directory : String) -> Unit raise {
   assert_true(child.close().unwrap())
   assert_true(child.advance() is Err(_))
   let outcome = "{\"result\":{\"id\":\"row-1\"},\"state\":\"applied\"}"
+  if binding_case == 1 {
+    let (foreign, foreign_key) = receipt_test_preview(
+      run_identity="sha256:" + "9".repeat(64),
+      file=true,
+    )
+    assert_eq(
+      @publication.effect_preview_semantic_identity(foreign),
+      @publication.effect_preview_semantic_identity(preview),
+    )
+    assert_eq(foreign_key.cid, key.cid)
+    assert_true(
+      @publication.effect_preview_run_identity(foreign) !=
+      @publication.effect_preview_run_identity(preview),
+    )
+    let observed = match
+      journal.record_effect_file_response(
+        dispatch,
+        foreign,
+        0,
+        0,
+        locator,
+        key,
+        operation,
+        ack,
+        outcome,
+        () => true,
+        4096,
+      ) {
+      Err(Checkpoint(InvalidMaterial)) => -1
+      Err(_) => -2
+      Ok(_) => 1
+    }
+    // A typed refusal is required BEFORE either immutable response row exists.
+    assert_eq(observed, -1)
+    assert_true(
+      database.read("client_effect_response_meta", dispatch.dispatching.cid)
+      is Err(@sqlite.NotFound),
+    )
+    assert_true(
+      database.read("client_effect_response_bytes", dispatch.dispatching.cid)
+      is Err(@sqlite.NotFound),
+    )
+    assert_true(journal.lookup(dispatch.request, true) is Ok(Retained(_)))
+    database.close_checked().unwrap()
+    return
+  }
+  if binding_case == 2 {
+    let (other_locator, other_key, _) = effect_row_test_binding(
+      dispatch.request,
+      row="row-2",
+      preview=@publication.effect_preview_semantic_identity(preview),
+    )
+    for
+      (selected_locator, selected_key) in [
+        (other_locator, key),
+        (locator, other_key),
+        (other_locator, other_key),
+      ] {
+      assert_true(
+        journal.record_effect_file_response(
+          dispatch,
+          preview,
+          0,
+          0,
+          selected_locator,
+          selected_key,
+          operation,
+          ack,
+          outcome,
+          () => true,
+          4096,
+        )
+        is Err(Checkpoint(InvalidMaterial)),
+      )
+      assert_true(
+        database.read("client_effect_response_meta", dispatch.dispatching.cid)
+        is Err(@sqlite.NotFound),
+      )
+      assert_true(
+        database.read("client_effect_response_bytes", dispatch.dispatching.cid)
+        is Err(@sqlite.NotFound),
+      )
+      assert_true(journal.lookup(dispatch.request, true) is Ok(Retained(_)))
+    }
+    // Rejected foreign associations have not poisoned the correct original.
+    journal
+    .record_effect_file_response(
+      dispatch,
+      preview,
+      0,
+      0,
+      locator,
+      key,
+      operation,
+      ack,
+      outcome,
+      () => true,
+      4096,
+    )
+    .unwrap()
+    assert_true(
+      read_client_effect_response_record(database, dispatch.dispatching.cid).unwrap()
+      is Some(_),
+    )
+    database.close_checked().unwrap()
+    return
+  }
   // Neither a missing current Read nor another Resolution can store this ACK.
   assert_true(
     journal.record_effect_file_response(
@@ -136,6 +246,8 @@ fn file_receipt_fixture_work(directory : String) -> Unit raise {
       preview,
       0,
       0,
+      locator,
+      key,
       operation,
       ack,
       outcome,
@@ -162,6 +274,8 @@ fn file_receipt_fixture_work(directory : String) -> Unit raise {
       preview,
       0,
       0,
+      locator,
+      key,
       foreign,
       ack,
       outcome,
@@ -176,6 +290,8 @@ fn file_receipt_fixture_work(directory : String) -> Unit raise {
     preview,
     0,
     0,
+    locator,
+    key,
     operation,
     ack,
     outcome,
@@ -189,6 +305,8 @@ fn file_receipt_fixture_work(directory : String) -> Unit raise {
     preview,
     0,
     0,
+    locator,
+    key,
     operation,
     ack,
     outcome,
@@ -286,7 +404,7 @@ fn file_receipt_fixture_work(directory : String) -> Unit raise {
 }
 
 ///|
-test "Native file ACK and exact bytes settle the same dispatch without HTTP or resend" {
+fn file_receipt_fixture_physical(binding_case : Int) -> Unit raise {
   let directory = @env.get_env_var("ACTQL_TEST_NATIVE_FILE_RECEIPT_ROOT").unwrap()
   let path = @utf8.encode(directory + "/backing\u{0000}")
   let descriptor = file_receipt_fixture_open(path, 2)
@@ -334,10 +452,25 @@ test "Native file ACK and exact bytes settle the same dispatch without HTTP or r
     _ => fail("file receipt fixture execution partial")
   }
   arena.enter_domain_retained_execution(execution).unwrap()
-  file_receipt_fixture_work(directory)
+  file_receipt_fixture_work(directory, binding_case)
   arena.leave_domain_retained_execution(execution).unwrap()
   arena.close_domain_retained_execution(execution).unwrap()
   arena.close_domain_after_owner_ack(domain).unwrap()
   arena.try_close().unwrap()
   assert_eq(file_receipt_fixture_close(descriptor), 0)
+}
+
+///|
+test "Native file ACK and exact bytes settle the same dispatch without HTTP or resend" {
+  file_receipt_fixture_physical(0)
+}
+
+///|
+test "Native file response refuses foreign Run before retaining either row" {
+  file_receipt_fixture_physical(1)
+}
+
+///|
+test "Native file response refuses foreign row locator and key before retaining either row" {
+  file_receipt_fixture_physical(2)
 }

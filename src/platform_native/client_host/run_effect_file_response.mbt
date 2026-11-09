@@ -117,6 +117,8 @@ pub fn NativeClientRunJournal::record_effect_file_response(
   preview : @publication.EffectPreviewIdentity,
   member_index : Int,
   row_index : Int,
+  locator : @effect.LogicalItemLocator,
+  key : @effect.EffectDispatchKey,
   operation : @publication.EffectFileOperation,
   ack : @row_file.NativeRelationFileReplacementAck,
   outcome_wire : String,
@@ -229,6 +231,23 @@ pub fn NativeClientRunJournal::record_effect_file_response(
   self.transaction(() => {
     let record = match self.require_effect_dispatch_locked(dispatch) {
       Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    // Semantic Preview identity alone intentionally excludes the Run. Reuse
+    // the original receipt binding before even reading/inserting the immutable
+    // pair: nominal Run, ordered row, locator, key and dispatch all stay exact.
+    match
+      require_client_effect_receipt_binding(
+        record,
+        dispatch,
+        preview,
+        member_index,
+        row_index,
+        locator,
+        key,
+        operation.canonical_request_cid,
+      ) {
+      Ok(_) => ()
       Err(issue) => return Err(issue)
     }
     match
