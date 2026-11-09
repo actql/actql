@@ -50,7 +50,6 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_source_imports(
   self : Self,
   state : LocalNativeMockEffectPlan,
   held : LocalNativeMockEffectProposals,
-  retention : @publication.PublicationContract,
 ) -> Unit raise ClientStop {
   let occurrence = state.graph.occurrence
   let program = @checked.effect_program_static_checked_computation(
@@ -67,13 +66,8 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_source_imports(
   }
   guard held.imports is None &&
     held.source_imports.is_empty() &&
-    self.original.business is Some(business) &&
-    business.model_work.length() == 1 &&
     state.lookup is Some(lookup) &&
-    business.model_work[0].completed_observation_originals(
-      state.first._retained_models[0]._retained_limits.output_rows,
-    )
-    is Some((observation, invocation, _, _)) else {
+    held.publication_context is Some((observation, invocation, retention)) else {
     stop("LocalOriginalEffectImportsUnavailable")
   }
   let limits = state.first._retained_models[0]._retained_limits

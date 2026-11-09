@@ -58,6 +58,11 @@ priv struct LocalNativeMockEffectProposals {
   inputs : @strategy.CapturedEffectInputs
   bridge_limits : @execution.ManagedPublicationBridgeLimits
   mut construction : LocalNativeMockEffectImportConstruction?
+  mut publication_context : (
+    @publication.RunEvidenceValue,
+    @publication.PublicationContract,
+    @publication.PublicationContract,
+  )?
   members : Array[LocalNativeMockEffectProposalMember]
   mut _retained_keyed_identity : @run_host.ClientKeyedLookupRequestIdentity?
   mut invocation : @run_host.ClientEffectLocalInvocation?
@@ -139,13 +144,14 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
       )
       .map_err(issue => LocalNativeMockEffectProposalIssue::Capture(issue))
       .native_effect_proposal(self.original)
-    // Closed initial Host frame: this record's14 borrowed references and its
+    // Closed initial Host frame: this record's15 borrowed references and its
     // five empty Array headers stay inside the existing fixed4096 call frame.
     // Import bodies/producer exports begin only after the first capture borrow.
     let held : LocalNativeMockEffectProposals = {
       inputs,
       bridge_limits,
       construction: None,
+      publication_context: None,
       members: [],
       _retained_keyed_identity: None,
       invocation: None,
@@ -244,6 +250,40 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
         )
       }
       if held.invocation is None {
+        guard held.publication_context is None &&
+          business.model_work[0].completed_observation_originals(
+            limits.output_rows,
+          )
+          is Some((observation, invocation, _, _)) else {
+          stop("LocalOriginalEffectInvocationUnavailable")
+        }
+        // Resolve this admitted tuple before selecting its publication policy.
+        // Keep every original custody/clock/time field; the contributing Source
+        // policies remain independent, and no policy or extension is granted.
+        let (_, policy, _) = @publication.resolve_run_local_result_context(
+            @run_host.client_effect_allowed_run_admission(state.first.allowed),
+            state.first.definition,
+            invocation,
+            observation,
+          )
+          .map_err(issue => {
+            LocalNativeMockEffectProposalIssue::Artifact(Context(issue))
+          })
+          .native_effect_proposal(self.original)
+        let retention = @publication.issue_result_retention_for_data_policy(
+            retention, policy, 16384, 1024, 20,
+          )
+          .map_err(issue => {
+            LocalNativeMockEffectProposalIssue::Artifact(Scope(issue))
+          })
+          .native_effect_proposal(self.original)
+        held.publication_context = Some((observation, invocation, retention))
+        held.construction
+        .unwrap()
+        .retain_wire(
+          self.original,
+          @publication.publication_contract_json(retention),
+        )
         held.materials = Some(
           @run_host.bind_prepared_client_effect_original_materials(
             state.first.allowed,
@@ -254,7 +294,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
           .map_err(issue => LocalNativeMockEffectProposalIssue::Materials(issue))
           .native_effect_proposal(self.original),
         )
-        self.prepare_mock_effect_source_imports(state, held, retention)
+        self.prepare_mock_effect_source_imports(state, held)
         let acquired = business.model_work[0]
           .local_effect_model_acquired_evidence(
             retention,
@@ -517,6 +557,7 @@ fn LocalNativeMockEffectProposals::close(self : Self) -> Bool {
   self._retained_local_manifest = None
   self._retained_lookup_dependencies.clear()
   self.materials = None
+  self.publication_context = None
   self._retained_keyed_identity = None
   self.invocation = None
   self._retained_direct_evidence.clear()
