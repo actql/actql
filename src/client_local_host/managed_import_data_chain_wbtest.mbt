@@ -10,6 +10,13 @@ priv enum ManagedImportDataCase {
 ///|
 fn managed_import_data_chain(
   mode : ManagedImportDataCase,
+  query? : String = "WITH paired AS (WITH seed AS (FROM records |> SELECT amount, id) SELECT l.id AS amount, l.amount AS id FROM seed AS l JOIN seed AS r ON l.id = r.id ORDER BY amount + 1) FROM paired |> RESULT copied_rows",
+  expected_tasks? : Int? = Some(8),
+  result_name? : String = "copied_rows",
+  expected_rows? : Array[String] = [
+    "{\"amount\":1,\"id\":20}", "{\"amount\":2,\"id\":10}",
+  ],
+  prior_execution? : Int64 = 261216696L,
   ledger_factory? : (
     @publication_host.PreparedClientProgram,
     @resources.LedgerLimits,
@@ -25,15 +32,16 @@ fn managed_import_data_chain(
   ) -> Unit = (_, _, _, _, _) => (),
   append_observation? : () -> Bool = () => true,
 ) -> Unit raise {
-  let prepared = before_limit_standard_prepared(
-    "WITH paired AS (WITH seed AS (FROM records |> SELECT amount, id) SELECT l.id AS amount, l.amount AS id FROM seed AS l JOIN seed AS r ON l.id = r.id ORDER BY amount + 1) FROM paired |> RESULT copied_rows",
-    @frontend.Text,
-  )
+  let prepared = before_limit_standard_prepared(query, @frontend.Text)
   let publication_policy = @publication_host.prepared_client_publication_data_policy_cid(
     prepared,
   )
   let graph = @publication_host.prepared_client_graph(prepared)
-  assert_eq(@strategy.graph_task_count(graph), 8)
+  let task_count = @strategy.graph_task_count(graph)
+  assert_true(task_count > 0 && task_count <= 100)
+  if expected_tasks is Some(expected) {
+    assert_eq(task_count, expected)
+  }
   assert_eq(@strategy.graph_captured_prefix(graph), 1)
   assert_eq(@publication_host.prepared_client_acquisition_count(prepared), 1)
   assert_eq(@strategy.graph_result_count(graph), 1)
@@ -135,11 +143,11 @@ fn managed_import_data_chain(
   // an independent workspace. The finite fixture total leaves the same startup
   // headroom as the ordinary Host, without changing its 512 MiB limits.
   let original_prior = @resources.ledger_usage(ledger).reserved_execution_bytes
-  assert_true(original_prior <= 261216696L)
+  assert_true(original_prior <= prior_execution)
   let host_context = @resources.reserve_capacity(
     ledger,
     0L,
-    261216696L - original_prior,
+    prior_execution - original_prior,
   ).unwrap()
   let count = @strategy.graph_task_count(plan.graph)
   let tasks : Array[LocalValuesTaskExecution?] = Array::make(count, None)
@@ -185,6 +193,11 @@ fn managed_import_data_chain(
     ).unwrap()
     let before = @resources.ledger_usage(ledger)
     let observed_prior_execution = before.reserved_execution_bytes
+    if expected_tasks is None {
+      println(
+        "managed DISTINCT task=\{task} execution=\{@local_driver.local_managed_dispatch_site_capacity(dispatch).unwrap().1} prior=\{observed_prior_execution}",
+      )
+    }
     coexistence_fits.val = coexistence_fits.val &&
       @local_driver.local_managed_dispatch_site_capacity(dispatch).unwrap().1 +
       observed_prior_execution <=
@@ -299,9 +312,9 @@ fn managed_import_data_chain(
   }
   if mode == Complete && failure is None && !selection_missing {
     assert_eq(@strategy.graph_result_count(plan.graph), 1)
-    assert_eq(@strategy.graph_result_name(plan.graph, 0), Some("copied_rows"))
+    assert_eq(@strategy.graph_result_name(plan.graph, 0), Some(result_name))
     let result = tasks[@strategy.graph_result_task(plan.graph, 0).unwrap()].unwrap()
-    let expected = ["{\"amount\":1,\"id\":20}", "{\"amount\":2,\"id\":10}"]
+    let expected = expected_rows
     assert_eq(
       @execution.managed_completed_output_row_count(result.completed.unwrap()),
       2,
@@ -355,4 +368,16 @@ test "managed input growth refusal precedes decode and retains the original Sour
 ///|
 test "cancelled managed input cannot grow or decode a later row" {
   managed_import_data_chain(CancelImport)
+}
+
+///|
+test "managed DISTINCT equal aliases fit original limits with retained parents" {
+  managed_import_data_chain(
+    Complete,
+    query="WITH seed AS (SELECT id AS x, amount AS y FROM records) SELECT DISTINCT l.x + 1 AS a, l.x + 1 AS b FROM seed AS l JOIN seed AS r ON l.x = r.x ORDER BY l.x + 1",
+    expected_tasks=None,
+    result_name="main",
+    expected_rows=["{\"a\":2,\"b\":2}", "{\"a\":3,\"b\":3}"],
+    prior_execution=261345424L,
+  )
 }

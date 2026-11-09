@@ -277,16 +277,18 @@ fn managed_row_transfer_bytes(
 }
 
 ///|
-// The existing import recipe separates the fixed wire/parser allowance from
-// cumulative copied values and row slots. This is startup DATA only: callers
-// keep the unchanged admission limits and fund copied DATA before decoding.
+// Import preparation retains empty buffers and schema/cursor bindings. Row
+// wire/parser scratch is constructed only by append; the original before-decode
+// growth owner funds that scratch and copied DATA from the same incoming wire.
 fn local_managed_import_start_bytes(
   limits : @local.LocalImportLimits,
 ) -> Int64? {
   @local.local_import_retention_capacity({
-    ..limits,
     max_rows: 0,
     values: { ..limits.values, max_nodes: 0, max_text_bytes: 0, },
+    wire: { ..limits.wire, max_bytes: 0, max_nodes: 0, },
+    row: { ..limits.row, max_bytes: 1, max_nodes: 0, max_text_bytes: 0, },
+    max_batch_bytes: 1,
   })
 }
 
@@ -318,13 +320,36 @@ fn local_managed_import_next_extent(
   let next_text = text + Int64::min(wire_bytes, max_text - text)
   guard local_managed_import_start_bytes(limits) is Some(start) &&
     @local.local_import_retention_capacity({
-      ..limits,
       max_rows: next_rows.to_int(),
       values: {
         ..limits.values,
         max_nodes: next_nodes.to_int(),
         max_text_bytes: next_text.to_int(),
       },
+      // Every parser node, text byte and provisional reference is bounded by
+      // this complete UTF-8 row. These are funding extents only; append still
+      // receives all original parser, wire and cumulative admission limits.
+      wire: {
+        ..limits.wire,
+        max_bytes: Int64::min(limits.wire.max_bytes.to_int64(), wire_bytes).to_int(),
+        max_nodes: Int64::min(limits.wire.max_nodes.to_int64(), wire_bytes).to_int(),
+      },
+      row: {
+        ..limits.row,
+        max_bytes: Int64::max(
+          1L,
+          Int64::min(limits.row.max_bytes.to_int64(), wire_bytes),
+        ).to_int(),
+        max_nodes: Int64::min(limits.row.max_nodes.to_int64(), wire_bytes).to_int(),
+        max_text_bytes: Int64::min(
+          limits.row.max_text_bytes.to_int64(),
+          wire_bytes,
+        ).to_int(),
+      },
+      max_batch_bytes: Int64::max(
+        1L,
+        Int64::min(limits.max_batch_bytes.to_int64(), wire_bytes),
+      ).to_int(),
     })
     is Some(quoted) &&
     quoted >= start else {
@@ -1402,9 +1427,13 @@ pub fn[T] start_local_managed_dispatch(
                 copied_text.val,
                 bytes,
               )
-              is Some((rows, nodes, text, extent)) &&
-              extent >= copied_extent.val &&
-              @execution.checked_preparation_add_product(
+              is Some((rows, nodes, text, quoted)) else {
+              return Err(Configuration(InvalidLimits))
+            }
+            // Shorter later rows need less transient parsing scratch. Keep
+            // this same copy's reservation monotone, without refunding it.
+            let extent = Int64::max(copied_extent.val, quoted)
+            guard @execution.checked_preparation_add_product(
                 import_extra.val,
                 extent - copied_extent.val,
                 1L,

@@ -393,6 +393,25 @@ pub fn local_module_metered_output_start_capacity(
           | @lower.Limit(_, _, _)
           | @lower.AssertAll(_)
           | @lower.AssertUnique(_) => ()
+          @lower.DistinctRows => {
+            // The bounded comparator keeps original immediate cells and row
+            // indices. CommitOutputRow funds each accepted output on this
+            // same attachment; recursive/text/presence shapes keep the full
+            // retained envelope and their original constructor recipe.
+            let input = @lower.kernel_input_schema(kernel)
+            let output = @lower.kernel_output_schema(kernel)
+            let mut immediate = @schema.all_fields_required(input) &&
+              @schema.all_fields_required(output)
+            for field in 0..<@schema.field_count(input) {
+              match @schema.field_at(input, field).unwrap().contract.shape {
+                @contract.Number | @contract.Boolean => ()
+                _ => immediate = false
+              }
+            }
+            if !immediate {
+              metered_retention = false
+            }
+          }
           _ => {
             // Ordered bindings may convert a snapshot cell before output
             // retention is funded. Only Number/Boolean outputs are immediate

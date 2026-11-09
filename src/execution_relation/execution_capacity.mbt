@@ -133,6 +133,7 @@ pub fn generated_bounded_sequence_capacity(
         (match @lower.kernel_body(kernel) {
           @lower.Filter(_)
           | @lower.Select(_)
+          | @lower.DistinctRows
           | @lower.StableSort(_)
           | @lower.Limit(_, _, _)
           | @lower.AssertAll(_)

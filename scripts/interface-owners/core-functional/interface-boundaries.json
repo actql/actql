@@ -52170,7 +52170,7 @@
     },
     {
       "module": "src/connectors/local/driver/managed_dispatch.mbt",
-      "sha256": "f572fc8a2519ab69a743a9a9e3bc824733183b708f4164def4c090e6aa3db723",
+      "sha256": "adaa33a3d9d4319eb6c934511d0dc5e29f4736874078e9decda7629a1f0f1674",
       "role": "common-semantics",
       "owner": "Existing Local managed task/Source/resource owners; native supplied lifetime and imported producer custody remain distinct",
       "responsibilityFacet": "primary",
@@ -52419,11 +52419,15 @@
               },
               {
                 "path": "src/connectors/local/driver/managed_import_data_funding_wbtest.mbt",
-                "anchor": "test \"managed import starts with full parser scratch and grows only copied DATA\""
+                "anchor": "test \"managed import starts with empty buffers and funds each parser before decode\""
               },
               {
                 "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
                 "anchor": "test \"managed input DATA funds all original alias JOIN parents at bounded startup\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"managed DISTINCT equal aliases fit original limits with retained parents\""
               },
               {
                 "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
