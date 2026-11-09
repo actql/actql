@@ -52521,6 +52521,10 @@
               {
                 "path": "src/execution_relation/bounded_join.mbt",
                 "anchor": "budget.retention = generated.working"
+              },
+              {
+                "path": "src/connectors/local/module.mbt",
+                "anchor": "The same bounded JOIN child funds every complete output row before"
               }
             ],
             "extension": [
@@ -52693,6 +52697,22 @@
               {
                 "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
                 "anchor": "test \"cancelled joined recursive data cannot grow or decode a later original row\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"coalesced USING target keeps original right and left values within the same Ledger\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"coalesced USING import refusal precedes decode and preserves the same Source\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"cancelled coalesced USING chain cannot import a later original row\""
+              },
+              {
+                "path": "src/connectors/local/metered_output_start_wbtest.mbt",
+                "anchor": "test \"chained Join output funding retains recursive and injected provider fallbacks\""
               }
             ]
           }

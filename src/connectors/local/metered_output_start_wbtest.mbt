@@ -911,3 +911,97 @@ test "recursive carried Join funding preserves text-key and outer-join fallback"
     @connector.close_capability_registry(registry)
   }
 }
+
+///|
+test "chained Join output funding retains recursive and injected provider fallbacks" {
+  for
+    (contract, literal, immediate) in [
+      ("{\"type\":\"number\",\"nullable\":false}", "1", true),
+      ("{\"type\":\"boolean\",\"nullable\":false}", "true", true),
+      ("{\"type\":\"string\",\"nullable\":false}", "\"text\"", false),
+      (
+        "{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}",
+        "[1,2]", false,
+      ),
+      (
+        "{\"type\":\"object\",\"nullable\":false,\"fields\":{\"x\":{\"type\":\"number\",\"nullable\":false}}}",
+        "{\"x\":1}", false,
+      ),
+    ] {
+    let (whole, _, _) = chain_lifetime_fixture(
+      "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"payload\":" +
+      contract +
+      "},\"rows\":[{\"id\":1,\"payload\":" +
+      literal +
+      "}]},\"as\":\"value\"},{\"from\":\"value\",\"join\":{\"with\":\"value\",\"kind\":\"right\",\"on\":[{\"left\":\"id\",\"right\":\"id\"}],\"select\":{\"id\":\"right.id\",\"payload\":\"left.payload\"}},\"as\":\"joined\"},{\"from\":\"joined\",\"select\":[\"id\",\"payload\"]}]",
+    )
+    let sequence = @execution.select_generated_sequence_range(whole, 1, 2).unwrap()
+    assert_eq(@execution.generated_sequence_step_count(sequence), 2)
+    let registry = @connector.prepare_capability_registry(
+      [
+        {
+          name: "local",
+          acquisition: false,
+          fixed_compute: true,
+          effect: false,
+        },
+      ],
+      1,
+      100,
+    ).unwrap()
+    let registration = @connector.capability_registration_at(registry, 0).unwrap()
+    let original = prepare_local_compute_module(
+      registry,
+      registration,
+      [sequence],
+      chain_lifetime_limits(),
+      chain_lifetime_measurement(),
+      100000,
+      1,
+    ).unwrap()
+    let full = local_module_capacity_for_sequence(original, 0, sequence).unwrap()
+    let start = local_module_metered_output_start_capacity(
+      original, 0, sequence,
+    )
+    if immediate {
+      assert_true(
+        start is Some(value) &&
+        value.retained_bytes < full.retained_bytes &&
+        value.execution_bytes < full.execution_bytes,
+      )
+    } else {
+      assert_true(start is None)
+    }
+    let starts = Ref(0)
+    let replacement = managed_provider(_ => true, _ => Some(full), (
+      _,
+      _,
+      _,
+      _,
+      _,
+    ) => {
+      starts.val += 1
+      Err(@connector.InvalidLimits)
+    })
+    let injected = prepare_local_compute_module(
+      registry,
+      registration,
+      [sequence],
+      chain_lifetime_limits(),
+      chain_lifetime_measurement(),
+      100000,
+      1,
+      managed_providers=[replacement],
+    ).unwrap()
+    assert_true(
+      local_module_metered_output_start_capacity(injected, 0, sequence) is None,
+    )
+    let kept = local_module_capacity_for_sequence(injected, 0, sequence).unwrap()
+    assert_eq(
+      (kept.retained_bytes, kept.execution_bytes),
+      (full.retained_bytes, full.execution_bytes),
+    )
+    assert_eq(starts.val, 0)
+    @connector.close_capability_registry(registry)
+  }
+}

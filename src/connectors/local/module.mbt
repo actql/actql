@@ -294,7 +294,8 @@ pub fn local_module_capacity_for_sequence(
 }
 
 ///|
-/// Startup DATA for exact built-in rows/Append, primitive Set/Join or row/CROSS JOIN chains. The unchanged
+/// Startup DATA for exact built-in rows/Append, primitive Set/Join and checked
+/// row/CROSS JOIN/immediate JOIN chains. The unchanged
 /// full capacity remains the fallback and semantic bound. Persistent output
 /// DATA is charged by the same task before each buffer commit; all fixed
 /// child metadata, input/measurement/traversal and one live child scratch
@@ -434,7 +435,41 @@ pub fn local_module_metered_output_start_capacity(
       Some(@lower.CrossJoinStep(_)) => ()
       Some(@lower.AppendStep(_)) if count == 1 => ()
       Some(@lower.SetStep(_)) if count == 1 => ()
-      Some(@lower.JoinStep(_)) if count == 1 => ()
+      Some(@lower.JoinStep(kernel)) =>
+        // The same bounded JOIN child funds every complete output row before
+        // commit, including inside a reclaimed Relation chain. Admit only
+        // required immediate input/output cells here; other joined DATA keeps
+        // its full prepaid lifecycle. This changes no comparison or row bound.
+        if count > 1 {
+          let prepared = @lower.bound_preparation(
+            @lower.join_kernel_owner(kernel),
+          )
+          let step = @lower.join_kernel_step(kernel)
+          guard @lower.node_at(prepared, step) is Some(node) &&
+            @lower.node_input_count(node) == 2 else {
+            return None
+          }
+          for port in -1..<2 {
+            let target = if port < 0 {
+              Some(@pipeline.Step(step))
+            } else {
+              @lower.node_input_target(node, port)
+            }
+            guard target.bind(target => {
+                @lower.preparation_schema_at(prepared, target)
+              })
+              is Some(schema) &&
+              @schema.all_fields_required(schema) else {
+              return None
+            }
+            for field in 0..<@schema.field_count(schema) {
+              match @schema.field_at(schema, field).unwrap().contract.shape {
+                @contract.Number | @contract.Boolean => ()
+                _ => return None
+              }
+            }
+          }
+        }
       Some(@lower.RowStep(kernel)) if @lower.kernel_unnest(kernel) is Some(_) =>
         if !@schema.all_fields_required(@lower.kernel_input_schema(kernel)) ||
           !@schema.all_fields_required(@lower.kernel_output_schema(kernel)) {

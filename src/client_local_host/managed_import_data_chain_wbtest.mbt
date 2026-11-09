@@ -263,7 +263,7 @@ fn managed_import_data_chain(
     ).unwrap()
     let before = @resources.ledger_usage(ledger)
     let observed_prior_execution = before.reserved_execution_bytes
-    if parameter_values is Some(_) {
+    if parameter_values is Some(_) || expected_tasks is None {
       let selected = plan.sequences[task]
       println(
         "acquired UNNEST task=\{task} selected-steps=\{@execution.generated_sequence_step_count(selected)}",
@@ -275,6 +275,19 @@ fn managed_import_data_chain(
         println(
           "acquired UNNEST task=\{task} slot=\{slot} operation=\{@lower.operation(node)}",
         )
+        if expected_tasks is None &&
+          @execution.generated_sequence_step_count(selected) > 1 {
+          let child = @execution.select_generated_sequence_step(selected, step).unwrap()
+          let provider = @local.local_bounded_relation_provider(
+            plan.capacity_plan.execution,
+            plan.capacity_plan.measurement,
+            child,
+          ).unwrap()
+          let quote = @local.managed_provider_capacity(provider, child).unwrap()
+          println(
+            "managed child slot=\{slot} R=\{quote.retained_bytes} E=\{quote.execution_bytes}",
+          )
+        }
       }
     }
     if expected_tasks is None {
@@ -782,4 +795,66 @@ test "joined recursive carried data refuses import before decoding on the same S
 ///|
 test "cancelled joined recursive data cannot grow or decode a later original row" {
   managed_joined_object_import(CancelImport)
+}
+
+///|
+test "coalesced USING target keeps original right and left values within the same Ledger" {
+  managed_import_data_chain(
+    Complete,
+    query="FROM records AS l |> RIGHT JOIN records AS r USING (id) MAX_OUTPUT_ROWS 10 |> SET id = -id |> SELECT id AS `current`, l.id AS left_original, r.id AS right_original |> ORDER BY right_original",
+    source_wire="[{\"id\":3,\"amount\":30},{\"id\":1,\"amount\":null},{\"id\":2,\"amount\":20},{\"id\":3,\"amount\":30}]",
+    source_rows=4,
+    expected_tasks=None,
+    two_input_task=None,
+    result_name="main",
+    expected_rows=[
+      "{\"current\":-1,\"left_original\":1,\"right_original\":1}", "{\"current\":-2,\"left_original\":2,\"right_original\":2}",
+      "{\"current\":-3,\"left_original\":3,\"right_original\":3}", "{\"current\":-3,\"left_original\":3,\"right_original\":3}",
+      "{\"current\":-3,\"left_original\":3,\"right_original\":3}", "{\"current\":-3,\"left_original\":3,\"right_original\":3}",
+    ],
+    prior_execution=20770160L,
+    expected_policy=None,
+  )
+}
+
+///|
+test "coalesced USING import refusal precedes decode and preserves the same Source" {
+  managed_import_data_chain(
+    RefuseImport,
+    input_control_task=1,
+    query="FROM records AS l |> RIGHT JOIN records AS r USING (id) MAX_OUTPUT_ROWS 10 |> SET id = -id |> SELECT id AS `current`, l.id AS left_original, r.id AS right_original |> ORDER BY right_original",
+    source_wire="[{\"id\":3,\"amount\":30},{\"id\":1,\"amount\":null},{\"id\":2,\"amount\":20},{\"id\":3,\"amount\":30}]",
+    source_rows=4,
+    expected_tasks=None,
+    two_input_task=None,
+    result_name="main",
+    expected_rows=[
+      "{\"current\":-1,\"left_original\":1,\"right_original\":1}", "{\"current\":-2,\"left_original\":2,\"right_original\":2}",
+      "{\"current\":-3,\"left_original\":3,\"right_original\":3}", "{\"current\":-3,\"left_original\":3,\"right_original\":3}",
+      "{\"current\":-3,\"left_original\":3,\"right_original\":3}", "{\"current\":-3,\"left_original\":3,\"right_original\":3}",
+    ],
+    prior_execution=20770160L,
+    expected_policy=None,
+  )
+}
+
+///|
+test "cancelled coalesced USING chain cannot import a later original row" {
+  managed_import_data_chain(
+    CancelImport,
+    input_control_task=1,
+    query="FROM records AS l |> RIGHT JOIN records AS r USING (id) MAX_OUTPUT_ROWS 10 |> SET id = -id |> SELECT id AS `current`, l.id AS left_original, r.id AS right_original |> ORDER BY right_original",
+    source_wire="[{\"id\":3,\"amount\":30},{\"id\":1,\"amount\":null},{\"id\":2,\"amount\":20},{\"id\":3,\"amount\":30}]",
+    source_rows=4,
+    expected_tasks=None,
+    two_input_task=None,
+    result_name="main",
+    expected_rows=[
+      "{\"current\":-1,\"left_original\":1,\"right_original\":1}", "{\"current\":-2,\"left_original\":2,\"right_original\":2}",
+      "{\"current\":-3,\"left_original\":3,\"right_original\":3}", "{\"current\":-3,\"left_original\":3,\"right_original\":3}",
+      "{\"current\":-3,\"left_original\":3,\"right_original\":3}", "{\"current\":-3,\"left_original\":3,\"right_original\":3}",
+    ],
+    prior_execution=20770160L,
+    expected_policy=None,
+  )
 }
