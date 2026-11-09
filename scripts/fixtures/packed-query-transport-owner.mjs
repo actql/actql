@@ -9,6 +9,8 @@ import {types as nodeTypes} from 'node:util';
 import {Worker, isMainThread, parentPort, workerData} from 'node:worker_threads';
 
 export const acceptanceTimeoutMs = 900_000;
+// A finite enclosing fixture envelope; product Run and cleanup budgets are separate.
+const maximumAcceptanceTimeoutMs = 1_800_000;
 export const acceptanceOutputBytes = 8 * 1024 * 1024;
 export const transportModes = Object.freeze(['local', 'remote']);
 // Fixed production factory categories only; no thrown string or prefix can extend this set.
@@ -545,7 +547,7 @@ export function transportWorker() {
 export function createTransportOwner({deadline, env = process.env, timeoutMs = acceptanceTimeoutMs,
   outputLimit = acceptanceOutputBytes, forward = (name, bytes) => process[name].write(bytes)}) {
   assert.ok(Number.isSafeInteger(deadline) && deadline > Date.now());
-  assert.ok(Number.isSafeInteger(timeoutMs) && timeoutMs > 0 && timeoutMs <= acceptanceTimeoutMs);
+  assert.ok(Number.isSafeInteger(timeoutMs) && timeoutMs > 0 && timeoutMs <= maximumAcceptanceTimeoutMs);
   assert.ok(deadline - Date.now() <= timeoutMs);
   assert.ok(Number.isSafeInteger(outputLimit) && outputLimit > 0 &&
     outputLimit <= acceptanceOutputBytes);

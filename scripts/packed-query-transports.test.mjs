@@ -1168,3 +1168,28 @@ test(`restart assigns each related root to one of two serial transport workers (
   ]);
 });
 }
+
+
+test('transport harness admits a selected finite envelope while preserving its default', () => {
+  const ordinary = createTransportOwner({deadline: Date.now() + 1000, forward() {}});
+  try { assert.equal(ordinary.report().timeoutMs, 900_000); }
+  finally { ordinary.close(); }
+  const selected = createTransportOwner({deadline: Date.now() + 1_799_000,
+    timeoutMs: 1_800_000, forward() {}});
+  try {
+    assert.equal(selected.report().timeoutMs, 1_800_000);
+    assert.equal(selected.report().outputLimit, 8 * 1024 * 1024);
+    assert.equal(selected.report().liveChildren, 0);
+  } finally { selected.close(); }
+});
+
+test('transport harness refuses an unbounded or inconsistent selected envelope', () => {
+  for (const timeoutMs of [0, -1, 0.5, NaN, Infinity, 1_800_001]) {
+    assert.throws(() => createTransportOwner({deadline: Date.now() + 1000,
+      timeoutMs, forward() {}}));
+  }
+  assert.throws(() => createTransportOwner({deadline: Date.now() + 901_000,
+    forward() {}}));
+  assert.throws(() => createTransportOwner({deadline: Date.now() + 1_801_000,
+    timeoutMs: 1_800_000, forward() {}}));
+});
