@@ -42,9 +42,9 @@ const program = (edgeOutput, edgePredicate) => {
     ], results: {out: {from: 'published', fields}}}],
     results: {answer: {from: {stage: 'main', result: 'out'}}}});
 };
-// The selected Host profile allows 32 physical tasks. Keep each source case
-// bounded without raising that limit; the larger original source is retained
-// as a TaskLimit refusal, rather than silently presented as an execution pass.
+// These finite inputs retain their original rows and topology. The installed
+// planning work and Resource policies decide admission; row spelling does not
+// impose an independent fixed task cap.
 const prefix = 'WITH n AS (SELECT 2 AS node_key, 20 AS p ' +
   'UNION ALL SELECT 1 AS node_key, IF(TRUE, 10, CAST(NULL AS FLOAT64)) AS p) ' +
   ', e AS (SELECT 11 AS edge_key, 1 AS src_key, 2 AS dst_key, 20 AS w ' +
@@ -91,6 +91,11 @@ const taskBoundSource = prefix
   .replace('UNION ALL SELECT 13 AS edge_key',
     'UNION ALL SELECT 12 AS edge_key, 2 AS src_key, 3 AS dst_key, 40 AS w UNION ALL SELECT 13 AS edge_key');
 export const subgraphSourceSuccesses = [
+  // Keep the complete historical larger Source under the current finite
+  // planning budget. Explicit smaller task budgets retain separate controls.
+  {name: 'subgraph-task-profile-bound', format: 'aql-text', text: taskBoundSource +
+    selected('node_key <= 2') + 'FROM g |> subgraph(nodes: {from: selected, id: `id`})' + tail(false),
+    results: result(false, nodeSubset), sourceReadCount: 0},
   {name: 'subgraph-json-nodes', format: 'json', text: program(false, false),
     results: result(false, nodeSubset), sourceReadCount: 0},
   {name: 'subgraph-json-filtered-edges', format: 'json', text: program(true, true),
@@ -162,10 +167,6 @@ export const subgraphSourceRefusals = [
     ', slice AS (FROM g |> subgraph(nodes: {from: later, id: `id`})) , later AS (FROM g |> node_rows()) FROM slice' + tail(false)},
   {name: 'subgraph-after-relation-transition', format: 'aql-text', text: prefix +
     'FROM g |> node_rows() |> subgraph(nodes: {ids: []}) |> SELECT node_key |> RESULT answer'},
-  // Semantic checking succeeds; the installed task profile refuses this
-  // unchanged larger source with TaskLimit before durable Run admission.
-  {name: 'subgraph-task-profile-bound', format: 'aql-text', text: taskBoundSource +
-    selected('node_key <= 2') + 'FROM g |> subgraph(nodes: {from: selected, id: `id`})' + tail(false)},
   // literal is opaque data, not a wrapper that evaluates parameter syntax.
   {name: 'subgraph-object-literal-is-not-scalar-parameter', format: 'aql-text',
     text: prefix + selected('node_key <= 2') +

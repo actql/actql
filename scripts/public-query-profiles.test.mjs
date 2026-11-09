@@ -1,3 +1,4 @@
+import './subgraph-source-input.test.mjs';
 import './unnest-source-input.test.mjs';
 import {encodeRetainedFixture, decodeRetainedFixture} from './fixtures/retained-fixture-values.mjs';
 import assert from 'node:assert/strict';
@@ -325,9 +326,11 @@ test('full corpus pins every authored occurrence independently of worker selecti
   // their InvalidInput projection does not become a later lowering rejection.
   // Four grouped LIMIT/OFFSET and five positive LIMIT operands retain that same
   // syntax phase; distinct declaration and binding rejections stay unchanged.
+  // The complete three-node Subgraph keeps its original Source under the
+  // finite standard planning budget, with independent full rows and schema.
   assert.equal(pin.totalCases, 4240);
-  assert.deepEqual(pin.counts, {"successes":2656,"executionFailures":53,"refusals":1531});
-  assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [["standard",{"successes":2602,"executionFailures":51,"refusals":1492}],["analytic-offset",{"successes":6,"executionFailures":0,"refusals":13}],["analytic-property",{"successes":13,"executionFailures":0,"refusals":7}],["analytic-order",{"successes":35,"executionFailures":2,"refusals":19}]]);
+  assert.deepEqual(pin.counts, {"successes":2657,"executionFailures":53,"refusals":1530});
+  assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [["standard",{"successes":2603,"executionFailures":51,"refusals":1491}],["analytic-offset",{"successes":6,"executionFailures":0,"refusals":13}],["analytic-property",{"successes":13,"executionFailures":0,"refusals":7}],["analytic-order",{"successes":35,"executionFailures":2,"refusals":19}]]);
   assert.deepEqual(pin.repeatedFailures, [
     {name: 'graph-subtraction-null-is-not-zero', positions: [29, 49]},
     {name: 'graph-subtraction-conflict-needs-policy', positions: [30, 50]},

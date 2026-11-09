@@ -85,9 +85,8 @@ const connectedProgram = direction => ({version: 'actql/0.1', id: 'fixture.graph
 // Node selector predicates use declared Graph properties, not node_rows key
 // aliases. Keep the authored connectivity oracle and give it an explicit
 // predicate property; the raw-identity JSON control remains independent.
-// The public profile allows 32 physical tasks. A finite array expresses the
-// same three nodes without spending a separate Values/derive/select chain
-// for each row; neither the topology nor the Host limit is weakened.
+// A finite array keeps these same three nodes in one generator path. The
+// topology and selected finite planning-work/Resource policies stay unchanged.
 const connectedSource = 'WITH n AS (SELECT node_key, node_key AS seed FROM UNNEST([3, 2, 1]) node_key) ' +
   ', e AS (SELECT 13 AS edge_key, 2 AS src, 3 AS dst UNION ALL SELECT 12 AS edge_key, 1 AS src, 1 AS dst ' +
   'UNION ALL SELECT 11 AS edge_key, 1 AS src, 2 AS dst UNION ALL SELECT 10 AS edge_key, 1 AS src, 2 AS dst) ' +
