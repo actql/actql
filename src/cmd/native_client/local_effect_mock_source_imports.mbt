@@ -79,14 +79,6 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_source_imports(
     stop("LocalOriginalEffectImportsUnavailable")
   }
   let recipe = state._retained_import_recipes[0]
-  @local_values.prepare_installed_effect_capture_recipe_extent(
-    "native.mock.file.capture", recipe,
-  )
-  .bind(input => {
-    @local_values.begin_installed_effect_operation_input(operation, input)
-  })
-  .map_err(issue => LocalNativeMockEffectProposalIssue::Managed(issue))
-  .native_effect_proposal(self.original)
   let construction : LocalNativeMockEffectImportConstruction = {
     operation,
     recipe,

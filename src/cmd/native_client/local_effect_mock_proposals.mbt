@@ -179,20 +179,34 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
       // Retain the original member capture before its fallible semantic
       // constructors. The existing capture recipe backs Artifact/Preview
       // metadata; this does not consume another Model or Source allowance.
-      let capture_operation = @local_values.borrow_installed_effect_operation(
+      let capture_operation = native_mock_effect_capture_operation(
           run,
           state._retained_prepared,
           state.first.request,
           state._retained_plan,
           entry,
-          false,
-          0,
-          0,
-          "native.mock.file.capture",
         )
         .map_err(issue => LocalNativeMockEffectProposalIssue::Managed(issue))
         .native_effect_proposal(self.original)
       current.capture_operation = Some(capture_operation)
+      if entry == 0 {
+        guard state._retained_import_recipes.length() == 2 else {
+          stop("LocalOriginalEffectImportsUnavailable")
+        }
+        // The first extent is staged. Retain its original before beginning
+        // input, then enter the constructor before any metadata callback.
+        @local_values.prepare_installed_effect_capture_recipe_extent(
+          "native.mock.file.capture",
+          state._retained_import_recipes[0],
+        )
+        .bind(input => {
+          @local_values.begin_installed_effect_operation_input(
+            capture_operation, input,
+          )
+        })
+        .map_err(issue => LocalNativeMockEffectProposalIssue::Managed(issue))
+        .native_effect_proposal(self.original)
+      }
       if entry == 0 && state.lookup is Some(lookup) {
         // The SAME completed lookup retains actual typed requests. Its key
         // identity is shared by all members; no rows are checked or fetched

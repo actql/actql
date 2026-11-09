@@ -10,6 +10,22 @@ priv struct LocalNativeMockEffectImportConstruction {
 }
 
 ///|
+fn native_mock_effect_capture_operation(
+  run : @local_values.ClientInstalledManagedRun,
+  prepared : @run_host.PreparedClientEffectComputation,
+  request : @run_host.ClientRequestIdentity,
+  plan : @local_values.ClientInstalledEffectManagedPlan,
+  entry : Int,
+) -> Result[
+  @local_values.ClientInstalledEffectOperationBorrow,
+  @local_values.ClientInstalledManagedRunIssue,
+] {
+  @local_values.borrow_installed_effect_operation(
+    run, prepared, request, plan, entry, false, 0, 0, "native.mock.file.capture",
+  )
+}
+
+///|
 // The initial recipe holds the largest single issuer's simultaneous bounded
 // documents. After it returns, retain the exact returned wire envelope before
 // reusing that constructor margin. Immutable getters do not parse/hash again.
