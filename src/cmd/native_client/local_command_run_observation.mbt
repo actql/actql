@@ -12,6 +12,10 @@ priv struct LocalCommandRunObservationOriginal {
   mut root : @local_filesystem.Root?
   mut root_failure : @local_filesystem.NativeRootOpenFailure?
   mut saved_effect_review : @local_host.NativeLocalSavedEffectReview?
+  // Same successful Resolution's borrowed continuation. This command retains
+  // it before any later claim/row constructor; it is not a second execution
+  // owner, renewed approval, callback or physical cleanup acknowledgement.
+  mut effect_resume : @local_host.NativeLocalEffectResumeOriginal?
   mut selected_namespace : String?
   mut attempted : Bool
   // Retain the exact failed Store receipt with this original across cleanup.
@@ -59,6 +63,7 @@ fn LocalCommandPreparationOriginal::prepare_run_observation_operation(
     root: None,
     root_failure: None,
     saved_effect_review: None,
+    effect_resume: None,
     selected_namespace: None,
     attempted: false,
     _retained_store_issue: None,
@@ -182,6 +187,13 @@ fn LocalCommandPreparationOriginal::close_run_observation(
   guard self.run_observation is Some(original) else { return Ok(()) }
   if self.journal_read_open || self.phase_open {
     return Err(CommandRunObservationPending)
+  }
+  // Cut the dependent continuation before its Saved originals. Retiring
+  // this DATA does not erase the durable Resolution/lease, refund work, stop
+  // an operation or acknowledge physical Store/Root cleanup below.
+  if original.effect_resume is Some(continuation) {
+    continuation.retire_read_aliases()
+    original.effect_resume = None
   }
   if original.saved_effect_review is Some(review) {
     // Read aliases do not own deletion of the historical encrypted evidence.

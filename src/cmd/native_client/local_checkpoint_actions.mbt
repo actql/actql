@@ -158,6 +158,7 @@ fn LocalCommandPreparationOriginal::resolve_checkpoint_review(
     physical_equal(actual, capture) &&
     self.run_observation is Some(observation) &&
     observation.saved_effect_review is Some(review) &&
+    observation.effect_resume is None &&
     observation.journal_operation is Some(journal) &&
     self.journal_read_open &&
     !self.closing &&
@@ -215,12 +216,27 @@ fn LocalCommandPreparationOriginal::resolve_checkpoint_review(
         stop("LocalCheckpointOriginalUnavailable")
       }
     }
-    let record = match
-      review.resolve_initial_in_original_read(operation, "host.json") {
-      Ok(value) => value
-      Err(issue) => {
-        self.retain_primary(CommandSavedResolution(issue))
-        stop("LocalCheckpointResolutionUnavailable")
+    let record = if operation == "approve" {
+      match review.resolve_initial_resume_in_original_read("host.json") {
+        Ok((record, continuation)) => {
+          // This is the SAME acknowledged Resolution and retained Saved
+          // original. Keep the continuation on the existing command before
+          // any fallible subsequent claim, request projection or physical IO.
+          observation.effect_resume = Some(continuation)
+          record
+        }
+        Err(issue) => {
+          self.retain_primary(CommandSavedResolution(issue))
+          stop("LocalCheckpointResolutionUnavailable")
+        }
+      }
+    } else {
+      match review.resolve_initial_in_original_read(operation, "host.json") {
+        Ok(value) => value
+        Err(issue) => {
+          self.retain_primary(CommandSavedResolution(issue))
+          stop("LocalCheckpointResolutionUnavailable")
+        }
       }
     }
     let state = @local_host.native_client_run_checkpoint_state(record).unwrap_or_else(() => {
