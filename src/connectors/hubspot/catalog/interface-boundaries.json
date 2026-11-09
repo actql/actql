@@ -198,7 +198,7 @@
     },
     {
       "module": "src/connectors/hubspot/catalog/effect_construction.mbt",
-      "sha256": "d1f3ab2b6e5561a498eb3b8c06d219342eeeed0b438bc89dde7a1b4911847236",
+      "sha256": "d78988dbcad0c34df3c2a3ddcd8d56dd4f5eb82dda05b5fd22d016f0d7a230c9",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing HubSpot native constructors and shared representation inventory owners",
@@ -317,6 +317,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "The Host passes only original member and operation coordinates. Core resolves"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "The Effect Properties response quote keeps its full eventual Catalog retention"
               }
             ],
             "extension": [
@@ -333,6 +337,14 @@
               {
                 "path": "adapters/connectors/hubspot/test/hubspot-effect-plan.test.mjs",
                 "anchor": "test('HubSpot fixed footprint binds a scratch-only original member distinct from all physical and capture roles'"
+              },
+              {
+                "path": "src/connectors/hubspot/catalog/effect_metadata_text_alias_wbtest.mbt",
+                "anchor": "test \"Effect shared Catalog text retains full output and real same-token one-short execution refusal\""
+              },
+              {
+                "path": "src/connectors/hubspot/catalog/effect_metadata_text_alias_wbtest.mbt",
+                "anchor": "test \"Effect shared Catalog text keeps independent retention refusal and complete malformed-prefix validation\""
               }
             ]
           }
