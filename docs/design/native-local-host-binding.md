@@ -3321,3 +3321,15 @@ current default. The ordinary configuration consumer admits the projected
 Environment once. This selection grants no Model access or physical capacity;
 the same checked Plan, per-request writer and original parent still admit the
 complete actual work and concurrent holdings.
+
+The fresh finite Native Product Store profile selects the ordinary Local
+100,000-object allowance before initialization signs or stages `run.json`.
+Its total-byte and per-record ceilings remain 1 MiB, and the Result ceiling
+remains 64 KiB. Object count is independent of byte occupancy: a Model call
+retains its original proof, response and attachment cells separately, alongside
+captured Content and later review evidence. This count is neither an allocation
+of every maximum nor a multiplication of objects by record size for RAM.
+Actual Store transactions enforce both quotas, while their constructors and
+live workspace remain funded on the same original parent. The legacy absolute
+profile retains eight objects; explicit lower settings and retained Intent
+bytes are restored unchanged, without applying the current default.

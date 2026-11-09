@@ -372,6 +372,20 @@ fn product_assemble_common(
 }
 
 ///|
+// Select only the object-count field of the fresh finite Store profile. Its
+// ordinary Local default retains each Model proof/response cell separately.
+// Byte, item and Result limits remain independent, and the original absolute
+// profile retains eight objects. This is configuration DATA, not occupancy,
+// prepaid memory, a reservation or permission to discard retained evidence.
+fn product_default_store_objects(finite_run_profile : Bool) -> Int {
+  if finite_run_profile {
+    100000
+  } else {
+    8
+  }
+}
+
+///|
 fn product_assemble_originals(
   configuration_root : String,
   sqlite_library : String,
@@ -432,7 +446,12 @@ fn product_assemble_originals(
                 ("store_name", Json::string("results")),
                 ("store_authority_cid", Json::string(product_cid(common.store))),
                 ("store_capacity_bytes", Json::number(1048576)),
-                ("store_objects", Json::number(8)),
+                (
+                  "store_objects",
+                  Json::number(
+                    product_default_store_objects(finite_run_profile).to_double(),
+                  ),
+                ),
                 ("store_record_bytes", Json::number(1048576)),
                 ("result_payload_bytes", Json::number(65536)),
                 ("retention_policy_wire", Json::string(common.retention_policy)),

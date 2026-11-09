@@ -1020,3 +1020,49 @@ test "Native default Model policy retains original assets and explicit lower env
   assert_true(physical_equal(retained, selected))
   assert_eq(text(retained, "environment.json"), selected_environment)
 }
+
+///|
+// Constructor DATA only. Physical Store reservations and currentness remain
+// with the existing Store; restoring old bytes cannot select a new default.
+test "Native finite Store profile retains explicit and legacy object quotas" {
+  let assets = @run_host.client_local_product_assets()
+  let finite = @run_host.client_local_product_finite_originals(
+    "/operator/native-store-policy", "/product/sqlite.dylib", "/product/crypto.dylib",
+    "2026-11-09T00:00:00.000Z", assets,
+  ).unwrap()
+  let legacy = @run_host.client_local_product_originals(
+    "/operator/native-store-policy", "/product/sqlite.dylib", "/product/crypto.dylib",
+    "2026-11-09T00:00:00.000Z", assets,
+  ).unwrap()
+  let run_bytes = fn(values : Array[(String, Bytes)]) -> Bytes {
+    values.iter().find_first(pair => pair.0 == "run.json").unwrap().1
+  }
+  let text = fn(bytes : Bytes) -> String {
+    @utf8.decode(bytes) catch {
+      _ => abort("invalid Store policy bytes")
+    }
+  }
+  let original = local_command_run_installation_original(
+    "run.json",
+    text(run_bytes(legacy)),
+  )
+  let selected = local_run_installation(text(run_bytes(finite)))
+  assert_eq(selected.store_objects, 100000L)
+  // The byte/item/Result ceilings are independent of the object inventory.
+  assert_eq(selected.store_capacity_bytes, 1048576L)
+  assert_eq(selected.store_record_bytes, 1048576L)
+  assert_eq(selected.result_payload_bytes, 65536L)
+  assert_eq(original.installation.store_objects, 8L)
+  assert_eq(
+    original.select("run.json", run_bytes(legacy)).unwrap().store_objects,
+    8L,
+  )
+  assert_true(original.select("run.json", run_bytes(finite)) is None)
+  // No default Store selection rewrites the packaged Environment or policy.
+  for name in ["environment.json", "store.json"] {
+    assert_eq(
+      finite.iter().find_first(pair => pair.0 == name).unwrap().1,
+      legacy.iter().find_first(pair => pair.0 == name).unwrap().1,
+    )
+  }
+}
