@@ -39,6 +39,23 @@ pub fn issue_single_model_client_effect_direct_source_evidence(
     Ok(value) => value
     Err(issue) => return Err(Invocation(issue))
   }
+  build_model_effect_direct_sources(
+    invocation, sources, retention, max_bytes, max_nodes, max_depth,
+  ).map(entries => (invocation, entries))
+}
+
+///|
+fn build_model_effect_direct_sources(
+  invocation : ClientEffectLocalInvocation,
+  sources : ClientInferComposedSources,
+  retention : @publication.PublicationContract,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  Array[ClientEffectAcquiredEvidence],
+  ClientEffectAcquiredEvidenceIssue,
+] {
   let entries = []
   for input in sources.inputs {
     let material = match input.original {
@@ -122,5 +139,5 @@ pub fn issue_single_model_client_effect_direct_source_evidence(
       scope: acquisition_scope,
     })
   }
-  Ok((invocation, entries))
+  Ok(entries)
 }

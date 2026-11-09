@@ -452,6 +452,30 @@ pub fn resolve_run_local_result_evidence_refs(
   observation : RunEvidenceValue,
   retention : PublicationContract,
 ) -> Result[(String, String, String), RunLocalResultEvidenceIssue] {
+  let refs = match
+    resolve_run_local_result_context(
+      admission, run_definition, invocation, observation,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if retention.name != "result_retention_policy" ||
+    contract_string(retention, "effective_data_policy_cid") != Some(refs.1) {
+    return Err(ForeignRetention)
+  }
+  Ok(refs)
+}
+
+///|
+/// Project this already admitted Run/Invocation/observation tuple once, before
+/// selecting Result retention for its original effective policy. No policy
+/// is defaulted, recomputed or granted by these immutable reference checks.
+pub fn resolve_run_local_result_context(
+  admission : RunPublicationAdmission,
+  run_definition : PublicationContract,
+  invocation : PublicationContract,
+  observation : RunEvidenceValue,
+) -> Result[(String, String, String), RunLocalResultEvidenceIssue] {
   if run_definition.name != "run_definition" ||
     contract_string(run_definition, "compiled_plan_cid") !=
     Some(admission.compiled_plan_cid) ||
@@ -485,10 +509,6 @@ pub fn resolve_run_local_result_evidence_refs(
   guard contract_string_from_value(observation.value, "data_policy_cid")
     is Some(policy_cid) else {
     return Err(ForeignObservation)
-  }
-  if retention.name != "result_retention_policy" ||
-    contract_string(retention, "effective_data_policy_cid") != Some(policy_cid) {
-    return Err(ForeignRetention)
   }
   Ok((scope_cid, policy_cid, admission.authorization_context_cid))
 }

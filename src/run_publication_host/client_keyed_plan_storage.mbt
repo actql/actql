@@ -51,10 +51,11 @@ fn client_keyed_plan_metadata_storage(
     @schema.field_count(right_schema).to_int64()
   guard @shape.collection_construction_extent({
       // Fragment inputs (7 references/3 words), barrier inputs (14 references),
-      // component (4 refs), lookup Fragment (6 refs), acquisition/Effect view,
+      // component (5 refs including original barrier document), lookup Fragment
+      // (6 refs), acquisition/Effect view,
       // the selected pair/Option and each role tuple/two possible Options.
       records: 10L + 3L * roles,
-      record_references: 7L + 14L + 4L + 6L + 16L + 4L + 5L * roles,
+      record_references: 7L + 14L + 5L + 6L + 16L + 4L + 5L * roles,
       record_words: 3L + 4L,
       reference_arrays: 4L,
       reference_items: roles + fields,

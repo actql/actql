@@ -599,6 +599,14 @@ pub fn client_effect_local_update_completion_free_catalog_cid() -> String
 
 pub fn client_effect_member_descriptor(PreparedClientEffectComputation, Int, String, Int) -> Result[(Int, String, String, String, String, String, String?, String, String?), ClientEffectMemberDescriptorIssue]
 
+pub fn client_effect_model_acquired_direct_sources(ClientEffectModelAcquiredEvidence) -> Array[ClientEffectAcquiredEvidence]
+
+pub fn client_effect_model_acquired_invocation(ClientEffectModelAcquiredEvidence) -> ClientEffectLocalInvocation
+
+pub fn client_effect_model_acquired_lookup_barrier(ClientEffectModelAcquiredEvidence) -> (String, String)?
+
+pub fn client_effect_model_acquired_matches(ClientEffectModelAcquiredEvidence, ClientCompiledRun, ClientInferCallScope, @run_publication.CapturedEffectDependencyBody) -> Bool
+
 pub fn client_effect_normalization_catalog_cid(ClientEffectNormalization) -> String
 
 pub fn client_effect_normalization_materials_cid(ClientEffectRunMaterials) -> String?
@@ -1745,6 +1753,8 @@ pub fn issue_installed_client_composed_infer_plan_graph(ClientInferOccurrence, @
 
 pub fn issue_installed_client_infer_plan_graph(PreparedClientProgram, Int, @check_environment.ModelExecutionContract, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientInferPlanGraph, ClientInferPlanGraphIssue]
 
+pub fn issue_model_client_effect_local_result_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectLocalResultExport, ClientEffectModelAcquiredEvidence, @execution_relation.CompletedOutput, ClientEffectLocalResultDefinition, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
+
 pub fn issue_prepared_client_acquired_serialization_plan_component(PreparedClientProgram, Int, Int, Int, Int, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientSerializationPlanGraph, ClientSerializationPlanGraphIssue]
 
 pub fn issue_prepared_client_acquired_serialization_plan_graph(PreparedClientProgram, Int, Int, Int, Int, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientSerializationPlanGraph, ClientSerializationPlanGraphIssue]
@@ -1844,6 +1854,8 @@ pub fn issue_prepared_client_values_output_schema(PreparedClientProgram, Int, @l
 pub fn issue_prepared_client_values_plan_graph(PreparedClientProgram, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientValuesPlanGraph, ClientValuesPlanGraphIssue]
 
 pub fn issue_prepared_source_free_client_bound_template(PreparedClientProgram, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, ClientBoundTemplateIssue]
+
+pub fn issue_single_model_client_effect_acquired_evidence(ClientCompiledRun, ClientInferCallScope, @run_publication.CapturedEffectDependencyBody, ClientInferComposedSources, @run_publication.PublicationContract, Int, Int, Int) -> Result[ClientEffectModelAcquiredEvidence, ClientEffectAcquiredEvidenceIssue]
 
 pub fn issue_single_model_client_effect_direct_source_evidence(ClientCompiledRun, ClientInferCallScope, @run_publication.CapturedEffectDependencyBody, ClientInferComposedSources, @run_publication.PublicationContract, Int, Int, Int) -> Result[(ClientEffectLocalInvocation, Array[ClientEffectAcquiredEvidence]), ClientEffectAcquiredEvidenceIssue]
 
@@ -2917,6 +2929,8 @@ pub(all) enum ClientEffectMemberDescriptorIssue {
   MissingMapping
   WorkLimit
 } derive(@debug.Debug)
+
+type ClientEffectModelAcquiredEvidence
 
 type ClientEffectNormalization
 

@@ -935,6 +935,8 @@ pub fn release_model_capture_bundle_read(ModelCaptureBundleRead) -> Bool
 
 pub fn render_result_material_table(ResultMaterialSchema, Array[ResultMaterialRow], Int, Int) -> Result[String, ResultMaterialIssue]
 
+pub fn resolve_run_local_result_context(RunPublicationAdmission, PublicationContract, PublicationContract, RunEvidenceValue) -> Result[(String, String, String), RunLocalResultEvidenceIssue]
+
 pub fn resolve_run_local_result_evidence_refs(RunPublicationAdmission, PublicationContract, PublicationContract, RunEvidenceValue, PublicationContract) -> Result[(String, String, String), RunLocalResultEvidenceIssue]
 
 pub fn restore_model_source_observation(ModelSourceObservation, RunEvidenceValue, RunEvidenceValue) -> Result[ModelSourceObservation, RunEvidenceValueIssue]

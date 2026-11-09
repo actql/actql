@@ -442,7 +442,10 @@ fn issue_client_keyed_plan_barrier(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
-) -> Result[ClientTaskFragmentNode, ClientInferPlanGraphIssue] {
+) -> Result[
+  (ClientTaskFragmentNode, @encode.EncodedDocument),
+  ClientInferPlanGraphIssue,
+] {
   if left.node_id != original.fragments.left_node_id ||
     left.output_port != original.fragments.left.output ||
     left.output_carrier != "relation" {
@@ -463,14 +466,15 @@ fn issue_client_keyed_plan_barrier(
       left.output_contract_cid,
       node,
     )
-    Ok({
+    let fragment : ClientTaskFragmentNode = {
       wire: @encode.finish(node),
       node_id: original.barrier_id,
       output_port: "rows",
       logical_cid: cid,
       output_contract_cid: original.output_contract_cid,
       output_carrier: "relation",
-    })
+    }
+    Ok((fragment, body))
   } catch {
     _ => Err(Encoding)
   }
@@ -481,6 +485,7 @@ priv struct ClientKeyedPlanComponent {
   original : ClientKeyedPlanBarrierInput
   left : ClientTaskFragmentNode
   barrier : ClientTaskFragmentNode
+  barrier_body : @encode.EncodedDocument
   joined : ClientTaskFragmentNode
 }
 
@@ -545,14 +550,14 @@ fn issue_client_keyed_plan_component(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let barrier = match
+  let (barrier, barrier_body) = match
     issue_client_keyed_plan_barrier(
       original, left, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  Ok({ original, left, barrier, joined, })
+  Ok({ original, left, barrier, barrier_body, joined, })
 }
 
 ///|

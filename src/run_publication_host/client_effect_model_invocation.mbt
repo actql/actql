@@ -13,6 +13,27 @@ pub fn issue_single_model_client_effect_local_invocation(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[ClientEffectLocalInvocation, ClientEffectLocalInvocationIssue] {
+  issue_model_effect_local_invocation(
+    compiled,
+    scope,
+    model,
+    None,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+fn issue_model_effect_local_invocation(
+  compiled : ClientCompiledRun,
+  scope : ClientInferCallScope,
+  model : @publication.CapturedEffectDependencyBody,
+  lookup : ClientKeyedNativeCompletion?,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientEffectLocalInvocation, ClientEffectLocalInvocationIssue] {
   guard compiled.compilation is Effects(allowed) &&
     physical_equal(compiled.owner, scope.owner) &&
     allowed.compilation.compiled.infers.length() <= 1 &&
@@ -45,10 +66,20 @@ pub fn issue_single_model_client_effect_local_invocation(
     let (evidence, _, _, _) = @publication.model_source_observation_originals(
       source,
     )
+    // The complete Lookup observation replaces its narrower Source-only root.
+    // Its actual captured Source body remains a transitive provenance member.
+    if lookup is Some(completed) && physical_equal(completed.source, evidence) {
+      continue
+    }
     let cid = @publication.run_evidence_value_identity(evidence)
     if !observations.contains(cid) {
       observations.push(cid)
     }
+  }
+  if lookup is Some(completed) {
+    observations.push(
+      @publication.publication_contract_identity(completed.evidence),
+    )
   }
   observations.sort_by(@canonical_value.compare_utf16)
   issue_client_effect_local_invocation_body(

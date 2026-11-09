@@ -407,3 +407,79 @@ pub fn NativeClientMockModelWork::local_effect_direct_source_evidence(
   }
   result
 }
+
+///|
+/// Complete Model Unit provenance from this original Work. No second output
+/// use, Model/Source execution or resource owner is created by this projection.
+pub fn NativeClientMockModelWork::local_effect_model_acquired_evidence(
+  self : Self,
+  retention : @publication.PublicationContract,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @host.ClientEffectModelAcquiredEvidence,
+  @host.ClientEffectAcquiredEvidenceIssue,
+] {
+  guard !self.closing &&
+    !self.closed &&
+    !self.advancing &&
+    self.local_observation is Some(observation) else {
+    return Err(Invocation(ForeignCapturedInput))
+  }
+  self.advancing = true
+  defer {
+    self.advancing = false
+  }
+  let result = @infer.issue_original_local_model_acquired_evidence(
+    observation, retention, max_bytes, max_nodes, max_depth,
+  )
+  if self.closing ||
+    self.closed ||
+    !self.local_observation
+    .map(value => physical_equal(value, observation))
+    .unwrap_or(false) {
+    return Err(Invocation(ForeignCapturedInput))
+  }
+  result
+}
+
+///|
+pub fn NativeClientMockModelWork::local_effect_model_artifact(
+  self : Self,
+  materials : @host.ClientEffectRunMaterials,
+  inputs : @strategy.CapturedEffectInputs,
+  exported : @strategy.CapturedEffectLocalResultExport,
+  acquired : @host.ClientEffectModelAcquiredEvidence,
+  definition : @host.ClientEffectLocalResultDefinition,
+  receipt : @execution.CompletedRelationExportReceipt,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @host.ClientEffectLocalResultArtifact,
+  @host.ClientEffectLocalResultArtifactIssue,
+] {
+  guard !self.closing &&
+    !self.closed &&
+    !self.advancing &&
+    self.local_observation is Some(observation) else {
+    return Err(ForeignOwner)
+  }
+  self.advancing = true
+  defer {
+    self.advancing = false
+  }
+  let result = @infer.issue_original_local_model_effect_artifact(
+    observation, materials, inputs, exported, acquired, definition, receipt, max_bytes,
+    max_nodes, max_depth,
+  )
+  if self.closing ||
+    self.closed ||
+    !self.local_observation
+    .map(value => physical_equal(value, observation))
+    .unwrap_or(false) {
+    return Err(ForeignOwner)
+  }
+  result
+}

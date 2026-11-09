@@ -220,11 +220,24 @@ fn client_effect_computed_result_matches_acquired_unit(
   source : ClientEffectAcquiredEvidence,
   result : @strategy.CapturedEffectLocalResult,
 ) -> Bool {
+  physical_equal(source.owner, owner) &&
+  client_effect_computed_result_matches_invocation(
+    owner,
+    source.invocation,
+    result,
+  )
+}
+
+///|
+fn client_effect_computed_result_matches_invocation(
+  owner : PreparedClientEffectComputation,
+  invocation : ClientEffectLocalInvocation,
+  result : @strategy.CapturedEffectLocalResult,
+) -> Bool {
   let graph = @strategy.checked_effect_computation_graph(owner.graph)
   let unit = @strategy.captured_effect_local_result_stage(result)
   let task = @strategy.captured_effect_local_result_task(result)
-  if !physical_equal(source.owner, owner) ||
-    unit != source.invocation.unit ||
+  if unit != invocation.unit ||
     unit < 0 ||
     unit >= @strategy.graph_captured_prefix(graph) ||
     task < @strategy.graph_captured_prefix(graph) {

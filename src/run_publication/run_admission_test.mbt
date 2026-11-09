@@ -208,6 +208,18 @@ test "local Result evidence refs come from one admitted Run" {
     ).unwrap()
   }
   assert_eq(
+    resolve_run_local_result_context(
+      admission, definition, invocation, observation,
+    ),
+    Ok(
+      (
+        admission_test_cid("3"),
+        admission_test_cid("d"),
+        admission_test_cid("8"),
+      ),
+    ),
+  )
+  assert_eq(
     resolve_run_local_result_evidence_refs(
       admission,
       definition,
@@ -234,6 +246,12 @@ test "local Result evidence refs come from one admitted Run" {
     is Err(ForeignRetention),
   )
   let other_observation = observe(admission_test_cid("c"))
+  assert_true(
+    resolve_run_local_result_context(
+      admission, definition, invocation, other_observation,
+    )
+    is Err(ForeignInvocation),
+  )
   assert_true(
     resolve_run_local_result_evidence_refs(
       admission,

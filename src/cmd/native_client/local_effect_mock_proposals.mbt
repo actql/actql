@@ -9,6 +9,9 @@ priv enum LocalNativeMockEffectProposalIssue {
   Completed(@execution.CompletedExportIssue)
   Keyed(@run_host.ClientKeyedRequestIssue)
   Source(@run_host.ClientEffectAcquiredEvidenceIssue)
+  Materials(@run_host.ClientEffectRunMaterialsIssue)
+  Definition(@run_host.ClientEffectLocalResultDefinitionIssue)
+  Artifact(@run_host.ClientEffectLocalResultArtifactIssue)
 }
 
 ///|
@@ -34,6 +37,8 @@ priv struct LocalNativeMockEffectProposals {
   members : Array[LocalNativeMockEffectProposalMember]
   mut _retained_keyed_identity : @run_host.ClientKeyedLookupRequestIdentity?
   mut invocation : @run_host.ClientEffectLocalInvocation?
+  mut materials : @run_host.ClientEffectRunMaterials?
+  mut acquired : @run_host.ClientEffectModelAcquiredEvidence?
   mut _retained_direct_evidence : Array[@run_host.ClientEffectAcquiredEvidence]
 }
 
@@ -46,6 +51,8 @@ priv struct LocalNativeMockEffectProposalMember {
   mut exported : @strategy.CapturedEffectLocalResultExport?
   mut stream : @execution.CompletedOutputExport?
   mut receipt : @execution.CompletedRelationExportReceipt?
+  mut _retained_definition : @run_host.ClientEffectLocalResultDefinition?
+  mut _retained_artifact : @run_host.ClientEffectLocalResultArtifact?
   rows : Array[(String, String)]
 }
 
@@ -90,6 +97,8 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
       members: [],
       _retained_keyed_identity: None,
       invocation: None,
+      materials: None,
+      acquired: None,
       _retained_direct_evidence: [],
     }
     state.proposals = Some(held)
@@ -119,6 +128,8 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
         exported: None,
         stream: None,
         receipt: None,
+        _retained_definition: None,
+        _retained_artifact: None,
         rows: [],
       }
       held.members.push(current)
@@ -152,14 +163,29 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
         )
       }
       if held.invocation is None {
-        let (invocation, sources) = business.model_work[0]
-          .local_effect_direct_source_evidence(retention, 16384, 1024, 20)
+        let acquired = business.model_work[0]
+          .local_effect_model_acquired_evidence(retention, 16384, 1024, 20)
           .map_err(issue => LocalNativeMockEffectProposalIssue::Source(issue))
           .native_effect_proposal(self.original)
         // Keep the actual returned originals before any later export/target
         // constructor. All members reuse this one semantic Invocation.
-        held.invocation = Some(invocation)
-        held._retained_direct_evidence = sources
+        held.acquired = Some(acquired)
+        held.invocation = Some(
+          @run_host.client_effect_model_acquired_invocation(acquired),
+        )
+        held._retained_direct_evidence = @run_host.client_effect_model_acquired_direct_sources(
+          acquired,
+        )
+        held.materials = Some(
+          @run_host.bind_prepared_client_effect_original_materials(
+            state.first.allowed,
+            state.first.definition,
+            state.first.issued,
+            request=Some(state.first.request),
+          )
+          .map_err(issue => LocalNativeMockEffectProposalIssue::Materials(issue))
+          .native_effect_proposal(self.original),
+        )
       }
       let invocation = held.invocation.unwrap()
       guard @strategy.captured_effect_input_at(inputs, entry) is Some(input) &&
@@ -256,6 +282,32 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
         ) {
         stop("LocalOriginalEffectResultUnavailable")
       }
+      let definition = @run_host.issue_captured_client_effect_local_result_definition(
+          state._retained_prepared,
+          inputs,
+          entry,
+          16384,
+          1024,
+          20,
+        )
+        .map_err(issue => LocalNativeMockEffectProposalIssue::Definition(issue))
+        .native_effect_proposal(self.original)
+      current._retained_definition = Some(definition)
+      let artifact = business.model_work[0]
+        .local_effect_model_artifact(
+          held.materials.unwrap(),
+          inputs,
+          exported,
+          held.acquired.unwrap(),
+          definition,
+          receipt,
+          16384,
+          1024,
+          20,
+        )
+        .map_err(issue => LocalNativeMockEffectProposalIssue::Artifact(issue))
+        .native_effect_proposal(self.original)
+      current._retained_artifact = Some(artifact)
       @strategy.finish_captured_effect_proposal_plan(
         plan,
         current.rows.length(),
@@ -270,10 +322,9 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
 // Retire pure Core child continuations before returning their actual Result
 // pins. No file, pending write, Store or physical owner is acknowledged here.
 fn LocalNativeMockEffectProposals::close(self : Self) -> Bool {
-  self._retained_keyed_identity = None
-  self.invocation = None
-  self._retained_direct_evidence.clear()
   for entry in self.members {
+    entry._retained_artifact = None
+    entry._retained_definition = None
     @strategy.cancel_captured_effect_proposal_plan(entry.plan)
     if entry.receipt is Some(receipt) {
       @execution.cancel_completed_relation_export_receipt(receipt)
@@ -306,5 +357,10 @@ fn LocalNativeMockEffectProposals::close(self : Self) -> Bool {
       }
     }
   }
+  self.acquired = None
+  self.materials = None
+  self._retained_keyed_identity = None
+  self.invocation = None
+  self._retained_direct_evidence.clear()
   @strategy.release_captured_effect_inputs(self.inputs)
 }

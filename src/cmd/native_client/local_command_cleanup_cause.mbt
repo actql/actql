@@ -92,6 +92,23 @@ fn command_preparation_cleanup_cause(
       }
     CommandBusinessEffectProposals(cause) =>
       match cause {
+        Materials(original) =>
+          match original {
+            RunMismatch => "EffectProposalsMaterialsRunMismatch"
+            _ => "EffectProposalsMaterials"
+          }
+        Definition(original) =>
+          match original {
+            MissingResult => "EffectProposalsDefinitionMissingResult"
+            _ => "EffectProposalsDefinition"
+          }
+        Artifact(original) =>
+          match original {
+            ForeignOwner => "EffectProposalsArtifactForeignOwner"
+            ForeignExport => "EffectProposalsArtifactForeignExport"
+            ForeignRun => "EffectProposalsArtifactForeignRun"
+            _ => "EffectProposalsArtifact"
+          }
         Source(original) =>
           match original {
             Invocation(_) => "EffectProposalsSourceInvocation"

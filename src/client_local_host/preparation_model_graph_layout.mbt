@@ -82,9 +82,23 @@ fn model_graph_construction_cost(
     active.push(plan)
   }
   let mut retained : @execution.PreparationRepresentationUnits = {
-    record_headers: 0L,
-    reference_slots: 0L,
-    scalar_words: 0L,
+    // EncodedDocument retains one original String and three writer counts,
+    // not a parsed JSON tree. Its String is already in the wires inventory.
+    record_headers: if value.lookup is Some(_) {
+      1L
+    } else {
+      0L
+    },
+    reference_slots: if value.lookup is Some(_) {
+      1L
+    } else {
+      0L
+    },
+    scalar_words: if value.lookup is Some(_) {
+      3L
+    } else {
+      0L
+    },
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }

@@ -198,7 +198,7 @@ test "actual checked left lookup and joined Fragments retain genuine ports and r
   let original = prepare_client_keyed_plan_barrier_input(
     input, profile, 1000000, 1000000, 100000, 100,
   ).unwrap()
-  let barrier = issue_client_keyed_plan_barrier(
+  let (barrier, original_body) = issue_client_keyed_plan_barrier(
     original, left, 1000000, 100000, 100,
   ).unwrap()
   let node = parse_plan_identity_value(barrier.wire, 1000000, 100000, 100).unwrap()
@@ -211,6 +211,11 @@ test "actual checked left lookup and joined Fragments retain genuine ports and r
   let admitted = @publication.admit_publication_contract(
     "lookup_barrier", wire, 1000000, 100000, 100,
   ).unwrap()
+  assert_eq(@encode.document_text(original_body), wire)
+  let retained = issue_client_keyed_plan_component(
+    original, 1000000, 100000, 100,
+  ).unwrap()
+  assert_eq(@encode.document_text(retained.barrier_body), wire)
   assert_eq(
     @publication.publication_contract_identity(admitted),
     barrier.logical_cid,
