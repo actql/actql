@@ -4,8 +4,9 @@ import test from 'node:test';
 import {parse} from 'acorn';
 import * as runStateAccess from '../host-common/run-state-access.mjs';
 
-// Execute the actual Local observation statement with explicit owner ports.
-// These caller tests do not instantiate a full Host or Common runtime.
+// Execute actual Local statements. The original composition cases use explicit
+// owner ports; the metadata case uses real Common and SQLite. Neither qualifies
+// a full Host, physical provider or normal resource funding.
 const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
 const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
 const statements = [], waitStatements = [];
