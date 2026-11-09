@@ -1060,6 +1060,7 @@ export function prepareInstalledEffectControlConstruction(run) {
   const begin = runtime?.clientProgramInstalledEffectOperationControlConstructionBegin;
   const complete = runtime?.clientProgramInstalledEffectOperationControlConstructionComplete;
   const grantBegin = runtime?.clientProgramInstalledEffectOperationGrantConstructionBegin;
+  const requestProjectionBegin = runtime?.clientProgramInstalledEffectOperationRequestProjectionBegin;
   const beginInput = runtime?.clientProgramInstalledEffectOperationControlInputBegin;
   const codecBegin = runtime?.clientProgramInstalledEffectOperationLedgerCodecBegin;
   const codecComplete = runtime?.clientProgramInstalledEffectOperationLedgerCodecComplete;
@@ -1096,14 +1097,14 @@ export function prepareInstalledEffectControlConstruction(run) {
     Reflect.apply(nativePromiseThen, joined, [settled, settled]);
     fail('InvalidInstalledEffectControlConstruction');
   };
-  const invoke = (receiver, method, args, inputWire, grant = false) => {
+  const invoke = (receiver, method, args, inputWire, grant = false, requestProjection) => {
     if (retired) fail('InstalledEffectControlConstructionRetired');
     if (failed) throw primary;
     if (working || run.selecting) fail('InstalledEffectControlConstructionPending');
     if (typeof method !== 'function' || !Array.isArray(args)) fail('InvalidInstalledEffectControlConstruction');
     // Only the captured Core getter and its exact immutable Plan are metadata.
     // Inspect DATA descriptors without executing argument getters or Proxy traps.
-    const metadata = !grant && inputWire === undefined && receiver === runtime && method === shape &&
+    const metadata = !grant && requestProjection === undefined && inputWire === undefined && receiver === runtime && method === shape &&
       !nodeTypes.isProxy(method) && !nodeTypes.isProxy(args) &&
       Object.getOwnPropertyDescriptor(args, 'length')?.value === 1 &&
       Object.getOwnPropertyDescriptor(args, '0')?.value === plan;
@@ -1121,9 +1122,11 @@ export function prepareInstalledEffectControlConstruction(run) {
     try {
       originalRecord();
       if (metadata) observePlan();
-      else checked(Reflect.apply(grant && grantBegin !== undefined ? grantBegin :
+      else checked(Reflect.apply(requestProjection !== undefined && requestProjectionBegin !== undefined ? requestProjectionBegin :
+        grant && grantBegin !== undefined ? grantBegin :
         inputWire === undefined ? begin : beginInput, runtime,
-        [parent, prepared, request, plan, ...(inputWire === undefined ? [] : [inputWire])]));
+        [parent, prepared, request, plan, ...(requestProjection !== undefined && requestProjectionBegin !== undefined
+          ? requestProjection : inputWire === undefined ? [] : [inputWire])]));
       originalRecord();
       invoking = true;
       const value = Reflect.apply(method, receiver, metadata ? [plan] : args);
@@ -1173,6 +1176,15 @@ export function prepareInstalledEffectControlConstruction(run) {
   // Installing Site issuers alone use this fixed Core constructor family.
   // Legacy runtimes keep the complete generic frame; JS quotes no quantities.
   const grant = (receiver, method, args) => invoke(receiver, method, args, undefined, true);
+  // Core resolves these SAME Plan coordinates to its completed original
+  // request child. JavaScript selects no quantity or replacement capability.
+  // A legacy runtime still reserves the complete generic control frame.
+  const requestProjection = (member, operation, row, receiver, method, args) => {
+    if (![member, operation, row].every(value => Number.isSafeInteger(value) && value >= 0)) {
+      fail('InvalidInstalledEffectControlConstruction');
+    }
+    return invoke(receiver, method, args, undefined, false, [member, operation, row]);
+  };
   // Only the original Ledger invokes this nested synchronous seam. The outer
   // control frame keeps its full Receipt/Grant/projector allowance and output
   // holders; no Preview one-use identity or physical occurrence is reused.
@@ -1312,7 +1324,7 @@ export function prepareInstalledEffectControlConstruction(run) {
     retired = true;
     return true;
   };
-  return Object.freeze(Object.assign(work, {retire, parsePreview, ledgerCodec, grant,
+  return Object.freeze(Object.assign(work, {retire, parsePreview, ledgerCodec, grant, requestProjection,
     retainInputs, retainRecoveredInputs}));
 }
 

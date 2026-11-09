@@ -3025,6 +3025,21 @@ and only actual synchronous completion returns it. A Grant cannot nest the
 unrelated Ledger codec. JS forwards the existing issuer and arguments to this
 Core boundary; legacy runtimes retain the complete generic frame.
 
+After an original row request constructor has completed, its Host facts export
+and original-row comparison may select that same constructor's private work
+on the existing control token. Core resolves the same Plan/member/row/operation
+coordinate to its original live, completed construction child; callback arguments
+supply no quantity. The original constructor envelope covers native export,
+JSON output and canonical comparison work; the full control retained allowance
+continues to fund newly returned Host trees/entries beside the original native
+output. This is not permission to treat newly parsed facts as borrowed strings.
+Both entry and completion keep the original current, Request, Plan, child and
+backing fences. A failed or pending frame retains its work and original child;
+only successful synchronous completion returns work. Other controls and Ledger
+codecs keep their complete generic construction path, and legacy runtimes fall
+back to that complete frame. No transfer/attempt, authorization, resource price,
+policy limit or physical-cleanup acknowledgement is changed.
+
 The ordinary execution installer requires its existing Request preparation
 owner. It receives that owner's original checked/compiler result and retains
 the original Environment, Parameters cursor and restoration associations.

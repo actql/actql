@@ -1764,6 +1764,8 @@ pub fn client_program_installed_effect_operation_ledger_codec_begin(@client_loca
 
 pub fn client_program_installed_effect_operation_ledger_codec_complete(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledEffectManagedPlan) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
 
+pub fn client_program_installed_effect_operation_request_projection_begin(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledEffectManagedPlan, Int, Int, Int) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_installed_effect_operation_response_backing_fits(@client_local_host.ClientInstalledEffectOperationExtent, Int, Int, Int) -> Bool
 
 pub fn client_program_installed_effect_operation_response_projection_complete(@client_local_host.ClientInstalledEffectOperationBorrow) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]

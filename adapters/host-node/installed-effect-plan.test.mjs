@@ -1735,3 +1735,48 @@ test('original Grant frame preserves entry and callback failures without returni
     assert.equal(f.run.selecting, false);
   }
 });
+
+
+test('original request projection selects only same Core coordinates and keeps legacy full funding', () => {
+  let f;const receiver = {}, argument = {}, result = {};
+  f = controlWorkFixture({clientProgramInstalledEffectOperationRequestProjectionBegin(...args) {
+    assert.strictEqual(this, f.runtime);
+    assert.deepEqual(args, [f.run.value, f.run.prepared, f.run.request, f.run.operationPlan, 2, 3, 4]);
+    assert.equal(f.run.selecting, true);f.events.push('request');return {$tag: 1};
+  }});
+  assert.strictEqual(f.work.requestProjection(2, 3, 4, receiver, function(value) {
+    assert.strictEqual(this, receiver);assert.strictEqual(value, argument);
+    assert.throws(() => f.work.requestProjection(2, 3, 4, receiver, () => {}, []),
+      {code: 'InstalledEffectControlConstructionPending'});
+    assert.equal(f.work.retire(), false);return result;
+  }, [argument]), result);
+  assert.deepEqual(f.events, ['request', 'complete']);
+  assert.strictEqual(f.work(undefined, () => result, []), result);
+  assert.deepEqual(f.events, ['request', 'complete', 'begin', 'complete']);
+  assert.throws(() => f.work.requestProjection(2, -1, 4, receiver, () => {}, []),
+    {code: 'InvalidInstalledEffectControlConstruction'});
+  const legacy = controlWorkFixture();
+  assert.strictEqual(legacy.work.requestProjection(2, 3, 4, undefined, () => result, []), result);
+  assert.deepEqual(legacy.events, ['begin', 'complete']);
+});
+
+test('original request projection preserves refusal failure and pending cleanup on the original control', async () => {
+  for (const mode of ['entry', 'callback', 'foreign', 'async']) {
+    let f, settle;const failure = new Error(mode), promise = new Promise(resolve => {settle = resolve;});
+    f = controlWorkFixture({clientProgramInstalledEffectOperationRequestProjectionBegin() {
+      f.events.push('request');if (mode === 'entry') throw failure;return {$tag: 1};
+    }});
+    let primary;
+    assert.throws(() => f.work.requestProjection(0, 1, 0, undefined, () => {
+      if (mode === 'entry') assert.fail('unfunded projection');
+      if (mode === 'callback') throw failure;
+      if (mode === 'foreign') {f.run.operationPlan = {};return {};}
+      return promise;
+    }, []), cause => {primary = cause;return mode === 'entry' || mode === 'callback' ? cause === failure : !!cause.code;});
+    assert.deepEqual(f.events, ['request']);
+    assert.throws(() => f.work(undefined, () => assert.fail('failed prefix retry'), []), cause => cause === primary);
+    if (mode === 'async') {assert.equal(f.work.retire(), false);settle();await new Promise(setImmediate);}
+    else settle();
+    assert.equal(f.run.selecting, false);
+  }
+});

@@ -2715,7 +2715,10 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           // that synchronous projection, before publishing the row entry.
           preparedEntries.push(controlConstruction === undefined
             ? requestEntry(member, row, preparedRequest)
-            : controlConstruction(undefined, requestEntry, [member, row, preparedRequest]));
+            : constructor === undefined || controlConstruction.requestProjection === undefined
+              ? controlConstruction(undefined, requestEntry, [member, row, preparedRequest])
+              : controlConstruction.requestProjection(member.memberIndex, constructor.operationIndex, rowIndex,
+                undefined, requestEntry, [member, row, preparedRequest]));
         }
         entries = Object.freeze(preparedEntries);
       } else entries = requestsOf(member, rows, description, contentOf, createRows);

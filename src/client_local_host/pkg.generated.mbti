@@ -105,6 +105,8 @@ pub fn begin_installed_effect_operation_input(ClientInstalledEffectOperationBorr
 
 pub fn begin_installed_effect_operation_ledger_codec(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan, String?, Int, Int) -> Result[Unit, ClientInstalledManagedRunIssue]
 
+pub fn begin_installed_effect_operation_request_projection(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan, Int, Int, Int) -> Result[Unit, ClientInstalledManagedRunIssue]
+
 pub fn begin_installed_managed_capture_read(ClientInstalledManagedRun, Int) -> Result[ClientInstalledSourceRead, ClientInstalledManagedRunIssue]
 
 pub fn begin_installed_managed_capture_source_read(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @client_row_source_host.RowDeclaration, Int) -> Result[(ClientInstalledSourceRead, @query_planning.QueryRequirement, @client_row_source_host.RowAcquisition, ClientInstalledCaptureCapacity), ClientInstalledManagedRunIssue]

@@ -135,7 +135,7 @@ test('actual capture failure input callback retires only its pins after the shar
 const member=Object.freeze({kind:'create',effectId:'create',memberIndex:0});
 const input=[{label:'b'},{label:'a'},{label:'a'}];
 const issued=[{content_cid:cid('a'),occurrence:0},{content_cid:cid('a'),occurrence:1},{content_cid:cid('b'),occurrence:0}];
-function fixture({child=false,inventoryError,managed=false,constructorFailureAt,controlFrame=false}={}){
+function fixture({child=false,inventoryError,managed=false,constructorFailureAt,controlFrame=false,requestProjection=false}={}){
   const events=[],contexts=[],requests=[],requestChildren=[],workspaceEvents=[],runOriginal=Object.freeze({}),description=Object.freeze({original:true});
   let activeConstructor;
   let projecting = false, projections = 0;
@@ -216,6 +216,13 @@ function fixture({child=false,inventoryError,managed=false,constructorFailureAt,
     contentBorrowers:[],targeted:()=>false,guarded:()=>false,contentOwner:undefined,
     requestChildren,prepareInstalledRowCaptureChild,commandContentRow,requestEntry,requestsOf,prepareInstalledCreateRows,fail,
     managedEffect,prepareInstalledEffectRequestChild,prepareInstalledEffectOwnedRequestChild,retireRequestAliases(){aliasesRetired=true;ports.rowsOf.length=0;ports.currents.length=0;return true;}};
+  if (requestProjection) ports.controlConstruction.requestProjection = (actualMember, operation, row, receiver, method, args) => {
+    assert.deepEqual([actualMember, operation, row], [0, 1, projections]);
+    assert.equal(activeConstructor, undefined);
+    assert.strictEqual(args[0], member);assert.strictEqual(args[2].request, requests[row]);
+    workspaceEvents.push(['project', row]);
+    return ports.controlConstruction(receiver, method, args);
+  };
   const run=()=>Function(...Object.keys(ports),`return (async()=>{${source.slice(loop.start,loop.end)};return {rowsOf,observations,currents};})();`)(...Object.values(ports));
   return {run,contexts,events,requestChildren,workspaceEvents,activeConstructor:()=>activeConstructor,projections:()=>projections,inventoryCalls:()=>inventoryCalls,entryOf,ownerOf,owned,runOriginal,debits,settlements,managedEffect};
 }
@@ -1098,4 +1105,19 @@ test('cold reconstruction selects each actual saved member input before that sam
   for (const child of f.children) await child.prepared.release();
   assert.equal(f.finalRetire(), true);
   assert.deepEqual(f.events.slice(-2), ['retire-0', 'retire-1']);
+});
+
+
+test('managed request projection forwards the same completed original row and constructor coordinates', async () => {
+  const f = fixture({managed: true, controlFrame: true, requestProjection: true});
+  const result = await f.run();
+  assert.equal(f.projections(), 3);assert.equal(f.debits.length, 3);
+  assert.deepEqual(f.workspaceEvents, [
+    ['begin', 0], ['complete', 0], ['project', 0],
+    ['begin', 1], ['complete', 1], ['project', 1],
+    ['begin', 2], ['complete', 2], ['project', 2],
+  ]);
+  result.rowsOf[0].forEach((row, index) => assert.strictEqual(row.entry.value, f.contexts[index].value));
+  for (const retained of f.requestChildren) await retained.prepared.release();
+  assert.deepEqual(f.settlements, f.debits);
 });

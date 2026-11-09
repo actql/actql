@@ -306,6 +306,22 @@ pub fn client_program_installed_effect_operation_grant_construction_begin(
 }
 
 ///|
+#export_name("clientProgramInstalledEffectOperationRequestProjectionBegin")
+pub fn client_program_installed_effect_operation_request_projection_begin(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  member_index : Int,
+  operation_index : Int,
+  row_index : Int,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.begin_installed_effect_operation_request_projection(
+    owner, prepared, request, plan, member_index, operation_index, row_index,
+  )
+}
+
+///|
 #export_name("clientProgramInstalledEffectOperationControlInputBegin")
 pub fn client_program_installed_effect_operation_control_input_begin(
   owner : @client_local_host.ClientInstalledManagedRun,

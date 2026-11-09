@@ -43,9 +43,10 @@ priv struct ClientEffectOperationControls {
   coordinates : Map[ClientEffectOperationCoordinate, Int]
   construction_deferred : Bool
   mut construction_active : Bool
-  // Some selects only the original synchronous Grant constructor scratch.
-  // The same Plan retains every output; None keeps the complete generic frame.
-  mut grant_workspace : Int64?
+  // Some selects one original synchronous constructor's scratch. A request
+  // projection also retains its SAME completed child, not a new permission.
+  // Every output stays charged; None keeps the complete generic frame.
+  mut constructor_frame : (Int64, ClientInstalledEffectOperationBorrow?)?
   mut ledger_codec_active : Bool
   mut ledger_codec_workspace : Int64
   mut ledger_codec_retained : Int64
