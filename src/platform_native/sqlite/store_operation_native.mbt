@@ -396,3 +396,20 @@ pub fn Database::insert_original_store_cleanup(
     self.insert_in_scope(scope, key, body)
   })
 }
+
+///|
+#borrow(database, original)
+extern "C" fn bind_database_store_operation_ffi(
+  database : Database,
+  original : NativeStoreOperationOriginal,
+) -> Int = "actql_native_sqlite_bind_database_store_operation"
+
+///|
+/// Bind the already-open Database once to the same activated original Read
+/// operation. This performs no SQL, callback, open, grant or physical ACK.
+pub fn Database::bind_original_store_operation(
+  self : Database,
+  original : NativeStoreOperationOriginal,
+) -> Result[Unit, NativeSqliteIssue] {
+  store_operation_result(bind_database_store_operation_ffi(self, original))
+}

@@ -258,6 +258,28 @@ MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_database_matches_store_operation(
     original->bound_database == database &&
     original->library == database->library;
 }
+/* Attach an already-open SAME Journal to its fixed original coordinator.
+ * This is a pure reference association while Read is entered, not a Database
+ * open, SQL scope, current callback, permission or physical retirement ACK. */
+MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_bind_database_store_operation(
+    actql_native_sqlite_database *database,
+    actql_native_store_operation *original) {
+  if (!actql_store_operation_thread(original) || original->closed) return -1;
+  if (original->calling) return actql_store_operation_failed(original, -2);
+  if (!original->activated || !original->flight || original->sql ||
+      original->cleanup || original->cleanup_only || original->failed ||
+      original->open_attempted || original->binding_attempted ||
+      original->bound_database != NULL || database == NULL ||
+      database->process != getpid() || !database->opened ||
+      database->database == NULL || database->checked_close_ack ||
+      database->store_operation != NULL ||
+      original->library != database->library) return -1;
+  original->binding_attempted = true;
+  original->bound_database = database;
+  database->store_operation = original;
+  moonbit_incref(original);
+  return 0;
+}
 MOONBIT_FFI_EXPORT void actql_native_sqlite_database_fence_original_store(
     actql_native_sqlite_database *database) {
   if (database == NULL) return;

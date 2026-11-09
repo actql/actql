@@ -390,6 +390,8 @@ fn store_wal_physical_case(
   }
   let result = if open_probe == 0 {
     store_wal_original_work(host, sqlite, root + "/store", normal_probe)
+  } else if open_probe == 6 {
+    journal_existing_original_work(host, sqlite, root + "/store")
   } else {
     store_failed_open_original_work(host, sqlite, root + "/store", open_probe)
   }
@@ -683,4 +685,165 @@ test "Store original association metadata neither reenters nor revives its scope
 ///|
 test "Store return-only reconciliation precedes retained Reader cleanup without SQL replay" {
   store_wal_physical_case(false, open_probe=5)
+}
+
+///|
+// This selected physical fixture leaves SQL between calls. Its outer frame is
+// test control, not the CLI's separate retained Read or an approval authority.
+fn journal_existing_route(
+  receiver : StoreWalReceiver,
+  library : @sqlite.Library,
+  tag : Int,
+) -> Int {
+  if !physical_equal(receiver.library, library) {
+    return 10
+  }
+  match tag {
+    -1 =>
+      if receiver.host.require_domain_read_current(receiver.domain) is Ok(_) {
+        0
+      } else {
+        11
+      }
+    0 | 4 => {
+      if receiver.active || receiver.sql {
+        return 12
+      }
+      receiver.cleanup = tag == 4
+      receiver.active = true
+      0
+    }
+    1 => {
+      if !receiver.active || receiver.sql {
+        return 13
+      }
+      let entered = if receiver.cleanup {
+        receiver.host.enter_domain_read_cleanup(receiver.domain)
+      } else {
+        receiver.host.enter_domain_read(receiver.domain)
+      }
+      if entered is Err(_) {
+        return 14
+      }
+      receiver.sql = true
+      receiver.sql_entries += 1
+      0
+    }
+    2 => {
+      if !receiver.sql ||
+        receiver.host.leave_domain_read(receiver.domain) is Err(_) {
+        return 15
+      }
+      receiver.sql = false
+      0
+    }
+    3 => {
+      if !receiver.active || receiver.sql {
+        return 16
+      }
+      receiver.active = false
+      0
+    }
+    _ => 17
+  }
+}
+
+///|
+fn journal_existing_original_work(
+  host : InstalledArenaHost,
+  sqlite : InstalledArenaSqliteLibrary,
+  path : String,
+) -> Bool raise {
+  let library = sqlite.library.unwrap()
+  host
+  .enter_domain_read(sqlite.domain)
+  .retained_execution_value("already-open Journal stage 2")
+  let database = library
+    .open_database(path + "/existing-journal.sqlite3", 4096L)
+    .retained_execution_value("already-open Journal stage 3")
+  host
+  .leave_domain_read(sqlite.domain)
+  .retained_execution_value("already-open Journal stage 5")
+  let receiver : StoreWalReceiver = {
+    host,
+    domain: sqlite.domain,
+    library,
+    active: false,
+    cleanup: false,
+    sql: false,
+    sql_entries: 0,
+    normal_entries: 0,
+    fail_cleanup_return: false,
+    fail_normal_return: false,
+    return_ack_pending: false,
+    fail_cleanup_sql: false,
+    cleanup_sql_recoveries: 0,
+  }
+  let original = store_wal_prepare_original(library, receiver, fn(
+    receiver,
+    library,
+    tag,
+  ) {
+    journal_existing_route(receiver, library, tag)
+  })
+  assert_true(database.bind_original_store_operation(original) is Err(_))
+  original.activate().retained_execution_value("already-open Journal stage 6")
+  assert_true(database.bind_original_store_operation(original) is Err(_))
+  original
+  .enter_store()
+  .retained_execution_value("already-open Journal stage 7")
+  database
+  .bind_original_store_operation(original)
+  .retained_execution_value("already-open Journal stage 8")
+  assert_eq(receiver.sql_entries, 0)
+  assert_true(database.matches_original_store_operation(original))
+  assert_true(database.bind_original_store_operation(original) is Err(_))
+  database
+  .insert("original", "key", b"same-journal")
+  .retained_execution_value("already-open Journal stage 9")
+  |> ignore
+  assert_eq(
+    database
+    .read("original", "key")
+    .retained_execution_value("already-open Journal stage 10").body,
+    b"same-journal",
+  )
+  assert_eq(receiver.sql_entries, 2)
+  assert_false(receiver.sql)
+  original
+  .leave_store()
+  .retained_execution_value("already-open Journal stage 11")
+  let entries = receiver.sql_entries
+  assert_true(
+    database.read("original", "key") is Err(@sqlite.OperationRoutingBefore(_)),
+  )
+  assert_eq(receiver.sql_entries, entries)
+  // A returned Read flight does not retire the still-open original Database.
+  assert_true(original.close_checked() is Err(_))
+  original
+  .enter_cleanup()
+  .retained_execution_value("already-open Journal stage 12")
+  database
+  .close_checked()
+  .retained_execution_value("already-open Journal stage 13")
+  assert_eq(receiver.sql_entries, entries + 1)
+  original
+  .leave_store()
+  .retained_execution_value("already-open Journal stage 14")
+  assert_true(database.matches_original_store_operation(original))
+  original
+  .close_checked()
+  .retained_execution_value("already-open Journal stage 15")
+  assert_false(database.matches_original_store_operation(original))
+  assert_true(database.bind_original_store_operation(original) is Err(_))
+  // Keep the Database shell until its original coordinator's return ACK.
+  assert_true(
+    database.close_checked() is Err(@sqlite.OperationRoutingBefore(_)),
+  )
+  original.primary_code() == 0 && original.cleanup_code() == 0
+}
+
+///|
+test "already-open Journal binds once and routes each SQL call through its original coordinator" {
+  store_wal_physical_case(false, open_probe=6)
 }

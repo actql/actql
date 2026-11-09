@@ -122,3 +122,11 @@ pub fn Database::matches_original_store_operation(
 ) -> Bool {
   false
 }
+
+///|
+pub fn Database::bind_original_store_operation(
+  _self : Database,
+  _original : NativeStoreOperationOriginal,
+) -> Result[Unit, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}

@@ -18,6 +18,7 @@ pub fn load_library(String, diagnostic_ceiling? : Int?) -> Result[Library, Nativ
 type Database
 pub fn Database::begin_deferred(Self) -> Result[Unit, NativeSqliteIssue]
 pub fn Database::begin_immediate(Self) -> Result[Unit, NativeSqliteIssue]
+pub fn Database::bind_original_store_operation(Self, NativeStoreOperationOriginal) -> Result[Unit, NativeSqliteIssue]
 pub fn Database::capacity_usage(Self, String) -> Result[NativeCapacityUsage, NativeSqliteIssue]
 pub fn Database::claim_ordinal(Self, String, String, Int64) -> Result[Int64, NativeSqliteIssue]
 pub fn Database::claim_ordinal_action(Self, String, String, Int64) -> Result[NativeOrdinalClaim, NativeSqliteIssue]
