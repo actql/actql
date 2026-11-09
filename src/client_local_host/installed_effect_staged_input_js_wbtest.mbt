@@ -3,6 +3,8 @@
 // ports. This is not ordinary Host, HTTP, Store or physical ACK evidence.
 fn staged_effect_input_fixture(
   current? : () -> Unit = () => (),
+  physical_initial? : @execution.ExecutionCapacity? = None,
+  parent_limit? : Int64? = None,
 ) -> (
   @publication_host.PreparedClientEffectComputation,
   @publication_host.ClientRequestIdentity,
@@ -28,7 +30,7 @@ fn staged_effect_input_fixture(
   let send = prepare_installed_effect_staged_extent(
     prepare_installed_effect_operation_extent(
       "send",
-      @execution.execution_capacity(5L, 8L).unwrap(),
+      physical_initial.unwrap_or(@execution.execution_capacity(5L, 8L).unwrap()),
       7L,
       true,
     ).unwrap(),
@@ -66,6 +68,11 @@ fn staged_effect_input_fixture(
   assert_true(quote[5] < 2000000000L)
   quote[4] += 512L
   quote[5] += 512L
+  if parent_limit is Some(limit) {
+    // Existing preparation helper adds its separate original ten-byte carrier.
+    quote[4] = limit - 10L
+    quote[5] = limit - 10L
+  }
   let (input, initial, _, capacity) = effect_parent_test_preparation(
     plan,
     quote,
@@ -75,6 +82,228 @@ fn staged_effect_input_fixture(
     initial, input, capacity, prepared, request, plan,
   ).unwrap()
   (prepared, request, plan, owner, owner.ledger.unwrap())
+}
+
+///|
+// The production described-record composer supplies the COMPLETE child:
+// received HTTP backing + the original Core-selected secret bound + metadata.
+// Other recipe inputs below cannot grant this child any surrounding allowance.
+fn hubspot_full_metadata_response_quote(
+  metadata : @execution.ExecutionCapacity,
+) -> @execution.ExecutionCapacity {
+  let zero = @execution.execution_capacity(0L, 0L).unwrap()
+  installed_described_effect_recipe_capacities(
+    Some([
+      (zero, None, None),
+      (zero, None, None),
+      (zero, None, None),
+      (metadata, None, None),
+    ]),
+    Some([zero, zero, zero]),
+    256,
+    16,
+    4,
+    128,
+    8,
+    2,
+    64,
+    32,
+    true,
+    16,
+    32,
+    16,
+    524288,
+    installed_source_reader_policy()[0],
+    7,
+    16384,
+    256,
+    64,
+    4,
+    0L,
+    response_read_quantum=16384,
+    metadata_on_child=true,
+    metadata_occurrences=6,
+    target_occurrences=12,
+    target_on_child=true,
+    host_input_bytes=Some(0),
+  ).unwrap()[7]
+}
+
+///|
+test "full HubSpot response InputBegin reproduces current coheld execution refusal" {
+  let property_limits : @hubspot_catalog.PropertyLimits = {
+    max_bytes: 524288,
+    max_nodes: 65536,
+    max_depth: 32,
+    max_properties: 256,
+    max_name_units: 6003,
+  }
+  let initial = hubspot_full_metadata_response_quote(
+    @hubspot_catalog.effect_metadata_construction_capacity(
+      0, 9, property_limits,
+    ).unwrap(),
+  )
+  println(
+    "Full initial R=\{@execution.execution_capacity_retained_bytes(initial)} E=\{@execution.execution_capacity_execution_bytes(initial)}",
+  )
+  assert_eq(@execution.execution_capacity_retained_bytes(initial), 10692246L)
+  assert_eq(@execution.execution_capacity_execution_bytes(initial), 12333318L)
+  let (prepared, request, plan, owner, ledger) = staged_effect_input_fixture(
+    physical_initial=Some(initial),
+    parent_limit=Some(536870912L),
+  )
+  assert_eq(@resources.ledger_limits(ledger).execution_bytes, 536870912L)
+  let child = borrow_installed_effect_operation(
+    owner, prepared, request, plan, 0, true, 0, 0, "send",
+  ).unwrap()
+  start_installed_effect_operation(child).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  let holding_reservation = @resources.reserve_attempt(
+    ledger,
+    0L,
+    27452533L - before.held_bytes,
+    0L,
+  ).unwrap()
+  let holding = @resources.retain_allocation(
+    ledger,
+    holding_reservation,
+    27452533L - before.held_bytes,
+  ).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  let outside = @resources.reserve_capacity(
+    ledger,
+    419448946L - before.reserved_retention_bytes,
+    477625077L - before.reserved_execution_bytes,
+  ).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  assert_eq(before.held_bytes, 27452533L)
+  assert_eq(before.reserved_retention_bytes, 419448946L)
+  assert_eq(before.reserved_execution_bytes, 477625077L)
+  // Historical actual next-total remains refused: it is never relabeled as
+  // a successful new quote, or reduced by the measured shortage constant.
+  let observed = prepare_installed_effect_operation_extent(
+    "send",
+    @execution.execution_capacity(13553144L, 72617509L).unwrap(),
+    7L,
+    true,
+  ).unwrap()
+  assert_true(
+    begin_installed_effect_operation_input(child, observed)
+    is Err(Ledger(@resources.ExecutionLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
+  @resources.settle_capacity(ledger, outside).unwrap()
+  @resources.release_allocation(ledger, holding).unwrap()
+  @resources.settle_reservation(ledger, holding_reservation).unwrap()
+  assert_true(retire_installed_effect_operation(child, true).unwrap())
+  retire_installed_managed_run(owner).unwrap()
+}
+
+///|
+test "full HubSpot response InputBegin funds only original borrowed body and actual parser input" {
+  let property_limits : @hubspot_catalog.PropertyLimits = {
+    max_bytes: 524288,
+    max_nodes: 65536,
+    max_depth: 32,
+    max_properties: 256,
+    max_name_units: 6003,
+  }
+  // Independent large input with two unknown-field layouts. No actual body,
+  // configuration, stopped Run or guessed geometry is used by this component.
+  let properties = Array::makei(245, index => {
+    "{\"name\":\"field_" +
+    index.to_string() +
+    "\",\"type\":\"string\",\"fieldType\":\"text\",\"description\":\"" +
+    String::make(1050, 'x') +
+    "\",\"shape\":[" +
+    Array::make(
+      if index % 2 == 0 {
+        11
+      } else {
+        12
+      },
+      "{\"a\":0,\"b\":0,\"c\":0,\"d\":0,\"e\":0}",
+    ).join(",") +
+    "]}"
+  })
+  let body = @utf8.encode("{\"results\":[" + properties.join(",") + "]}")
+  let path = "/crm/v3/properties/companies"
+  let initial = hubspot_full_metadata_response_quote(
+    @hubspot_catalog.effect_metadata_construction_capacity(
+      0, 9, property_limits,
+    ).unwrap(),
+  )
+  let (prepared, request, plan, owner, ledger) = staged_effect_input_fixture(
+    physical_initial=Some(initial),
+    parent_limit=Some(536870912L),
+  )
+  let child = borrow_installed_effect_operation(
+    owner, prepared, request, plan, 0, true, 0, 0, "send",
+  ).unwrap()
+  start_installed_effect_operation(child).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  let holding_reservation = @resources.reserve_attempt(
+    ledger,
+    0L,
+    27452533L - before.held_bytes,
+    0L,
+  ).unwrap()
+  let holding = @resources.retain_allocation(
+    ledger,
+    holding_reservation,
+    27452533L - before.held_bytes,
+  ).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  let outside = @resources.reserve_capacity(
+    ledger,
+    419448946L - before.reserved_retention_bytes,
+    477625077L - before.reserved_execution_bytes,
+  ).unwrap()
+  // The full initial physical token, with its real preflight floor, is now
+  // live beside the captured coheld amounts before the Source view is built.
+  let prepared_source = @hubspot_catalog.prepare_property_response_source(
+    body, path, "companies", property_limits,
+  )
+  let data = @hubspot_catalog.property_response_source_geometry_data(
+    prepared_source,
+  )
+  assert_eq(data.length(), 12)
+  let selected = hubspot_full_metadata_response_quote(
+    @hubspot_catalog.effect_metadata_observed_construction_capacity(
+      body.length(),
+      9,
+      property_limits,
+      data,
+    ).unwrap(),
+  )
+  println(
+    "Full independent body=\{body.length()} R=\{@execution.execution_capacity_retained_bytes(selected)} E=\{@execution.execution_capacity_execution_bytes(selected)} outsideE=465291759",
+  )
+  let input = prepare_installed_effect_operation_extent(
+    "send", selected, 7L, true,
+  ).unwrap()
+  begin_installed_effect_operation_input(child, input).unwrap()
+  let active = @resources.ledger_usage(ledger)
+  let catalog = @hubspot_catalog.consume_property_response_source(
+    prepared_source, path, body,
+  ).unwrap()
+  @hubspot_catalog.recheck_property_catalog(catalog, catalog, 256).unwrap()
+  @hubspot_catalog.retire_property_response_source(prepared_source)
+  complete_installed_effect_operation_response_projection(child).unwrap()
+  let completed = @resources.ledger_usage(ledger)
+  assert_eq(completed.reserved_retention_bytes, active.reserved_retention_bytes)
+  assert_true(
+    completed.reserved_execution_bytes < active.reserved_execution_bytes,
+  )
+  assert_eq(completed.attempts, active.attempts)
+  assert_eq(completed.transferred_bytes, active.transferred_bytes)
+  assert_eq(completed.held_bytes, active.held_bytes)
+  assert_true(retire_installed_effect_operation(child, false) is Ok(false))
+  @resources.settle_capacity(ledger, outside).unwrap()
+  @resources.release_allocation(ledger, holding).unwrap()
+  @resources.settle_reservation(ledger, holding_reservation).unwrap()
+  assert_true(retire_installed_effect_operation(child, true).unwrap())
+  retire_installed_managed_run(owner).unwrap()
 }
 
 ///|

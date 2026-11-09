@@ -65,6 +65,7 @@ import {
   "moonbitlang/core/debug",
   "actql/actql/connectors/kintone/host" @kintone_host,
   "actql/actql/connectors/kintone/catalog" @kintone_catalog,
+  "actql/actql/connectors/hubspot/catalog" @hubspot_catalog,
 } for "wbtest"
 
 options(

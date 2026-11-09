@@ -503,8 +503,14 @@ fn property_observation_construction_capacity(
         record_headers: hash.record_headers,
         reference_slots: hash.reference_slots,
         scalar_words: hash.scalar_words,
-        owned_utf16_units: hash.owned_utf16_units + 4L * b.to_int64() + 128L,
-        owned_wire_bytes: hash.owned_wire_bytes + bytes.to_int64(),
+        // parse_json_bytes/preflight owns ONE decoded source String. The
+        // parser inventory separately owns its decoded tree and live scalar
+        // builders. PropertyMetadata borrows those returned Strings; neither
+        // its projection nor sha.hex(bytes) serializes/encodes a new preimage.
+        // Original raw Bytes stay on the same physical child/Reader. Keep
+        // both staged/final digest Strings and the shared fixed hash scratch.
+        owned_utf16_units: hash.owned_utf16_units + b.to_int64() + 128L,
+        owned_wire_bytes: hash.owned_wire_bytes,
       },
     ])
     is Some(fixed) else {

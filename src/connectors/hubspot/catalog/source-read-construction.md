@@ -68,6 +68,24 @@ The installed caller now stages its first fixed Properties response through the
 existing `JsonSourcePreflight` and transfers that same parser after reservation.
 The normalizing mode, full byte input/unknown fields, decoder and final Catalog
 hash remain intact. See [same-response staging](property-response-source.md).
+
+## Borrowed byte input and decoded source
+
+Both Source recheck and Effect Property projection borrow the original response
+Bytes. `sha256.hex` absorbs those Bytes into its fixed block state; it creates
+no full-size wire copy or text preimage. The original UTF8 decode creates one
+source String, retained through parsing. Parser tree text, scalar builders,
+canonical scratch/output, indexed admission and the returned Catalog have
+their own unchanged inventories. The shared quote therefore adds one bounded
+decoded source String and the fixed hash/digest family, without charging three
+additional source-sized Strings and another body-sized wire allocation that
+these constructors do not create. It does not retire the original body or any
+earlier/failed prefix, and does not reduce a configured rejection bound.
+
+Physical Effect admission combines receive, original secret and metadata on
+the complete child, beside the same Ledger's other coheld reservations. Initial
+preflight/staging, grammar/projection and successful workspace return remain
+distinct existing cuts. A metadata-only fit does not prove that full admission.
 The old byte-only API retains its full envelope. The observed API adds named
 finite staging/digest controls before receiving a body and uses geometry only as
 sizing DATA. It does not retire an earlier prefix, infer currentness or narrow
