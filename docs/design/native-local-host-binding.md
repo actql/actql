@@ -3385,6 +3385,9 @@ The original finite task inventory bounds dispatch; completed Source and Model
 boundaries are not re-executed. Host preparation/dispatch failures remain typed
 on the original command, and a missing next task supplies no completion or
 retirement acknowledgement. Existing Result pins still require actual output.
+The driving loop selects its primary output from the original checked Effect
+source ports. The ordinary Result-root inventory also contains the Model's
+retained output and does not select an Effect publication source by position.
 Local Result Artifacts keep their original derived retention; the installation
 base retention cannot substitute for that policy. The selected Run policy
 binding projects its three actual retention dependency bodies under the same

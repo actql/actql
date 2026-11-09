@@ -300,6 +300,7 @@ fn native_mock_readme_request_payload(
   content_join : Bool,
   check_policy? : Bool = false,
   authored_predicate? : Bool = false,
+  effect_result_source? : Bool = false,
 ) -> String? raise {
   facility.arena.enter_domain_retained_execution(facility.physical).unwrap()
   let wire : Json = {
@@ -546,6 +547,27 @@ fn native_mock_readme_request_payload(
                 is Ok(_),
               )
               let selected = models[0]
+              if effect_result_source {
+                // The exact original README, original typed Effect compiler
+                // and checked Run supply both inventories. No fake Result,
+                // Model completion or successful physical execution is issued.
+                let bound = @run_host.bind_client_effect_compiled_run(
+                  prepared,
+                  compiled.allowed,
+                  compiled.definition,
+                ).unwrap()
+                let checked = @run_host.prepared_client_effect_run_graph(bound)
+                let graph = @strategy.checked_effect_run_graph(checked)
+                assert_eq(@strategy.graph_task_count(graph), 6)
+                assert_eq(@strategy.graph_result_task(graph, 0), Some(2))
+                assert_eq(@strategy.checked_effect_run_source_count(checked), 1)
+                let source = @strategy.checked_effect_run_source_at(checked, 0).unwrap()
+                assert_eq(@strategy.checked_effect_source_task(source), 5)
+                assert_true(
+                  @strategy.graph_result_task(graph, 0) !=
+                  Some(@strategy.checked_effect_source_task(source)),
+                )
+              }
               assert_true(physical_equal(selected.graph, infers[0]))
               assert_true(
                 physical_equal(
@@ -626,6 +648,7 @@ fn native_mock_readme_request_in_metadata_read(
   content_join? : Bool = false,
   static_policy? : Bool = false,
   authored_predicate? : Bool = false,
+  effect_result_source? : Bool = false,
 ) -> String? raise {
   let original = native_project_mock_model_fixture(
     if content_join {
@@ -696,6 +719,7 @@ fn native_mock_readme_request_in_metadata_read(
     content_join,
     check_policy=static_policy,
     authored_predicate~,
+    effect_result_source~,
   )
   facility.arena
   .close_domain_retained_execution(facility.physical)
@@ -729,6 +753,18 @@ test "Native README original Request verifies static policies before its first M
     effect_compilation=true,
     effect_source_inputs=true,
     static_policy=true,
+  )
+}
+
+///|
+test "Native README Effect result source is distinct from its retained Model root" {
+  native_project_mock_model_backed_read(
+    false,
+    readme_request=true,
+    effect_compilation=true,
+    effect_source_inputs=true,
+    static_policy=true,
+    effect_result_source=true,
   )
 }
 

@@ -432,7 +432,15 @@ fn execute_local_tasks_guarded(
   if @strategy.next_captured_task(run) is Some(_) {
     return reject(UnsupportedGraph)
   }
-  let result = @strategy.graph_result_task(graph, 0).unwrap_or(count - 1)
+  let result = match retained_effect {
+    None => @strategy.graph_result_task(graph, 0).unwrap_or(count - 1)
+    Some(original) =>
+      // A Model introduces its own retained Result root. The Effect's primary
+      // output is selected from its checked source ports, not that Model root.
+      @strategy.captured_effect_run_source_at(original, 0)
+      .map(@strategy.checked_effect_source_task)
+      .unwrap_or(-1)
+  }
   guard result >= 0 &&
     result < count &&
     tasks[result] is Some(primary) &&
