@@ -63,3 +63,40 @@ ASCII schema version and 71-unit authority CID; the native bound allows two
 bytes per unit for UTF16 databases. Oversized values project to null and retain
 the original authority-mismatch refusal. This changes no accepted metadata,
 Store history limit, transaction or native cleanup outcome.
+
+The standard Ledger frontier/intents family selects one closed frame for
+`frontierFromDurableHeads`, `frontierFromCapturedHeads`, `recoveredTargetGuards`,
+`prepareSetIntents` and `prepareCapturedSetIntents`. The original wrapper reads
+only immutable member/claim-array lengths through DATA descriptors. It passes
+those coordinates and the original Ledger policy to MoonBit. Mutable or
+unknown inventories, larger policies and all other methods retain the complete
+generic frame. This is a quantity selection, not Preview membership, current
+permission, completed validation or a claim that any durable head is absent.
+
+MoonBit quotes the existing growing vectors/Set, selected head snapshot Strings,
+prepared append wire holders and Core frontier construction. The snapshot is
+for the supplied exact locators in one original transaction, never all history.
+The five existing normalizing Ledger codec entries retain their original
+same-owner/current checks and acquire their complete separate decoder/output
+quote. Their codec executes while the selected snapshot and arrays remain
+live, so the common combiner adds this coheld workspace to codec demand, then
+takes the maximum with the original idle floor. Full original retention,
+Preview/input demand, native/base/page demand and failed-prefix responsibility
+remain. The former generic envelope was a maximum, not two execution grants
+being added together; it included unused Receipt/data-key construction here.
+
+A private frame variant distinguishes this closed Ledger family from fixed
+Grant/request/footprint/open/input constructors. Only the Ledger variant admits
+the nested codec seam; fixed constructors still refuse it. Successful codec
+completion returns only its own scratch, successful outer completion returns
+only the outer scratch, and ordinary current returns neither. Reentry,
+mutation/current refusal and failed or pending work keep their original token
+and cleanup obligations. No additional Owner, permission or scheduler is added.
+Receipt issuers outside the existing five codec wrappers keep their complete
+generic construction path and their original argument/receiver semantics.
+
+Selected head and entry metadata use bounded SQL text projections before
+native-to-JavaScript String materialization. Accepted CIDs/digests and UTF16
+files are unchanged; oversized values still fail original integrity checks,
+and a corrupt head is never changed into an absent head. Schema, snapshot,
+duplicate/scope/basis/active-flight and transaction/physical-close checks remain.

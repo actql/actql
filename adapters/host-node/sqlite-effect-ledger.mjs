@@ -273,7 +273,10 @@ export function openSqliteEffectLedger(root, {
     transaction.assertUsable();
   };
   const readHead = database.prepare(`
-    SELECT logical_request_scope_cid, revision, entry_cid
+    SELECT CASE WHEN LENGTH(CAST(logical_request_scope_cid AS BLOB)) <= 142
+      THEN logical_request_scope_cid ELSE NULL END AS logical_request_scope_cid,
+      revision, CASE WHEN LENGTH(CAST(entry_cid AS BLOB)) <= 142
+      THEN entry_cid ELSE NULL END AS entry_cid
     FROM effect_ledger_heads WHERE logical_item_locator_cid = ?
   `);
   // Preserve the original UTF8 semantic byte check below. SQL first bounds
@@ -291,8 +294,11 @@ export function openSqliteEffectLedger(root, {
   const boundedResponseBytes = `CASE WHEN LENGTH(response_bytes) <= ${maxResponseBytes}
     THEN response_bytes ELSE NULL END AS response_bytes`;
   const readEntry = database.prepare(`
-    SELECT logical_item_locator_cid, revision, entry_cid, ${boundedEntryJson},
-      physical_sha256 FROM effect_ledger_entries
+    SELECT logical_item_locator_cid, revision,
+      CASE WHEN LENGTH(CAST(entry_cid AS BLOB)) <= 142
+      THEN entry_cid ELSE NULL END AS entry_cid, ${boundedEntryJson},
+      CASE WHEN LENGTH(CAST(physical_sha256 AS BLOB)) <= 128
+      THEN physical_sha256 ELSE NULL END AS physical_sha256 FROM effect_ledger_entries
     WHERE logical_item_locator_cid = ? AND revision = ?
   `);
   const readResponse = database.prepare(`

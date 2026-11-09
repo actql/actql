@@ -1230,12 +1230,9 @@ test('control construction retires its same failed-prefix aliases before parent 
 function originalLedgerControlView(ledger, construction) {
   const source=readFileSync(new URL('./effect-ledger.mjs',import.meta.url),'utf8');
   const tree=parse(source,{ecmaVersion:'latest',sourceType:'module'});
-  let open;
-  const walk=node=>{if(!node||typeof node!=='object')return;if(node.type==='FunctionDeclaration'&&node.id?.name==='openEffectLedger')open=node;
-    for(const value of Object.values(node))if(Array.isArray(value))value.forEach(walk);else if(value&&typeof value==='object')walk(value);};walk(tree);
-  const start=open.body.body.find(node=>node.type==='IfStatement'&&source.slice(node.start,node.end).includes('controlConstruction === undefined')&&source.slice(node.start,node.end).includes('return ledger'));
-  assert(start);
-  return Function('ledger','controlConstruction',source.slice(start.start,open.body.end-1))(ledger,construction);
+  const declaration=tree.body.find(node=>node.type==='FunctionDeclaration'&&node.id?.name==='bindEffectLedgerConstruction');
+  assert(declaration);
+  return Function('nodeTypes',source.slice(declaration.start,declaration.end)+';return bindEffectLedgerConstruction;')(nodeTypes)(ledger,construction,Object.freeze({}));
 }
 
 test('original Ledger control view preserves original nested receivers and permits close after the same failure', () => {
@@ -1846,4 +1843,69 @@ test('Ledger open frame refuses accessor or substituted root without executing i
   const args=[];Object.defineProperty(args,'0',{get(){assert.fail('argument getter');}});
   assert.throws(()=>f.work.ledgerOpen('/original',undefined,()=>{},args),{code:'InvalidInstalledEffectControlConstruction'});
   assert.deepEqual(f.events,[]);
+});
+
+test('standard Ledger family selects same original owner and nested codec coordinates without JS quantities', () => {
+  let f;const receiver={},original={},counts=Object.freeze([1,2]);
+  f=controlWorkFixture({
+    clientProgramInstalledEffectOperationLedgerFamilyBegin(...args){
+      assert.deepEqual(args.slice(0,4),[f.run.value,f.run.prepared,f.run.request,f.run.operationPlan]);
+      assert.deepEqual(args.slice(4),[counts,100000,1000000,64,4]);f.events.push('family');return {$tag:1};
+    },
+    clientProgramInstalledEffectOperationLedgerCodecBegin(){f.events.push('codec');return {$tag:1};},
+    clientProgramInstalledEffectOperationLedgerCodecComplete(){f.events.push('codec-complete');return {$tag:1};},
+  });
+  assert.strictEqual(f.work.ledgerFamily(receiver,function(value){
+    assert.strictEqual(this,receiver);assert.strictEqual(value,original);
+    return f.work.ledgerCodec(receiver,function(){assert.strictEqual(this,receiver);return value;},[],'{"n":1}',64,4);
+  },[original],counts,100000,1000000,64,4),original);
+  assert.deepEqual(f.events,['family','codec','codec-complete','complete']);
+  const legacy=controlWorkFixture();assert.equal(legacy.work.ledgerFamily(receiver,()=>original,[],counts,100000,1000000,64,4),original);
+  assert.deepEqual(legacy.events,['begin','complete']);
+});
+
+test('standard Ledger family keeps original entry callback current reentry and asynchronous failure prefixes', async () => {
+  for(const mode of ['entry','callback','foreign','reentry','async']){
+    let f,settle;const primary=new Error('original'),task=new Promise(resolve=>{settle=resolve;});
+    f=controlWorkFixture({clientProgramInstalledEffectOperationLedgerFamilyBegin(){f.events.push('family');if(mode==='entry')throw primary;return {$tag:1};}});
+    let observed;
+    assert.throws(()=>f.work.ledgerFamily({},()=>{
+      if(mode==='callback')throw primary;
+      if(mode==='foreign'){f.run.request={};return {};}
+      if(mode==='reentry')return f.work({},()=>assert.fail('reentered'),[]);
+      if(mode==='async')return task;
+      assert.fail('entry refused');
+    },[],Object.freeze([1]),100000,1000000,64,4),cause=>{observed=cause;return mode==='entry'||mode==='callback'?cause===primary:!!cause.code;});
+    assert.deepEqual(f.events,['family']);
+    assert.throws(()=>f.work({},()=>assert.fail('failed frame reused'),[]),cause=>cause===observed);
+    if(mode==='async'){assert.equal(f.run.selecting,true);settle();await new Promise(setImmediate);assert.equal(f.run.selecting,false);}
+    else settle();
+  }
+});
+
+test('standard Ledger family original wrapper selects only immutable frontier inventory and keeps Receipt and unknown generic', () => {
+  const source=readFileSync(new URL('./effect-ledger.mjs',import.meta.url),'utf8');
+  const tree=parse(source,{ecmaVersion:'latest',sourceType:'module'});
+  const declaration=tree.body.find(node=>node.type==='FunctionDeclaration'&&node.id?.name==='bindEffectLedgerConstruction');
+  const bind=Function('nodeTypes',source.slice(declaration.start,declaration.end)+';return bindEffectLedgerConstruction;')(nodeTypes);
+  const names=['frontierFromDurableHeads','frontierFromCapturedHeads','recoveredTargetGuards','prepareSetIntents','prepareCapturedSetIntents'];
+  const result={},preview={},members=Object.freeze([Object.freeze({claims:Object.freeze([{},{}])})]);
+  const policy=Object.freeze({maxEntries:100000,maxEntryBytes:1000000,maxNodes:64,maxDepth:4});
+  let family=0,generic=0,closed=0;
+  const original=Object.freeze(Object.fromEntries([...names,'recordAdmittedRowOutcome','unknown','close'].map(name=>[name,function(...args){assert.strictEqual(this,original);if(name==='close')closed++;else assert.strictEqual(args[0],preview);return result;}])));
+  const work=Object.assign((receiver,method,args)=>{generic++;return Reflect.apply(method,receiver,args);},{
+    ledgerFamily(receiver,method,args,counts,...limits){family++;assert.equal(receiver,original);assert.deepEqual(counts,[2]);assert(Object.isFrozen(counts));assert.deepEqual(limits,Object.values(policy));assert.strictEqual(args[1],members);return Reflect.apply(method,receiver,args);}
+  });
+  const selected=bind(original,work,policy);
+  for(const name of names)assert.strictEqual(selected[name](preview,members,99),result);
+  assert.equal(family,5);
+  for(const name of ['recordAdmittedRowOutcome','unknown'])assert.strictEqual(selected[name](preview,members),result);
+  selected.close();assert.equal(closed,1);assert.equal(generic,2);
+  let getters=0;const accessor=Object.freeze(Object.defineProperty({},'claims',{get(){getters++;return [];}}));
+  for(const other of [[...members],Object.freeze([accessor]),Object.freeze([{claims:[]}]),new Proxy(members,{get(){assert.fail('Proxy observed');}})]){
+    assert.strictEqual(selected.frontierFromCapturedHeads(preview,other,99),result);
+  }
+  assert.equal(getters,0);assert.equal(family,5);assert.equal(generic,6);
+  const legacy=bind(original,(receiver,method,args)=>{generic++;return Reflect.apply(method,receiver,args);},policy);
+  legacy.frontierFromCapturedHeads(preview,members,99);assert.equal(generic,7);
 });

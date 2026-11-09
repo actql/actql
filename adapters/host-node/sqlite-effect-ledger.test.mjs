@@ -1023,3 +1023,36 @@ for(const field of ['schema_version','authority_scope_cid'])test(`Effect open bo
   assert.equal(read.prepare('SELECT COUNT(*) AS n FROM effect_ledger_metadata').get().n,2);
   read.close();
 });
+
+for(const [table,field] of [['effect_ledger_heads','logical_request_scope_cid'],['effect_ledger_heads','entry_cid'],['effect_ledger_entries','entry_cid'],['effect_ledger_entries','physical_sha256']])test(`standard Ledger snapshot bounds ${table}.${field} before native text and retains integrity failure`,async t=>{
+  const root=await fixture(t);
+  const initialized=openSqliteEffectLedger(root,{authorityScopeCid:scope});
+  append(initialized,0,cid('1'),firstJson);initialized.close();
+  const raw=new DatabaseSync(join(root,'effect-ledger.sqlite3'));
+  raw.prepare(`UPDATE ${table} SET ${field} = ?`).run('x'.repeat(262144));raw.close();
+  const prepare=DatabaseSync.prototype.prepare;let observed=0;
+  t.mock.method(DatabaseSync.prototype,'prepare',function(sql,...args){
+    const statement=Reflect.apply(prepare,this,[sql,...args]);
+    if(new RegExp(`FROM\\s+${table}\\s+WHERE`,'u').test(sql)&&sql.includes('CASE WHEN')){
+      const get=statement.get;
+      t.mock.method(statement,'get',function(...values){const result=Reflect.apply(get,this,values);observed++;assert.equal(result[field],null);return result;});
+    }
+    return statement;
+  });
+  const ledger=openSqliteEffectLedger(root,{authorityScopeCid:scope});
+  assert.throws(()=>ledger.currentSnapshot([locator]),{code:'EffectLedgerIntegrityFailed'});
+  assert.equal(observed,1);ledger.close();
+});
+
+test('standard Ledger snapshot retains exact selected UTF8 and UTF16 heads and missing-head distinction',async t=>{
+  for(const encoding of ['UTF-8','UTF-16le','UTF-16be']){
+    const root=await fixture(t),setup=new DatabaseSync(join(root,'effect-ledger.sqlite3'));
+    setup.exec(`PRAGMA encoding = '${encoding}'`);setup.exec('CREATE TABLE encoding_pin (n INTEGER)');setup.close();
+    const ledger=openSqliteEffectLedger(root,{authorityScopeCid:scope});
+    append(ledger,0,cid('1'),firstJson);
+    assert.deepEqual(ledger.currentSnapshot([locator,cid('c')]),[
+      {logicalRequestScopeCid:scope,logicalItemLocatorCid:locator,revision:1,entryCid:cid('1'),entryJson:firstJson},undefined]);
+    assert.throws(()=>ledger.currentSnapshot([locator,locator]),{code:'InvalidEffectLedgerSnapshot'});
+    ledger.close();
+  }
+});

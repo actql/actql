@@ -2739,7 +2739,7 @@ test "completed original request projection selects its constructor on the same 
   assert_eq(active.transferred_bytes, occupied.transferred_bytes)
   assert_true(physical_equal(control.reservation, token))
   assert_true(
-    control.constructor_frame is Some((_, Some(original))) &&
+    control.constructor_frame is Some(Fixed(_, Some(original))) &&
     physical_equal(original, child),
   )
   assert_true(
@@ -2876,7 +2876,7 @@ test "request projection current retirement keeps failed control scratch until o
   )
   assert_true(control.construction_active)
   assert_true(
-    control.constructor_frame is Some((_, Some(original))) &&
+    control.constructor_frame is Some(Fixed(_, Some(original))) &&
     physical_equal(original, second),
   )
   let (failed, _) = installed_effect_control_capacity(Some(control), plan).unwrap()
@@ -3025,7 +3025,7 @@ test "opaque footprint uses original member scratch on same real Ledger with ful
   assert_eq(active.held_bytes, occupied.held_bytes)
   assert_eq(active.transferred_bytes, occupied.transferred_bytes)
   assert_true(physical_equal(control.reservation, token))
-  assert_true(control.constructor_frame is Some((_, None)))
+  assert_true(control.constructor_frame is Some(Fixed(_, None)))
   assert_true(
     begin_installed_effect_operation_footprint_construction(
       owner, prepared, request, plan, 0, 1,

@@ -457,3 +457,22 @@ pub fn client_program_installed_effect_operation_ledger_open_begin(
     owner, prepared, request, plan, root,
   )
 }
+
+///|
+#export_name("clientProgramInstalledEffectOperationLedgerFamilyBegin")
+pub fn client_program_installed_effect_operation_ledger_family_begin(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  counts : Array[Int],
+  max_entries : Int,
+  max_entry_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.begin_installed_effect_operation_ledger_family(
+    owner, prepared, request, plan, counts, max_entries, max_entry_bytes, max_nodes,
+    max_depth,
+  )
+}

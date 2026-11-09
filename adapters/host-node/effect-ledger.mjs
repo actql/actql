@@ -1,3 +1,4 @@
+import {types as nodeTypes} from 'node:util';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {openSqliteEffectLedger} from './sqlite-effect-ledger.mjs';
 import {realpathSync} from 'node:fs';
@@ -32,6 +33,41 @@ function bindEffectLedgerCodecs(original, construction) {
 
 // MoonBit admits the canonical fact and its transition. SQLite only owns
 // durable bytes and the atomic compare-and-swap of one item head.
+// Same original receiver and methods; only these entry/frontier constructors
+// use the finite family. Receipt/history/unknown work keeps the generic frame.
+function bindEffectLedgerConstruction(ledger, construction, policy) {
+  const caller = {};
+  for (const name of Object.keys(ledger)) {
+    const method = ledger[name];
+    caller[name] = typeof method !== 'function' ? method : name === 'close'
+      ? (...args) => Reflect.apply(method, ledger, args)
+      : (...args) => {
+        // DATA lengths only, never argument getters/Proxy traps or row scans.
+        // Mutable/nonstandard callers keep their exact original generic path.
+        const members = args[1];
+        let counts;
+        if ((name === 'frontierFromDurableHeads' || name === 'frontierFromCapturedHeads' ||
+             name === 'recoveredTargetGuards' || name === 'prepareSetIntents' ||
+             name === 'prepareCapturedSetIntents') && typeof construction.ledgerFamily === 'function' &&
+            Array.isArray(members) && !nodeTypes.isProxy(members) && Object.isFrozen(members) &&
+            members.length > 0 && members.length <= 1000) {
+          counts = new Array(members.length);
+          for (let index = 0; index < members.length; index++) {
+            const member = Object.getOwnPropertyDescriptor(members, index)?.value;
+            if (member === null || typeof member !== 'object' || nodeTypes.isProxy(member) || !Object.isFrozen(member)) {counts = undefined; break;}
+            const claims = Object.getOwnPropertyDescriptor(member, 'claims')?.value;
+            if (!Array.isArray(claims) || nodeTypes.isProxy(claims) || !Object.isFrozen(claims)) {counts = undefined; break;}
+            counts[index] = claims.length;
+          }
+        }
+        return counts === undefined ? construction(ledger, method, args)
+          : construction.ledgerFamily(ledger, method, args, Object.freeze(counts),
+            policy.maxEntries, policy.maxEntryBytes, policy.maxNodes, policy.maxDepth);
+      };
+  }
+  return Object.freeze(caller);
+}
+
 export function openEffectLedger({
   moon,
   root,
@@ -1004,12 +1040,6 @@ export function openEffectLedger({
   // The original private ledger remains the receiver and internal call target.
   // One outer caller frame owns nested original work, never recursive debits.
   // Close remains the original cleanup path even after a constructor failed.
-  const caller = {};
-  for (const name of Object.keys(ledger)) {
-    const method = ledger[name];
-    caller[name] = typeof method !== 'function' ? method : name === 'close'
-      ? (...args) => Reflect.apply(method, ledger, args)
-      : (...args) => controlConstruction(ledger, method, args);
-  }
-  return Object.freeze(caller);
+  return bindEffectLedgerConstruction(ledger, controlConstruction,
+    Object.freeze({maxEntries, maxEntryBytes, maxNodes, maxDepth}));
 }

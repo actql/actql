@@ -112,18 +112,20 @@ fn installed_effect_operation_control_capacity(
     // text remains with the already-funded original Preview producer.
     // One same-Run optional actual-row inventory adds its field and one Some
     // carrier at most, independently of how many operation bodies are live.
-    // The request, footprint and Ledger-open selectors each add one method/context pair
+    // The request, footprint, Ledger-open and Ledger-family selectors each add one method/context pair
     // and a fixed original-coordinate call vector (4H14R3W each). The optional frame retains one
-    // tuple/Some and the existing child reference, never another body owner.
+    // variant/Some and the existing child reference, never another body owner.
+    // The shared four-word Ledger policy adds1H4W; at most32 existing
+    // wrapper contexts retain its borrowed reference (32R).
     record_headers: 13L +
-    12L +
+    17L +
     shared.record_headers +
     11L * count +
     69L +
     4L +
     recovery.record_headers,
     reference_slots: 22L +
-    42L +
+    88L +
     slots +
     shared.reference_slots +
     17L * count +
@@ -132,7 +134,7 @@ fn installed_effect_operation_control_capacity(
     recovery.reference_slots,
     // The active codec retains its separately charged original output bound.
     scalar_words: 27L +
-    9L +
+    16L +
     shared.scalar_words +
     29L * count +
     4L +
@@ -160,10 +162,12 @@ fn installed_effect_operation_control_capacity(
   // capacity/Option/tuple/collection/call carriers (8H,64R,64W), plus its
   // argument/selection frame (8H,32R,16W). No payload is parsed here. Keep this
   // fixed frame prepaid in idle controls; it is not per occurrence or byte.
+  // One fixed-size metadata coordinate vector has <=1000 scalar slots;
+  // DATA descriptor probes are transient inside this same fixed overhead.
   let workspace : @execution.PreparationRepresentationUnits = {
-    record_headers: 1L + keys.record_headers + 16L * 8L + 8L,
+    record_headers: 2L + keys.record_headers + 16L * 8L + 8L,
     reference_slots: slots + keys.reference_slots + 16L * 64L + 32L,
-    scalar_words: keys.scalar_words + 16L * 64L + 16L,
+    scalar_words: keys.scalar_words + 16L * 64L + 16L + 1000L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
@@ -634,7 +638,7 @@ fn check_installed_effect_operation_original(
     (None, None) => Ok(())
     (Some(before), Some(after)) if physical_equal(before, after) =>
       match before.constructor_frame {
-        Some((_, Some(child))) =>
+        Some(Fixed(_, Some(child))) =>
           check_installed_effect_request_projection_original(
             child, owner, ledger, preparation,
           )
@@ -1356,6 +1360,33 @@ pub fn begin_installed_effect_operation_ledger_open(
 }
 
 ///|
+/// Original standard Ledger frontier/intents family. Counts are only immutable
+/// collection geometry; original Preview/basis/current/I/O checks still run.
+/// Larger or unknown policies keep the complete generic construction frame.
+pub fn begin_installed_effect_operation_ledger_family(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : ClientInstalledEffectManagedPlan,
+  counts : Array[Int],
+  max_entries : Int,
+  max_entry_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  resize_installed_effect_operation_control_construction(
+    owner,
+    prepared,
+    request,
+    plan,
+    true,
+    ledger_family=Some(
+      (counts, max_entries, max_entry_bytes, max_nodes, max_depth),
+    ),
+  )
+}
+
+///|
 fn installed_effect_ledger_open_workspace(root : String) -> Int64? {
   let scope = @request_scope.logical_request_scope_construction_inventory()
   // Ordinary filesystem/SQLite acquisition retains its existing owner. The
@@ -1492,6 +1523,7 @@ fn resize_installed_effect_operation_control_construction(
   request_projection? : (Int, Int, Int)? = None,
   footprint_construction? : (Int, Int)? = None,
   ledger_open? : String? = None,
+  ledger_family? : (Array[Int], Int, Int, Int, Int)? = None,
   ledger_codec? : (Bool, String?, Int, Int)? = None,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
   guard owner.original is Some(original) && physical_equal(original, owner) else {
@@ -1533,7 +1565,7 @@ fn resize_installed_effect_operation_control_construction(
         !control.construction_active ||
         control.ledger_codec_active == entering ||
         input_wire is Some(_) ||
-        control.constructor_frame is Some(_) {
+        control.constructor_frame is Some(Fixed(_, _)) {
         return Err(AlreadyBound)
       }
   }
@@ -1594,14 +1626,15 @@ fn resize_installed_effect_operation_control_construction(
       }
     }
   }
-  if ledger_open is Some(_) &&
+  if (ledger_open is Some(_) || ledger_family is Some(_)) &&
     (
       !active ||
       input_wire is Some(_) ||
       grant_construction ||
       request_projection is Some(_) ||
       footprint_construction is Some(_) ||
-      ledger_codec is Some(_)
+      ledger_codec is Some(_) ||
+      (ledger_open is Some(_) && ledger_family is Some(_))
     ) {
     return Err(Unsupported)
   }
@@ -1649,7 +1682,7 @@ fn resize_installed_effect_operation_control_construction(
     // retained separately. Preserve the whole selected private envelope,
     // including a staged constructor's original retained floor.
     Some(
-      (
+      Fixed(
         child.execution_limit -
         @execution.execution_capacity_retained_bytes(extent.capacity),
         Some(child),
@@ -1679,12 +1712,23 @@ fn resize_installed_effect_operation_control_construction(
         ForeignOriginal,
       ).map(_ => ())
     }
-    Some((@execution.execution_capacity_execution_bytes(extent.capacity), None))
+    Some(
+      Fixed(
+        @execution.execution_capacity_execution_bytes(extent.capacity),
+        None,
+      ),
+    )
   } else if ledger_open is Some(root) {
     guard installed_effect_ledger_open_workspace(root) is Some(workspace) else {
       return Err(Unsupported)
     }
-    Some((workspace, None))
+    Some(Fixed(workspace, None))
+  } else if ledger_family is Some((counts, entries, bytes, nodes, depth)) {
+    // No new policy refusal: unknown/larger geometry keeps the original full
+    // generic frame and all original method checks in their original order.
+    installed_effect_ledger_family_workspace(
+      counts, entries, bytes, nodes, depth,
+    ).map(workspace => Ledger(workspace))
   } else if grant_construction {
     if !active || input_wire is Some(_) || ledger_codec is Some(_) {
       return Err(Unsupported)
@@ -1693,7 +1737,7 @@ fn resize_installed_effect_operation_control_construction(
       return Err(Unsupported)
     }
     Some(
-      (
+      Fixed(
         @execution.execution_capacity_execution_bytes(grant) -
         @execution.execution_capacity_retained_bytes(grant),
         None,
@@ -1710,7 +1754,7 @@ fn resize_installed_effect_operation_control_construction(
       return Err(Unsupported)
     }
     Some(
-      (
+      Fixed(
         @execution.execution_capacity_execution_bytes(host) -
         @execution.execution_capacity_retained_bytes(host),
         None,
@@ -1749,7 +1793,7 @@ fn resize_installed_effect_operation_control_construction(
         Err(issue) => Err(issue)
         Ok(_) =>
           match constructor_frame {
-            Some((_, Some(child))) =>
+            Some(Fixed(_, Some(child))) =>
               check_installed_effect_request_projection_original(
                 child, owner, ledger, preparation,
               )
@@ -2178,7 +2222,7 @@ fn installed_effect_control_capacity(
   codec_workspace? : Int64? = None,
   captured_rows? : Int? = None,
   codec_retained? : Int64? = None,
-  constructor_frame? : (Int64, ClientInstalledEffectOperationBorrow?)?? = None,
+  constructor_frame? : ClientEffectControlConstructorFrame?? = None,
 ) -> (@execution.ExecutionCapacity, Int64)? {
   let selected = match input {
     Some(value) => Some(value)
@@ -2224,7 +2268,7 @@ fn installed_effect_control_capacity(
   )
   let base_execution = match constructor_frame {
     None => @execution.execution_capacity_execution_bytes(base)
-    Some((workspace, _)) => {
+    Some(Fixed(workspace, _)) | Some(Ledger(workspace)) => {
       guard workspace >= 0L &&
         @execution.checked_preparation_add_product(base_retained, workspace, 1L)
         is Some(execution) else {
@@ -2240,11 +2284,22 @@ fn installed_effect_control_capacity(
   if codec_retained < 0L {
     return None
   }
+  // The selected snapshot/arrays remain live WHILE its original codec runs.
+  // Generic controls already cover their whole family; a fixed constructor
+  // cannot enter the nested codec at all. Only Ledger adds its coheld scratch.
+  let coheld_workspace = match constructor_frame {
+    Some(Ledger(workspace)) => workspace
+    _ => 0L
+  }
   guard @execution.checked_preparation_add_product(
       base_retained, codec_retained, 1L,
     )
     is Some(retained) &&
     @execution.checked_preparation_add_product(retained, codec_workspace, 1L)
+    is Some(codec_execution) &&
+    @execution.checked_preparation_add_product(
+      codec_execution, coheld_workspace, 1L,
+    )
     is Some(codec_execution) &&
     @execution.execution_capacity(
       retained,
