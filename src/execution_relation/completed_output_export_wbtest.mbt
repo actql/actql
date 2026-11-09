@@ -1107,3 +1107,26 @@ test "Result receipt match fences reentrant cancellation after source availabili
   )
   assert_true(completed_output_available(raw))
 }
+
+///|
+test "Result receipt checks original availability once and skips known foreign metadata" {
+  let raw = export_fixture(capture_fixture())
+  let (receipt, _) = export_relation_all(raw)
+  let calls = Ref(0)
+  let original = restrict_completed_output(raw, () => {
+    calls.val += 1
+    true
+  })
+  assert_true(completed_relation_export_matches_output(receipt, original))
+  assert_eq(calls.val, 1)
+  calls.val = 0
+  let foreign = restrict_completed_output(export_fixture(capture_fixture()), () => {
+    calls.val += 1
+    true
+  })
+  assert_false(completed_relation_export_matches_output(receipt, foreign))
+  assert_eq(calls.val, 0)
+  cancel_completed_relation_export_receipt(receipt)
+  assert_false(completed_relation_export_matches_output(receipt, original))
+  assert_eq(calls.val, 0)
+}
