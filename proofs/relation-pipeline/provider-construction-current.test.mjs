@@ -57,7 +57,13 @@ test('current five-field candidate component derives 2432 without promoting hist
     /Unreviewed current constructor source/);
   // Property borrowing changes only an execution predicate before the
   // selected factory. Its entire constructor/callback tail remains exact.
-  const selected = read('src/connectors/local/selected_relation_provider.mbt').toString();
+  const selectedBytes = read('src/connectors/local/selected_relation_provider.mbt');
+  const selectedPrefix = selectedBytes.subarray(0, 38533);
+  assert.equal(hash(selectedPrefix),
+    '9c38a2c47f93832736444f5826d176ba7e749e75683778df74765814e5fa924a',
+    'only the reviewed private carried-key classifier extends the complete prior Source');
+  assert.match(selectedBytes.subarray(38533).toString(), /fn selected_join_borrows_carried_values\(/u);
+  const selected = selectedPrefix.toString();
   assert.equal(hash(selected.slice(selected.indexOf('fn selected_relation_provider('))),
     'f100dd3ac842dd087b494382c42be9dfb613184a35f26164f2788ba8ed6544b5');
   // CROSS JOIN changes only the quote callback. Candidate layout/captures and
