@@ -34435,7 +34435,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_borrow.mbt",
-      "sha256": "bb96a8ac53216798bfe3f1c5ee44303bd92b8bb33ee67999116f42109059d7b2",
+      "sha256": "27c7730a81f79f4e05b281a7c80b76827760837c6d06c254d220a10e97640fbb",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original installed Effect operation borrow and retained same-Run management controls",
@@ -34519,6 +34519,10 @@
           "declaration": "check_installed_effect_request_projection_original ( child : ClientInstalledEffectOperationBorrow , owner : ClientInstalledManagedRun , ledger : @ resources . Ledger , preparation : ClientInstalledManagedRunOriginal , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
         },
         {
+          "name": "complete_installed_effect_discarded_response_projection",
+          "declaration": "complete_installed_effect_discarded_response_projection ( value : ClientInstalledEffectOperationBorrow , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "complete_installed_effect_operation_construction",
           "declaration": "complete_installed_effect_operation_construction ( value : ClientInstalledEffectOperationBorrow , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
         },
@@ -34541,6 +34545,10 @@
         {
           "name": "complete_installed_effect_operation_response_projection",
           "declaration": "complete_installed_effect_operation_response_projection ( value : ClientInstalledEffectOperationBorrow , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "complete_installed_effect_response_projection",
+          "declaration": "complete_installed_effect_response_projection ( value : ClientInstalledEffectOperationBorrow , discarded : Bool , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "grow_installed_effect_operation_input",
@@ -34739,11 +34747,13 @@
             "check_installed_effect_operation_backing_original",
             "check_installed_effect_operation_original",
             "check_installed_effect_request_projection_original",
+            "complete_installed_effect_discarded_response_projection",
             "complete_installed_effect_operation_construction",
             "complete_installed_effect_operation_construction_output",
             "complete_installed_effect_operation_construction_owned",
             "complete_installed_effect_operation_control_construction",
             "complete_installed_effect_operation_response_projection",
+            "complete_installed_effect_response_projection",
             "grow_installed_effect_operation_input",
             "installed_effect_control_execution",
             "installed_effect_ledger_open_workspace",
@@ -34768,6 +34778,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "inputsOutputs": [
@@ -34778,6 +34792,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "After Compute, the same Run pins its original completed inputs and uses their"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "identity": [
@@ -34788,6 +34806,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "After Compute, the same Run pins its original completed inputs and uses their"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "ownership": [
@@ -34798,6 +34820,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "After Compute, the same Run pins its original completed inputs and uses their"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "synchronization": [
@@ -34808,6 +34834,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "After Compute, the same Run pins its original completed inputs and uses their"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "failure": [
@@ -34818,12 +34848,20 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "After Compute, the same Run pins its original completed inputs and uses their"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "resources": [
@@ -34866,12 +34904,20 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "A retained Catalog recheck has a different constructor from receiving and"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "verification": [
@@ -34942,6 +34988,10 @@
               {
                 "path": "src/client_local_host/installed_effect_native_control_js_wbtest.mbt",
                 "anchor": "test \"native scratch still rejects reentry after the original current callback\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_discarded_projection_js_wbtest.mbt",
+                "anchor": "test \"discarded Unit projection keeps full failed peak then reduces only the admitted remainder\""
               }
             ]
           }
@@ -35230,7 +35280,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_demand.mbt",
-      "sha256": "d8934e8a96c7da4386bf023c2155160a19745bca20682f99eeb4d40308c7ccaa",
+      "sha256": "0bbb9146afca61ada822696dfd4ebcf50a3dd77faa19c184634d8b85548b4893",
       "exports": [],
       "operations": [
         {
@@ -35282,6 +35332,10 @@
           "declaration": "prepare_installed_effect_capture_recipe_extent ( operation : String , recipe : Array [ @ execution . ExecutionCapacity ] , ) - > Result [ ClientInstalledEffectOperationExtent , ClientInstalledManagedRunIssue , ]"
         },
         {
+          "name": "prepare_installed_effect_discarded_projection_extent",
+          "declaration": "prepare_installed_effect_discarded_projection_extent ( original : ClientInstalledEffectOperationExtent , remaining : @ execution . ExecutionCapacity , ) - > Result [ ClientInstalledEffectOperationExtent , ClientInstalledManagedRunIssue , ]"
+        },
+        {
           "name": "prepare_installed_effect_host_input_capture_recipe_extent",
           "declaration": "prepare_installed_effect_host_input_capture_recipe_extent ( operation : String , recipe : Array [ @ execution . ExecutionCapacity ] , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ClientInstalledEffectOperationExtent , ClientInstalledManagedRunIssue , ]"
         },
@@ -35330,12 +35384,20 @@
           "declaration": "prepared_installed_effect_managed_source ( plan : ClientInstalledEffectManagedPlan , occurrence : Int , ) - > Result [ ( @ row_source_host . RowDeclaration , @ planning . QueryRequirement , @ row_source_host . RowAcquisition , ClientInstalledCaptureCapacity , ) , ClientInstalledManagedRunIssue , ]"
         },
         {
+          "name": "prepared_installed_effect_model_sequence",
+          "declaration": "prepared_installed_effect_model_sequence ( plan : ClientInstalledEffectManagedPlan , graph : @ publication_host . ClientInferPlanGraph , ) - > Result [ @ execution . GeneratedSequence , ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "resolve_installed_effect_capture_extent",
           "declaration": "resolve_installed_effect_capture_extent ( original : ClientInstalledEffectOperationExtent , rows : Int , ) - > ClientInstalledEffectOperationExtent ?"
         },
         {
           "name": "resolve_installed_effect_id_extent",
           "declaration": "resolve_installed_effect_id_extent ( original : ClientInstalledEffectOperationExtent , effect_id : String , ) - > ClientInstalledEffectOperationExtent ?"
+        },
+        {
+          "name": "same_effect_projection_remainder",
+          "declaration": "same_effect_projection_remainder ( a : @ execution . ExecutionCapacity ? , b : @ execution . ExecutionCapacity ? , ) - > Bool"
         }
       ],
       "responsibilityFacet": "primary",
@@ -35354,7 +35416,9 @@
             "installed_effect_plan_matches",
             "installed_effect_requirements",
             "prepare_installed_effect_capture_extent",
+            "prepare_installed_effect_discarded_projection_extent",
             "prepare_installed_effect_managed_plan",
+            "prepare_installed_effect_managed_plan_owned",
             "prepare_installed_effect_operation_demand",
             "prepare_installed_effect_operation_demand_with_controls",
             "prepare_installed_effect_operation_extent",
@@ -35364,8 +35428,9 @@
             "prepared_installed_effect_managed_requirements",
             "prepared_installed_effect_managed_shape",
             "prepared_installed_effect_managed_source",
+            "prepared_installed_effect_model_sequence",
             "resolve_installed_effect_capture_extent",
-            "prepare_installed_effect_managed_plan_owned"
+            "same_effect_projection_remainder"
           ],
           "exports": [],
           "attributes": {
@@ -35373,54 +35438,90 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "verification": [
@@ -35435,6 +35536,10 @@
               {
                 "path": "adapters/host-node/request-preparation-parent.test.mjs",
                 "anchor": "test('normal first Request Plan keeps its original typed row refusal"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_discarded_projection_js_wbtest.mbt",
+                "anchor": "test \"discarded Unit projection keeps full failed peak then reduces only the admitted remainder\""
               }
             ]
           }
@@ -54096,6 +54201,7 @@
             "client_program_installed_effect_operation_borrow",
             "client_program_installed_effect_operation_charge",
             "client_program_installed_effect_operation_controls_begin",
+            "client_program_installed_effect_operation_discarded_projection_extent_prepare",
             "client_program_installed_effect_operation_extent_from_capacity",
             "client_program_installed_effect_operation_extent_physical",
             "client_program_installed_effect_operation_extent_transfer",
@@ -54115,42 +54221,70 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Effect response buffer backing"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "checks the capacity of that same original selected extent against this buffer"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "creates no new reservation: the existing original Plan and parent own the"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Before borrowing or binding a physical occurrence, the shared Effect child"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "refuses before binding, grant consumption or a physical call. This check"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "acknowledgement, and no old compiled runtime gains the new native predicates."
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "resources": [
@@ -54169,12 +54303,20 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "A fixed opaque-boundary footprint can declare a scratch-only member extent in"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The buffer inventory is one necessary component, not the complete physical"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "verification": [
@@ -54201,6 +54343,10 @@
               {
                 "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
                 "anchor": "test \"opaque footprint uses original member scratch on same real Ledger with full retained floor\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_discarded_projection_js_wbtest.mbt",
+                "anchor": "test \"discarded Unit projection keeps full failed peak then reduces only the admitted remainder\""
               }
             ]
           }
@@ -54215,6 +54361,7 @@
             "client_program_installed_effect_operation_control_construction_begin",
             "client_program_installed_effect_operation_control_construction_complete",
             "client_program_installed_effect_operation_controls_retain",
+            "client_program_installed_effect_operation_discarded_response_projection_complete",
             "client_program_installed_effect_operation_footprint_construction_begin",
             "client_program_installed_effect_operation_grant_construction_begin",
             "client_program_installed_effect_operation_input_begin",
@@ -54232,6 +54379,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "inputsOutputs": [
@@ -54242,6 +54393,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "After Compute, the same Run pins its original completed inputs and uses their"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "identity": [
@@ -54252,6 +54407,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "After Compute, the same Run pins its original completed inputs and uses their"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "ownership": [
@@ -54262,6 +54421,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "After Compute, the same Run pins its original completed inputs and uses their"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "synchronization": [
@@ -54272,6 +54435,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "After Compute, the same Run pins its original completed inputs and uses their"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "failure": [
@@ -54282,12 +54449,20 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "After Compute, the same Run pins its original completed inputs and uses their"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "resources": [
@@ -54326,12 +54501,20 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "A retained Catalog recheck has a different constructor from receiving and"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "verification": [
@@ -54382,6 +54565,10 @@
               {
                 "path": "src/client_local_host/installed_effect_native_control_js_wbtest.mbt",
                 "anchor": "test \"native scratch still rejects reentry after the original current callback\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_discarded_projection_js_wbtest.mbt",
+                "anchor": "test \"discarded Unit projection keeps full failed peak then reduces only the admitted remainder\""
               }
             ]
           }
@@ -54536,7 +54723,7 @@
           }
         }
       ],
-      "sha256": "13d941215f0aea112180ebff951d264dd0870bfb3ec16df56b8c2c0c4a80de14",
+      "sha256": "b797d30bf58ba08b8df185c570cfd4b7490d746e147e1b96664e2bfd0594e8c1",
       "operations": [
         {
           "name": "client_program_installed_effect_captured_input_inventory_retain",
@@ -54589,6 +54776,14 @@
         {
           "name": "client_program_installed_effect_operation_controls_retain",
           "declaration": "client_program_installed_effect_operation_controls_retain ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , ) - > Result [ @ client_local_host . ClientInstalledEffectManagedPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_operation_discarded_projection_extent_prepare",
+          "declaration": "client_program_installed_effect_operation_discarded_projection_extent_prepare ( original : @ client_local_host . ClientInstalledEffectOperationExtent , remaining : @ execution . ExecutionCapacity , ) - > Result [ @ client_local_host . ClientInstalledEffectOperationExtent , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_operation_discarded_response_projection_complete",
+          "declaration": "client_program_installed_effect_operation_discarded_response_projection_complete ( original : @ client_local_host . ClientInstalledEffectOperationBorrow , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "client_program_installed_effect_operation_extent_from_capacity",
@@ -76970,7 +77165,7 @@
     },
     {
       "module": "src/physical_resources/node_managed_run_operation.mbt",
-      "sha256": "66be01e051df7111697e2cd50c1a196011a2cdb93c4e1dc94777325260b870b5",
+      "sha256": "7dfe8eee4c48b9261d7fc290cba2eb0bea2d398bfbfd358ce88ab11cc4e30eca",
       "exports": [],
       "operations": [
         {
@@ -76995,7 +77190,7 @@
         },
         {
           "name": "[P,E]complete_prepared_run_operation_response_projection",
-          "declaration": "[ P , E ] complete_prepared_run_operation_response_projection ( value : PreparedRunAdmission [ P ] , prepared : P , ledger : Ledger , original : ( ) - > Result [ Unit , E ] , backing : NodeManagedRunOperationBacking , ) - > Result [ Unit , NodeManagedRunOperationIssue [ E ] ]"
+          "declaration": "[ P , E ] complete_prepared_run_operation_response_projection ( value : PreparedRunAdmission [ P ] , prepared : P , ledger : Ledger , original : ( ) - > Result [ Unit , E ] , backing : NodeManagedRunOperationBacking , remaining_retention ? : Int64 ?"
         },
         {
           "name": "[P,E]grow_prepared_run_operation_capacity",
@@ -77058,12 +77253,20 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "identity": [
@@ -77074,12 +77277,20 @@
               {
                 "path": "src/physical_resources/backed_preparation_admission.mbt",
                 "anchor": "pub fn[P, C, I] prepare_backed_preparation_admission("
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "synchronization": [
@@ -77090,18 +77301,30 @@
               {
                 "path": "src/physical_resources/backed_live_child.mbt",
                 "anchor": "pub fn[P, C, R] stop_backed_execution_live_child("
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "resources": [
@@ -77112,12 +77335,20 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The original staged physical response returns projection workspace only after"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "verification": [
@@ -77136,6 +77367,10 @@
               {
                 "path": "adapters/host-node/installed-effect-credential-operation.test.mjs",
                 "anchor": "test('response projection completion keeps the original preparing latch through reentrant release'"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_discarded_projection_js_wbtest.mbt",
+                "anchor": "test \"discarded Unit projection keeps full failed peak then reduces only the admitted remainder\""
               }
             ]
           }

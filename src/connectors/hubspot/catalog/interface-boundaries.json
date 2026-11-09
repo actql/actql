@@ -198,7 +198,7 @@
     },
     {
       "module": "src/connectors/hubspot/catalog/effect_construction.mbt",
-      "sha256": "bf0622db4749099839861bfccd3b5a7fe30660da3d1cf637d27357b40b1835a3",
+      "sha256": "b4e9c1b65afe7db28bb8decce48220e484503e47b2cbdcddaa13cefedd0a4f7d",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing HubSpot native constructors and shared representation inventory owners",
@@ -227,6 +227,10 @@
         {
           "name": "effect_metadata_construction_capacity",
           "declaration": "effect_metadata_construction_capacity ( body_bytes : Int , object_units : Int , limits : PropertyLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "effect_metadata_disposed_construction_capacity",
+          "declaration": "effect_metadata_disposed_construction_capacity ( ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "effect_metadata_observed_construction_capacity",
@@ -263,6 +267,7 @@
             "effect_installation_construction_capacity",
             "effect_metadata_capacity_with_geometry",
             "effect_metadata_construction_capacity",
+            "effect_metadata_disposed_construction_capacity",
             "effect_metadata_observed_construction_capacity",
             "effect_request_construction_capacity",
             "effect_response_construction_capacity",
@@ -276,42 +281,70 @@
               {
                 "path": "src/connectors/hubspot/catalog/effect-construction.md",
                 "anchor": "- Responsibility:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "src/connectors/hubspot/catalog/effect-construction.md",
                 "anchor": "- Inputs and outputs:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "identity": [
               {
                 "path": "src/connectors/hubspot/catalog/effect-construction.md",
                 "anchor": "- Identity:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "ownership": [
               {
                 "path": "src/connectors/hubspot/catalog/effect-construction.md",
                 "anchor": "- Ownership:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "synchronization": [
               {
                 "path": "src/connectors/hubspot/catalog/effect-construction.md",
                 "anchor": "- Synchronization:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "failure": [
               {
                 "path": "src/connectors/hubspot/catalog/effect-construction.md",
                 "anchor": "- Failure:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "cancellation": [
               {
                 "path": "src/connectors/hubspot/catalog/effect-construction.md",
                 "anchor": "- Cancellation:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "resources": [
@@ -330,12 +363,20 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "A retained Catalog recheck has a different constructor from receiving and"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "extension": [
               {
                 "path": "src/connectors/hubspot/catalog/effect-construction.md",
                 "anchor": "- Extension:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "verification": [
@@ -358,6 +399,10 @@
               {
                 "path": "src/connectors/hubspot/catalog/effect_recheck_construction_wbtest.mbt",
                 "anchor": "test \"Catalog recheck retains full native meaning and rejects an undersupplied original workspace\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_discarded_projection_js_wbtest.mbt",
+                "anchor": "test \"discarded Unit projection keeps full failed peak then reduces only the admitted remainder\""
               }
             ]
           }

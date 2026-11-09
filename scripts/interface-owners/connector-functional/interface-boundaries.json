@@ -4841,7 +4841,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "534746982ec95c6f2e3e7fc31845c59b19305ab2542d1ed04619529c0823bad3",
+      "sha256": "baa5c63fe00b68a5f2e79820376b3c74bd3327fc5112dbad847898860db0b835",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -7987,6 +7987,10 @@
               {
                 "path": "docs/design/github-issue-observations.md",
                 "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "inputsOutputs": [
@@ -8029,6 +8033,10 @@
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
                 "anchor": "export async function prepareInstalledRowCaptureChild(options)"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "identity": [
@@ -8071,6 +8079,10 @@
               {
                 "path": "docs/design/github-issue-observations.md",
                 "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "ownership": [
@@ -8113,6 +8125,10 @@
               {
                 "path": "docs/design/github-issue-observations.md",
                 "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "synchronization": [
@@ -8155,6 +8171,10 @@
               {
                 "path": "docs/design/github-issue-observations.md",
                 "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "failure": [
@@ -8197,6 +8217,10 @@
               {
                 "path": "docs/design/github-issue-observations.md",
                 "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "cancellation": [
@@ -8235,6 +8259,10 @@
               {
                 "path": "docs/design/github-issue-observations.md",
                 "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "resources": [
@@ -8285,6 +8313,10 @@
               {
                 "path": "docs/design/github-issue-observations.md",
                 "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "extension": [
@@ -8323,6 +8355,10 @@
               {
                 "path": "docs/design/github-issue-observations.md",
                 "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "verification": [
@@ -8437,6 +8473,10 @@
               {
                 "path": "adapters/connectors/hubspot/test/hubspot-mapping-parent.fixture.mjs",
                 "anchor": "test('HubSpot Row constructor retains complete per-kind"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_discarded_projection_js_wbtest.mbt",
+                "anchor": "test \"discarded Unit projection keeps full failed peak then reduces only the admitted remainder\""
               }
             ]
           }
@@ -8475,6 +8515,10 @@
               {
                 "path": "docs/design/github-issue-observations.md",
                 "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "inputsOutputs": [
@@ -8485,6 +8529,10 @@
               {
                 "path": "docs/design/github-issue-observations.md",
                 "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "identity": [
@@ -8495,6 +8543,10 @@
               {
                 "path": "docs/design/github-issue-observations.md",
                 "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "ownership": [
@@ -8505,6 +8557,10 @@
               {
                 "path": "docs/design/github-issue-observations.md",
                 "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "synchronization": [
@@ -8515,6 +8571,10 @@
               {
                 "path": "docs/design/github-issue-observations.md",
                 "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "failure": [
@@ -8525,6 +8585,10 @@
               {
                 "path": "docs/design/github-issue-observations.md",
                 "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "cancellation": [
@@ -8535,6 +8599,10 @@
               {
                 "path": "docs/design/github-issue-observations.md",
                 "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "resources": [
@@ -8545,6 +8613,10 @@
               {
                 "path": "docs/design/github-issue-observations.md",
                 "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "extension": [
@@ -8555,6 +8627,10 @@
               {
                 "path": "docs/design/github-issue-observations.md",
                 "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "verification": [
@@ -8581,6 +8657,10 @@
               {
                 "path": "adapters/host-node/mock-file-effect-plan.test.mjs",
                 "anchor": "test('owned async file request retains its same child before preparation and joins before completion'"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_discarded_projection_js_wbtest.mbt",
+                "anchor": "test \"discarded Unit projection keeps full failed peak then reduces only the admitted remainder\""
               }
             ]
           }
@@ -12110,6 +12190,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "inputsOutputs": [
@@ -12120,6 +12204,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "identity": [
@@ -12130,6 +12218,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "ownership": [
@@ -12140,6 +12232,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "synchronization": [
@@ -12150,6 +12246,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "failure": [
@@ -12160,6 +12260,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "cancellation": [
@@ -12170,6 +12274,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "resources": [
@@ -12180,6 +12288,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "extension": [
@@ -12190,6 +12302,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "verification": [
@@ -12200,6 +12316,10 @@
               {
                 "path": "adapters/host-node/installed-effect-plan.test.mjs",
                 "anchor": "test('owned Content request child keeps one constructor token until its exact physical cleanup ACK'"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_discarded_projection_js_wbtest.mbt",
+                "anchor": "test \"discarded Unit projection keeps full failed peak then reduces only the admitted remainder\""
               }
             ]
           }
@@ -12437,60 +12557,100 @@
               {
                 "path": "adapters/connectors/hubspot/host/installed-update.md",
                 "anchor": "- Responsibility:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/connectors/hubspot/host/installed-update.md",
                 "anchor": "- Inputs and outputs:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "identity": [
               {
                 "path": "adapters/connectors/hubspot/host/installed-update.md",
                 "anchor": "- Identity:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/connectors/hubspot/host/installed-update.md",
                 "anchor": "- Ownership:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/connectors/hubspot/host/installed-update.md",
                 "anchor": "- Synchronization:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "failure": [
               {
                 "path": "adapters/connectors/hubspot/host/installed-update.md",
                 "anchor": "- Failure:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/connectors/hubspot/host/installed-update.md",
                 "anchor": "- Cancellation:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "resources": [
               {
                 "path": "adapters/connectors/hubspot/host/installed-update.md",
                 "anchor": "- Resources:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "extension": [
               {
                 "path": "adapters/connectors/hubspot/host/installed-update.md",
                 "anchor": "- Extension:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "verification": [
               {
                 "path": "adapters/connectors/hubspot/host/installed-update.md",
                 "anchor": "- Verification:"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_discarded_projection_js_wbtest.mbt",
+                "anchor": "test \"discarded Unit projection keeps full failed peak then reduces only the admitted remainder\""
               }
             ]
           }
@@ -21681,7 +21841,8 @@
             "requestsRetired",
             "originalInvoke",
             "originalResponseExtent",
-            "originalResponsePreparation"
+            "originalResponsePreparation",
+            "discardResponseProjection"
           ],
           "async": false
         },
@@ -22144,7 +22305,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "35c4b1a52b2e6e0789dd30b457b90fb4f23dac0adbed0c744f91e6a798212b0d",
+      "sha256": "fb419203e6b79a63f5120337315cf2f397e3830c3371c6f9e35de441e65029a9",
       "contracts": [
         {
           "operations": [
@@ -22229,42 +22390,70 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The standard CREATE declaration can express a read check as fixed `http`"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The standard CREATE declaration can express a read check as fixed `http`"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The installed Row Effect retains its implementation's original typed operation"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "original read grant, awaits that retained read child, then selects the separate"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The standard CREATE declaration can express a read check as fixed `http`"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "write child. The commit decision never authorizes the read. A rejected read"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "A forbidden asynchronous constructor remains joined through settlement before"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "resources": [
@@ -22279,12 +22468,20 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The original staged physical response returns projection workspace only after"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "write child. The commit decision never authorizes the read. A rejected read"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "verification": [
@@ -22323,6 +22520,10 @@
               {
                 "path": "adapters/host-node/installed-effect-credential-operation.test.mjs",
                 "anchor": "test('response projection completion keeps the original preparing latch through reentrant release'"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_discarded_projection_js_wbtest.mbt",
+                "anchor": "test \"discarded Unit projection keeps full failed peak then reduces only the admitted remainder\""
               }
             ]
           }

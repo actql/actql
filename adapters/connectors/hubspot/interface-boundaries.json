@@ -2207,7 +2207,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/hubspot-update-observations.mjs",
-      "sha256": "5020df35d59870b80d5a545b484154239fcb6e872ba214cfb282bcba41b89150",
+      "sha256": "058b5807aeac91305cdfe7eef2d8f7ee05451bb1296859b8b7b4deeb660fdd76",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing HubSpot Native request/target decoders and common installed row Effect",
@@ -2484,54 +2484,90 @@
               {
                 "path": "adapters/connectors/hubspot/host/installed-update.md",
                 "anchor": "- Responsibility:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/connectors/hubspot/host/installed-update.md",
                 "anchor": "- Inputs and outputs:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "identity": [
               {
                 "path": "adapters/connectors/hubspot/host/installed-update.md",
                 "anchor": "- Identity:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/connectors/hubspot/host/installed-update.md",
                 "anchor": "- Ownership:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/connectors/hubspot/host/installed-update.md",
                 "anchor": "- Synchronization:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "failure": [
               {
                 "path": "adapters/connectors/hubspot/host/installed-update.md",
                 "anchor": "- Failure:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/connectors/hubspot/host/installed-update.md",
                 "anchor": "- Cancellation:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "resources": [
               {
                 "path": "adapters/connectors/hubspot/host/installed-update.md",
                 "anchor": "- Resources:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "extension": [
               {
                 "path": "adapters/connectors/hubspot/host/installed-update.md",
                 "anchor": "- Extension:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "verification": [
@@ -2542,6 +2578,10 @@
               {
                 "path": "adapters/connectors/hubspot/test/hubspot-update-driver.fixture.mjs",
                 "anchor": "test('HubSpot installed one-response decoder preserves two serial targets"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_discarded_projection_js_wbtest.mbt",
+                "anchor": "test \"discarded Unit projection keeps full failed peak then reduces only the admitted remainder\""
               }
             ]
           }
@@ -3044,7 +3084,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/hubspot-effect-plan.mjs",
-      "sha256": "c62f1f4956e290e9d394fe3b2ee190a1efd29f14f1cce663221756486a4afc8c",
+      "sha256": "b0b8e70871a56ce044420e97f594c67acfe2b13d0bd38c1d7568c443b729ffee",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common managed Effect Plan and same-issuer HubSpot constructor quantities",
@@ -3297,42 +3337,70 @@
               {
                 "path": "src/connectors/hubspot/catalog/effect-construction.md",
                 "anchor": "- Responsibility:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "src/connectors/hubspot/catalog/effect-construction.md",
                 "anchor": "- Inputs and outputs:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "identity": [
               {
                 "path": "src/connectors/hubspot/catalog/effect-construction.md",
                 "anchor": "- Identity:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "ownership": [
               {
                 "path": "src/connectors/hubspot/catalog/effect-construction.md",
                 "anchor": "- Ownership:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "synchronization": [
               {
                 "path": "src/connectors/hubspot/catalog/effect-construction.md",
                 "anchor": "- Synchronization:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "failure": [
               {
                 "path": "src/connectors/hubspot/catalog/effect-construction.md",
                 "anchor": "- Failure:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "cancellation": [
               {
                 "path": "src/connectors/hubspot/catalog/effect-construction.md",
                 "anchor": "- Cancellation:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "resources": [
@@ -3343,12 +3411,20 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "The Host passes only original member and operation coordinates. Core resolves"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "extension": [
               {
                 "path": "src/connectors/hubspot/catalog/effect-construction.md",
                 "anchor": "- Extension:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "verification": [
@@ -3359,6 +3435,10 @@
               {
                 "path": "adapters/connectors/hubspot/test/hubspot-effect-plan.test.mjs",
                 "anchor": "test('HubSpot fixed footprint binds a scratch-only original member distinct from all physical and capture roles'"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_discarded_projection_js_wbtest.mbt",
+                "anchor": "test \"discarded Unit projection keeps full failed peak then reduces only the admitted remainder\""
               }
             ]
           }

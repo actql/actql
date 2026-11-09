@@ -470,7 +470,7 @@
     {
       "module": "src/client_local_host/installed_effect_operation_demand.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "747d36fcf056217dc4f018c242720f7f5a68f00ee110030e13702e50156316d6",
+      "sha256": "0bbb9146afca61ada822696dfd4ebcf50a3dd77faa19c184634d8b85548b4893",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -522,6 +522,10 @@
         {
           "name": "prepare_installed_effect_capture_recipe_extent",
           "declaration": "prepare_installed_effect_capture_recipe_extent ( operation : String , recipe : Array [ @ execution . ExecutionCapacity ] , ) - > Result [ ClientInstalledEffectOperationExtent , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "prepare_installed_effect_discarded_projection_extent",
+          "declaration": "prepare_installed_effect_discarded_projection_extent ( original : ClientInstalledEffectOperationExtent , remaining : @ execution . ExecutionCapacity , ) - > Result [ ClientInstalledEffectOperationExtent , ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "prepare_installed_effect_host_input_capture_recipe_extent",
@@ -582,6 +586,10 @@
         {
           "name": "resolve_installed_effect_id_extent",
           "declaration": "resolve_installed_effect_id_extent ( original : ClientInstalledEffectOperationExtent , effect_id : String , ) - > ClientInstalledEffectOperationExtent ?"
+        },
+        {
+          "name": "same_effect_projection_remainder",
+          "declaration": "same_effect_projection_remainder ( a : @ execution . ExecutionCapacity ? , b : @ execution . ExecutionCapacity ? , ) - > Bool"
         }
       ],
       "contracts": [
@@ -679,7 +687,9 @@
         {
           "operations": [
             "installed_effect_capacity_within",
-            "prepare_installed_effect_staged_extent"
+            "prepare_installed_effect_discarded_projection_extent",
+            "prepare_installed_effect_staged_extent",
+            "same_effect_projection_remainder"
           ],
           "exports": [],
           "attributes": {
@@ -687,54 +697,90 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
               }
             ],
             "verification": [
@@ -749,6 +795,10 @@
               {
                 "path": "adapters/host-node/request-preparation-parent.test.mjs",
                 "anchor": "test('normal first Request Plan keeps its original typed row refusal"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_discarded_projection_js_wbtest.mbt",
+                "anchor": "test \"discarded Unit projection keeps full failed peak then reduces only the admitted remainder\""
               }
             ]
           }
