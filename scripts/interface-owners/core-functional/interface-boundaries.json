@@ -52485,7 +52485,7 @@
               },
               {
                 "path": "src/connectors/local/module.mbt",
-                "anchor": "let constructor_chain = unnest_chain && metered_retention"
+                "anchor": "let constructor_chain = (unnest_chain && metered_retention) || window_chain"
               },
               {
                 "path": "src/connectors/local/unnest_provider.mbt",
@@ -52754,6 +52754,30 @@
               {
                 "path": "src/connectors/local/metered_output_start_wbtest.mbt",
                 "anchor": "test \"Count chains retain text recursive and injected provider funding\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"window group fields preserve original grouped rows and ordering on the same Ledger\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"window group import refusal preserves original task without decoding a row\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"window group cancellation preserves original input and cleanup without publishing rows\""
+              },
+              {
+                "path": "src/execution_relation/bounded_row_window_wbtest.mbt",
+                "anchor": "test \"window output funds original rows before transfer and keeps refusal or close custody\""
+              },
+              {
+                "path": "src/execution_relation/bounded_group_wbtest.mbt",
+                "anchor": "test \"group output funds original measured rows before transfer and keeps refusal or close custody\""
+              },
+              {
+                "path": "src/connectors/local/metered_output_start_wbtest.mbt",
+                "anchor": "test \"window chain startup preserves complete retention and injected full capacity\""
               }
             ]
           }

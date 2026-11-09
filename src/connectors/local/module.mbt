@@ -429,9 +429,31 @@ pub fn local_module_metered_output_start_capacity(
     }
   }
   unnest_chain = unnest_chain && has_unnest
+  // This built-in window chain constructs no legacy sequence table. Keep
+  // complete child input, measurement and aggregate scratch, plus every
+  // retained completion, while the existing chain confirms cleanup before
+  // its next child. Text/nullable DATA retains its original full envelope.
+  let mut window_chain = count > 1
+  let mut has_window = false
+  for index in 0..<count {
+    match @execution.generated_sequence_step_at(sequence, index) {
+      Some(@lower.WindowStep(_)) => has_window = true
+      Some(@lower.RowStep(kernel)) =>
+        if !selected_binding_rows_supported(kernel) &&
+          !(@lower.kernel_body(kernel) is @lower.Groups(_)) {
+          window_chain = false
+        }
+      _ => window_chain = false
+    }
+  }
+  window_chain = window_chain && has_window
   let mut metered_retention = true
   for index in 0..<count {
     match @execution.generated_sequence_step_at(sequence, index) {
+      Some(@lower.WindowStep(_)) if window_chain => metered_retention = false
+      Some(@lower.RowStep(kernel)) if window_chain &&
+        @lower.kernel_body(kernel) is @lower.Groups(_) =>
+        metered_retention = false
       Some(@lower.CrossJoinStep(_)) => ()
       Some(@lower.AppendStep(_)) if count == 1 => ()
       Some(@lower.SetStep(_)) if count == 1 => ()
@@ -618,7 +640,7 @@ pub fn local_module_metered_output_start_capacity(
     return None
   }
   let mut fixed = 0L
-  let constructor_chain = unnest_chain && metered_retention
+  let constructor_chain = (unnest_chain && metered_retention) || window_chain
   let mut scratch = if constructor_chain {
     0L
   } else {

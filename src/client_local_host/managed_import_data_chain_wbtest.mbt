@@ -19,6 +19,8 @@ fn managed_import_data_chain(
   two_input_task? : Int? = Some(2),
   parameter_declarations? : String? = None,
   parameter_values? : String? = None,
+  format? : @frontend.Format = @frontend.Text,
+  numeric_profile_cid? : String? = None,
   query? : String = "WITH paired AS (WITH seed AS (FROM records |> SELECT amount, id) SELECT l.id AS amount, l.amount AS id FROM seed AS l JOIN seed AS r ON l.id = r.id ORDER BY amount + 1) FROM paired |> RESULT copied_rows",
   expected_tasks? : Int? = Some(8),
   result_name? : String = "copied_rows",
@@ -52,7 +54,8 @@ fn managed_import_data_chain(
 ) -> Unit raise {
   let prepared = before_limit_standard_prepared(
     query,
-    @frontend.Text,
+    format,
+    numeric_profile_cid~,
     parameter_declarations~,
     parameter_values=parameter_values.map(funded_value_cursor),
   )
@@ -914,4 +917,42 @@ test "cancelled empty Source count cannot decode a new row or publish its single
     prior_execution=20400678L,
     expected_policy=None,
   )
+}
+
+///|
+fn window_group_original_data_chain(mode : ManagedImportDataCase) -> Unit raise {
+  managed_import_data_chain(
+    mode,
+    format=@frontend.Sql,
+    numeric_profile_cid=Some(
+      "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df",
+    ),
+    query="WITH raw AS (SELECT id, COALESCE(amount,0) AS occurred_ms, IF(id <= 2,'a','b') AS cohort, amount FROM records) FROM raw AS r |> row_window(kind:'fixed',time:r.occurred_ms,size:'1m')|> window_group(by:[r.cohort],aggregates:{n:{fn:'count'},total:{fn:'sum',field:r.amount}}) |> SELECT window_start,window_end,cohort,n,total |> ORDER BY window_start,window_end,cohort",
+    source_wire="[{\"id\":3,\"amount\":30},{\"id\":1,\"amount\":null},{\"id\":2,\"amount\":20},{\"id\":3,\"amount\":30}]",
+    source_rows=4,
+    expected_tasks=None,
+    two_input_task=None,
+    result_name="main",
+    expected_rows=[
+      "{\"window_start\":0,\"window_end\":60000,\"cohort\":\"a\",\"n\":2,\"total\":20}",
+      "{\"window_start\":0,\"window_end\":60000,\"cohort\":\"b\",\"n\":2,\"total\":60}",
+    ],
+    prior_execution=21807504L,
+    expected_policy=None,
+  )
+}
+
+///|
+test "window group fields preserve original grouped rows and ordering on the same Ledger" {
+  window_group_original_data_chain(Complete)
+}
+
+///|
+test "window group import refusal preserves original task without decoding a row" {
+  window_group_original_data_chain(RefuseImport)
+}
+
+///|
+test "window group cancellation preserves original input and cleanup without publishing rows" {
+  window_group_original_data_chain(CancelImport)
 }

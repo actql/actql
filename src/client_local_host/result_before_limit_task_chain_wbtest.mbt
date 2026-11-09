@@ -10,12 +10,14 @@ fn before_limit_standard_prepared(
   format : @frontend.Format,
   parameter_declarations? : String? = None,
   parameter_values? : @decode.Cursor? = None,
+  numeric_profile_cid? : String? = None,
 ) -> @publication_host.PreparedClientProgram raise {
   let environment = @publication_host.admit_client_check_environment(
     before_limit_standard_environment,
     "sha256:f89c038ba1c148b0ef1b1b6091226544bc7ef45c2ef3059ac0b87ed1897413d7",
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+    numeric_profile_cid~,
   ).unwrap()
   let body = @json.parse(before_limit_standard_environment)
   guard body is Object(root) &&

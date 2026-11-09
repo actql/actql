@@ -380,6 +380,9 @@ fn relation_chain_reclaimed_prefix(
       // original output generation, including duplicate expansion rows.
       Some(@lower.ValuesStep(_)) => ()
       Some(@lower.AppendStep(_)) => ()
+      // The bounded window child detaches its accepted output. Cleanup drops
+      // its maps, membership array and recheck cursors before the next child.
+      Some(@lower.WindowStep(_)) => ()
       Some(@lower.SetStep(_)) if @execution.generated_sequence_step_count(
           sequence,
         ) ==

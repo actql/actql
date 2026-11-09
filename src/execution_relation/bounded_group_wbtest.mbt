@@ -575,3 +575,86 @@ test "bounded analytic admits exact work and rejects one unit short" {
   }
   assert_true(cleanup_bounded_group_execution(short).unwrap())
 }
+
+///|
+test "group output funds original measured rows before transfer and keeps refusal or close custody" {
+  for (refuse, close) in [(false, false), (true, false), (false, true)] {
+    let calls = Ref(0)
+    let before_transfer = Ref(true)
+    let active : Ref[BoundedGroupExecution?] = Ref(None)
+    let (_, execution, source) = bounded_relation_start(
+      "{\"k\":{\"type\":\"number\",\"nullable\":false}}",
+      "[{\"k\":1}]",
+      "\"group\":{\"by\":[\"k\"],\"aggregates\":{\"m\":{\"fn\":\"max\",\"field\":\"k\"}}}",
+      "group_0",
+      false,
+      constrain=generated => {
+        bind_generated_workspace_growth(
+          generated,
+          compute_test_limits(),
+          536870912L,
+          _ => Ok(()),
+          meter_retained_outputs=true,
+          reserve_retained=Some((retained, execution) => {
+            calls.val += 1
+            before_transfer.val = before_transfer.val &&
+              retained > 0L &&
+              execution >= retained &&
+              active.val
+              .map(value => {
+                value.state.output_row.length() == 2 &&
+                value.state.output
+                .map(output => {
+                  output.buffer.rows.is_empty() &&
+                  output.buffer.budget.nodes > 0
+                })
+                .unwrap_or(false)
+              })
+              .unwrap_or(false)
+            if close {
+              active.val
+              .bind(value => value.state.output)
+              .map(output => cancel_admitted_output(output) |> ignore)
+              |> ignore
+            }
+            if refuse {
+              Err(WorkspaceBudgetUnavailable)
+            } else {
+              Ok(())
+            }
+          }),
+        ).unwrap()
+      },
+    )
+    let execution = execution.unwrap()
+    active.val = Some(execution)
+    let mut done = false
+    let mut accepted = None
+    for _ in 0..<1000 {
+      if !done {
+        match advance_bounded_group_execution(execution, 1).unwrap() {
+          BoundedGroupContinue(..) => ()
+          BoundedGroupComplete(output, ..) => {
+            assert_false(refuse || close)
+            assert_eq(completed_row_count(output), 1)
+            assert_true(completed_cell(output, 0, 0) is Some(Number(1)))
+            accepted = Some(output)
+            done = true
+          }
+          BoundedGroupFailed(Capture(CaptureLimit), ..) => {
+            assert_true(refuse || close)
+            assert_true(execution.state.rows.val is None)
+            done = true
+          }
+          _ => fail("group output lost its original funding outcome")
+        }
+      }
+    }
+    assert_true(done && calls.val > 0 && before_transfer.val)
+    assert_true(cleanup_bounded_group_execution(execution).unwrap())
+    if accepted is Some(output) {
+      assert_true(completed_output_available(output))
+    }
+    assert_true(completed_output_available(source))
+  }
+}
