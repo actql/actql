@@ -601,11 +601,18 @@ fn retained_effect_review_retention_store(
         request,
         approval_scope,
         persisted.artifact,
+        completion.preview,
+        @host.client_effect_review_checkpoint_unit_definition_cid(
+          materials.allowed,
+          materials.run_definition,
+          persisted.artifact,
+        ).unwrap(),
       )
     }
     // Establish the actual signed answer before the independent custody tests.
     // The new Approved-signature component leaves the Run Resuming without a
-    // dispatch claim or business-result assertion; older cases retain rejection.
+    // business update or Result assertion. A selected probe can claim/dispatch;
+    // older cases retain rejection.
     if initial_host {
       assert_true(initial_reviewer.unwrap().0.host_applied)
     } else {

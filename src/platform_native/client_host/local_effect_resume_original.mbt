@@ -258,6 +258,71 @@ pub fn NativeLocalEffectResumeOriginal::fence(
 }
 
 ///|
+/// Record custody for this approved original row through the existing Journal.
+/// A successful dispatch is not target authorization, a physical send, response
+/// evidence or a cleanup ACK. The installed write caller must retain its exact
+/// request and check its current target/authorization before entering physical IO.
+/// Settlement-only, foreign Preview/Unit/row and retired originals cannot send.
+pub fn NativeLocalEffectResumeOriginal::dispatch_row(
+  self : NativeLocalEffectResumeOriginal,
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+  locator : @effect.LogicalItemLocator,
+  key : @effect.EffectDispatchKey,
+  basis : @effect.EffectLedgerBasis,
+) -> Result[
+  NativeClientEffectRowDispatchAction,
+  NativeLocalInitialHostAttestationIssue,
+] {
+  guard !self.retired &&
+    self.prepared &&
+    self.action is Some(Claimed(claim)) &&
+    self.record.checkpoint is Some(checkpoint) &&
+    basis.unit_definition_cid == self.unit_definition_cid &&
+    basis.effect_preview_cid ==
+    checkpoint.artifact.checkpoint.required_artifact_cid &&
+    @publication.effect_preview_semantic_identity(preview) ==
+    basis.effect_preview_cid &&
+    @publication.effect_preview_run_identity(preview) ==
+    @publication.publication_contract_identity(self.record.definition) &&
+    @publication.effect_preview_member_kind(preview, member_index) is Some(kind) &&
+    @publication.effect_preview_ordered_row_identity(
+      preview, member_index, row_index,
+    )
+    is Some(row) else {
+    return Err(HostAttestationUnavailable)
+  }
+  // Preserve the already admitted Preview; do not re-author or recompile it.
+  // Common's original single-row binding checks scope, locator, key and order.
+  if @effect.admit_effect_single_row(
+      preview,
+      member_index,
+      row_index,
+      kind,
+      @host.client_request_logical_scope(self.request),
+      row,
+      locator,
+      key,
+    )
+    is Err(_) {
+    return Err(HostAttestationUnavailable)
+  }
+  // Journal rechecks the actual lease generation and current original around
+  // its clock observation and commits prepared+dispatching with the Run witness.
+  self.host.journal
+  .record_effect_row_dispatch(
+    claim,
+    locator,
+    key,
+    basis,
+    () => self.authority_current(),
+    () => @env.now().reinterpret_as_int64(),
+  )
+  .map_err(issue => HostAttestationJournal(issue))
+}
+
+///|
 /// Alias retirement only. Durable intent/generation and consumed work remain.
 pub fn NativeLocalEffectResumeOriginal::retire_read_aliases(
   self : NativeLocalEffectResumeOriginal,

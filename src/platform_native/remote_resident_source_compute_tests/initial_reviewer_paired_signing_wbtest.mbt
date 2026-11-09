@@ -12,6 +12,7 @@ priv struct PairedInitialReviewerFixture {
   attest_host : Bool
   probe_approval : Bool
   probe_resume : Bool
+  probe_dispatch : Bool
   mut resume_claimed : Bool
   mut host_applied : Bool
 }
@@ -21,6 +22,7 @@ fn paired_initial_reviewer_fixture(
   attest_host? : Bool = false,
   probe_approval? : Bool = false,
   probe_resume? : Bool = false,
+  probe_dispatch? : Bool = false,
 ) -> PairedInitialReviewerFixture raise {
   let top = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
   let name = "paired-initial-reviewer-" + @env.now().to_string()
@@ -115,6 +117,7 @@ fn paired_initial_reviewer_fixture(
     attest_host,
     probe_approval,
     probe_resume,
+    probe_dispatch,
     resume_claimed: false,
     host_applied: false,
   }
@@ -127,6 +130,8 @@ fn paired_initial_reviewer_signing(
   request : @host.ClientRequestIdentity,
   approval_scope : @resident.ResidentOriginalEffectApprovalScope,
   checkpoint : @checkpoint.SealedCheckpoint,
+  preview : @publication.EffectPreviewIdentity,
+  unit_definition_cid : String,
 ) -> Unit raise {
   let host = fixture.host
   let original = host.restore_initial_signing_original().unwrap()
@@ -151,7 +156,7 @@ fn paired_initial_reviewer_signing(
     .unwrap()
   if fixture.probe_approval {
     paired_initial_approved_proof_probe(
-      fixture, binding, key, installed, request, checkpoint,
+      fixture, binding, key, installed, request, checkpoint, preview, unit_definition_cid,
     )
     // The first real Approved answer is immutable. Do not sign a conflicting
     // rejection merely to reuse this fixture's older branch.

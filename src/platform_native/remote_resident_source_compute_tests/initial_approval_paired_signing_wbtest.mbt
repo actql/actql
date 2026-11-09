@@ -10,7 +10,8 @@ fn[T, E] paired_approval_require(value : Result[T, E], step~ : Int) -> T raise {
 // Actual existing adopted Host/key + paired original Source/Preview scope.
 // This verifies the original Approved Resolution and physical retention cleanup.
 // The default probe leaves its Run Resuming. The optional continuation probe
-// claims its original lease; neither branch performs business update or Result.
+// claims its original lease and may record the original row dispatch; no branch
+// performs a business update or Result publication.
 fn paired_initial_approved_proof_probe(
   fixture : PairedInitialReviewerFixture,
   binding : @client.NativeLocalEffectReviewerBinding,
@@ -18,6 +19,8 @@ fn paired_initial_approved_proof_probe(
   installed : @client.NativeLocalInstalledEffectReviewer,
   request : @host.ClientRequestIdentity,
   checkpoint : @checkpoint.SealedCheckpoint,
+  preview : @publication.EffectPreviewIdentity,
+  unit_definition_cid : String,
 ) -> Unit raise {
   let limits : @checkpoint.WireLimits = {
     max_wire_bytes: 262144,
@@ -215,6 +218,88 @@ fn paired_initial_approved_proof_probe(
       original.fence() |> paired_approval_require(step=30),
       @client.Current,
     )
+    if fixture.probe_dispatch {
+      let scope = @host.client_request_logical_scope(request)
+      let rows = @effect.prepare_effect_recovery_bindings(
+        preview,
+        scope,
+        @publication.effect_preview_program_definition_cid(preview),
+        "original-stage",
+        1,
+        2,
+      ).unwrap()
+      let row = rows[0][0]
+      // Remaining custody references are explicit component DATA. They do not
+      // establish an installed Mock request, write permission or physical IO.
+      let basis = @effect.prepare_effect_ledger_basis(
+        scope,
+        row.locator,
+        row.key,
+        unit_definition_cid,
+        @publication.effect_preview_member_identity(preview, 0).unwrap(),
+        @publication.effect_preview_ordered_row_identity(preview, 0, 0).unwrap(),
+        "sha256:" + "1".repeat(64),
+        "sha256:" + "2".repeat(64),
+        "unavailable",
+        "sha256:" + "3".repeat(64),
+        "sha256:" + "4".repeat(64),
+      ).unwrap()
+      // The same current lease cannot dispatch a foreign Unit or row index.
+      let foreign_basis = @effect.prepare_effect_ledger_basis(
+        scope,
+        row.locator,
+        row.key,
+        "sha256:" + "0".repeat(64),
+        basis.original_membership_cid,
+        basis.intent_fingerprint_cid,
+        basis.canonical_request_cid,
+        basis.recovery_contract_cid,
+        basis.capability,
+        basis.reservation_evidence_cid,
+        basis.retention_contract_cid,
+      ).unwrap()
+      assert_true(
+        original.dispatch_row(
+          preview,
+          0,
+          0,
+          row.locator,
+          row.key,
+          foreign_basis,
+        )
+        is Err(_),
+      )
+      assert_true(
+        original.dispatch_row(preview, 0, 1, row.locator, row.key, basis)
+        is Err(_),
+      )
+      let dispatched = original.dispatch_row(
+          preview,
+          0,
+          0,
+          row.locator,
+          row.key,
+          basis,
+        )
+        |> paired_approval_require(step=31)
+      assert_true(dispatched is @client.DispatchRecorded(_))
+      // The existing durable original is observed; a duplicate never sends.
+      let repeated = original.dispatch_row(
+          preview,
+          0,
+          0,
+          row.locator,
+          row.key,
+          basis,
+        )
+        |> paired_approval_require(step=32)
+      assert_true(repeated is @client.OriginalRowRetained(_))
+      original.retire_read_aliases()
+      assert_true(
+        original.dispatch_row(preview, 0, 0, row.locator, row.key, basis)
+        is Err(_),
+      )
+    }
     // A repeated entry cannot replace the original generation or refund work.
     assert_true(original.claim(10000L) is Err(_))
     original.retire_read_aliases()
@@ -240,6 +325,20 @@ test "original approved Host answer claims the same Run after signer close witho
     attest_host=true,
     probe_approval=true,
     probe_resume=true,
+  )
+  native_local_effect_capture_acceptance(true, initial_reviewer=Some(fixture))
+  assert_true(
+    fixture.restored && fixture.host_applied && fixture.resume_claimed,
+  )
+}
+
+///|
+test "approved original resume dispatches only its original Preview Unit and row once" {
+  let fixture = paired_initial_reviewer_fixture(
+    attest_host=true,
+    probe_approval=true,
+    probe_resume=true,
+    probe_dispatch=true,
   )
   native_local_effect_capture_acceptance(true, initial_reviewer=Some(fixture))
   assert_true(

@@ -3495,3 +3495,13 @@ cancellation or a changed Checkpoint cannot leave a current saved observation.
 Retiring this command's aliases never invokes historical evidence cleanup or
 releases its Store quota. This observation does not issue approval, a signing
 use, a resume claim, a write or a fresh computation.
+
+An acknowledged original Approved Resolution can retain its existing resume
+view across signer closure. Row dispatch uses that same view and Journal lease,
+checks the original Run, approved Preview, Unit and Common single-row binding,
+and commits the existing prepared/dispatching chain with its custody witness.
+A repeated row observes its durable original rather than issuing another send.
+Settlement-only or retired views cannot dispatch. This custody connection does
+not authorize a target, replace the installed request, establish physical IO or
+supply a response/outcome receipt. The actual write caller must preserve those
+independent current, backing and cleanup obligations.
