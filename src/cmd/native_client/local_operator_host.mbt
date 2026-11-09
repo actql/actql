@@ -3,6 +3,7 @@ priv struct LocalOperatorHostLocation {
   base_path : String
   directories : Array[String]
   name : String
+  create_default : Bool
 }
 
 ///|
@@ -12,6 +13,7 @@ fn local_operator_host_location(
   selected : String?,
   cwd : String,
   read_home : () -> String? raise ClientStop,
+  initialize? : Bool = false,
 ) -> LocalOperatorHostLocation raise ClientStop {
   match selected {
     Some(path) => {
@@ -21,6 +23,7 @@ fn local_operator_host_location(
         base_path: location.parent_path,
         directories: [],
         name: location.directory_name,
+        create_default: false,
       }
     }
     None => {
@@ -30,7 +33,12 @@ fn local_operator_host_location(
       if !local_product_path(home) {
         stop("LocalHostHomeUnavailable")
       }
-      { base_path: home, directories: [".config", "actql"], name: "host.json", }
+      {
+        base_path: home,
+        directories: [".config", "actql"],
+        name: "host.json",
+        create_default: initialize,
+      }
     }
   }
 }
@@ -71,13 +79,14 @@ fn LocalCommandPreparationOriginal::select_operator_host(
       optional(matches, "host-config"),
       cwd,
       local_product_bounded_home,
+      initialize~,
     )
     let capture = command_preparation_result(
       @local_host.prepare_native_local_operator_host_capture_in_current_read_context(
         location.base_path,
         location.directories,
         location.name,
-        initialize,
+        location.create_default,
         self.profile.diagnostic_ceiling,
       ).map_err(issue => CommandAdoption(issue)),
       stage=Some("operator-host-prepare"),

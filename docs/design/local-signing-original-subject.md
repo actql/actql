@@ -93,8 +93,10 @@ The Native command selects `~/.config/actql/host.json` or the explicit
 Project configuration does not select it. The existing Adoption owner retains
 the actual no-follow Root, file observation and bytes before use. Only an
 explicit first initialization may exclusively create an absent default file.
-A missing file on restore refuses. Existing files are never replaced with the
-default, including files with an explicit empty signer map.
+A missing explicit `--host-config` file refuses even during initialization;
+only the implicit standard path is created. A missing file on restore refuses.
+Existing files are never replaced with the default, including files with an
+explicit empty signer map.
 
 The selected configuration manifest binds the operator file's actual
 generation and content, rather than the generation of its Product-side copy.

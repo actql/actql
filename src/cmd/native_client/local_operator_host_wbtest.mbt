@@ -12,15 +12,23 @@ test "operator Host selection uses the explicit original path before HOME" {
     Some("./operator/host.json"),
     "/invocation",
     home,
+    initialize=true,
   )
   assert_eq(explicit.base_path, "/invocation/operator")
   assert_eq(explicit.name, "host.json")
   assert_eq(explicit.directories.length(), 0)
+  assert_false(explicit.create_default)
   assert_eq(homes, 0)
-  let standard = local_operator_host_location(None, "/project", home)
+  let standard = local_operator_host_location(
+    None,
+    "/project",
+    home,
+    initialize=true,
+  )
   assert_eq(standard.base_path, "/machine-user")
   assert_eq(standard.directories, [".config", "actql"])
   assert_eq(standard.name, "host.json")
+  assert_true(standard.create_default)
   assert_eq(homes, 1)
 }
 

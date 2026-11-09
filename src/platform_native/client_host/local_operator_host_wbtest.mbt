@@ -174,3 +174,26 @@ test "operator Host joins the actual adoption capture without a private-file fal
   source.close().unwrap()
   crypto.close_checked().unwrap()
 }
+
+///|
+test "missing explicit operator Host refuses without creating authority or staging files" {
+  let path = product_test_parent("explicit-operator-host-missing")
+  // The command's exact explicit-path selection supplies create_default=false
+  // even for init. The filename itself, including host.json, grants nothing.
+  let capture = prepare_local_operator_host_capture(
+      path,
+      [],
+      "host.json",
+      false,
+      LegacyPrivateRoots,
+    )
+    |> material_choice_ok("explicit missing capture")
+  assert_true(capture.open() is Err(CustodyLost))
+  assert_true(capture.original is None)
+  assert_true(capture.writer is None)
+  capture.close() |> material_choice_ok("explicit missing close")
+  let root = @filesystem.open_private_root(path).unwrap()
+  assert_eq(root.inspect_generation("host.json").unwrap(), None)
+  assert_eq(root.inspect_generation("host.json.stage").unwrap(), None)
+  root.close().unwrap()
+}
