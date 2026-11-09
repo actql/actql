@@ -218,13 +218,13 @@ pub fn client_effect_acquired_dependency_bodies(
 fn client_effect_computed_result_matches_acquired_unit(
   owner : PreparedClientEffectComputation,
   source : ClientEffectAcquiredEvidence,
-  result : @strategy.CapturedEffectLocalResult,
+  exported : @strategy.CapturedEffectLocalResultExport,
 ) -> Bool {
   physical_equal(source.owner, owner) &&
   client_effect_computed_result_matches_invocation(
     owner,
     source.invocation,
-    result,
+    exported,
   )
 }
 
@@ -232,26 +232,14 @@ fn client_effect_computed_result_matches_acquired_unit(
 fn client_effect_computed_result_matches_invocation(
   owner : PreparedClientEffectComputation,
   invocation : ClientEffectLocalInvocation,
-  result : @strategy.CapturedEffectLocalResult,
+  exported : @strategy.CapturedEffectLocalResultExport,
 ) -> Bool {
-  let graph = @strategy.checked_effect_computation_graph(owner.graph)
-  let unit = @strategy.captured_effect_local_result_stage(result)
-  let task = @strategy.captured_effect_local_result_task(result)
-  if unit != invocation.unit ||
-    unit < 0 ||
-    unit >= @strategy.graph_captured_prefix(graph) ||
-    task < @strategy.graph_captured_prefix(graph) {
-    return false
-  }
-  let occurrence = @strategy.captured_any_result_borrow_occurrence(
-    @strategy.captured_effect_local_result_borrow(result),
+  physical_equal(invocation.owner, owner) &&
+  @strategy.captured_effect_local_result_export_matches_computed_unit(
+    exported,
+    owner.graph,
+    invocation.unit,
   )
-  @strategy.graph_stage_target_task(
-    graph,
-    unit,
-    @results.port_target(@execution.managed_result_occurrence_port(occurrence)),
-  ) ==
-  Some(task)
 }
 
 ///|
@@ -283,7 +271,7 @@ pub fn issue_acquired_client_effect_local_result_artifact(
         source.identity,
       ) &&
       !(client_effect_computed_result_matches_acquired_unit(
-        owner, source, result,
+        owner, source, exported,
       ) &&
       @strategy.captured_effect_inputs_acquired_source_matches(
         inputs,

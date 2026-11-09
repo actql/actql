@@ -62,6 +62,8 @@ pub fn captured_source_original_input_read(CapturedInputSource) -> @execution_re
 
 pub fn captured_source_relation_dependency_bodies(CapturedSourceRelationIdentity, CapturedInputSource) -> (String, String)?
 
+pub fn captured_source_relation_identity_has_input_binding(CapturedSourceRelationIdentity, @execution_relation.SuppliedRelationRead) -> Bool
+
 pub fn captured_source_relation_identity_matches_source(CapturedSourceRelationIdentity, CapturedInputSource) -> Bool
 
 pub fn captured_source_relation_logical_cid(CapturedSourceRelationIdentity) -> String

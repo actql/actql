@@ -44,14 +44,38 @@ fn captured_effect_original_acquisition_matches(
   unit : Int,
   identity : @query.CapturedSourceRelationIdentity,
 ) -> Bool {
-  if run.stopped || unit < 0 || unit >= run.graph.captured_prefix_value() {
+  if run.stopped || unit < 0 {
     return false
   }
-  guard run.original_sources.get(unit).bind(value => value) is Some(source) else {
-    return false
+  let graph = run.graph
+  if graph.captured_prefix_value() > 0 {
+    if unit >= graph.captured_prefix_value() {
+      return false
+    }
+    guard run.original_sources.get(unit).bind(value => value) is Some(source) else {
+      return false
+    }
+    return @query.captured_source_relation_identity_matches_source(
+        identity, source,
+      ) &&
+      !run.stopped
   }
-  @query.captured_source_relation_identity_matches_source(identity, source) &&
-  !run.stopped
+  // Whole Sources supply checked inputs, not completed task slots. Retain
+  // their exact original read binding; consuming that input does not erase
+  // the provenance of an independently retained computed Result.
+  for slot in graph.supplied_slots_iter() {
+    if graph_task_unit_index(graph, slot.consumer) != Some(unit) {
+      continue
+    }
+    if run.supplied_reads
+      .get(slot.consumer)
+      .bind(values => values.get(slot.input).bind(value => value))
+      is Some(read) &&
+      @query.captured_source_relation_identity_has_input_binding(identity, read) {
+      return !run.stopped
+    }
+  }
+  false
 }
 
 ///|
@@ -436,4 +460,40 @@ pub fn captured_effect_local_result_export_retained(
       captured_any_result_borrow_retained(value.result.borrow)
     LocalUnit(_) => false
   }
+}
+
+///|
+/// Original computed Result correspondence in the graph actually opened by
+/// this capture. Source-input graphs preserve checked Program/Unit/target
+/// ownership while their task coordinates differ from captured-prefix graphs.
+/// This reads retained fields only; receipt/current checks stay with exports.
+pub fn captured_effect_local_result_export_matches_computed_unit(
+  value : CapturedEffectLocalResultExport,
+  computation : CheckedEffectComputationDAG,
+  unit : Int,
+) -> Bool {
+  let run = match value.owner {
+    EffectInputs(inputs) if inputs.live => inputs.run
+    LocalUnit(inputs) if inputs.live && inputs.unit == unit => inputs.run
+    _ => return false
+  }
+  let result = value.result
+  if run.captured.stopped ||
+    !physical_equal(run.checked.computation, computation) ||
+    result.stage != unit ||
+    !captured_any_result_borrow_retained(result.borrow) {
+    return false
+  }
+  let graph = run.captured.graph
+  result.task >= graph.captured_prefix_value() &&
+  graph_stage_target_task(
+    graph,
+    unit,
+    @ports.port_target(
+      @execution.managed_result_occurrence_port(
+        captured_any_result_borrow_occurrence(result.borrow),
+      ),
+    ),
+  ) ==
+  Some(result.task)
 }

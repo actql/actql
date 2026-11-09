@@ -490,6 +490,7 @@ fn retained_effect_whole_source_export_control(
   let sibling = @resources.reserve_capacity(ledger, 0L, 1L).unwrap()
   let sources = []
   let identities : Array[@query.CapturedSourceRelationIdentity] = []
+  let original_reads : Array[@execution.SuppliedRelationRead] = []
   let reads = []
   let rows = []
   for occurrence in 0..<2 {
@@ -591,6 +592,9 @@ fn retained_effect_whole_source_export_control(
         128,
       ).unwrap()
       identities.push(original)
+      original_reads.push(
+        @query.captured_source_original_input_read(actual).unwrap(),
+      )
     }
     sources.push(actual)
     reads.push(read)
@@ -640,8 +644,21 @@ fn retained_effect_whole_source_export_control(
     )
     let inputs = @strategy.pin_captured_effect_sources(captured, 10).unwrap()
     assert_eq(@strategy.captured_effect_local_result_count(inputs), 2)
+    let originals : Array[@strategy.CapturedEffectLocalResultExport] = []
     if verify_provenance {
-      for original in identities {
+      for index, original in identities {
+        assert_true(
+          @query.captured_source_relation_identity_has_input_binding(
+            original,
+            original_reads[index],
+          ),
+        )
+        assert_false(
+          @query.captured_source_relation_identity_has_input_binding(
+            original,
+            original_reads[1 - index],
+          ),
+        )
         assert_true(
           @strategy.captured_effect_inputs_acquired_source_matches(
             inputs, 0, original,
@@ -690,7 +707,7 @@ fn retained_effect_whole_source_export_control(
       },
       max_batch_bytes: 128,
     }
-    if export_results {
+    if export_results || verify_provenance {
       for index in 0..<2 {
         let result = @strategy.captured_effect_local_result_at(inputs, index).unwrap()
         assert_eq(@strategy.captured_effect_local_result_task(result), index)
@@ -705,6 +722,35 @@ fn retained_effect_whole_source_export_control(
             fail("Original managed export refused before Result conversion")
         }
         let exported = owned.captured_export().unwrap()
+        if verify_provenance {
+          originals.push(exported)
+          let computation = @publication_host.prepared_client_effect_computation_graph(
+            plan.prepared,
+          )
+          let unit = @strategy.captured_effect_local_result_stage(result)
+          assert_true(
+            @strategy.captured_effect_local_result_export_matches_computed_unit(
+              exported, computation, unit,
+            ),
+          )
+          assert_false(
+            @strategy.captured_effect_local_result_export_matches_computed_unit(
+              exported,
+              computation,
+              1 - unit,
+            ),
+          )
+          let foreign = effect_operation_source_plan_fixture(whole_inputs=true)
+          assert_false(
+            @strategy.captured_effect_local_result_export_matches_computed_unit(
+              exported,
+              @publication_host.prepared_client_effect_computation_graph(
+                foreign.prepared,
+              ),
+              unit,
+            ),
+          )
+        }
         let preparation = @strategy.captured_effect_local_result_export_preparation(
           exported,
         )
@@ -780,6 +826,22 @@ fn retained_effect_whole_source_export_control(
       owned.close()
     }
     assert_true(@strategy.release_captured_effect_inputs(inputs))
+    if verify_provenance {
+      for original in originals {
+        let result = @strategy.captured_effect_local_result_export_result(
+          original,
+        )
+        assert_false(
+          @strategy.captured_effect_local_result_export_matches_computed_unit(
+            original,
+            @publication_host.prepared_client_effect_computation_graph(
+              plan.prepared,
+            ),
+            @strategy.captured_effect_local_result_stage(result),
+          ),
+        )
+      }
+    }
   }
   assert_true(execution.close())
   assert_true(retire_installed_effect_captured_consumers(owner).unwrap())

@@ -189,6 +189,8 @@ pub fn captured_effect_local_result_borrow(CapturedEffectLocalResult) -> Capture
 
 pub fn captured_effect_local_result_count(CapturedEffectInputs) -> Int
 
+pub fn captured_effect_local_result_export_matches_computed_unit(CapturedEffectLocalResultExport, @physical_strategy.CheckedEffectComputationDAG, Int) -> Bool
+
 pub fn captured_effect_local_result_export_matches_receipt(CapturedEffectInputs, CapturedEffectLocalResultExport, @execution_relation.CompletedRelationExportReceipt) -> Bool
 
 pub fn captured_effect_local_result_export_preparation(CapturedEffectLocalResultExport) -> @execution_relation.CompletedResultRelationExportPreparation

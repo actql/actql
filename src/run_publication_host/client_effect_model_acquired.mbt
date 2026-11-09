@@ -216,7 +216,9 @@ pub fn issue_model_client_effect_local_result_artifact(
   let result = @strategy.captured_effect_local_result_export_result(exported)
   if !physical_equal(invocation.owner, owner) ||
     !@strategy.captured_effect_inputs_match_computation(inputs, owner.graph) ||
-    !client_effect_computed_result_matches_invocation(owner, invocation, result) {
+    !client_effect_computed_result_matches_invocation(
+      owner, invocation, exported,
+    ) {
     return Err(ForeignOwner)
   }
   if !@strategy.captured_effect_local_result_export_matches_receipt(

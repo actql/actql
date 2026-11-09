@@ -472,3 +472,19 @@ locator request. Interruption retires its pending parser through the existing
 QueryRead, while the reader retains raw responses, failed children and physical
 cleanup responsibilities. Neither parser retirement nor a quantity quote is a
 physical-stop or Host-close acknowledgment.
+
+
+### Computed Effect dependency provenance
+
+A whole Source supplies an original input binding to the opened task graph;
+it does not occupy a completed Source task slot. An acquired Unit's computed
+Result is therefore matched against its captured graph's checked Unit, target
+and Result occurrence. The original captured-prefix graph's numeric task
+positions do not identify that physical result.
+
+The completed Source relation identity can compare its original supplied-read
+binding with the captured Run's same checked input slot. This immutable
+provenance comparison neither reacquires the consumed input nor grants a read,
+current authorization or physical cleanup acknowledgement. Result retention,
+export receipts and the caller's current boundaries remain independent. Legacy
+captured Source results keep their original Source matching path.
