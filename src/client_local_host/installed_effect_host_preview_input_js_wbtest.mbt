@@ -394,3 +394,131 @@ test "Preview decode selects same wire geometry instead of unrelated full recipe
   retire_installed_managed_run(owner).unwrap()
   assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
 }
+
+///|
+test "Ledger open selects same scope constructor beside original Preview and preserves full retained floor" {
+  let calls = Ref(0)
+  let (prepared, request, plan, owner, ledger) = effect_host_preview_input_fixture(
+    wide_controls=true,
+    current=() => calls.val += 1,
+  )
+  let wire = "{\"rows\":[{\"id\":1}]}"
+  let input = installed_effect_host_preview_input_capacity(plan, wire).unwrap()
+  begin_installed_effect_operation_control_input(
+    owner, prepared, request, plan, wire,
+  ).unwrap()
+  complete_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  let control = owner.effect_operation_controls.unwrap()
+  let original_input = control.host_input.unwrap()
+  let token = control.reservation
+  let root = "/original/effect-ledger"
+  let workspace = installed_effect_ledger_open_workspace(root).unwrap()
+  let base_r = @execution.execution_capacity_retained_bytes(
+    plan.operation_control_capacity,
+  )
+  let base_idle = plan.operation_control_idle_execution
+  let input_r = @execution.execution_capacity_retained_bytes(input)
+  let input_e = @execution.execution_capacity_execution_bytes(input)
+  let active_e = Int64::max(
+    Int64::max(base_idle, base_r + workspace) + input_r,
+    base_idle + input_e,
+  )
+  let needed = active_e - (base_idle + input_r)
+  assert_true(needed > 0L)
+  let before = @resources.ledger_usage(ledger)
+  let remaining = @resources.ledger_limits(ledger).execution_bytes -
+    before.reserved_execution_bytes
+  let pressure = @resources.reserve_capacity(ledger, 0L, remaining - needed).unwrap()
+  let one_short = @resources.reserve_capacity(ledger, 0L, 1L).unwrap()
+  let exhausted = @resources.ledger_usage(ledger)
+  assert_true(
+    begin_installed_effect_operation_ledger_open(
+      owner, prepared, request, plan, root,
+    )
+    is Err(Ledger(ExecutionLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), exhausted)
+  assert_true(control.constructor_frame is None)
+  @resources.settle_capacity(ledger, one_short).unwrap()
+  let occupied = @resources.ledger_usage(ledger)
+  assert_true(
+    begin_installed_effect_operation_control_construction(
+      owner, prepared, request, plan,
+    )
+    is Err(Ledger(ExecutionLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), occupied)
+  assert_true(
+    begin_installed_effect_operation_ledger_open(
+      { ..owner, },
+      prepared,
+      request,
+      plan,
+      root,
+    )
+    is Err(ForeignOriginal),
+  )
+  calls.val = 0
+  begin_installed_effect_operation_ledger_open(
+    owner, prepared, request, plan, root,
+  ).unwrap()
+  assert_true(calls.val > 0)
+  let active = @resources.ledger_usage(ledger)
+  assert_eq(
+    active.reserved_execution_bytes - occupied.reserved_execution_bytes,
+    needed,
+  )
+  assert_eq(active.reserved_retention_bytes, occupied.reserved_retention_bytes)
+  assert_eq(active.held_bytes, occupied.held_bytes)
+  assert_eq(active.attempts, occupied.attempts)
+  assert_eq(active.transferred_bytes, occupied.transferred_bytes)
+  assert_true(physical_equal(control.reservation, token))
+  assert_true(
+    control.constructor_frame is Some((actual, None)) && actual == workspace,
+  )
+  let (current_wire, current_capacity) = control.host_input.unwrap()
+  let (original_wire, original_capacity) = original_input
+  assert_eq(current_wire, original_wire)
+  assert_true(physical_equal(current_capacity, original_capacity))
+  assert_true(
+    begin_installed_effect_operation_control_input(
+      owner, prepared, request, plan, wire,
+    )
+    is Err(AlreadyBound),
+  )
+  assert_true(
+    begin_installed_effect_operation_ledger_codec(
+      owner,
+      prepared,
+      request,
+      plan,
+      None,
+      64,
+      4,
+    )
+    is Err(AlreadyBound),
+  )
+  // A failed/opening callback has not completed this frame. Ordinary current
+  // is neither a scratch return nor evidence that SQLite acknowledged close.
+  check_installed_effect_managed_run(owner, prepared, request).unwrap()
+  assert_eq(@resources.ledger_usage(ledger), active)
+  complete_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  assert_eq(@resources.ledger_usage(ledger), occupied)
+  assert_true(control.constructor_frame is None)
+  @resources.settle_capacity(ledger, pressure).unwrap()
+  begin_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  complete_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  retire_installed_managed_run(owner).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+  assert_true(
+    installed_effect_ledger_open_workspace(root + root).unwrap() > workspace,
+  )
+}

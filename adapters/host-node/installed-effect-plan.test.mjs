@@ -1816,3 +1816,34 @@ test('footprint recipe refuses alias capture physical slots and accessor selecti
   const accessor=Object.freeze(Object.defineProperty({...base},'footprintConstruction',{get(){assert.fail('selector getter');},enumerable:true}));
   assert.throws(()=>captureInstalledEffectPlanRecipe(accessor,3),{code:'InvalidInstalledEffectPlanRecipe'});
 });
+
+test('Ledger open frame passes original root to Core and preserves complete generic legacy funding', () => {
+  let f;const root='/original/ledger',options={root},ledger={};
+  f=controlWorkFixture({clientProgramInstalledEffectOperationLedgerOpenBegin(...args){
+    assert.strictEqual(this,f.runtime);assert.deepEqual(args,[f.run.value,f.run.prepared,f.run.request,f.run.operationPlan,root]);f.events.push('ledger-open');return {$tag:1};
+  }});
+  assert.strictEqual(f.work.ledgerOpen(root,undefined,actual=>{assert.strictEqual(actual,options);assert.equal(f.run.selecting,true);return ledger;},[options]),ledger);
+  assert.deepEqual(f.events,['ledger-open','complete']);
+  const legacy=controlWorkFixture();assert.strictEqual(legacy.work.ledgerOpen(root,undefined,()=>ledger,[options]),ledger);assert.deepEqual(legacy.events,['begin','complete']);
+  f.work(undefined,()=>ledger,[]);assert.deepEqual(f.events,['ledger-open','complete','begin','complete']);
+});
+
+test('Ledger open frame preserves original entry failure native cleanup prefix and pending task', async () => {
+  const root='/original/ledger';
+  for(const mode of ['entry','callback','foreign','async']){
+    let f,finish;const primary=Object.assign(new Error(mode),{cleanupPending:mode==='callback'}),task=new Promise(resolve=>{finish=resolve;});
+    f=controlWorkFixture({clientProgramInstalledEffectOperationLedgerOpenBegin(){f.events.push('ledger-open');if(mode==='entry')throw primary;return {$tag:1};}});
+    let caught;assert.throws(()=>f.work.ledgerOpen(root,undefined,()=>{if(mode==='callback')throw primary;if(mode==='foreign'){f.run.operationPlan={};return {};}if(mode==='async')return task;assert.fail('refused entry called');},[{root}]),cause=>{caught=cause;return mode==='entry'||mode==='callback'?cause===primary:!!cause.code;});
+    assert.deepEqual(f.events,['ledger-open']);assert.throws(()=>f.work(undefined,()=>{},[]),cause=>cause===caught);
+    if(mode==='async'){assert.equal(f.work.retire(),false);finish();await new Promise(setImmediate);}
+  }
+});
+
+test('Ledger open frame refuses accessor or substituted root without executing it', () => {
+  const f=controlWorkFixture(),options=Object.defineProperty({},'root',{get(){assert.fail('root getter');}});
+  assert.throws(()=>f.work.ledgerOpen('/original',undefined,()=>{},[options]),{code:'InvalidInstalledEffectControlConstruction'});
+  assert.throws(()=>f.work.ledgerOpen('/original',undefined,()=>{},[{root:'/foreign'}]),{code:'InvalidInstalledEffectControlConstruction'});
+  const args=[];Object.defineProperty(args,'0',{get(){assert.fail('argument getter');}});
+  assert.throws(()=>f.work.ledgerOpen('/original',undefined,()=>{},args),{code:'InvalidInstalledEffectControlConstruction'});
+  assert.deepEqual(f.events,[]);
+});

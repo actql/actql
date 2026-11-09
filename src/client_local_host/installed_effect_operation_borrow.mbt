@@ -112,18 +112,18 @@ fn installed_effect_operation_control_capacity(
     // text remains with the already-funded original Preview producer.
     // One same-Run optional actual-row inventory adds its field and one Some
     // carrier at most, independently of how many operation bodies are live.
-    // The request and footprint selectors each add one method/context pair
+    // The request, footprint and Ledger-open selectors each add one method/context pair
     // and a fixed original-coordinate call vector (4H14R3W each). The optional frame retains one
     // tuple/Some and the existing child reference, never another body owner.
     record_headers: 13L +
-    8L +
+    12L +
     shared.record_headers +
     11L * count +
     69L +
     4L +
     recovery.record_headers,
     reference_slots: 22L +
-    28L +
+    42L +
     slots +
     shared.reference_slots +
     17L * count +
@@ -132,7 +132,7 @@ fn installed_effect_operation_control_capacity(
     recovery.reference_slots,
     // The active codec retains its separately charged original output bound.
     scalar_words: 27L +
-    6L +
+    9L +
     shared.scalar_words +
     29L * count +
     4L +
@@ -1335,6 +1335,57 @@ pub fn begin_installed_effect_operation_footprint_construction(
 }
 
 ///|
+/// Same original control and fixed scope codec for opening its Effect Ledger.
+/// The actual Store/native owner and policy are unchanged; this is not a
+/// native allocator/page/RSS guarantee or a different Ledger's admission.
+pub fn begin_installed_effect_operation_ledger_open(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : ClientInstalledEffectManagedPlan,
+  root : String,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  resize_installed_effect_operation_control_construction(
+    owner,
+    prepared,
+    request,
+    plan,
+    true,
+    ledger_open=Some(root),
+  )
+}
+
+///|
+fn installed_effect_ledger_open_workspace(root : String) -> Int64? {
+  let scope = @request_scope.logical_request_scope_construction_inventory()
+  // Ordinary filesystem/SQLite acquisition retains its existing owner. The
+  // fixed method/statement/call controls use the shared Host overhead already
+  // quoted by this constructor family, rather than the whole receipt parser.
+  // Bound the variable path conversions/joins beside the SAME scope writer;
+  // this does not interpret the path, open a file or supply native backing.
+  let path_units = root.length().to_int64()
+  guard @execution.preparation_representation_cost({
+      record_headers: scope.record_headers,
+      reference_slots: scope.reference_slots,
+      scalar_words: scope.scalar_words,
+      owned_utf16_units: scope.owned_utf16_units + 8L * path_units,
+      owned_wire_bytes: scope.owned_wire_bytes + 8L * path_units,
+    })
+    is Some(codec) &&
+    installed_effect_operation_control_capacity(0) is Some(overhead) &&
+    @execution.checked_preparation_add_product(
+      codec,
+      @execution.execution_capacity_execution_bytes(overhead) -
+      @execution.execution_capacity_retained_bytes(overhead),
+      1L,
+    )
+    is Some(workspace) else {
+    return None
+  }
+  Some(workspace)
+}
+
+///|
 // Called after the original Resource current, including on completion and
 // other same-owner observations of a live/failed projection frame.
 fn check_installed_effect_request_projection_original(
@@ -1440,6 +1491,7 @@ fn resize_installed_effect_operation_control_construction(
   grant_construction? : Bool = false,
   request_projection? : (Int, Int, Int)? = None,
   footprint_construction? : (Int, Int)? = None,
+  ledger_open? : String? = None,
   ledger_codec? : (Bool, String?, Int, Int)? = None,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
   guard owner.original is Some(original) && physical_equal(original, owner) else {
@@ -1542,6 +1594,17 @@ fn resize_installed_effect_operation_control_construction(
       }
     }
   }
+  if ledger_open is Some(_) &&
+    (
+      !active ||
+      input_wire is Some(_) ||
+      grant_construction ||
+      request_projection is Some(_) ||
+      footprint_construction is Some(_) ||
+      ledger_codec is Some(_)
+    ) {
+    return Err(Unsupported)
+  }
   let constructor_frame = if request_projection
     is Some((member_index, operation, row)) {
     if !active ||
@@ -1617,6 +1680,11 @@ fn resize_installed_effect_operation_control_construction(
       ).map(_ => ())
     }
     Some((@execution.execution_capacity_execution_bytes(extent.capacity), None))
+  } else if ledger_open is Some(root) {
+    guard installed_effect_ledger_open_workspace(root) is Some(workspace) else {
+      return Err(Unsupported)
+    }
+    Some((workspace, None))
   } else if grant_construction {
     if !active || input_wire is Some(_) || ledger_codec is Some(_) {
       return Err(Unsupported)

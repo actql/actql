@@ -1454,7 +1454,9 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       maxEntryBytes: controlEntryBytes,
       ...(controlConstruction === undefined ? {} : {controlConstruction})};
     return controlConstruction === undefined ? openEffectLedger(options)
-      : controlConstruction(undefined, openEffectLedger, [options]);
+      : controlConstruction.ledgerOpen === undefined
+        ? controlConstruction(undefined, openEffectLedger, [options])
+        : controlConstruction.ledgerOpen(ledgerRoot, undefined, openEffectLedger, [options]);
   };
   const scopes = members => Object.freeze(members.map(member =>
     Object.freeze({connection: ownerOf(member).connection, resource: member.resource})));

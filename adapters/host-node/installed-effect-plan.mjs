@@ -1070,6 +1070,7 @@ export function prepareInstalledEffectControlConstruction(run) {
   const grantBegin = runtime?.clientProgramInstalledEffectOperationGrantConstructionBegin;
   const requestProjectionBegin = runtime?.clientProgramInstalledEffectOperationRequestProjectionBegin;
   const footprintBegin = runtime?.clientProgramInstalledEffectOperationFootprintConstructionBegin;
+  const ledgerOpenBegin = runtime?.clientProgramInstalledEffectOperationLedgerOpenBegin;
   const beginInput = runtime?.clientProgramInstalledEffectOperationControlInputBegin;
   const codecBegin = runtime?.clientProgramInstalledEffectOperationLedgerCodecBegin;
   const codecComplete = runtime?.clientProgramInstalledEffectOperationLedgerCodecComplete;
@@ -1106,14 +1107,14 @@ export function prepareInstalledEffectControlConstruction(run) {
     Reflect.apply(nativePromiseThen, joined, [settled, settled]);
     fail('InvalidInstalledEffectControlConstruction');
   };
-  const invoke = (receiver, method, args, inputWire, grant = false, requestProjection, footprintProjection) => {
+  const invoke = (receiver, method, args, inputWire, grant = false, requestProjection, footprintProjection, ledgerRoot) => {
     if (retired) fail('InstalledEffectControlConstructionRetired');
     if (failed) throw primary;
     if (working || run.selecting) fail('InstalledEffectControlConstructionPending');
     if (typeof method !== 'function' || !Array.isArray(args)) fail('InvalidInstalledEffectControlConstruction');
     // Only the captured Core getter and its exact immutable Plan are metadata.
     // Inspect DATA descriptors without executing argument getters or Proxy traps.
-    const metadata = !grant && requestProjection === undefined && footprintProjection === undefined && inputWire === undefined && receiver === runtime && method === shape &&
+    const metadata = ledgerRoot === undefined && !grant && requestProjection === undefined && footprintProjection === undefined && inputWire === undefined && receiver === runtime && method === shape &&
       !nodeTypes.isProxy(method) && !nodeTypes.isProxy(args) &&
       Object.getOwnPropertyDescriptor(args, 'length')?.value === 1 &&
       Object.getOwnPropertyDescriptor(args, '0')?.value === plan;
@@ -1131,11 +1132,13 @@ export function prepareInstalledEffectControlConstruction(run) {
     try {
       originalRecord();
       if (metadata) observePlan();
-      else checked(Reflect.apply(footprintProjection !== undefined && footprintBegin !== undefined ? footprintBegin :
+      else checked(Reflect.apply(ledgerRoot !== undefined && ledgerOpenBegin !== undefined ? ledgerOpenBegin :
+        footprintProjection !== undefined && footprintBegin !== undefined ? footprintBegin :
         requestProjection !== undefined && requestProjectionBegin !== undefined ? requestProjectionBegin :
         grant && grantBegin !== undefined ? grantBegin :
         inputWire === undefined ? begin : beginInput, runtime,
-        [parent, prepared, request, plan, ...(footprintProjection !== undefined && footprintBegin !== undefined
+        [parent, prepared, request, plan, ...(ledgerRoot !== undefined && ledgerOpenBegin !== undefined
+          ? [ledgerRoot] : footprintProjection !== undefined && footprintBegin !== undefined
           ? footprintProjection : requestProjection !== undefined && requestProjectionBegin !== undefined
             ? requestProjection : inputWire === undefined ? [] : [inputWire])]));
       originalRecord();
@@ -1200,6 +1203,19 @@ export function prepareInstalledEffectControlConstruction(run) {
   const footprint = (member, operation, receiver, method, args) => {
     if (![member, operation].every(value => Number.isSafeInteger(value) && value >= 0)) fail('InvalidInstalledEffectControlConstruction');
     return invoke(receiver, method, args, undefined, false, undefined, [member, operation]);
+  };
+  // Exact original openEffectLedger caller; Common owns all quantity math.
+  const ledgerOpen = (root, receiver, method, args) => {
+    if (typeof root !== 'string' || !Array.isArray(args) || nodeTypes.isProxy(args) ||
+        Object.getOwnPropertyDescriptor(args, 'length')?.value !== 1) {
+      fail('InvalidInstalledEffectControlConstruction');
+    }
+    const options = Object.getOwnPropertyDescriptor(args, '0')?.value;
+    if (options === null || typeof options !== 'object' || nodeTypes.isProxy(options) ||
+        Object.getOwnPropertyDescriptor(options, 'root')?.value !== root) {
+      fail('InvalidInstalledEffectControlConstruction');
+    }
+    return invoke(receiver, method, args, undefined, false, undefined, undefined, root);
   };
   // Only the original Ledger invokes this nested synchronous seam. The outer
   // control frame keeps its full Receipt/Grant/projector allowance and output
@@ -1340,7 +1356,7 @@ export function prepareInstalledEffectControlConstruction(run) {
     retired = true;
     return true;
   };
-  return Object.freeze(Object.assign(work, {retire, parsePreview, ledgerCodec, grant, requestProjection, footprint,
+  return Object.freeze(Object.assign(work, {retire, parsePreview, ledgerCodec, grant, requestProjection, footprint, ledgerOpen,
     retainInputs, retainRecoveredInputs}));
 }
 

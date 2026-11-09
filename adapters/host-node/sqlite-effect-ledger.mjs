@@ -232,7 +232,11 @@ export function openSqliteEffectLedger(root, {
           ON effect_ledger_outcomes (logical_item_locator_cid);
       `);
       const metadata = database.prepare(
-        'SELECT value FROM effect_ledger_metadata WHERE key = ?',
+        // Both accepted values are fixed ASCII: schema version and 71-unit
+        // authority CID. Two native bytes per unit also covers UTF16 stores.
+        // Bound before returning text; oversized metadata keeps the original
+        // authority refusal rather than returning an unbounded JavaScript String.
+        'SELECT CASE WHEN LENGTH(CAST(value AS BLOB)) <= 142 THEN value ELSE NULL END AS value FROM effect_ledger_metadata WHERE key = ?',
       );
       const version = metadata.get('schema_version');
       if (version === undefined) {

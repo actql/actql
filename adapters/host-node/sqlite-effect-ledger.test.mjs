@@ -981,3 +981,45 @@ for (const responseBytes of [Buffer.alloc(0), Buffer.from('ééé')]) {
     assert.deepEqual(ledger.response(cid('1')).responseBytes, responseBytes);
   });
 }
+
+async function metadataFixture(t, encoding, field) {
+  const root=await fixture(t),database=new DatabaseSync(join(root,'effect-ledger.sqlite3'));
+  database.exec(`PRAGMA encoding = '${encoding}'`);
+  database.exec('CREATE TABLE effect_ledger_metadata (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL) STRICT');
+  const insert=database.prepare('INSERT INTO effect_ledger_metadata (key,value) VALUES (?,?)');
+  insert.run('schema_version',field==='schema_version'?'x'.repeat(262144):'actql-effect-ledger-store/0.1');
+  insert.run('authority_scope_cid',field==='authority_scope_cid'?'x'.repeat(262144):scope);
+  database.close();return root;
+}
+
+test('Effect open metadata accepts original UTF8 and UTF16 exact schema and authority', async t=>{
+  for(const encoding of ['UTF-8','UTF-16le','UTF-16be']){
+    const root=await metadataFixture(t,encoding);
+    const ledger=openSqliteEffectLedger(root,{authorityScopeCid:scope});
+    assert.equal(ledger.current(locator),undefined);ledger.close();
+  }
+});
+
+for(const field of ['schema_version','authority_scope_cid'])test(`Effect open bounds oversized ${field} before returning native text and keeps authority refusal`,async t=>{
+  const root=await metadataFixture(t,'UTF-16le',field),prepare=DatabaseSync.prototype.prepare;
+  let observed=0;
+  t.mock.method(DatabaseSync.prototype,'prepare',function(sql,...args){
+    const statement=Reflect.apply(prepare,this,[sql,...args]);
+    if(sql.includes('FROM effect_ledger_metadata WHERE key')){
+      const get=statement.get;
+      t.mock.method(statement,'get',function(key,...rest){
+        const result=Reflect.apply(get,this,[key,...rest]);
+        if(key===field){observed++;assert.equal(result.value,null);assert.deepEqual(Object.keys(result),['value']);}
+        return result;
+      });
+    }
+    return statement;
+  });
+  assert.throws(()=>openSqliteEffectLedger(root,{authorityScopeCid:scope}),{code:'EffectLedgerAuthorityMismatch'});
+  assert.equal(observed,1);
+  // The failed constructor's actual native close has returned: an independent
+  // same-fixture connection can inspect counts without any business replay.
+  const read=new DatabaseSync(join(root,'effect-ledger.sqlite3'));
+  assert.equal(read.prepare('SELECT COUNT(*) AS n FROM effect_ledger_metadata').get().n,2);
+  read.close();
+});

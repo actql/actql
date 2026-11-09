@@ -38,3 +38,28 @@ demand. Input refusal leaves both the original wire selection and usage
 unchanged. A successful input is one-use, and only successful completion drops
 its scratch; its returned forest remains retained. Later generic callbacks
 still require the full original recipe construction demand.
+
+Effect Ledger open has its own same-control frame. The logical-request-scope
+owner supplies the exact existing hashing-writer/caller-validation inventory;
+Common adds the original path conversions and its shared fixed Host-control
+overhead. Fixed SQL/module strings stay borrowed and opening observes bounded
+native scalar usage, not a JavaScript materialization of Ledger history. The
+full existing retained, native/base/page demand and any already retained Preview
+forest remain charged. This frame does not select the whole metadata/Receipt
+parser maximum for an operation that does not run those parsers.
+
+SQLite still acquires ordinary platform resources under its existing Store and
+constructor owner. Its actual policy, schema/usage checks, transaction failures,
+original primary and pending FD/native cleanup are unchanged. The quantity is
+not a heap/RSS reservation or an exact stock-allocator guarantee; the separate
+Host/Journal native service does not become an Effect allowance. Entry failure
+never calls open, and callback failure keeps its same control frame until the
+existing owner completes cleanup. A runtime without this entry retains the
+complete original generic construction path.
+
+Initial Ledger metadata is returned through a bounded SQL projection before
+JavaScript text is constructed. The only accepted values remain the original
+ASCII schema version and 71-unit authority CID; the native bound allows two
+bytes per unit for UTF16 databases. Oversized values project to null and retain
+the original authority-mismatch refusal. This changes no accepted metadata,
+Store history limit, transaction or native cleanup outcome.

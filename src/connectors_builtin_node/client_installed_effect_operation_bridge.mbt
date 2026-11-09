@@ -443,3 +443,17 @@ pub fn client_program_installed_effect_operation_footprint_construction_begin(
     owner, prepared, request, plan, member_index, operation_index,
   )
 }
+
+///|
+#export_name("clientProgramInstalledEffectOperationLedgerOpenBegin")
+pub fn client_program_installed_effect_operation_ledger_open_begin(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  root : String,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.begin_installed_effect_operation_ledger_open(
+    owner, prepared, request, plan, root,
+  )
+}
