@@ -52144,7 +52144,7 @@
     },
     {
       "module": "src/connectors/local/driver/managed_dispatch.mbt",
-      "sha256": "787c41cf60eff03baffbf398582673f1562b9cff965265fec2d6e57f0fac1620",
+      "sha256": "f572fc8a2519ab69a743a9a9e3bc824733183b708f4164def4c090e6aa3db723",
       "role": "common-semantics",
       "owner": "Existing Local managed task/Source/resource owners; native supplied lifetime and imported producer custody remain distinct",
       "responsibilityFacet": "primary",
@@ -52216,6 +52216,10 @@
         {
           "name": "start_local_managed_dispatch_node",
           "declaration": "start_local_managed_dispatch_node ( setup : LocalManagedDispatchConfiguration [ Int ] , ) - > Result [ LocalManagedDispatchOperations [ Int ] , LocalDispatchIssue ]"
+        },
+        {
+          "name": "with_local_managed_import_mutation",
+          "declaration": "with_local_managed_import_mutation ( active : Ref [ Bool ] , action : ( ) - > Result [ Unit , LocalDispatchIssue ] , ) - > Result [ Unit , LocalDispatchIssue ]"
         }
       ],
       "exports": [],
@@ -52239,7 +52243,8 @@
             "local_managed_import_next_extent",
             "local_managed_import_start_bytes",
             "managed_row_transfer_bytes",
-            "start_local_managed_dispatch_node"
+            "start_local_managed_dispatch_node",
+            "with_local_managed_import_mutation"
           ],
           "exports": [],
           "attributes": {
@@ -52303,6 +52308,10 @@
               {
                 "path": "src/physical_strategy_host/captured_dag.mbt",
                 "anchor": "if !@execution.producer_read_available(read)"
+              },
+              {
+                "path": "src/connectors/local/driver/managed_dispatch.mbt",
+                "anchor": "fn with_local_managed_import_mutation("
               }
             ],
             "failure": [
@@ -52397,6 +52406,10 @@
               {
                 "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
                 "anchor": "test \"cancelled managed input cannot grow or decode a later row\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_reentry_js_wbtest.mbt",
+                "anchor": "test \"managed import grow current cannot reenter either original input copy\""
               }
             ]
           }

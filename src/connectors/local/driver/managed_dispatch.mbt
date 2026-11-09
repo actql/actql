@@ -14,6 +14,23 @@ fn[A] with_managed_scratch_use(
 }
 
 ///|
+// Every input copy contributes to the same Task import extent. Keep its
+// computation, current callback, debit and append in one synchronous mutation
+// scope. Cancellation and cleanup remain independently callable.
+fn with_local_managed_import_mutation(
+  active : Ref[Bool],
+  action : () -> Result[Unit, LocalDispatchIssue],
+) -> Result[Unit, LocalDispatchIssue] {
+  if active.val {
+    return Err(Configuration(InputUnavailable))
+  }
+  active.val = true
+  let result = action()
+  active.val = false
+  result
+}
+
+///|
 // Readiness is private import bookkeeping, not an availability or authority
 // witness. Call only after the existing exact bridge/import validation.
 fn[T] install_local_managed_input_read(
@@ -1180,6 +1197,7 @@ pub fn[T] start_local_managed_dispatch(
   let metadata_extra = Ref(0L)
   let transport_extra = Ref(0L)
   let import_extra = Ref(0L)
+  let import_mutating = Ref(false)
   let output_row_extent : Ref[Int?] = Ref(None)
   let working_failure : Ref[LocalDispatchIssue?] = Ref(None)
   let reserve_capacity = fn(
@@ -1356,64 +1374,70 @@ pub fn[T] start_local_managed_dispatch(
     let copied_extent = Ref(0L)
     transfers.push(LocalManagedInputTransfer::{
       input: managed,
-      append: fn(row) {
-        guard handle.val is Some(bridge) &&
-          local_managed_input_writes_open(live.val, settled.val, disposed.val) else {
-          return Err(Configuration(InputUnavailable))
-        }
-        let bytes = match
-          managed_row_transfer_bytes(row, setup.imports.wire.max_bytes) {
-          Ok(value) => value
-          Err(issue) => return Err(issue)
-        }
-        match
-          @strategy.charge_task_execution_transfer(setup.run, execution, bytes) {
-          Err(issue) => return Err(Execution(Physical(issue)))
-          Ok(_) => ()
-        }
-        if setup.metered_output_retention {
-          guard local_managed_import_next_extent(
-              setup.imports,
-              copied_rows.val,
-              copied_nodes.val,
-              copied_text.val,
-              bytes,
-            )
-            is Some((rows, nodes, text, extent)) &&
-            extent >= copied_extent.val &&
-            @execution.checked_preparation_add_product(
-              import_extra.val,
-              extent - copied_extent.val,
-              1L,
-            )
-            is Some(next) else {
-            return Err(Configuration(InvalidLimits))
-          }
-          match reserve_import(next) {
-            Err(issue) => return Err(issue)
-            Ok(_) => ()
-          }
-          // A current callback may synchronously cancel and retire this exact
-          // bridge. A successful grow cannot revive it or permit parsing.
-          guard local_managed_input_writes_open(
-              live.val,
-              settled.val,
-              disposed.val,
-            ) &&
-            handle.val is Some(current) &&
-            physical_equal(current, bridge) else {
+      append: row => {
+        with_local_managed_import_mutation(import_mutating, fn() {
+          guard handle.val is Some(bridge) &&
+            local_managed_input_writes_open(live.val, settled.val, disposed.val) else {
             return Err(Configuration(InputUnavailable))
           }
-          copied_rows.val = rows
-          copied_nodes.val = nodes
-          copied_text.val = text
-          copied_extent.val = extent
-        }
-        @execution.append_managed_producer_bridge_wire(
-          bridge,
-          row,
-          setup.imports.row,
-        ).map_err(_ => Configuration(InputUnavailable))
+          let bytes = match
+            managed_row_transfer_bytes(row, setup.imports.wire.max_bytes) {
+            Ok(value) => value
+            Err(issue) => return Err(issue)
+          }
+          match
+            @strategy.charge_task_execution_transfer(
+              setup.run,
+              execution,
+              bytes,
+            ) {
+            Err(issue) => return Err(Execution(Physical(issue)))
+            Ok(_) => ()
+          }
+          if setup.metered_output_retention {
+            guard local_managed_import_next_extent(
+                setup.imports,
+                copied_rows.val,
+                copied_nodes.val,
+                copied_text.val,
+                bytes,
+              )
+              is Some((rows, nodes, text, extent)) &&
+              extent >= copied_extent.val &&
+              @execution.checked_preparation_add_product(
+                import_extra.val,
+                extent - copied_extent.val,
+                1L,
+              )
+              is Some(next) else {
+              return Err(Configuration(InvalidLimits))
+            }
+            match reserve_import(next) {
+              Err(issue) => return Err(issue)
+              Ok(_) => ()
+            }
+            // A current callback may synchronously cancel and retire this exact
+            // bridge. A successful grow cannot revive it or permit parsing.
+            guard local_managed_input_writes_open(
+                live.val,
+                settled.val,
+                disposed.val,
+              ) &&
+              handle.val is Some(current) &&
+              physical_equal(current, bridge) else {
+              return Err(Configuration(InputUnavailable))
+            }
+            copied_rows.val = rows
+            copied_nodes.val = nodes
+            copied_text.val = text
+            copied_extent.val = extent
+          }
+          @execution.append_managed_producer_bridge_wire(
+            bridge,
+            row,
+            setup.imports.row,
+          ).map_err(_ => Configuration(InputUnavailable))
+        })
       },
       finish: fn() {
         guard handle.val is Some(bridge) &&

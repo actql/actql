@@ -8,7 +8,23 @@ priv enum ManagedImportDataCase {
 } derive(Eq)
 
 ///|
-fn managed_import_data_chain(mode : ManagedImportDataCase) -> Unit raise {
+fn managed_import_data_chain(
+  mode : ManagedImportDataCase,
+  ledger_factory? : (
+    @publication_host.PreparedClientProgram,
+    @resources.LedgerLimits,
+  ) -> @resources.Ledger = (_, limits) => {
+    @resources.create_ledger(limits).unwrap()
+  },
+  before_append? : (
+    Int,
+    Int,
+    Int,
+    String,
+    @local_driver.LocalManagedDispatchOperations[Int],
+  ) -> Unit = (_, _, _, _, _) => (),
+  append_observation? : () -> Bool = () => true,
+) -> Unit raise {
   let prepared = before_limit_standard_prepared(
     "WITH paired AS (WITH seed AS (FROM records |> SELECT amount, id) SELECT l.id AS amount, l.amount AS id FROM seed AS l JOIN seed AS r ON l.id = r.id ORDER BY amount + 1) FROM paired |> RESULT copied_rows",
     @frontend.Text,
@@ -59,7 +75,7 @@ fn managed_import_data_chain(mode : ManagedImportDataCase) -> Unit raise {
     retained_bytes: client_local_retained_byte_ceiling(),
     execution_bytes: client_local_execution_byte_ceiling(),
   }
-  let ledger = @resources.create_ledger(limits).unwrap()
+  let ledger = ledger_factory(prepared, limits)
   let rows = @row_source_host.start_accounted_row_input_acquisition(
     source.acquisition,
     source.provider,
@@ -247,7 +263,11 @@ fn managed_import_data_chain(mode : ManagedImportDataCase) -> Unit raise {
         row in 0..<@execution.managed_completed_output_row_count(
           original_output,
         ) {
-        (transfer.append)((producer.operations.output_row)(row).unwrap()).unwrap()
+        let wire = (producer.operations.output_row)(row).unwrap()
+        before_append(task, input, row, wire, operations)
+        let appended = (transfer.append)(wire)
+        assert_true(append_observation())
+        appended.unwrap()
       }
       (transfer.finish)().unwrap()
     }
