@@ -351,3 +351,99 @@ test "Source caller preparation inventory matches independent constructor vector
     is None,
   )
 }
+
+///|
+// Pure original-provider quote; no file, physical Account or Run admission.
+test "Native target Text response backing keeps original guards and maximum" {
+  let declaration = @rows.generate_row_declaration(
+    "native-text-target",
+    "fixture",
+    "fixture/0.1",
+    [
+      {
+        resource: "records",
+        resource_kind: "record",
+        fields: [
+          { name: "id", value_type: "string", nullable: false, },
+          { name: "value", value_type: "string", nullable: true, },
+        ],
+      },
+    ],
+    {
+      max_bytes: 1000000,
+      max_nodes: 100000,
+      max_depth: 100,
+      max_views: 1,
+      max_fields: 2,
+    },
+  ).unwrap()
+  let limits : NativeRelationFileLimits = {
+    page: { max_bytes: 1048576, max_nodes: 8192, max_depth: 32, max_rows: 100, },
+    max_work: 1000000,
+    chunk_bytes: 16384,
+    diagnostic_ceiling: 256,
+  }
+  let provider = prepare_native_relation_file_provider(
+    declaration,
+    {
+      directory: "/fixture",
+      name: "records.json",
+      resource: "records",
+      items_path: ["items"],
+      key_path: None,
+      primary_identity: "id",
+    },
+    limits,
+    response_measured=true,
+  ).unwrap()
+  let contract = @rows.relation_document_prepared_contract(
+    provider.prepared_contract,
+  )
+  assert_eq(file_capture_text_contract_nodes(contract), Some(3))
+  let initial = native_relation_file_target_read_io_capacity(
+    provider,
+    1,
+    response_bytes=Some(0),
+  ).unwrap()
+  let actual = native_relation_file_target_read_io_capacity(
+    provider,
+    1,
+    response_bytes=Some(64),
+  ).unwrap()
+  let maximum = native_relation_file_target_read_io_capacity(provider, 1).unwrap()
+  assert_true(
+    @execution.execution_capacity_retained_bytes(initial) <=
+    @execution.execution_capacity_retained_bytes(actual),
+  )
+  assert_true(
+    @execution.execution_capacity_retained_bytes(actual) <
+    @execution.execution_capacity_retained_bytes(maximum),
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(actual) <=
+    @execution.execution_capacity_execution_bytes(maximum),
+  )
+  assert_eq(provider.limits.page.max_bytes, 1048576)
+  assert_eq(provider.limits.page.max_nodes, 8192)
+  assert_eq(provider.limits.page.max_depth, 32)
+  assert_true(native_relation_file_target_read_io_capacity(provider, 0) is None)
+  assert_true(
+    native_relation_file_target_read_io_capacity(provider, 8193) is None,
+  )
+  assert_true(
+    native_relation_file_target_read_io_capacity(
+      provider,
+      1,
+      response_bytes=Some(-1),
+    )
+    is None,
+  )
+  assert_true(
+    native_relation_file_target_read_io_capacity(
+      provider,
+      1,
+      response_bytes=Some(1048577),
+    )
+    is None,
+  )
+}

@@ -13,6 +13,16 @@ priv struct LocalProjectMockSourceDeclaration {
 }
 
 ///|
+// Original adapter writer/parser ceilings, also read by its construction quote.
+let local_project_mock_relation_wire_bytes : Int = 4000000
+
+///|
+let local_project_mock_relation_wire_nodes : Int = 400000
+
+///|
+let local_project_mock_relation_wire_depth : Int = 64
+
+///|
 // Mechanical adapter encoding under the existing Relation declaration bounds.
 // Common remains the only schema/acquisition/correlation/contract checker.
 fn local_project_mock_relation_wire(
@@ -21,12 +31,17 @@ fn local_project_mock_relation_wire(
   try {
     let canonical = @canonical.from_json(
       value,
-      400000,
-      64,
-      4000000,
+      local_project_mock_relation_wire_nodes,
+      local_project_mock_relation_wire_depth,
+      local_project_mock_relation_wire_bytes,
       data_keys=true,
     )
-    Ok(@canonical.stringify_value(canonical, 4000000, 400000, 64))
+    Ok(
+      @canonical.stringify_value(
+        canonical, local_project_mock_relation_wire_bytes, local_project_mock_relation_wire_nodes,
+        local_project_mock_relation_wire_depth,
+      ),
+    )
   } catch {
     _ => Err(@row_host.RowHostIssue::InvalidSpecification)
   }

@@ -194,6 +194,38 @@ fn LocalCommandBusinessPreparation::observe_mock_effect_targets(
             binding.provider,
             installation.write.mapping.write_fields,
             identity,
+            before_response=Some(bytes => {
+              let capacity = @row_file.native_relation_file_target_read_io_capacity(
+                binding.provider,
+                installation.write.mapping.write_fields.length(),
+                response_bytes=Some(bytes),
+              )
+              guard capacity is Some(capacity) &&
+                @local_values.prepare_installed_effect_operation_extent(
+                  "native.mock.file.capture-target",
+                  capacity,
+                  binding.limits.page.max_bytes.to_int64(),
+                  true,
+                )
+                is Ok(extent) else {
+                self.original.retain_primary(
+                  CommandBusinessEffectProposals(Managed(InsufficientCapacity)),
+                )
+                return false
+              }
+              match
+                @local_values.begin_installed_effect_operation_input(
+                  operation, extent,
+                ) {
+                Ok(_) => true
+                Err(issue) => {
+                  self.original.retain_primary(
+                    CommandBusinessEffectProposals(Managed(issue)),
+                  )
+                  false
+                }
+              }
+            }),
           ) {
           Err(issue) => {
             self.original.retain_primary(CommandBusinessSource(issue))
@@ -244,7 +276,7 @@ fn LocalCommandBusinessPreparation::observe_mock_effect_targets(
       }
       authorize()
       self.original.with_business_request(self.capture, () => {
-        let request = @local_values.borrow_installed_effect_operation(
+        let request = @local_values.retain_installed_effect_operation_construction(
             run,
             state._retained_prepared,
             state.first.request,
@@ -262,6 +294,28 @@ fn LocalCommandBusinessPreparation::observe_mock_effect_targets(
           held.child is Some(child) else {
           stop("LocalOriginalEffectTargetUnavailable")
         }
+        let received = child.byte_counts().0
+        if received < 0L || received > binding.limits.page.max_bytes.to_int64() {
+          stop("LocalOriginalEffectRequestUnavailable")
+        }
+        let capacity = native_mock_effect_request_input_capacity(
+          binding.provider,
+          binding.limits.page,
+          installation.write.mapping.write_fields.length(),
+          received.to_int(),
+          proposal.0,
+          proposal.1,
+          before,
+          installation.binding,
+          installation.write.mapping.mapping_cid,
+          version,
+        ).unwrap_or_else(() => stop("LocalOriginalEffectRequestUnavailable"))
+        let extent = @local_values.prepare_installed_effect_operation_extent(
+          "native.mock.file.request", capacity, 0L, false,
+        ).unwrap_or_else(() => stop("LocalOriginalEffectRequestUnavailable"))
+        @local_values.begin_installed_effect_operation_input(request, extent)
+        .map_err(issue => LocalNativeMockEffectProposalIssue::Managed(issue))
+        .native_effect_proposal(self.original)
         let changes = @json.parse(proposal.1) catch {
           _ => stop("LocalOriginalEffectChangesUnavailable")
         }
@@ -318,6 +372,12 @@ fn LocalCommandBusinessPreparation::observe_mock_effect_targets(
           Ok(true) => held.child = None
         }
         held.observed = None
+      })
+      // The constructor frame and its parsed aliases have returned. Only the
+      // original detached request/cid remain on this same retained record.
+      self.original.with_business_request(self.capture, () => {
+        let request = held.request_operation.unwrap()
+        let wire = held._retained_request.unwrap().0
         // The SAME original physical child has acknowledged close. Retain
         // only its already-owned detached canonical request, with the existing
         // output completion port; no reparse, reissue, attempt refund or size-

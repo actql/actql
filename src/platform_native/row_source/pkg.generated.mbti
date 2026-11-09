@@ -34,6 +34,8 @@ pub fn native_relation_file_provider_capacity(@client_row_source_host.RowDeclara
 
 pub fn native_relation_file_target_io_capacity(NativeRelationFilePreparedProvider, Int) -> @execution_relation.ExecutionCapacity?
 
+pub fn native_relation_file_target_read_io_capacity(NativeRelationFilePreparedProvider, Int, response_bytes? : Int?) -> @execution_relation.ExecutionCapacity?
+
 pub fn prepare_native_managed_relation_file_input_capture(@installed_arena_control.InstalledArenaHost, @installed_arena_control.InstalledArenaRetainedExecution, @client_row_source_host.RowDeclaration, @client_local_host.ClientInstalledSourceRead, @client_local_host.ClientInstalledWholeSourceCapacity, @execution_relation.ExecutionCapacity, String, NativeRelationFileSelection, NativeRelationFileLimits, prepared_provider? : NativeRelationFilePreparedProvider?) -> Result[NativeRelationFileCapture, NativeRelationFileFailure]
 
 pub fn prepare_native_managed_relation_file_keyed_capture(@installed_arena_control.InstalledArenaHost, @installed_arena_control.InstalledArenaRetainedExecution, @client_row_source_host.RowDeclaration, String, @client_local_host.ClientInstalledKeyedSourceRead, @client_row_source_host.RowKeyedAcquisition, NativeRelationFilePreparedProvider, @value_admission.ReferenceIssuer, String, content? : NativeRelationFileContentInput?) -> Result[NativeRelationFileCapture, NativeRelationFileFailure]
@@ -56,7 +58,7 @@ pub fn prepare_native_relation_file_listing_provider(@client_row_source_host.Row
 
 pub fn prepare_native_relation_file_provider(@client_row_source_host.RowDeclaration, NativeRelationFileSelection, NativeRelationFileLimits, response_measured? : Bool) -> Result[NativeRelationFilePreparedProvider, NativeRelationFileIssue]
 
-pub fn prepare_native_relation_file_target_io(NativeRelationFilePreparedProvider, Array[String], String, update? : (String, String, String)?) -> Result[NativeRelationFileTargetIO, NativeRelationFileIssue]
+pub fn prepare_native_relation_file_target_io(NativeRelationFilePreparedProvider, Array[String], String, update? : (String, String, String)?, before_response? : ((Int) -> Bool)?) -> Result[NativeRelationFileTargetIO, NativeRelationFileIssue]
 
 pub fn project_native_relation_file_content_bytes(NativeRelationFilePreparedProvider, @client_row_source_host.RelationDocument, NativeRelationFileListingFields, String, String, String, Int) -> Result[(String, Bytes), NativeRelationFileIssue]
 

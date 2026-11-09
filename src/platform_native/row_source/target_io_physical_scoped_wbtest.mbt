@@ -154,7 +154,8 @@ fn target_io_fixture_physical(kind : Int) -> Unit raise {
   let suffix = match kind {
     0 => "update"
     1 => "cancel"
-    _ => "sync"
+    2 => "sync"
+    _ => "funding"
   }
   let path = @utf8.encode(directory + "/target-backing-" + suffix + "\u{0000}")
   let descriptor = capture_fixture_open(path, 2)
@@ -206,7 +207,8 @@ fn target_io_fixture_physical(kind : Int) -> Unit raise {
   match kind {
     0 => target_io_fixture_update_work(directory)
     1 => target_io_fixture_cancel_work(directory)
-    _ => target_io_fixture_sync_work(directory)
+    2 => target_io_fixture_sync_work(directory)
+    _ => target_io_fixture_funding_work(directory)
   }
   arena.leave_domain_retained_execution(execution).unwrap()
   arena.close_domain_retained_execution(execution).unwrap()
@@ -289,4 +291,106 @@ fn target_io_fixture_sync_work(directory : String) -> Unit raise {
 ///|
 test "Native target I/O preserves a replaced file after ambiguous directory sync" {
   target_io_fixture_physical(2)
+}
+
+///|
+// Explicit quota callbacks, not a normal operation/Account supplier. Actual
+// original FS observations/readers prove the callback precedes body allocation.
+fn target_io_fixture_funding_work(directory : String) -> Unit raise {
+  let provider = target_io_fixture_provider(directory, "target-funding.json")
+  let calls = Ref(0)
+  let measured = Ref(-1)
+  let before_body = Ref(false)
+  let holder : Ref[NativeRelationFileTargetIO?] = Ref(None)
+  let child = prepare_native_relation_file_target_io(
+    provider,
+    ["value"],
+    "first",
+    before_response=Some(bytes => {
+      calls.val += 1
+      measured.val = bytes
+      let original = holder.val.unwrap()
+      before_body.val = original.observation is Some(_) &&
+        original.reader is None &&
+        original.buffer is None &&
+        original.advance() is Err(Unavailable) &&
+        original.close() is Err(Unavailable)
+      true
+    }),
+  ).unwrap()
+  holder.val = Some(child)
+  target_io_fixture_run(child)
+  assert_eq(calls.val, 1)
+  assert_eq(measured.val, target_io_fixture_text.length())
+  assert_true(before_body.val)
+  assert_eq(
+    child.byte_counts(),
+    (target_io_fixture_text.length().to_int64(), 0L),
+  )
+  assert_eq(child.snapshot().unwrap().0, "{\"id\":\"first\",\"value\":1}")
+  assert_false(child.replacement_attempted)
+  assert_true(child.close().unwrap())
+  holder.val = None
+  let refusals = Ref(0)
+  let refused = prepare_native_relation_file_target_io(
+    provider,
+    ["value"],
+    "first",
+    before_response=Some(_ => {
+      refusals.val += 1
+      false
+    }),
+  ).unwrap()
+  assert_true(refused.advance() is Err(Capacity))
+  assert_true(refused.reader is None && refused.buffer is None)
+  assert_true(refused.root is Some(_) && refused.observation is Some(_))
+  assert_eq(refused.byte_counts(), (0L, 0L))
+  assert_true(refused.advance() is Err(Capacity))
+  assert_eq(refusals.val, 1)
+  assert_true(refused.close().unwrap())
+  assert_true(refused.root is None && refused.observation is None)
+  assert_true(
+    prepare_native_relation_file_target_io(
+      provider,
+      ["value"],
+      "first",
+      update=Some(("version", "{}", "stage")),
+      before_response=Some(_ => true),
+    )
+    is Err(InvalidInput),
+  )
+  for bytes in [-1, provider.limits.page.max_bytes + 1] {
+    assert_true(
+      native_relation_file_target_read_io_capacity(
+        provider,
+        1,
+        response_bytes=Some(bytes),
+      )
+      is None,
+    )
+  }
+  let initial = native_relation_file_target_read_io_capacity(
+    provider,
+    1,
+    response_bytes=Some(0),
+  ).unwrap()
+  let actual = native_relation_file_target_read_io_capacity(
+    provider,
+    1,
+    response_bytes=Some(target_io_fixture_text.length()),
+  ).unwrap()
+  let maximum = native_relation_file_target_read_io_capacity(provider, 1).unwrap()
+  assert_true(
+    @execution.execution_capacity_retained_bytes(initial) <=
+    @execution.execution_capacity_retained_bytes(actual),
+  )
+  assert_true(
+    @execution.execution_capacity_retained_bytes(actual) <=
+    @execution.execution_capacity_retained_bytes(maximum),
+  )
+}
+
+///|
+test "Native target response funding uses the original size before Reader and buffer" {
+  target_io_fixture_physical(3)
 }

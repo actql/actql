@@ -43,6 +43,7 @@ fn file_capture_metadata_capacity(
   limits : NativeRelationFileLimits,
   prepared_provider? : NativeRelationFilePreparedProvider? = None,
   listing? : Bool = false,
+  response_quote_nodes? : Int? = None,
 ) -> Int64? {
   let mapped = match prepared_provider {
     Some(_) => 0L
@@ -153,7 +154,7 @@ fn file_capture_metadata_capacity(
     // five bounded quote walks documented by the caller preflight inventory,
     // now inside the retained reader before its charged-response grow. Their
     // cursor/array/result backing must precede that Resource callback too.
-    let n = limits.page.max_nodes.to_int64()
+    let n = response_quote_nodes.unwrap_or(limits.page.max_nodes).to_int64()
     @execution.preparation_representation_cost({
       record_headers: 600L + 11L * n,
       reference_slots: 200L + 26L * n,
@@ -540,11 +541,8 @@ fn file_capture_projection_backing_page(
     return None
   }
   guard contract.shape is @contract.Object(fields) else { return Some(page) }
-  for index in 0..<@contract.field_count(fields) {
-    if !(@contract.field_at(fields, index).unwrap().contract.shape
-      is @contract.Text(_)) {
-      return Some(page)
-    }
+  if file_capture_text_contract_nodes(contract) is None {
+    return Some(page)
   }
   guard @canonical.nfc_lf_retained_output_units(bytes.to_int64())
     is Some(normalized) &&
@@ -698,4 +696,23 @@ fn file_capture_keyed_retained_capacity(
     return None
   }
   Some((retained, execution))
+}
+
+///|
+// The same closed Text-only Contract profile used by measured projection.
+// Each field is one typed Contract node; no array/nested Contract or value
+// enumeration is traversed by the quote. Broader contracts keep old bounds.
+fn file_capture_text_contract_nodes(contract : @contract.Contract) -> Int? {
+  guard contract.shape is @contract.Object(fields) else { return None }
+  let count = @contract.field_count(fields)
+  if count == 2147483647 {
+    return None
+  }
+  for index in 0..<count {
+    if !(@contract.field_at(fields, index).unwrap().contract.shape
+      is @contract.Text(_)) {
+      return None
+    }
+  }
+  Some(count + 1)
 }

@@ -22,6 +22,7 @@ struct NativeRelationFileTargetIO {
   writable : Array[String]
   identity : String
   update : (String, String, String)?
+  mut before_response : ((Int) -> Bool)?
   mut phase : NativeRelationTargetIOPhase
   mut advancing : Bool
   mut issue : NativeRelationFileIssue?
@@ -81,42 +82,8 @@ pub fn native_relation_file_target_io_capacity(
     )
     is Some(controls) &&
     @files.native_filesystem_write_layout() is Some(writer) &&
-    @encode.text_writer_construction_inventory(
-      limits.page.max_bytes,
-      limits.page.max_nodes,
-      limits.page.max_depth,
-    )
-    is Some(before) &&
-    @encode.hash_writer_construction_inventory(
-      limits.page.max_nodes,
-      limits.page.max_depth,
-    )
-    is Some(version) &&
-    @execution.preparation_array_representation(
-      1L,
-      writable_fields.to_int64(),
-      false,
-    )
-    is Some(writable) &&
-    @execution.compose_preparation_representation([
-      {
-        record_headers: before.record_headers,
-        reference_slots: before.reference_slots,
-        scalar_words: before.scalar_words,
-        owned_utf16_units: before.owned_utf16_units,
-        owned_wire_bytes: 0L,
-      },
-      {
-        record_headers: version.record_headers,
-        reference_slots: version.reference_slots,
-        scalar_words: version.scalar_words,
-        owned_utf16_units: version.owned_utf16_units,
-        owned_wire_bytes: version.owned_wire_bytes,
-      },
-      writable,
-    ])
-    is Some(observation) &&
-    @execution.preparation_representation_cost(observation) is Some(observation) else {
+    native_relation_target_observation_capacity(provider, writable_fields)
+    is Some(observation) else {
     return None
   }
   // Original receive/document storage is already in `construction`. Add the
@@ -155,6 +122,7 @@ pub fn prepare_native_relation_file_target_io(
   writable : Array[String],
   identity : String,
   update? : (String, String, String)? = None,
+  before_response? : ((Int) -> Bool)? = None,
 ) -> Result[NativeRelationFileTargetIO, NativeRelationFileIssue] {
   if !file_capture_text(identity, provider.limits.page.max_bytes) ||
     writable.is_empty() ||
@@ -173,12 +141,16 @@ pub fn prepare_native_relation_file_target_io(
     ) {
     return Err(InvalidInput)
   }
+  if update is Some(_) && before_response is Some(_) {
+    return Err(InvalidInput)
+  }
   let child : NativeRelationFileTargetIO = {
     original: None,
     provider,
     writable: writable.copy(),
     identity,
     update,
+    before_response,
     phase: TargetPrepared,
     advancing: false,
     issue: None,
@@ -245,6 +217,20 @@ fn NativeRelationFileTargetIO::open(self : Self) -> Unit raise FileCaptureStop {
   if generation.size < 0L ||
     generation.size > self.provider.limits.page.max_bytes.to_int64() {
     raise FileCaptureStop(FileLimit)
+  }
+  if self.before_response is Some(prepare) {
+    if !prepare(generation.size.to_int()) {
+      raise FileCaptureStop(Capacity)
+    }
+    // A quota callback may call out. No Reader/buffer is created from a
+    // retired/replaced child, even after it returns true.
+    if !self.same() ||
+      !(self.phase is TargetPrepared) ||
+      !(self.root is Some(actual) && physical_equal(actual, root)) ||
+      !(self.observation is Some(actual) && physical_equal(actual, observed)) {
+      raise FileCaptureStop(Unavailable)
+    }
+    self.before_response = None
   }
   match observed.open_reader_with_custody() {
     Ok(value) => self.reader = Some(value)
@@ -558,6 +544,7 @@ pub fn NativeRelationFileTargetIO::close(
       self.backing = None
     }
     self.buffer = None
+    self.before_response = None
     self.replacement = None
     self.observed_row = None
     self.original = None
@@ -566,4 +553,125 @@ pub fn NativeRelationFileTargetIO::close(
   } catch {
     FileCaptureStop(issue) => Err(issue)
   }
+}
+
+///|
+/// A read of this SAME prepared provider. Actual file size is original
+/// filesystem observation DATA, not a changed page/contract guard or a grant.
+/// None keeps its original maximum; zero backs pre-response controls only.
+pub fn native_relation_file_target_read_io_capacity(
+  provider : NativeRelationFilePreparedProvider,
+  writable_fields : Int,
+  response_bytes? : Int? = None,
+) -> @execution.ExecutionCapacity? {
+  let limits = provider.limits
+  let contract = @rows.relation_document_prepared_contract(
+    provider.prepared_contract,
+  )
+  guard writable_fields > 0 &&
+    writable_fields <= limits.page.max_nodes &&
+    file_capture_provider_capacity(
+      provider.selection,
+      limits,
+      contract,
+      prepared_contract=Some(provider.prepared_contract),
+      response_bytes~,
+      writable_fields~,
+    )
+    is Some(document) &&
+    file_capture_metadata_capacity(
+      provider.selection,
+      limits,
+      prepared_provider=Some(provider),
+      response_quote_nodes=file_capture_text_contract_nodes(contract),
+    )
+    is Some(controls) &&
+    native_relation_target_observation_capacity(provider, writable_fields)
+    is Some(observation) &&
+    native_relation_file_caller_preparation_inventory(
+      provider.selection,
+      limits,
+      prepared_provider=Some(provider),
+    )
+    is Some(caller) &&
+    @execution.compose_preparation_representation([
+      caller,
+      native_relation_file_caller_preparation_evaluation_inventory(
+        provider.selection,
+      ),
+      { // Retained callback H1/R4, optional/callback products H3/R3/S3.
+        record_headers: 4L,
+        reference_slots: 7L,
+        scalar_words: 3L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      },
+    ])
+    is Some(frontier) &&
+    @execution.preparation_representation_cost(frontier) is Some(frontier) &&
+    @execution.checked_preparation_add_product(controls, observation, 1L)
+    is Some(extra) &&
+    @execution.checked_preparation_add_product(extra, frontier, 1L)
+    is Some(extra) &&
+    @execution.execution_capacity(extra, extra) is Some(extra) else {
+    return None
+  }
+  @execution.add_execution_capacity(document, extra)
+}
+
+///|
+fn native_relation_target_observation_capacity(
+  provider : NativeRelationFilePreparedProvider,
+  writable_fields : Int,
+) -> Int64? {
+  let limits = provider.limits
+  guard @encode.text_writer_construction_inventory(
+      limits.page.max_bytes,
+      limits.page.max_nodes,
+      limits.page.max_depth,
+    )
+    is Some(before) &&
+    @encode.hash_writer_construction_inventory(
+      limits.page.max_nodes,
+      limits.page.max_depth,
+    )
+    is Some(version) &&
+    @execution.preparation_array_representation(
+      1L,
+      writable_fields.to_int64(),
+      false,
+    )
+    is Some(writable) &&
+    @execution.compose_preparation_representation([
+      {
+        record_headers: before.record_headers,
+        reference_slots: before.reference_slots,
+        scalar_words: before.scalar_words,
+        owned_utf16_units: before.owned_utf16_units,
+        owned_wire_bytes: 0L,
+      },
+      {
+        record_headers: version.record_headers,
+        reference_slots: version.reference_slots,
+        scalar_words: version.scalar_words,
+        owned_utf16_units: version.owned_utf16_units,
+        owned_wire_bytes: version.owned_wire_bytes,
+      },
+      writable,
+    ])
+    is Some(observation) &&
+    @execution.preparation_representation_cost(observation) is Some(observation) else {
+    return None
+  }
+  @execution.checked_preparation_add_product(
+    observation,
+    @execution.preparation_representation_cost({
+      record_headers: 0L,
+      reference_slots: 1L,
+      scalar_words: 0L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    }).unwrap(),
+    1L,
+  )
 }

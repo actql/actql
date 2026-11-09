@@ -1094,15 +1094,29 @@ fn complete_installed_effect_operation_construction_owned(
   let output_retained = match output_wire {
     None => None
     Some(wire) => {
-      if value.input_selected {
-        return Err(AlreadyBound)
-      }
-      guard value.extent is Some(extent) &&
-        !extent.physical_attempt &&
-        extent.maximum is None else {
+      guard value.extent is Some(extent) && !extent.physical_attempt else {
         return Err(Unsupported)
       }
-      let upper = @execution.execution_capacity_retained_bytes(extent.capacity)
+      // A staged constructor has already selected its SAME original input.
+      // Completion consumes a separate final-output latch, never that input
+      // again. The Resource owner below also checks the live retained backing.
+      let upper = match extent.maximum {
+        Some(maximum) => {
+          if value.construction_completed {
+            return Err(AlreadyBound)
+          }
+          if !value.input_selected {
+            return Err(Unsupported)
+          }
+          @execution.execution_capacity_retained_bytes(maximum.capacity)
+        }
+        None => {
+          if value.input_selected {
+            return Err(AlreadyBound)
+          }
+          @execution.execution_capacity_retained_bytes(extent.capacity)
+        }
+      }
       let bound = Int64::min(upper, 2147483647L).to_int()
       let bytes = match @scalar.admit_utf8_length(wire, bound) {
         Err(_) => return Err(InsufficientCapacity)
