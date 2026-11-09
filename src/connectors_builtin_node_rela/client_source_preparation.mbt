@@ -52,6 +52,25 @@ fn client_source_preparation_issue_code(
             | UnsupportedGraph
             | Expression({ issue: UnsupportedFunction | UnsupportedCast, .. }) =>
               "source_implementation_limit"
+            // The checked common selector reports this exact support gap.
+            // Malformed Graph bodies and incomplete bindings retain rejection.
+            BindingPreparation(
+              LocalProgram(
+                Pipeline(
+                  _,
+                  { kind: GraphMatch(Structure(UnsupportedGraphOperation)), .. }
+                )
+              )
+            )
+            | BindingPreparationSource(
+              LocalProgram(
+                Pipeline(
+                  _,
+                  { kind: GraphMatch(Structure(UnsupportedGraphOperation)), .. }
+                )
+              ),
+              _
+            ) => "source_implementation_limit"
             // Only the original frontend's typed construction/admission
             // budget is an analysis limit. Opaque Source/array limits above
             // retain their existing protected fallback.
