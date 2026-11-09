@@ -2302,6 +2302,50 @@
       }
     },
     {
+      "requirement_id": "actql.execution/reconciliation.file-operation-original-account-before-dispatch",
+      "statement_sha256": "2a804361d184f902683ba5ed03731e49007fe3ca3f965e947a5badae0a5b4e8a",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "reconciliation",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/reconciliation.file-operation-generation-size-bound",
+      "statement_sha256": "bdaf5933220d1ba69245f72e12636d5660090bca5437a8ada9dcdeb610ac63bc",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "reconciliation",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/reconciliation.file-operation-ack-journal-custody",
+      "statement_sha256": "cf80265b0b1a6e1e1fb66a26702b27eacb220fb2023bf09bcbb03db0ab521be4",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "reconciliation",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/reconciliation.file-operation-own-generation-lineage",
+      "statement_sha256": "4f38ac08817978f00895a24308a64ab63eb85270e0804effab7385c69b1bd71e",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "reconciliation",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.execution/reconciliation.a-completed-operation-must-not-be-cancelled",
       "statement_sha256": "116baef7caa86374a2928d72535cd99c68b0f4bbd656b1f8b3b9766a589f2334",
       "status": "pending",

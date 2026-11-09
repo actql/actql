@@ -121,6 +121,8 @@ pub fn issue_effect_member_receipt_from_row_partition(@run_publication.EffectPre
 
 pub fn issue_effect_row_receipt_terminal_entry(@run_publication.EffectPreviewIdentity, Int, Int, @logical_request_scope.LogicalRequestScope, LogicalItemLocator, EffectDispatchKey, String, EffectLedgerEntry, Array[EffectLedgerEntry], String, String, Bytes, Int, String, Int, Int, Int, Int) -> Result[EffectLedgerEntry, EffectRowReceiptCommitIssue]
 
+pub fn issue_effect_row_receipt_terminal_entry_from_file(@run_publication.EffectPreviewIdentity, Int, Int, @logical_request_scope.LogicalRequestScope, LogicalItemLocator, EffectDispatchKey, String, EffectLedgerEntry, Array[EffectLedgerEntry], String, @run_publication.EffectFileOperationReceipt, String, Int, Int, Int) -> Result[EffectLedgerEntry, EffectRowReceiptCommitIssue]
+
 pub fn issue_effect_row_receipt_terminal_entry_from_local(@run_publication.EffectPreviewIdentity, Int, Int, @logical_request_scope.LogicalRequestScope, LogicalItemLocator, EffectDispatchKey, String, EffectLedgerEntry, Array[EffectLedgerEntry], String, @run_publication.EffectLocalOperationReceipt, String, Int, Int, Int) -> Result[EffectLedgerEntry, EffectRowReceiptCommitIssue]
 
 pub fn issue_effect_row_receipt_terminal_entry_from_response(@run_publication.EffectPreviewIdentity, Int, Int, @logical_request_scope.LogicalRequestScope, LogicalItemLocator, EffectDispatchKey, String, EffectLedgerEntry, Array[EffectLedgerEntry], String, @run_publication.EffectSavedResponseEvidence, String, Int, Int, Int) -> Result[EffectLedgerEntry, EffectRowReceiptCommitIssue]

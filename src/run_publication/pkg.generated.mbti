@@ -39,6 +39,10 @@ pub fn admit_completed_source_observation_binding(RunEvidenceValue, RunEvidenceV
 
 pub fn admit_effect_apply_receipt_for_member(EffectPreviewIdentity, Int, String, Int, Int, Int) -> Result[PublicationContract, EffectApplyReceiptBindingIssue]
 
+pub fn admit_effect_file_operation_receipt(EffectFileOperation, EffectFileReplacementEvidence, String, Int, Int, Int) -> Result[EffectFileOperationReceipt, EffectRowOutcomeIssue]
+
+pub fn admit_effect_file_replacement_evidence(Bytes, String, String, Int64, Int) -> Result[EffectFileReplacementEvidence, EffectRowOutcomeIssue]
+
 pub fn admit_effect_local_operation_receipt(EffectLocalOperation, String, Int, Int, Int) -> Result[EffectLocalOperationReceipt, EffectRowOutcomeIssue]
 
 pub fn admit_effect_preview_identity(String, String, String, Int, Int, Int) -> Result[EffectPreviewIdentity, EffectPreviewIdentityIssue]
@@ -48,6 +52,8 @@ pub fn admit_effect_reconciliation_receipt_for_row(EffectPreviewIdentity, Int, I
 pub fn admit_effect_review_projection(EffectPreviewIdentity, String, String, String, Array[String], String, Int, Int, Int) -> Result[RunEvidenceValue, EffectReviewProjectionIssue]
 
 pub fn admit_effect_row_outcome_receipt(EffectPreviewIdentity, Int, Int, String, String, Bytes, Int, String, Int, Int, Int, Int) -> Result[PublicationContract, EffectRowOutcomeIssue]
+
+pub fn admit_effect_row_outcome_receipt_from_file(EffectPreviewIdentity, Int, Int, String, EffectFileOperationReceipt, String, Int, Int, Int) -> Result[PublicationContract, EffectRowOutcomeIssue]
 
 pub fn admit_effect_row_outcome_receipt_from_local(EffectPreviewIdentity, Int, Int, String, EffectLocalOperationReceipt, String, Int, Int, Int) -> Result[PublicationContract, EffectRowOutcomeIssue]
 
@@ -90,6 +96,8 @@ pub fn admit_retained_effectful_final_run_evidence(PublicationContract, Publicat
 pub fn admit_run_evidence_value(String, String, Int, Int, Int) -> Result[RunEvidenceValue, RunEvidenceValueIssue]
 
 pub fn admit_run_publication(RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, PublicationContract) -> Result[RunPublicationAdmission, RunPublicationAdmissionIssue]
+
+pub fn admit_saved_effect_file_operation_receipt(String, Bytes, Int, Int, Int, Int) -> Result[EffectFileOperationReceipt, EffectRowOutcomeIssue]
 
 pub fn admit_source_effect_dependency_body(String, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]
 
@@ -331,6 +339,12 @@ pub fn effect_computation_capture_holding_cid(PublicationContract, String) -> St
 
 pub fn effect_computation_record_holding_cid(PublicationContract, String) -> String?
 
+pub fn effect_file_operation_receipt_cid(EffectFileOperationReceipt) -> String
+
+pub fn effect_file_operation_receipt_wire(EffectFileOperationReceipt) -> String
+
+pub fn effect_file_target_cid(String, String, String, String, String, Int, Int, Int) -> Result[String, EffectRowOutcomeIssue]
+
 pub fn effect_local_installation_cid(String, Int, Int, Int) -> Result[String, EffectRowOutcomeIssue]
 
 pub fn effect_local_operation_receipt_cid(EffectLocalOperationReceipt) -> String
@@ -551,6 +565,8 @@ pub fn issue_effect_reconciliation_run_state_wire(EffectPreviewIdentity, String,
 
 pub fn issue_effect_row_outcome_receipt(EffectPreviewIdentity, Int, Int, String, String, Bytes, Int, String, Int, Int, Int, Int) -> Result[PublicationContract, EffectRowOutcomeIssue]
 
+pub fn issue_effect_row_outcome_receipt_from_file(EffectPreviewIdentity, Int, Int, String, EffectFileOperationReceipt, Int, Int, Int) -> Result[PublicationContract, EffectRowOutcomeIssue]
+
 pub fn issue_effect_row_outcome_receipt_from_local(EffectPreviewIdentity, Int, Int, String, EffectLocalOperationReceipt, Int, Int, Int) -> Result[PublicationContract, EffectRowOutcomeIssue]
 
 pub fn issue_effect_row_outcome_receipt_from_response(EffectPreviewIdentity, Int, Int, String, EffectSavedResponseEvidence, String, Int, Int, Int) -> Result[PublicationContract, EffectRowOutcomeIssue]
@@ -766,6 +782,10 @@ pub fn prepare_durable_payload_failure_step(Bool, Bool, Bool, Bool, Bool, Bool, 
 pub fn prepare_durable_result_row_frames(Int, Int, Int, Int, Int) -> Result[DurableResultRowFrames, DurableResultRowFrameIssue]
 
 pub fn prepare_effect_capture_holding_binding(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, EffectPreviewIdentity, String, Int, Int, Int) -> Result[EffectCaptureHoldingBinding, RunEvidenceChainIssue]
+
+pub fn prepare_effect_file_operation(EffectPreviewIdentity, Int, Int, String, String, String, String, String, String, String) -> Result[EffectFileOperation, EffectRowOutcomeIssue]
+
+pub fn prepare_effect_file_operation_receipt(EffectFileOperation, EffectFileReplacementEvidence, String, Int, Int, Int) -> Result[EffectFileOperationReceipt, EffectRowOutcomeIssue]
 
 pub fn prepare_effect_local_operation(EffectPreviewIdentity, Int, Int, String, String, String, String, String, String, String) -> Result[EffectLocalOperation, EffectRowOutcomeIssue]
 
@@ -1541,6 +1561,28 @@ pub(all) enum EffectApplyReceiptBindingIssue {
 } derive(@debug.Debug)
 
 type EffectCaptureHoldingBinding
+
+pub struct EffectFileOperation {
+  effect_preview_cid : String
+  member_preview_cid : String
+  row_preview_cid : String
+  installation_cid : String
+  target_cid : String
+  canonical_request_cid : String
+  dispatch_entry_cid : String
+  authorization_context_cid : String
+  resolution_cid : String
+  target_version_cid : String
+}
+
+pub struct EffectFileOperationReceipt {
+  operation : EffectFileOperation
+  evidence : EffectFileReplacementEvidence
+  contract : PublicationContract
+  typed_outcome_wire : String
+}
+
+type EffectFileReplacementEvidence
 
 pub struct EffectLocalOperation {
   effect_preview_cid : String

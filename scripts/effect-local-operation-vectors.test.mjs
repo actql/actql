@@ -28,12 +28,13 @@ test('independent local operation preimages retain semantic and physical identit
 test('closed local schema is disjoint from the unchanged HTTP arm',()=>{
   const registry=JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json','utf8'));
   const union=registry.artifact_schemas.effect_row_outcome_receipt;
-  const local=registry.artifact_schemas.effect_local_operation_receipt;
+  const localUnion=registry.artifact_schemas.effect_local_operation_receipt;
+  const local=localUnion.oneOf[0];
   assert.equal(machineCid(union.oneOf[0]),
     'sha256:e239b0d9b9229efdc67095bbea81ff8bccc0873a6bc277de7857c7955d8719fd');
   assert.deepEqual(union.oneOf[0],httpEffectRowOutcomeReceiptSchema(registry.schemas.effect_outcome));
   assert.deepEqual(union,effectRowOutcomeReceiptSchema(registry.schemas.effect_outcome));
-  assert.deepEqual(local,effectLocalOperationReceiptSchema(registry.schemas.effect_outcome));
+  assert.deepEqual(localUnion,effectLocalOperationReceiptSchema(registry.schemas.effect_outcome));
   assert.deepEqual(Object.keys(vectors[0].receipt).sort(),[...local.required].sort());
   assert.equal(local.additionalProperties,false);
   assert.deepEqual(local.properties.commit_status.enum,['committed','conflict']);
@@ -55,5 +56,34 @@ test('independent rehashed refusals change facts rather than corrupting self ide
     const {receipt_cid,...body}=JSON.parse(m.wire);
     assert.equal(receipt_cid,hash(body),m.name);
     assert.notEqual(m.wire,vectors[0].wire,m.name);
+  }
+});
+
+
+test('closed file branch preserves original SQLite and HTTP schema preimages', async()=>{
+  const f=await import('./fixtures/effect-file-operation-vectors.mjs');
+  const registry=JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json','utf8'));
+  const local=registry.artifact_schemas.effect_local_operation_receipt;
+  assert.equal(machineCid(local.oneOf[0]),'sha256:b02752bd4be29b22e064abf4ffb907332f5be4e58f8e0645d2bc12ef256c6bc5');
+  assert.equal(local.oneOf[1].properties.backend_kind.const,'json_file');
+  assert.equal(local.oneOf[1].properties.replacement_status.const,'acknowledged');
+  assert.equal(local.oneOf[1].additionalProperties,false);
+  assert.deepEqual(Object.keys(f.receipt).sort(),local.oneOf[1].required.toSorted());
+  assert.deepEqual({targetCid:f.targetCid,receiptCid:f.receipt.receipt_cid,rowCid:f.rowReceipt.receipt_cid},f.expectedPins);
+  assert.equal(f.body.replacement_physical_sha256,f.physicalHash(f.replacement));
+  assert.equal(f.body.replacement_byte_count,Buffer.byteLength(f.replacement));
+  for(const field of ['commit_status','credential_use_cid','authorization_use_cid','approval_use_cid','http_status_code']){
+    assert.ok(!Object.hasOwn(local.oneOf[1].properties,field));
+  }
+  for(const m of f.mutations){const {receipt_cid,...body}=JSON.parse(m.wire);assert.equal(receipt_cid,f.hash(body),m.name);}
+});
+
+
+test('file generation decimal syntax matches the exact UInt64 domain', async()=>{
+  const {fileGenerationWordPattern} = await import('./run-publication-contracts.mjs');
+  const pattern = new RegExp(fileGenerationWordPattern);
+  for (const value of ['0','1','18446744073709551615']) assert.equal(pattern.test(value),true,value);
+  for (const value of ['','01','-1','1\n','1\r','18446744073709551616','99999999999999999999']) {
+    assert.equal(pattern.test(value),false,JSON.stringify(value));
   }
 });

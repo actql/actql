@@ -2401,7 +2401,7 @@ count and physical SHA-256. It does not invent an HTTP status or credential use.
 Both row receipts exclude only their own root `receipt_cid` from their
 canonical identity; a physical digest of complete saved bytes is distinct.
 
-The local operation receipt binds the original Preview/member/row, SQLite
+The SQLite local-operation alternative binds the original Preview/member/row, SQLite
 backend, exact installation configuration, target and row selector,
 canonical request, dispatch entry, authorization use, approval use and
 approved target version. The installation CID hashes the exact bounded
@@ -2414,7 +2414,7 @@ and a failed outcome with error code `conflict`. Both include the complete
 typed outcome and its independent CID and exclude only the root `receipt_cid`
 from the local receipt identity.
 
-The backend atomically commits the conditional mutation and original-operation
+The SQLite backend atomically commits the conditional mutation and original-operation
 receipt in the same transaction under the actual current authorization and
 approval use. DATA preparation or target equality alone cannot establish that
 commit. An uncertain commit or missing durable evidence remains `unknown`
@@ -2423,6 +2423,42 @@ dispatch and validates all saved bindings under current evidence-read
 authorization; it does not require renewing an expired write approval or
 permit another mutation. Original database, transaction and receipt custody
 and their distinct cleanup acknowledgments remain with the existing owners.
+
+<!-- requirement-block: reconciliation.file-operation-original-account-before-dispatch -->
+The closed `backend_kind: json_file` alternative uses the same local-operation
+and row-receipt identities with distinct file-replacement semantics. Its target
+CID hashes `{backend_kind: "json_file", installation_cid, directory, name,
+resource, row_identity}` canonically, preserving opaque location and row DATA.
+It binds the exact Preview/member/row, original installation, canonical request,
+dispatch, approved target version, actual `authorization_context_cid` and approved
+`resolution_cid`. The context is a binding, not a grant or use proof. The original
+Account DispatchAuthorization MUST still admit the exact tuple, row and target
+immediately before durable dispatch and physical replacement.
+
+<!-- requirement-block: reconciliation.file-operation-generation-size-bound -->
+Only the original Writer's acknowledged staging and directory synchronization
+and returned device/inode/size generation establish a known replacement. The
+`replacement_status: acknowledged` receipt binds that original generation,
+complete submitted replacement byte count and physical SHA-256, and the complete
+applied typed outcome and its independent CID. Generation fields use canonical
+unsigned decimal text; device and inode are bounded by UInt64, and size MUST
+match the exact replacement byte count. No HTTP status, credential use, SQLite
+COMMIT or atomic file-plus-Journal transaction is invented.
+
+<!-- requirement-block: reconciliation.file-operation-ack-journal-custody -->
+The Host MUST retain the actual immutable acknowledgment and complete replacement
+bytes before retiring the physical child, and durably commit their exact receipt
+and original dispatch/Request/context/Resolution correspondence with the existing
+Journal witness before recording an applied terminal row. A post-rename error,
+crash or uncertain Journal append remains Unknown without another send; current
+contents, submitted byte counts or successful cleanup cannot reconstruct an ACK.
+Current evidence-read authority may settle an already observed original after
+cancellation or approval expiry; it cannot authorize new IO.
+
+<!-- requirement-block: reconciliation.file-operation-own-generation-lineage -->
+Sequential rows in the same file MUST prove the original caller's acknowledged generation lineage;
+foreign replacement or modification refuses that continuation. Physical child,
+Journal and final publication cleanup retain their separate acknowledgments.
 
 <!-- requirement-block: reconciliation.a-completed-operation-must-not-be-cancelled reconciliation.an-expired-operation-must-not-be-applied-or-cancelled reconciliation.a-runtime-must-not-turn-transport-timeout-into-failed-or -->
 `accepted` binds the OperationRef, poll contract, cancellation capability,

@@ -1,3 +1,4 @@
+import {fileGenerationWordPattern} from './run-publication-contracts.mjs';
 import {nativeFileLookupTransportSchema} from './native-file-lookup-contract.mjs';
 import {verifyNativeFileReadProfile} from './native-file-read-profile-contract.mjs';
 import {execFileSync} from 'node:child_process';
@@ -7,6 +8,7 @@ import {dirname, join} from 'node:path';
 import {resolveControlSchema} from './interactive-run-control-schema.mjs';
 import {amountMicroPattern} from './interactive-run-control-contract.mjs';
 import {generateEffectLocalOperationVectors} from './effect-local-operation-vectors.mjs';
+import {generateEffectFileOperationVectors} from './effect-file-operation-vectors.mjs';
 import {generateEffectReviewVectors} from './effect-review-projection-vectors.mjs';
 import {checkInstallationPublicationStorageSchema} from './installation-publication-storage-contract.mjs';
 
@@ -172,6 +174,7 @@ const stringArray = values =>
 function patternTag(schema) {
   if (schema.format === 'date-time') return 2;
   if (schema.pattern === amountMicroPattern) return 12;
+  if (schema.pattern === fileGenerationWordPattern) return 15;
   switch (schema.pattern) {
     case undefined: return 0;
     case '^sha256:[0-9a-f]{64}$':
@@ -583,7 +586,7 @@ function registerArtifactSchema(name, selection) {
     delete complete.$defs;
   }
   const body = structuredClone(complete);
-  if (['model_invocation_evidence', 'model_capture_bundle', 'effect_row_outcome_receipt', 'lookup_barrier'].includes(name)) {
+  if (['model_invocation_evidence', 'model_capture_bundle', 'effect_row_outcome_receipt', 'effect_local_operation_receipt', 'lookup_barrier'].includes(name)) {
     // Each closed registered alternative excludes only its own identity field.
     // Unknown versions and mixed proof/runtime forms match no branch.
     for (const version of body.oneOf) {
@@ -775,6 +778,10 @@ const localVectors = join(root,
   'src/run_publication/effect_local_operation.generated_wbtest.mbt');
 if (readFileSync(localVectors, 'utf8') !== generateEffectLocalOperationVectors()) {
   throw new Error(`Independent local-operation vectors are stale: ${localVectors}`);
+}
+const fileVectors = join(root, 'src/run_publication/effect_file_operation.generated_wbtest.mbt');
+if (readFileSync(fileVectors, 'utf8') !== generateEffectFileOperationVectors()) {
+  throw new Error(`Independent file-operation vectors are stale: ${fileVectors}`);
 }
 // Count actual registered names, including value-only and appended private
 // descriptors. A second handwritten offset drifts when a consumer is added.

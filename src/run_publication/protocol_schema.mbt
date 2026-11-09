@@ -273,6 +273,10 @@ fn protocol_string_pattern(value : String, pattern : Int) -> Bool {
           valid
         }
       }
+    15 =>
+      value.length() <= 20 &&
+      protocol_string_pattern(value, 8) &&
+      (value.length() < 20 || value <= "18446744073709551615")
     _ => false
   }
 }
