@@ -52492,7 +52492,7 @@
               },
               {
                 "path": "src/execution_relation/execution_capacity.mbt",
-                "anchor": "bounded_measurement=(borrowed_row && !borrowed_group) || borrowed_cross"
+                "anchor": "bounded_measurement=(borrowed_row && !borrowed_group)"
               },
               {
                 "path": "src/execution_relation/value_budget.mbt",
@@ -52509,6 +52509,18 @@
               {
                 "path": "src/execution_relation/expression.mbt",
                 "anchor": "capture(selected_value)"
+              },
+              {
+                "path": "src/execution_relation/execution_capacity.mbt",
+                "anchor": "fn bounded_inner_join_borrows_input("
+              },
+              {
+                "path": "src/execution_relation/bounded_join_pairs.mbt",
+                "anchor": "if !reserve_slots(state.workspace, if full_right { 2 } else { 1 })"
+              },
+              {
+                "path": "src/execution_relation/bounded_join.mbt",
+                "anchor": "budget.retention = generated.working"
               }
             ],
             "extension": [
@@ -52661,6 +52673,26 @@
               {
                 "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
                 "anchor": "test \"cancelled expanded left import cannot grow or decode a later original row\""
+              },
+              {
+                "path": "src/connectors/local/metered_output_start_wbtest.mbt",
+                "anchor": "test \"singleton Join borrows carried values with immediate keys and preserves injected fallback\""
+              },
+              {
+                "path": "src/connectors/local/metered_output_start_wbtest.mbt",
+                "anchor": "test \"recursive carried Join funding preserves text-key and outer-join fallback\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"joined object UNNEST star preserves its acquired original task budget\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"joined recursive carried data refuses import before decoding on the same Source\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"cancelled joined recursive data cannot grow or decode a later original row\""
               }
             ]
           }

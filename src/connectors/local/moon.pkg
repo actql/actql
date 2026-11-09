@@ -6,6 +6,7 @@ import {
   "actql/actql/execution_relation" @execution,
   "actql/actql/lowering_relation" @lower,
   "actql/actql/relation_typing" @relation,
+  "actql/actql/relation_join_shape" @join,
   "actql/actql/relation_schema" @schema,
   "actql/actql/value_contract" @contract,
   "actql/actql/pipeline_typing" @pipeline,

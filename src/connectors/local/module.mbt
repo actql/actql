@@ -349,7 +349,14 @@ pub fn local_module_metered_output_start_capacity(
       }
     }
   }
+  let borrowed_join = count == 1 &&
+    (match @execution.generated_sequence_step_at(sequence, 0) {
+      Some(@lower.JoinStep(kernel)) =>
+        selected_join_borrows_carried_values(kernel)
+      _ => false
+    })
   if count == 1 &&
+    !borrowed_join &&
     @execution.generated_sequence_step_at(sequence, 0)
     is Some(@lower.SetStep(_) | @lower.JoinStep(_)) {
     let prepared = @lower.bound_preparation(

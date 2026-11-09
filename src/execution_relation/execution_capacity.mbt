@@ -104,8 +104,50 @@ fn bounded_count_group_borrows_input(kernel : @lower.PreparedKernel) -> Bool {
 }
 
 ///|
+// The bounded INNER JOIN compares only its checked immediate key columns.
+// Other required columns are carried as original immutable cells: neither
+// binary input scan nor projected output constructs their value forest.
+fn bounded_inner_join_borrows_input(kernel : @lower.PreparedJoinKernel) -> Bool {
+  let owner = @lower.bound_preparation(@lower.join_kernel_owner(kernel))
+  let step = @lower.join_kernel_step(kernel)
+  let profile = @lower.join_kernel_profile(kernel)
+  guard @lower.inner_join_kind(profile) == @join.Inner &&
+    @lower.inner_join_key_count(profile) > 0 &&
+    @lower.node_at(owner, step) is Some(node) &&
+    @lower.node_input_count(node) == 2 &&
+    @lower.preparation_schema_at(owner, @pipeline.Step(step)).map(
+      @schema.all_fields_required,
+    ) ==
+    Some(true) else {
+    return false
+  }
+  for port in 0..<2 {
+    guard @lower.node_input_target(node, port).bind(target => {
+        @lower.preparation_schema_at(owner, target)
+      })
+      is Some(schema) &&
+      @schema.all_fields_required(schema) else {
+      return false
+    }
+    for index in 0..<@lower.inner_join_key_count(profile) {
+      guard @lower.inner_join_key_at(profile, index) is Some((left, right)) &&
+        @schema.lookup(schema, if port == 0 { left } else { right })
+        is Some(contract) else {
+        return false
+      }
+      match contract.shape {
+        @contract.Number | @contract.Boolean => ()
+        _ => return false
+      }
+    }
+  }
+  true
+}
+
+///|
 /// Constructor-specific recipe for bounded Values, Append, primitive Set/Join,
-/// required-field CROSS JOIN, scalar grouped COUNT, UNNEST and binding-row
+/// INNER JOIN with immediate keys, required-field CROSS JOIN, scalar grouped
+/// COUNT, UNNEST and binding-row
 /// providers; not a claim about
 /// arbitrary executors of the same kernel.
 /// The bounded single-operation constructors use an operation workspace, not
@@ -232,6 +274,10 @@ pub fn generated_bounded_sequence_capacity(
   if cross && !borrowed_cross {
     return generated_sequence_capacity(generated, limits, measurement)
   }
+  let borrowed_join = match operation {
+    @lower.JoinStep(kernel) => bounded_inner_join_borrows_input(kernel)
+    _ => false
+  }
   let binary = operation is @lower.SetStep(_) || operation is @lower.JoinStep(_)
   let mut borrowed_binary = binary &&
     @lower.node_input_count(node) == 2 &&
@@ -247,10 +293,10 @@ pub fn generated_bounded_sequence_capacity(
       }
     }
   }
-  // Recursive/text binary inputs keep the full existing envelope. The selected
-  // primitive constructor's binary scan borrows admitted cells and charges
-  // every logical occurrence using its already bounded cursor workspace.
-  if binary && !borrowed_binary {
+  // Unsupported binary shapes keep the full existing envelope. Immediate
+  // Set/Join inputs and the checked INNER JOIN's carried DATA are borrowed;
+  // every logical occurrence still uses the bounded charged input scan.
+  if binary && !borrowed_binary && !borrowed_join {
     return generated_sequence_capacity(generated, limits, measurement)
   }
   let roots = @schema.field_count(schema).to_int64() +
@@ -265,8 +311,11 @@ pub fn generated_bounded_sequence_capacity(
     borrowed_input_values=operation is @lower.AppendStep(_) ||
       borrowed_row ||
       borrowed_binary ||
-      borrowed_cross,
-    bounded_measurement=(borrowed_row && !borrowed_group) || borrowed_cross,
+      borrowed_cross ||
+      borrowed_join,
+    bounded_measurement=(borrowed_row && !borrowed_group) ||
+      borrowed_cross ||
+      borrowed_join,
   )
   guard ordinary is Some(ordinary) else { return None }
   // The Values provider does not pass FixedInputGuardMeasureLimits to its

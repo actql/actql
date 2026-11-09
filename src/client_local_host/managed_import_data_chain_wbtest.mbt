@@ -742,3 +742,44 @@ test "expanded left import refusal precedes decoding with its independent Source
 test "cancelled expanded left import cannot grow or decode a later original row" {
   managed_source_free_expanded_import(CancelImport)
 }
+
+///|
+fn managed_joined_object_import(mode : ManagedImportDataCase) -> Unit raise {
+  managed_import_data_chain(
+    mode,
+    input_control_task=7,
+    query="WITH parents AS (FROM UNNEST(@parents) p |> SELECT id, items), expanded AS (FROM parents p |> JOIN records r ON p.id = r.id MAX_OUTPUT_ROWS 4 |> CROSS JOIN UNNEST(p.items) e WITH OFFSET position |> SELECT p.id, e.*, position |> ORDER BY p.id, position) FROM expanded |> RESULT answer",
+    parameter_declarations=Some(
+      "{\"parents\":{\"type\":\"array\",\"max_items\":4,\"items\":{\"type\":\"object\",\"fields\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"items\":{\"type\":\"array\",\"nullable\":true,\"max_items\":3,\"items\":{\"type\":\"object\",\"nullable\":true,\"fields\":{\"code\":{\"type\":\"number\",\"nullable\":false},\"label\":{\"type\":\"string\",\"nullable\":true}}}}}}}}",
+    ),
+    parameter_values=Some(
+      "{\"parents\":[{\"id\":2,\"items\":[{\"code\":20,\"label\":null},null,{\"code\":20,\"label\":null}]},{\"id\":1,\"items\":[{\"code\":10,\"label\":\"a\"}]},{\"id\":3,\"items\":[]},{\"id\":4,\"items\":null}]}",
+    ),
+    source_wire="[{\"id\":2,\"amount\":null},{\"id\":1,\"amount\":10}]",
+    source_rows=2,
+    expected_tasks=None,
+    result_name="answer",
+    two_input_task=None,
+    expected_rows=[
+      "{\"id\":1,\"code\":10,\"label\":\"a\",\"position\":0}", "{\"id\":2,\"code\":20,\"label\":null,\"position\":0}",
+      "{\"id\":2,\"code\":null,\"label\":null,\"position\":1}", "{\"id\":2,\"code\":20,\"label\":null,\"position\":2}",
+    ],
+    prior_execution=26641742L,
+    expected_policy=None,
+  )
+}
+
+///|
+test "joined object UNNEST star preserves its acquired original task budget" {
+  managed_joined_object_import(Complete)
+}
+
+///|
+test "joined recursive carried data refuses import before decoding on the same Source" {
+  managed_joined_object_import(RefuseImport)
+}
+
+///|
+test "cancelled joined recursive data cannot grow or decode a later original row" {
+  managed_joined_object_import(CancelImport)
+}

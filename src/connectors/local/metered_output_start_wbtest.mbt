@@ -315,19 +315,19 @@ test "singleton Set startup keeps recursive and injected providers fully prepaid
 }
 
 ///|
-test "singleton Join startup keeps recursive and injected providers fully prepaid" {
+test "singleton Join borrows carried values with immediate keys and preserves injected fallback" {
   for
-    (contract, literal, primitive) in [
-      ("{\"type\":\"number\",\"nullable\":false}", "1", true),
-      ("{\"type\":\"boolean\",\"nullable\":false}", "true", true),
-      ("{\"type\":\"string\",\"nullable\":false}", "\"text\"", false),
+    (contract, literal) in [
+      ("{\"type\":\"number\",\"nullable\":false}", "1"),
+      ("{\"type\":\"boolean\",\"nullable\":false}", "true"),
+      ("{\"type\":\"string\",\"nullable\":false}", "\"text\""),
       (
         "{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}",
-        "[1,2]", false,
+        "[1,2]",
       ),
       (
         "{\"type\":\"object\",\"nullable\":false,\"fields\":{\"x\":{\"type\":\"number\",\"nullable\":false}}}",
-        "{\"x\":1}", false,
+        "{\"x\":1}",
       ),
     ] {
     let (chain, _, _) = chain_lifetime_fixture(
@@ -372,18 +372,12 @@ test "singleton Join startup keeps recursive and injected providers fully prepai
     let metered = local_module_metered_output_start_capacity(
       original, 0, selected,
     )
-    if primitive {
-      assert_true(full.execution_bytes < generic.execution_bytes)
-      assert_true(
-        metered is Some(value) && value.execution_bytes < full.execution_bytes,
-      )
-    } else {
-      assert_true(metered is None)
-      assert_eq(
-        (full.retained_bytes, full.execution_bytes),
-        (generic.retained_bytes, generic.execution_bytes),
-      )
-    }
+    // The comparison key is still original numeric id. Text/recursive
+    // payload is carried unchanged and independently funded before commit.
+    assert_true(full.execution_bytes < generic.execution_bytes)
+    assert_true(
+      metered is Some(value) && value.execution_bytes < full.execution_bytes,
+    )
     let starts = Ref(0)
     let replacement = managed_provider(_ => true, _ => Some(generic), (
       _,
@@ -847,4 +841,73 @@ test "singleton CROSS JOIN borrows original inputs and refuses injected construc
   assert_eq(kept.retained_bytes, generic.retained_bytes)
   assert_eq(kept.execution_bytes, generic.execution_bytes)
   @connector.close_capability_registry(registry)
+}
+
+///|
+test "recursive carried Join funding preserves text-key and outer-join fallback" {
+  for
+    (kind, contract, literal, borrowed) in [
+      ("inner", "{\"type\":\"number\",\"nullable\":false}", "1", true),
+      ("inner", "{\"type\":\"boolean\",\"nullable\":false}", "true", true),
+      ("inner", "{\"type\":\"string\",\"nullable\":false}", "\"key\"", false),
+      ("left", "{\"type\":\"number\",\"nullable\":false}", "1", false),
+    ] {
+    let (chain, _, _) = chain_lifetime_fixture(
+      "[{\"values\":{\"schema\":{\"id\":" +
+      contract +
+      ",\"payload\":{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}},\"rows\":[{\"id\":" +
+      literal +
+      ",\"payload\":[1,2]}]},\"as\":\"value\"},{\"from\":\"value\",\"join\":{\"with\":\"value\",\"kind\":\"" +
+      kind +
+      "\",\"on\":[{\"left\":\"id\",\"right\":\"id\"}],\"select\":{\"id\":\"left.id\",\"payload\":\"right.payload\"}}}]",
+    )
+    let sequence = @execution.select_generated_sequence_step(
+      chain,
+      @execution.generated_sequence_step_index_at(chain, 1).unwrap(),
+    ).unwrap()
+    let registry = @connector.prepare_capability_registry(
+      [
+        {
+          name: "local",
+          acquisition: false,
+          fixed_compute: true,
+          effect: false,
+        },
+      ],
+      1,
+      100,
+    ).unwrap()
+    let registration = @connector.capability_registration_at(registry, 0).unwrap()
+    let original = prepare_local_compute_module(
+      registry,
+      registration,
+      [sequence],
+      chain_lifetime_limits(),
+      chain_lifetime_measurement(),
+      100000,
+      1,
+    ).unwrap()
+    let full = local_module_capacity_for_sequence(original, 0, sequence).unwrap()
+    let generic = @execution.generated_sequence_capacity(
+      sequence,
+      chain_lifetime_limits(),
+      chain_lifetime_measurement(),
+    ).unwrap()
+    let start = local_module_metered_output_start_capacity(
+      original, 0, sequence,
+    )
+    if borrowed {
+      assert_true(full.execution_bytes < generic.execution_bytes)
+      assert_true(
+        start is Some(value) && value.execution_bytes < full.execution_bytes,
+      )
+    } else {
+      assert_eq(
+        (full.retained_bytes, full.execution_bytes),
+        (generic.retained_bytes, generic.execution_bytes),
+      )
+      assert_true(start is None)
+    }
+    @connector.close_capability_registry(registry)
+  }
 }

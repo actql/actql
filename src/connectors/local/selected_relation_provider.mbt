@@ -1098,3 +1098,45 @@ fn selected_relation_provider(
     },
   )
 }
+
+///|
+// Mirror the selected INNER JOIN constructor boundary, not a whole-schema
+// permission: carried DATA is borrowed, comparisons use only immediate keys.
+fn selected_join_borrows_carried_values(
+  kernel : @lower.PreparedJoinKernel,
+) -> Bool {
+  let owner = @lower.bound_preparation(@lower.join_kernel_owner(kernel))
+  let step = @lower.join_kernel_step(kernel)
+  let profile = @lower.join_kernel_profile(kernel)
+  guard @lower.inner_join_kind(profile) == @join.Inner &&
+    @lower.inner_join_key_count(profile) > 0 &&
+    @lower.node_at(owner, step) is Some(node) &&
+    @lower.node_input_count(node) == 2 &&
+    @lower.preparation_schema_at(owner, @pipeline.Step(step)).map(
+      @schema.all_fields_required,
+    ) ==
+    Some(true) else {
+    return false
+  }
+  for port in 0..<2 {
+    guard @lower.node_input_target(node, port).bind(target => {
+        @lower.preparation_schema_at(owner, target)
+      })
+      is Some(schema) &&
+      @schema.all_fields_required(schema) else {
+      return false
+    }
+    for index in 0..<@lower.inner_join_key_count(profile) {
+      guard @lower.inner_join_key_at(profile, index) is Some((left, right)) &&
+        @schema.lookup(schema, if port == 0 { left } else { right })
+        is Some(contract) else {
+        return false
+      }
+      match contract.shape {
+        @contract.Number | @contract.Boolean => ()
+        _ => return false
+      }
+    }
+  }
+  true
+}
