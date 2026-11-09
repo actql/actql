@@ -16,6 +16,8 @@ pub fn consume_property_response_source(Result[PropertyResponseSource, PropertyI
 
 pub fn effect_account_construction_capacity(Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
+pub fn effect_catalog_recheck_construction_capacity(Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn effect_finalization_construction_capacity(WriteBodyLimits, RecordRequestLimits, RecordReadLimits, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn effect_installation_construction_capacity(Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?

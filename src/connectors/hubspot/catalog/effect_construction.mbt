@@ -21,6 +21,43 @@ fn hubspot_effect_capacity(
 }
 
 ///|
+/// The existing full Catalog recheck builds one name Map, then compares the
+/// complete metadata values. Catalogs, keys, text and options remain borrowed;
+/// derived equality creates no replacement values. Each Unit call returns
+/// before the next request's check, so these private Maps do not accumulate.
+/// The shared collection owner covers buckets/growth; the original control
+/// owner separately retains its current/call and failed-prefix responsibilities.
+pub fn effect_catalog_recheck_construction_capacity(
+  max_properties : Int,
+) -> @execution.ExecutionCapacity? {
+  if max_properties < 1 {
+    return None
+  }
+  guard @shape.map_construction_extent(1L, max_properties.to_int64())
+    is Some(workspace) else {
+    return None
+  }
+  hubspot_effect_capacity(
+    {
+      record_headers: 0L,
+      reference_slots: 0L,
+      scalar_words: 0L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    },
+    [
+      {
+        record_headers: workspace.record_headers,
+        reference_slots: workspace.reference_slots,
+        scalar_words: workspace.scalar_words,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      },
+    ],
+  )
+}
+
+///|
 /// Installing one UPDATE driver, its one managed recipe and the original
 /// mapping lookup/target predicates. Catalogs, Mappings, limits and Site are
 /// borrowed from the same parent. No per-Run requests or authority are owned
@@ -45,9 +82,11 @@ pub fn effect_installation_construction_capacity(
   // footprint method capture/capacity/extent/operation/descriptor add8H24R10W
   // and one shared operation-name String; no original binding is copied.
   guard @shape.collection_construction_extent({
-      records: 2L * (96L + 96L + 16L) + 72L + 5L * m,
-      record_references: 14L * (96L + 96L + 16L) + 536L + 24L * m + 2L * f,
-      record_words: 138L + 12L * m,
+      // One extra same-Common recheck quote has two scalar fields; the
+      // existing driver closure retains its reference, not another Catalog.
+      records: 2L * (96L + 96L + 16L) + 72L + 5L * m + 1L,
+      record_references: 14L * (96L + 96L + 16L) + 536L + 24L * m + 2L * f + 1L,
+      record_words: 138L + 12L * m + 2L,
       reference_arrays: 48L + 2L * m,
       reference_items: 512L + 9L + 15L + 19L + 2L * f,
       scalar_arrays: 12L,

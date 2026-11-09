@@ -136,3 +136,25 @@ The construction execution peak is unchanged, including failed and pending
 prefixes; no failed constructor takes the successful return. Quantities remain
 in the shared MoonBit owner, with no connector-specific Host arithmetic,
 transport cap change or physical-cleanup inference.
+
+A retained Catalog recheck has a different constructor from receiving and
+parsing another Catalog. The HubSpot recheck still builds its original name
+Map and compares every admitted metadata field, including option meaning.
+Its keys, values and text borrow the already-retained original/current
+Catalogs. The Common issuer quotes the existing Map construction inventory
+under the same property limit passed to that native recheck. Sequential Unit
+checks do not retain one Map per request.
+
+Installing code may pass this scratch-only opaque Common quote through the
+existing control-construction entrance. Core accepts no retained output in
+this optional argument, preserves its whole original retained/idle floor,
+and funds the quote before invoking the callback. Omission keeps the complete
+generic constructor. The quote cannot combine with another selected frame
+or enter a nested Ledger codec. Active or failed scratch stays on that same
+control reservation until explicit checked completion; the original current,
+reentry, cleanup and failure rules remain. JavaScript forwards the quote and
+performs no byte pricing or Catalog interpretation. This is not an Allow,
+current memo, another Ledger, row-coordinate inference or physical ACK.
+The original four-argument Node export stays unchanged. Because exported
+MoonBit functions cannot have optional arguments, one typed native-quote
+variant delegates to that same Core entrance; it creates no new reservation.

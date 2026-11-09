@@ -41,7 +41,7 @@ const capture = (receiver, names) => {
 
 export function hubspotUpdateDriver({moon, site, authorization, connection, origin, portalId, connectorId,
   siteBindingCid, generationCid, installedFor, metadataResources, requestLimits, readLimits, writeLimits,
-  maxRows, maxMembers, maxRecoveryBytes}) {
+  maxRows, maxMembers, maxRecoveryBytes, requestRecheckCapacity}) {
   if (typeof connection !== 'string' || !connection || !isCid(siteBindingCid) || !isCid(generationCid) ||
       !positive(maxRows) || maxRows > 100 || !positive(maxMembers) || !positive(maxRecoveryBytes) ||
       typeof installedFor !== 'function' || !metadataResources || nodeTypes.isProxy(metadataResources)) {
@@ -202,7 +202,7 @@ export function hubspotUpdateDriver({moon, site, authorization, connection, orig
       frame(member, current);
       const check = () => {for (const entry of entries) checked(native.hubspotRecheckRecordBatch(
         requests.nativeRequest(entry.request), current.catalog, maxProperties));};
-      return controlConstruction === undefined ? check() : controlConstruction(undefined, check, []);
+      return controlConstruction === undefined ? check() : controlConstruction(undefined, check, [], requestRecheckCapacity);
     },
     observeTargets(options) {
       const original = frame(options.member, options.current);

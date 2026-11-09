@@ -1770,6 +1770,8 @@ pub fn client_program_installed_effect_operation_ledger_family_begin(@client_loc
 
 pub fn client_program_installed_effect_operation_ledger_open_begin(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledEffectManagedPlan, String) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
 
+pub fn client_program_installed_effect_operation_native_construction_begin(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledEffectManagedPlan, @execution_relation.ExecutionCapacity) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_installed_effect_operation_request_projection_begin(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledEffectManagedPlan, Int, Int, Int) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_effect_operation_response_backing_fits(@client_local_host.ClientInstalledEffectOperationExtent, Int, Int, Int) -> Bool

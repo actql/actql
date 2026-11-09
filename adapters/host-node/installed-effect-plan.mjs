@@ -1066,6 +1066,7 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
 export function prepareInstalledEffectControlConstruction(run) {
   const {runtime, value: parent, prepared, request, operationPlan: plan, readPlan} = run ?? {};
   const begin = runtime?.clientProgramInstalledEffectOperationControlConstructionBegin;
+  const nativeBegin = runtime?.clientProgramInstalledEffectOperationNativeConstructionBegin;
   const complete = runtime?.clientProgramInstalledEffectOperationControlConstructionComplete;
   const grantBegin = runtime?.clientProgramInstalledEffectOperationGrantConstructionBegin;
   const requestProjectionBegin = runtime?.clientProgramInstalledEffectOperationRequestProjectionBegin;
@@ -1108,14 +1109,18 @@ export function prepareInstalledEffectControlConstruction(run) {
     Reflect.apply(nativePromiseThen, joined, [settled, settled]);
     fail('InvalidInstalledEffectControlConstruction');
   };
-  const invoke = (receiver, method, args, inputWire, grant = false, requestProjection, footprintProjection, ledgerRoot, ledgerFamily) => {
+  const invoke = (receiver, method, args, inputWire, grant = false, requestProjection, footprintProjection, ledgerRoot, ledgerFamily, nativeConstruction) => {
     if (retired) fail('InstalledEffectControlConstructionRetired');
     if (failed) throw primary;
     if (working || run.selecting) fail('InstalledEffectControlConstructionPending');
     if (typeof method !== 'function' || !Array.isArray(args)) fail('InvalidInstalledEffectControlConstruction');
+    if (nativeConstruction !== undefined && (nativeConstruction === null || typeof nativeConstruction !== 'object' || nodeTypes.isProxy(nativeConstruction))) {
+      fail('InvalidInstalledEffectControlConstruction');
+    }
+    if (nativeConstruction !== undefined && typeof nativeBegin !== 'function') fail('InstalledEffectControlRuntimeUnavailable');
     // Only the captured Core getter and its exact immutable Plan are metadata.
     // Inspect DATA descriptors without executing argument getters or Proxy traps.
-    const metadata = ledgerFamily === undefined && ledgerRoot === undefined && !grant && requestProjection === undefined && footprintProjection === undefined && inputWire === undefined && receiver === runtime && method === shape &&
+    const metadata = nativeConstruction === undefined && ledgerFamily === undefined && ledgerRoot === undefined && !grant && requestProjection === undefined && footprintProjection === undefined && inputWire === undefined && receiver === runtime && method === shape &&
       !nodeTypes.isProxy(method) && !nodeTypes.isProxy(args) &&
       Object.getOwnPropertyDescriptor(args, 'length')?.value === 1 &&
       Object.getOwnPropertyDescriptor(args, '0')?.value === plan;
@@ -1133,7 +1138,8 @@ export function prepareInstalledEffectControlConstruction(run) {
     try {
       originalRecord();
       if (metadata) observePlan();
-      else checked(Reflect.apply(ledgerFamily !== undefined && ledgerFamilyBegin !== undefined ? ledgerFamilyBegin :
+      else checked(Reflect.apply(nativeConstruction !== undefined ? nativeBegin :
+        ledgerFamily !== undefined && ledgerFamilyBegin !== undefined ? ledgerFamilyBegin :
         ledgerRoot !== undefined && ledgerOpenBegin !== undefined ? ledgerOpenBegin :
         footprintProjection !== undefined && footprintBegin !== undefined ? footprintBegin :
         requestProjection !== undefined && requestProjectionBegin !== undefined ? requestProjectionBegin :
@@ -1143,7 +1149,8 @@ export function prepareInstalledEffectControlConstruction(run) {
           ? ledgerFamily : ledgerRoot !== undefined && ledgerOpenBegin !== undefined
           ? [ledgerRoot] : footprintProjection !== undefined && footprintBegin !== undefined
           ? footprintProjection : requestProjection !== undefined && requestProjectionBegin !== undefined
-            ? requestProjection : inputWire === undefined ? [] : [inputWire])]));
+            ? requestProjection : inputWire === undefined ? [] : [inputWire]),
+          ...(nativeConstruction === undefined ? [] : [nativeConstruction])]));
       originalRecord();
       invoking = true;
       const value = Reflect.apply(method, receiver, metadata ? [plan] : args);
@@ -1189,7 +1196,10 @@ export function prepareInstalledEffectControlConstruction(run) {
       if (pending === undefined) run.selecting = false;
     }
   };
-  work = (receiver, method, args) => invoke(receiver, method, args);
+  // The installing constructor owns this optional opaque Common quote. No
+  // Host scalar pricing or provider-runtime opaque value crosses the seam.
+  work = (receiver, method, args, nativeConstruction) =>
+    invoke(receiver, method, args, undefined, false, undefined, undefined, undefined, undefined, nativeConstruction);
   // Installing Site issuers alone use this fixed Core constructor family.
   // Legacy runtimes keep the complete generic frame; JS quotes no quantities.
   const grant = (receiver, method, args) => invoke(receiver, method, args, undefined, true);

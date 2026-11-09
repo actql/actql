@@ -1266,9 +1266,15 @@ pub fn begin_installed_effect_operation_control_construction(
   prepared : @publication_host.PreparedClientEffectComputation,
   request : @publication_host.ClientRequestIdentity,
   plan : ClientInstalledEffectManagedPlan,
+  native? : @execution.ExecutionCapacity? = None,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
   resize_installed_effect_operation_control_construction(
-    owner, prepared, request, plan, true,
+    owner,
+    prepared,
+    request,
+    plan,
+    true,
+    native_construction=native,
   )
 }
 
@@ -1525,6 +1531,7 @@ fn resize_installed_effect_operation_control_construction(
   ledger_open? : String? = None,
   ledger_family? : (Array[Int], Int, Int, Int, Int)? = None,
   ledger_codec? : (Bool, String?, Int, Int)? = None,
+  native_construction? : @execution.ExecutionCapacity? = None,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
   guard owner.original is Some(original) && physical_equal(original, owner) else {
     return Err(ForeignOriginal)
@@ -1638,8 +1645,26 @@ fn resize_installed_effect_operation_control_construction(
     ) {
     return Err(Unsupported)
   }
-  let constructor_frame = if request_projection
-    is Some((member_index, operation, row)) {
+  // Installing code can forward its actual same-Common Unit constructor
+  // quote. It adds only scratch to this original retained/idle control floor;
+  // it cannot issue outputs, enter a nested codec or select another family.
+  if native_construction is Some(native) &&
+    (
+      !active ||
+      @execution.execution_capacity_retained_bytes(native) != 0L ||
+      input_wire is Some(_) ||
+      grant_construction ||
+      request_projection is Some(_) ||
+      footprint_construction is Some(_) ||
+      ledger_open is Some(_) ||
+      ledger_family is Some(_) ||
+      ledger_codec is Some(_)
+    ) {
+    return Err(Unsupported)
+  }
+  let constructor_frame = if native_construction is Some(native) {
+    Some(Fixed(@execution.execution_capacity_execution_bytes(native), None))
+  } else if request_projection is Some((member_index, operation, row)) {
     if !active ||
       footprint_construction is Some(_) ||
       grant_construction ||

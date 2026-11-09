@@ -249,7 +249,9 @@ export async function loadInstalledHubSpotEffect(profile, {moon, providerMoon, c
         objectTypeUnits: Math.max(...source.resources.map(value => value.objectType.length)),
         metadataResources: source.metadataResources, credentialSite: originalSite, limits,
         inputLimits: {body: ownerLimits.body, preview: ownerLimits.preview}, maxRecoveryBytes});
-      const driver = hubspotUpdateDriver({moon: providerMoon, site, authorization, connection,
+      const requestRecheckCapacity = runtimeUnboxedReferenceOption(quantity(8, [mappingLimits.maxProperties], [], []));
+      if (!requestRecheckCapacity) fail('HubSpotEffectConstructionUnavailable');
+      const driver = hubspotUpdateDriver({moon: providerMoon, site, authorization, connection, requestRecheckCapacity,
         origin: siteProfile.apiOrigin, portalId: source.portalId, connectorId: source.connectorId,
         siteBindingCid, generationCid, installedFor, metadataResources: source.metadataResources,
         requestLimits: Object.freeze({maxProperties: mappingLimits.maxProperties, body: bodyLimits,
