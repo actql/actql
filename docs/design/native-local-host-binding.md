@@ -43,6 +43,13 @@ current-authority and custody checks, including the legacy Values guard.
 An already accepted Request instead reads its saved original Policy without
 resampling it; changed identity or lost current authority still refuses.
 
+The Native Model Effect caller activates its already retained Store operation
+after accepting the same Effect originals and before borrowing that operation's
+SQLite original. Activation checks the original current Journal Read and
+unentered backed execution; borrowing an inactive operation is still refused.
+This route does not construct another operation or confer Effect approval.
+Activation or Store failure stays on the same command's cleanup owner.
+
 The fixed Request's existing 4KiB internal control group covers the Native
 completed-body carrier (one header, original-borrow reference and variant word)
 after its resize has returned. Variable Program, compiler and provider bodies
