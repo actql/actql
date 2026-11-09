@@ -336,18 +336,11 @@ pub fn client_effect_model_public_result_evidence_refs(
     !client_effect_local_artifact_matches_inputs(artifact, inputs) {
     return Err(ForeignOwner)
   }
-  let graph = @strategy.checked_effect_computation_graph(
-    materials.prepared.graph,
-  )
-  guard @strategy.graph_result_task(graph, result) is Some(task) &&
-    @strategy.graph_result_name(graph, result) is Some(name) &&
-    artifact.source is ResultSource(_, definition) &&
-    @strategy.graph_task_unit_index(graph, task) == Some(definition.unit) &&
-    client_effect_local_result_definition_matches(
-      definition,
+  guard artifact.source is ResultSource(_, definition) &&
+    effect_local_result_definition_matches_public_result(
       materials.prepared,
-      definition.unit,
-      name,
+      definition,
+      result,
     ) else {
     return Err(ForeignDefinition)
   }

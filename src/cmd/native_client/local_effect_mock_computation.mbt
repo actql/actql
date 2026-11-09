@@ -48,7 +48,6 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_computation(
     }
     state.computation = Some(held)
     let run = @strategy.captured_effect_run_dag(captured)
-    let graph = @strategy.captured_dag_graph(run)
     // The ordinary exporter selects every public Named Result from this
     // original graph. It retains separate pins, not another execution.
     let outputs = @run_host.prepare_all_captured_result_publication_exports(
@@ -72,18 +71,17 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_computation(
       held.outputs.push(output)
     }
     for index, output in held.outputs {
-      let task = @strategy.graph_result_task(graph, index).unwrap_or_else(() => {
-        stop("LocalOriginalEffectComputationResultUnavailable")
-      })
       let original = proposals.members
         .iter()
         .find_first(entry => {
-          entry.exported
-          .map(value => {
-            @strategy.captured_effect_local_result_task(
-              @strategy.captured_effect_local_result_export_result(value),
-            ) ==
-            task
+          entry._retained_artifact
+          .map(artifact => {
+            @run_host.client_effect_local_result_artifact_matches_public_result(
+              materials.prepared,
+              proposals.inputs,
+              artifact,
+              index,
+            )
           })
           .unwrap_or(false)
         })
