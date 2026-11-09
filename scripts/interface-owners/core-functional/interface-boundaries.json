@@ -34435,7 +34435,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_borrow.mbt",
-      "sha256": "f2d4afdcf9096df5a2aa01f1ccdd5393d1a2abe8b83469f14b2fa71012a69b3d",
+      "sha256": "6301f896e51dac91ad3c7cfa904dd02b891d4fe598ce7fa9e6db4c7e20276036",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original installed Effect operation borrow and retained same-Run management controls",

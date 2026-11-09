@@ -166,6 +166,14 @@ test('cleanup category never serializes payloads and keeps public error code', {
             InvalidLocalReference(_) => "EffectLocalSourceReference"
             _ => "EffectLocalSource"
           }
+        PolicyDependency(original) =>
+          match original {
+            MissingUnit => "EffectProposalsPolicyMissingUnit"
+            MissingDependency => "EffectProposalsPolicyMissingDependency"
+            Encoding(_) => "EffectProposalsPolicyEncoding"
+            ForeignBody => "EffectProposalsPolicyForeignBody"
+            BudgetExceeded => "EffectProposalsPolicyBudget"
+          }
         Inventory(original) =>
           match original {
             MissingDependency => "EffectInventoryMissingDependency"
@@ -562,6 +570,12 @@ test('cleanup category never serializes payloads and keeps public error code', {
     Imports: {
       path: 'src/run_publication_host/client_effect_imported_evidence.mbt', name: 'ClientEffectImportedEvidenceIssue',
       tags: {MissingScope: 'EffectImportedScopeMissing'}, fallback: 'EffectImportedEvidence',
+    },
+    PolicyDependency: {
+      path: 'src/program_check/local_dependency_body.mbt', name: 'LocalDependencyBodyIssue',
+      tags: {MissingUnit: 'EffectProposalsPolicyMissingUnit', MissingDependency: 'EffectProposalsPolicyMissingDependency',
+        Encoding: 'EffectProposalsPolicyEncoding', ForeignBody: 'EffectProposalsPolicyForeignBody',
+        BudgetExceeded: 'EffectProposalsPolicyBudget'},
     },
   };
   assert.deepEqual(proposalIssues, Object.keys(proposalFamilies).map(name => ({name, arity: 1})));
