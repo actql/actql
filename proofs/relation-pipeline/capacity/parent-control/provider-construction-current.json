@@ -4,13 +4,13 @@
     {
       "name": "selected_relation_provider",
       "path": "src/connectors/local/selected_relation_provider.mbt",
-      "sourceDigest": "8fb0f1036f5264c11cd27b3b510e8bed1e15e2720e9e2a46e3d0c800e364ee9a",
+      "sourceDigest": "9c38a2c47f93832736444f5826d176ba7e749e75683778df74765814e5fa924a",
       "binding": "managed_provider_with_numeric"
     },
     {
       "name": "cross_join_provider",
       "path": "src/connectors/local/cross_join_provider.mbt",
-      "sourceDigest": "74bd36805e65a2340a49d7c554cfea4b807a45676867560a3dd654a14ae89218",
+      "sourceDigest": "0e2b820abd78a4391861332f8748682cb1b70c536dd05f9bc7126531bd197942",
       "binding": "managed_provider"
     },
     {

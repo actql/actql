@@ -55,6 +55,22 @@ test('current five-field candidate component derives 2432 without promoting hist
     '73ef7e256f5fc062cad8c00a3e39341a0e138493cbb01a7b9c6a45a05a2e986b');
   assert.throws(() => providerConstructionBound(path => path === unnestPath ? priorUnnest : read(path)),
     /Unreviewed current constructor source/);
+  // Property borrowing changes only an execution predicate before the
+  // selected factory. Its entire constructor/callback tail remains exact.
+  const selected = read('src/connectors/local/selected_relation_provider.mbt').toString();
+  assert.equal(hash(selected.slice(selected.indexOf('fn selected_relation_provider('))),
+    'f100dd3ac842dd087b494382c42be9dfb613184a35f26164f2788ba8ed6544b5');
+  // CROSS JOIN changes only the quote callback. Candidate layout/captures and
+  // the actual constructor/lifecycle remain outside callback execution.
+  const crossPath = 'src/connectors/local/cross_join_provider.mbt';
+  const cross = read(crossPath).toString();
+  assert.equal(cross.split(bounded).length, 2, 'Reach the one reviewed CROSS JOIN capacity query');
+  const priorCross = cross.replace(bounded,
+    '      @execution.generated_sequence_capacity(sequence, limits, measurement)');
+  assert.equal(hash(priorCross),
+    '74bd36805e65a2340a49d7c554cfea4b807a45676867560a3dd654a14ae89218');
+  assert.throws(() => providerConstructionBound(path => path === crossPath ? priorCross : read(path)),
+    /Unreviewed current constructor source/);
   const current = providerConstructionBound(read);
   assert.equal(current.recordBytes, 48);
   assert.equal(current.bytes, 11 * (48 + 4 * 40) + 120 + 24);
