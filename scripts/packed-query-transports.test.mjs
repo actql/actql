@@ -8,7 +8,7 @@ import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {test} from 'node:test';
 import {createTransportOwner, requireCompleteInventory, sourceFixturePaths, observePackedSubmissionCause,
-  runSubmissionCauseObserver, createPackedHostFailureDiagnostics}
+  runSubmissionCauseObserver, createPackedHostFailureDiagnostics, selectAcceptanceTimeout}
   from './fixtures/packed-query-transport-owner.mjs';
 import {encodeRetainedFixture} from './fixtures/retained-fixture-values.mjs';
 import {publicQueryResultOracles} from './fixtures/public-query-input.mjs';
@@ -1192,4 +1192,60 @@ test('transport harness refuses an unbounded or inconsistent selected envelope',
     forward() {}}));
   assert.throws(() => createTransportOwner({deadline: Date.now() + 1_801_000,
     timeoutMs: 1_800_000, forward() {}}));
+});
+
+
+test('canonical query timeout selector rejects invalid input before package work', () => {
+  assert.equal(selectAcceptanceTimeout({}), 900_000);
+  for (const value of ['1', '120000', '1800000']) {
+    assert.equal(selectAcceptanceTimeout({ACTQL_TEST_QUERY_TIMEOUT_MS: value}), Number(value));
+  }
+  for (const value of ['', '0', '-1', '0.5', 'NaN', 'Infinity', '1800001']) {
+    assert.throws(() => selectAcceptanceTimeout({ACTQL_TEST_QUERY_TIMEOUT_MS: value}));
+  }
+});
+
+test('canonical query launcher forwards one selected envelope to deadline and command', async () => {
+  const {parse} = await import('acorn');
+  const source = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const syntax = parse(source, {sourceType: 'module', ecmaVersion: 'latest'});
+  const declarations = [];
+  const visit = node => {
+    if (node === null || typeof node !== 'object') return;
+    if (node.type === 'VariableDeclaration' && node.declarations.some(declaration =>
+        declaration.id.name === 'acceptanceDeadline' || declaration.id.name === 'output' &&
+        declaration.init?.type === 'CallExpression' && declaration.init.callee.name === 'run' &&
+        declaration.init.arguments[1]?.elements?.[0]?.value === 'packed-query-transports.mjs')) {
+      declarations.push(node);
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value !== null && typeof value === 'object') visit(value);
+    }
+  };
+  visit(syntax);
+  assert.equal(declarations.length, 2);
+  const invoke = Function('run', 'process', 'root', 'runtimeEnvironment', 'acceptanceTimeout', 'Date',
+    declarations.map(node => source.slice(node.start, node.end)).join('\n'));
+  for (const environment of [{}, {ACTQL_TEST_QUERY_TIMEOUT_MS: '1800000'}]) {
+    const selected = selectAcceptanceTimeout(environment);
+    const calls = [];
+    invoke((...args) => { calls.push(args); return ''; },
+      {execPath: process.execPath, argv: []}, 'owned-consumer', {original: 'unchanged'}, selected,
+      {now: () => 1000});
+    assert.equal(calls.length, 1);
+    const [command, args, root, passed, timeout] = calls[0];
+    assert.equal(command, process.execPath);
+    assert.deepEqual(args, ['packed-query-transports.mjs']);
+    assert.equal(root, 'owned-consumer');
+    assert.equal(passed.original, 'unchanged');
+    assert.equal(passed.ACTQL_TEST_QUERY_TIMEOUT_MS, String(selected));
+    assert.equal(passed.ACTQL_TEST_QUERY_DEADLINE, String(1000 + selected));
+    assert.equal(passed.ACTQL_TEST_QUERY_EXPECT_FULL_CORPUS, '1');
+    assert.equal(timeout, selected);
+    const owner = createTransportOwner({deadline: Date.now() + selected - 100, timeoutMs: selected,
+      forward() {}});
+    try { assert.equal(owner.report().timeoutMs, selected); }
+    finally { owner.close(); }
+  }
 });

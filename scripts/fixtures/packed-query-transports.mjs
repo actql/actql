@@ -4,13 +4,13 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFile, writeFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
-import {acceptanceTimeoutMs, createTransportOwner, requireCompleteInventory, transportModes}
+import {selectAcceptanceTimeout, createTransportOwner, requireCompleteInventory, transportModes}
   from './packed-query-transport-owner.mjs';
 import {decodeRetainedFixture, encodeRetainedFixture} from './retained-fixture-values.mjs';
 import {requireGraphArgumentCheckReport} from './graph-argument-check.mjs';
 
 const deadline = Number(process.env.ACTQL_TEST_QUERY_DEADLINE);
-const timeoutMs = Number(process.env.ACTQL_TEST_QUERY_TIMEOUT_MS ?? acceptanceTimeoutMs);
+const timeoutMs = selectAcceptanceTimeout(process.env);
 const owner = createTransportOwner({deadline, timeoutMs});
 const entry = fileURLToPath(new URL('./packed-query-worker.mjs', import.meta.url));
 let primary;

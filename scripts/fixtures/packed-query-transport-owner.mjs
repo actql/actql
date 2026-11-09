@@ -11,6 +11,14 @@ import {Worker, isMainThread, parentPort, workerData} from 'node:worker_threads'
 export const acceptanceTimeoutMs = 900_000;
 // A finite enclosing fixture envelope; product Run and cleanup budgets are separate.
 const maximumAcceptanceTimeoutMs = 1_800_000;
+// Select the enclosing fixture limit before any package or product work.
+export function selectAcceptanceTimeout(environment = process.env) {
+  const timeoutMs = Number(environment.ACTQL_TEST_QUERY_TIMEOUT_MS ?? acceptanceTimeoutMs);
+  assert.ok(Number.isSafeInteger(timeoutMs) && timeoutMs > 0 &&
+    timeoutMs <= maximumAcceptanceTimeoutMs);
+  return timeoutMs;
+}
+
 export const acceptanceOutputBytes = 8 * 1024 * 1024;
 export const transportModes = Object.freeze(['local', 'remote']);
 // Fixed production factory categories only; no thrown string or prefix can extend this set.

@@ -1358,3 +1358,16 @@ test('same-environment duplicate checks retain one explicit owner without weaken
   // admission is not justified merely because spec also checks the inventory.
   assert(jobs.preflight.steps.some(step => step.run === 'node --test scripts/pure-operation-inventory.test.mjs' && !step.if));
 });
+
+
+test('mandatory packed query CI selects its finite full-corpus envelope inside the job', () => {
+  const job = jobs['client-packed'];
+  assert.equal(job['timeout-minutes'], 60);
+  const step = job.steps.find(value => value.id === 'packed-query');
+  assert.ok(step);
+  assert.equal(step.env.ACTQL_TEST_QUERY_TIMEOUT_MS, '1800000');
+  assert.match(step.run, /node scripts\/test-packed-public-query\.mjs/u);
+  assert.doesNotMatch(step.run, /--[a-z-]+-only/u);
+  assert.ok(job['timeout-minutes'] * 60_000 > Number(step.env.ACTQL_TEST_QUERY_TIMEOUT_MS) + 120_000,
+    'the whole job retains time for installation, other selected checks and original Saved');
+});

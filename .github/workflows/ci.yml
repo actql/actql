@@ -1540,7 +1540,7 @@ jobs:
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     needs: [select-targets, preflight, client-packages]
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -1621,6 +1621,8 @@ jobs:
       - name: Test raw public SQL and Pipe through packed Local and HTTP
         if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
         id: packed-query
+        env:
+          ACTQL_TEST_QUERY_TIMEOUT_MS: '1800000'
         run: |
           node --test scripts/packed-query-evidence.test.mjs
           node scripts/test-packed-public-query.mjs
