@@ -614,7 +614,7 @@ test "metered primitive DISTINCT borrows input cells and preserves injected fall
 }
 
 ///|
-test "scalar grouped count selects its bounded provider without metering output or injected capacity" {
+test "scalar grouped count meters original output without replacing its bounded or injected capacity" {
   let (chain, _, _) = chain_lifetime_fixture(
     "[{\"from\":\"source\",\"group\":{\"by\":[\"id\"],\"aggregates\":{\"n\":{\"fn\":\"count\"}}}}]",
   )
@@ -651,10 +651,14 @@ test "scalar grouped count selects its bounded provider without metering output 
     (bounded.retained_bytes, bounded.execution_bytes),
   )
   assert_true(capacity.execution_bytes < generic.execution_bytes)
-  // GROUP keeps all persistent output prepaid, not the row commit-growth path.
-  assert_true(
-    local_module_metered_output_start_capacity(original, 0, sequence) is None,
-  )
+  // The same bounded COUNT now funds complete persistent rows before commit.
+  // Its full provider envelope above remains unchanged, while only default
+  // startup can defer this DATA to the original task's growth attachment.
+  let startup = local_module_metered_output_start_capacity(
+    original, 0, sequence,
+  ).unwrap()
+  assert_true(startup.retained_bytes < capacity.retained_bytes)
+  assert_true(startup.execution_bytes < capacity.execution_bytes)
   let starts = Ref(0)
   let replacement = managed_provider(_ => true, _ => Some(generic), (
     _,
@@ -726,10 +730,14 @@ test "direct field count preserves original provider selection and injected capa
     (bounded.retained_bytes, bounded.execution_bytes),
   )
   assert_true(capacity.execution_bytes < generic.execution_bytes)
-  // GROUP keeps all persistent output prepaid, not the row commit-growth path.
-  assert_true(
-    local_module_metered_output_start_capacity(original, 0, sequence) is None,
-  )
+  // The same bounded COUNT now funds complete persistent rows before commit.
+  // Its full provider envelope above remains unchanged, while only default
+  // startup can defer this DATA to the original task's growth attachment.
+  let startup = local_module_metered_output_start_capacity(
+    original, 0, sequence,
+  ).unwrap()
+  assert_true(startup.retained_bytes < capacity.retained_bytes)
+  assert_true(startup.execution_bytes < capacity.execution_bytes)
   let starts = Ref(0)
   let replacement = managed_provider(_ => true, _ => Some(generic), (
     _,

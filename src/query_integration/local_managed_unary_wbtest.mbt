@@ -979,13 +979,38 @@ fn assert_captured_keyed_count_chain_budget(
     @resources.settle_capacity(ledger, token) |> ignore
   })
   if expected == "workspace" || expected == "workspace_exact" {
-    // The independent peak below is fourteen cursor-root slots. Fund only
-    // the missing slots beyond this task's prepaid window on its SAME Ledger.
-    let required = @execution.execution_capacity_inventory_add(
+    // COUNT and Filter each retain two {id,n} rows; Select retains two {id}
+    // rows. Each row has one object and one scalar per column, plus the exact
+    // UTF-8 field names. All three buffers coexist on this SAME task; cleanup
+    // of a child does not refund its accepted persistent output.
+    let nodes = 2L * (1L + 2L + (1L + 2L) + (1L + 1L))
+    let text = 2L * (2L + 1L + (2L + 1L) + 2L)
+    let persistent = @execution.execution_capacity_inventory_add(
+        0L,
+        @execution.ValueNodeSlots,
+        nodes,
+        1,
+      )
+      .bind(bytes => {
+        @execution.execution_capacity_inventory_add(
+          bytes,
+          @execution.DecodedTextBytes,
+          text,
+          1,
+        )
+      })
+      .unwrap()
+    // The independent transient peak remains fourteen cursor-root slots.
+    // Keep the original exact/one-byte-short physical test, now for the
+    // combined cumulative DATA and missing workspace, not slots alone.
+    let workspace = @execution.execution_capacity_inventory_add(
       0L,
       @execution.CursorRootSlots,
       (14 - max_entries).to_int64(),
       1,
+    ).unwrap()
+    let required = @execution.checked_preparation_add_product(
+      persistent, workspace, 1L,
     ).unwrap()
     let headroom = required - (if expected == "workspace" { 1L } else { 0L })
     let available = @resources.ledger_limits(ledger).execution_bytes -

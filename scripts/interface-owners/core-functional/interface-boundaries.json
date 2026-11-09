@@ -52620,7 +52620,7 @@
               },
               {
                 "path": "src/connectors/local/metered_output_start_wbtest.mbt",
-                "anchor": "test \"scalar grouped count selects its bounded provider without metering output or injected capacity\""
+                "anchor": "test \"scalar grouped count meters original output without replacing its bounded or injected capacity\""
               },
               {
                 "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
