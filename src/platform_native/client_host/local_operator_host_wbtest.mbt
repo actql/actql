@@ -123,3 +123,54 @@ test "operator Host scoped entrance refuses a missing original Read before openi
   assert_eq(root.inspect_generation("host.json").unwrap(), None)
   root.close().unwrap()
 }
+
+///|
+test "operator Host joins the actual adoption capture without a private-file fallback" {
+  let path = product_test_parent("operator-host-adoption-join")
+  let crypto = epoch_test_crypto()
+  let source = @filesystem.open_private_root(path).unwrap()
+  local_adoption_write(source, "account.json", local_selected_account)
+  |> material_choice_ok("join account")
+  |> ignore
+  let operator = prepare_local_operator_host_capture(
+      path,
+      [".config", "actql"],
+      "host.json",
+      true,
+      LegacyPrivateRoots,
+    )
+    |> material_choice_ok("join operator capture")
+  let original = operator.open() |> material_choice_ok("join operator open")
+  assert_eq(source.inspect_generation("host.json").unwrap(), None)
+  let adoption = prepare_local_existing_adoption_capture(
+      {
+        parent_path: path,
+        state_name: "state",
+        source_path: path,
+        source_name: "account.json",
+        account_id: "operator",
+        configuration_files: ["host.json"],
+        managed_root_path: None,
+      },
+      crypto,
+      LegacyPrivateRoots,
+      existing_only=false,
+    )
+    |> material_choice_ok("join adoption capture")
+  assert_true(adoption.open(operator_host=Some(original)).issue() is None)
+  let session = adoption.original_session().unwrap()
+  assert_eq(session.settings.files[0].generation, original.generation)
+  assert_eq(
+    session.selected_configuration("host.json")
+    |> material_choice_ok("join selected Host"),
+    original.body,
+  )
+  session.stage_configuration() |> material_choice_ok("join staged account")
+  session.check_original() |> material_choice_ok("join current")
+  assert_true(adoption.close().issue() is None)
+  assert_true(adoption.descriptor_cleanup_acknowledged())
+  operator.close() |> material_choice_ok("join operator close")
+  assert_true(original.original_wire() is Err(Closed))
+  source.close().unwrap()
+  crypto.close_checked().unwrap()
+}
