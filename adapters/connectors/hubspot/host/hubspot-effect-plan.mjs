@@ -43,6 +43,7 @@ export function captureHubSpotEffectPlanRecipeBuilder({moon}) {
   const stage = method(moon, 'clientProgramInstalledEffectOperationStagedExtentPrepare');
   const extent = method(moon, 'clientProgramInstalledEffectOperationExtentFromCapacityPrepare');
   const capture = method(moon, 'clientProgramInstalledEffectHostInputCaptureRecipeExtentPrepare');
+  const discardProjection = method(moon, 'clientProgramInstalledEffectOperationDiscardedProjectionExtentPrepare');
   return function prepareHubSpotEffectPlanRecipe({mappings, origin, portalId, objectTypeUnits,
     metadataResources, credentialSite, limits, inputLimits, maxRecoveryBytes}) {
     if (!Array.isArray(mappings) || nodeTypes.isProxy(mappings) || !Object.isFrozen(mappings) ||
@@ -106,7 +107,7 @@ export function captureHubSpotEffectPlanRecipeBuilder({moon}) {
       const bytes = Math.max(1, targetBytes);
       const target = quote(1, [bytes, Math.min(read.maxNodes, bytes), Math.min(read.maxDepth, bytes), 1,
         read.maxColumns, read.maxCursorUnits, read.maxValueNodes, read.maxValueTextBytes], targetOutput, counts);
-      const metadata = quote(metadataKind, metadataKind === 3
+      const metadata = quote(metadataKind, metadataKind === 9 ? [] : metadataKind === 3
         ? [metadataBytes, portalId.length, read.maxResponseBytes, read.maxNodes, read.maxDepth]
         : metadataKind === 4
         ? [metadataBytes, objectTypeUnits, read.maxResponseBytes, read.maxNodes, read.maxDepth, read.maxProperties, read.maxNameUnits]
@@ -168,7 +169,13 @@ export function captureHubSpotEffectPlanRecipeBuilder({moon}) {
     const physical = (phase, slot, resource, perRow, operation, position, requestBytes, responseBytes, kind) => {
       const selected = perRow ? rowOperations : memberOperations, operationIndex = selected.length;
       const transfer = BigInt(requestBytes) + httpsCredentialResponseWindowBytes(responseBytes);
-      const extentOf = values => operationExtent(operation, values[position], transfer, true);
+      const discardedProjection = slot === 'schema-after'
+        ? quantities(profile(0, 0, 9))[position] : undefined;
+      const extentOf = values => {
+        const original = operationExtent(operation, values[position], transfer, true);
+        return discardedProjection === undefined ? original : checked(
+          discardProjection(original, discardedProjection));
+      };
       // The original physical backing and its received-input growth must use
       // the SAME constructor. A generic Account/schema maximum is appropriate
       // for the shared capture, but its retained schema output cannot become
@@ -182,7 +189,8 @@ export function captureHubSpotEffectPlanRecipeBuilder({moon}) {
       selected.push({operation, extent: checked(stage(extentOf(quantities(physicalProfile(0))),
         extentOf(quantities(physicalProfile(responseBytes)))))});
       credentialOperations.push(Object.freeze({phase, slot, ...(resource === undefined ? {} : {resource}), perRow,
-        operationIndex, maxRequestBytes: requestBytes, maxResponseBytes: responseBytes, responseExtent}));
+        operationIndex, maxRequestBytes: requestBytes, maxResponseBytes: responseBytes, responseExtent,
+        ...(discardedProjection === undefined ? {} : {discardResponseProjection: true})}));
     };
     for (const phase of ['capture', 'apply', 'resume']) {
       physical(phase + '-describe', 'account', resources.account, false, HUBSPOT_ACCOUNT_DETAILS_OPERATION,

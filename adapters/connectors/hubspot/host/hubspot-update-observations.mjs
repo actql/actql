@@ -122,7 +122,9 @@ export function createHubSpotUpdateObservationAdapter({moon, portalId, installed
           policy.maxResponseBytes,policy.maxNodes,policy.maxDepth,policy.maxProperties,policy.maxNameUnits)
         : native.hubspotConsumePropertyResponseSource(prepared,path,body));
       checked(native.hubspotRecheckPropertyCatalog(original.catalog,current,policy.maxProperties));
-      return current;
+      // This exact caller uses schema-after only for its full fresh check.
+      // Return Unit so neither the Reader nor physical child retains Catalog.
+      return slot === 'schema-after' ? undefined : current;
     };
     const responsePreparation=Object.freeze({
       prepare(body){

@@ -84,9 +84,18 @@ pub fn effect_installation_construction_capacity(
   guard @shape.collection_construction_extent({
       // One extra same-Common recheck quote has two scalar fields; the
       // existing driver closure retains its reference, not another Catalog.
-      records: 2L * (96L + 96L + 16L) + 72L + 5L * m + 1L,
-      record_references: 14L * (96L + 96L + 16L) + 536L + 24L * m + 2L * f + 1L,
-      record_words: 138L + 12L * m + 2L,
+      // Three schema-after slots retain a fixed capacity carrier, initial/max
+      // Some wrappers and borrowed extent/closure references for the original
+      // Unit-projection remainder. Include their full logical representation
+      // even on a backend that unboxes reference Options; no body copy.
+      records: 2L * (96L + 96L + 16L) + 72L + 5L * m + 1L + 9L,
+      record_references: 14L * (96L + 96L + 16L) +
+      536L +
+      24L * m +
+      2L * f +
+      1L +
+      9L,
+      record_words: 138L + 12L * m + 2L + 12L,
       reference_arrays: 48L + 2L * m,
       reference_items: 512L + 9L + 15L + 19L + 2L * f,
       scalar_arrays: 12L,
@@ -572,19 +581,7 @@ fn effect_metadata_capacity_with_geometry(
     property_response_staging_capacity() is Some(staging) &&
     @execution.json_source_preflight_capacity(limits.max_bytes)
     is Some(preflight) &&
-    hubspot_effect_capacity(
-      {
-        // Per-read project/prepare/retire closures and their captured Source
-        // Result, native methods and retired flag on the existing physical child.
-        record_headers: 8L,
-        reference_slots: 32L,
-        scalar_words: 4L,
-        owned_utf16_units: 0L,
-        owned_wire_bytes: 0L,
-      },
-      [],
-    )
-    is Some(host) &&
+    effect_metadata_disposed_construction_capacity() is Some(host) &&
     @execution.add_execution_capacity(staging, host) is Some(staging) else {
     return None
   }
@@ -622,4 +619,21 @@ fn effect_metadata_capacity_with_geometry(
     return None
   }
   @execution.add_execution_capacity(complete, staging)
+}
+
+///|
+/// After the Unit check and cursor retirement, outer async Reader frames can
+/// still borrow the small project/prepare/retire closures until they return.
+/// Preserve those carriers; only Catalog/parser/staging material is disposed.
+pub fn effect_metadata_disposed_construction_capacity() -> @execution.ExecutionCapacity? {
+  hubspot_effect_capacity(
+    {
+      record_headers: 8L,
+      reference_slots: 32L,
+      scalar_words: 4L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    },
+    [],
+  )
 }

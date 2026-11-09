@@ -101,6 +101,7 @@ options(
     "installed_effect_staged_input_js_wbtest.mbt": [ "js" ],
     "installed_effect_header_lifetime_js_wbtest.mbt": [ "js" ],
     "installed_effect_native_control_js_wbtest.mbt": [ "js" ],
+    "installed_effect_discarded_projection_js_wbtest.mbt": [ "js" ],
     "installed_effect_operation_index_js_wbtest.mbt": [ "js" ],
     "preparation_parameter_source_current_wbtest.mbt": [ "js" ],
     "preparation_program_check_context_input_js_wbtest.mbt": [ "js" ],

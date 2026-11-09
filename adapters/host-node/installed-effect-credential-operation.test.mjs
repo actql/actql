@@ -496,3 +496,53 @@ test('response Source hooks require the original extent and synchronous own meth
   ])assert.throws(()=>f.create(undefined,overrides));
   assert.equal(f.controls.borrows,0);assert.equal(f.controls.bindings,0);assert.equal(f.server.seen().length,0);
 });
+
+// Same real TLS/Credential/child, explicit Core ports. Core reservation behavior
+// is separately checked against the real Ledger; these assert disposal order.
+test('Unit schema projection retires its Reader before the same admitted remainder while raw cleanup stays pending', async t => {
+  const f=await operationFixture(t), events=[];
+  f.runtime.clientProgramInstalledEffectOperationInputBegin=()=>({$tag:1});
+  f.runtime.clientProgramInstalledEffectOperationResponseProjectionComplete=()=>assert.fail('Not the full-output completion');
+  f.runtime.clientProgramInstalledEffectOperationDiscardedResponseProjectionComplete=original=>{
+    assert.equal(original,f.token);assert.deepEqual(events,['prepare','project','retire']);
+    assert.equal(f.controls.settles,0);events.push('reduce');return {$tag:1};
+  };
+  const child=f.create(async context=>{await f.send(context);events.push('project');return undefined;},{
+    discardResponseProjection:true,responseExtent:()=>({}),
+    responsePreparation:{prepare(){events.push('prepare');return [];},retire(){events.push('retire');}},
+  });
+  assert.equal(await child.prepare(),undefined);
+  assert.deepEqual(events,['prepare','project','retire','reduce']);
+  assert.equal(child.status().pending,true);assert.equal(await child.release(),false);
+  f.controls.retiredAliases=true;assert.equal(await child.retry(),true);
+  assert.deepEqual(events,['prepare','project','retire','reduce']);
+  assert.equal(f.controls.settles,1);assert.deepEqual(f.controls.charges,[2n,2n]);
+});
+test('failed non-Unit or unretired Reader projection cannot return its retained backing', async t => {
+  for(const mode of ['result','project','retire']){
+    const f=await operationFixture(t), cause=new Error('original failure');let retired=0,reduced=0;
+    f.runtime.clientProgramInstalledEffectOperationInputBegin=()=>({$tag:1});
+    f.runtime.clientProgramInstalledEffectOperationResponseProjectionComplete=()=>assert.fail();
+    f.runtime.clientProgramInstalledEffectOperationDiscardedResponseProjectionComplete=()=>{reduced++;return {$tag:1};};
+    const child=f.create(async context=>{await f.send(context);if(mode==='project')throw cause;return mode==='result'?{}:undefined;},{
+      discardResponseProjection:true,responseExtent:()=>({}),responsePreparation:{prepare:()=>[],retire(){retired++;if(mode==='retire')throw cause;}},
+    });
+    await assert.rejects(child.prepare(),mode==='result'?{code:'InvalidInstalledEffectDiscardedProjection'}:error=>error===cause);
+    assert.equal(reduced,0);assert.equal(retired,mode==='retire'?1:0);
+    assert.equal(child.status().pending,true);assert.equal(f.controls.settles,0);
+    f.controls.retiredAliases=true;
+    if(mode==='retire')assert.throws(()=>child.release(),error=>error===cause);
+    else assert.equal(await child.release(),true);
+  }
+});
+test('Unit projector disposal followed by changed current keeps the original full reservation and physical child', async t => {
+  const f=await operationFixture(t),cause=new Error('current changed');let disposed=false,reduced=0;
+  f.runtime.clientProgramInstalledEffectOperationInputBegin=()=>({$tag:1});
+  f.runtime.clientProgramInstalledEffectOperationResponseProjectionComplete=()=>assert.fail();
+  f.runtime.clientProgramInstalledEffectOperationDiscardedResponseProjectionComplete=()=>{reduced++;return {$tag:1};};
+  const child=f.create(async context=>{await f.send(context);},{discardResponseProjection:true,responseExtent:()=>({}),
+    assertCurrent(){if(disposed)throw cause;},responsePreparation:{prepare:()=>[],retire(){disposed=true;}}});
+  await assert.rejects(child.prepare(),error=>error===cause);
+  assert.equal(reduced,0);assert.equal(f.controls.settles,0);assert.equal(child.status().pending,true);
+  disposed=false;f.controls.retiredAliases=true;assert.equal(await child.release(),true);
+});

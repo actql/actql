@@ -1744,6 +1744,10 @@ pub fn client_program_installed_effect_operation_demand_prepare(@run_publication
 
 pub fn client_program_installed_effect_operation_demand_with_controls_prepare(@run_publication_host.PreparedClientEffectComputation, Int, String, Array[@client_local_host.ClientInstalledEffectOperationExtent], Array[@client_local_host.ClientInstalledEffectOperationExtent], @execution_relation.ExecutionCapacity) -> Result[@client_local_host.ClientInstalledEffectOperationDemand, @client_local_host.ClientInstalledManagedRunIssue]
 
+pub fn client_program_installed_effect_operation_discarded_projection_extent_prepare(@client_local_host.ClientInstalledEffectOperationExtent, @execution_relation.ExecutionCapacity) -> Result[@client_local_host.ClientInstalledEffectOperationExtent, @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_installed_effect_operation_discarded_response_projection_complete(@client_local_host.ClientInstalledEffectOperationBorrow) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_installed_effect_operation_extent_from_capacity(String, @execution_relation.ExecutionCapacity, Int64, Bool) -> Result[@client_local_host.ClientInstalledEffectOperationExtent, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_effect_operation_extent_from_capacity_prepare(String, @execution_relation.ExecutionCapacity, Int64, Bool) -> Result[@client_local_host.ClientInstalledEffectOperationExtent, @client_local_host.ClientInstalledManagedRunIssue]

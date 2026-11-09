@@ -882,6 +882,10 @@ fn resize_installed_effect_operation_input(
   if input.operation != extent.operation ||
     input.physical_attempt != extent.physical_attempt ||
     input.transfer_bytes != extent.transfer_bytes ||
+    !same_effect_projection_remainder(
+      input.response_projection_retained,
+      extent.response_projection_retained,
+    ) ||
     (extent.physical_attempt && !value.started) ||
     (!extent.physical_attempt && value.started && !growing) {
     return Err(ForeignOriginal)
@@ -1006,6 +1010,23 @@ pub fn begin_installed_effect_operation_construction(
 pub fn complete_installed_effect_operation_response_projection(
   value : ClientInstalledEffectOperationBorrow,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  complete_installed_effect_response_projection(value, false)
+}
+
+///|
+/// Same child only after its installed Unit projector has severed all output
+/// and cursor callbacks. The remainder comes from the admitted Plan, not JS.
+pub fn complete_installed_effect_discarded_response_projection(
+  value : ClientInstalledEffectOperationBorrow,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  complete_installed_effect_response_projection(value, true)
+}
+
+///|
+fn complete_installed_effect_response_projection(
+  value : ClientInstalledEffectOperationBorrow,
+  discarded : Bool,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
   guard value.original is Some(original) && physical_equal(original, value) else {
     return Err(ForeignOriginal)
   }
@@ -1031,6 +1052,15 @@ pub fn complete_installed_effect_operation_response_projection(
   defer {
     owner.effect_operation_opening = false
   }
+  let remaining = if discarded {
+    guard value.extent is Some(extent) &&
+      extent.response_projection_retained is Some(capacity) else {
+      return Err(Unsupported)
+    }
+    Some(@execution.execution_capacity_retained_bytes(capacity))
+  } else {
+    None
+  }
   @resources.complete_prepared_run_operation_response_projection(
     admission,
     plan,
@@ -1041,6 +1071,7 @@ pub fn complete_installed_effect_operation_response_projection(
       )
     },
     backing,
+    remaining_retention=remaining,
   ).map_err(installed_effect_operation_reservation_issue)
 }
 

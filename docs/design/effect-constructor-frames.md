@@ -158,3 +158,31 @@ current memo, another Ledger, row-coordinate inference or physical ACK.
 The original four-argument Node export stays unchanged. Because exported
 MoonBit functions cannot have optional arguments, one typed native-quote
 variant delegates to that same Core entrance; it creates no new reservation.
+
+### Completed check-only metadata projections
+
+A HubSpot target's `schema-after` read performs the complete fresh Catalog
+parse and equality check, then returns Unit. Describe still returns its Catalog;
+`schema-before` still supplies the Catalog to the target request checks. The
+check-only output is not a currentness, permission or cached-check substitute.
+
+The installing MoonBit recipe composes the HTTP/secret remainder without native
+Catalog/parser/staging material. It keeps the small Reader callback carriers
+that outer asynchronous frames may still borrow until they return. This remainder
+is bound to the original physical extent before Plan admission. Initial, maximum and received-input extents must carry that identical
+remainder. Neither the completion call nor JavaScript selects a new amount.
+The full original response constructor peak is admitted before taking the
+provider's same staged parser and remains on all failed or pending prefixes.
+
+Only after that actual Unit callback and its original request flight return does
+the physical child invoke the Reader's existing logical retirement, which
+cancels its preflight and clears its prepared Result. It then severs the invoke,
+projector and response-sizing references before invoking the typed discarded-
+projection completion. The same original/current fences precede Resource's
+existing capacity reduction. A retirement or current failure leaves the prior
+reservation unchanged even if some references were already disposed.
+
+The original token stays open, with its raw HTTP response, secret/credential and
+physical cleanup responsibility. Consumed attempts, transfer, uncertainty,
+historical peaks and pending cleanup are not refunded. Default full-output
+projection completion and existing exported call signatures remain unchanged.

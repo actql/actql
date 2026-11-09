@@ -393,7 +393,8 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
         ...(Object.hasOwn(original, 'perRow') ? ['perRow'] : []),
         ...(Object.hasOwn(original, 'slot') ? ['slot'] : []),
         ...(Object.hasOwn(original, 'resource') ? ['resource'] : []),
-        ...(Object.hasOwn(original, 'responseExtent') ? ['responseExtent'] : [])]);
+        ...(Object.hasOwn(original, 'responseExtent') ? ['responseExtent'] : []),
+        ...(Object.hasOwn(original, 'discardResponseProjection') ? ['discardResponseProjection'] : [])]);
       const phase = entry.phase.value, operationIndex = entry.operationIndex.value,
         perRow = entry.perRow === undefined ? true : entry.perRow.value,
         maxRequestBytes = entry.maxRequestBytes.value, maxResponseBytes = entry.maxResponseBytes.value;
@@ -421,12 +422,16 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
       const responseExtent = entry.responseExtent?.value;
       if (responseExtent !== undefined && (typeof responseExtent !== 'function' || nodeTypes.isProxy(responseExtent) ||
           nodeTypes.isAsyncFunction(responseExtent))) fail('InvalidInstalledEffectPlanRecipe');
+      const discardResponseProjection = entry.discardResponseProjection?.value;
+      if (discardResponseProjection !== undefined &&
+          (discardResponseProjection !== true || responseExtent === undefined)) fail('InvalidInstalledEffectPlanRecipe');
       phases.set(phase, named ? 'named' : 'single'); slots.add(phaseSlot); indexes.add(key);
       return Object.freeze({phase, operationIndex, maxRequestBytes, maxResponseBytes,
         ...(entry.perRow === undefined ? {} : {perRow}),
         ...(slot === undefined ? {} : {slot}),
         ...(resource === undefined ? {} : {resource}),
-        ...(responseExtent === undefined ? {} : {responseExtent})});
+        ...(responseExtent === undefined ? {} : {responseExtent}),
+        ...(discardResponseProjection === undefined ? {} : {discardResponseProjection})});
     }));
     if (!phases.has('write')) fail('InvalidInstalledEffectPlanRecipe');
   }
@@ -827,7 +832,8 @@ function prepareInstalledEffectConstructorChild({run, memberIndex, rowIndex,
 export function prepareInstalledEffectCredentialChild({run, memberIndex, rowIndex,
   operationIndex, operation, perRow = true, originalSite, originalAuthorization, useId, resource,
   purpose, runInvocationCid, dispatchRequestCid, maxRequestBytes, maxResponseBytes,
-  assertCurrent, observeCurrent, requestsRetired, invoke: originalInvoke, responseExtent: originalResponseExtent, responsePreparation: originalResponsePreparation}) {
+  assertCurrent, observeCurrent, requestsRetired, invoke: originalInvoke, responseExtent: originalResponseExtent, responsePreparation: originalResponsePreparation,
+  discardResponseProjection = false}) {
   if (run === undefined || typeof perRow !== 'boolean' || ![originalInvoke, assertCurrent, observeCurrent, requestsRetired]
       .every(value => typeof value === 'function') || !text(useId) || !text(resource) ||
       !['read', 'target-read', 'effect'].includes(purpose) || !text(runInvocationCid) || !text(dispatchRequestCid) ||
@@ -861,12 +867,16 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
     start=runtime?.clientProgramInstalledEffectOperationStart,
     beginInput=runtime?.clientProgramInstalledEffectOperationInputBegin,
     responseComplete=runtime?.clientProgramInstalledEffectOperationResponseProjectionComplete,
+    discardedResponseComplete=runtime?.clientProgramInstalledEffectOperationDiscardedResponseProjectionComplete,
     charge=runtime?.clientProgramInstalledEffectOperationCharge,
     retire=runtime?.clientProgramInstalledEffectOperationRetire;
   if (![readPlan,select,isPhysical,transfer,responseBackingFits,borrow,start,charge,retire].every(value=>typeof value==='function')) {
     fail('InstalledEffectOperationRuntimeUnavailable');
   }
   if(responseExtent!==undefined&&(typeof responseExtent!=='function'||typeof beginInput!=='function'||typeof responseComplete!=='function')){
+    fail('InstalledEffectOperationRuntimeUnavailable');
+  }
+  if (discardResponseProjection && (typeof discardedResponseComplete !== 'function' || responsePreparation === undefined)) {
     fail('InstalledEffectOperationRuntimeUnavailable');
   }
   const originalRecord=()=>{
@@ -1038,6 +1048,7 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
         checked(Reflect.apply(start,runtime,[token]));
         const result=await invoke({authorization:Object.freeze({...authorization,useId}),credential:boundCredential,callResource});
         if(!callStarted)fail('InstalledEffectPhysicalOperationUnavailable');
+        if(discardResponseProjection && result!==undefined)fail('InvalidInstalledEffectDiscardedProjection');
         check();state='prepared';return result;
       }catch(error){primaryFailed=true;state='failed';throw error;}
       finally{
@@ -1050,7 +1061,17 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
               // The SAME request flight and provider projection both settled.
               // Keep all body/output retention and physical cleanup pending;
               // this typed original cut returns only private parser workspace.
-              check();checked(Reflect.apply(responseComplete,runtime,[token]));check();
+              check();
+              if(discardResponseProjection){
+                // The actual Unit projector and request flight returned. Retire
+                // its SAME staged Reader then sever every projection callback
+                // before Core releases only the original Plan-bound material.
+                const returned=Reflect.apply(retireResponse,responsePreparation,[]);
+                if(returned!==undefined){retainFence(returned);fail('InvalidInstalledEffectResponsePreparation');}
+                responsePreparation=prepareResponse=retireResponse=undefined;
+                invoke=responseExtent=undefined;
+                check();checked(Reflect.apply(discardedResponseComplete,runtime,[token]));check();
+              }else {checked(Reflect.apply(responseComplete,runtime,[token]));check();}
             }catch(error){state='failed';throw error;}
           }
         }finally{preparing=false;}

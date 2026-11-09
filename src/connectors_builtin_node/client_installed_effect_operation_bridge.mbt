@@ -438,6 +438,30 @@ pub fn client_program_installed_effect_operation_response_projection_complete(
 }
 
 ///|
+#export_name("clientProgramInstalledEffectOperationDiscardedProjectionExtentPrepare")
+pub fn client_program_installed_effect_operation_discarded_projection_extent_prepare(
+  original : @client_local_host.ClientInstalledEffectOperationExtent,
+  remaining : @execution.ExecutionCapacity,
+) -> Result[
+  @client_local_host.ClientInstalledEffectOperationExtent,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_installed_effect_discarded_projection_extent(
+    original, remaining,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectOperationDiscardedResponseProjectionComplete")
+pub fn client_program_installed_effect_operation_discarded_response_projection_complete(
+  original : @client_local_host.ClientInstalledEffectOperationBorrow,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.complete_installed_effect_discarded_response_projection(
+    original,
+  )
+}
+
+///|
 #export_name("clientProgramInstalledOpaqueBoundaryFootprintCapacity")
 pub fn client_program_installed_opaque_boundary_footprint_capacity(
   origin : String,

@@ -6,6 +6,9 @@
 struct ClientInstalledEffectOperationExtent {
   operation : String
   capacity : @execution.ExecutionCapacity
+  // Original installation-bound remainder after its Unit projector disposes
+  // all native output/cursor callbacks. Never selected at completion time.
+  response_projection_retained : @execution.ExecutionCapacity?
   transfer_bytes : Int64
   physical_attempt : Bool
   // Pure capture templates are resolved once from the SAME completed Plan.
@@ -40,6 +43,7 @@ pub fn prepare_installed_effect_operation_extent(
   Ok({
     operation,
     capacity,
+    response_projection_retained: None,
     transfer_bytes,
     physical_attempt,
     checked_row_capacity: None,
@@ -47,6 +51,41 @@ pub fn prepare_installed_effect_operation_extent(
     maximum: None,
     host_input_limits: None,
   })
+}
+
+///|
+/// Bind the installing owner's completed Unit-projection remainder BEFORE the
+/// Plan admits this same physical occurrence. Full input/peak remains intact.
+pub fn prepare_installed_effect_discarded_projection_extent(
+  original : ClientInstalledEffectOperationExtent,
+  remaining : @execution.ExecutionCapacity,
+) -> Result[
+  ClientInstalledEffectOperationExtent,
+  ClientInstalledManagedRunIssue,
+] {
+  guard original.physical_attempt &&
+    original.maximum is None &&
+    original.response_projection_retained is None &&
+    installed_effect_capacity_within(remaining, original.capacity) else {
+    return Err(Unsupported)
+  }
+  Ok({ ..original, response_projection_retained: Some(remaining), })
+}
+
+///|
+fn same_effect_projection_remainder(
+  a : @execution.ExecutionCapacity?,
+  b : @execution.ExecutionCapacity?,
+) -> Bool {
+  match (a, b) {
+    (None, None) => true
+    (Some(a), Some(b)) =>
+      @execution.execution_capacity_retained_bytes(a) ==
+      @execution.execution_capacity_retained_bytes(b) &&
+      @execution.execution_capacity_execution_bytes(a) ==
+      @execution.execution_capacity_execution_bytes(b)
+    _ => false
+  }
 }
 
 ///|
@@ -79,6 +118,10 @@ pub fn prepare_installed_effect_staged_extent(
     (initial.checked_effect_id_capacity is Some(_)) !=
     (maximum.checked_effect_id_capacity is Some(_)) ||
     host_input_changed ||
+    !same_effect_projection_remainder(
+      initial.response_projection_retained,
+      maximum.response_projection_retained,
+    ) ||
     !installed_effect_capacity_within(initial.capacity, maximum.capacity) {
     return Err(Unsupported)
   }
@@ -115,6 +158,7 @@ pub fn prepare_installed_effect_capture_extent(
   Ok({
     operation,
     capacity: fixed_capacity,
+    response_projection_retained: None,
     transfer_bytes: 0L,
     physical_attempt: false,
     checked_row_capacity: Some(capacity_per_checked_row),
@@ -1107,7 +1151,8 @@ fn prepare_installed_effect_managed_plan_owned(
   // Existing generated sequences and acquisition bodies remain charged by
   // their original Compute/capture components, not decoded/copied here.
   // Each staged maximum retains its resolved extent/capacity and Some pair
-  // beside the initial extent (4H8R8W). Immutable installation inputs are borrowed.
+  // beside the initial extent (4H10R8W), including their two borrowed
+  // projection-remainder references. Immutable installation inputs are borrowed.
   let composed_roots = []
   if model is Some(selected) {
     let model_owner = @execution.generated_sequence_owner(
@@ -1157,7 +1202,7 @@ fn prepare_installed_effect_managed_plan_owned(
     time_holder +
     9L * model_holder +
     7L * provider_sources.to_int64() +
-    8L * staged_extents,
+    10L * staged_extents,
     scalar_words: 27L +
     (if closed_rows is Some(_) { 1L } else { 0L }) -
     model_holder +

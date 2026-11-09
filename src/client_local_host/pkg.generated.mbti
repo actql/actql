@@ -373,6 +373,8 @@ pub fn complete_client_original_composed_keyed_prefix(ClientOriginalComposedKeye
 
 pub fn complete_installed_effect_capture_recovery(ClientInstalledEffectCaptureRecovery) -> Result[Unit, ClientInstalledManagedRunIssue]
 
+pub fn complete_installed_effect_discarded_response_projection(ClientInstalledEffectOperationBorrow) -> Result[Unit, ClientInstalledManagedRunIssue]
+
 pub fn complete_installed_effect_operation_construction(ClientInstalledEffectOperationBorrow) -> Result[Unit, ClientInstalledManagedRunIssue]
 
 pub fn complete_installed_effect_operation_construction_output(ClientInstalledEffectOperationBorrow, String) -> Result[Unit, ClientInstalledManagedRunIssue]
@@ -738,6 +740,8 @@ pub fn prepare_installed_effect_capture_recipe_extent(String, Array[@execution_r
 pub fn prepare_installed_effect_capture_recovery(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, Int, Int, Int) -> Result[ClientInstalledEffectCaptureRecovery, ClientInstalledManagedRunIssue]
 
 pub fn prepare_installed_effect_content(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientCompiledRun, @run_publication_host.ClientEffectCompilation, @run_publication.PublicationContract, @run_publication_host.ClientSerializationPlanGraph, ClientInstalledSequenceContracts, String, String?, String?, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, ClientSerializationWorkspaceLimits, ClientLocalContentPhysicalPort, (ClientLocalContentStep) -> Bool) -> Result[ClientInstalledEffectContentPreparation, ClientInstalledManagedRunIssue]
+
+pub fn prepare_installed_effect_discarded_projection_extent(ClientInstalledEffectOperationExtent, @execution_relation.ExecutionCapacity) -> Result[ClientInstalledEffectOperationExtent, ClientInstalledManagedRunIssue]
 
 pub fn prepare_installed_effect_duckdb_source_input(String, String, String, String, String, String) -> Result[ClientInstalledEffectSourceInput, ClientInstalledManagedRunIssue]
 

@@ -5,6 +5,7 @@ fn staged_effect_input_fixture(
   current? : () -> Unit = () => (),
   physical_initial? : @execution.ExecutionCapacity? = None,
   parent_limit? : Int64? = None,
+  projection_retained? : @execution.ExecutionCapacity? = None,
 ) -> (
   @publication_host.PreparedClientEffectComputation,
   @publication_host.ClientRequestIdentity,
@@ -27,19 +28,32 @@ fn staged_effect_input_fixture(
       @execution.execution_capacity(1000000L, 2000000L).unwrap(),
     ).unwrap(),
   ).unwrap()
+  let bind_projection = (extent : ClientInstalledEffectOperationExtent) => {
+    match projection_retained {
+      None => extent
+      Some(remaining) =>
+        prepare_installed_effect_discarded_projection_extent(extent, remaining).unwrap()
+    }
+  }
   let send = prepare_installed_effect_staged_extent(
-    prepare_installed_effect_operation_extent(
-      "send",
-      physical_initial.unwrap_or(@execution.execution_capacity(5L, 8L).unwrap()),
-      7L,
-      true,
-    ).unwrap(),
-    prepare_installed_effect_operation_extent(
-      "send",
-      @execution.execution_capacity(1000000000L, 2000000000L).unwrap(),
-      7L,
-      true,
-    ).unwrap(),
+    bind_projection(
+      prepare_installed_effect_operation_extent(
+        "send",
+        physical_initial.unwrap_or(
+          @execution.execution_capacity(5L, 8L).unwrap(),
+        ),
+        7L,
+        true,
+      ).unwrap(),
+    ),
+    bind_projection(
+      prepare_installed_effect_operation_extent(
+        "send",
+        @execution.execution_capacity(1000000000L, 2000000000L).unwrap(),
+        7L,
+        true,
+      ).unwrap(),
+    ),
   ).unwrap()
   let demand = prepare_installed_effect_operation_demand(
     prepared,

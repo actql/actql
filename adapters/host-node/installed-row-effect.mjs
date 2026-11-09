@@ -1695,6 +1695,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         originalAuthorization, useId, resource, purpose, runInvocationCid, dispatchRequestCid,
         maxRequestBytes: selected.maxRequestBytes, maxResponseBytes: responseBytes,
         responseExtent: selected.responseExtent, responsePreparation,
+        discardResponseProjection: selected.discardResponseProjection === true,
         assertCurrent, observeCurrent: async () => {assertCurrent();},
         requestsRetired: retireRequestAliases, invoke}), assertCurrent, signal});
   };
