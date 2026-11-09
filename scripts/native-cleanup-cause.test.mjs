@@ -104,6 +104,116 @@ test('cleanup category never serializes payloads and keeps public error code', {
   const effectProposals = functionSource.slice(proposalStart, proposalEnd);
   assert.equal(effectProposals, `    CommandBusinessEffectProposals(cause) =>
       match cause {
+        PublicExport(original) =>
+          match original {
+            InvalidState => "EffectPublicExportState"
+            _ => "EffectPublicExport"
+          }
+        PublicManifest(original) =>
+          match original {
+            ManifestIssuanceEncoding => "EffectPublicManifestEncoding"
+            _ => "EffectPublicManifest"
+          }
+        PublicReceipt(original) =>
+          match original {
+            ReceiptIssuanceEncoding => "EffectPublicReceiptEncoding"
+            _ => "EffectPublicReceipt"
+          }
+        PublicBindings(original) =>
+          match original {
+            ForeignMaterials => "EffectPublicBindingsOwner"
+            _ => "EffectPublicBindings"
+          }
+        PublicNormalization(original) =>
+          match original {
+            MissingOriginalJournal => "EffectPublicNormalizationOriginal"
+            _ => "EffectPublicNormalization"
+          }
+        PublicCapture(original) =>
+          match original {
+            ForeignInput => "EffectPublicCaptureInput"
+            _ => "EffectPublicCapture"
+          }
+        CapturedSource(original) =>
+          match original {
+            CaptureIssuanceReferenceMismatch(_) =>
+              "EffectCapturedSourceReference"
+            _ => "EffectCapturedSource"
+          }
+        LocalSource(original) =>
+          match original {
+            InvalidLocalReference(_) => "EffectLocalSourceReference"
+            _ => "EffectLocalSource"
+          }
+        Inventory(original) =>
+          match original {
+            MissingDependency => "EffectInventoryMissingDependency"
+            _ => "EffectInventory"
+          }
+        PreviewSource(original) =>
+          match original {
+            ForeignRun => "EffectPreviewSourceRun"
+            _ => "EffectPreviewSource"
+          }
+        PreviewIdentity(original) =>
+          match original {
+            ForeignInput => "EffectPreviewIdentityInput"
+            _ => "EffectPreviewIdentity"
+          }
+        PreviewBody(original) =>
+          match original {
+            PreviewShape(_) => "EffectPreviewBodyShape"
+            _ => "EffectPreviewBody"
+          }
+        PreviewBinding(original) =>
+          match original {
+            ForeignInput => "EffectPreviewBindingInput"
+            _ => "EffectPreviewBinding"
+          }
+        PreviewDispatch(original) =>
+          match original {
+            InvalidLimits => "EffectPreviewDispatchLimits"
+            _ => "EffectPreviewDispatch"
+          }
+        PreviewKeys(original) =>
+          match original {
+            KeyInventoryMismatch => "EffectPreviewKeyInventory"
+            _ => "EffectPreviewKeys"
+          }
+        PreviewPlan(original) =>
+          match original {
+            InvalidMember => "EffectPreviewPlanMember"
+            _ => "EffectPreviewPlan"
+          }
+        Manifest(original) =>
+          match original {
+            IncompleteResults => "EffectProposalsIncompleteResults"
+            IncompleteTableInputs => "EffectProposalsIncompleteTableInputs"
+            _ => "EffectProposalsManifest"
+          }
+        Dependency(original) =>
+          match original {
+            ForeignInput => "EffectProposalsDependencyForeignInput"
+            Dependency(_) => "EffectProposalsDependencyClosure"
+            _ => "EffectProposalsDependency"
+          }
+        Materials(original) =>
+          match original {
+            RunMismatch => "EffectProposalsMaterialsRunMismatch"
+            _ => "EffectProposalsMaterials"
+          }
+        Definition(original) =>
+          match original {
+            MissingResult => "EffectProposalsDefinitionMissingResult"
+            _ => "EffectProposalsDefinition"
+          }
+        Artifact(original) =>
+          match original {
+            ForeignOwner => "EffectProposalsArtifactForeignOwner"
+            ForeignExport => "EffectProposalsArtifactForeignExport"
+            ForeignRun => "EffectProposalsArtifactForeignRun"
+            _ => "EffectProposalsArtifact"
+          }
         Source(original) =>
           match original {
             Invocation(_) => "EffectProposalsSourceInvocation"
@@ -311,6 +421,93 @@ test('cleanup category never serializes payloads and keeps public error code', {
       path: 'src/run_publication_host/client_effect_acquired_evidence.mbt', name: 'ClientEffectAcquiredEvidenceIssue',
       tags: {Invocation: 'EffectProposalsSourceInvocation', Relation: 'EffectProposalsSourceRelation',
         Dependency: 'EffectProposalsSourceDependency'},
+    },
+    Materials: {
+      path: 'src/run_publication_host/client_effect_run_materials.mbt', name: 'ClientEffectRunMaterialsIssue',
+      tags: {RunMismatch: 'EffectProposalsMaterialsRunMismatch'}, fallback: 'EffectProposalsMaterials',
+    },
+    Definition: {
+      path: 'src/run_publication_host/client_effect_local_result_definition.mbt', name: 'ClientEffectLocalResultDefinitionIssue',
+      tags: {MissingResult: 'EffectProposalsDefinitionMissingResult'}, fallback: 'EffectProposalsDefinition',
+    },
+    Artifact: {
+      path: 'src/run_publication_host/client_effect_local_result_artifact.mbt', name: 'ClientEffectLocalResultArtifactIssue',
+      tags: {ForeignOwner: 'EffectProposalsArtifactForeignOwner', ForeignExport: 'EffectProposalsArtifactForeignExport',
+        ForeignRun: 'EffectProposalsArtifactForeignRun'}, fallback: 'EffectProposalsArtifact',
+    },
+    Dependency: {
+      path: 'src/run_publication_host/client_effect_dependency_capture.mbt', name: 'ClientEffectDependencyCaptureIssue',
+      tags: {ForeignInput: 'EffectProposalsDependencyForeignInput', Dependency: 'EffectProposalsDependencyClosure'},
+      fallback: 'EffectProposalsDependency',
+    },
+    Manifest: {
+      path: 'src/run_publication_host/client_effect_local_manifest.mbt', name: 'ClientEffectLocalManifestIssue',
+      tags: {IncompleteResults: 'EffectProposalsIncompleteResults', IncompleteTableInputs: 'EffectProposalsIncompleteTableInputs'},
+      fallback: 'EffectProposalsManifest',
+    },
+    PreviewSource: {
+      path: 'src/run_publication_host/client_effect_source_artifact.mbt', name: 'ClientEffectSourceArtifactIssue',
+      tags: {ForeignRun: 'EffectPreviewSourceRun'}, fallback: 'EffectPreviewSource',
+    },
+    PreviewIdentity: {
+      path: 'src/run_publication_host/client_effect_local_identity.mbt', name: 'ClientEffectLocalIdentityIssue',
+      tags: {ForeignInput: 'EffectPreviewIdentityInput'}, fallback: 'EffectPreviewIdentity',
+    },
+    PreviewBody: {
+      path: 'src/run_publication/effect_preview_identity.mbt', name: 'EffectPreviewIdentityIssue',
+      tags: {PreviewShape: 'EffectPreviewBodyShape'}, fallback: 'EffectPreviewBody',
+    },
+    PreviewBinding: {
+      path: 'src/run_publication_host/client_effect_captured_preview.mbt', name: 'ClientCapturedEffectPreviewIssue',
+      tags: {ForeignInput: 'EffectPreviewBindingInput'}, fallback: 'EffectPreviewBinding',
+    },
+    PreviewDispatch: {
+      path: 'src/effect_application/identity.mbt', name: 'EffectIdentityIssue',
+      tags: {InvalidLimits: 'EffectPreviewDispatchLimits'}, fallback: 'EffectPreviewDispatch',
+    },
+    PreviewKeys: {
+      path: 'src/effect_application/preview_identity.mbt', name: 'EffectPreviewApplyIdentityIssue',
+      tags: {KeyInventoryMismatch: 'EffectPreviewKeyInventory'}, fallback: 'EffectPreviewKeys',
+    },
+    PreviewPlan: {
+      path: 'src/physical_strategy_host/effect_plan_verify.mbt', name: 'CapturedEffectPlanVerifyIssue',
+      tags: {InvalidMember: 'EffectPreviewPlanMember'}, fallback: 'EffectPreviewPlan',
+    },
+    CapturedSource: {
+      path: 'src/run_publication/captured_run_issuance.mbt', name: 'CapturedRunIssuanceIssue',
+      tags: {CaptureIssuanceReferenceMismatch: 'EffectCapturedSourceReference'}, fallback: 'EffectCapturedSource',
+    },
+    LocalSource: {
+      path: 'src/run_publication/captured_local_effect_source.mbt', name: 'CapturedLocalEffectSourceIssue',
+      tags: {InvalidLocalReference: 'EffectLocalSourceReference'}, fallback: 'EffectLocalSource',
+    },
+    Inventory: {
+      path: 'src/run_publication/captured_effect_dependency_graph.mbt', name: 'CapturedEffectDependencyIssue',
+      tags: {MissingDependency: 'EffectInventoryMissingDependency'}, fallback: 'EffectInventory',
+    },
+    PublicExport: {
+      path: 'src/run_publication_host/output_export.mbt', name: 'PublicationOutputExportIssue',
+      tags: {InvalidState: 'EffectPublicExportState'}, fallback: 'EffectPublicExport',
+    },
+    PublicManifest: {
+      path: 'src/run_publication/result_manifest_issuance.mbt', name: 'ResultManifestIssuanceIssue',
+      tags: {ManifestIssuanceEncoding: 'EffectPublicManifestEncoding'}, fallback: 'EffectPublicManifest',
+    },
+    PublicReceipt: {
+      path: 'src/run_publication/run_receipt_issuance.mbt', name: 'RunReceiptIssuanceIssue',
+      tags: {ReceiptIssuanceEncoding: 'EffectPublicReceiptEncoding'}, fallback: 'EffectPublicReceipt',
+    },
+    PublicBindings: {
+      path: 'src/run_publication_host/client_effect_receipt_bindings.mbt', name: 'ClientEffectReceiptBindingsIssue',
+      tags: {ForeignMaterials: 'EffectPublicBindingsOwner'}, fallback: 'EffectPublicBindings',
+    },
+    PublicNormalization: {
+      path: 'src/run_publication_host/client_effect_normalization.mbt', name: 'ClientEffectNormalizationIssue',
+      tags: {MissingOriginalJournal: 'EffectPublicNormalizationOriginal'}, fallback: 'EffectPublicNormalization',
+    },
+    PublicCapture: {
+      path: 'src/run_publication_host/client_effect_captured_run.mbt', name: 'ClientEffectCapturedRunIssue',
+      tags: {ForeignInput: 'EffectPublicCaptureInput'}, fallback: 'EffectPublicCapture',
     },
   };
   assert.deepEqual(proposalIssues, Object.keys(proposalFamilies).map(name => ({name, arity: 1})));
