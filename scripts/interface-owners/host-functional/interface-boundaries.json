@@ -38982,7 +38982,7 @@
     {
       "module": "adapters/host-node/effect-ledger.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1a4107d356347c552a481f1ebf7c7bb27d68bed5c96eb250c88ba9273739fe33",
+      "sha256": "b5d09a3d5364ed3a3267b5a2597b7cb61eabd8300f7f8409b1877487af0d11a6",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -39994,6 +39994,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "The standard Ledger frontier/intents family selects one closed frame for"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "`currentAdmitted` methods use the same family for their single original CID"
               }
             ],
             "extension": [
@@ -40010,6 +40014,10 @@
               {
                 "path": "src/client_local_host/installed_effect_host_preview_input_js_wbtest.mbt",
                 "anchor": "test \"standard Ledger family coholds actual snapshot and nested codec on same token through failed current\""
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.test.mjs",
+                "anchor": "test('standard Ledger single head reuses original family before physical current and same nested admission'"
               }
             ]
           }
