@@ -2441,9 +2441,12 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   };
 
   // The Ledger claims of every row in the admitted dispatch order.
+  // These three newly owned structural envelopes are final DATA for the
+  // existing Ledger-family geometry. Keep original claim/opaque references;
+  // do not freeze caller inputs or turn geometry into validation/currentness.
   const claimsOf = ({body, keys, entries, requestScope, unit, dispatches,
-    unitCids, members, retentionId}) => body.effects.map((member, memberIndex) => ({
-    claims: orderedSourceIndexes(member).map(rowIndex => {
+    unitCids, members, retentionId}) => Object.freeze(body.effects.map((member, memberIndex) => Object.freeze({
+    claims: Object.freeze(orderedSourceIndexes(member).map(rowIndex => {
       const change = member.changes[rowIndex];
       const key = keys[memberIndex][rowIndex];
       const locator = effect.logicalItemLocator(requestScope,
@@ -2460,7 +2463,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         'unavailable', member.capability_evidence_cid, retentionId);
       return {scope: requestScope, locator, key, basis,
         intentFingerprintCid: change.row_preview_cid, canonicalRequestCid};
-    })}));
+    }))})));
 
   async function captureStage({control, store, execution, checkedHost,
     prepared, identity, plan, previewContext, unit, members,

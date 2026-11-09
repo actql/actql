@@ -1121,3 +1121,109 @@ test('managed request projection forwards the same completed original row and co
   for (const retained of f.requestChildren) await retained.prepared.release();
   assert.deepEqual(f.settlements, f.debits);
 });
+
+// Actual claimsOf plus the enclosing captureStage final construction/return
+// and actual Ledger open/binding/prepareCapturedSetIntents bodies. Semantic
+// issuers and physical Store are explicit ports: this is owned DATA/caller
+// correspondence, not Common capacity, durable intent or installed acceptance.
+async function ownedClaimsStageFixture() {
+  const ledgerSource=await readFile(new URL('./effect-ledger.mjs',import.meta.url),'utf8');
+  const ledgerTree=parse(ledgerSource,{ecmaVersion:'latest',sourceType:'module'}),ledgerNodes=[];
+  const collect=node=>{if(!node||typeof node!=='object')return;ledgerNodes.push(node);
+    for(const value of Object.values(node))if(Array.isArray(value))value.forEach(collect);else if(value&&typeof value==='object')collect(value);};
+  collect(ledgerTree);
+  const binding=ledgerNodes.filter(n=>n.type==='FunctionDeclaration'&&n.id?.name==='bindEffectLedgerConstruction');
+  const capturedMethod=ledgerNodes.filter(n=>n.type==='Property'&&n.key?.name==='prepareCapturedSetIntents');
+  assert.equal(binding.length,1);assert.equal(capturedMethod.length,1);
+  const bind=Function('nodeTypes',ledgerSource.slice(binding[0].start,binding[0].end)+';return bindEffectLedgerConstruction;')(nodeTypes);
+  const body={run_identity_cid:cid('1'),effects:[{effect_id:'owned-effect',effect_member_preview_cid:cid('2'),
+    row_order:[cid('4'),cid('3')],changes:[{row_preview_cid:cid('3'),target_row_identity:{id:1}},
+      {row_preview_cid:cid('4'),target_row_identity:{id:2}}]}]};
+  const identity={},requestScope={},previewInputs={},admittedPreview={},applyPreview={},result={};
+  const keys=[[{},{}]],entries=[[{request:{id:1},requestCid:cid('5')},{request:{id:2},requestCid:cid('6')}]],members=[{}];
+  const opaque=[],events=[];let family=0,generic=0,constructors=0,refusal,frame;
+  const effect={
+    logicalItemLocator(scope,program,stage,id,wire){assert.equal(scope,requestScope);assert.equal(program,'program');assert.equal(stage,'stage');assert.equal(id,'owned-effect');return {wire};},
+    dispatchKeyCid(key){assert(keys[0].includes(key));return 'dispatch-key';},
+    ledgerBasis(scope,locator,key,unit,member,row,request){assert.equal(scope,requestScope);assert(keys[0].includes(key));assert.equal(unit,cid('7'));const value={locator,key,row,request};opaque.push(value);return value;},
+    admitPreviewIdentity(){return applyPreview;},
+  };
+  const owner={profile:{unit:'owned-unit'},owned:{assertRequestFinalized(request,dispatch){assert(entries[0].some(x=>x.request===request));assert.equal(dispatch,'dispatch-key');}}};
+  const orderedSourceIndexes=expression('orderedSourceIndexes',{fail});
+  const claimsOf=expression('claimsOf',{effect,orderedSourceIndexes,
+    recoveryCid:expression('recoveryCid',{ownerOf:()=>owner,cid:()=>cid('e')}),
+    canonicalValueJson:JSON.stringify,limits:{locator:{maxBytes:256},key:{maxBytes:256,maxNodes:64,maxDepth:4}},ownerOf:()=>owner});
+  const original={
+    prepareSetIntents(preview,selected,maxWork){assert.equal(this,original);assert.equal(preview,admittedPreview);assert.equal(maxWork,100);
+      assert(['family','generic'].includes(frame));constructors++;events.push('constructor');return result;},
+    close(){events.push('close');},
+  };
+  const moon={clientRequestAuthorityScopeCid:value=>{assert.equal(value,identity);return cid('8');},
+    clientRequestCallerId:value=>{assert.equal(value,identity);return 'owned-request';},
+    clientProgramEffectApplySubjectCid:value=>{assert.equal(value,previewInputs);return cid('d');},
+    clientProgramEffectPreviewLedgerIdentity:value=>{assert.equal(value,previewInputs);return admittedPreview;}};
+  const method=capturedMethod[0].value;
+  original.prepareCapturedSetIntents=Function('moon','ledger','fail',
+    `return function(${method.params.map(x=>x.name).join(',')})${ledgerSource.slice(method.body.start,method.body.end)};`)(moon,original,fail);
+  Object.freeze(original);
+  const work=(receiver,method,args)=>{assert.equal(receiver,original);generic++;events.push('generic');frame='generic';
+    try{return Reflect.apply(method,receiver,args);}finally{frame=undefined;}};
+  work.ledgerFamily=(receiver,method,args,counts,...policy)=>{
+    assert.equal(receiver,original);assert.equal(method,original.prepareCapturedSetIntents);
+    assert.deepEqual(counts,[2]);assert(Object.isFrozen(counts));assert.deepEqual(policy,[100000,4096,64,4]);
+    family++;events.push('family-before-constructor');if(refusal!==undefined)throw refusal;frame='family';
+    try{return Reflect.apply(method,receiver,args);}finally{frame=undefined;}
+  };
+  work.ledgerOpen=(root,receiver,method,args)=>{
+    assert.equal(root,'/owned/ledger');assert.equal(receiver,undefined);assert.equal(args[0].controlConstruction,work);
+    events.push('open');return Reflect.apply(method,receiver,args);
+  };
+  const openLedger=expression('openLedger',{ledgerRoot:'/owned/ledger',moon,controlEntryBytes:4096,
+    openEffectLedger(options){assert.equal(options.controlConstruction,work);return bind(original,options.controlConstruction,
+      Object.freeze({maxEntries:100000,maxEntryBytes:options.maxEntryBytes,maxNodes:64,maxDepth:4}));}});
+  const start=capture.body.body.filter(n=>n.type==='VariableDeclaration'&&n.declarations.some(d=>d.id.name==='ledger'));
+  assert.equal(start.length,1);
+  const tail=source.slice(start[0].start,capture.body.end-1);
+  const ports={openLedger,identity,controlConstruction:work,applyPreview:undefined,effect,orderedSourceIndexes,
+    preview:{wire:'original-preview',authoringCid:cid('9'),keys},body,requestScope,
+    limits:{preview:{maxWireBytes:4096,maxNodes:64,maxDepth:4},maxFrontierWork:100},claimsOf,entries,
+    unit:{programId:'program',stageId:'stage'},dispatches:['original-dispatch'],members,ownerOf:()=>owner,
+    cid:()=>cid('7'),plan:{runDefinition:{identity:cid('a')},effectInputRetention:{identity:cid('b')},contractLimits:{}},
+    physicalRoute:()=>({current(){},bindDispatch(){}}),plans:[{proof:{}}],basePreflight:()=>({}),
+    computation:{},storedResults:{},admittedPreview,previewInputs,moon,route:undefined,
+    runInvocationCid:cid('c'),targetReads:undefined,assertCurrent(){},physicalOperations(){assert.fail('no physical operation in final DATA tail');},
+    scopes:()=>[],singular:undefined,releaseInputs:async()=>{},continuationOf:()=> 'original-continuation',
+    updateTargetSelections:undefined,execution:{},store:{},control:{}};
+  const stage=Function(...Object.keys(ports),tail)(...Object.values(ports));
+  return {stage,body,entries,members,opaque,events,result,original,work,
+    counts:()=>({family,generic,constructors}),refuse:primary=>{refusal=primary;}};
+}
+
+test('owned claims actual captureStage output selects original Ledger family before intent constructor',async()=>{
+  const f=await ownedClaimsStageFixture(),members=f.stage.apply.members;
+  assert(Object.isFrozen(members));assert(Object.isFrozen(members[0]));assert(Object.isFrozen(members[0].claims));
+  assert.deepEqual(members[0].claims.map(c=>c.intentFingerprintCid),[cid('4'),cid('3')]);
+  assert.equal(members[0].claims[0].canonicalRequestCid,f.entries[0][1].requestCid);
+  assert.equal(members[0].claims[0].basis,f.opaque[0]);
+  assert.equal(f.stage.receipt.members[0].rowOwners[0].claim,members[0].claims[0]);
+  assert.equal(Object.isFrozen(f.opaque[0]),false,'opaque original remains borrowed');
+  for(const input of [f.body,f.body.effects,f.body.effects[0],f.body.effects[0].changes,f.entries,f.members])
+    assert.equal(Object.isFrozen(input),false,'do not freeze caller-owned input');
+  assert.equal(f.stage.apply.ledger.prepareCapturedSetIntents(f.stage.apply.capturedInputs,members,100),f.result);
+  assert.deepEqual(f.counts(),{family:1,generic:0,constructors:1});
+  assert.deepEqual(f.events,['open','family-before-constructor','constructor']);
+});
+
+test('owned claims family refusal and genuinely mutable foreign callers keep original fallback and cause',async()=>{
+  const f=await ownedClaimsStageFixture(),owned=f.stage.apply.members,primary=new Error('original family reservation refused');
+  f.refuse(primary);
+  assert.throws(()=>f.stage.apply.ledger.prepareCapturedSetIntents(f.stage.apply.capturedInputs,owned,100),error=>error===primary);
+  assert.deepEqual(f.counts(),{family:1,generic:0,constructors:0});
+  const mutable=[...owned],foreign=Object.freeze([{claims:owned[0].claims}]);
+  for(const selected of [mutable,foreign]){
+    assert.equal(f.stage.apply.ledger.prepareCapturedSetIntents(f.stage.apply.capturedInputs,selected,100),f.result);
+    assert.equal(Object.isFrozen(selected[0]),selected===mutable);
+  }
+  assert.equal(Object.isFrozen(mutable),false);
+  assert.deepEqual(f.counts(),{family:1,generic:2,constructors:2});
+});

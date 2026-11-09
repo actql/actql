@@ -78,6 +78,16 @@ unknown inventories, larger policies and all other methods retain the complete
 generic frame. This is a quantity selection, not Preview membership, current
 permission, completed validation or a claim that any durable head is absent.
 
+The captured row-stage constructor freezes only the three structural envelopes
+it newly creates for this inventory: the outer member Array, each member record
+and each claims Array. They are final DATA before the original captured-input
+Ledger call. Dispatch order, claim objects, opaque bases and request references
+remain the same; caller-owned input and physical state are not frozen. This
+allows the existing wrapper to select the existing MoonBit family from stable
+lengths. Mutable or foreign inventories keep the generic path. Selection still
+precedes the constructor and its refusal cannot invoke it; full Preview,
+current-snapshot, intent validation and atomic head update remain unchanged.
+
 MoonBit quotes the existing growing vectors/Set, selected head snapshot Strings,
 prepared append wire holders and Core frontier construction. The snapshot is
 for the supplied exact locators in one original transaction, never all history.
