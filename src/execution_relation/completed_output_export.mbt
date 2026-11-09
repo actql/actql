@@ -761,7 +761,9 @@ pub fn completed_relation_export_matches_output(
 ) -> Bool {
   completed_output_available(output) &&
   value.rows.source is Some(source) &&
-  completed_output_same_occurrence(source, output)
+  // The receipt owns the verified cell view. The expected original may still
+  // be retained/resident; only the converted side must have cell storage.
+  completed_output_same_occurrence(output, source)
 }
 
 ///|
