@@ -11,6 +11,7 @@ struct NativeLocalSavedEffectApprovalOriginal {
   captured : @publication.PublicationContract
   preview : @publication.EffectPreviewIdentity
   preview_wire : String
+  preview_original : @canonical.CanonicalValue
   scope : @scope.LogicalRequestScope
   row_keys : Array[Array[@effect.EffectDispatchKey]]
   checkpoint : @checkpoint.PersistedCheckpoint
@@ -166,10 +167,10 @@ pub fn NativeLocalSavedEffectReview::restore_approval_in_original_read(
         ),
       ),
       additional_controls=Some({
-        // Original (14 refs), read view (2), two private sums (1 each),
+        // Original (15 refs), read view (2), two private sums (1 each),
         // returned Some/Result (1 each) and subject tuple (2). Borrowed DATA.
-        record_headers: 7L,
-        reference_slots: 22L,
+        record_headers: 9L,
+        reference_slots: 26L,
         scalar_words: 0L,
         owned_utf16_units: 0L,
         owned_wire_bytes: 0L,
@@ -258,8 +259,8 @@ pub fn NativeLocalSavedEffectReview::restore_approval_in_original_read(
   guard epoch_text(fields, "review_wire") is Some(preview_wire) else {
     return Err(Journal(CustodyLost))
   }
-  let preview = match
-    @host.admit_client_effect_review_checkpoint_preview(
+  let (preview, preview_original) = match
+    @host.admit_client_effect_review_checkpoint_preview_with_original(
       persisted.artifact,
       materials.allowed,
       materials.run_definition,
@@ -352,6 +353,7 @@ pub fn NativeLocalSavedEffectReview::restore_approval_in_original_read(
     captured,
     preview,
     preview_wire,
+    preview_original,
     scope,
     row_keys,
     checkpoint: persisted,

@@ -53,6 +53,70 @@ pub fn NativeLocalSavedEffectApprovalOriginal::effect_preview_wire(
 }
 
 ///|
+/// Borrow the SAME shape/identity-admitted row, joined through its ordered CID.
+/// No parse, canonicalization, key derivation or authority callback is repeated.
+/// The caller retains this body's original Read backing while using the alias.
+pub fn NativeLocalSavedEffectApprovalOriginal::ordered_row_original(
+  self : Self,
+  member_index : Int,
+  row_ordinal : Int,
+) -> @canonical.CanonicalValue? {
+  guard @publication.effect_preview_ordered_row_identity(
+      self.preview,
+      member_index,
+      row_ordinal,
+    )
+    is Some(row) &&
+    @publication.effect_preview_row_index(self.preview, member_index, row)
+    is Some(raw_index) &&
+    @canonical.object_field(self.preview_original, "effects")
+    is Some(@canonical.Array(effects)) &&
+    @canonical.array_at(effects, member_index) is Some(effect_value) &&
+    @canonical.object_field(effect_value, "changes")
+    is Some(@canonical.Array(changes)) else {
+    return None
+  }
+  @canonical.array_at(changes, raw_index)
+}
+
+///|
+/// The existing Mock UPDATE request's canonical six-field preimage. Warm and
+/// saved callers share this writer; values are already admitted DATA, not IO
+/// permissions. Its caller backs the writer and returned String before entry.
+pub fn native_local_effect_update_request_wire(
+  binding : String,
+  mapping : String,
+  target : @canonical.CanonicalValue,
+  value : @canonical.CanonicalValue,
+  before : @canonical.CanonicalValue,
+  version : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, Unit] {
+  try {
+    let writer = @encode.writer(max_bytes, max_nodes, max_depth)
+    @encode.begin_object(writer)
+    @encode.key(writer, "before")
+    @canonical.emit_value(before, writer)
+    @encode.key(writer, "binding")
+    @encode.string_value(writer, binding)
+    @encode.key(writer, "mapping")
+    @encode.string_value(writer, mapping)
+    @encode.key(writer, "target")
+    @canonical.emit_value(target, writer)
+    @encode.key(writer, "value")
+    @canonical.emit_value(value, writer)
+    @encode.key(writer, "version")
+    @encode.string_value(writer, version)
+    @encode.end_object(writer)
+    Ok(@encode.finish(writer))
+  } catch {
+    _ => Err(())
+  }
+}
+
+///|
 /// Execution order and raw admission order are different inventories. Join
 /// once through the original row CID; never index the raw key vector by an
 /// execution ordinal or recompute an already checked key.
@@ -304,4 +368,130 @@ fn retained_effect_application_row_basis(
     Ok(basis) => Ok((locator, key, basis))
     Err(_) => Err(())
   }
+}
+
+///|
+/// Construct this original row's file request without reopening Source/Model.
+/// The caller supplies only its actual already-retained request inventory for
+/// simultaneous String/control backing. These counts grant no IO or budget.
+pub fn NativeLocalEffectResumeOriginal::prepare_application_file_request_in_original_read(
+  self : NativeLocalEffectResumeOriginal,
+  member_index : Int,
+  row_ordinal : Int,
+  binding : String,
+  mapping : String,
+  retained_request_units : Int64,
+  retained_requests : Int,
+  request_limits : @checkpoint.WireLimits,
+) -> Result[
+  (String, String, String, String, String),
+  NativeLocalInitialHostAttestationIssue,
+] {
+  let original = match self.application_original_in_original_read() {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  guard self.subject is Some(SavedSigningSubject(read)) &&
+    retained_request_units >= 0L &&
+    retained_requests >= 0 &&
+    @publication.effect_preview_member_source_binding_cid(
+      original.preview,
+      member_index,
+    ) ==
+    Some(binding) &&
+    @publication.effect_preview_member_resolved_contract(
+      original.preview,
+      member_index,
+    )
+    is Some(@publication.Mapping(_, original_mapping)) &&
+    original_mapping == mapping &&
+    original.ordered_row_original(member_index, row_ordinal) is Some(row) &&
+    @canonical.object_field(row, "target_row_identity") is Some(target) &&
+    target is @canonical.String(identity) &&
+    @canonical.object_field(row, "intended_changes") is Some(intended) &&
+    @canonical.object_field(intended, "state")
+    is Some(@canonical.String("present")) &&
+    @canonical.object_field(intended, "value") is Some(changes) &&
+    @canonical.object_field(row, "before") is Some(before) &&
+    @canonical.object_field(before, "state")
+    is Some(@canonical.String("present")) &&
+    @canonical.object_field(before, "value") is Some(full_before) &&
+    @canonical.object_field(row, "target_guard") is Some(target_guard) &&
+    @canonical.object_field(target_guard, "state")
+    is Some(@canonical.String("version")) &&
+    @canonical.object_field(target_guard, "version_cid")
+    is Some(@canonical.String(version)) else {
+    return Err(HostAttestationUnavailable)
+  }
+  let limits = request_limits
+  // A request adds three structural scalar fields to the admitted data
+  // subtrees. Its existing installed request limit is checked by the writer;
+  // no separate subtree admission multiplies the accepted JSON limits.
+  let bytes = limits.max_wire_bytes
+  guard @execution.checked_preparation_add_product(
+      retained_request_units,
+      bytes.to_int64(),
+      2L,
+    )
+    is Some(owned_units) &&
+    @execution.checked_preparation_add_product(owned_units, 135L, 1L)
+    is Some(total_owned_units) &&
+    @execution.checked_preparation_add_product(
+      16L,
+      retained_requests.to_int64(),
+      16L,
+    )
+    is Some(headers) else {
+    return Err(HostAttestationUnavailable)
+  }
+  match
+    read.owner.capture.prepare_model_entry_construction(
+      Some(bytes),
+      nodes=limits.max_nodes,
+      depth=limits.max_depth,
+      additional_controls=Some({
+        // Existing retained row records/tuples and growable outer backing,
+        // current five-field tuple, temporary hex/final CID and retained
+        // request/changes Strings. All sums are checked before constructors.
+        record_headers: headers,
+        reference_slots: 32L + retained_requests.to_int64() * 24L,
+        scalar_words: 8L + retained_requests.to_int64() * 4L,
+        owned_utf16_units: total_owned_units,
+        owned_wire_bytes: 0L,
+      }),
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(HostAttestationOriginal(issue))
+  }
+  if !read.owner.saved_approval_original_live(original) || self.retired {
+    return Err(HostAttestationUnavailable)
+  }
+  let request = match
+    native_local_effect_update_request_wire(
+      binding,
+      mapping,
+      target,
+      changes,
+      full_before,
+      version,
+      bytes,
+      limits.max_nodes,
+      limits.max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(HostAttestationUnavailable)
+  }
+  let changes_wire = @canonical.stringify_value(
+    changes,
+    bytes,
+    limits.max_nodes,
+    limits.max_depth,
+  ) catch {
+    _ => return Err(HostAttestationUnavailable)
+  }
+  let cid = match @sha.text_hex(request) {
+    Ok(value) => "sha256:" + value
+    Err(_) => return Err(HostAttestationUnavailable)
+  }
+  Ok((request, cid, identity, changes_wire, version))
 }

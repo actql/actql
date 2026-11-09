@@ -959,6 +959,48 @@ pub fn admit_effect_preview_identity(
     Ok(value) => value
     Err(issue) => return Err(PreviewShape(issue))
   }
+  admit_effect_preview_identity_original(
+    preview, expected_run_identity_cid, expected_authoring_context_cid, max_wire_bytes,
+    max_nodes, max_depth,
+  )
+}
+
+///|
+/// Admit once and retain the SAME canonical Preview for a saved application.
+/// The body is historical DATA; it grants no execution or target authority.
+pub fn admit_effect_preview_identity_with_original(
+  wire : String,
+  expected_run_identity_cid : String,
+  expected_authoring_context_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (EffectPreviewIdentity, @json.CanonicalValue),
+  EffectPreviewIdentityIssue,
+] {
+  let preview = match
+    parse_effect_preview_shape(wire, max_wire_bytes, max_nodes, max_depth) {
+    Ok(value) => value
+    Err(issue) => return Err(PreviewShape(issue))
+  }
+  admit_effect_preview_identity_original(
+    preview, expected_run_identity_cid, expected_authoring_context_cid, max_wire_bytes,
+    max_nodes, max_depth,
+  ).map(identity => (identity, preview))
+}
+
+///|
+// Both wire entrances use this SAME shape-admitted original. Retaining the
+// canonical tree is an explicit caller choice, not another semantic check.
+fn admit_effect_preview_identity_original(
+  preview : @json.CanonicalValue,
+  expected_run_identity_cid : String,
+  expected_authoring_context_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[EffectPreviewIdentity, EffectPreviewIdentityIssue] {
   let members = match @json.object_field(preview, "effects") {
     Some(@json.Array(items)) => @json.array_values(items)
     _ => return Err(InvalidMember)

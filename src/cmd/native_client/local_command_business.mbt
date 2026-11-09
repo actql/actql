@@ -61,6 +61,7 @@ priv struct LocalCommandBusinessOriginal {
   mut operation : @local_host.NativeLocalStoreOperation?
   model_work : Array[@local_host.NativeClientMockModelWork]
   mut effect_model : LocalNativeMockEffectPlan?
+  saved_effect_rows : Array[LocalNativeSavedEffectFileRow]
   mut values_work : @local_host.NativeClientValuesWork?
   mut values_failure : @local_host.NativeClientValuesWorkFailure?
   mut store : @local_store.Store?

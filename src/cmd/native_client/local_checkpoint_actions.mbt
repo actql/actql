@@ -98,7 +98,7 @@ fn LocalCommandPreparationOriginal::restore_checkpoint_review(
     self.host is Some(host) &&
     self.pair is Some(pair) &&
     self.runtime is Some(runtime) &&
-    self.business is None &&
+    self.saved_observation_business_disjoint() &&
     self.journal_read_open &&
     !self.closing &&
     !self.closed else {
@@ -300,7 +300,12 @@ fn LocalCommandPreparationOriginal::saved_effect_file_constructor_capacity(
     !mock.closing &&
     !mock.retired &&
     mock.model_failure is None &&
-    mock.write_installations is Some(installations) else {
+    mock.write_installations is Some(installations) &&
+    self.business is Some(business) &&
+    business.profile.kind == SavedEffectApply &&
+    business.saved_effect_rows.is_empty() &&
+    self.run_observation is Some(observation) &&
+    observation.effect_resume is Some(continuation) else {
     stop("LocalOriginalEffectInstallationUnavailable")
   }
   let materials = original.run_materials()
@@ -355,6 +360,52 @@ fn LocalCommandPreparationOriginal::saved_effect_file_constructor_capacity(
     }
     if rows == 0 {
       continue
+    }
+    for row_ordinal in 0..<rows {
+      let mut retained_units = 0L
+      for prior in business.saved_effect_rows {
+        for
+          text in [
+            prior.request_wire,
+            prior.request_cid,
+            prior.identity,
+            prior.changes_wire,
+            prior.version,
+          ] {
+          retained_units = @execution.checked_preparation_add_product(
+            retained_units,
+            text.length().to_int64(),
+            1L,
+          ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
+        }
+      }
+      let (request_wire, request_cid, identity, changes_wire, version) = continuation
+        .prepare_application_file_request_in_original_read(
+          member_index,
+          row_ordinal,
+          installation.binding,
+          installation.write.mapping.mapping_cid,
+          retained_units,
+          business.saved_effect_rows.length(),
+          {
+            max_wire_bytes: local_project_mock_relation_wire_bytes,
+            max_nodes: local_project_mock_relation_wire_nodes,
+            max_depth: local_project_mock_relation_wire_depth,
+          },
+        )
+        .unwrap_or_else(() => stop("LocalOriginalEffectRequestUnavailable"))
+      // Retain before any later constructor or scope return can fail.
+      business.saved_effect_rows.push({
+        _retained_member_index: member_index,
+        _retained_row_ordinal: row_ordinal,
+        _retained_installation: installation,
+        _retained_row_binding: row_binding,
+        request_wire,
+        request_cid,
+        identity,
+        changes_wire,
+        version,
+      })
     }
     let physical = @row_file.native_relation_file_target_io_capacity(
       row_binding.provider,
