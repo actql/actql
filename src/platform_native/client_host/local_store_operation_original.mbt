@@ -819,3 +819,116 @@ pub fn NativeLocalStoreOperation::close_checked(
     }
   }
 }
+
+///|
+/// Use only this command's already-open Journal under its original captured
+/// Read. Keep this operation before entry, including a failed binding/return.
+/// The separate publication Store must retain its own original coordinator.
+pub fn NativeLocalStoreOperation::begin_captured_journal_read(
+  self : NativeLocalStoreOperation,
+) -> Result[Unit, NativeLocalStoreOperationIssue] {
+  let receiver = self.receiver
+  guard receiver.domain is StoreRunObservationDomain &&
+    receiver.capture.read_callback_active &&
+    receiver.capture.read_facts_valid &&
+    !receiver.capture.closing &&
+    !receiver.closing &&
+    !receiver.closed else {
+    return Err(receiver.primary.unwrap_or(StoreOperationUnavailable))
+  }
+  if !receiver.ready {
+    match self.activate() {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+  }
+  let (host, _) = match receiver.originals(receiver.library, false) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  guard self.bridge is Some(bridge) else {
+    return Err(StoreOperationUnavailable)
+  }
+  match bridge.enter_store() {
+    Err(issue) => {
+      let retained = receiver.primary.unwrap_or(StoreOperationSqlite(issue))
+      receiver.refuse(retained) |> ignore
+      return Err(retained)
+    }
+    Ok(_) => ()
+  }
+  if !host.database.matches_original_store_operation(bridge) {
+    match host.database.bind_original_store_operation(bridge) {
+      Err(issue) => {
+        let retained = StoreOperationSqlite(issue)
+        receiver.refuse(retained) |> ignore
+        return Err(retained)
+      }
+      Ok(_) => ()
+    }
+  }
+  Ok(())
+}
+
+///|
+/// Return only the same original flight. This performs the existing captured
+/// Read current check; it is not Database, Session or Library retirement.
+pub fn NativeLocalStoreOperation::finish_captured_journal_read(
+  self : NativeLocalStoreOperation,
+) -> Result[Unit, NativeLocalStoreOperationIssue] {
+  let receiver = self.receiver
+  guard receiver.domain is StoreRunObservationDomain &&
+    receiver.capture.read_callback_active &&
+    receiver.capture.opening is JournalAcquired(host) &&
+    self.bridge is Some(bridge) &&
+    host.database.matches_original_store_operation(bridge) else {
+    return Err(receiver.primary.unwrap_or(StoreOperationUnavailable))
+  }
+  match bridge.leave_store() {
+    Ok(_) => Ok(())
+    Err(issue) => {
+      let retained = receiver.primary.unwrap_or(StoreOperationSqlite(issue))
+      receiver.refuse(retained) |> ignore
+      Err(retained)
+    }
+  }
+}
+
+///|
+/// Close the bound original Journal only after its public Read callback has
+/// returned. The capture keeps the same Host/Session for its later descriptor
+/// cleanup; metadata is detached only after actual Database and return ACKs.
+pub fn NativeLocalStoreOperation::close_captured_journal_database(
+  self : NativeLocalStoreOperation,
+) -> Result[Unit, NativeLocalStoreOperationIssue] {
+  let receiver = self.receiver
+  guard receiver.domain is StoreRunObservationDomain &&
+    !receiver.capture.read_callback_active else {
+    return Err(StoreOperationUnavailable)
+  }
+  guard self.bridge is Some(bridge) else { return Ok(()) }
+  match self.retry_scope_cleanup() {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if receiver.capture.opening is JournalAcquired(host) &&
+    host.database.matches_original_store_operation(bridge) {
+    match bridge.enter_cleanup_work() {
+      Err(issue) => return Err(StoreOperationSqlite(issue))
+      Ok(_) => ()
+    }
+    let closed = host.close_journal_database()
+    let returned = bridge.leave_store()
+    if closed is Err(issue) {
+      receiver.refuse(StoreOperationCapture(issue)) |> ignore
+    }
+    if returned is Err(issue) {
+      receiver.refuse(StoreOperationSqlite(issue)) |> ignore
+    }
+    match (closed, returned) {
+      (Ok(_), Ok(_)) => ()
+      _ => return Err(receiver.primary.unwrap_or(StoreOperationUnavailable))
+    }
+  }
+  self.close_checked()
+}

@@ -484,7 +484,11 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
     operation == "cancel" ||
     operation == "approve" ||
     operation == "reject" {
-    command_preparation_result(self.prepare_run_observation_operation())
+    command_preparation_result(
+      self.prepare_run_observation_operation(
+        journal=operation == "approve" || operation == "reject",
+      ),
+    )
   }
   let crypto = self.inner_library.unwrap()
   command_preparation_result(

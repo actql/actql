@@ -280,6 +280,19 @@ MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_bind_database_store_operation(
   moonbit_incref(original);
   return 0;
 }
+/* Read-only relation used by the existing Journal query wrapper. It skips
+ * that wrapper's older manual phase exchange only for THIS active original;
+ * each Database method still performs the coordinator's actual SQL entry. */
+MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_database_matches_store_receiver(
+    actql_native_sqlite_database *database, void *receiver) {
+  if (database == NULL) return 0;
+  actql_native_store_operation *original = database->store_operation;
+  return actql_store_operation_thread(original) && !original->closed &&
+    original->activated && original->flight && !original->sql &&
+    !original->calling && original->receiver == receiver &&
+    original->bound_database == database &&
+    original->library == database->library;
+}
 MOONBIT_FFI_EXPORT void actql_native_sqlite_database_fence_original_store(
     actql_native_sqlite_database *database) {
   if (database == NULL) return;

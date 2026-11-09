@@ -30,6 +30,13 @@ extern "C" fn store_wal_prepare_original(
 ) -> @sqlite.NativeStoreOperationOriginal = "actql_native_sqlite_test_prepare_store_wal_operation"
 
 ///|
+#borrow(database, receiver)
+extern "C" fn store_wal_matches_original_receiver(
+  database : @sqlite.Database,
+  receiver : StoreWalReceiver,
+) -> Bool = "actql_native_sqlite_database_matches_store_receiver"
+
+///|
 fn store_wal_entered(receiver : StoreWalReceiver) -> Bool {
   let domain = receiver.domain
   guard domain.domain is Some(original) else { return false }
@@ -795,6 +802,9 @@ fn journal_existing_original_work(
   database
   .bind_original_store_operation(original)
   .retained_execution_value("already-open Journal stage 8")
+  assert_true(store_wal_matches_original_receiver(database, receiver))
+  let copied = { ..receiver, }
+  assert_false(store_wal_matches_original_receiver(database, copied))
   assert_eq(receiver.sql_entries, 0)
   assert_true(database.matches_original_store_operation(original))
   assert_true(database.bind_original_store_operation(original) is Err(_))
@@ -813,6 +823,7 @@ fn journal_existing_original_work(
   original
   .leave_store()
   .retained_execution_value("already-open Journal stage 11")
+  assert_false(store_wal_matches_original_receiver(database, receiver))
   let entries = receiver.sql_entries
   assert_true(
     database.read("original", "key") is Err(@sqlite.OperationRoutingBefore(_)),

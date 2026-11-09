@@ -3,6 +3,7 @@
 // business domain, Result grant, Reader or replacement installation.
 priv struct LocalCommandRunObservationOriginal {
   operation : @local_host.NativeLocalStoreOperation
+  mut journal_operation : @local_host.NativeLocalStoreOperation?
   mut root_bridge : @local_sqlite.NativeStoreOperationOriginal?
   mut store : @local_store.Store?
   mut failure : @local_store.NativePublicationStoreOpenFailure?
@@ -22,6 +23,7 @@ priv struct LocalCommandRunObservationOriginal {
 // Read. Activation and all original/configuration checks occur before Store IO.
 fn LocalCommandPreparationOriginal::prepare_run_observation_operation(
   self : LocalCommandPreparationOriginal,
+  journal? : Bool = false,
 ) -> Result[Unit, LocalCommandPreparationIssue] {
   guard self.host is Some(host) &&
     self.pair is Some(pair) &&
@@ -46,8 +48,9 @@ fn LocalCommandPreparationOriginal::prepare_run_observation_operation(
     Ok(value) => value
     Err(issue) => return Err(CommandStoreOperation(issue))
   }
-  self.run_observation = Some({
+  let retained : LocalCommandRunObservationOriginal = {
     operation,
+    journal_operation: None,
     root_bridge: None,
     store: None,
     failure: None,
@@ -59,7 +62,18 @@ fn LocalCommandPreparationOriginal::prepare_run_observation_operation(
     selected_namespace: None,
     attempted: false,
     _retained_store_issue: None,
-  })
+  }
+  // Retain the first original before preparing the separate Journal carrier.
+  self.run_observation = Some(retained)
+  if journal {
+    match
+      @local_host.prepare_native_local_run_observation_store_operation(
+        capture, runtime, library,
+      ) {
+      Err(issue) => return Err(CommandStoreOperation(issue))
+      Ok(value) => retained.journal_operation = Some(value)
+    }
+  }
   Ok(())
 }
 
@@ -228,6 +242,12 @@ fn LocalCommandPreparationOriginal::close_run_observation(
     }
   }
   original.root_bridge = None
+  if original.journal_operation is Some(journal) {
+    match journal.close_captured_journal_database() {
+      Err(issue) => return Err(CommandStoreOperation(issue))
+      Ok(_) => original.journal_operation = None
+    }
+  }
   match original.operation.close_checked() {
     Err(issue) => Err(CommandStoreOperation(issue))
     Ok(_) => {

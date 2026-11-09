@@ -54,12 +54,26 @@ fn[T] NativeLocalJournalOriginalResources::query_while_read(
 }
 
 ///|
+#borrow(database, receiver)
+extern "C" fn journal_database_matches_store_receiver_ffi(
+  database : @sqlite.Database,
+  receiver : NativeLocalStoreOperationReceiver,
+) -> Bool = "actql_native_sqlite_database_matches_store_receiver"
+
+///|
 fn[T] NativeLocalJournalReadQueries::query(
   self : NativeLocalJournalReadQueries,
   query : () -> T,
 ) -> Result[T, @sqlite.NativeSqliteIssue] {
   if self.failure is Some(_) {
     return Err(@sqlite.Busy)
+  }
+  if self.original.store_operation is Some(receiver) &&
+    receiver.phase == StoreRouteRead &&
+    journal_database_matches_store_receiver_ffi(self.database, receiver) {
+    // The SAME bound Database brackets every SQL call below. Applying the
+    // unbound manual exchange as well would enter the original pair twice.
+    return Ok(query())
   }
   match self.original.query_while_read(query) {
     Ok(value) => Ok(value)
