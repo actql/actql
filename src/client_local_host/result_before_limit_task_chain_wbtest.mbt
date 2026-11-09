@@ -8,6 +8,8 @@ let before_limit_standard_environment : String =
 fn before_limit_standard_prepared(
   text : String,
   format : @frontend.Format,
+  parameter_declarations? : String? = None,
+  parameter_values? : @decode.Cursor? = None,
 ) -> @publication_host.PreparedClientProgram raise {
   let environment = @publication_host.admit_client_check_environment(
     before_limit_standard_environment,
@@ -41,13 +43,13 @@ fn before_limit_standard_prepared(
     environment,
     text,
     format,
-    None,
+    parameter_declarations,
     public_primary=true,
   ).unwrap()
   @publication_host.prepare_parsed_effect_free_client_program(
     lowered.program.unwrap(),
     environment,
-    None,
+    parameter_values,
     @publication_host.client_standard_program_preparation_limits(),
     source_catalog=Some(catalog),
   ).unwrap()

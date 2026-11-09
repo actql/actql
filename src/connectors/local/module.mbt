@@ -378,6 +378,24 @@ pub fn local_module_metered_output_start_capacity(
     )
   }
   guard base is Some(base) else { return None }
+  // Only this built-in row chain gets a constructor-local startup baseline.
+  // Each child borrows immutable input backing, attaches output to the same
+  // task growth owner, and confirms scratch cleanup before its successor.
+  // Unrelated chains and constructed binding outputs keep the generic floor.
+  let mut unnest_chain = count > 1
+  let mut has_unnest = false
+  for index in 0..<count {
+    match @execution.generated_sequence_step_at(sequence, index) {
+      Some(@lower.RowStep(kernel)) =>
+        if @lower.kernel_unnest(kernel) is Some(_) {
+          has_unnest = true
+        } else if !selected_binding_rows_supported(kernel) {
+          unnest_chain = false
+        }
+      _ => unnest_chain = false
+    }
+  }
+  unnest_chain = unnest_chain && has_unnest
   let mut metered_retention = true
   for index in 0..<count {
     match @execution.generated_sequence_step_at(sequence, index) {
@@ -385,6 +403,11 @@ pub fn local_module_metered_output_start_capacity(
       Some(@lower.AppendStep(_)) if count == 1 => ()
       Some(@lower.SetStep(_)) if count == 1 => ()
       Some(@lower.JoinStep(_)) if count == 1 => ()
+      Some(@lower.RowStep(kernel)) if @lower.kernel_unnest(kernel) is Some(_) =>
+        if !@schema.all_fields_required(@lower.kernel_input_schema(kernel)) ||
+          !@schema.all_fields_required(@lower.kernel_output_schema(kernel)) {
+          return None
+        }
       Some(@lower.RowStep(kernel)) if selected_binding_rows_supported(kernel) =>
         match @lower.kernel_body(kernel) {
           @lower.Filter(_)
@@ -463,7 +486,7 @@ pub fn local_module_metered_output_start_capacity(
             // the still-live input or admitted preparation. This is not a
             // general constructed-output recipe: retain the full scratch and
             // use the same before-commit persistent-output growth owner.
-            let borrowed_bindings = count == 1 &&
+            let borrowed_bindings = (count == 1 || unnest_chain) &&
               @schema.all_fields_required(input) &&
               selected_binding_outputs_borrowed(kernel)
             if !primitive && !funded_snapshot && !borrowed_bindings {
@@ -504,7 +527,12 @@ pub fn local_module_metered_output_start_capacity(
     return None
   }
   let mut fixed = 0L
-  let mut scratch = base.execution_bytes - data
+  let constructor_chain = unnest_chain && metered_retention
+  let mut scratch = if constructor_chain {
+    0L
+  } else {
+    base.execution_bytes - data
+  }
   for index in 0..<count {
     guard @execution.generated_sequence_step_index_at(sequence, index)
       is Some(step) &&
@@ -530,6 +558,24 @@ pub fn local_module_metered_output_start_capacity(
     }
     fixed = next
     scratch = Int64::max(scratch, child.execution_bytes - data)
+  }
+  if constructor_chain {
+    // The legacy sequence table is never constructed by this path. Retain
+    // every child's fixed completion metadata, the largest complete live
+    // child scratch, and the original chain handles/input-selection cursors.
+    // Every logical output is funded BEFORE commit on the shared growth link;
+    // reclaiming scratch never releases an earlier accepted output.
+    guard @execution.checked_preparation_add_product(
+        512L,
+        count.to_int64(),
+        256L,
+      )
+      is Some(handles) &&
+      @execution.checked_preparation_add_product(fixed, handles, 1L)
+      is Some(next) else {
+      return None
+    }
+    fixed = next
   }
   // Original chain handles/cursors plus one bounded control envelope per
   // output budget for the existing growth link and funded-usage counter.

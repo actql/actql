@@ -8,6 +8,7 @@ fn bounded_unnest_fixture(
   max_entries? : Int = 100,
   name_bytes? : Int = 10000,
   selected_ceiling? : Int64? = None,
+  growth? : WorkspaceGrowth? = None,
 ) -> (@bounded.Control, BoundedUnnestExecution, CompletedOutput) raise {
   let item_limit = if large_items { "256" } else { "2" }
   let source_owner = bound_pipeline(
@@ -73,6 +74,7 @@ fn bounded_unnest_fixture(
       constrain_generated_expansion_output(generated, 0, ceiling).unwrap()
     None => generated
   }
+  let generated = { ..generated, working: growth, }
   let read = prepare_producer_read(
     receiver,
     bind_completed_input(receiver, 0, source_owner, source).unwrap(),
@@ -396,4 +398,71 @@ test "bounded unnest rejects output overflow incrementally" {
   assert_true(failed)
   assert_true(cleanup_bounded_unnest(execution).unwrap())
   assert_true(completed_output_available(source))
+}
+
+///|
+test "bounded unnest funds persistent original values before row transfer" {
+  for accepted in [true, false] {
+    let calls = Ref(0)
+    let growth = {
+      ..working_growth_fixture(_ => {
+        calls.val += 1
+        if accepted {
+          Ok(())
+        } else {
+          Err(WorkspaceUnavailable)
+        }
+      }),
+      initial_slots: 10000,
+      initial_live: 1048576L,
+      live_ceiling: 1048576L,
+      retained_outputs: Some(0L),
+    }
+    let (_, execution, source) = bounded_unnest_fixture(
+      "[{\"id\":1,\"items\":[2,null]}]",
+      growth=Some(growth),
+    )
+    let buffer = execution.state.output.unwrap().buffer
+    assert_true(physical_equal(buffer.budget.retention.unwrap(), growth))
+    assert_eq(calls.val, 0)
+    let mut terminal = false
+    for _ in 0..<1000 {
+      if !terminal {
+        match advance_bounded_unnest(execution, 1).unwrap() {
+          BoundedUnnestContinue(..) => ()
+          BoundedUnnestComplete(output, ..) => {
+            assert_true(accepted)
+            assert_eq(completed_row_count(output), 2)
+            // Both carried arrays are the original immutable Source value.
+            guard completed_cell(source, 0, 1) is Some(Captured(original)) else {
+              fail("original admitted array")
+            }
+            for row in 0..<2 {
+              guard completed_cell(output, row, 2) is Some(Captured(actual)) else {
+                fail("carried original array")
+              }
+              assert_true(physical_equal(original, actual))
+            }
+            terminal = true
+          }
+          BoundedUnnestFailed(Capture(CaptureLimit), ..) => {
+            assert_false(accepted)
+            assert_true(buffer.rows.is_empty())
+            assert_eq(growth.retained_outputs, Some(0L))
+            terminal = true
+          }
+          _ => fail("UNNEST funding ended outside the original output contract")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_true(calls.val > 0)
+    if accepted {
+      assert_true(growth.retained_outputs.unwrap() > 0L)
+    }
+    let retained = growth.retained_outputs
+    assert_true(cleanup_bounded_unnest(execution).unwrap())
+    assert_eq(growth.retained_outputs, retained)
+    assert_true(completed_output_available(source))
+  }
 }

@@ -104,8 +104,9 @@ fn bounded_count_group_borrows_input(kernel : @lower.PreparedKernel) -> Bool {
 }
 
 ///|
-/// Constructor-specific recipe for bounded Values, Append, primitive Set/Join, scalar grouped COUNT and binding-row
-/// providers; not a claim about arbitrary executors of the same kernel.
+/// Constructor-specific recipe for bounded Values, Append, primitive Set/Join,
+/// scalar grouped COUNT, UNNEST and binding-row providers; not a claim about
+/// arbitrary executors of the same kernel.
 /// The bounded single-operation constructors use an operation workspace, not
 /// the legacy sequence wiring/table store. Their completed port retains exact
 /// schema names and input identities. Keep a second metadata occurrence in
@@ -152,6 +153,18 @@ pub fn generated_bounded_sequence_capacity(
     !borrowed_group {
     return generated_sequence_capacity(generated, limits, measurement)
   }
+  let borrowed_unnest = match operation {
+    @lower.RowStep(kernel) =>
+      @lower.kernel_unnest(kernel) is Some(_) &&
+      @schema.all_fields_required(@lower.kernel_input_schema(kernel)) &&
+      @schema.all_fields_required(schema)
+    _ => false
+  }
+  if operation is @lower.RowStep(kernel) &&
+    @lower.kernel_unnest(kernel) is Some(_) &&
+    !borrowed_unnest {
+    return generated_sequence_capacity(generated, limits, measurement)
+  }
   let borrowed_row = match operation {
     @lower.RowStep(kernel) => {
       let bounded = @lower.kernel_bindings(kernel) is Some(_) ||
@@ -165,7 +178,7 @@ pub fn generated_bounded_sequence_capacity(
           | @lower.AssertUnique(_) => true
           _ => false
         })
-      (bounded || borrowed_group) &&
+      (bounded || borrowed_group || borrowed_unnest) &&
       @lower.node_input_count(node) == 1 &&
       // Only the input forest is borrowed. A binding may construct recursive
       // output through its existing logical-root growth owner; its complete
@@ -174,13 +187,17 @@ pub fn generated_bounded_sequence_capacity(
       .bind(target => @lower.preparation_schema_at(prepared, target))
       .map(input => {
         bounded_immediate_binding_schema(input) ||
-        // These two constructors forward original immutable cells; recursive
+        // These constructors forward original immutable cells; recursive
         // recheck returns the same value, not an input tree copy. Preserve the
         // full output, measurement and traversal allowances independently.
         (
           (
             @lower.kernel_body(kernel) is @lower.StableSort(_) ||
-            @lower.kernel_body(kernel) is @lower.Select(_)
+            @lower.kernel_body(kernel) is @lower.Select(_) ||
+            // UNNEST scans original arrays and rechecks the same immutable
+            // carried/element values. Its maps, row arrays, complete input
+            // charge and recheck/measurement cursors remain funded below.
+            borrowed_unnest
           ) &&
           @schema.all_fields_required(input) &&
           @schema.all_fields_required(schema)

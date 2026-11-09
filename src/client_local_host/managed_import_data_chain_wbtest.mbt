@@ -17,6 +17,8 @@ fn managed_import_data_chain(
   check_capture_workspace? : Bool = false,
   refusal_after_workspace? : Bool = false,
   two_input_task? : Int? = Some(2),
+  parameter_declarations? : String? = None,
+  parameter_values? : String? = None,
   query? : String = "WITH paired AS (WITH seed AS (FROM records |> SELECT amount, id) SELECT l.id AS amount, l.amount AS id FROM seed AS l JOIN seed AS r ON l.id = r.id ORDER BY amount + 1) FROM paired |> RESULT copied_rows",
   expected_tasks? : Int? = Some(8),
   result_name? : String = "copied_rows",
@@ -43,7 +45,12 @@ fn managed_import_data_chain(
   ) -> Unit = (_, _, _, _, _) => (),
   append_observation? : () -> Bool = () => true,
 ) -> Unit raise {
-  let prepared = before_limit_standard_prepared(query, @frontend.Text)
+  let prepared = before_limit_standard_prepared(
+    query,
+    @frontend.Text,
+    parameter_declarations~,
+    parameter_values=parameter_values.map(funded_value_cursor),
+  )
   let publication_policy = @publication_host.prepared_client_publication_data_policy_cid(
     prepared,
   )
@@ -251,6 +258,20 @@ fn managed_import_data_chain(
     ).unwrap()
     let before = @resources.ledger_usage(ledger)
     let observed_prior_execution = before.reserved_execution_bytes
+    if parameter_values is Some(_) {
+      let selected = plan.sequences[task]
+      println(
+        "acquired UNNEST task=\{task} selected-steps=\{@execution.generated_sequence_step_count(selected)}",
+      )
+      for slot in 0..<@execution.generated_sequence_step_count(selected) {
+        let step = @execution.generated_sequence_step_index_at(selected, slot).unwrap()
+        let owner = @execution.generated_sequence_owner(selected)
+        let node = @lower.node_at(@lower.bound_preparation(owner), step).unwrap()
+        println(
+          "acquired UNNEST task=\{task} slot=\{slot} operation=\{@lower.operation(node)}",
+        )
+      }
+    }
     if expected_tasks is None {
       println(
         "managed DISTINCT task=\{task} execution=\{@local_driver.local_managed_dispatch_site_capacity(dispatch).unwrap().1} prior=\{observed_prior_execution}",
@@ -580,4 +601,43 @@ test "direct field count import refusal precedes decoding on the original Source
 ///|
 test "cancelled direct field count cannot grow or decode its next input" {
   managed_group_direct_count_import(CancelImport)
+}
+
+///|
+fn managed_correlated_unnest_import(mode : ManagedImportDataCase) -> Unit raise {
+  managed_import_data_chain(
+    mode,
+    query="SELECT r.id, element, position FROM records r CROSS JOIN UNNEST(@items) element WITH OFFSET position ORDER BY r.id, position",
+    parameter_declarations=Some(
+      "{\"items\":{\"type\":\"array\",\"nullable\":true,\"max_items\":3,\"items\":{\"type\":\"number\",\"nullable\":true}}}",
+    ),
+    parameter_values=Some("{\"items\":[2,null,2]}"),
+    expected_tasks=None,
+    result_name="main",
+    source_wire="[{\"id\":2,\"amount\":20},{\"id\":1,\"amount\":null}]",
+    source_rows=2,
+    two_input_task=None,
+    expected_rows=[
+      "{\"id\":1,\"element\":2,\"position\":0}", "{\"id\":1,\"element\":null,\"position\":1}",
+      "{\"id\":1,\"element\":2,\"position\":2}", "{\"id\":2,\"element\":2,\"position\":0}",
+      "{\"id\":2,\"element\":null,\"position\":1}", "{\"id\":2,\"element\":2,\"position\":2}",
+    ],
+    prior_execution=21170378L,
+    expected_policy=None,
+  )
+}
+
+///|
+test "acquired correlated UNNEST keeps original Source parameter scope and all parent outputs" {
+  managed_correlated_unnest_import(Complete)
+}
+
+///|
+test "acquired correlated UNNEST refuses import growth before original row decode" {
+  managed_correlated_unnest_import(RefuseImport)
+}
+
+///|
+test "acquired correlated UNNEST cancellation retains original Source and parents" {
+  managed_correlated_unnest_import(CancelImport)
 }

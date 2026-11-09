@@ -52439,6 +52439,26 @@
               {
                 "path": "src/execution_relation/bounded_global_count.mbt",
                 "anchor": "fn start_bounded_global_count_with_input("
+              },
+              {
+                "path": "src/connectors/local/module.mbt",
+                "anchor": "let constructor_chain = unnest_chain && metered_retention"
+              },
+              {
+                "path": "src/connectors/local/unnest_provider.mbt",
+                "anchor": "@execution.generated_bounded_sequence_capacity("
+              },
+              {
+                "path": "src/execution_relation/bounded_unnest.mbt",
+                "anchor": "prepare_bounded_sequence_admitted_output("
+              },
+              {
+                "path": "src/execution_relation/execution_capacity.mbt",
+                "anchor": "let borrowed_unnest = match operation {"
+              },
+              {
+                "path": "src/execution_relation/bounded_output_row_charge.mbt",
+                "anchor": "if !fund_output_retention("
               }
             ],
             "extension": [
@@ -52551,6 +52571,26 @@
               {
                 "path": "src/connectors/local/metered_output_start_wbtest.mbt",
                 "anchor": "test \"direct field count preserves original provider selection and injected capacity\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"acquired correlated UNNEST keeps original Source parameter scope and all parent outputs\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"acquired correlated UNNEST refuses import growth before original row decode\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"acquired correlated UNNEST cancellation retains original Source and parents\""
+              },
+              {
+                "path": "src/connectors/local/unnest_start_capacity_wbtest.mbt",
+                "anchor": "test \"borrowed UNNEST chains use original child capacities and reject injected recipes\""
+              },
+              {
+                "path": "src/execution_relation/bounded_unnest_wbtest.mbt",
+                "anchor": "test \"bounded unnest funds persistent original values before row transfer\""
               }
             ]
           }
