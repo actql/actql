@@ -9,7 +9,8 @@ import {refusedEffectPreparation} from '../host-common/effect-preparation-result
 
 import {installationsShape, updateTargetPreparedOriginalShape, updateTargetRunOriginalShape,
   runUpdateSelectionCid, originalUpdateTargetSelectionsCid as updateTargetSelectionsCid, retainUpdateTargetSelection,
-  assertUpdateTargetSelectionCurrent, assertUpdateTargetSelectionMembersCurrent, updateTargetSelectionMatchesRun,
+  assertUpdateTargetSelectionCurrent, assertUpdateTargetSelectionCurrentData,
+  assertUpdateTargetSelectionMembersCurrent, updateTargetSelectionMatchesRun,
   updateTargetOriginalDataEqual}
   from './update-target-original-shape.mjs';
 const fail = () => { throw refusedEffectPreparation(Object.assign(
@@ -26,6 +27,7 @@ export function installUpdateTargetOriginals({moon, control, installedEffect, li
     if (selections === undefined) return undefined;
     const originals = new Map();
     const observations = new Map();
+    const installationData = new Map();
     for (const selection of selections) {
       // The opaque Common selection already fixes its installed Owner. Look
       // up that actual private owner, then let Common check its original
@@ -34,11 +36,19 @@ export function installUpdateTargetOriginals({moon, control, installedEffect, li
       const observation = installedRowEffectUpdateObservation(
         installedEffect?.effects ?? [installedEffect], selection.installation_owner_cid);
       if (observation === undefined) fail();
-      const original = observation.installation;
+      const {installation: original, installationData: data, ...currentFacts} = observation;
       originals.set(original.cid, original);
-      observations.set(original.cid, observation);
+      observations.set(original.cid, data === undefined ? {installation: original, ...currentFacts} : currentFacts);
+      if (data !== undefined) installationData.set(original.cid, data);
     }
-    assertUpdateTargetSelectionCurrent(selections, [...observations.values()]);
+    if (installationData.size === observations.size) {
+      assertUpdateTargetSelectionCurrentData(selections, [...observations.values()], [...installationData.values()]);
+    } else {
+      if (installationData.size !== 0) fail();
+      assertUpdateTargetSelectionCurrent(selections, [...observations.values()]);
+    }
+    // Only the original cid/wire DATA escapes this synchronous observation.
+    // Its temporary typed validation view never enters retained Run materials.
     return [...originals.values()].sort((a, b) => a.cid.localeCompare(b.cid));
   };
   const bind = (selections, installations) => {

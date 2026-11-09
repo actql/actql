@@ -124,7 +124,7 @@ import {captureClaimedEffectResponse, snapshotEffectDispatchClaim} from
 import {recoverProjectedEffectResponse} from './effect-response-recovery.mjs';
 import {localContractLimits} from './local-values-plan.mjs';
 import {prepareInstalledRowCaptureChild, retainInstalledRowCaptureChild, releaseInstalledRowCapture} from './installed-row-capture-cleanup.mjs';
-import {issueUpdateTargetInstallation, assertUpdateTargetSelectionCurrent,
+import {issueUpdateTargetInstallation, issueUpdateTargetInstallationData, assertUpdateTargetSelectionCurrent,
   assertUpdateTargetSelectionMembersCurrent} from './update-target-original-shape.mjs';
 import {assertInstalledSourceConstruction, retainInstalledSourceConstruction,
   closeInstalledSourceConstruction} from './installed-host-services.mjs';
@@ -304,12 +304,23 @@ export function installedRowEffectUpdateObservation(adapters, ownerCid) {
   for (const adapter of adapters) {
     const owner = rowInstallations.get(adapter);
     if (owner === undefined || Array.isArray(owner)) continue;
-    const installation = ownerBinding(owner);
-    if (installation.cid === ownerCid) matches.push({owner, installation});
+    // The private physical Owner supplies scalar slots, never untrusted DATA.
+    // Its profile is the closed frozen installation-table snapshot. Missing
+    // typed ports keep the existing complete raw path for older components.
+    const projection = typeof owner.moon.clientProgramIssueEffectTargetInstallationData !== 'function'
+      ? undefined : issueUpdateTargetInstallationData(owner.moon, [
+        owner.bindingCid, owner.connection, owner.connectorRegistration,
+        owner.connectorRevision, owner.continuationBinding, owner.profile.continuation,
+        owner.profile.continuationBinding, owner.profile.dispatch, owner.profile.recovery,
+        owner.profile.source, owner.profile.targetCheck, owner.profile.unit, owner.runtimeBundleCid,
+      ]);
+    const installation = projection?.installation ?? ownerBinding(owner);
+    if (installation.cid === ownerCid) matches.push({owner, installation, data: projection?.data});
   }
   if (matches.length !== 1) return undefined;
-  const {owner, installation} = matches[0];
-  return updateObservation(owner, installation);
+  const {owner, installation, data} = matches[0];
+  const observation = updateObservation(owner, installation);
+  return data === undefined ? observation : {...observation, installationData: data};
 }
 const validateOwnerSelections = (owners, selections, prepared) => {
   if (selections === undefined) return undefined;

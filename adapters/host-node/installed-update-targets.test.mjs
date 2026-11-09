@@ -507,6 +507,68 @@ test('actual JSON Model UPDATE acceptance saves and restores both originals in t
   } finally { journal?.close(); await installed.close(); }
 });
 
+test('same physical current uses real typed installation DATA without transporting its immutable wire again', async t => {
+  const f = await fixture(t);
+  const installed = await loadInstalledEffect(await f.path([alias()]), f.options);
+  try {
+    const owner = originalOwnerFixture(installed);
+    let fullCurrent = 0, typedCurrent = 0, validatedTransportBytes = 0;
+    const observedMoon = {...moon,
+      clientProgramEffectTargetSelectionCurrent(...args) {
+        const result = moon.clientProgramEffectTargetSelectionCurrent(...args);
+        if (result) { fullCurrent++; validatedTransportBytes += Buffer.byteLength(args[2]); }
+        return result;
+      },
+      ...(typeof moon.clientProgramEffectTargetSelectionCurrentData !== 'function' ? {} : {
+        clientProgramEffectTargetSelectionCurrentData(...args) {
+          const result = moon.clientProgramEffectTargetSelectionCurrentData(...args);
+          if (result) {
+            typedCurrent++; validatedTransportBytes += Buffer.byteLength(args[3]);
+            assert(!args[3].includes('"installation"'));
+          }
+          return result;
+        },
+      }),
+    };
+    const originals = installUpdateTargetOriginals({moon: observedMoon, control: owner.control,
+      installedEffect: installed, limits: owner.limits});
+    const original = originals.capturePrepared(owner.prepared, owner.compilation);
+    const restored = originals.restorePrepared(JSON.parse(JSON.stringify(original)));
+    fullCurrent = typedCurrent = validatedTransportBytes = 0;
+    for (let index = 0; index < 3; index++) restored.assertUpdateSelectionCurrent();
+    console.log('ACTQL_CURRENT_DATA_WORK ' + JSON.stringify({fullCurrent, typedCurrent,
+      validatedTransportBytes, completedCurrentChecks: fullCurrent + typedCurrent}));
+    assert.equal(fullCurrent + typedCurrent, 3);
+    assert.equal(typedCurrent, 3);
+    assert.equal(fullCurrent, 0);
+    assert.equal(f.counts.prepares, 0);
+    assert.equal(f.counts.credentials, 0);
+  } finally { await installed.close(); }
+});
+
+test('typed current refusal or missing bridge cannot fall back and physical copies remain foreign', async t => {
+  const f = await fixture(t);
+  const installed = await loadInstalledEffect(await f.path([alias()]), f.options);
+  try {
+    const owner = originalOwnerFixture(installed);
+    const original = owner.originals.capturePrepared(owner.prepared, owner.compilation);
+    for (const port of [undefined, () => false, () => Promise.resolve(true)]) {
+      const originals = installUpdateTargetOriginals({moon: {...moon,
+        clientProgramEffectTargetSelectionCurrentData: port}, control: owner.control,
+      installedEffect: installed, limits: owner.limits});
+      assert.throws(() => originals.restorePrepared(original),
+        {name:'TypeError',message:'InvalidEffectTargetSelections'});
+    }
+    for (const effect of [{...installed}, {effects:[installed,installed]}]) {
+      const originals = installUpdateTargetOriginals({moon, control: owner.control,
+        installedEffect: effect, limits: owner.limits});
+      assert.throws(() => originals.restorePrepared(original), primary('InstalledEffectOriginalSelectionChanged'));
+    }
+    assert.equal(f.counts.prepares, 0);
+    assert.equal(f.counts.credentials, 0);
+  } finally { await installed.close(); }
+});
+
 test('actual bound installation repeats complete current checks without generic DATA reconstruction', async t => {
   const f = await fixture(t);
   const installed = await loadInstalledEffect(await f.path([alias()]), f.options);
@@ -519,6 +581,13 @@ test('actual bound installation repeats complete current checks without generic 
         if (result) completedCurrentChecks++;
         return result;
       },
+      ...(typeof moon.clientProgramEffectTargetSelectionCurrentData !== 'function' ? {} : {
+        clientProgramEffectTargetSelectionCurrentData(...args) {
+          const result = moon.clientProgramEffectTargetSelectionCurrentData(...args);
+          if (result) completedCurrentChecks++;
+          return result;
+        },
+      }),
       clientProgramEffectTargetInstallationsDataEqual(...args) {
         const result = moon.clientProgramEffectTargetInstallationsDataEqual(...args);
         if (result) completedEqualities++;
@@ -543,10 +612,16 @@ test('actual bound installation repeats complete current checks without generic 
     assert.equal(completedEqualities, 3);
     assert.equal(genericConversions, 0);
     observedMoon.clientProgramEffectTargetSelectionCurrent = () => false;
+    if (typeof moon.clientProgramEffectTargetSelectionCurrentData === 'function') {
+      observedMoon.clientProgramEffectTargetSelectionCurrentData = () => false;
+    }
     assert.throws(() => restored.assertUpdateSelectionCurrent(),
       {name: 'TypeError', message: 'InvalidEffectTargetSelections'});
     assert.equal(completedEqualities, 3);
     observedMoon.clientProgramEffectTargetSelectionCurrent = moon.clientProgramEffectTargetSelectionCurrent;
+    if (typeof moon.clientProgramEffectTargetSelectionCurrentData === 'function') {
+      observedMoon.clientProgramEffectTargetSelectionCurrentData = moon.clientProgramEffectTargetSelectionCurrentData;
+    }
     for (const port of [undefined, () => false]) {
       observedMoon.clientProgramEffectTargetInstallationsDataEqual = port;
       assert.throws(() => restored.assertUpdateSelectionCurrent(), primary('InstalledEffectOriginalSelectionChanged'));

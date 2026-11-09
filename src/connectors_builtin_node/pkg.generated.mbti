@@ -1260,6 +1260,8 @@ pub fn client_program_effect_target_selection_cid(@run_publication_host.ClientEf
 
 pub fn client_program_effect_target_selection_current(@run_publication_host.ClientEffectUpdateTargetSelections, @run_publication_host.PreparedClientEffectComputation, String) -> Bool
 
+pub fn client_program_effect_target_selection_current_data(@run_publication_host.ClientEffectUpdateTargetSelections, @run_publication_host.PreparedClientEffectComputation, Array[@run_publication_host.ClientEffectTargetInstallationData], String) -> Bool
+
 pub fn client_program_effect_target_selection_data_cid(String) -> Result[String, @run_publication_host.ClientEffectUpdateTargetIssue]
 
 pub fn client_program_effect_target_selection_matches_prepared(@run_publication_host.ClientEffectUpdateTargetSelections, @run_publication_host.PreparedClientEffectComputation) -> Bool
@@ -2043,6 +2045,8 @@ pub fn client_program_issue_effect_source_free_invocation(@run_publication_host.
 pub fn client_program_issue_effect_table_source_artifact(@physical_strategy_host.CapturedEffectTableInput, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.PublicationContract, String, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.EffectSourceArtifactIssue]
 
 pub fn client_program_issue_effect_target_installation(String) -> Result[(String, String), @run_publication_host.ClientEffectUpdateTargetIssue]
+
+pub fn client_program_issue_effect_target_installation_data(Array[String]) -> Result[(String, String, @run_publication_host.ClientEffectTargetInstallationData), @run_publication_host.ClientEffectUpdateTargetIssue]
 
 pub fn client_program_issue_effect_values_fragment(@run_publication_host.PreparedClientEffectComputation, Int) -> Result[@run_publication_host.ClientValuesFragmentNode, @run_publication_host.ClientValuesFragmentIssue]
 

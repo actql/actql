@@ -663,6 +663,8 @@ pub fn client_effect_target_selection_cid(ClientEffectUpdateTargetSelections) ->
 
 pub fn client_effect_target_selection_current(ClientEffectUpdateTargetSelections, PreparedClientEffectComputation, String) -> Bool
 
+pub fn client_effect_target_selection_current_data(ClientEffectUpdateTargetSelections, PreparedClientEffectComputation, Array[ClientEffectTargetInstallationData], String) -> Bool
+
 pub fn client_effect_target_selection_data_cid(String) -> Result[String, ClientEffectUpdateTargetIssue]
 
 pub fn client_effect_target_selection_matches_prepared(ClientEffectUpdateTargetSelections, PreparedClientEffectComputation) -> Bool
@@ -1686,6 +1688,8 @@ pub fn issue_client_effect_run_materials(ClientEffectAllowedRun, @run_publicatio
 pub fn issue_client_effect_source_free_invocation(ClientEffectCompilation, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
 
 pub fn issue_client_effect_target_installation(String) -> Result[(String, String), ClientEffectUpdateTargetIssue]
+
+pub fn issue_client_effect_target_installation_data(Array[String]) -> Result[(String, String, ClientEffectTargetInstallationData), ClientEffectUpdateTargetIssue]
 
 pub fn issue_client_effect_task_fragment(ClientEffectRunMaterials, Int) -> Result[ClientTaskFragmentNode, ClientEffectSourceDispatchIssue]
 
@@ -3046,6 +3050,10 @@ pub(all) enum ClientEffectStaticMinimumApproval {
   ContractMinimumRequired
   ContractMinimumNotRepresented
 } derive(Eq, @debug.Debug)
+
+pub struct ClientEffectTargetInstallationData {
+  // private fields
+}
 
 pub(all) enum ClientEffectTransferredArtifactIssue {
   Unavailable

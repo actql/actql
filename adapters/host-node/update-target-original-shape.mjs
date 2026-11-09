@@ -30,6 +30,13 @@ export function assertUpdateTargetSelectionCurrent(selections, observations, pre
     binding.original, prepared ?? binding.prepared, encodeUpdateTargetData(observations))) invalid();
 }
 
+export function assertUpdateTargetSelectionCurrentData(selections, observations, installations, prepared) {
+  const binding = selectionOriginals.get(selections);
+  if (binding === undefined || typeof binding.moon.clientProgramEffectTargetSelectionCurrentData !== 'function' ||
+      binding.moon.clientProgramEffectTargetSelectionCurrentData(binding.original,
+        prepared ?? binding.prepared, installations, encodeUpdateTargetData(observations)) !== true) invalid();
+}
+
 export function updateTargetSelectionMatchesRun(selections, prepared, definition) {
   const binding = selectionOriginals.get(selections);
   return binding !== undefined && binding.prepared === prepared &&
@@ -46,6 +53,14 @@ export function assertUpdateTargetSelectionMembersCurrent(selections, members, p
 export function issueUpdateTargetInstallation(moon, facts) {
   const original = checked(moon.clientProgramIssueEffectTargetInstallation(encodeUpdateTargetData(facts)));
   return Object.freeze({cid: runtimeField(original, 0), wire: runtimeField(original, 1)});
+}
+
+// Physical scalar slots of the existing Core installation port. All field
+// constraints, NFC, canonical order/digest and virtual wire bounds stay there.
+export function issueUpdateTargetInstallationData(moon, values) {
+  const original = checked(moon.clientProgramIssueEffectTargetInstallationData(values));
+  return {installation: Object.freeze({cid: runtimeField(original, 0), wire: runtimeField(original, 1)}),
+    data: runtimeField(original, 2)};
 }
 
 export function updateTargetOriginalDataEqual(moon, left, right) {

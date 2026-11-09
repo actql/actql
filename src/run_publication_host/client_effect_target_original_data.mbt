@@ -193,6 +193,16 @@ pub fn client_effect_target_original_envelope_capacity(
 pub fn issue_client_effect_target_installation(
   facts : String,
 ) -> Result[(String, String), ClientEffectUpdateTargetIssue] {
+  admit_client_effect_target_installation_data(facts).map(data => {
+    (data.cid, data.wire)
+  })
+}
+
+///|
+// Raw/untrusted and cold DATA keep complete closed-shape and byte admission.
+fn admit_client_effect_target_installation_data(
+  facts : String,
+) -> Result[ClientEffectTargetInstallationData, ClientEffectUpdateTargetIssue] {
   try {
     let object = @decode.closed_object(
       client_effect_target_original_cursor(facts),
@@ -201,11 +211,6 @@ pub fn issue_client_effect_target_installation(
         "continuation_binding", "profile", "runtime_bundle_cid",
       ],
     ).unwrap_or_else(() => raise InvalidUpdateTargetOriginal)
-    let text = fn(key : String) -> String raise ClientEffectTargetOriginalStop {
-      @canonical_value.normalize_nfc(
-        client_effect_target_original_text(object, key),
-      ).unwrap_or_else(() => raise InvalidUpdateTargetOriginal)
-    }
     let profile = @decode.closed_object(
       @decode.required(object, "profile").unwrap_or_else(() => {
         raise InvalidUpdateTargetOriginal
@@ -215,45 +220,25 @@ pub fn issue_client_effect_target_installation(
         "targetCheck", "unit",
       ],
     ).unwrap_or_else(() => raise InvalidUpdateTargetOriginal)
-    let wire = try {
-      let writer = @encode.writer(
-        CLIENT_EFFECT_TARGET_ORIGINAL_MAX_BYTES,
-        32,
-        3,
-      )
-      @encode.begin_object(writer)
-      for
-        key in [
-          "binding_cid", "connection", "connector_registration", "connector_revision",
-          "continuation_binding",
-        ] {
-        @encode.key(writer, key)
-        @encode.string_value(writer, text(key))
-      }
-      @encode.key(writer, "profile")
-      @encode.begin_object(writer)
-      for
-        key in [
-          "continuation", "continuationBinding", "dispatch", "recovery", "source",
-          "targetCheck", "unit",
-        ] {
-        @encode.key(writer, key)
-        @encode.string_value(
-          writer,
-          @canonical_value.normalize_nfc(
-            client_effect_target_original_text(profile, key),
-          ).unwrap_or_else(() => raise InvalidUpdateTargetOriginal),
-        )
-      }
-      @encode.end_object(writer)
-      @encode.key(writer, "runtime_bundle_cid")
-      @encode.string_value(writer, text("runtime_bundle_cid"))
-      @encode.end_object(writer)
-      @encode.finish(writer)
-    } catch {
-      _ => raise InvalidUpdateTargetOriginal
+    let values : Array[String] = []
+    for
+      key in [
+        "binding_cid", "connection", "connector_registration", "connector_revision",
+        "continuation_binding",
+      ] {
+      values.push(client_effect_target_original_text(object, key))
     }
-    Ok(("sha256:" + @sha.hex(@utf8.encode(wire)), wire))
+    for
+      key in [
+        "continuation", "continuationBinding", "dispatch", "recovery", "source",
+        "targetCheck", "unit",
+      ] {
+      values.push(client_effect_target_original_text(profile, key))
+    }
+    values.push(
+      client_effect_target_original_text(object, "runtime_bundle_cid"),
+    )
+    prepare_client_effect_target_installation_data(values)
   } catch {
     _ => Err(InvalidMaterials)
   }
@@ -554,6 +539,36 @@ pub fn client_effect_target_selection_current(
   prepared : PreparedClientEffectComputation,
   observations : String,
 ) -> Bool {
+  client_effect_target_selection_current_owned(
+    original,
+    prepared,
+    observations,
+    None,
+  )
+}
+
+///|
+pub fn client_effect_target_selection_current_data(
+  original : ClientEffectUpdateTargetSelections,
+  prepared : PreparedClientEffectComputation,
+  installations : Array[ClientEffectTargetInstallationData],
+  observations : String,
+) -> Bool {
+  client_effect_target_selection_current_owned(
+    original,
+    prepared,
+    observations,
+    Some(installations),
+  )
+}
+
+///|
+fn client_effect_target_selection_current_owned(
+  original : ClientEffectUpdateTargetSelections,
+  prepared : PreparedClientEffectComputation,
+  observations : String,
+  installations : Array[ClientEffectTargetInstallationData]?,
+) -> Bool {
   if !client_effect_target_selection_matches_prepared(original, prepared) {
     return false
   }
@@ -564,6 +579,24 @@ pub fn client_effect_target_selection_current(
     if current.is_empty() || current.length() > 1024 {
       raise InvalidUpdateTargetOriginal
     }
+    if installations is Some(data) {
+      if data.length() != current.length() {
+        raise InvalidUpdateTargetOriginal
+      }
+      let mut virtual_bytes = @utf8.encode(observations).length().to_int64()
+      for installation in data {
+        if !physical_equal(
+            installation.origin,
+            client_effect_target_installation_data_origin,
+          ) {
+          raise InvalidUpdateTargetOriginal
+        }
+        virtual_bytes += installation.observation_extra_bytes.to_int64()
+      }
+      if virtual_bytes > CLIENT_EFFECT_TARGET_ORIGINAL_MAX_BYTES.to_int64() {
+        raise InvalidUpdateTargetOriginal
+      }
+    }
     for selection in original.entries {
       let purpose = client_effect_target_selection_purpose(prepared, selection)
       let owner_cid = selection.installation_owner_cid
@@ -572,36 +605,44 @@ pub fn client_effect_target_selection_current(
       let mapping_ref = selection.mapping_ref
       let mapping_cid = selection.mapping_cid
       let mut matches = 0
-      for observation in current {
-        let object = @decode.closed_object(observation, [
-          "installation", "update", "delete", "store", "mappings",
-        ]).unwrap_or_else(() => raise InvalidUpdateTargetOriginal)
-        let installation = @decode.required(object, "installation").unwrap_or_else(() => {
-            raise InvalidUpdateTargetOriginal
+      for index, observation in current {
+        let object = @decode.closed_object(
+          observation,
+          if installations is Some(_) {
+            ["update", "delete", "store", "mappings"]
+          } else {
+            ["installation", "update", "delete", "store", "mappings"]
           },
-        )
-        let installation_object = @decode.closed_object(installation, [
-          "cid", "wire",
-        ]).unwrap_or_else(() => raise InvalidUpdateTargetOriginal)
-        if client_effect_target_original_text(installation_object, "cid") !=
-          owner_cid {
+        ).unwrap_or_else(() => raise InvalidUpdateTargetOriginal)
+        let installation = match installations {
+          Some(data) => data[index]
+          None => {
+            let value = @decode.required(object, "installation").unwrap_or_else(() => {
+                raise InvalidUpdateTargetOriginal
+              },
+            )
+            let body = @decode.closed_object(value, ["cid", "wire"]).unwrap_or_else(() => {
+                raise InvalidUpdateTargetOriginal
+              },
+            )
+            if client_effect_target_original_text(body, "cid") != owner_cid {
+              continue
+            }
+            let wire = client_effect_target_original_text(body, "wire")
+            let data = admit_client_effect_target_installation_data(wire).unwrap_or_else(() => {
+                raise InvalidUpdateTargetOriginal
+              },
+            )
+            if data.cid != owner_cid || data.wire != wire {
+              raise InvalidUpdateTargetOriginal
+            }
+            data
+          }
+        }
+        if installation.cid != owner_cid {
           continue
         }
-        // Validate the claimed content against the SAME Owner's canonical body.
-        let installation_wire = client_effect_target_original_text(
-          installation_object, "wire",
-        )
-        let (cid, canonical) = issue_client_effect_target_installation(
-          installation_wire,
-        ).unwrap_or_else(() => raise InvalidUpdateTargetOriginal)
-        if cid != owner_cid || canonical != installation_wire {
-          raise InvalidUpdateTargetOriginal
-        }
-        let body = @decode.open_object(
-          client_effect_target_original_cursor(installation_wire),
-        ).unwrap_or_else(() => raise InvalidUpdateTargetOriginal)
-        if client_effect_target_original_text(body, "binding_cid") !=
-          binding_cid ||
+        if installation.binding_cid != binding_cid ||
           @decode.boolean(
             @decode.required(object, purpose).unwrap_or_else(() => {
               raise InvalidUpdateTargetOriginal

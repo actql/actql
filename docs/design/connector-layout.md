@@ -198,6 +198,25 @@ purpose from the checked Header. Cold admission, changed owners and full wire
 identity validation keep their existing complete paths; neither representation
 reuse carries a currentness or permission verdict into a later call.
 
+The same physical observation can pass its actual installation scalar slots to
+the existing Core owner without a JSON round trip. Core preserves the raw input
+bound, NFC normalization, canonical field order and digest, then issues a
+temporary typed DATA view in that runtime. The current checker consumes that
+same view beside freshly observed purpose and Mapping DATA. It does not issue
+the installation again, reparse its canonical body, or transport that immutable
+body inside another JSON envelope. Core measures the omitted field's original
+encoded size and retains the complete 64 KiB enclosing limit. Raw, untrusted and
+cold installation paths still perform their complete closed-shape admission.
+
+The typed view exists only within one synchronous physical current call; only
+the existing cid/wire pair enters retained original materials. It adds no
+retained request DATA or installation registry, and stores no permission,
+currentness, cancellation or cleanup verdict. Actual private owner lookup,
+ambiguity refusal before Mapping reads, checked Header purpose and live Mapping
+checks remain at their original boundaries. Missing typed support in an older
+component uses its existing full raw path; a refusing or incomplete typed
+current bridge cannot become a successful fallback.
+
 A held-submission caller supplies its complete saved prepared original to the
 existing nominal compiler/current/full-byte validation before forwarding that
 same DATA. It does not demand a new ordinary construction parent merely to
