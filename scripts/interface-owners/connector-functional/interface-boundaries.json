@@ -21487,6 +21487,11 @@
           "async": false
         },
         {
+          "name": "prepareInstalledEffectControlConstruction/invoke/invoke/observePlan/observePlan",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareInstalledEffectControlConstruction/ledgerCodec/ledgerCodec",
           "parameters": [
             "receiver",
@@ -22053,7 +22058,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "128292cf07a9dd6a5f1891c83be92d233ee9d43b5170e2a249d319aff3e40d99",
+      "sha256": "169b8d09f323dbf121d258f050983c1274b2c7ad3bc24c500999a288d1d66863",
       "contracts": [
         {
           "operations": [
@@ -22602,6 +22607,7 @@
         {
           "operations": [
             "prepareInstalledEffectControlConstruction/invoke/invoke",
+            "prepareInstalledEffectControlConstruction/invoke/invoke/observePlan/observePlan",
             "prepareInstalledEffectControlConstruction/parsePreview/parsePreview"
           ],
           "exports": [],
@@ -22652,6 +22658,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The captured Core Plan-shape getter reads only its original immutable Plan's"
               }
             ],
             "extension": [
@@ -22668,6 +22678,18 @@
               {
                 "path": "src/client_local_host/installed_effect_host_preview_input_js_wbtest.mbt",
                 "anchor": "test \"Host Preview grows same original control before parse and keeps its returned forest across later children\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
+                "anchor": "test \"original Plan metadata keeps current fences when real constructor execution is exhausted\""
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.test.mjs",
+                "anchor": "test('original Plan shape does not bypass constructor funding for foreign or executable arguments'"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-resources.test.mjs",
+                "anchor": "test('managed recovery derives its shared row ceiling from the same current Plan, preserving explicit tighter bounds'"
               }
             ]
           }
