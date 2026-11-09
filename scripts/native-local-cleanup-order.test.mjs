@@ -349,7 +349,7 @@ test "same original debt and physical close remain separate" {
     let request : @local_values.ClientInstalledEffectOperationBorrow = { refusing: false, charged: 0L, retire_calls: 0 }
     let child : @row_file.NativeRelationFileTargetIO = { close_kind: kind, close_calls: 0, closed: false, advance_refuses: false, advances: 0 }
     let input : LocalNativeMockEffectRequestInput = {
-      value: Json::Null, before: "original-input-before", version: "original-input-version",
+      value: Json::null(), before: "original-input-before", version: "original-input-version",
       initial: {retained: 1L, execution: 2L},
     }
     let held : LocalNativeMockEffectTarget = {
@@ -431,7 +431,7 @@ test "physical failure survives a distinct accounting refusal" {
     let operation : @local_values.ClientInstalledEffectOperationBorrow = { refusing: accounting_failure, charged: 0L, retire_calls: 0 }
     let child : @row_file.NativeRelationFileTargetIO = { close_kind: 0, close_calls: 0, closed: false, advance_refuses: physical_failure, advances: 0 }
     let input : LocalNativeMockEffectRequestInput = {
-      value: Json::Null, before: "original-input-before", version: "original-input-version",
+      value: Json::null(), before: "original-input-before", version: "original-input-version",
       initial: {retained: 1L, execution: 2L},
     }
     let held : LocalNativeMockEffectTarget = {
