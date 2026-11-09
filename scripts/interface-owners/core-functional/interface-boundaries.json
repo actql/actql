@@ -34435,7 +34435,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_borrow.mbt",
-      "sha256": "6301f896e51dac91ad3c7cfa904dd02b891d4fe598ce7fa9e6db4c7e20276036",
+      "sha256": "45e245e462bbb1ef67c59943281aa79779116dee699e2c3c9fa08ef260736b61",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original installed Effect operation borrow and retained same-Run management controls",
@@ -34520,7 +34520,7 @@
         },
         {
           "name": "complete_installed_effect_operation_construction_owned",
-          "declaration": "complete_installed_effect_operation_construction_owned ( value : ClientInstalledEffectOperationBorrow , output_wire : String ? , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+          "declaration": "complete_installed_effect_operation_construction_owned ( value : ClientInstalledEffectOperationBorrow , output_wire : String ? , finished : Bool , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "complete_installed_effect_operation_control_construction",
@@ -34625,6 +34625,10 @@
         {
           "name": "start_installed_effect_operation",
           "declaration": "start_installed_effect_operation ( value : ClientInstalledEffectOperationBorrow , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "yield_installed_effect_operation_construction_workspace",
+          "declaration": "yield_installed_effect_operation_construction_workspace ( value : ClientInstalledEffectOperationBorrow , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
         }
       ],
       "contracts": [
@@ -34740,7 +34744,8 @@
             "retain_installed_effect_operation_controls_before_construction",
             "retain_installed_effect_recovered_input_inventory",
             "select_installed_effect_operation_controls",
-            "select_installed_effect_operation_original"
+            "select_installed_effect_operation_original",
+            "yield_installed_effect_operation_construction_workspace"
           ],
           "exports": [],
           "attributes": {
@@ -34830,6 +34835,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "A fixed opaque-boundary footprint can declare a scratch-only member extent in"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "The existing Preview-input entry selects its frame from the complete geometry"
               }
             ],
             "extension": [
@@ -34882,6 +34891,14 @@
               {
                 "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
                 "anchor": "test \"opaque footprint uses original member scratch on same real Ledger with full retained floor\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_host_preview_input_js_wbtest.mbt",
+                "anchor": "test \"Preview decode selects same wire geometry instead of unrelated full recipe scratch on real Ledger\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_borrow_js_wbtest.mbt",
+                "anchor": "test \"staged constructor phase yields only scratch and grows the same original before continuing\""
               }
             ]
           }
