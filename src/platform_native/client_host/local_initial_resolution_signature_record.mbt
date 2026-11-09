@@ -131,6 +131,7 @@ fn store_local_initial_resolution_signature_locked(
   signing_use : @credential.LocalSigningCredentialUse,
   signature : String,
   prepared? : @checkpoint.PreparedResolutionProof? = None,
+  approval? : @checkpoint.PreparedEffectApprovalProof? = None,
   attested? : @checkpoint.AdmittedResolution? = None,
   attested_limits? : @checkpoint.WireLimits = native_checkpoint_limits(),
 ) -> Result[Unit, NativeClientRunJournalIssue] {
@@ -162,10 +163,37 @@ fn store_local_initial_resolution_signature_locked(
       Some(bytes)
     }
   }
+  let candidate = match approval {
+    None => candidate
+    Some(proof) => {
+      if prepared is Some(_) ||
+        attested is Some(_) ||
+        proof.preimage() != scope.preimage ||
+        proof.checkpoint().checkpoint_cid != scope.checkpoint_cid ||
+        scope.purpose != @credential.ReviewerProof {
+        return Err(ChangedIntent)
+      }
+      let wire = match
+        @checkpoint.seal_prepared_effect_approval_proof(
+          proof,
+          scope.key_id,
+          signature,
+        ) {
+        Ok((wire, _)) => wire
+        Err(_) => return Err(Encoding)
+      }
+      let bytes = @utf8.encode(wire)
+      if bytes.length() > native_checkpoint_limits().max_wire_bytes {
+        return Err(CapacityExceeded)
+      }
+      Some(bytes)
+    }
+  }
   let candidate = match attested {
     None => candidate
     Some(admitted) => {
       if prepared is Some(_) ||
+        approval is Some(_) ||
         original.initial_issue is None ||
         scope.purpose != @credential.HostAttestation ||
         scope.preimage != admitted.attestation_preimage ||

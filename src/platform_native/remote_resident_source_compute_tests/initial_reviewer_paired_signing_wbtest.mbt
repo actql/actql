@@ -10,12 +10,14 @@ priv struct PairedInitialReviewerFixture {
   mut binding : @client.NativeLocalEffectReviewerBinding?
   mut restored : Bool
   attest_host : Bool
+  probe_approval : Bool
   mut host_applied : Bool
 }
 
 ///|
 fn paired_initial_reviewer_fixture(
   attest_host? : Bool = false,
+  probe_approval? : Bool = false,
 ) -> PairedInitialReviewerFixture raise {
   let top = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
   let name = "paired-initial-reviewer-" + @env.now().to_string()
@@ -108,6 +110,7 @@ fn paired_initial_reviewer_fixture(
     binding: None,
     restored: false,
     attest_host,
+    probe_approval,
     host_applied: false,
   }
 }
@@ -141,6 +144,16 @@ fn paired_initial_reviewer_signing(
       () => @env.now().to_double(),
     )
     .unwrap()
+  if fixture.probe_approval {
+    paired_initial_approved_proof_probe(
+      fixture, binding, key, installed, request, checkpoint,
+    )
+    // The first real Approved answer is immutable. Do not sign a conflicting
+    // rejection merely to reuse this fixture's older branch.
+    fixture.binding = Some(binding)
+    fixture.restored = true
+    return
+  }
   let unsigned =
     #|{"version":"actql-checkpoint-resolution/0.1","actor":"operator","checkpoint_id":"@CHECKPOINT_ID@","checkpoint_cid":"@CHECKPOINT_CID@","decided_at":"2026-10-10T00:00:00.000Z","decision":"rejected","required_artifact_cid":"@REQUIRED@","review_projection_cid":"@PROJECTION@","resolution_id":"paired-initial-reviewer-resolution","run_id":"@RUN@","run_definition_cid":"@DEFINITION@"}
   let unsigned = unsigned

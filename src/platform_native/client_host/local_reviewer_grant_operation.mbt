@@ -237,6 +237,7 @@ fn NativeLocalReviewerSigningGrantOperation::require_current_locked(
 fn NativeLocalHostConnection::same_signing_operation_locked(
   self : NativeLocalHostConnection,
   original : NativeLocalGrantOriginal,
+  resolution_proof? : @checkpoint.PreparedResolutionProof? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
   guard original.grant is SigningGrant(grant) else { return Err(ChangedIntent) }
   let scope = @credential.local_signing_credential_grant_scope(grant)
@@ -271,7 +272,47 @@ fn NativeLocalHostConnection::same_signing_operation_locked(
             saved.key_generation_cid == scope.key_generation_cid
           )
         ) {
-        return Err(Checkpoint(NeedsOriginalContinuation))
+        // Only the distinct, already-Succeeded original Approval may precede
+        // its exact dependent Resolution. A renamed/changed Resolution,
+        // unknown use or foreign key cannot use this continuation.
+        guard original.initial_issue is Some(_) &&
+          prior.initial_issue is Some(_) &&
+          scope.purpose == @credential.ReviewerProof &&
+          resolution_proof is Some(proof) &&
+          proof.preimage() == scope.preimage &&
+          proof.checkpoint().checkpoint_cid == scope.checkpoint_cid &&
+          saved.key_id == scope.key_id &&
+          saved.key_configuration_cid == scope.key_configuration_cid &&
+          saved.key_generation_cid == scope.key_generation_cid &&
+          saved.run_invocation_cid == scope.run_invocation_cid &&
+          saved.unit_definition_cid == scope.unit_definition_cid &&
+          saved.request_cid == scope.request_cid &&
+          saved.principal == scope.principal &&
+          saved.authority_scope_cid == scope.authority_scope_cid else {
+          return Err(Checkpoint(NeedsOriginalContinuation))
+        }
+        let history = match
+          local_initial_signing_original_history_locked(self, prior) {
+          Ok(value) if value.observed_outcome() ==
+            @credential_resource.Succeeded => value
+          _ => return Err(Checkpoint(NeedsOriginalContinuation))
+        }
+        let (signature, evidence) = match
+          local_initial_resolution_result_locked(
+            self,
+            prior,
+            history.original_use(),
+          ) {
+          Ok((signature, Some(evidence))) => (signature, evidence)
+          _ => return Err(Checkpoint(NeedsOriginalContinuation))
+        }
+        if proof.approval_proof_materials(
+            evidence,
+            @host.client_request_authority_scope_cid(original.request),
+          ) !=
+          Ok((saved.key_id, saved.preimage, signature)) {
+          return Err(Checkpoint(NeedsOriginalContinuation))
+        }
       }
     }
     cursor = row.key

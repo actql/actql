@@ -32,6 +32,7 @@ priv enum LocalCommandPreparationIssue {
   CommandRead(@initial_arena.InstalledArenaOriginalReadIssue)
   CommandRetainedExecution(@initial_arena.InstalledArenaRetainedExecutionIssue)
   CommandStoreOperation(@local_host.NativeLocalStoreOperationIssue)
+  CommandSavedResolution(@local_host.NativeLocalSavedEffectResolutionIssue)
   CommandBusinessChildren
   CommandBusinessSource(@row_file.NativeRelationFileIssue)
   CommandBusinessSourceIdentity(LocalNativeMockSourceIdentityIssue)

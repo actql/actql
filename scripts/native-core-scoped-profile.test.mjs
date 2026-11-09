@@ -35,7 +35,7 @@ test('closed selected C profile preserves original FFI/link flags and changes on
   const args = ['-x', 'c++', '-x', 'none', '-o', input.output, '-O2',
     '-fwrapv', '-DMOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_MIMALLOC',
     '-x', 'c', input.source, '-x', 'none', '-Wl,--start-group', 'original.a',
-    '-Wl,--end-group', '-lm'];
+    '-Wl,--end-group', '-lm', c.inputs.find(value => value.source.endsWith('/bootstrap_stub.c')).output];
   assert.deepEqual(nativeCoreScopedCArguments(c, args), [
     '-I/owned/read', '-DACTQL_SCOPED_READ_ALLOCATOR', '-DACTQL_RUNTIME_MANAGED_VALUES=1',
     ...args.map(value => value === '-O2' ? '-O0' : value),
@@ -210,7 +210,8 @@ for (const [arch, target] of [['x64', 'x86_64-unknown-linux-gnu'],
   assert.equal(c.stockFileControl.stockFileControlBytes, arch === 'x64' ? 64 * 24 + 8 : undefined);
   assert(!calls.some(value => value.args.includes('--build-only')));
   for (const input of c.inputs) {
-    const original = ['-o',input.output,...(input.mode === 'compile' ? ['-c'] : []),'-O2',input.source];
+    const original = ['-o',input.output,...(input.mode === 'compile' ? ['-c'] : []),'-O2',input.source,
+      ...(input.mode === 'link' ? [c.inputs.find(value => value.source.endsWith('/bootstrap_stub.c')).output] : [])];
     const selected = nativeCoreScopedCArguments(c, original);
     for (const define of definitions) assert(selected.includes('-D' + define));
     assert(!selected.includes('-DACTQL_RUNTIME_MANAGED_VALUES=1'));
@@ -288,7 +289,8 @@ test('only exact planned final test links receive original provider exports', ()
   const c = config();
   for (const input of c.inputs) {
     const compile = input.mode === 'compile';
-    const args = ['-o', input.output, ...(compile ? ['-c'] : []), '-O2', input.source];
+    const args = ['-o', input.output, ...(compile ? ['-c'] : []), '-O2', input.source,
+      ...(compile ? [] : [c.inputs.find(value => value.source.endsWith('/bootstrap_stub.c')).output])];
     const selected = nativeCoreScopedCArguments(c, args);
     const exports = selected.filter(value => value.includes('-exported_symbol'));
     assert.deepEqual(exports, compile ? [] : c.componentProviderOwner.symbols.map(symbol => '-Wl,-exported_symbol,_' + symbol));
@@ -306,4 +308,17 @@ test('only exact planned final test links receive original provider exports', ()
     original.replace(' -c -D_GNU_SOURCE ', ' -D_GNU_SOURCE '), c.moonHome), /generated test executable/u);
   assert.throws(() => nativeCoreScopedInputs(c.repository,
     original.replaceAll('pkg.whitebox_test', 'foreign'), c.moonHome), /generated test executable/u);
+});
+
+
+test('empty generated harnesses do not export an unlinked component provider', () => {
+  const c = config(), input = c.inputs.at(-1);
+  const args = ['-o', input.output, input.source, 'original.a', '-lm'];
+  const selected = nativeCoreScopedCArguments(c, args);
+  assert(!selected.some(value => value.includes('exported_symbol')));
+  assert(selected.includes('-DACTQL_RUNTIME_MANAGED_VALUES=1'));
+  const provider = c.inputs.find(value => value.source.endsWith('/bootstrap_stub.c'));
+  assert.deepEqual(nativeCoreScopedCArguments(c, [...args, provider.output])
+    .filter(value => value.includes('exported_symbol')),
+    c.componentProviderOwner.symbols.map(symbol => '-Wl,-exported_symbol,_' + symbol));
 });

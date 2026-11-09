@@ -71,6 +71,18 @@ fn command_preparation_cleanup_cause(
         StoreOperationExecution(_) => "StoreOperationExecution"
         StoreOperationSqlite(_) => "StoreOperationSqlite"
       }
+    CommandSavedResolution(cause) =>
+      match cause {
+        SavedResolutionUnavailable => "SavedResolutionUnavailable"
+        SavedResolutionOriginal(_) => "SavedResolutionOriginal"
+        SavedResolutionReviewer(_) => "SavedResolutionReviewer"
+        SavedResolutionKey(_) => "SavedResolutionKey"
+        SavedResolutionProof(_) => "SavedResolutionProof"
+        SavedResolutionSigning(_) => "SavedResolutionSigning"
+        SavedResolutionAccount(_) => "SavedResolutionAccount"
+        SavedResolutionHost(_) => "SavedResolutionHost"
+        SavedResolutionEncoding => "SavedResolutionEncoding"
+      }
     CommandBusinessChildren => "CommandBusinessChildren"
     CommandBusinessSource(cause) =>
       match cause {

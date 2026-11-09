@@ -103,7 +103,33 @@ pub fn seal_prepared_resolution_proof(
   key_id : String,
   signature : String,
 ) -> Result[String, ResolutionIssue] {
-  let limits = prepared.limits
+  let complete = match
+    seal_prepared_reviewer_proof_body(
+      prepared.body,
+      key_id,
+      signature,
+      "resolution_cid",
+      prepared.limits,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match wire_of(complete, prepared.limits) {
+    Some(value) => Ok(value)
+    None => Err(ResolutionEncoding)
+  }
+}
+
+///|
+// One closed proof encoding rule for the two existing Reviewer artifacts.
+// Only this Owner's typed preparations call it, never arbitrary signing DATA.
+fn seal_prepared_reviewer_proof_body(
+  prepared : @json.CanonicalValue,
+  key_id : String,
+  signature : String,
+  identity_field : String,
+  limits : WireLimits,
+) -> Result[@json.CanonicalValue, ResolutionIssue] {
   if key_id.is_empty() || key_id.length() > limits.max_wire_bytes {
     return Err(ResolutionInvalidField("proof.key_id"))
   }
@@ -118,7 +144,7 @@ pub fn seal_prepared_resolution_proof(
   if bytes.length() != 64 || @base64.encode(bytes) != signature {
     return Err(ResolutionInvalidField("proof.signature"))
   }
-  let fields = match @json.object_fields(prepared.body) {
+  let fields = match @json.object_fields(prepared) {
     Some(value) => value
     None => return Err(ResolutionEncoding)
   }
@@ -140,12 +166,9 @@ pub fn seal_prepared_resolution_proof(
     None => return Err(ResolutionEncoding)
   }
   let complete = match
-    @json.object_with_string_field(body, "resolution_cid", cid) {
+    @json.object_with_string_field(body, identity_field, cid) {
     Some(value) => value
     None => return Err(ResolutionEncoding)
   }
-  match wire_of(complete, limits) {
-    Some(value) => Ok(value)
-    None => Err(ResolutionEncoding)
-  }
+  Ok(complete)
 }

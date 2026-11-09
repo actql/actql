@@ -1,0 +1,259 @@
+///|
+pub(all) enum NativeLocalSavedEffectResolutionIssue {
+  SavedResolutionUnavailable
+  SavedResolutionOriginal(NativeLocalAdoptionIssue)
+  SavedResolutionReviewer(NativeLocalEffectReviewerBindingIssue)
+  SavedResolutionKey(NativeLocalSigningOriginalIssue)
+  SavedResolutionProof(NativeLocalReviewerProofMaterialsIssue)
+  SavedResolutionSigning(NativeLocalInitialResolutionSigningIssue)
+  SavedResolutionAccount(NativeLocalSigningAccountIssue)
+  SavedResolutionHost(NativeLocalInitialHostAttestationIssue)
+  SavedResolutionEncoding
+}
+
+///|
+// The existing Checkpoint codec admits this unsigned body and independently
+// derives its proof preimage. No text replacement, signature placeholder,
+// incoming authority, current Boolean or caller-selected key is accepted.
+fn emit_saved_effect_resolution(
+  writer : @encode.Writer,
+  artifact : @checkpoint.SealedCheckpoint,
+  actor : String,
+  decision : String,
+  decided_at : String,
+  approval_evidence_cid? : String? = None,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_object(writer)
+  for
+    (name, value) in [
+      ("version", "actql-checkpoint-resolution/0.1"),
+      ("actor", actor),
+      ("checkpoint_id", artifact.checkpoint.checkpoint_id),
+      ("checkpoint_cid", artifact.checkpoint_cid),
+      ("decided_at", decided_at),
+      ("decision", decision),
+      ("required_artifact_cid", artifact.checkpoint.required_artifact_cid),
+      ("review_projection_cid", artifact.checkpoint.review_projection_cid),
+      ("resolution_id", artifact.checkpoint_cid),
+      ("run_id", artifact.checkpoint.run_id().unwrap()),
+      ("run_definition_cid", artifact.checkpoint.run_definition_cid().unwrap()),
+    ] {
+    @encode.key(writer, name)
+    @encode.string_value(writer, value)
+  }
+  if approval_evidence_cid is Some(cid) {
+    @encode.key(writer, "approval_evidence_cid")
+    @encode.string_value(writer, cid)
+  }
+  @encode.end_object(writer)
+}
+
+///|
+fn emit_saved_effect_approval(
+  writer : @encode.Writer,
+  artifact : @checkpoint.SealedCheckpoint,
+  actor : String,
+  authority : String,
+  approved_at : String,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_object(writer)
+  for
+    (name, value) in [
+      ("version", "actql-approval-attestation/0.1"),
+      ("effect_preview_cid", artifact.checkpoint.required_artifact_cid),
+      ("review_projection_cid", artifact.checkpoint.review_projection_cid),
+      ("approver", actor),
+      ("approved_at", approved_at),
+      ("authority_scope_cid", authority),
+    ] {
+    @encode.key(writer, name)
+    @encode.string_value(writer, value)
+  }
+  @encode.key(writer, "claims")
+  @encode.begin_array(writer)
+  // The existing Native checked Effect checkpoint admits exactly this claim;
+  // no member-count rule or fabricated partial-application acceptance exists.
+  @encode.string_value(writer, "effect_scope_approved")
+  @encode.end_array(writer)
+  @encode.end_object(writer)
+}
+
+///|
+/// Invoke the existing Reviewer and independent Host signing owners under the
+/// same original Journal Read. Every physical attempt is retained by that Host
+/// before fallible current/claim work. Failure leaves those original duties;
+/// successful Resolution admission alone never claims an Effect was applied.
+pub fn NativeLocalSavedEffectReview::resolve_initial_in_original_read(
+  self : NativeLocalSavedEffectReview,
+  action : String,
+  host_configuration_file : String,
+) -> Result[NativeClientRunRecord, NativeLocalSavedEffectResolutionIssue] {
+  let decision = match action {
+    "approve" => "approved"
+    "reject" => "rejected"
+    _ => return Err(SavedResolutionUnavailable)
+  }
+  guard self.approval_original is Some(original) &&
+    self.capture.opening is JournalAcquired(host) &&
+    self.saved_approval_original_live(original) &&
+    original.checkpoint.artifact.checkpoint.run_id() is Some(_) &&
+    original.checkpoint.artifact.checkpoint.run_definition_cid() is Some(_) else {
+    return Err(SavedResolutionUnavailable)
+  }
+  let limits = native_checkpoint_limits()
+  match
+    self.capture.prepare_model_entry_construction(
+      Some(limits.max_wire_bytes),
+      nodes=limits.max_nodes,
+      depth=limits.max_depth,
+      additional_controls=Some({
+        // Reuse the existing Native review emitter's larger fixed frame:
+        // twelve borrowed field tuples, Writer controls and two digest slots.
+        // This emitter has eleven pairs and two shorter original operation IDs.
+        record_headers: 40L,
+        reference_slots: 64L,
+        scalar_words: 400L,
+        owned_utf16_units: 256L,
+        owned_wire_bytes: 192L,
+      }),
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(SavedResolutionOriginal(issue))
+  }
+  let decided_at = match
+    @values.epoch_milliseconds_timestamp(@env.now().reinterpret_as_int64()) {
+    Some(value) => value
+    None => return Err(SavedResolutionUnavailable)
+  }
+  let initial = match host.restore_initial_signing_original() {
+    Ok(value) => value
+    Err(issue) => return Err(SavedResolutionOriginal(issue))
+  }
+  let (binding, installed) = match
+    self.bind_initial_effect_reviewer(initial, host_configuration_file, () => {
+      @env.now().to_double()
+    }) {
+    Ok(value) => value
+    Err(issue) => return Err(SavedResolutionReviewer(issue))
+  }
+  let key = match
+    host.acquire_initial_reviewer_signing_key(initial, installed) {
+    Ok(value) => value
+    Err(issue) => return Err(SavedResolutionKey(issue))
+  }
+  let approval = if action == "approve" {
+    let unsigned = try {
+      let writer = @encode.writer(
+        limits.max_wire_bytes,
+        limits.max_nodes,
+        limits.max_depth,
+      )
+      emit_saved_effect_approval(
+        writer,
+        original.checkpoint.artifact,
+        self.principal,
+        original.authority,
+        decided_at,
+      )
+      @encode.finish(writer)
+    } catch {
+      _ => return Err(SavedResolutionEncoding)
+    }
+    let materials = match
+      key.prepare_approval_proof_materials(binding, unsigned, limits) {
+      Ok(value) => value
+      Err(issue) => return Err(SavedResolutionProof(issue))
+    }
+    let signing = match
+      materials.prepare_initial_approval_signing(
+        "approval/" + original.checkpoint.artifact.checkpoint_cid,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(SavedResolutionSigning(issue))
+    }
+    let evidence = match signing.sign_approval_evidence_once() {
+      Ok(value) => value
+      Err(issue) => return Err(SavedResolutionSigning(issue))
+    }
+    match signing.close_checked() {
+      Ok(_) => ()
+      Err(issue) => return Err(SavedResolutionOriginal(Crypto(issue)))
+    }
+    Some(evidence)
+  } else {
+    None
+  }
+  let unsigned = try {
+    let writer = @encode.writer(
+      limits.max_wire_bytes,
+      limits.max_nodes,
+      limits.max_depth,
+    )
+    emit_saved_effect_resolution(
+      writer,
+      original.checkpoint.artifact,
+      self.principal,
+      decision,
+      decided_at,
+      approval_evidence_cid=approval.map(value => value.1),
+    )
+    @encode.finish(writer)
+  } catch {
+    _ => return Err(SavedResolutionEncoding)
+  }
+  let materials = match
+    key.prepare_reviewer_proof_materials(binding, unsigned, limits) {
+    Ok(value) => value
+    Err(issue) => return Err(SavedResolutionProof(issue))
+  }
+  // These identifiers select only the exact existing original operation rows.
+  // They are neither authority nor a second request/physical attempt budget.
+  let reviewer_operation = "reviewer/" +
+    original.checkpoint.artifact.checkpoint_cid
+  let signing = match
+    materials.prepare_initial_resolution_signing(reviewer_operation) {
+    Ok(value) => value
+    Err(issue) => return Err(SavedResolutionSigning(issue))
+  }
+  let candidate = match signing.sign_candidate_once() {
+    Ok(value) => value
+    Err(issue) => return Err(SavedResolutionSigning(issue))
+  }
+  let authenticated = match binding.authenticate_resolution(candidate, limits) {
+    Ok(value) => value
+    Err(issue) => return Err(SavedResolutionReviewer(issue))
+  }
+  // Read/Resolve authority cannot become Host Sign authority. This existing
+  // owner restores its independent actual initialized subject and Account.
+  let account = match host.restore_initial_host_signing_account(installed) {
+    Ok(value) => value
+    Err(issue) => return Err(SavedResolutionAccount(issue))
+  }
+  let host_operation = "host/" + original.checkpoint.artifact.checkpoint_cid
+  let attestation = match
+    authenticated.prepare_initial_host_attestation(
+      account,
+      materials,
+      host_operation,
+      approval_evidence_wire=approval.map(value => value.0),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(SavedResolutionHost(issue))
+  }
+  let signing = match attestation.prepare_signing() {
+    Ok(value) => value
+    Err(issue) => return Err(SavedResolutionHost(issue))
+  }
+  match signing.sign_once() {
+    Ok(_) => ()
+    Err(issue) => return Err(SavedResolutionHost(issue))
+  }
+  let record = match signing.admit_original_resolution() {
+    Ok(value) => value
+    Err(issue) => return Err(SavedResolutionHost(issue))
+  }
+  match host.close_original_signing_attempts() {
+    Ok(_) => Ok(record)
+    Err(issue) => Err(SavedResolutionOriginal(issue))
+  }
+}

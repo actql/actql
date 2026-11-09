@@ -65,7 +65,8 @@ pub fn NativeLocalAuthenticatedEffectReviewer::prepare_initial_host_attestation(
 ] {
   let binding = self.binding
   let host = binding.host
-  guard physical_equal(binding, materials.reviewer) &&
+  guard materials.proof is ResolutionOriginal(_) &&
+    physical_equal(binding, materials.reviewer) &&
     physical_equal(host, account.original.reviewer.host) &&
     physical_equal(account.installed.host, host) &&
     account.installed.file == binding.installed.file &&
@@ -200,6 +201,15 @@ pub fn NativeLocalAuthenticatedEffectReviewer::prepare_initial_host_attestation(
         body_failure.val = Some(issue)
         return Err(Encoding)
       }
+    }
+    match self.require_approval_signature_locked(admitted) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+    match
+      local_initial_host_attestation_current_locked(reviewer_current, account) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
     }
     if materials.original.cancellation_requested &&
       admitted.decision == @checkpoint.Approved {

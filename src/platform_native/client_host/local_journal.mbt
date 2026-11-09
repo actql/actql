@@ -370,6 +370,23 @@ pub fn NativeLocalHostConnection::close(
   self : NativeLocalHostConnection,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
   self.closed = true
+  match self.close_original_signing_attempts() {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  match self.close_journal_database() {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  self.close_journal_session()
+}
+
+///|
+// The same Host retains both attempts before any fallible signing callback.
+// Only their original physical close ACKs cut those aliases, including errors.
+fn NativeLocalHostConnection::close_original_signing_attempts(
+  self : NativeLocalHostConnection,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
   if self.reviewer_signing_attempt is Some(original) {
     match original.close_checked() {
       Err(issue) => return Err(Crypto(issue))
@@ -382,11 +399,7 @@ pub fn NativeLocalHostConnection::close(
       Ok(_) => self.host_attestation_signing_attempt = None
     }
   }
-  match self.close_journal_database() {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
-  }
-  self.close_journal_session()
+  Ok(())
 }
 
 ///|

@@ -47,3 +47,31 @@ The flat grant schema, field names, CID domain and canonical bytes are
 unchanged. Past signed evidence is preserved and cannot be relabeled as new
 operational authority. Original claim/outcome/Unknown and cleanup retain their
 existing Owners and responsibilities.
+
+## Reviewer proof artifacts
+
+Approved Effect Resolutions already require both the same-key signed Approval
+Attestation and the signed Resolution. The earlier Local profile described only
+the latter preimage supplier; it did not provide an operational entrance for
+the former existing obligation. The ReviewerProof purpose now names exactly
+these two typed original Checkpoint artifacts. Their separate exact preimages,
+original subject/key/current fences, durable grants/uses and consumed work stay
+independent. HostAttestation still uses its separate original key and purpose.
+
+The Checkpoint Owner shares the existing closed Approval subject/claim rules
+between unsigned preparation and signed Evidence admission. It emits the same
+existing attestation/evidence bodies and exposes admitted proof material for
+actual same-key cryptographic verification before Host signing. This adds no
+sign-any-bytes entrance, caller-supplied preimage or new authority/Owner/Ledger.
+Existing Resolution factories and their canonical bytes remain unchanged; old
+grant/use history is neither rewritten nor reinterpreted as another preimage.
+
+The initialized Reviewer keeps one original operation for each artifact. Its
+completed Effect Approval may precede the single Resolution that binds that
+exact signed evidence CID. The storage append accepts this pair only through
+the original typed Resolution, the original successful Approval grant/use and
+stored signature, and the existing Checkpoint evidence admission. Changing an
+operation name, decision, key, preimage or unfinished outcome cannot create a
+second original for either artifact. Configured issuer operations keep their
+existing exact-preimage rule. Neither successful signature nor Resolution
+admission implies a resume claim, applied Effect or final Result.

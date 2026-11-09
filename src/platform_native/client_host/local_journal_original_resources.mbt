@@ -495,6 +495,18 @@ fn NativeLocalJournalOriginalResources::close_journal(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  if host.reviewer_signing_attempt is Some(_) ||
+    host.host_attestation_signing_attempt is Some(_) {
+    match
+      self.stage(
+        @arena.HostRead,
+        fn() { host.close_original_signing_attempts() },
+        cleanup=true,
+      ) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+  }
   match
     self.stage(
       @arena.HostSqlite,

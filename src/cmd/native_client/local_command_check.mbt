@@ -45,6 +45,7 @@ fn command_preparation_cleanup_kind(
     CommandRead(_) => "read"
     CommandRetainedExecution(_) => "business-execution"
     CommandStoreOperation(_) => "business-operation"
+    CommandSavedResolution(_) => "checkpoint-resolution"
     CommandBusinessChildren => "business-children"
     CommandBusinessSource(_) => "business-source"
     CommandBusinessModel(_) => "business-model"

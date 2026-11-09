@@ -917,7 +917,10 @@ pub fn NativeLocalStoreOperation::close_captured_journal_database(
       Err(issue) => return Err(StoreOperationSqlite(issue))
       Ok(_) => ()
     }
-    let closed = host.close_journal_database()
+    let closed = match host.close_original_signing_attempts() {
+      Err(issue) => Err(issue)
+      Ok(_) => host.close_journal_database()
+    }
     let returned = bridge.leave_store()
     if closed is Err(issue) {
       receiver.refuse(StoreOperationCapture(issue)) |> ignore

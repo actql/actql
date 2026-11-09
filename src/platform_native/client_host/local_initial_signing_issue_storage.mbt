@@ -27,6 +27,7 @@ fn local_initial_signing_issue_storage_locked(
   earlier_valid_until : Int64?,
   trusted_sample : () -> Int64,
   current : () -> Result[Unit, NativeClientRunJournalIssue],
+  resolution_proof? : @checkpoint.PreparedResolutionProof? = None,
 ) -> Result[
   NativeLocalInitialSigningStorageResult,
   NativeLocalInitialSigningStorageIssue,
@@ -122,6 +123,7 @@ fn local_initial_signing_issue_storage_locked(
       host.epoch.crypto,
       original,
       current,
+      resolution_proof~,
     ) {
     Ok(_) => ()
     Err(issue) => return Err(InitialStorageJournal(issue))

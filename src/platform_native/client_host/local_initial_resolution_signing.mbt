@@ -1,6 +1,7 @@
 ///|
 pub(all) enum NativeLocalInitialResolutionSigningIssue {
   OriginalSigningUnavailable
+  OriginalSigningOriginal(NativeLocalAdoptionIssue)
   OriginalSigningProof(NativeLocalReviewerProofMaterialsIssue)
   OriginalSigningJournal(NativeClientRunJournalIssue)
   OriginalSigningCredential(@credential_resource.NativeCredentialResourceIssue)
@@ -57,6 +58,37 @@ fn prepare_local_initial_resolution_physical(
 /// Configured signers keep their distinct issuer service; they cannot fall
 /// back to this initial Store policy or create another initial key.
 pub fn NativeLocalReviewerProofMaterials::prepare_initial_resolution_signing(
+  self : NativeLocalReviewerProofMaterials,
+  attempt_id : String,
+  earlier_valid_until? : Int64? = None,
+) -> Result[
+  NativeLocalInitialResolutionSigning,
+  NativeLocalInitialResolutionSigningIssue,
+] {
+  guard self.proof is ResolutionOriginal(_) else {
+    return Err(OriginalSigningUnavailable)
+  }
+  self.prepare_initial_original_signing(attempt_id, earlier_valid_until~)
+}
+
+///|
+/// The SAME retained Host signer/credential owner, with a different typed
+/// original Reviewer artifact. Existing Resolution entry points refuse it.
+pub fn NativeLocalReviewerProofMaterials::prepare_initial_approval_signing(
+  self : NativeLocalReviewerProofMaterials,
+  attempt_id : String,
+) -> Result[
+  NativeLocalInitialResolutionSigning,
+  NativeLocalInitialResolutionSigningIssue,
+] {
+  guard self.proof is ApprovalOriginal(_) else {
+    return Err(OriginalSigningUnavailable)
+  }
+  self.prepare_initial_original_signing(attempt_id)
+}
+
+///|
+fn NativeLocalReviewerProofMaterials::prepare_initial_original_signing(
   self : NativeLocalReviewerProofMaterials,
   attempt_id : String,
   earlier_valid_until? : Int64? = None,
@@ -155,6 +187,39 @@ fn NativeLocalInitialResolutionSigning::require_current(
 pub fn NativeLocalInitialResolutionSigning::sign_candidate_once(
   self : NativeLocalInitialResolutionSigning,
 ) -> Result[String, NativeLocalInitialResolutionSigningIssue] {
+  guard self.materials.proof is ResolutionOriginal(_) else {
+    return Err(OriginalSigningUnavailable)
+  }
+  self.sign_original_once()
+}
+
+///|
+/// Only the typed original Approval proof reaches this SAME one-shot signer.
+/// Its returned evidence CID identifies the actual stored signed wire.
+pub fn NativeLocalInitialResolutionSigning::sign_approval_evidence_once(
+  self : NativeLocalInitialResolutionSigning,
+) -> Result[(String, String), NativeLocalInitialResolutionSigningIssue] {
+  guard self.materials.proof is ApprovalOriginal(_) else {
+    return Err(OriginalSigningUnavailable)
+  }
+  let wire = match self.sign_original_once() {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match
+    local_adoption_digest(
+      self.key.original.host.epoch.crypto,
+      @utf8.encode(wire),
+    ) {
+    Ok(cid) => Ok((wire, cid))
+    Err(issue) => Err(OriginalSigningOriginal(issue))
+  }
+}
+
+///|
+fn NativeLocalInitialResolutionSigning::sign_original_once(
+  self : NativeLocalInitialResolutionSigning,
+) -> Result[String, NativeLocalInitialResolutionSigningIssue] {
   // Foreign process/thread use cannot consume the original Host's phase.
   // Check even before mutable phase fields; this intrinsic observation has
   // no callbacks, key/current read or grant.
@@ -183,6 +248,10 @@ pub fn NativeLocalInitialResolutionSigning::sign_candidate_once(
         self.earlier_valid_until,
         () => @env.now().reinterpret_as_int64(),
         () => current.require_locked(),
+        resolution_proof=match self.materials.proof {
+          ResolutionOriginal(proof) => Some(proof)
+          ApprovalOriginal(_) => None
+        },
       ) {
       Err(InitialStorageJournal(issue)) => return Err(issue)
       Err(InitialStorageCredential(issue)) => {
@@ -264,7 +333,14 @@ pub fn NativeLocalInitialResolutionSigning::sign_candidate_once(
               original,
               signing_use,
               signature,
-              prepared=Some(self.materials.proof),
+              prepared=match self.materials.proof {
+                ResolutionOriginal(proof) => Some(proof)
+                ApprovalOriginal(_) => None
+              },
+              approval=match self.materials.proof {
+                ApprovalOriginal(proof) => Some(proof)
+                ResolutionOriginal(_) => None
+              },
             ) {
             Err(issue) => return Err(issue)
             Ok(_) => ()
@@ -276,13 +352,23 @@ pub fn NativeLocalInitialResolutionSigning::sign_candidate_once(
       }
     }
   }
-  self.original_candidate()
+  self.original_wire()
 }
 
 ///|
 /// Current read of this same completed candidate, never another signature or
 /// a cached Allow. Its durable signature/outcome originals are read together.
 pub fn NativeLocalInitialResolutionSigning::original_candidate(
+  self : NativeLocalInitialResolutionSigning,
+) -> Result[String, NativeLocalInitialResolutionSigningIssue] {
+  guard self.materials.proof is ResolutionOriginal(_) else {
+    return Err(OriginalSigningUnavailable)
+  }
+  self.original_wire()
+}
+
+///|
+fn NativeLocalInitialResolutionSigning::original_wire(
   self : NativeLocalInitialResolutionSigning,
 ) -> Result[String, NativeLocalInitialResolutionSigningIssue] {
   let current = match self.require_current() {
@@ -328,12 +414,7 @@ pub fn NativeLocalInitialResolutionSigning::original_candidate(
     Err(issue) => return Err(OriginalSigningJournal(issue))
     Ok(_) => ()
   }
-  let wire = match
-    @checkpoint.seal_prepared_resolution_proof(
-      self.materials.proof,
-      self.scope.key_id,
-      signature,
-    ) {
+  let wire = match self.materials.proof.seal(self.scope.key_id, signature) {
     Err(_) => return Err(OriginalSigningUnavailable)
     Ok(value) => value
   }

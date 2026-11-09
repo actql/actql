@@ -31,6 +31,15 @@ fn local_checkpoint_answer_by_id(
   if operation != "approve" && operation != "reject" {
     stop("InvalidCheckpointAction")
   }
+  // Keep these original public selections explicit while their consuming
+  // continuations are unfinished. A named signer never falls back to the
+  // initialized machine key, and --wait cannot become a nonwaiting success.
+  if optional(child, "signer") is Some(_) {
+    stop("LocalConfiguredCheckpointSignerUnavailable")
+  }
+  if child.flags.get("wait").unwrap_or(false) {
+    stop("LocalCheckpointContinuationUnavailable")
+  }
   let id = required(child, "checkpoint-id")
   let lookup = match capture {
     Some(original) => {
@@ -64,17 +73,12 @@ fn local_checkpoint_answer_by_id(
   if selected.checkpoint_id() != id {
     stop("LocalOriginalCheckpointUnavailable")
   }
-  match (capture, prepared) {
-    (Some(original), Some((preparation, configuration))) =>
-      preparation.restore_checkpoint_review(original, configuration, selected)
-    _ => ()
+  guard capture is Some(original) &&
+    prepared is Some((preparation, configuration)) else {
+    stop("LocalCheckpointReadUnavailable")
   }
-  // The original retained Effect approval scope, actual default signing-use
-  // claim and Host attestation must be joined here by their existing Owners.
-  // Selection does not permit exporting a private admission seam or treating
-  // metadata/key material as a signing operation. Keep this explicit refusal
-  // until the operational supplier is connected; never report approval/resume.
-  stop("LocalCheckpointResolutionUnavailable")
+  preparation.restore_checkpoint_review(original, configuration, selected)
+  preparation.resolve_checkpoint_review(original, configuration, operation)
 }
 
 ///|
@@ -139,4 +143,103 @@ fn LocalCommandPreparationOriginal::restore_checkpoint_review(
   observation.saved_effect_review = Some(reader)
   local_host_result(reader.restore_in_original_read(@env.now().to_double()))
   |> ignore
+}
+
+///|
+// One existing command, Request and captured Read. No Program/Model replay,
+// new Root, supplied permission or standalone signing/Store owner is created.
+fn LocalCommandPreparationOriginal::resolve_checkpoint_review(
+  self : LocalCommandPreparationOriginal,
+  capture : @local_host.NativeLocalJournalCapture,
+  configuration : LocalCommandConfiguration,
+  operation : String,
+) -> String raise ClientStop {
+  guard self.journal is Some(actual) &&
+    physical_equal(actual, capture) &&
+    self.run_observation is Some(observation) &&
+    observation.saved_effect_review is Some(review) &&
+    observation.journal_operation is Some(journal) &&
+    self.journal_read_open &&
+    !self.closing &&
+    !self.closed else {
+    stop("LocalCheckpointReadUnavailable")
+  }
+  let settings = configuration.settings
+  let run_file = settings.run_file.unwrap_or_else(() => {
+    stop("LocalRunOriginalNotSelected")
+  })
+  let body = local_host_result(
+    capture.selected_configuration_in_original_read(run_file),
+  )
+  let installation = configuration.run_installation(run_file, body)
+  let policy = @run_host.client_standard_effect_computation_limits()
+  let compilation = policy.program.checking.compilation
+  let sequence = @run_host.client_standard_values_sequence_limits()
+  command_preparation_result(
+    journal
+    .begin_captured_journal_read()
+    .map_err(issue => CommandStoreOperation(issue)),
+  )
+  let answer = try {
+    match
+      review.restore_approval_in_original_read(
+        @env.now().to_double(),
+        { text_time: false, veca: false, },
+        {
+          rela: true,
+          sga: false,
+          tea: false,
+          calendar: false,
+          text_rank: false,
+        },
+        native_request_manifests,
+        {
+          preparation: policy.program,
+          sequence,
+          max_sequence_steps: compilation.structure.steps,
+          max_sequence_work: compilation.work,
+          max_evidence_bytes: compilation.artifacts.bytes,
+          max_evidence_nodes: compilation.artifacts.nodes,
+          max_evidence_depth: compilation.artifacts.depth,
+        },
+        policy,
+        {
+          max_wire_bytes: native_mock_effect_record_bytes(installation),
+          max_nodes: policy.effects.max_admission_nodes,
+          max_depth: policy.effects.max_admission_depth,
+        },
+      ) {
+      Ok(_) => ()
+      Err(issue) => {
+        self.retain_primary(CommandAdoption(issue))
+        stop("LocalCheckpointOriginalUnavailable")
+      }
+    }
+    let record = match
+      review.resolve_initial_in_original_read(operation, "host.json") {
+      Ok(value) => value
+      Err(issue) => {
+        self.retain_primary(CommandSavedResolution(issue))
+        stop("LocalCheckpointResolutionUnavailable")
+      }
+    }
+    let state = @local_host.native_client_run_checkpoint_state(record).unwrap_or_else(() => {
+        stop("LocalCheckpointStateUnavailable")
+      },
+    )
+    Ok(state.wire)
+  } catch {
+    ClientStop(message) => Err(message)
+  }
+  // Attempt this SAME original return on both paths. A missing return cannot
+  // turn a completed Resolution into public success or lose pending cleanup.
+  let returned = journal.finish_captured_journal_read()
+  if returned is Err(issue) {
+    self.retain_primary(CommandStoreOperation(issue))
+  }
+  match (answer, returned) {
+    (Ok(wire), Ok(_)) => wire
+    (Err(message), _) => stop(message)
+    (Ok(_), Err(_)) => stop("LocalCheckpointReadReturnUnavailable")
+  }
 }

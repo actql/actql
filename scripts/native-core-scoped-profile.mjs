@@ -138,7 +138,14 @@ export function nativeCoreScopedCArguments(config, args) {
   if (source === join(config.repository, 'src/platform_native/host_bootstrap/bootstrap_stub.c')) {
     prefix.push('-DACTQL_SCOPED_READ_PROVIDER=' + JSON.stringify(join(config.sourceDirectory, 'owned_capacity.c')));
   }
-  return [...prefix, ...selected, ...(input.mode === 'link'
+  // Empty internal/blackbox harnesses may not link the provider at all.
+  // Export only the original provider that this exact executable consumes;
+  // Darwin otherwise treats each absent export as an undefined symbol.
+  const provider = config.inputs.find(value => value.source === join(config.repository,
+    'src/platform_native/host_bootstrap/bootstrap_stub.c'));
+  const linksProvider = input.mode === 'link' && provider &&
+    args.some(value => resolve(config.repository, value) === provider.output);
+  return [...prefix, ...selected, ...(linksProvider
     ? componentProviderLinkArguments(config.target, config.componentProviderOwner.symbols) : [])];
 }
 

@@ -18,7 +18,7 @@ struct NativeLocalReviewerProofMaterials {
   reviewer : NativeLocalEffectReviewerBinding
   registration : @effect_resolution.NativeEffectReviewerRegistration
   original : NativeLocalReviewerProofSnapshot
-  proof : @checkpoint.PreparedResolutionProof
+  proof : NativeLocalReviewerOriginalProof
 }
 
 ///|
@@ -126,6 +126,26 @@ fn prepare_local_reviewer_proof_materials(
   NativeLocalReviewerProofMaterials,
   NativeLocalReviewerProofMaterialsIssue,
 ] {
+  prepare_local_reviewer_original_proof_materials(
+    key,
+    reviewer,
+    unsigned_wire,
+    limits,
+    ResolutionOriginalKind,
+  )
+}
+
+///|
+fn prepare_local_reviewer_original_proof_materials(
+  key : NativeLocalReviewerProofKey,
+  reviewer : NativeLocalEffectReviewerBinding,
+  unsigned_wire : String,
+  limits : @checkpoint.WireLimits,
+  kind : NativeLocalReviewerOriginalProofKind,
+) -> Result[
+  NativeLocalReviewerProofMaterials,
+  NativeLocalReviewerProofMaterialsIssue,
+] {
   let registration = match key.read_current_reviewer(reviewer) {
     Ok(value) => value
     Err(issue) => return Err(ProofKey(issue))
@@ -140,14 +160,28 @@ fn prepare_local_reviewer_proof_materials(
     Ok(value) => value
     Err(issue) => return Err(ProofOriginal(issue))
   }
-  let proof = match
-    @checkpoint.prepare_resolution_proof(
-      original.artifact,
-      unsigned_wire,
-      limits,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(ProofBody(issue))
+  let proof = match kind {
+    ResolutionOriginalKind =>
+      match
+        @checkpoint.prepare_resolution_proof(
+          original.artifact,
+          unsigned_wire,
+          limits,
+        ) {
+        Ok(value) => ResolutionOriginal(value)
+        Err(issue) => return Err(ProofBody(issue))
+      }
+    ApprovalOriginalKind =>
+      match
+        @checkpoint.prepare_effect_approval_proof(
+          original.artifact,
+          unsigned_wire,
+          registration.approval_authority_scope_cid,
+          limits,
+        ) {
+        Ok(value) => ApprovalOriginal(value)
+        Err(issue) => return Err(ProofBody(issue))
+      }
   }
   if proof.actor() != registration.reviewer_id {
     return Err(ProofUnavailable)
