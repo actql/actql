@@ -249,10 +249,11 @@ pub fn NativeLocalJournalCapture::persist_model_call_entry_in_original_read(
         // settlement row. They share this SAME byte/object census; a later
         // Slot cannot start before the preceding settlement was saved.
         match
-          reserve_client_journal_capacity(
+          grow_client_journal_capacity(
             host.database,
             table,
             scope,
+            usage,
             body.length().to_int64(),
             1L,
             self.max_snapshot_bytes,

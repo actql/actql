@@ -3350,6 +3350,18 @@ bytes are restored unchanged, without applying the current default.
 
 ### Completed Model evidence at Native Preview
 
+Each finite Model invocation keeps one cumulative Journal byte/object
+reservation for its Entry and settlement rows. The existing exact reservation
+API is idempotent for one amount; it is not an additive counter. Before adding
+a row, the original transaction checks the retained count, replaces only the
+exact previous reservation with the cumulative amount, and inserts the row.
+The same captured Read/Database routing performs both reservation operations.
+Namespace-wide bounds still include other invocations. Any refusal rolls back
+the entire transaction; a lost COMMIT or rollback acknowledgement remains on
+the original fenced Journal. Replacing this metadata row releases no physical
+holding, consumed Model attempt, work or evidence, and cannot issue a Model
+persistence acknowledgement.
+
 The Native caller retains the completed Model observation, its original Run
 Invocation and actual successful invocation evidence at the Preview boundary.
 Local Result Artifacts keep their original derived retention; the installation

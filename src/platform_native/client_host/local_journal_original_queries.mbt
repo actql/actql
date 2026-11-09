@@ -296,6 +296,31 @@ fn NativeLocalJournalReadQueries::operation_access(
         Err(issue) => Err(issue)
       }
     },
+    grow_capacity: (
+      table,
+      key,
+      previous,
+      bytes,
+      objects,
+      max_bytes,
+      max_objects,
+    ) => {
+      (self.invalidate_snapshot)(Some(table))
+      self
+      .query(() => {
+        grow_journal_capacity_in_transaction(
+          self.database,
+          table,
+          key,
+          previous,
+          bytes,
+          objects,
+          max_bytes,
+          max_objects,
+        )
+      })
+      .unwrap_or(Err(@sqlite.Busy))
+    },
     insert: (table, key, body) => {
       (self.invalidate_snapshot)(Some(table))
       match
