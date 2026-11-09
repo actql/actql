@@ -16,8 +16,11 @@ const destination = join(directory, `lean-${version}-linux`);
 mkdirSync(directory, { recursive: true });
 if (!existsSync(destination)) {
   const archive = join(directory, `lean-${version}-linux.tar.zst`);
-  execFileSync('curl', ['--fail', '--location', '--silent', '--show-error', '--retry', '3',
-    `https://github.com/leanprover/lean4/releases/download/v${version}/lean-${version}-linux.tar.zst`, '--output', archive], { stdio: 'inherit' });
+  // Space curl's transient retries across release outages; bound the whole
+  // download too, since --retry-max-time does not stop an in-flight transfer.
+  execFileSync('curl', ['--fail', '--location', '--silent', '--show-error', '--retry', '8',
+    '--retry-delay', '20', '--retry-max-time', '300', '--connect-timeout', '30',
+    `https://github.com/leanprover/lean4/releases/download/v${version}/lean-${version}-linux.tar.zst`, '--output', archive], { stdio: 'inherit', timeout: 480000 });
   const digest = createHash('sha256').update(readFileSync(archive)).digest('hex');
   if (digest !== '37c2913cf41b49f33ab2eebc449d12394081817315c9f915af1ff43f1642de42') throw new Error('Lean archive digest mismatch');
   execFileSync('tar', ['--zstd', '-xf', archive, '-C', directory], { stdio: 'inherit' });
