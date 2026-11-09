@@ -49,6 +49,14 @@ test('current census binds state, metadata preparation and all provider construc
   assert.throws(()=>checkParentCensus(path=>path===p?
     source.replace(singletonSet,singletonSet.replace('1 => ()','2 => ()')):read(path)),
     /Changed reviewed reclaimed-prefix source body or arity/);
+  const singletonPivot='!(@execution.generated_sequence_step_count(sequence) == 1 &&\n          @lower.kernel_pivot(kernel) is Some(_))';
+  assert.equal(source.split(singletonPivot).length,2,'Reach the reviewed singleton PIVOT guard');
+  for(const changed of [singletonPivot.replace('== 1','== 2'),
+    '!(@lower.kernel_pivot(kernel) is Some(_))']) {
+    assert.throws(()=>checkParentCensus(path=>path===p?
+      source.replace(singletonPivot,changed):read(path)),
+      /Changed reviewed reclaimed-prefix source body or arity/);
+  }
   const generated='src/execution_relation/generated_sequence.mbt';
   assert.throws(()=>checkParentCensus(path=>path===generated?read(path).toString().replace('traversal_ceilings : Array[(Int, Int64, Int64)]','traversal_ceilings : Array[(Int, String, Int64)]'):read(path)));
 });

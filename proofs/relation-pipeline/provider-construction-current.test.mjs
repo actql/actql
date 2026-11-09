@@ -58,6 +58,18 @@ test('current five-field candidate component derives 2432 without promoting hist
   // Property borrowing changes only an execution predicate before the
   // selected factory. Its entire constructor/callback tail remains exact.
   const selectedBytes = read('src/connectors/local/selected_relation_provider.mbt');
+  // The reviewed singleton PIVOT guard changes only the private prefix query.
+  // It cannot affect a multi-child prefix or allocate another constructor.
+  // Reverse that exact delta before the independent prior-Source checks.
+  const pivot = `          !(@execution.generated_sequence_step_count(sequence) == 1 &&
+          @lower.kernel_pivot(kernel) is Some(_)) &&
+`;
+  assert.equal(selectedBytes.toString().split(pivot).length, 2,
+    'Reach the one reviewed singleton PIVOT scratch-eligibility guard');
+  const beforePivot = Buffer.from(selectedBytes.toString().replace(pivot, ''));
+  assert.equal(hash(beforePivot),
+    '18df1ab5731e9208f1ab95856799286ab779b48fe7e99d97d322d34a52b1fcad',
+    'Singleton PIVOT eligibility must preserve the complete prior Source');
   // F0bf adds only this private scratch-eligibility arm. Reverse it before
   // checking the complete old Source and its original fixed prefix/tail;
   // candidate construction and the numeric/NULL unary pilot do not change.
@@ -65,9 +77,9 @@ test('current five-field candidate component derives 2432 without promoting hist
       // its maps, membership array and recheck cursors before the next child.
       Some(@lower.WindowStep(_)) => ()
 `;
-  assert.equal(selectedBytes.toString().split(window).length, 2,
+  assert.equal(beforePivot.toString().split(window).length, 2,
     'Reach the one reviewed Window scratch-eligibility arm');
-  const beforeWindow = Buffer.from(selectedBytes.toString().replace(window, ''));
+  const beforeWindow = Buffer.from(beforePivot.toString().replace(window, ''));
   assert.equal(hash(beforeWindow),
     '4167c79f880f1734c25bac7eb53323a8a005b1bc9ba28725e591a14c939370c2',
     'Window eligibility must preserve the complete prior Source');
