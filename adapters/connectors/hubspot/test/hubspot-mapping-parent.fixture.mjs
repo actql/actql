@@ -267,7 +267,7 @@ export function registerHubSpotMappingParentTests(common, native, baseEnvironmen
   test('HubSpot actual Common builds the complete staged recipe through the JavaScript caller', () => {
     const {options} = hubSpotEffectPlanFixture();
     const recipe = captureHubSpotEffectPlanRecipeBuilder({moon: common})(options);
-    assert.equal(recipe.memberOperations.length, 8);
+    assert.equal(recipe.memberOperations.length, 9);
     assert.equal(recipe.rowOperations.length, 15);
     assert.equal(recipe.credentialOperations.length, 19);
   });
