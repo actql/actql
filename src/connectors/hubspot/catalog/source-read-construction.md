@@ -90,3 +90,18 @@ The old byte-only API retains its full envelope. The observed API adds named
 finite staging/digest controls before receiving a body and uses geometry only as
 sizing DATA. It does not retire an earlier prefix, infer currentness or narrow
 the final Properties/row superset from an unknown response role.
+
+## Object-bound native property projection
+
+When the same response preflight supplies structural geometry, full parsing and
+indexed admission retain the complete JSON node bound. Native property/option
+projection instead uses the object bound: it opens property, option and optional
+modification-metadata objects, while primitive values in unknown fields are
+visited only by the complete parser and admission. Count all observed objects,
+including unknown objects and the root, rather than assuming a successful
+property count. This also covers a malformed next value's original refusal.
+ObjectView Maps keep the complete field-count bound, including unknown scalar
+keys, plus the object-bound option seen entries. Object count never substitutes
+for Map width. The recheck Map uses the same conservative property bound. The returned Catalog
+retention and the complete byte-only fallback remain unchanged. This is sizing
+DATA for the original constructor, not a Catalog, permission or currentness proof.

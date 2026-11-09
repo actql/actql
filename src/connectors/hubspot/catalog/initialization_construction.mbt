@@ -18,8 +18,10 @@ fn initialization_collection_units(
 fn property_projection_construction_extent(
   n : Int,
   f : Int,
+  object_fields? : Int,
 ) -> @shape.CollectionConstructionExtent? {
-  if n < 1 || f < 0 || f > n {
+  let object_fields = object_fields.unwrap_or(n)
+  if n < 1 || f < 0 || f > n || object_fields < 0 {
     return None
   }
   let child = @decode.indexed_child_construction_extent()
@@ -44,7 +46,12 @@ fn property_projection_construction_extent(
     scalar_arrays: 0L,
     scalar_items: 0L,
     maps: 2L + 3L * f.to_int64() + n.to_int64(),
-    map_entries: 2L * n.to_int64() + 2L * f.to_int64(),
+    // open_object copies every field into its view Map, including unknown
+    // scalar fields. Object count bounds wrapper occurrences, not Map width.
+    // All opened-object fields plus per-option seen entries (each option is
+    // an object) and the property-name inventories. With byte-only n this is
+    // exactly the existing 2*n+2*f envelope.
+    map_entries: object_fields.to_int64() + n.to_int64() + 2L * f.to_int64(),
   })
 }
 

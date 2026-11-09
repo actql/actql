@@ -466,13 +466,28 @@ fn property_observation_construction_capacity(
       Int::min(n, limits.max_depth),
     ),
   )
-  let f = Int::min(n, limits.max_properties)
+  // Full grammar/admission still accounts for every JSON node below. Only
+  // native PropertyMetadata/option wrappers follow object occurrences, not
+  // every scalar/array node. ObjectView field Maps remain separate below.
+  // Count every object,
+  // including unknown objects and the root, so a malformed next object/value
+  // keeps its original failure prefix covered. No Catalog fact is inferred.
+  let projection_nodes = geometry
+    .map(g => Int::min(n, Int::max(1, g.objects)))
+    .unwrap_or(n)
+  let projection_fields = geometry.map(g => Int::min(n, g.fields)).unwrap_or(n)
+  let f = Int::min(projection_nodes, limits.max_properties)
   let parsed = match geometry {
     None => initialization_decoded_construction(b, n, depth, true)
     Some(g) => property_response_observed_construction(g, n, depth)
   }
   guard parsed is Some(parsed) &&
-    property_projection_construction_extent(n, f) is Some(metadata) &&
+    property_projection_construction_extent(
+      projection_nodes,
+      f,
+      object_fields=projection_fields,
+    )
+    is Some(metadata) &&
     @shape.collection_construction_extent({
       // recheck_property_catalog indexes the original only after confirming
       // equal field counts. Its names/PropertyMetadata remain borrowed.
