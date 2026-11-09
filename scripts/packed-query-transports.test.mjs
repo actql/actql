@@ -53,6 +53,99 @@ test('public query HTTPS observation selects only its original operator and auth
   assert.match(source, /if \(authorization !== undefined\) saved\.authorization = authorization/u);
 });
 
+test('cold cohort restart preserves recorded authorization without Graph-only observer metadata', async () => {
+  const {parse} = await import('acorn');
+  const {observeRetainedGraphDispatch} = await import('./fixtures/retained-graph-observer.mjs');
+  const source = await readFile(new URL('./fixtures/string-values-restart.mjs', import.meta.url), 'utf8');
+  const syntax = parse(source, {sourceType: 'module', ecmaVersion: 'latest'});
+  const loops = syntax.body.filter(node => node.type === 'ForOfStatement' && node.right.name === 'cohorts');
+  assert.equal(loops.length, 1);
+  const policySource = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
+  const policySyntax = parse(policySource, {sourceType: 'module', ecmaVersion: 'latest'});
+  const declarations = [];
+  const visit = node => {
+    if (node === null || typeof node !== 'object') return;
+    if (node.type === 'FunctionDeclaration' && node.id.name === 'createPublicQueryHttpAuthorization') {
+      declarations.push(node);
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value !== null && typeof value === 'object') visit(value);
+    }
+  };
+  visit(policySyntax);
+  assert.equal(declarations.length, 1);
+  const [declaration] = declarations;
+  const create = Function('userInfo', 'canonical', 'publicQueryResultOracles',
+    `return (${policySource.slice(declaration.start, declaration.end)});`)(
+      () => ({username: 'cold-reader'}), JSON.stringify, publicQueryResultOracles);
+  const authorization = Object.freeze(create({primaryResultName: 'answer', successes: [
+    {name: 'recorded', results: {answer: {}, secondary: {}}},
+  ]}));
+  const graphAuthorization = Object.freeze({...authorization,
+    reviewers: [{keyId: 'fixture-only'}], hostKey: {privateKey: 'fixture-only'}});
+  const cohorts = ['local', 'remote'].flatMap(mode => [
+    {mode, directory: `${mode}-ordinary`, authorization},
+    {mode, directory: `${mode}-observed`, authorization: graphAuthorization, expectedSampleNames: ['authored']},
+    {mode, directory: `${mode}-no-recorded-policy`},
+  ]);
+  const reads = [], opened = [], wrapped = [], completedRoots = [], physicalDispatches = [];
+  let hostsClosed = 0, serversClosed = 0, workerChecks = 0;
+  const ports = {
+    assert, cohorts, completedRoots, physicalDispatches, mode: undefined,
+    worker: {check() {workerChecks++;}},
+    observeRetainedGraphDispatch(original, events) {
+      wrapped.push(original);
+      return observeRetainedGraphDispatch(original, events);
+    },
+    async readRetainedCohort(cohort, options) {reads.push({cohort, options});},
+    async openInstalledRemoteHttpHost(options) {
+      opened.push(options);
+      return {handler() {}, async close() {hostsClosed++;}};
+    },
+    createServer() {
+      return {listen(_port, _host, callback) {callback();}, address() {return {port: 443};},
+        closeAllConnections() {}, close(callback) {serversClosed++; callback();}};
+    },
+    async readFile() {return 'synthetic-TLS-fixture';},
+    userInfo() {return {username: 'cold-reader'};},
+  };
+  const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+  await AsyncFunction(...Object.keys(ports), source.slice(loops[0].start, loops[0].end))(...Object.values(ports));
+  assert.deepEqual(completedRoots, cohorts.map(cohort => cohort.directory));
+  assert.equal(reads.length, 6);
+  assert.equal(workerChecks, 6);
+  assert.equal(hostsClosed, 3);
+  assert.equal(serversClosed, 3);
+  assert.deepEqual(wrapped, [graphAuthorization, graphAuthorization]);
+  assert.deepEqual(physicalDispatches, []);
+  const policy = JSON.parse(authorization.accountConfiguration);
+  assert.deepEqual(policy.entries.map(entry => ({principal: entry.principal,
+    connection: entry.connection, resource: entry.resource, operation: entry.operation})), [
+    {principal: {any_of: ['cold-reader']}, connection: {any_of: ['actql-remote-host']},
+      resource: {any_of: ['result/answer', 'result/secondary', 'run']}, operation: {any_of: ['read']}},
+    {principal: {any_of: ['cold-reader']}, connection: {any_of: ['actql-remote-host']},
+      resource: {any_of: ['duckdb-acquired']}, operation: {any_of: ['write']}},
+  ]);
+  for (const {cohort, options} of reads) {
+    const original = cohort.authorization;
+    const installed = cohort.mode === 'local' ? options.installation :
+      opened.find(item => item.directory === cohort.directory);
+    assert.ok(installed);
+    if (original === undefined) {
+      assert.equal(installed.authorization, undefined, 'missing recorded policy must not invent grants');
+    } else if (cohort.expectedSampleNames === undefined) {
+      assert.equal(installed.authorization, original,
+        'ordinary cold reader forwards the SAME recorded operator policy');
+    } else {
+      assert.equal(installed.authorization.accountConfiguration, original.accountConfiguration);
+      assert.equal(installed.authorization.hostKey, original.hostKey);
+      assert.equal(installed.authorization.reviewers, original.reviewers);
+      assert.equal(typeof installed.authorization.faultInjection, 'function');
+    }
+  }
+});
+
 test('public query fixture names preserve explicit and structured exports independently of product output', () => {
   const expected = [{value: 1}], columns = [{name: 'value'}];
   const implicit = {format: 'sql', text: 'SELECT 1 AS value', expected, columns};

@@ -120,20 +120,20 @@ for (const cohort of cohorts) {
   worker?.check();
   const verifyNoPhysicalReplay = cohort.expectedSampleNames !== undefined;
   const replayAuthorization = verifyNoPhysicalReplay
-    ? observeRetainedGraphDispatch(cohort.authorization, physicalDispatches) : undefined;
+    ? observeRetainedGraphDispatch(cohort.authorization, physicalDispatches) : cohort.authorization;
   const beforePhysical = physicalDispatches.length;
   if (cohort.mode === 'local') {
     await readRetainedCohort(cohort, {mode: 'local', owner: 'local', durability: 'durable',
       installation: {directory: cohort.directory, sourceProfilePath: cohort.sourceProfilePath,
         hostCapacityPolicy: cohort.hostCapacityPolicy,
         ...(cohort.retainedRelationOutput === true ? {retainedRelationOutput:true} : {}),
-        ...(verifyNoPhysicalReplay ? {authorization: replayAuthorization} : {})}});
+        ...(replayAuthorization === undefined ? {} : {authorization: replayAuthorization})}});
   } else {
     assert.equal(cohort.mode, 'remote');
     const host = await openInstalledRemoteHttpHost({directory: cohort.directory,
       sourceProfilePath: cohort.sourceProfilePath, hostCapacityPolicy: cohort.hostCapacityPolicy,
       ...(cohort.retainedRelationOutput === true ? {retainedRelationOutput:true} : {}),
-      ...(verifyNoPhysicalReplay ? {authorization: replayAuthorization} : {}),
+      ...(replayAuthorization === undefined ? {} : {authorization: replayAuthorization}),
       authenticate: header => header === 'Bearer fixture-token' ? userInfo().username : undefined});
     const server = createServer({key: await readFile('remote.key'),
       cert: await readFile('remote.crt')}, host.handler);
