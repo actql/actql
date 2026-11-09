@@ -125,6 +125,16 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_dependency_inventory(
       append("acquisition_relation", None, relation)
     }
   }
+  guard proposals.acquired is Some(acquired) else {
+    stop("LocalOriginalEffectDependencyInventoryUnavailable")
+  }
+  // The Model Artifact retains the combined imported+keyed scope. Individual
+  // Source and imported scopes above are its inputs, not that original body.
+  append(
+    "acquisition_scope",
+    None,
+    @run_host.client_effect_model_acquired_scope_json(acquired),
+  )
   retain(model)
   for (kind, cid, wire) in model_dependencies {
     append(kind, Some(cid), wire)

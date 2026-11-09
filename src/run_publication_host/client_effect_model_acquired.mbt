@@ -157,6 +157,16 @@ pub fn client_effect_model_acquired_invocation(
 }
 
 ///|
+/// Borrow the exact combined acquisition scope already retained by this Model
+/// Unit. Its Artifact refers to this original scope, including keyed Content
+/// and imported Sources. This neither reissues a scope nor grants access.
+pub fn client_effect_model_acquired_scope_json(
+  value : ClientEffectModelAcquiredEvidence,
+) -> String {
+  @publication.publication_contract_json(value.scope)
+}
+
+///|
 /// Copy only the bounded pointer array; the original complete inventory stays
 /// private even if a caller removes an entry from its returned view.
 pub fn client_effect_model_acquired_direct_sources(
