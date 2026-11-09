@@ -45,7 +45,7 @@ test('full checkpoint binds tested SHA, ancestry, policy and exact successful at
 const fullWorkflowJobs = ['check', 'select-targets', 'preflight', 'lint',
   'core (js)', 'core (wasm)', 'core (native 1/2)', 'core (native 2/2)', 'host', 'client', 'native-cli-installed', 'native-cli-linux-local', 'native',
   'spec', 'session-evidence', 'pipeline-evidence', 'pipeline-validation', 'native-macos', 'python-wheels',
-  'native-separated-network', 'workers', 'connector-addition', 'duckdb-node'];
+  'native-separated-network (direct)', 'native-separated-network (store)', 'workers', 'connector-addition', 'duckdb-node'];
 function fullWorkflowFixture() {
   const f = fixture();
   f.options.requiredJobs = fullCheckpointJobs(gateJobs);
@@ -67,6 +67,20 @@ test('full checkpoint requires both original Native partitions and refuses missi
       const f = fullWorkflowFixture();
       if (outcome === 'missing') f.state.jobs.jobs = f.state.jobs.jobs.filter(job => job.name !== name);
       else f.state.jobs.jobs.find(job => job.name === name).conclusion = outcome;
+      f.state.jobs.total_count = f.state.jobs.jobs.length;
+      assert.equal((await resolveMainBaseline(f.options)).baseSha, null, `${name}: ${outcome}`);
+    }
+  }
+});
+test('full checkpoint requires both separated profiles and rejects the old single-job substitute', async () => {
+  for (const name of ['native-separated-network (direct)', 'native-separated-network (store)']) {
+    for (const outcome of ['missing', 'failure', 'cancelled', 'skipped']) {
+      const f = fullWorkflowFixture();
+      if (outcome === 'missing') f.state.jobs.jobs = f.state.jobs.jobs.filter(job => job.name !== name);
+      else f.state.jobs.jobs.find(job => job.name === name).conclusion = outcome;
+      // A historical single-row result cannot supply either missing profile.
+      f.state.jobs.jobs.push({name: 'native-separated-network', run_id: 101,
+        run_attempt: 1, head_sha: base, status: 'completed', conclusion: 'success'});
       f.state.jobs.total_count = f.state.jobs.jobs.length;
       assert.equal((await resolveMainBaseline(f.options)).baseSha, null, `${name}: ${outcome}`);
     }

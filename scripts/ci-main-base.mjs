@@ -40,7 +40,8 @@ export function fullCheckpointJobs(gateJobs) {
   // do not generalize these exceptions to arbitrary skipped or missing jobs.
   return ['check', ...gateJobs.filter(name => !['focused-tests', 'main-performance', 'health-quick'].includes(name))
     .flatMap(name => name === 'core' ? ['core (js)', 'core (wasm)',
-      'core (native 1/2)', 'core (native 2/2)'] : [name])];
+      'core (native 1/2)', 'core (native 2/2)'] : name === 'native-separated-network'
+      ? ['native-separated-network (direct)', 'native-separated-network (store)'] : [name])];
 }
 
 function validRun(run, {repository, repositoryId, workflowId, ancestors}) {

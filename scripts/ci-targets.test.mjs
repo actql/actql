@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync, mkdtempSync, mkdirSync, rmSync, writeFileSync, chmodSync, symlinkSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
 import {runInNewContext} from 'node:vm';
 import test from 'node:test';
@@ -106,6 +107,111 @@ test('Linux Native profile compilers retain their commands and existing stack pr
       assert.equal(result.status, status, result.stderr);
       assert.equal(result.stdout.trim(), `65536:${job === 'native' ? command : `run ${command}`}`);
     }
+  }
+});
+
+test('separated Native profiles each retain a required independent sixty-minute job', () => {
+  const job = jobs['native-separated-network'];
+  assert.equal(job.name, 'native-separated-network (${{ matrix.profile }})');
+  assert.deepEqual(job.strategy, {'fail-fast': false, matrix: {profile: ['direct', 'store']}});
+  assert.equal(job['timeout-minutes'], 60);
+  assert.equal(job['continue-on-error'], undefined);
+  assert.ok(jobs.check.needs.includes('native-separated-network'));
+  const step = job.steps.find(row => row.name === 'Verify native direct and outbound-only Store profiles');
+  assert.equal(step.env.ACTQL_TEST_NATIVE_NETWORK_PROFILE, '${{ matrix.profile }}');
+  assert.equal(step.env.ACTQL_TEST_SCRATCH_ROOT, '${{ runner.temp }}/actql-native-network-${{ matrix.profile }}');
+  assert.equal(step.if, undefined);
+  assert.equal(step['continue-on-error'], undefined);
+  const receipt = job.steps.find(row => row.name === 'Retain scoped Native preparation source and compiler receipts');
+  assert.equal(receipt.with.name,
+    'native-scoped-preparation-${{ github.job }}-${{ matrix.profile }}-${{ github.run_id }}-${{ github.run_attempt }}');
+  assert.equal(receipt.if, 'always()');
+  for (const extension of ['json', 'stdout', 'stderr']) {
+    assert.ok(receipt.with.path.includes('${{ runner.temp }}/native-scoped-preparation-${{ matrix.profile }}/**/*.' + extension));
+  }
+});
+
+function separatedNetworkRoutingFixture(t) {
+  const root = mkdtempSync(join(tmpdir(), 'actql-separated-routing-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const log = join(root, 'calls');
+  writeFileSync(join(root, 'node'), '#!/bin/sh\n' +
+    'entry="${1##*/}"\n' +
+    'printf "node|%s|%s|%s\\n" "${ACTQL_TEST_NATIVE_APPLICATION_OUTPUT_ROUTE-}" "$entry" "$ACTQL_TEST_SCRATCH_ROOT" >> "$ACTQL_CALL_LOG"\n' +
+    'if [ "${ACTQL_FIXTURE_FAIL-}" = "${ACTQL_TEST_NATIVE_APPLICATION_OUTPUT_ROUTE-}:$entry" ]; then exit 7; fi\n');
+  chmodSync(join(root, 'node'), 0o755);
+  // Explicit command ports observe the original shell routing. They perform
+  // no privileged network operation, Native test, producer or physical probe.
+  const ports = 'uname() { case "$1" in -s) echo Linux;; -m) echo x86_64;; *) return 91;; esac; }\n' +
+    'ip() { return 92; }\niptables() { return 92; }\n' +
+    'sudo() { printf "sudo|%s\\n" "$*" >> "$ACTQL_CALL_LOG"; case " $* " in *" curl "*) return 1;; esac; }\n' +
+    'curl() { return 1; }\nsleep() { test "$*" = 1; }\nkill() { return 0; }\n';
+  return (profile, fail = '') => {
+    writeFileSync(log, '');
+    const env = {...process.env, PATH: root + ':' + process.env.PATH,
+      ACTQL_CALL_LOG: log, ACTQL_FIXTURE_FAIL: fail,
+      ACTQL_TEST_SCRATCH_ROOT: join(root, 'scratch'), ACTQL_TEST_NATIVE_SITE_USER: 'fixture'};
+    delete env.ACTQL_TEST_NATIVE_NETWORK_PROFILE;
+    delete env.ACTQL_TEST_NATIVE_APPLICATION_OUTPUT_ROUTE;
+    if (profile !== undefined) env.ACTQL_TEST_NATIVE_NETWORK_PROFILE = profile;
+    const result = spawnSync('bash', ['-c', ports + 'source "$1"', '--',
+      fileURLToPath(new URL('./test-native-separated-network.sh', import.meta.url))], {
+      cwd: root, env, encoding: 'utf8', timeout: 5000,
+    });
+    assert.equal(result.error, undefined);
+    assert.equal(result.signal, null);
+    return {...result, calls: readFileSync(log, 'utf8').trim().split('\n').filter(Boolean), root};
+  };
+}
+
+test('separated Native routing preserves both defaults and every selected full harness', t => {
+  const run = separatedNetworkRoutingFixture(t);
+  const expected = {
+    direct: [['direct', 'test-native-http-client.mjs', 'direct']],
+    store: [['store', 'test-native-http-client.mjs', 'store'], ['', 'test-native-runtime-bundle-cli.mjs', 'bundle']],
+  };
+  for (const profile of [undefined, 'both', 'direct', 'store']) {
+    const result = run(profile);
+    assert.equal(result.status, 0, result.stderr);
+    const calls = result.calls.filter(line => line.startsWith('node|')).map(line => {
+      const [, route, entry, scratch] = line.split('|');
+      return [route, entry, scratch.slice(scratch.lastIndexOf('/') + 1)];
+    });
+    assert.deepEqual(calls, profile === 'direct' || profile === 'store'
+      ? expected[profile] : [...expected.direct, ...expected.store], String(profile));
+    const permit = result.calls.filter(line => /sudo\|ip netns exec .* iptables -I INPUT 1 .* -j ACCEPT$/u.test(line));
+    const remove = result.calls.filter(line => /sudo\|ip netns exec .* iptables -D INPUT .* -j ACCEPT$/u.test(line));
+    assert.equal(permit.length, profile === 'store' ? 0 : 1);
+    // EXIT cleanup still retries removal after the direct transition (and
+    // owns the sole removal attempt when the Store profile never opened it).
+    assert.equal(remove.length, profile === 'store' ? 1 : 2);
+    const direct = result.calls.findIndex(line => line.startsWith('node|direct|'));
+    if (direct >= 0) {
+      assert.ok(result.calls.indexOf(permit[0]) < direct);
+      assert.ok(result.calls.indexOf(remove[0]) > direct);
+    }
+    const store = result.calls.findIndex(line => line.startsWith('node|store|'));
+    if (store >= 0 && direct >= 0) assert.ok(result.calls.indexOf(remove[0]) < store);
+  }
+});
+
+test('separated Native routing refuses unknown profiles and preserves child failure', t => {
+  const run = separatedNetworkRoutingFixture(t);
+  for (const profile of ['', 'unknown', 'DIRECT', 'direct,store']) {
+    const result = run(profile);
+    assert.equal(result.status, 2, profile);
+    assert.match(result.stderr, /Unsupported Native network profile/u);
+    assert.deepEqual(result.calls, []);
+  }
+  for (const [profile, fail, count] of [
+    ['both', 'direct:test-native-http-client.mjs', 1],
+    ['both', 'store:test-native-http-client.mjs', 2],
+    ['store', ':test-native-runtime-bundle-cli.mjs', 2],
+  ]) {
+    const result = run(profile, fail);
+    assert.equal(result.status, 7, result.stderr);
+    assert.equal(result.calls.filter(line => line.startsWith('node|')).length, count);
+    assert.ok(result.calls.some(line => /^sudo\|ip netns delete /u.test(line)), 'the original EXIT cleanup remains active');
   }
 });
 
@@ -403,7 +509,8 @@ for (const [name, entries, producerCount, residentSeconds, remainingMinutes] of 
     const preparation = job.steps.find(step =>
       step.name === 'Prepare exact-source scoped Native commands and components once');
     assert.equal(preparation.run, 'node scripts/prepare-native-runtime-bundle-fixture.mjs ' +
-      '--destination "${{ runner.temp }}/native-scoped-preparation" --entries ' + entries + ' --seconds 900' +
+      '--destination "${{ runner.temp }}/native-scoped-preparation' +
+      (name === 'native-separated-network' ? '-${{ matrix.profile }}' : '') + '" --entries ' + entries + ' --seconds 900' +
       (entries === 'all' ? ' --http-jobs 2' : '') +
       (residentSeconds === 900 ? '' : ' --resident-seconds ' + residentSeconds));
     assert.equal(preparation.if, undefined);

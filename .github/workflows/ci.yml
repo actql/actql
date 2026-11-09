@@ -2414,10 +2414,15 @@ jobs:
           if-no-files-found: error
           retention-days: 14
   native-separated-network:
+    name: native-separated-network (${{ matrix.profile }})
     needs: [select-targets, preflight]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [direct, store]
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -2459,24 +2464,25 @@ jobs:
       - name: Prepare exact-source scoped Native commands and components once
         id: native-preparation
         timeout-minutes: 35
-        run: node scripts/prepare-native-runtime-bundle-fixture.mjs --destination "${{ runner.temp }}/native-scoped-preparation" --entries bundle --seconds 900
+        run: node scripts/prepare-native-runtime-bundle-fixture.mjs --destination "${{ runner.temp }}/native-scoped-preparation-${{ matrix.profile }}" --entries bundle --seconds 900
       - name: Retain scoped Native preparation source and compiler receipts
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: native-scoped-preparation-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}
+          name: native-scoped-preparation-${{ github.job }}-${{ matrix.profile }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            ${{ runner.temp }}/native-scoped-preparation/**/*.json
-            ${{ runner.temp }}/native-scoped-preparation/**/*.stdout
-            ${{ runner.temp }}/native-scoped-preparation/**/*.stderr
+            ${{ runner.temp }}/native-scoped-preparation-${{ matrix.profile }}/**/*.json
+            ${{ runner.temp }}/native-scoped-preparation-${{ matrix.profile }}/**/*.stdout
+            ${{ runner.temp }}/native-scoped-preparation-${{ matrix.profile }}/**/*.stderr
           if-no-files-found: warn
           retention-days: 14
       - name: Verify native direct and outbound-only Store profiles
         env:
-          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/actql-native-network
+          ACTQL_TEST_NATIVE_NETWORK_PROFILE: ${{ matrix.profile }}
+          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/actql-native-network-${{ matrix.profile }}
         run: |
-          # The same full Native query compilation runs before either route.
-          # Match Core's compiler stack prerequisite; keep both routes.
+          # Each required profile retains the full Native query compilation.
+          # Match Core's compiler stack prerequisite in both independent jobs.
           ulimit -S -s 65536
           npm run check:native-separated-network
   workers:

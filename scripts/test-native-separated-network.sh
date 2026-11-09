@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+profile="${ACTQL_TEST_NATIVE_NETWORK_PROFILE-both}"
+case "$profile" in
+  both|direct|store) ;;
+  *) echo "Unsupported Native network profile: $profile" >&2; exit 2 ;;
+esac
+
 if [[ "$(uname -s)" != "Linux" || "$(uname -m)" != "x86_64" ]]; then
   echo "separated-network native tests require Linux x86_64" >&2
   exit 1
@@ -148,30 +154,34 @@ common_environment=(
   "ACTQL_TEST_NATIVE_TRANSFER_PORT=$transfer_port"
 )
 
-sudo iptables -I FORWARD 1 -i "$source_host_interface" \
-  -o "$destination_host_interface" -p tcp \
-  -d "$destination_site_ip" --dport "$transfer_port" -j ACCEPT
-sudo iptables -I FORWARD 1 -m conntrack \
-  --ctstate ESTABLISHED,RELATED -j ACCEPT
-sudo ip netns exec "$destination_namespace" iptables -I INPUT 1 \
-  -p tcp -s "$source_site_ip" --dport "$transfer_port" -j ACCEPT
-env "${common_environment[@]}" \
-  "ACTQL_TEST_SCRATCH_ROOT=$scratch_root/direct" \
-  ACTQL_TEST_NATIVE_APPLICATION_OUTPUT_ROUTE=direct \
-  node "$repository_root/scripts/test-native-http-client.mjs"
-sudo iptables -D FORWARD -i "$source_host_interface" \
-  -o "$destination_host_interface" -p tcp \
-  -d "$destination_site_ip" --dport "$transfer_port" -j ACCEPT
-sudo iptables -D FORWARD -m conntrack \
-  --ctstate ESTABLISHED,RELATED -j ACCEPT
-sudo ip netns exec "$destination_namespace" iptables -D INPUT \
-  -p tcp -s "$source_site_ip" --dport "$transfer_port" -j ACCEPT
+if [[ "$profile" != store ]]; then
+  sudo iptables -I FORWARD 1 -i "$source_host_interface" \
+    -o "$destination_host_interface" -p tcp \
+    -d "$destination_site_ip" --dport "$transfer_port" -j ACCEPT
+  sudo iptables -I FORWARD 1 -m conntrack \
+    --ctstate ESTABLISHED,RELATED -j ACCEPT
+  sudo ip netns exec "$destination_namespace" iptables -I INPUT 1 \
+    -p tcp -s "$source_site_ip" --dport "$transfer_port" -j ACCEPT
+  env "${common_environment[@]}" \
+    "ACTQL_TEST_SCRATCH_ROOT=$scratch_root/direct" \
+    ACTQL_TEST_NATIVE_APPLICATION_OUTPUT_ROUTE=direct \
+    node "$repository_root/scripts/test-native-http-client.mjs"
+  sudo iptables -D FORWARD -i "$source_host_interface" \
+    -o "$destination_host_interface" -p tcp \
+    -d "$destination_site_ip" --dport "$transfer_port" -j ACCEPT
+  sudo iptables -D FORWARD -m conntrack \
+    --ctstate ESTABLISHED,RELATED -j ACCEPT
+  sudo ip netns exec "$destination_namespace" iptables -D INPUT \
+    -p tcp -s "$source_site_ip" --dport "$transfer_port" -j ACCEPT
+fi
 
-env "${common_environment[@]}" \
-  "ACTQL_TEST_SCRATCH_ROOT=$scratch_root/store" \
-  ACTQL_TEST_NATIVE_APPLICATION_OUTPUT_ROUTE=store \
-  node "$repository_root/scripts/test-native-http-client.mjs"
+if [[ "$profile" != direct ]]; then
+  env "${common_environment[@]}" \
+    "ACTQL_TEST_SCRATCH_ROOT=$scratch_root/store" \
+    ACTQL_TEST_NATIVE_APPLICATION_OUTPUT_ROUTE=store \
+    node "$repository_root/scripts/test-native-http-client.mjs"
 
-env "${common_environment[@]}" \
-  "ACTQL_TEST_SCRATCH_ROOT=$scratch_root/bundle" \
-  node "$repository_root/scripts/test-native-runtime-bundle-cli.mjs"
+  env "${common_environment[@]}" \
+    "ACTQL_TEST_SCRATCH_ROOT=$scratch_root/bundle" \
+    node "$repository_root/scripts/test-native-runtime-bundle-cli.mjs"
+fi
