@@ -507,6 +507,55 @@ test('actual JSON Model UPDATE acceptance saves and restores both originals in t
   } finally { journal?.close(); await installed.close(); }
 });
 
+test('actual bound installation repeats complete current checks without generic DATA reconstruction', async t => {
+  const f = await fixture(t);
+  const installed = await loadInstalledEffect(await f.path([alias()]), f.options);
+  try {
+    const owner = originalOwnerFixture(installed);
+    let completedCurrentChecks = 0, completedEqualities = 0, genericConversions = 0;
+    const observedMoon = {...moon,
+      clientProgramEffectTargetSelectionCurrent(...args) {
+        const result = moon.clientProgramEffectTargetSelectionCurrent(...args);
+        if (result) completedCurrentChecks++;
+        return result;
+      },
+      clientProgramEffectTargetInstallationsDataEqual(...args) {
+        const result = moon.clientProgramEffectTargetInstallationsDataEqual(...args);
+        if (result) completedEqualities++;
+        return result;
+      },
+      clientProgramEffectTargetOriginalDataEqual(...args) {
+        genericConversions++;
+        return moon.clientProgramEffectTargetOriginalDataEqual(...args);
+      },
+    };
+    const originals = installUpdateTargetOriginals({moon: observedMoon, control: owner.control,
+      installedEffect: installed, limits: owner.limits});
+    const original = originals.capturePrepared(owner.prepared, owner.compilation);
+    // Complete cold DATA admission remains mandatory; object identity is absent.
+    const restored = originals.restorePrepared(JSON.parse(JSON.stringify(original)));
+    assert.ok(genericConversions > 0, 'Complete Prepared equality keeps its original full path');
+    completedCurrentChecks = completedEqualities = genericConversions = 0;
+    for (let index = 0; index < 3; index++) restored.assertUpdateSelectionCurrent();
+    console.log('ACTQL_INSTALLATION_WORK ' + JSON.stringify({completedCurrentChecks,
+      completedEqualities, genericConversions}));
+    assert.equal(completedCurrentChecks, 3);
+    assert.equal(completedEqualities, 3);
+    assert.equal(genericConversions, 0);
+    observedMoon.clientProgramEffectTargetSelectionCurrent = () => false;
+    assert.throws(() => restored.assertUpdateSelectionCurrent(),
+      {name: 'TypeError', message: 'InvalidEffectTargetSelections'});
+    assert.equal(completedEqualities, 3);
+    observedMoon.clientProgramEffectTargetSelectionCurrent = moon.clientProgramEffectTargetSelectionCurrent;
+    for (const port of [undefined, () => false]) {
+      observedMoon.clientProgramEffectTargetInstallationsDataEqual = port;
+      assert.throws(() => restored.assertUpdateSelectionCurrent(), primary('InstalledEffectOriginalSelectionChanged'));
+    }
+    assert.equal(f.counts.prepares, 0);
+    assert.equal(f.counts.credentials, 0);
+  } finally { await installed.close(); }
+});
+
 test('actual UPDATE Owner saves and restores the original prepared and Run data through the same SQLite journal', async t => {
   const f = await fixture(t);
   const installed = await loadInstalledEffect(await f.path([alias()]), f.options);

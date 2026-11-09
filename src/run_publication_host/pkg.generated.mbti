@@ -643,6 +643,8 @@ pub fn client_effect_static_declarations(PreparedClientEffectComputation, Client
 
 pub fn client_effect_table_write_binding(PreparedClientEffectComputation, Int, String, Int) -> Result[(String, String, String?, String?, String, String)?, ClientEffectMemberDescriptorIssue]
 
+pub fn client_effect_target_installations_data_equal(Array[String], Array[String]) -> Bool
+
 pub fn client_effect_target_installations_shape(String) -> Bool
 
 pub fn client_effect_target_original_codec_limits() -> Array[Int]
