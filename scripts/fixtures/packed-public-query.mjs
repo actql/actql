@@ -225,7 +225,7 @@ import {graphDiagnosticSourceSuccesses, graphDiagnosticSourceRefusals, graphDiag
   from './graph-diagnostics-source-input.mjs';
 
 import {transportWorker, requireCompleteInventory, sourceFixturePaths,
-  observePackedSubmissionCause} from './packed-query-transport-owner.mjs';
+  observePackedSubmissionCause, createPackedHostFailureDiagnostics} from './packed-query-transport-owner.mjs';
 const transport = process.env.ACTQL_TEST_QUERY_TRANSPORT;
 assert.ok(transport === undefined || ['local', 'remote', 'tail'].includes(transport));
 const worker = transport === 'local' || transport === 'remote' ? transportWorker() : undefined;
@@ -1416,6 +1416,7 @@ const recordCohort = (mode, directory, cohort, authorization) => {
 try {
 if (transport === undefined || transport === 'local') {
 let localAcceptedRuns = 0, submissionCause;
+const hostFailures = createPackedHostFailureDiagnostics();
 try {
   submissionCause = await observePackedSubmissionCause({boundary: 'local-submission-500', sourceURL: new URL(
     './adapters/host-node/in-process-client.mjs', import.meta.resolve('@actql/local-node'))});
@@ -1427,13 +1428,13 @@ for (const [index, cohort] of cohorts.entries()) {
     ? createRetainedGraphAuthorization() : undefined;
   const physicalDispatches = [];
   const retainedLeases = [];
+  const observedAuthorization = hostFailures.authorization(authorization === undefined ? undefined :
+    observeInputStageStore(observeRetainedGraphDispatch(authorization, physicalDispatches), retainedLeases));
   await exercisePublicQueryInput(connect, {mode: 'local', owner: 'local',
     durability: 'durable', installation: {directory,
       sourceProfilePath, hostCapacityPolicy,
       ...(inputStageResultOnly ? {retainedRelationOutput:true} : {}),
-      ...(authorization === undefined ? {} : {
-        authorization: observeInputStageStore(
-          observeRetainedGraphDispatch(authorization, physicalDispatches),retainedLeases)})}}, {requestPrefix: 'packed-local',
+      authorization: observedAuthorization}}, {requestPrefix: 'packed-local',
     observe: observe(directory), prepareCase,
     completedCase: recordCohort('local', directory, cohort, authorization), ...cohort});
   if (authorization !== undefined) assert.ok(physicalDispatches.includes('physical_start_reserved'),
@@ -1447,11 +1448,12 @@ for (const [index, cohort] of cohorts.entries()) {
 assert.equal(localAcceptedRuns, expectedQueryRuns);
 assert.ok(sourceIo >= expectedSourceReads);
 console.log(`packed raw SQL/Pipe Embedded Local ${profileName} acceptance passed`);
-} finally {await submissionCause?.close();}
+} finally {try {await submissionCause?.close();} finally {hostFailures.report();}}
 }
 if (transport === undefined || transport === 'remote') {
 const beforeRemote = sourceIo;
 let remoteAcceptedRuns = 0, submissionCause;
+const hostFailures = createPackedHostFailureDiagnostics();
 try {
   submissionCause = await observePackedSubmissionCause({boundary: 'http-500', sourceURL: new URL(
     './adapters/host-node/client-http.mjs', import.meta.resolve('@actql/local-node'))});
@@ -1469,7 +1471,7 @@ try {
     const host = await openInstalledRemoteHttpHost({
       directory, sourceProfilePath, hostCapacityPolicy,
       ...(inputStageResultOnly ? {retainedRelationOutput:true} : {}),
-      authorization: httpAuthorization,
+      authorization: hostFailures.authorization(httpAuthorization),
       authenticate: header => header === 'Bearer fixture-token'
         ? userInfo().username : undefined,
     });
@@ -1500,7 +1502,7 @@ try {
   assert.equal(remoteAcceptedRuns, expectedQueryRuns);
   assert.ok(sourceIo >= beforeRemote + expectedSourceReads);
   console.log(`packed raw SQL/Pipe HTTP ${profileName} acceptance passed`);
-} finally {await submissionCause?.close();}
+} finally {try {await submissionCause?.close();} finally {hostFailures.report();}}
 }
   if (!scopeOnly && profileName === 'standard' &&
       (transport === undefined || transport === 'tail')) await exerciseExactPhysicalTargets();

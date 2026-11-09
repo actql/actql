@@ -5,6 +5,7 @@ import {createHash} from 'node:crypto';
 import {readFile, realpath, stat} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
+import {types as nodeTypes} from 'node:util';
 import {Worker, isMainThread, parentPort, workerData} from 'node:worker_threads';
 
 export const acceptanceTimeoutMs = 900_000;
@@ -194,6 +195,75 @@ export function requireCompleteInventory(expected, completed) {
   assert.equal(new Set(expected).size, expected.length, 'duplicate authored case');
   assert.equal(new Set(completed).size, completed.length, 'duplicate completed case');
   assert.deepEqual(completed, expected, 'missing, extra or reordered case');
+}
+
+// Recent optional Host diagnostics, not a correlated primary or a no-failure
+// claim. Keep only copied public codes/numeric tags, never the original detail.
+export function createPackedHostFailureDiagnostics(report = value => {
+  process.stderr.write(`Packed Host failure diagnostics: ${JSON.stringify(value)}\n`);
+}) {
+  const records = [];
+  let unavailable = false, truncated = false;
+  const own = (value, key) => {
+    if (value === null || !['object', 'function'].includes(typeof value)) return undefined;
+    if (nodeTypes.isProxy(value)) { unavailable = true; return undefined; }
+    const field = Object.getOwnPropertyDescriptor(value, key);
+    if (field !== undefined && !Object.hasOwn(field, 'value')) unavailable = true;
+    return field !== undefined && Object.hasOwn(field, 'value') ? field.value : undefined;
+  };
+  const capture = (event, detail) => {
+    if (!['dispatch_failed', 'effect_start_failed', 'model_resume_failed', 'model_recovery_failed'].includes(event)) return;
+    try {
+      const record = {event};
+      for (const key of ['code', 'primaryCode']) {
+        const code = own(detail, key);
+        if (originalFailureCodes.includes(code)) record[key] = code;
+        else if (code !== undefined) record.codeOmitted = true;
+      }
+      const cause = event === 'effect_start_failed' ? own(detail, 'cause') : undefined;
+      const tags = [own(detail, 'issueTag') ?? own(cause, '$tag'),
+        own(detail, 'nestedIssueTag') ?? own(own(cause, '_0'), '$tag')];
+      for (const [index, key] of ['issueTag', 'nestedIssueTag'].entries()) {
+        if (Number.isSafeInteger(tags[index]) && tags[index] >= 0 && tags[index] <= 2147483647) {
+          record[key] = tags[index];
+        }
+      }
+      if (records.length === 8) { records.shift(); truncated = true; }
+      records.push(Object.freeze(record));
+    } catch { unavailable = true; }
+  };
+  return Object.freeze({
+    authorization(original) {
+      try {
+        if (original !== undefined && (original === null || typeof original !== 'object' || nodeTypes.isProxy(original))) {
+          unavailable = true; return original;
+        }
+        let observer;
+        for (let owner = original; owner != null; owner = Object.getPrototypeOf(owner)) {
+          if (nodeTypes.isProxy(owner)) { unavailable = true; return original; }
+          const field = Object.getOwnPropertyDescriptor(owner, 'observe');
+          if (field === undefined) continue;
+          if (!Object.hasOwn(field, 'value') || field.value !== undefined && typeof field.value !== 'function') {
+            unavailable = true; return original;
+          }
+          observer = field.value; break;
+        }
+        const fields = Object.getOwnPropertyDescriptors(original ?? {});
+        fields.observe = {...(fields.observe ?? {enumerable: true, configurable: true, writable: true}), value: function (...args) {
+          capture(args[0], args[1]);
+          return observer === undefined ? undefined : Reflect.apply(observer, this, args);
+        }};
+        return Object.create(original === undefined ? Object.prototype : Object.getPrototypeOf(original), fields);
+      } catch { unavailable = true; return original; }
+    },
+    report() {
+      const value = Object.freeze({bestEffort: true, correlated: false,
+        available: records.length > 0 && !unavailable, unavailable: unavailable || records.length === 0, truncated,
+        records: Object.freeze([...records])});
+      try { report(value); } catch { /* Diagnostics cannot replace the original failure. */ }
+      return value;
+    },
+  });
 }
 
 // This is a test-only observer of the already installed original ingress. It

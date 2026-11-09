@@ -8,7 +8,7 @@ import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {test} from 'node:test';
 import {createTransportOwner, requireCompleteInventory, sourceFixturePaths, observePackedSubmissionCause,
-  runSubmissionCauseObserver}
+  runSubmissionCauseObserver, createPackedHostFailureDiagnostics}
   from './fixtures/packed-query-transport-owner.mjs';
 import {encodeRetainedFixture} from './fixtures/retained-fixture-values.mjs';
 import {publicQueryResultOracles} from './fixtures/public-query-input.mjs';
@@ -48,9 +48,77 @@ test('public query HTTPS observation selects only its original operator and auth
         connection: {any_of: ['actql-remote-host']}, resource: {any_of: ['duckdb-acquired']},
         operation: {any_of: ['write']}, exclusions: []},
     ]});
-  assert.match(source, /authorization: httpAuthorization/u);
+  assert.match(source, /authorization: hostFailures\.authorization\(httpAuthorization\)/u);
   assert.match(source, /recordCohort\('remote', directory, cohort, authorization \?\? httpAuthorization\)/u);
   assert.match(source, /if \(authorization !== undefined\) saved\.authorization = authorization/u);
+});
+
+test('Host failure diagnostics preserve original authorization and observer call semantics', () => {
+  const result = Promise.resolve('original-return'), receiver = {}, detail = {code: 'ClientHostFailure'};
+  const context = {}, calls = [];
+  const authorization = Object.freeze({accountConfiguration: 'original-account', current: () => false,
+    observe(...args) {
+      calls.push({receiver: this, args});
+      if (args[0] === 'model_recovery_failed') throw undefined;
+      return result;
+    }});
+  const diagnostic = createPackedHostFailureDiagnostics(() => {});
+  const wrapped = diagnostic.authorization(authorization);
+  assert.equal(wrapped.accountConfiguration, authorization.accountConfiguration);
+  assert.equal(wrapped.current, authorization.current);
+  assert.equal(Reflect.apply(wrapped.observe, receiver, ['dispatch_failed', detail, context, 4]), result);
+  let rejected = false;
+  try { Reflect.apply(wrapped.observe, receiver, ['model_recovery_failed', detail]); }
+  catch (error) { rejected = true; assert.equal(error, undefined); }
+  assert.equal(rejected, true);
+  assert.deepEqual(calls, [{receiver, args: ['dispatch_failed', detail, context, 4]},
+    {receiver, args: ['model_recovery_failed', detail]}]);
+  assert.equal(Object.hasOwn(diagnostic.authorization(undefined), 'accountConfiguration'), false);
+});
+
+test('Host failure diagnostics copy only allowlisted codes and own numeric tags without getters or payloads', () => {
+  let reads = 0;
+  const privateGetter = () => { reads++; throw new Error('PRIVATE_DIAGNOSTIC_PAYLOAD'); };
+  const cause = Object.defineProperties({$tag: 6, _0: {$tag: 3}}, {
+    message: {get: privateGetter}, stack: {get: privateGetter}, payload: {get: privateGetter},
+  });
+  const diagnostic = createPackedHostFailureDiagnostics(() => {});
+  const authorization = diagnostic.authorization(undefined);
+  authorization.observe('effect_start_failed', Object.defineProperties({code: 'ClientHostFailure', cause}, {
+    ref: {get: privateGetter}, message: {get: privateGetter}, stack: {get: privateGetter},
+  }));
+  authorization.observe('dispatch_failed', Object.create({code: 'PRIVATE_DIAGNOSTIC_PAYLOAD', issueTag: 99}, {
+    code: {get: privateGetter}, issueTag: {value: Infinity}, nestedIssueTag: {value: -1},
+  }));
+  authorization.observe('model_resume_failed', {code: 'PRIVATE_DIAGNOSTIC_PAYLOAD', issueTag: '6'});
+  authorization.observe('dispatch_failed', new Proxy({}, {getOwnPropertyDescriptor: privateGetter}));
+  authorization.observe('PRIVATE_DIAGNOSTIC_PAYLOAD', {code: 'ClientHostFailure'});
+  const report = diagnostic.report();
+  assert.equal(reads, 0);
+  assert.equal(report.bestEffort, true);
+  assert.equal(report.correlated, false);
+  assert.equal(report.available, false);
+  assert.equal(report.unavailable, true);
+  assert.deepEqual(report.records, [
+    {event: 'effect_start_failed', code: 'ClientHostFailure', issueTag: 6, nestedIssueTag: 3},
+    {event: 'dispatch_failed'}, {event: 'model_resume_failed', codeOmitted: true},
+    {event: 'dispatch_failed'},
+  ]);
+  assert.equal(JSON.stringify(report).includes('PRIVATE_DIAGNOSTIC_PAYLOAD'), false);
+});
+
+test('Host failure diagnostics retain at most eight recent sanitized records and absence stays unavailable', () => {
+  const diagnostic = createPackedHostFailureDiagnostics(() => { throw new Error('ignored-report'); });
+  assert.equal(diagnostic.report().available, false);
+  assert.equal(diagnostic.report().unavailable, true);
+  const authorization = diagnostic.authorization(undefined);
+  for (let index = 0; index < 10; index++) {
+    authorization.observe('dispatch_failed', {code: 'MoonBitHostFailure', issueTag: index});
+  }
+  const report = diagnostic.report();
+  assert.equal(report.available, true);
+  assert.equal(report.truncated, true);
+  assert.deepEqual(report.records.map(record => record.issueTag), [2, 3, 4, 5, 6, 7, 8, 9]);
 });
 
 test('cold cohort restart preserves recorded authorization without Graph-only observer metadata', async () => {
