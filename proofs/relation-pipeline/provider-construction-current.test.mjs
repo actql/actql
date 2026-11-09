@@ -31,6 +31,19 @@ test('current five-field candidate component derives 2432 without promoting hist
   assert.equal(hash(set.replace(bounded,
     '      @execution.generated_sequence_capacity(sequence, limits, measurement)')),
     '8fbb2829e812b1d7e09a2bcf9d3d05958acbb72ee8fd25c8fa2d445c90002d7d');
+  // The reviewed scalar COUNT change selects the bounded quote in the same
+  // capacity callback. It changes no constructor field, capture or lifecycle
+  // callback; reversing only that query recovers the complete prior Source.
+  // Callback execution remains outside the eleven-candidate construction bound.
+  const countPath = 'src/connectors/local/global_count_provider.mbt';
+  const count = read(countPath).toString();
+  assert.equal(count.split(bounded).length, 2, 'Reach the one reviewed COUNT capacity query');
+  const priorCount = count.replace(bounded,
+    '      @execution.generated_sequence_capacity(sequence, limits, measurement)');
+  assert.equal(hash(priorCount),
+    '77ab701f6dbd8974eab545bca95b7453e2f494f96450b855b911a87649e5deef');
+  assert.throws(() => providerConstructionBound(path => path === countPath ? priorCount : read(path)),
+    /Unreviewed current constructor source/);
   const current = providerConstructionBound(read);
   assert.equal(current.recordBytes, 48);
   assert.equal(current.bytes, 11 * (48 + 4 * 40) + 120 + 24);

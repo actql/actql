@@ -34,7 +34,7 @@
     {
       "name": "global_count_provider",
       "path": "src/connectors/local/global_count_provider.mbt",
-      "sourceDigest": "77ab701f6dbd8974eab545bca95b7453e2f494f96450b855b911a87649e5deef",
+      "sourceDigest": "386e945152eaba517fc7778a39a811f5a1ea7fce902051e0c3a909120edf68f8",
       "binding": "managed_provider_with_inputs"
     },
     {
