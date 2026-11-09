@@ -95,9 +95,9 @@ fn file_capture_metadata_capacity(
       6L +
       11L +
       10L,
-      // Target IO's retained replacement-ACK slot exists for read and write
-      // children alike; its actual write-only payload is in the update quote.
-      reference_slots: references + 14L + 1L,
+      // Target IO's replacement-ACK and predecessor slots exist for read and
+      // write children alike; write-only carriers are in the update quote.
+      reference_slots: references + 14L + 2L,
       scalar_words: 1L +
       8L +
       26L +

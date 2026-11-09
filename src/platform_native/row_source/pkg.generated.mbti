@@ -58,7 +58,7 @@ pub fn prepare_native_relation_file_listing_provider(@client_row_source_host.Row
 
 pub fn prepare_native_relation_file_provider(@client_row_source_host.RowDeclaration, NativeRelationFileSelection, NativeRelationFileLimits, response_measured? : Bool) -> Result[NativeRelationFilePreparedProvider, NativeRelationFileIssue]
 
-pub fn prepare_native_relation_file_target_io(NativeRelationFilePreparedProvider, Array[String], String, update? : (String, String, String)?, before_response? : ((Int) -> Bool)?) -> Result[NativeRelationFileTargetIO, NativeRelationFileIssue]
+pub fn prepare_native_relation_file_target_io(NativeRelationFilePreparedProvider, Array[String], String, update? : (String, String, String)?, predecessor? : NativeRelationFileReplacementAck?, before_response? : ((Int) -> Bool)?) -> Result[NativeRelationFileTargetIO, NativeRelationFileIssue]
 
 pub fn project_native_relation_file_content_bytes(NativeRelationFilePreparedProvider, @client_row_source_host.RelationDocument, NativeRelationFileListingFields, String, String, String, Int) -> Result[(String, Bytes), NativeRelationFileIssue]
 

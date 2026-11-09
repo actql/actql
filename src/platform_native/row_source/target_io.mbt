@@ -41,6 +41,7 @@ struct NativeRelationFileTargetIO {
   mut row : @rows.RelationTargetRow?
   mut replacement : Bytes?
   mut replacement_ack : NativeRelationFileReplacementAck?
+  mut predecessor : NativeRelationFileReplacementAck?
   mut observed_row : (String, String)?
   mut received : Int64
   mut submitted : Int64
@@ -53,7 +54,7 @@ struct NativeRelationFileTargetIO {
 /// permission, cleanup ACK or reconstruction from current target contents.
 /// Only the original physical child constructs this immutable observation.
 struct NativeRelationFileReplacementAck {
-  selection : NativeRelationFileSelection
+  provider : NativeRelationFilePreparedProvider
   identity : String
   expected_version : String
   changes_wire : String
@@ -65,7 +66,7 @@ struct NativeRelationFileReplacementAck {
 pub fn NativeRelationFileReplacementAck::selection(
   self : Self,
 ) -> NativeRelationFileSelection {
-  self.selection
+  self.provider.selection
 }
 
 ///|
@@ -137,11 +138,14 @@ pub fn native_relation_file_target_io_capacity(
     is Some(observation) &&
     // Original returned generation (one header/three words), immutable ACK
     // (one header/six borrowed references), and retained Some (one header/one
-    // reference). The child field itself is in the shared metadata census.
+    // reference). A chained update also retains one original predecessor Some
+    // (one header/reference/word); its ACK/body remain borrowed and backed by
+    // the original caller, never copied or treated as new permission here.
+    // Both child fields are in the shared metadata census.
     @execution.preparation_representation_cost({
-      record_headers: 3L,
-      reference_slots: 7L,
-      scalar_words: 3L,
+      record_headers: 4L,
+      reference_slots: 8L,
+      scalar_words: 4L,
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     })
@@ -177,13 +181,18 @@ pub fn native_relation_file_target_io_capacity(
 ///|
 /// Retain this child before advancing it. `update` contains the SAME expected
 /// row version, checked changes wire and unique staging basename. It supplies
-/// no approval or permission. The prepared provider retains the original full
+/// no approval or permission. An optional predecessor is the SAME provider
+/// owner's actual earlier replacement ACK; retain its original backing until
+/// this child returns. Generation and complete bytes must match before another
+/// row can be projected or written. This does not reconstruct a lost ACK.
+/// The prepared provider retains the original full
 /// relation contract and physical selection; no second schema is admitted.
 pub fn prepare_native_relation_file_target_io(
   provider : NativeRelationFilePreparedProvider,
   writable : Array[String],
   identity : String,
   update? : (String, String, String)? = None,
+  predecessor? : NativeRelationFileReplacementAck? = None,
   before_response? : ((Int) -> Bool)? = None,
 ) -> Result[NativeRelationFileTargetIO, NativeRelationFileIssue] {
   if !file_capture_text(identity, provider.limits.page.max_bytes) ||
@@ -202,6 +211,10 @@ pub fn prepare_native_relation_file_target_io(
       staging == provider.selection.name
     ) {
     return Err(InvalidInput)
+  }
+  if predecessor is Some(prior) &&
+    (update is None || !physical_equal(prior.provider, provider)) {
+    return Err(ForeignOriginal)
   }
   if update is Some(_) && before_response is Some(_) {
     return Err(InvalidInput)
@@ -231,6 +244,7 @@ pub fn prepare_native_relation_file_target_io(
     row: None,
     replacement: None,
     replacement_ack: None,
+    predecessor,
     observed_row: None,
     received: 0L,
     submitted: 0L,
@@ -277,6 +291,16 @@ fn NativeRelationFileTargetIO::open(self : Self) -> Unit raise FileCaptureStop {
   let generation = file_require(
     observed.generation().map_err(issue => Filesystem(issue)),
   )
+  // Compare the actual open observation with the original Writer ACK before
+  // creating a Reader. Equal path/content alone cannot replace its generation.
+  if self.predecessor is Some(prior) &&
+    (
+      generation.device != prior.generation.device ||
+      generation.inode != prior.generation.inode ||
+      generation.size != prior.generation.size
+    ) {
+    raise FileCaptureStop(ForeignOriginal)
+  }
   if generation.size < 0L ||
     generation.size > self.provider.limits.page.max_bytes.to_int64() {
     raise FileCaptureStop(FileLimit)
@@ -349,6 +373,11 @@ fn NativeRelationFileTargetIO::project(
   let provider = self.provider
   let selected = provider.selection
   let bytes = Bytes::from_array(self.buffer.unwrap())
+  // Device/inode/size do not detect a stable in-place external edit. Reuse
+  // these already received bytes, without another read or digest allocation.
+  if self.predecessor is Some(prior) && bytes != prior.replacement {
+    raise FileCaptureStop(ForeignOriginal)
+  }
   let backing = file_require(
     @rows.admit_relation_document(
       bytes,
@@ -434,7 +463,7 @@ fn NativeRelationFileTargetIO::write(self : Self) -> Unit raise FileCaptureStop 
   // The FS Owner returns only after staging and directory synchronization and
   // generation confirmation. A post-rename failure never reaches this branch.
   self.replacement_ack = Some({
-    selection: self.provider.selection,
+    provider: self.provider,
     identity: self.identity,
     expected_version,
     changes_wire,
@@ -634,6 +663,7 @@ pub fn NativeRelationFileTargetIO::close(
     self.before_response = None
     self.replacement = None
     self.replacement_ack = None
+    self.predecessor = None
     self.observed_row = None
     self.original = None
     self.phase = TargetClosed

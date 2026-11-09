@@ -177,6 +177,9 @@ fn target_io_fixture_physical(kind : Int) -> Unit raise {
     0 => "update"
     1 => "cancel"
     2 => "sync"
+    4 => "chain"
+    5 => "inplace"
+    6 => "replaced"
     _ => "funding"
   }
   let path = @utf8.encode(directory + "/target-backing-" + suffix + "\u{0000}")
@@ -230,6 +233,7 @@ fn target_io_fixture_physical(kind : Int) -> Unit raise {
     0 => target_io_fixture_update_work(directory)
     1 => target_io_fixture_cancel_work(directory)
     2 => target_io_fixture_sync_work(directory)
+    4 | 5 | 6 => target_io_fixture_lineage_work(directory, kind)
     _ => target_io_fixture_funding_work(directory)
   }
   arena.leave_domain_retained_execution(execution).unwrap()
