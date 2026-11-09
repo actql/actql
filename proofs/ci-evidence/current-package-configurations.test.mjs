@@ -247,27 +247,43 @@ test('current Source JSON review binds only its checked normalization count depe
   }
 });
 
-test('current Local Host successor binds its original keyed Plan JS selector and preserves prior preimages', () => {
+test('current Local Host successor binds its reviewed HubSpot WB import and preserves prior preimages', () => {
   const path = 'src/client_local_host/moon.pkg';
   const revision = 'db039dc07a845fc420be9f95b750fe5208183735';
   const digest = '1ce3256e4f3b1dc32ee5136fcbbe5076fd996ad0a05c901a5cd175a3b16af326';
   const rule = 'literal-target-selectors-with-bound-source-membership';
-  const currentRevision = '1d65ca8b449c6a6edae8ba0b5a0b0bfbed05a243';
-  const currentDigest = 'e48db6b1683f6b841e56439452a65388f5298549e6c8b740e117a40359d8c8b5';
+  const currentRevision = 'f213d49c0748b99a69ae25fd462e8f9d500d7109';
+  const currentDigest = '11e08f7a636e2e73d47863ea626632b5dbf6e45e16ba00a32a27952c72e4007e';
   assert.deepEqual(currentPackageConfigurations[path], {revision: currentRevision, digest: currentDigest, rule});
   execFileSync('git', ['merge-base', '--is-ancestor', currentRevision, 'HEAD'], {cwd: root});
   execFileSync('git', ['merge-base', '--is-ancestor', revision, 'HEAD'], {cwd: root});
   const reviewed = gitTree(root, revision), body = reviewed.read(path).toString();
   const keyedSelector = '    "request_native_keyed_plan_js_wbtest.mbt": [ "js" ],\n';
   const currentBody = gitTree(root, currentRevision).read(path).toString();
-  const reentrySelector = '    "managed_import_reentry_js_wbtest.mbt": [ "js" ],\n';
-  assert.equal(Buffer.byteLength(currentBody), 9904);
-  assert.equal(Buffer.byteLength(reentrySelector), 54);
+  const reentryRevision = '1d65ca8b449c6a6edae8ba0b5a0b0bfbed05a243';
+  const reentryBody = gitTree(root, reentryRevision).read(path).toString();
+  execFileSync('git', ['merge-base', '--is-ancestor', reentryRevision, currentRevision], {cwd: root});
+  const catalogImport = '  "actql/actql/connectors/hubspot/catalog" @hubspot_catalog,\n';
+  assert.equal(Buffer.byteLength(currentBody), 9965);
+  assert.equal(Buffer.byteLength(catalogImport), 61);
   assert.equal(hash(currentBody), currentDigest);
-  assert.equal(currentBody.split(reentrySelector).length, 2);
-  assert.equal(currentBody.replace(reentrySelector, ''), body,
+  assert.equal(currentBody.split(catalogImport).length, 2);
+  assert.equal(currentBody.replace(catalogImport, ''), reentryBody,
+    'only the reviewed literal HubSpot Catalog WB import extends the complete prior descriptor');
+  const whiteboxImports = currentBody.match(/\nimport \{([^{}]*)\} for "wbtest"/u);
+  assert(whiteboxImports);
+  assert(whiteboxImports[1].includes(catalogImport), 'the Catalog dependency remains whitebox-only');
+  assert.deepEqual(packageImports(currentBody).imports,
+    [...packageImports(reentryBody).imports, 'actql/actql/connectors/hubspot/catalog'].sort());
+  assert.equal(currentPackageConfigurationReviewFor(request(path, hash(reentryBody))), null);
+  const reentrySelector = '    "managed_import_reentry_js_wbtest.mbt": [ "js" ],\n';
+  assert.equal(Buffer.byteLength(reentryBody), 9904);
+  assert.equal(Buffer.byteLength(reentrySelector), 54);
+  assert.equal(hash(reentryBody), 'e48db6b1683f6b841e56439452a65388f5298549e6c8b740e117a40359d8c8b5');
+  assert.equal(reentryBody.split(reentrySelector).length, 2);
+  assert.equal(reentryBody.replace(reentrySelector, ''), body,
     'only the actual original Node Resource current regression selector extends the keyed Plan descriptor');
-  assert.deepEqual(packageImports(currentBody).imports, packageImports(body).imports);
+  assert.deepEqual(packageImports(reentryBody).imports, packageImports(body).imports);
 
   const effectBody = gitTree(root, '70ab00c1fae78c176ac34e65857f7332d6619aa7').read(path).toString();
   assert.equal(hash(effectBody), '64220f07f198e537a6d9c785fd6abd93a2a3293f3959a24fc313f63135ae1d66');
@@ -335,13 +351,21 @@ test('current Local Host successor binds its original keyed Plan JS selector and
     !member.slice('src/capacity_policy/'.length).includes('/')).sort();
   assert(members.includes('src/capacity_policy/moon.pkg'));
   assert.deepEqual(selected.directories.find(entry => entry.path === 'src/capacity_policy/*')?.members, members);
-  for (const member of [...members, ...[reentrySelector, keyedSelector, originalSelector, valuesSelector, ...selectors, ...successorSelectors].map(selector =>
+  const catalogMembers = [...currentTree.entries.keys()].filter(member => member.startsWith('src/connectors/hubspot/catalog/') &&
+    !member.slice('src/connectors/hubspot/catalog/'.length).includes('/')).sort();
+  assert(catalogMembers.includes('src/connectors/hubspot/catalog/moon.pkg'));
+  assert(catalogMembers.includes('src/connectors/hubspot/catalog/source_read_construction.mbt'));
+  assert.deepEqual(selected.directories.find(entry => entry.path === 'src/connectors/hubspot/catalog/*')?.members, catalogMembers);
+  for (const member of [...members, ...catalogMembers, ...[reentrySelector, keyedSelector, originalSelector, valuesSelector, ...selectors, ...successorSelectors].map(selector =>
     'src/client_local_host/' + JSON.parse(selector.trim().split(':')[0]))]) {
     assert(selected.paths.includes(member), member);
     assert.equal(currentTree.entries.get(member)?.kind, 'blob');
     assert.equal(currentTree.entries.get(member)?.mode, '100644');
   }
-  for (const changed of [previous, callbackBody, valuesBody, effectBody, body, currentBody.replace(dependency, ''), currentBody.replace('@capacity,', '@permission,'),
+  for (const changed of [previous, callbackBody, valuesBody, effectBody, body, reentryBody,
+    currentBody.replace('@hubspot_catalog,', '@unreviewed_hubspot,'),
+    currentBody.replace('actql/actql/connectors/hubspot/catalog', 'actql/actql/unreviewed_catalog'),
+    currentBody.replace(dependency, ''), currentBody.replace('@capacity,', '@permission,'),
     currentBody.replace('"moonbitlang/core/encoding/utf8"', '"moonbitlang/core/encoding/utf16"'),
     ...[reentrySelector, keyedSelector, originalSelector, valuesSelector, ...selectors, ...successorSelectors].map(selector => currentBody.replace(selector, selector.replace('"js"', '"native"'))),
     currentBody.replace(keyedSelector, keyedSelector + '    "unreviewed_keyed_target.mbt": [ "js" ],\n'),
