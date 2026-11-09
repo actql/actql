@@ -21,6 +21,23 @@ fn private_evidence_custody_wire_construction(
 }
 
 ///|
+// The observed SQLite Blob is an encrypted/Base64 envelope, not plaintext.
+// Its own extent bounds malformed JSON; a legal envelope may exceed the
+// existing 1MiB plaintext limit. Clamp only the plaintext upper bound, while
+// the original envelope law and caller's Store limit still bound the copy.
+#warnings("-unused_value")
+fn private_evidence_envelope_construction(
+  envelope_bytes : Int64,
+) -> PrivateEvidenceCustodyConstruction? {
+  if envelope_bytes < 1L || envelope_bytes > raw_cipher_envelope_bytes(1048576L) {
+    return None
+  }
+  private_evidence_custody_construction(
+    Int64::min(envelope_bytes, 1048576L).to_int(),
+  )
+}
+
+///|
 // The selected envelope bounds untrusted readback before its JSON parser.
 // Every token/container/field consumes a byte; homogeneous array and Map
 // endpoints conservatively cover malformed input as well as the four-field

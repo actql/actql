@@ -27,3 +27,17 @@ test "private ciphertext construction follows exact AEAD envelope geometry witho
     136,
   )
 }
+
+///|
+test "observed ciphertext above the plaintext limit uses the existing envelope law" {
+  // Independent existing AES-GCM/Base64 boundary: 128 + 4*ceil(1MiB/3).
+  let largest = private_evidence_envelope_construction(1398232L).unwrap()
+  assert_eq(largest.envelope_bytes, 1398232)
+  assert_true(largest.workspace.owned_wire_bytes >= 1398232L)
+  assert_true(private_evidence_envelope_construction(1048577L) is Some(_))
+  assert_true(private_evidence_envelope_construction(1398233L) is None)
+  assert_true(private_evidence_envelope_construction(0L) is None)
+  assert_true(private_evidence_envelope_construction(-1L) is None)
+  // This read quote does not change the original plaintext admission limit.
+  assert_true(private_evidence_custody_construction(1048577) is None)
+}

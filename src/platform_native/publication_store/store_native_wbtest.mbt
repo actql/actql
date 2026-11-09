@@ -62,6 +62,7 @@ fn native_delivery_all(
 fn native_payload_fixture(
   label : String,
   capacity_bytes : Int64,
+  max_record_bytes? : Int64 = 65536L,
 ) -> (Store, String, @sqlite.Library, String)? {
   guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY")
     is Some(library_path) else {
@@ -85,7 +86,7 @@ fn native_payload_fixture(
   parent.close().unwrap()
   let selected = root + "/" + token
   let store = open_store(
-    library, selected, authority, capacity_bytes, 8L, 65536L,
+    library, selected, authority, capacity_bytes, 8L, max_record_bytes,
   ).unwrap()
   Some((store, authority, library, selected))
 }

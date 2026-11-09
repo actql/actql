@@ -936,7 +936,7 @@ pub fn Store::effect_checkpoint_restore_construction(
     // A canonical encrypted envelope is larger than its plaintext. Until
     // authentication proves that envelope, charge its observed extent as an
     // upper bound, including malformed-envelope parsing and refusal.
-    guard private_evidence_custody_construction(header.body_bytes.to_int())
+    guard private_evidence_envelope_construction(header.body_bytes)
       is Some(continuation) &&
       private_evidence_custody_wire_construction(checkpoint.wire)
       is Some(checkpoint_layout) else {

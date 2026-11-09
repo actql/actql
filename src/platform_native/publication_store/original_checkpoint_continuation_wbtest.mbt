@@ -180,3 +180,44 @@ test "Native cold Checkpoint restoration observes then bounds the exact encrypte
   )
   reopened.close().unwrap() |> ignore
 }
+
+///|
+test "Native cold Checkpoint preserves the admitted one MiB plaintext boundary" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_CRYPTO_LIBRARY") is Some(path) &&
+    native_payload_fixture(
+      "checkpoint-cold-envelope-boundary",
+      4194304L,
+      max_record_bytes=2097152L,
+    )
+    is Some((store, authority, library, root)) else {
+    abort("Native cold Checkpoint boundary requires physical Crypto and SQLite")
+  }
+  let crypto = @signature.load_library(path).unwrap()
+  let key = Bytes::makei(32, i => i.to_byte())
+  let wire = "a".repeat(1048576)
+  let checkpoint = original_continuation_test_checkpoint(@utf8.encode(wire))
+  let saved = store
+    .prepare_effect_checkpoint_custody(checkpoint, wire, authority, crypto, key)
+    .unwrap()
+  saved.persist().unwrap()
+  store.close().unwrap() |> ignore
+  let reopened = open_store(library, root, authority, 4194304L, 8L, 2097152L).unwrap()
+  let (extent, layout) = reopened
+    .effect_checkpoint_restore_construction(checkpoint)
+    .unwrap()
+  assert_eq(extent.body_bytes, 1398232L)
+  assert_eq(layout.envelope_bytes, 1398232)
+  let restored = reopened
+    .restore_confirmed_effect_checkpoint_custody(
+      checkpoint,
+      authority,
+      crypto,
+      key,
+      continuation_extent=Some(extent),
+    )
+    .unwrap()
+  assert_eq(restored.confirm().unwrap().1, wire)
+  assert_true(restored.retry_cleanup().unwrap())
+  assert_eq(reopened.capacity_usage().unwrap().reserved_bytes, 0L)
+  reopened.close().unwrap() |> ignore
+}
