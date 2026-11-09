@@ -956,3 +956,42 @@ test "window group import refusal preserves original task without decoding a row
 test "window group cancellation preserves original input and cleanup without publishing rows" {
   window_group_original_data_chain(CancelImport)
 }
+
+///|
+fn opposing_analytic_original_data_chain(
+  mode : ManagedImportDataCase,
+) -> Unit raise {
+  managed_import_data_chain(
+    mode,
+    format=@frontend.Sql,
+    numeric_profile_cid=Some(
+      "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df",
+    ),
+    query="SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM records |> SELECT id AS first, amount AS second, -id |> SELECT * REPLACE (ROW_NUMBER() OVER (ORDER BY first DESC) AS first, ROW_NUMBER() OVER (ORDER BY second) AS second)) ORDER BY a, b, c",
+    source_wire="[{\"id\":2,\"amount\":20},{\"id\":1,\"amount\":10}]",
+    source_rows=2,
+    expected_tasks=None,
+    two_input_task=None,
+    result_name="main",
+    expected_rows=[
+      "{\"a\":0,\"b\":0,\"c\":0}", "{\"a\":1,\"b\":2,\"c\":-2}", "{\"a\":2,\"b\":1,\"c\":-1}",
+    ],
+    prior_execution=23769376L,
+    expected_policy=None,
+  )
+}
+
+///|
+test "opposing analytic replacements preserve original ranks and union rows on the same Ledger" {
+  opposing_analytic_original_data_chain(Complete)
+}
+
+///|
+test "opposing analytic import refusal precedes decode and retains original ranks and Source" {
+  opposing_analytic_original_data_chain(RefuseImport)
+}
+
+///|
+test "opposing analytic cancellation cannot decode later input or publish replacement ranks" {
+  opposing_analytic_original_data_chain(CancelImport)
+}

@@ -52795,6 +52795,22 @@
               {
                 "path": "src/connectors/local/metered_output_start_wbtest.mbt",
                 "anchor": "test \"window chain startup preserves complete retention and injected full capacity\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"opposing analytic replacements preserve original ranks and union rows on the same Ledger\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"opposing analytic import refusal precedes decode and retains original ranks and Source\""
+              },
+              {
+                "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
+                "anchor": "test \"opposing analytic cancellation cannot decode later input or publish replacement ranks\""
+              },
+              {
+                "path": "src/connectors/local/metered_output_start_wbtest.mbt",
+                "anchor": "test \"ROW_NUMBER startup keeps nonprimitive other-function and injected providers fully prepaid\""
               }
             ]
           }

@@ -492,6 +492,36 @@ pub fn local_module_metered_output_start_capacity(
             }
           }
         }
+      Some(@lower.RowStep(kernel)) if count == 1 &&
+        @lower.kernel_analytic(kernel) is Some(analytic) => {
+        // The existing bounded analytic child funds its accepted buffer row
+        // before transfer. Keep all ordering/input/evaluation scratch prepaid;
+        // only immediate ROW_NUMBER DATA uses this original growth owner.
+        if @lower.analytic_call_count(analytic) < 1 {
+          return None
+        }
+        for index in 0..<@lower.analytic_call_count(analytic) {
+          let call = @lower.analytic_call_at(analytic, index).unwrap()
+          if !(@lower.analytic_call_function(call) is @lower.PreparedRowNumber) {
+            return None
+          }
+        }
+        for
+          schema in [
+            @lower.kernel_input_schema(kernel),
+            @lower.kernel_output_schema(kernel),
+          ] {
+          if !@schema.all_fields_required(schema) {
+            return None
+          }
+          for field in 0..<@schema.field_count(schema) {
+            match @schema.field_at(schema, field).unwrap().contract.shape {
+              @contract.Number | @contract.Boolean => ()
+              _ => return None
+            }
+          }
+        }
+      }
       Some(@lower.RowStep(kernel)) if @lower.kernel_count_group(kernel)
         is Some(group) => {
         // Bounded COUNT now shares this task's before-commit output funding.

@@ -1160,3 +1160,101 @@ test "window chain startup preserves complete retention and injected full capaci
   assert_eq(starts.val, 0)
   @connector.close_capability_registry(registry)
 }
+
+///|
+test "ROW_NUMBER startup keeps nonprimitive other-function and injected providers fully prepaid" {
+  for
+    (contract, literal, function_name) in [
+      ("{\"type\":\"string\",\"nullable\":false}", "\"text\"", "row_number"),
+      (
+        "{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}",
+        "[1,2]", "row_number",
+      ),
+      (
+        "{\"type\":\"object\",\"nullable\":false,\"fields\":{\"x\":{\"type\":\"number\",\"nullable\":false}}}",
+        "{\"x\":1}", "row_number",
+      ),
+      ("{\"type\":\"number\",\"nullable\":false}", "1", "rank"),
+    ] {
+    let (whole, _, _) = chain_lifetime_fixture(
+      "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"payload\":" +
+      contract +
+      "},\"rows\":[{\"id\":1,\"payload\":" +
+      literal +
+      "}]},\"as\":\"value\"},{\"from\":\"value\",\"analytic\":{\"partition_by\":[],\"order_by\":[{\"field\":\"id\",\"dir\":\"asc\",\"nulls\":\"first\"}],\"functions\":{\"n\":{\"fn\":\"" +
+      function_name +
+      "\"}}}}]",
+    )
+    let sequence = @execution.select_generated_sequence_step(
+      whole,
+      @execution.generated_sequence_step_index_at(whole, 1).unwrap(),
+    ).unwrap()
+    let registry = @connector.prepare_capability_registry(
+      [
+        {
+          name: "local",
+          acquisition: false,
+          fixed_compute: true,
+          effect: false,
+        },
+      ],
+      1,
+      100,
+    ).unwrap()
+    let registration = @connector.capability_registration_at(registry, 0).unwrap()
+    let original = prepare_local_compute_module(
+      registry,
+      registration,
+      [sequence],
+      chain_lifetime_limits(),
+      chain_lifetime_measurement(),
+      100000,
+      1,
+    ).unwrap()
+    let full = local_module_capacity_for_sequence(original, 0, sequence).unwrap()
+    let generic = @execution.generated_sequence_capacity(
+      sequence,
+      chain_lifetime_limits(),
+      chain_lifetime_measurement(),
+    ).unwrap()
+    assert_eq(
+      (full.retained_bytes, full.execution_bytes),
+      (generic.retained_bytes, generic.execution_bytes),
+    )
+    let startup = local_module_metered_output_start_capacity(
+      original, 0, sequence,
+    )
+    assert_true(startup is None)
+    let starts = Ref(0)
+    let replacement = managed_provider(_ => true, _ => Some(full), (
+      _,
+      _,
+      _,
+      _,
+      _,
+    ) => {
+      starts.val += 1
+      Err(@connector.InvalidLimits)
+    })
+    let injected = prepare_local_compute_module(
+      registry,
+      registration,
+      [sequence],
+      chain_lifetime_limits(),
+      chain_lifetime_measurement(),
+      100000,
+      1,
+      managed_providers=[replacement],
+    ).unwrap()
+    assert_true(
+      local_module_metered_output_start_capacity(injected, 0, sequence) is None,
+    )
+    let fallback = local_module_capacity_for_sequence(injected, 0, sequence).unwrap()
+    assert_eq(
+      (fallback.retained_bytes, fallback.execution_bytes),
+      (full.retained_bytes, full.execution_bytes),
+    )
+    assert_eq(starts.val, 0)
+    @connector.close_capability_registry(registry)
+  }
+}
