@@ -823,7 +823,7 @@ done`,
   for (const name of groups.filter(name => name !== 'client-supported-versions')) {
     assert.equal(jobs[name].if, normal);
     assert.equal(jobs[name]['runs-on'], 'ubuntu-24.04');
-    assert.equal(jobs[name]['timeout-minutes'], 30);
+    assert.equal(jobs[name]['timeout-minutes'], name === 'client-packed' ? 60 : 30, name);
     assert.equal(jobs[name].strategy, undefined, 'no fail-fast sibling cancellation');
     for (const step of jobs[name].steps.filter(step => step.run)) {
       let preparation;
