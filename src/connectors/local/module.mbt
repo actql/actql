@@ -294,7 +294,7 @@ pub fn local_module_capacity_for_sequence(
 }
 
 ///|
-/// Startup DATA for an exact built-in row/Append, primitive Set or row/CROSS JOIN chain. Its unchanged
+/// Startup DATA for exact built-in rows/Append, primitive Set/Join or row/CROSS JOIN chains. The unchanged
 /// full capacity remains the fallback and semantic bound. Persistent output
 /// DATA is charged by the same task before each buffer commit; all fixed
 /// child metadata, input/measurement/traversal and one live child scratch
@@ -307,13 +307,18 @@ pub fn local_module_metered_output_start_capacity(
   let count = @execution.generated_sequence_step_count(sequence)
   guard installed.selected_default.get(slot) == Some(true) &&
     count > 0 &&
-    // Only the existing bounded row, Append and primitive Set singletons attach their
+    // Only the existing bounded row, Append and primitive Set/Join singletons attach their
     // output budget to this same sequence's before-commit growth owner.
     // Other single-step families keep their original full envelope.
     (
       count > 1 ||
       @execution.generated_sequence_step_at(sequence, 0)
-      is Some(@lower.RowStep(_) | @lower.AppendStep(_) | @lower.SetStep(_))
+      is Some(
+        @lower.RowStep(_)
+        | @lower.AppendStep(_)
+        | @lower.SetStep(_)
+        | @lower.JoinStep(_)
+      )
     ) &&
     relation_chain_reclaimed_prefix(sequence) == count &&
     local_module_capacity_for_sequence(installed, slot, sequence) is Some(full) else {
@@ -321,7 +326,7 @@ pub fn local_module_metered_output_start_capacity(
   }
   if count == 1 &&
     @execution.generated_sequence_step_at(sequence, 0)
-    is Some(@lower.SetStep(_)) {
+    is Some(@lower.SetStep(_) | @lower.JoinStep(_)) {
     let prepared = @lower.bound_preparation(
       @execution.generated_sequence_owner(sequence),
     )
@@ -379,6 +384,7 @@ pub fn local_module_metered_output_start_capacity(
       Some(@lower.CrossJoinStep(_)) => ()
       Some(@lower.AppendStep(_)) if count == 1 => ()
       Some(@lower.SetStep(_)) if count == 1 => ()
+      Some(@lower.JoinStep(_)) if count == 1 => ()
       Some(@lower.RowStep(kernel)) if selected_binding_rows_supported(kernel) =>
         match @lower.kernel_body(kernel) {
           @lower.Filter(_)
@@ -393,7 +399,7 @@ pub fn local_module_metered_output_start_capacity(
             // cells with no copied text/container forest. Their row arrays
             // and logical roots use the already attached workspace owner,
             // and CommitOutputRow funds the complete output before transfer.
-            // Every other snapshot output keeps the original full retention.
+            // Other outputs need their own complete constructor funding below.
             let schema = @execution.generated_sequence_step_index_at(
               sequence, index,
             ).bind(step => {
@@ -418,7 +424,23 @@ pub fn local_module_metered_output_start_capacity(
                 immediate
               })
               .unwrap_or(false)
-            if !primitive {
+            let input = @lower.kernel_input_schema(kernel)
+            let mut funded_snapshot = count == 1 &&
+              @lower.kernel_body(kernel) is @lower.SnapshotMap(_) &&
+              @lower.kernel_bindings(kernel) is Some(_) &&
+              @schema.all_fields_required(input)
+            for field in 0..<@schema.field_count(input) {
+              match @schema.field_at(input, field).unwrap().contract.shape {
+                @contract.Number | @contract.Boolean => ()
+                _ => funded_snapshot = false
+              }
+            }
+            // This constructor borrows immediate input cells. Its original
+            // logical roots fund Object/Array builders before mutation, with
+            // the complete fragment-live/traversal scratch still prepaid.
+            // CommitOutputRow then funds recursive persistent DATA on the
+            // same attachment before releasing those temporary roots.
+            if !primitive && !funded_snapshot {
               metered_retention = false
             }
           }

@@ -546,6 +546,17 @@ fn bounded_join_step(
         if !output.buffer.open || output.buffer.reading {
           return bounded_join_failure(InvalidExecution, progress, used)
         }
+        // The complete row and every original cell occurrence were measured
+        // above. Fund that cumulative output on this task before transfer.
+        if !fund_output_retention(
+            output.buffer.budget,
+            output.buffer.budget.nodes,
+            output.buffer.budget.text,
+          ) ||
+          !output.buffer.open ||
+          output.buffer.reading {
+          return bounded_join_failure(Capture(CaptureLimit), progress, used)
+        }
         output.buffer.rows.push(state.checked_row)
         release_slots(state.workspace, 2 + state.checked_row.length())
         state.checked_row = []
@@ -714,6 +725,7 @@ pub fn start_bounded_join(
     Ok(value) => value
     Err(issue) => return Err(Capture(issue))
   }
+  budget.retention = generated.working
   // A join without an authored projection has a checked scoped schema.
   // Keep that exact private layout for its qualified consumer; it is not
   // an externally supplied object and must not pass the object-only importer.

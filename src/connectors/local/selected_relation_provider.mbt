@@ -356,9 +356,11 @@ fn bounded_relation_chain_capacity(
   family : Array[ManagedProvider],
 ) -> @execution.ExecutionCapacity? {
   let bounded_single = @execution.generated_sequence_step_count(sequence) == 1 &&
-    @execution.generated_sequence_step_at(sequence, 0)
-    is Some(@lower.RowStep(kernel)) &&
-    selected_binding_rows_supported(kernel)
+    (match @execution.generated_sequence_step_at(sequence, 0) {
+      Some(@lower.RowStep(kernel)) => selected_binding_rows_supported(kernel)
+      Some(@lower.JoinStep(_)) => true
+      _ => false
+    })
   let quoted = if bounded_single {
     @execution.generated_bounded_sequence_capacity(
       sequence, limits, measurement,
