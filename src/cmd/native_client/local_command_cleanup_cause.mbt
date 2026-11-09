@@ -92,6 +92,57 @@ fn command_preparation_cleanup_cause(
       }
     CommandBusinessEffectProposals(cause) =>
       match cause {
+        CapturedSource(original) =>
+          match original {
+            CaptureIssuanceReferenceMismatch(_) =>
+              "EffectCapturedSourceReference"
+            _ => "EffectCapturedSource"
+          }
+        LocalSource(original) =>
+          match original {
+            InvalidLocalReference(_) => "EffectLocalSourceReference"
+            _ => "EffectLocalSource"
+          }
+        Inventory(original) =>
+          match original {
+            MissingDependency => "EffectInventoryMissingDependency"
+            _ => "EffectInventory"
+          }
+        PreviewSource(original) =>
+          match original {
+            ForeignRun => "EffectPreviewSourceRun"
+            _ => "EffectPreviewSource"
+          }
+        PreviewIdentity(original) =>
+          match original {
+            ForeignInput => "EffectPreviewIdentityInput"
+            _ => "EffectPreviewIdentity"
+          }
+        PreviewBody(original) =>
+          match original {
+            PreviewShape(_) => "EffectPreviewBodyShape"
+            _ => "EffectPreviewBody"
+          }
+        PreviewBinding(original) =>
+          match original {
+            ForeignInput => "EffectPreviewBindingInput"
+            _ => "EffectPreviewBinding"
+          }
+        PreviewDispatch(original) =>
+          match original {
+            InvalidLimits => "EffectPreviewDispatchLimits"
+            _ => "EffectPreviewDispatch"
+          }
+        PreviewKeys(original) =>
+          match original {
+            KeyInventoryMismatch => "EffectPreviewKeyInventory"
+            _ => "EffectPreviewKeys"
+          }
+        PreviewPlan(original) =>
+          match original {
+            InvalidMember => "EffectPreviewPlanMember"
+            _ => "EffectPreviewPlan"
+          }
         Manifest(original) =>
           match original {
             IncompleteResults => "EffectProposalsIncompleteResults"

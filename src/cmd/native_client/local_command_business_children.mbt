@@ -211,6 +211,14 @@ fn LocalCommandPreparationOriginal::close_business_children(
       }
       state.targets.clear()
       state.targets.shrink_to_fit()
+      if state.preview is Some(preview) {
+        // Preview borrows the SAME captured pins; proposals below are their
+        // original release owner. Only retire its own verifier continuations.
+        for verifier in preview.verifiers {
+          @strategy.cancel_captured_effect_plan_verifier(verifier)
+        }
+        state.preview = None
+      }
       // Sever this caller's output alias before the original Model releases it.
       // This is no physical ACK and does not clear any child obligation.
       if state.proposals is Some(proposals) {

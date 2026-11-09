@@ -57,6 +57,8 @@ pub fn effect_batch_rows_share_member(LogicalItemLocator, EffectDispatchKey, Log
 
 pub fn effect_dispatch_key_cid(EffectDispatchKey) -> String
 
+pub fn effect_dispatch_key_codec_limits() -> (Int, Int, Int)
+
 pub fn effect_dispatch_key_preview_cid(EffectDispatchKey) -> String
 
 pub fn effect_dispatch_key_scope_cid(EffectDispatchKey) -> String

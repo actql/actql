@@ -14,6 +14,16 @@ priv enum LocalNativeMockEffectProposalIssue {
   Artifact(@run_host.ClientEffectLocalResultArtifactIssue)
   Dependency(@run_host.ClientEffectDependencyCaptureIssue)
   Manifest(@run_host.ClientEffectLocalManifestIssue)
+  PreviewSource(@run_host.ClientEffectSourceArtifactIssue)
+  PreviewIdentity(@run_host.ClientEffectLocalIdentityIssue)
+  PreviewBody(@publication.EffectPreviewIdentityIssue)
+  PreviewBinding(@run_host.ClientCapturedEffectPreviewIssue)
+  PreviewDispatch(@effect.EffectIdentityIssue)
+  PreviewKeys(@effect.EffectPreviewApplyIdentityIssue)
+  PreviewPlan(@strategy.CapturedEffectPlanVerifyIssue)
+  CapturedSource(@publication.CapturedRunIssuanceIssue)
+  LocalSource(@publication.CapturedLocalEffectSourceIssue)
+  Inventory(@publication.CapturedEffectDependencyIssue)
 }
 
 ///|

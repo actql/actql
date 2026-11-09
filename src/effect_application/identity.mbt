@@ -14,6 +14,26 @@ pub(all) enum EffectIdentityIssue {
 } derive(Eq, Debug)
 
 ///|
+const EFFECT_DISPATCH_KEY_MAX_BYTES : Int = 1000000
+
+///|
+const EFFECT_DISPATCH_KEY_MAX_NODES : Int = 1000
+
+///|
+const EFFECT_DISPATCH_KEY_MAX_DEPTH : Int = 32
+
+///|
+/// Existing constructor ceilings, not a reservation or an authority grant.
+/// Callers use the same codec bounds instead of guessing a smaller profile.
+pub fn effect_dispatch_key_codec_limits() -> (Int, Int, Int) {
+  (
+    EFFECT_DISPATCH_KEY_MAX_BYTES,
+    EFFECT_DISPATCH_KEY_MAX_NODES,
+    EFFECT_DISPATCH_KEY_MAX_DEPTH,
+  )
+}
+
+///|
 pub struct EffectDispatchKey {
   logical_request_scope_cid : String
   effect_preview_cid : String
@@ -114,11 +134,11 @@ pub fn prepare_effect_dispatch_key(
   max_key_depth : Int,
 ) -> Result[EffectDispatchKey, EffectIdentityIssue] {
   if max_key_bytes < 1 ||
-    max_key_bytes > 1000000 ||
+    max_key_bytes > EFFECT_DISPATCH_KEY_MAX_BYTES ||
     max_key_nodes < 1 ||
-    max_key_nodes > 1000 ||
+    max_key_nodes > EFFECT_DISPATCH_KEY_MAX_NODES ||
     max_key_depth < 1 ||
-    max_key_depth > 32 {
+    max_key_depth > EFFECT_DISPATCH_KEY_MAX_DEPTH {
     return Err(InvalidLimits)
   }
   if !effect_cid_valid(effect_preview_cid) {

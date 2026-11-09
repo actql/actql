@@ -3346,3 +3346,26 @@ Actual Store transactions enforce both quotas, while their constructors and
 live workspace remain funded on the same original parent. The legacy absolute
 profile retains eight objects; explicit lower settings and retained Intent
 bytes are restored unchanged, without applying the current default.
+
+
+### Completed Model evidence at Native Preview
+
+The Native caller retains the completed Model observation, its original Run
+Invocation and actual successful invocation evidence at the Preview boundary.
+Local Result Artifacts keep their original derived retention; the installation
+base retention cannot substitute for that policy. The selected Run policy
+binding projects its three actual retention dependency bodies under the same
+captured Read, without discovering filenames or issuing another Policy.
+
+Preview authoring consumes the original captured Result snapshots, retained
+full target requests and original checked Mapping/Plan. The common semantic,
+dispatch-key and row-plan Owners still author and verify their identities.
+The dependency inventory joins original lookup, contributing Source, Model and
+Result bodies under the existing strict graph validator and exact local source
+roots. Missing or unused evidence is not repaired by the caller.
+
+Preview metadata borrows the proposals' original pins. Its verifier children
+and body aliases retire before proposals return those pins; Preview cleanup
+must not release the same input owner a second time. These semantic checks do
+not establish encrypted Store custody, a waiting transition, approval, a
+mutation claim, successful publication or physical cleanup.

@@ -575,6 +575,8 @@ pub fn client_effect_local_relation_export_receipt(ClientEffectLocalResultArtifa
 
 pub fn client_effect_local_result_artifact_cid(ClientEffectLocalResultArtifact) -> String
 
+pub fn client_effect_local_result_artifact_contract(ClientEffectLocalResultArtifact) -> @run_publication.PublicationContract
+
 pub fn client_effect_local_result_artifact_json(ClientEffectLocalResultArtifact) -> String
 
 pub fn client_effect_local_result_definition_cid(ClientEffectLocalResultDefinition) -> String
@@ -588,6 +590,8 @@ pub fn client_effect_local_result_derivation_json(ClientEffectLocalResultArtifac
 pub fn client_effect_local_result_ordering_json(ClientEffectLocalResultArtifact) -> String
 
 pub fn client_effect_local_result_payload_binding(ClientEffectLocalResultArtifact, @run_publication.PublicationContract) -> Result[(String, Int), ClientEffectLocalResultArtifactIssue]
+
+pub fn client_effect_local_result_retention(ClientEffectLocalResultArtifact) -> @run_publication.PublicationContract
 
 pub fn client_effect_local_source_matches(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, Int, ClientEffectLocalManifest, ClientEffectLocalInvocation, ClientEffectLocalResultArtifact, @run_publication.CapturedEffectSourceArtifact) -> Bool
 
@@ -958,6 +962,8 @@ pub fn client_local_run_policy_profile(ClientLocalProductCommonOriginals) -> Res
 pub fn client_local_run_policy_profile_cid(ClientLocalRunPolicyProfile) -> String
 
 pub fn client_local_run_policy_profile_wire(ClientLocalRunPolicyProfile) -> String
+
+pub fn client_local_run_policy_retention_bodies(ClientLocalRunPolicyProfile, Bytes) -> Result[Array[@run_publication.CapturedEffectDependencyBody], ClientLocalRunPolicyProfileIssue]
 
 pub fn client_local_run_policy_upgrade_body(ClientLocalRunPolicyUpgrade) -> Bytes
 
@@ -1979,7 +1985,7 @@ pub fn prepare_client_composed_keyed_producer_inputs(ClientModelReadScope, Clien
 
 pub fn prepare_client_coordinator_retained_input_producer(ClientRetainedInputEdge, @remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteManagedOutputMeasurement, () -> @remote_site_protocol.CoordinatorDispatchIntentRecord?) -> Result[ClientRetainedInputProducer, ClientRetainedInputIssue]
 
-pub fn prepare_client_effect_captured_run(ClientEffectRunMaterials, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectPreviewInputs, Array[@physical_strategy_host.CapturedEffectPlanProof], @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], Array[@run_publication.CapturedEffectSourceArtifact], Array[@run_publication.CapturedLocalEffectSourceEvidence], @run_publication.CapturedEffectDependencyInventory, @run_publication.RunEvidenceValue, Int, Int, Int, Int, Int, Int) -> Result[@run_publication.CapturedRunIssuancePreparation, ClientEffectCapturedRunIssue]
+pub fn prepare_client_effect_captured_run(ClientEffectRunMaterials, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectPreviewInputs, Array[@physical_strategy_host.CapturedEffectPlanProof], @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], Array[@run_publication.CapturedEffectSourceArtifact], Array[@run_publication.CapturedLocalEffectSourceEvidence], @run_publication.CapturedEffectDependencyInventory, @run_publication.RunEvidenceValue, Int, Int, Int, Int, Int, Int, models? : Array[@run_publication.RunEvidenceValue]) -> Result[@run_publication.CapturedRunIssuancePreparation, ClientEffectCapturedRunIssue]
 
 pub fn prepare_client_effect_command_content_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, Int, ClientEffectLocalResultArtifact, Int, Int) -> Result[Unit, ClientEffectCommandContentIssue]
 

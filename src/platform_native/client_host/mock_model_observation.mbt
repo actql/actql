@@ -100,6 +100,56 @@ pub fn NativeClientMockModelWork::observation_original(
 }
 
 ///|
+/// Borrow the original completed Model observations at the Preview boundary.
+/// The same issuer performs its current check once for this projection; no
+/// capture is replayed, response rehashed or Model/Run issued. The caller's
+/// retained capture operation backs the bounded array before entry.
+pub fn NativeClientMockModelWork::completed_observation_originals(
+  self : Self,
+  max_entries : Int,
+) -> (
+  @publication.RunEvidenceValue,
+  @publication.PublicationContract,
+  Array[@publication.RunEvidenceValue],
+)? {
+  guard max_entries >= 0 &&
+    !self.closing &&
+    !self.closed &&
+    !self.advancing &&
+    self.active is Some(active) &&
+    self.prepared is Some(prepared) &&
+    self.observation is Some(issued) &&
+    @model.prepared_model_call_count(prepared) is Some(count) &&
+    count <= max_entries else {
+    return None
+  }
+  self.advancing = true
+  defer {
+    self.advancing = false
+  }
+  guard @infer.observation_issuance_value(issued)
+    is Some((observation, invocation)) else {
+    return None
+  }
+  let originals = []
+  for slot in 0..<count {
+    guard @infer.invocation_evidence(active, slot) is Some(original) else {
+      return None
+    }
+    originals.push(original)
+  }
+  if self.closing ||
+    self.closed ||
+    !self.active.map(value => physical_equal(value, active)).unwrap_or(false) ||
+    !self.observation
+    .map(value => physical_equal(value, issued))
+    .unwrap_or(false) {
+    return None
+  }
+  Some((observation, invocation, originals))
+}
+
+///|
 fn NativeClientMockModelWork::close_observation(
   self : Self,
 ) -> Result[Bool, NativeClientMockModelIssue] {

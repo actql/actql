@@ -32,6 +32,7 @@ pub fn prepare_client_effect_captured_run(
   max_nodes : Int,
   max_depth : Int,
   max_workspace : Int,
+  models? : Array[@publication.RunEvidenceValue] = [],
 ) -> Result[
   @publication.CapturedRunIssuancePreparation,
   ClientEffectCapturedRunIssue,
@@ -124,7 +125,7 @@ pub fn prepare_client_effect_captured_run(
       local_sources,
       [],
       authoring,
-      [],
+      models,
       identity,
       plans,
       max_bytes,

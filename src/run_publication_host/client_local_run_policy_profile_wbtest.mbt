@@ -144,3 +144,67 @@ test "invalid acceptance clocks refuse finite policy construction" {
     )
   }
 }
+
+///|
+test "retention projection preserves all three selected original bodies and refuses substitutions" {
+  let common = product_common_test_originals()
+  let profile = client_local_run_policy_profile(common).unwrap()
+  let bodies = client_local_run_policy_retention_bodies(
+    profile,
+    common.retention_dependencies,
+  ).unwrap()
+  let expected = [
+    (
+      "retention_contract", "sha256:a8fb82bdb39b1eb3e6871a55d63f3cb554dcc1953e06501bb686fd8ca8f9646a",
+    ),
+    (
+      "metadata_retention_policy", "sha256:dbf36e9f6f9b35881ac625290a1c93dbbe485ee8d954cdac3c55e345df4c3095",
+    ),
+    (
+      "clock_contract", "sha256:c2f7278baa9548283e904d1e8b9048efc0a206ecaca397527ec970776a2f2356",
+    ),
+  ]
+  assert_eq(bodies.length(), 3)
+  for index, (kind, cid) in expected {
+    assert_eq(
+      @publication.captured_effect_dependency_body_kind(bodies[index]),
+      kind,
+    )
+    assert_eq(
+      @publication.captured_effect_dependency_body_cid(bodies[index]),
+      cid,
+    )
+    let names = [
+      "local-result-retention", "local-result-metadata", "local-clock",
+    ]
+    assert_eq(
+      @publication.captured_effect_dependency_body_json(bodies[index]),
+      "{\"name\":\"" +
+      names[index] +
+      "\",\"version\":\"actql-installed-local-policy/0.1\"}",
+    )
+  }
+  for
+    changed in [
+      b"[]",
+      b"{}",
+      b"[null,null,null]",
+      @utf8.encode(
+        product_common_test_bytes(common.retention_dependencies).replace(
+          old="local-clock",
+          new="foreign-clock",
+        ),
+      ),
+      @utf8.encode(
+        product_common_test_bytes(common.retention_dependencies).replace(
+          old="clock_contract",
+          new="retention_contract",
+        ),
+      ),
+    ] {
+    assert_true(
+      client_local_run_policy_retention_bodies(profile, changed)
+      is Err(InvalidOriginal),
+    )
+  }
+}

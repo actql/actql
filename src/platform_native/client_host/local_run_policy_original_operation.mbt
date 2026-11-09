@@ -295,3 +295,24 @@ pub fn NativeLocalJournalCapture::accept_issued_effect_policy_run_in_original_re
     local_policy=Some((binding, original)),
   )
 }
+
+///|
+/// Borrow only the exact retention originals retained by this binding under
+/// its original captured Read. No selected filename is guessed and no Policy,
+/// Store custody or physical holding is created by this projection.
+pub fn NativeLocalRunPolicyBinding::retention_dependency_bodies_in_original_read(
+  self : NativeLocalRunPolicyBinding,
+  capture : NativeLocalJournalCapture,
+  request : @host.ClientRequestIdentity,
+) -> Result[
+  Array[@publication.CapturedEffectDependencyBody],
+  NativeLocalAdoptionIssue,
+] {
+  if !self.current_in_original_read(capture, Some(request), false) {
+    return Err(CustodyLost)
+  }
+  @host.client_local_run_policy_retention_bodies(
+    self.profile,
+    self.retention_file.body,
+  ).map_err(_ => CustodyLost)
+}

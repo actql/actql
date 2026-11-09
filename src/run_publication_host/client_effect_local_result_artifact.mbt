@@ -426,6 +426,25 @@ pub fn client_effect_local_result_artifact_cid(
 }
 
 ///|
+/// Borrow the exact retained policy selected for this issued local Artifact.
+/// Its original interval and Model/Source policy are not reconstructed from
+/// an installation default, and this does not authenticate physical custody.
+pub fn client_effect_local_result_retention(
+  value : ClientEffectLocalResultArtifact,
+) -> @publication.PublicationContract {
+  value.retention
+}
+
+///|
+/// Borrow the exact semantic Artifact already issued by this local owner.
+/// It is not re-admitted from wire and carries no physical custody authority.
+pub fn client_effect_local_result_artifact_contract(
+  value : ClientEffectLocalResultArtifact,
+) -> @publication.PublicationContract {
+  value.artifact
+}
+
+///|
 pub fn client_effect_local_artifact_definition_cid(
   value : ClientEffectLocalResultArtifact,
 ) -> String {
