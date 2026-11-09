@@ -323,6 +323,8 @@ test('full corpus pins every authored occurrence independently of worker selecti
   // oracle as a success. Storage sizing does not select a cumulative output cap.
   // Five grouped ROWS operands fail in the original bounded syntax parser;
   // their InvalidInput projection does not become a later lowering rejection.
+  // Four grouped LIMIT/OFFSET and five positive LIMIT operands retain that same
+  // syntax phase; distinct declaration and binding rejections stay unchanged.
   assert.equal(pin.totalCases, 4240);
   assert.deepEqual(pin.counts, {"successes":2656,"executionFailures":53,"refusals":1531});
   assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [["standard",{"successes":2602,"executionFailures":51,"refusals":1492}],["analytic-offset",{"successes":6,"executionFailures":0,"refusals":13}],["analytic-property",{"successes":13,"executionFailures":0,"refusals":7}],["analytic-order",{"successes":35,"executionFailures":2,"refusals":19}]]);
@@ -350,3 +352,4 @@ import './unpivot-multicolumn-source-input.test.mjs';
 import './group-order-range-alias-source-input.test.mjs';
 import './distinct-order-receiver-source-input.test.mjs';
 import './grouped-rows-boundary-source-input.test.mjs';
+import './limit-parameter-source-input.test.mjs';
