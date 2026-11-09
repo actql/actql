@@ -70,6 +70,49 @@ test "captured parameter projection retains its one original declaration" {
     Rejected(issue) => raise @check.diagnostic_cause(issue)
     NeedsInputs(_) => fail("the same supplied Parameter remains bound")
   }
+  // The existing Direct Source corpus supplies real request/mode originals;
+  // a schema-only Source cannot establish this acquisition contract.
+  let direct_context = {
+    ..chain_right_context(direct=true, captured=true, parameters=false),
+    parameter_declarations: Some(number_parameter_declarations()),
+  }
+  let direct = compile_query_script(
+    @query.parse_query_script(
+      "SELECT r.id AS id, @p AS next_value FROM remote AS r WHERE r.id = 1 |> RESULT rows",
+      syntax_limits(),
+    ).unwrap(),
+    direct_context,
+    construction_limits(),
+  ).unwrap()
+  let prepared = @publication_host.prepare_parsed_effect_free_client_program(
+    direct,
+    @check.checking_environment(
+      chain_right_wire(host_capacity=true),
+      { text_time: false, veca: false, },
+      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+    ),
+    Some(analytic_frame_parameter_values("1")),
+    @publication_host.client_standard_program_preparation_limits(),
+  ).unwrap()
+  let acquisition = @publication_host.prepare_client_query_acquisition(
+    prepared, 0, 0,
+  ).unwrap()
+  assert_eq(
+    @schema.field_count(
+      @relation.input_schema(
+        @source_resolution.query_acquisition_filter(acquisition),
+      ),
+    ),
+    2,
+  )
+  assert_eq(
+    @schema.field_count(
+      @relation.output_schema(
+        @source_resolution.query_acquisition_select(acquisition),
+      ),
+    ),
+    1,
+  )
 }
 
 ///|
@@ -181,6 +224,36 @@ test "captured original Salesforce UPDATE text retains its scalar Result and Par
     }
   }
   assert_eq(@program.exports(actual).map(entry => entry.0), ["updates"])
+  let capture = @program.stage_body(@program.stages(actual)[0])
+  let capture_steps = @wire.elements(store_capture_field(capture, "steps")).unwrap()
+  // Keep the existing acquisition Select before the Parameter Derive, but
+  // receive only columns used by the selected projection from that Source.
+  let acquisition = capture_steps.filter(step => {
+      @wire.lookup(@wire.open_object(step).unwrap(), "select") is Some(_)
+    })[0]
+  assert_eq(
+    @wire.elements(store_capture_field(acquisition, "select"))
+    .unwrap()
+    .map(column => @wire.text(column).unwrap()),
+    ["Id", "Name"],
+  )
+  assert_eq(
+    @wire.text(store_capture_field(acquisition, "as")).unwrap(),
+    "aql_capture_0",
+  )
+  assert_eq(
+    @wire.text(store_capture_field(capture_steps[0], "from")).unwrap(),
+    "records",
+  )
+  let original = store_capture_field(
+    store_capture_field(capture, "inputs"),
+    "records",
+  )
+  let original_schema = store_capture_field(original, "schema")
+  assert_eq(@wire.object_length(original_schema), Some(3))
+  assert_eq(@wire.field_at(original_schema, 0).unwrap().0, "Id")
+  assert_eq(@wire.field_at(original_schema, 1).unwrap().0, "Name")
+  assert_eq(@wire.field_at(original_schema, 2).unwrap().0, "payload")
   let body = semantic(actual)
   assert_eq(body.split("\"$param\":\"next_name\"").length(), 2)
   assert_eq(body.split("\"$param\":\"record_id\"").length(), 2)

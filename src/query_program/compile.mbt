@@ -2178,6 +2178,7 @@ fn having_column(
 // checker still owns the projected schema and publication-order obligation.
 priv struct SourceProjectionCapture {
   projection_name : String
+  input_fields : Array[String]
   mut steps : Array[@builder.Node]
   mut fields : Array[String]
   mut count : Int
@@ -2186,14 +2187,16 @@ priv struct SourceProjectionCapture {
 ///|
 fn source_projection_capture_query(
   query : @query.Query,
+  input : Input,
+  fields : Array[String],
   allow_vector? : Bool = true,
-) -> Bool {
+) -> Array[String]? {
   let mut index = 0
   if @query.operation_at(query, index) is Some(Where(_)) {
     index += 1
   }
   guard @query.operation_at(query, index) is Some(Select(projections, false)) else {
-    return false
+    return None
   }
   // Field/parameter/literal projection has no evaluation-context callback.
   // Keep it inside the same acquisition capture before its cross-stage
@@ -2202,12 +2205,14 @@ fn source_projection_capture_query(
   // adopted Vector scalar route below with its original ORDER-only suffix.
   let mut direct_projection = true
   let mut has_vector_scalar = false
+  let referenced_fields : Array[String] = []
+  let mut complete_field_binding = true
   for projection in projections {
     if projection.aggregate is Some(_) ||
       projection.analytic is Some(_) ||
       projection.star is Some(_) ||
       !projection.replacements.is_empty() {
-      return false
+      return None
     }
     if projection.expression is Some(expression) {
       for node_index in 0..<@query.expression_node_count(expression) {
@@ -2216,16 +2221,25 @@ fn source_projection_capture_query(
           | Boolean(_)
           | Number(_)
           | StringLiteral(_)
-          | Reference(_)
           | ParameterReference(_) => ()
+          Reference(path) =>
+            match resolve_column(path, query, input, fields) {
+              Some(field) =>
+                if !referenced_fields.contains(field) {
+                  referenced_fields.push(field)
+                }
+              // Nested properties and row receivers keep their original full
+              // input. The actual expression lowerer still owns their meaning.
+              None => complete_field_binding = false
+            }
           Call(path, _) => {
             direct_projection = false
-            guard path.length() == 1 else { return false }
+            guard path.length() == 1 else { return None }
             match ascii_upper(path[0].value) {
               "VECTOR_COSINE_SIMILARITY"
               | "VECTOR_INNER_PRODUCT"
               | "VECTOR_L2_DISTANCE" => has_vector_scalar = true
-              _ => return false
+              _ => return None
             }
           }
           _ => direct_projection = false
@@ -2241,21 +2255,36 @@ fn source_projection_capture_query(
     for tail in (index + 1)..<@query.operation_count(query) {
       match @query.operation_at(query, tail) {
         Some(AssertUnique(_)) | Some(RetainResult(_)) => ()
-        _ => return false
+        _ => return None
       }
     }
-    return true
+    // Reuse this existing projection inspection and the original column
+    // resolver; do not infer a second schema or drop the acquisition Select.
+    // Its original ordering remains the input to any Parameter/literal Derive.
+    return Some(
+      if complete_field_binding && !referenced_fields.is_empty() {
+        fields.filter(field => referenced_fields.contains(field))
+      } else {
+        fields
+      },
+    )
   }
   if !allow_vector ||
     !has_vector_scalar ||
     !(@query.operation_at(query, index + 1) is Some(Order(_))) {
-    return false
+    return None
   }
   index += 2
   if @query.operation_at(query, index) is Some(Limit(_, _)) {
     index += 1
   }
-  index == @query.operation_count(query)
+  if index == @query.operation_count(query) {
+    // The adopted Vector continuation may still use its original input scope
+    // for ORDER. Retain that full boundary rather than pruning its columns.
+    Some(fields)
+  } else {
+    None
+  }
 }
 
 ///|
@@ -7315,10 +7344,16 @@ fn capture_source_boundary(
       ]
     None => []
   }
+  let receiving_fields = match projection {
+    Some(selected) if selected.count > 0 => selected.input_fields
+    _ => fields
+  }
   let capture_entries = [
     (
       "select",
-      construction.array(fields.map(field => construction.text(field))),
+      construction.array(
+        receiving_fields.map(field => construction.text(field)),
+      ),
     ),
     ("as", construction.text("aql_capture_0")),
   ]
@@ -7526,8 +7561,10 @@ pub fn compile_with_source(
       is Captured(_) &&
       context.captured_stage is Some(_) &&
       dependencies.is_empty() &&
-      source_projection_capture_query(query) {
+      source_projection_capture_query(query, input, fields)
+      is Some(input_fields) {
       Some({
+        input_fields,
         projection_name: pipe_physical_name(
           fields + [input.name],
           "aql_capture_projection_",
