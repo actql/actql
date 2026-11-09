@@ -1,6 +1,8 @@
 ///|
 // Exact original public SQL/parameter DATA. This test constructs checked
 // Source/Query/Plan originals but does not open an account or physical reader.
+// This route uses the existing JS invocation-material test fixtures.
+#cfg(target="js")
 test "source-free expanded left preserves the independent acquired right capture plan" {
   let prepared = before_limit_standard_prepared(
     "SELECT p.id, element, position FROM UNNEST(@parents) p CROSS JOIN UNNEST(p.items) element WITH OFFSET position CROSS JOIN records r MAX_OUTPUT_ROWS 10 ORDER BY p.id, position",
