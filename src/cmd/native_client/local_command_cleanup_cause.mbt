@@ -154,6 +154,14 @@ fn command_preparation_cleanup_cause(
             InvalidLocalReference(_) => "EffectLocalSourceReference"
             _ => "EffectLocalSource"
           }
+        PolicyDependency(original) =>
+          match original {
+            MissingUnit => "EffectProposalsPolicyMissingUnit"
+            MissingDependency => "EffectProposalsPolicyMissingDependency"
+            Encoding(_) => "EffectProposalsPolicyEncoding"
+            ForeignBody => "EffectProposalsPolicyForeignBody"
+            BudgetExceeded => "EffectProposalsPolicyBudget"
+          }
         Inventory(original) =>
           match original {
             MissingDependency => "EffectInventoryMissingDependency"

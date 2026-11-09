@@ -11,12 +11,12 @@ priv struct LocalNativeMockEffectUnitResult {
   mut _retained_wire : String?
   mut _retained_definition : @run_host.ClientEffectLocalResultDefinition?
   mut artifact : @run_host.ClientEffectLocalResultArtifact?
-  mut dependency : @run_host.ClientEffectDependencyCapture?
+  mut _retained_dependency : @run_host.ClientEffectDependencyCapture?
 }
 
 ///|
 fn LocalNativeMockEffectUnitResult::close(self : Self) -> Unit {
-  self.dependency = None
+  self._retained_dependency = None
   self.artifact = None
   self._retained_definition = None
   self._retained_wire = None
@@ -120,7 +120,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_unit_results(
       _retained_wire: None,
       _retained_definition: None,
       artifact: None,
-      dependency: None,
+      _retained_dependency: None,
     }
     held.unit_results.push(entry)
     let exported = if @strategy.captured_effect_local_result_task(result) ==
@@ -264,7 +264,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_unit_results(
     snapshot.cancel()
     entry.snapshot = None
     entry._retained_wire = Some(rows)
-    entry.dependency = Some(
+    entry._retained_dependency = Some(
       @run_host.admit_client_effect_dependency_capture(
         materials,
         held.inputs,

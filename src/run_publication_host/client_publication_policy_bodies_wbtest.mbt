@@ -100,3 +100,66 @@ test "Effect-free original policy closure is unchanged by a public Result alias"
     original,
   )
 }
+
+///|
+test "checked policy body construction yields exact original dimensions before output and preserves refusal" {
+  let prepared = multi_source_prepared(multi_source_program)
+  let observed : Array[(Int, Int, Int)] = []
+  let bodies = prepared_client_publication_policy_bodies(
+    prepared,
+    65536,
+    8192,
+    64,
+    before_body=Some((bytes, nodes, depth) => {
+      observed.push((bytes, nodes, depth))
+      true
+    }),
+  ).unwrap()
+  // One original combined policy and its two Source response policies emit;
+  // the four Catalog bodies borrow existing originals rather than emit again.
+  assert_eq(observed.length(), 3)
+  assert_eq(observed[0].1, 10)
+  assert_eq(observed[0].2, 2)
+  let root = bodies[0]
+  assert_eq(
+    root.1,
+    "sha256:bfb29a3ad6c5f1f3e72e2a59b17ee8df772f88fa8b37ee0f958d6b07cb20c670",
+  )
+  assert_eq(observed[0].0, @utf8.encode(root.2).length())
+  let calls = Ref(0)
+  assert_true(
+    prepared_client_publication_policy_bodies(
+      prepared,
+      65536,
+      8192,
+      64,
+      before_body=Some((_, _, _) => {
+        calls.val += 1
+        false
+      }),
+    )
+    is Err(@checked.BudgetExceeded),
+  )
+  assert_eq(calls.val, 1)
+  let retained : Map[String, String] = Map([])
+  for (kind, cid, wire) in bodies {
+    retained[kind + "\u0000" + cid] = wire
+  }
+  let original = @strategy.graph_program(prepared.graph)
+  let selected = prepared_client_publication_data_policy_cid(prepared).unwrap()
+  let filtered = checked_client_publication_policy_bodies(
+    original,
+    selected,
+    65536,
+    8192,
+    64,
+    retain_catalog=true,
+    retained_body_keys=Some(retained),
+    before_body=Some((_, _, _) => {
+      calls.val += 1
+      false
+    }),
+  ).unwrap()
+  assert_true(filtered.is_empty())
+  assert_eq(calls.val, 1)
+}

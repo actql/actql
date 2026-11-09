@@ -158,17 +158,53 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_dependency_inventory(
       append(kind, Some(cid), wire)
     }
   }
-  for result in proposals.unit_results {
-    guard result.artifact is Some(artifact) &&
-      result.dependency is Some(capture) &&
-      @run_host.client_effect_dependency_capture_matches_artifact(
-        capture, artifact,
-      ) else {
+  // Sibling Results remain retained for the COMPLETE Unit Manifest above.
+  // They are not additional Effect sources or roots. Only dependencies of
+  // actual consumed members belong in this exact saved Effect closure.
+  let construction = proposals.construction.unwrap_or_else(() => {
+    stop("LocalOriginalEffectDependencyInventoryUnavailable")
+  })
+  // Measuring uses the existing bounded Writer frame inventory, conservatively
+  // including hash state. It owns no output text. No retained body is invented.
+  let measuring = @encode.hash_writer_construction_inventory(
+      max_nodes, max_depth,
+    )
+    .bind(inventory => {
+      @execution.preparation_representation_cost({
+        record_headers: inventory.record_headers,
+        reference_slots: inventory.reference_slots,
+        scalar_words: inventory.scalar_words,
+        owned_utf16_units: inventory.owned_utf16_units,
+        owned_wire_bytes: inventory.owned_wire_bytes,
+      })
+    })
+    .unwrap_or_else(() => {
       stop("LocalOriginalEffectDependencyInventoryUnavailable")
-    }
-    for body in @run_host.client_effect_dependency_capture_bodies(capture) {
-      retain(body)
-    }
+    })
+  if !construction.resize(
+      self.original,
+      construction.recipe,
+      construction.retained,
+      Int64::max(construction.workspace, measuring),
+    ) {
+    stop("LocalOriginalEffectDependencyInventoryUnavailable")
+  }
+  let policy_bodies = @run_host.prepared_client_effect_publication_policy_bodies(
+      state._retained_prepared,
+      max_bytes,
+      max_nodes,
+      max_depth,
+      retained_body_keys=Some(seen),
+      before_body=Some((bytes, nodes, depth) => {
+        construction.prepare_canonical(self.original, bytes, nodes, depth)
+      }),
+    )
+    .map_err(issue => {
+      LocalNativeMockEffectProposalIssue::PolicyDependency(issue)
+    })
+    .native_effect_proposal(self.original)
+  for (kind, cid, wire) in policy_bodies {
+    append(kind, Some(cid), wire)
   }
   for index, entry in proposals.members {
     guard entry._retained_artifact is Some(artifact) &&

@@ -34,6 +34,7 @@ priv enum LocalNativeMockEffectProposalIssue {
   HostExecution(@local_values.LocalValuesExecutionIssue)
   ImportObservation(@run_host.ClientEffectResultImportIssue)
   Imports(@run_host.ClientEffectImportedEvidenceIssue)
+  PolicyDependency(@checked.LocalDependencyBodyIssue)
 }
 
 ///|
