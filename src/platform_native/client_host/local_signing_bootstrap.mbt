@@ -147,12 +147,19 @@ pub fn NativeLocalAdoptionSession::open_journal_with_signing_originals(
   max_records : Int,
   max_snapshot_bytes : Int64,
   selections : Array[NativeLocalSigningInstallationSelection],
+  max_retained_intent_bytes? : Int64 = 67108864L,
 ) -> Result[NativeLocalHostConnection, NativeLocalAdoptionIssue] {
   match self.check_signing_installation_selections(selections) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
   self.open_journal_selected(
-    library, crypto, ttl_ms, max_records, max_snapshot_bytes, selections,
+    library,
+    crypto,
+    ttl_ms,
+    max_records,
+    max_snapshot_bytes,
+    selections,
+    max_retained_intent_bytes~,
   )
 }

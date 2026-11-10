@@ -619,6 +619,7 @@ fn NativeClientRunJournal::record_submitted_intent_locked(
           reads~,
         )
       }),
+      max_retained_intent_bytes=self.max_retained_intent_bytes,
     ) {
     Ok(@host.Retained(snapshot)) => {
       let original = @host.client_saved_submission_record(snapshot)

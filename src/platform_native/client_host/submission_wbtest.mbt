@@ -12,6 +12,7 @@ extern "C" fn submitted_test_remove_record(
 fn submitted_test_setup(
   name : String,
   max_records? : Int = 8,
+  max_retained_intent_bytes? : Int64 = 67108864L,
 ) -> (
   @sqlite.Database,
   NativeClientRunJournal,
@@ -23,7 +24,11 @@ fn submitted_test_setup(
   initialize_native_client_epoch_authority(database, crypto).unwrap()
   initialize_native_client_run_journal(database).unwrap()
   initialize_native_client_submitted_intents(database).unwrap()
-  let journal = open_native_client_run_journal(database, max_records).unwrap()
+  let journal = open_native_client_run_journal(
+    database,
+    max_records,
+    max_retained_intent_bytes~,
+  ).unwrap()
   let authority = open_native_client_epoch_authority(database, crypto, 100.0).unwrap()
   let epoch = authority
     .issue_epoch("sha256:" + "a".repeat(64), true, 1000.0)
@@ -355,5 +360,51 @@ test "Native original Submission rejects malformed references and preserves type
     admit_native_client_submission_reference(composed.wire).unwrap().wire,
     composed.wire,
   )
+  database.close_checked().unwrap()
+}
+
+///|
+test "Native selected retained intent bytes preserve actual original history at zero admission" {
+  let (database, journal, authority, reference) = submitted_test_setup(
+    "selected-intent-byte-policy",
+    max_retained_intent_bytes=67108865L,
+  )
+  assert_eq(journal.max_retained_intent_bytes, 67108865L)
+  let scope = "sha256:" + "a".repeat(64)
+  let intent = submitted_test_intent("SELECT 1 AS n")
+  let original = journal
+    .record_submitted_intent(authority, reference, intent, scope, true, 1001.0)
+    .unwrap()
+  let zero = open_native_client_run_journal(
+    database,
+    8,
+    max_retained_intent_bytes=0L,
+  ).unwrap()
+  assert_eq(zero.max_retained_intent_bytes, 0L)
+  guard zero.lookup_submitted_intent(authority, reference, scope, true, 1002.0)
+    is Ok(Submitted(found)) else {
+    fail("history hidden by zero admission")
+  }
+  assert_eq(found.revision, original.revision)
+  let same = zero
+    .record_submitted_intent(authority, reference, intent, scope, true, 1003.0)
+    .unwrap()
+  assert_eq(same.revision, original.revision)
+  let before = database
+    .read("client_submitted_intent_usage", "retained")
+    .unwrap()
+  let fresh = prepare_native_client_submission_reference(
+    reference.epoch,
+    "fresh-byte-refusal",
+  ).unwrap()
+  assert_true(
+    zero.record_submitted_intent(authority, fresh, intent, scope, true, 1004.0)
+    is Err(CapacityExceeded),
+  )
+  let after = database
+    .read("client_submitted_intent_usage", "retained")
+    .unwrap()
+  assert_eq(after.body, before.body)
+  assert_eq(after.revision, before.revision)
   database.close_checked().unwrap()
 }
