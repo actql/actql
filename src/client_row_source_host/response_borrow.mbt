@@ -272,24 +272,43 @@ fn grow_row_run_response_capacity_at_phase(
 }
 
 ///|
-// This direct provider capture keeps its Source, evidence and original cleanup
-// observer. Whole-input, keyed and listing lifetimes do not use this cut.
+// Completed nonlisting captures keep their Source, evidence and original
+// cleanup observer. Keyed and listing lifetimes do not use this cut.
 fn row_response_workspace_capture_current(value : RowRunResponseBorrow) -> Bool {
   let run = value.run
-  !run.closed &&
-  run.response_borrowed &&
-  run.attempt.state is Captured(_) &&
-  value.selection is QueryResponse(acquisition) &&
-  run.configuration is DirectConfiguration(configuration) &&
-  row_response_configuration_matches(configuration, acquisition.configuration) &&
-  !row_acquisition_is_listing(acquisition)
+  if run.closed || !run.response_borrowed {
+    return false
+  }
+  match (value.selection, run.configuration, run.attempt.state) {
+    (QueryResponse(acquisition), DirectConfiguration(configuration), Captured(_)
+    ) =>
+      row_response_configuration_matches(
+        configuration,
+        acquisition.configuration,
+      ) &&
+      !row_acquisition_is_listing(acquisition)
+    (InputResponse(acquisition), InputConfiguration(original), InputCaptured(_)) =>
+      physical_equal(original, acquisition) &&
+      acquisition.preparation.file_listing is None &&
+      acquisition.preparation.listing_rows is None &&
+      run.page_charge is None &&
+      run.physical is Some(physical) &&
+      physical.holding is Some(_) &&
+      run.input_progress is Some(progress) &&
+      progress.preflight is None &&
+      progress.parser is None
+    _ => false
+  }
 }
 
 ///|
 /// Return only the selected provider's transient execution workspace, after
 /// the SAME bound reader confirms its actual retirement. Retain its declared
 /// live frame, Source backing, original observer and all other reservation
-/// obligations for final Row cleanup. A logical stop is insufficient.
+/// obligations for final Row cleanup. Whole input has finished its provider
+/// constructors and transfers their values to the retained input: return that
+/// provider E and page scratch, keeping ALL R and receiver E. A logical stop
+/// is insufficient.
 pub fn retire_row_run_response_workspace(
   value : RowRunResponseBorrow,
 ) -> Result[Unit, RowHostIssue] {
@@ -300,25 +319,59 @@ pub fn retire_row_run_response_workspace(
     return Ok(())
   }
   guard value.cleanup_state is Bound &&
-    value.selection is QueryResponse(acquisition) &&
     value.run.physical is Some(physical) &&
     physical.provider_capacity is Some(provider) &&
     physical.cleanup_confirmed is Some(confirm) else {
     return Err(InvalidState)
   }
-  // Compute the absolute remainder from immutable original declarations, not
-  // from a previously reduced amount. Keep all acquisition/evidence workspace
-  // and the complete provider R; only the retired provider E-R is returned.
-  let provider_retained = @execution.execution_capacity_retained_bytes(provider)
-  let base = row_acquisition_execution_capacity(acquisition)
-  if provider_retained > 9223372036854775807L - base ||
-    physical.execution_scratch > 9223372036854775807L - base - provider_retained {
-    return Err(Physical(InvalidLimits))
+  let remaining = match value.selection {
+    QueryResponse(acquisition) => {
+      // Preserve the direct capture's original retained-frame remainder.
+      let provider_retained = @execution.execution_capacity_retained_bytes(
+        provider,
+      )
+      let base = row_acquisition_execution_capacity(acquisition)
+      if provider_retained > 9223372036854775807L - base ||
+        physical.execution_scratch >
+        9223372036854775807L - base - provider_retained {
+        return Err(Physical(InvalidLimits))
+      }
+      base + provider_retained + physical.execution_scratch
+    }
+    InputResponse(_) => {
+      // Actual pages/validation grew this SAME token. Its provider declaration
+      // is additive to that receiver peak, and neither may grow after capture.
+      // The existing borrow state permits this subtraction only once, even
+      // when a Resource callback retires the Source before the return fence.
+      let (_, execution) = match
+        @resources.reservation_capacity_amounts(
+          physical.ledger,
+          physical.reservation,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Physical(issue))
+      }
+      let provider_execution = @execution.execution_capacity_execution_bytes(
+        provider,
+      )
+      if execution < provider_execution ||
+        execution - provider_execution < physical.execution_scratch {
+        return Err(Physical(InvalidLimits))
+      }
+      execution - provider_execution - physical.execution_scratch
+    }
   }
-  let remaining = base + provider_retained + physical.execution_scratch
   // Synchronous external observers may reenter. A throwing observer leaves
   // this cut fenced, while the unchanged final Row cleanup remains usable.
   value.cleanup_state = RetiringWorkspace
+  if value.selection is InputResponse(_) &&
+    (
+      !input_row_capture_live(value.run) ||
+      !row_response_workspace_capture_current(value)
+    ) {
+    value.cleanup_state = Bound
+    return Err(Evidence(UnverifiedTransport))
+  }
   let retired = confirm()
   if !row_response_workspace_capture_current(value) || !retired {
     value.cleanup_state = Bound

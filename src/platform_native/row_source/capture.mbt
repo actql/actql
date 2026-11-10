@@ -1595,6 +1595,21 @@ fn NativeRelationFileCapture::advance_original(
           )
           self.result = Some(capture)
           self.phase = Captured
+          match self.acquisition {
+            Some(FileInputAcquisition(_))
+            | Some(ManagedFileInputAcquisition(_, _, _, _)) =>
+              // The original transport and document/target constructors have
+              // retired across earlier advances. Keep their complete retained
+              // allowance and the captured input; return only provider/page E
+              // through the SAME reader borrow and original cleanup observer.
+              file_require(
+                @rows.retire_row_run_response_workspace(self.responses.unwrap()).map_err(issue => {
+                    Row(issue)
+                  },
+                ),
+              )
+            _ => ()
+          }
         }
       }
       Captured => ()

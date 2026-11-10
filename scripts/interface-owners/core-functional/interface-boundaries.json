@@ -49852,7 +49852,7 @@
     },
     {
       "module": "src/client_row_source_host/response_borrow.mbt",
-      "sha256": "c8fb31a9618714515c4cf92aac8532fdf1f3b2fb896b7ade59ef92b695d2e63c",
+      "sha256": "7561f6ec5e50dab2b59ac6ac4f3262768adbe50a7568c538a467e23ba5c5f007",
       "exports": [],
       "operations": [
         {
@@ -50222,7 +50222,7 @@
             "extension": [
               {
                 "path": "src/client_row_source_host/response_borrow.mbt",
-                "anchor": "Whole-input, keyed and listing lifetimes do not use this cut."
+                "anchor": "cleanup observer. Keyed and listing lifetimes do not use this cut."
               }
             ],
             "verification": [

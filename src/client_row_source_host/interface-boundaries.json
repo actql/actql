@@ -4861,7 +4861,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
-      "sha256": "2171bf3c1007e0fecb634fefddbdf40fe71c960596bdb89cb8529ce70a522ef2",
+      "sha256": "7561f6ec5e50dab2b59ac6ac4f3262768adbe50a7568c538a467e23ba5c5f007",
       "exports": [],
       "operations": [
         {
@@ -5268,7 +5268,7 @@
             "extension": [
               {
                 "path": "src/client_row_source_host/response_borrow.mbt",
-                "anchor": "Whole-input, keyed and listing lifetimes do not use this cut."
+                "anchor": "cleanup observer. Keyed and listing lifetimes do not use this cut."
               }
             ],
             "verification": [

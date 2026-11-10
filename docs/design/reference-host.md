@@ -2936,9 +2936,15 @@ Provider response workspace retirement keeps the original captured Source,
 evidence and final Row cleanup authority. The same bound reader observation
 must confirm retirement before the direct provider's transient E-R may be
 returned. The retained provider frame, complete acquisition/evidence workspace
-and original page scratch remain charged. Whole-input, keyed and listing
-profiles retain their own lifetimes. A read Promise or stop request alone is
-not this boundary, and a pending or throwing observer supplies no credit.
+and original page scratch remain charged. A completed nonlisting whole-input
+capture instead keeps all provider and receiver retention plus the receiver's
+execution peak, returning only its additive provider construction execution
+and page scratch. Its original Native reader enters this same boundary after
+closing transport and discarding document/target/parser originals across
+earlier advances; the captured input and original cleanup observer remain live.
+Keyed and listing profiles retain their own lifetimes. A read Promise or stop
+request alone is not this boundary, and a pending or throwing observer supplies
+no credit.
 
 The Resource operation reduces only the original reservation's absolute
 execution-byte remainder after its original current check. It does not return
