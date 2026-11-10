@@ -130,6 +130,35 @@ fn saved_effect_file_application_capacity(
 }
 
 ///|
+// Keep all original restoration material beside the next constructor. This
+// composes DATA only; an entered original constructor must acquire physical
+// backing before the same reservation can grow beyond its current window.
+fn saved_effect_file_next_phase_capacity(
+  original : @execution.ExecutionCapacity,
+  phase : @execution.ExecutionCapacity,
+) -> @execution.ExecutionCapacity? {
+  let old_retained = @execution.execution_capacity_retained_bytes(original)
+  guard @execution.checked_preparation_add_product(
+      old_retained,
+      @execution.execution_capacity_retained_bytes(phase),
+      1L,
+    )
+    is Some(retained) &&
+    @execution.checked_preparation_add_product(
+      old_retained,
+      @execution.execution_capacity_execution_bytes(phase),
+      1L,
+    )
+    is Some(overlap) else {
+    return None
+  }
+  @execution.execution_capacity(
+    retained,
+    Int64::max(@execution.execution_capacity_execution_bytes(original), overlap),
+  )
+}
+
+///|
 // One original byte token serves restoration constructors and later IO. The
 // caller backs this entry/control frame on the original Read BEFORE entering.
 // A later phase adds its retained data, takes a scratch maximum, and grows the
@@ -157,28 +186,7 @@ fn LocalCommandPreparationOriginal::prepare_saved_effect_file_entry(
       !work.response_pending else {
       stop("LocalOriginalEffectEntryUnavailable")
     }
-    let old_retained = @execution.execution_capacity_retained_bytes(
-      work.capacity,
-    )
-    guard @execution.checked_preparation_add_product(
-        old_retained,
-        @execution.execution_capacity_retained_bytes(capacity),
-        1L,
-      )
-      is Some(retained) &&
-      @execution.checked_preparation_add_product(
-        old_retained,
-        @execution.execution_capacity_execution_bytes(capacity),
-        1L,
-      )
-      is Some(overlap) &&
-      @execution.execution_capacity(
-        retained,
-        Int64::max(
-          @execution.execution_capacity_execution_bytes(work.capacity),
-          overlap,
-        ),
-      )
+    guard saved_effect_file_next_phase_capacity(work.capacity, capacity)
       is Some(combined) else {
       stop("LocalOriginalEffectCapacityUnavailable")
     }
@@ -187,7 +195,7 @@ fn LocalCommandPreparationOriginal::prepare_saved_effect_file_entry(
     work.capacity = combined
     match
       entry.grow_in_original_read(
-        retained,
+        @execution.execution_capacity_retained_bytes(combined),
         @execution.execution_capacity_execution_bytes(combined),
       ) {
       Ok(_) => return
@@ -349,7 +357,14 @@ fn LocalCommandPreparationOriginal::apply_saved_effect_files(
   work.application_base_retained = Some(
     @execution.execution_capacity_retained_bytes(work.capacity),
   )
-  self.prepare_saved_effect_file_entry(capacity)
+  // The last restoration constructor backed only its own original window.
+  // A Read-side logical resize cannot acquire more business backing. Retain
+  // the attempted full phase first, then enter the SAME original business
+  // constructor below: it acquires usable storage BEFORE resizing this token.
+  work.capacity = saved_effect_file_next_phase_capacity(work.capacity, capacity).unwrap_or_else(() => {
+      stop("LocalOriginalEffectCapacityUnavailable")
+    },
+  )
   let capacity = work.capacity
   self.with_business_request(capture, () => {
     let entry = work.entry.unwrap()

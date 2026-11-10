@@ -132,6 +132,7 @@ fn nonmodel_physical_entry_case(
   retained_frame? : Bool = false,
   constructing? : Bool = false,
   whole_read_frame? : Bool = false,
+  windowed? : Bool = false,
 ) -> Unit raise {
   let root = @env.get_env_var("ACTQL_TEST_INSTALLED_PROCESS_ROOT").unwrap()
   let sqlite_path = @env.get_env_var("ACTQL_TEST_SQLITE_COMPONENT").unwrap()
@@ -243,31 +244,53 @@ fn nonmodel_physical_entry_case(
       holdings: 8,
       transfer_bytes: 65536L,
       retained_bytes: 0L,
-      execution_bytes: 8192L * page,
+      // Only this new growth case declares a finite parent allowance beyond
+      // the initially acquired arena, as the original working-window fixture
+      // does. Fixed FD cases and all product policies remain unchanged.
+      execution_bytes: (if windowed { 16384L } else { 8192L }) * page,
     },
     outer_control_bytes,
   ).retained_execution_value("eligible entry: Host")
-  host.acquire_fd(descriptor).retained_execution_value("eligible entry: FD")
+  if windowed {
+    host
+    .acquire()
+    .retained_execution_value("eligible entry: in-process backing")
+  } else {
+    host.acquire_fd(descriptor).retained_execution_value("eligible entry: FD")
+  }
   let backing = host.borrow_backing().unwrap()
   host.enter_backing_borrow_scope(backing).unwrap()
-  let read_domain = match
-    host.prepare_domain(backing, descriptor, read_extent, read_limits).unwrap() {
+  let read_acquired = if windowed {
+    host.prepare_domain_in_process(backing, read_extent, read_limits)
+  } else {
+    host.prepare_domain(backing, descriptor, read_extent, read_limits)
+  }
+  let read_domain = match read_acquired.unwrap() {
     PreparedDomain(value) => value
     PendingDomain(_, issue) => raise EligibleEntryDomainFailure("Read", issue)
   }
   host.transfer_domain(read_domain).unwrap()
-  let sqlite_domain = match
-    host
-    .prepare_domain(backing, descriptor, sqlite_extent, sqlite_limits)
-    .unwrap() {
+  let sqlite_acquired = if windowed {
+    host.prepare_domain_in_process(backing, sqlite_extent, sqlite_limits)
+  } else {
+    host.prepare_domain(backing, descriptor, sqlite_extent, sqlite_limits)
+  }
+  let sqlite_domain = match sqlite_acquired.unwrap() {
     PreparedDomain(value) => value
     PendingDomain(_, issue) => raise EligibleEntryDomainFailure("SQLite", issue)
   }
   host.transfer_domain(sqlite_domain).unwrap()
-  let business_domain = match
-    host
-    .prepare_domain(backing, descriptor, business_extent, business_limits)
-    .unwrap() {
+  let business_acquired = if windowed {
+    host.prepare_domain_in_process(
+      backing,
+      business_extent,
+      business_limits,
+      initial_window=Some(4L * page),
+    )
+  } else {
+    host.prepare_domain(backing, descriptor, business_extent, business_limits)
+  }
+  let business_domain = match business_acquired.unwrap() {
     PreparedDomain(value) => value
     PendingDomain(_, issue) =>
       raise EligibleEntryDomainFailure("business", issue)
@@ -312,7 +335,9 @@ fn nonmodel_physical_entry_case(
       1024L * page + read_entry_bytes,
     )
     .unwrap()
-  let proved = if constructing {
+  let proved = if windowed {
+    nonmodel_windowed_original_work(host, pair, read, execution)
+  } else if constructing {
     nonmodel_constructor_original_work(host, pair, read, execution)
   } else if claimed {
     nonmodel_eligible_original_work(host, pair, read, execution, control_bytes)
@@ -544,4 +569,85 @@ test "same original constructor backing grows across Read and business before on
 ///|
 test "whole Read frame preserves an already funded high water without duplicate retention" {
   nonmodel_physical_entry_case(false, whole_read_frame=true)
+}
+
+///|
+// Match the installed caller's small initial usable window. Policy allows
+// the later phase, but Read-side accounting has no physical acquire callback.
+fn nonmodel_windowed_constructor_phases(
+  host : InstalledArenaHost,
+  pair : InstalledArenaLocalHostResources,
+  read : InstalledArenaOriginalRead,
+  execution : InstalledArenaRetainedExecution,
+  entry : InstalledArenaNonModelWorkEntry,
+) -> Bool raise {
+  host.leave_local_host_phase(pair).unwrap()
+  host.enter_domain_retained_execution(execution).unwrap()
+  entry.prepare_constructor_in_entered_scope(8192L, 32768L, 256L).unwrap()
+  let held = String::make(64, 'x')
+  host.leave_domain_retained_execution(execution).unwrap()
+  host.enter_local_host_phase(pair, HostRead).unwrap()
+  let before = entry.usage()
+  assert_true(
+    entry.grow_in_original_read(131072L, 262144L)
+    is Err(Resource(@resources.RetentionLimit)),
+  )
+  assert_eq(entry.usage(), before)
+  assert_eq(entry.retained_bytes, 8192L)
+  assert_eq(entry.execution_bytes, 32768L)
+  host.leave_local_host_phase(pair).unwrap()
+  host.enter_domain_retained_execution(execution).unwrap()
+  // The existing constructor acquires actual backing, then grows the SAME
+  // token. No Read reissue, second reservation or resource ceiling change.
+  match entry.prepare_constructor_in_entered_scope(131072L, 262144L, 256L) {
+    Ok(_) => ()
+    Err(Unavailable) => fail("windowed original constructor unavailable")
+    Err(Resource(issue)) =>
+      fail("windowed original constructor resource: " + @debug.to_string(issue))
+    Err(Domain(issue)) =>
+      raise EligibleEntryDomainFailure("windowed constructor", issue)
+  }
+  let same_scope = entry.constructor_scope_for(host, pair, read)
+  let ledger = entry.take_entered_ledger(execution, 131072L, 262144L).unwrap()
+  let proved = same_scope &&
+    physical_equal(ledger, execution.ledger.unwrap()) &&
+    held.length() == 64 &&
+    held[0] == 'x' &&
+    entry.usage().live_reservations == before.live_reservations &&
+    entry.usage().attempts == before.attempts &&
+    entry.usage().transferred_bytes == before.transferred_bytes
+  let finished = entry.finish_business_cleanup()
+  host.leave_domain_retained_execution(execution).unwrap()
+  proved && finished
+}
+
+///|
+fn nonmodel_windowed_original_work(
+  host : InstalledArenaHost,
+  pair : InstalledArenaLocalHostResources,
+  read : InstalledArenaOriginalRead,
+  execution : InstalledArenaRetainedExecution,
+) -> Bool raise {
+  host.enter_local_host_phase(pair, HostRead).unwrap()
+  let entry = match
+    host.prepare_domain_nonmodel_work_entry(pair, read, execution, 4096L, 8192L) {
+    Some(Ok(ReadyNonModelWorkEntry(value))) => value
+    _ => fail("windowed original entry")
+  }
+  let proved = nonmodel_windowed_constructor_phases(
+    host, pair, read, execution, entry,
+  )
+  assert_true(entry.close_after_original_return())
+  assert_true(
+    execution.physical_retired && execution.reported && execution.closed,
+  )
+  assert_eq(entry.usage().live_reservations, 0)
+  assert_eq(entry.usage().reserved_retention_bytes, 0L)
+  assert_eq(entry.usage().reserved_execution_bytes, 0L)
+  proved
+}
+
+///|
+test "windowed application backs its original constructor before byte growth" {
+  nonmodel_physical_entry_case(true, constructing=true, windowed=true)
 }

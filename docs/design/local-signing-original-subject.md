@@ -118,6 +118,10 @@ never reset or refunded. The same work record increments an actual completed-ACK
 byte counter before fallible child close; startup funds row slots and the current
 I/O envelope, not every future row's maximum page. The callback runs outside file locks, followed by the
 same current filesystem generation and original logical row-version checks.
+The restoration-to-application boundary first retains the composed extent as
+data, then enters that same original constructor to acquire usable backing before
+resizing its byte token. A Read-side resize alone cannot acquire more business
+backing; an unchanged policy ceiling is not an already acquired window.
 
 ## Reviewer proof artifacts
 
