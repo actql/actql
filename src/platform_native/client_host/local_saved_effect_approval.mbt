@@ -287,6 +287,102 @@ pub fn NativeLocalSavedEffectReview::restore_approval_in_original_read(
     Err(Journal(issue)) => return Err(Journal(issue))
     Err(_) => return Err(Journal(CustodyLost))
   }
+  let restored = match
+    saved_effect_approval_original_from_fields(
+      fields, materials, request, persisted, wire_limits, effect_limits, publication_present,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  self.approval_original = Some(restored)
+  if self.saved_approval_current_for(
+      request,
+      metadata.run_definition_cid,
+      metadata.checkpoint_cid,
+      now,
+    )
+    is None {
+    return Err(Journal(CustodyLost))
+  }
+  Ok(())
+}
+
+///|
+// Terminal alias/lifetime check only. No Store read, clock/current callback,
+// parsed body, authority decision, renewed holding or replacement evidence.
+fn NativeLocalSavedEffectReview::saved_approval_original_live(
+  self : NativeLocalSavedEffectReview,
+  original : NativeLocalSavedEffectApprovalOriginal,
+) -> Bool {
+  !self.retired &&
+  !self.capture.closing &&
+  self.capture.read_callback_active &&
+  self.capture.read_facts_valid &&
+  self.capture.read_operation_issue is None &&
+  self.capture.opening is JournalAcquired(host) &&
+  !host.closed &&
+  !host.journal.fenced &&
+  self.capture.original_resources is Some(resources) &&
+  !resources.interrupted &&
+  resources.active_phase is Some(@arena.HostRead) &&
+  self.approval_original is Some(actual) &&
+  physical_equal(actual, original) &&
+  self.retained_persisted == Some(original.checkpoint) &&
+  self.store.retained_data_current() is Ok(_)
+}
+
+///|
+fn NativeLocalSavedEffectReview::saved_approval_current_for(
+  self : NativeLocalSavedEffectReview,
+  request : @host.ClientRequestIdentity,
+  run_definition_cid : String,
+  checkpoint_cid : String,
+  now : Double,
+) -> String? {
+  guard request == self.selected.request &&
+    self.approval_original is Some(original) &&
+    self._retained_original is Some(metadata) &&
+    self.capture.opening is JournalAcquired(host) &&
+    original.checkpoint.artifact.checkpoint_cid == checkpoint_cid &&
+    @publication.publication_contract_identity(
+      original.materials.run_definition,
+    ) ==
+    run_definition_cid &&
+    self.saved_approval_original_live(original) else {
+    return None
+  }
+  let current = host.lookup_submitted_checkpoint_metadata(
+    self.capture.crypto,
+    self.principal,
+    self.connection,
+    self.selected.reference,
+    request,
+    now,
+  )
+  guard current is Ok(Some(actual)) &&
+    actual.checkpoint_cid == checkpoint_cid &&
+    actual.run_definition_cid == run_definition_cid &&
+    actual.revision == metadata.revision &&
+    !actual.cancellation_requested &&
+    self.saved_approval_original_live(original) else {
+    return None
+  }
+  Some(original.authority)
+}
+
+///|
+// Existing pure restoration of the full original computation chain. The same
+// Native business entry can back these constructors without moving Journal
+// reads, current authorization, signing or a work claim into the compiler.
+fn saved_effect_approval_original_from_fields(
+  fields : @decode.ObjectView,
+  materials : @host.ClientEffectRunMaterials,
+  request : @host.ClientRequestIdentity,
+  persisted : @checkpoint.PersistedCheckpoint,
+  wire_limits : @checkpoint.WireLimits,
+  effect_limits : @host.ClientEffectComputationLimits,
+  publication_present : Bool,
+) -> Result[NativeLocalSavedEffectApprovalOriginal, NativeLocalAdoptionIssue] {
   if epoch_text(fields, "run_definition_wire") !=
     Some(@publication.publication_contract_json(materials.run_definition)) {
     return Err(Journal(CustodyLost))
@@ -470,7 +566,7 @@ pub fn NativeLocalSavedEffectReview::restore_approval_in_original_read(
     Ok(value) => value
     Err(_) => return Err(Journal(CustodyLost))
   }
-  self.approval_original = Some({
+  Ok({
     materials,
     invocation,
     definitions,
@@ -494,77 +590,4 @@ pub fn NativeLocalSavedEffectReview::restore_approval_in_original_read(
     unit_definition_cid: unit,
     authority,
   })
-  if self.saved_approval_current_for(
-      request,
-      metadata.run_definition_cid,
-      metadata.checkpoint_cid,
-      now,
-    )
-    is None {
-    return Err(Journal(CustodyLost))
-  }
-  Ok(())
-}
-
-///|
-// Terminal alias/lifetime check only. No Store read, clock/current callback,
-// parsed body, authority decision, renewed holding or replacement evidence.
-fn NativeLocalSavedEffectReview::saved_approval_original_live(
-  self : NativeLocalSavedEffectReview,
-  original : NativeLocalSavedEffectApprovalOriginal,
-) -> Bool {
-  !self.retired &&
-  !self.capture.closing &&
-  self.capture.read_callback_active &&
-  self.capture.read_facts_valid &&
-  self.capture.read_operation_issue is None &&
-  self.capture.opening is JournalAcquired(host) &&
-  !host.closed &&
-  !host.journal.fenced &&
-  self.capture.original_resources is Some(resources) &&
-  !resources.interrupted &&
-  resources.active_phase is Some(@arena.HostRead) &&
-  self.approval_original is Some(actual) &&
-  physical_equal(actual, original) &&
-  self.retained_persisted == Some(original.checkpoint) &&
-  self.store.retained_data_current() is Ok(_)
-}
-
-///|
-fn NativeLocalSavedEffectReview::saved_approval_current_for(
-  self : NativeLocalSavedEffectReview,
-  request : @host.ClientRequestIdentity,
-  run_definition_cid : String,
-  checkpoint_cid : String,
-  now : Double,
-) -> String? {
-  guard request == self.selected.request &&
-    self.approval_original is Some(original) &&
-    self._retained_original is Some(metadata) &&
-    self.capture.opening is JournalAcquired(host) &&
-    original.checkpoint.artifact.checkpoint_cid == checkpoint_cid &&
-    @publication.publication_contract_identity(
-      original.materials.run_definition,
-    ) ==
-    run_definition_cid &&
-    self.saved_approval_original_live(original) else {
-    return None
-  }
-  let current = host.lookup_submitted_checkpoint_metadata(
-    self.capture.crypto,
-    self.principal,
-    self.connection,
-    self.selected.reference,
-    request,
-    now,
-  )
-  guard current is Ok(Some(actual)) &&
-    actual.checkpoint_cid == checkpoint_cid &&
-    actual.run_definition_cid == run_definition_cid &&
-    actual.revision == metadata.revision &&
-    !actual.cancellation_requested &&
-    self.saved_approval_original_live(original) else {
-    return None
-  }
-  Some(original.authority)
 }
