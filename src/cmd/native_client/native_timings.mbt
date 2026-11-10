@@ -89,3 +89,26 @@ fn LocalCommandPreparationOriginal::record_domain_inventory(
     }
   }
 }
+
+///|
+extern "C" fn native_acceptance_enabled() -> Bool = "actql_native_acceptance_enabled"
+
+///|
+#borrow(identity)
+extern "C" fn native_acceptance_identity_raw(
+  tag : Int,
+  ordinal : Int,
+  identity : String,
+  length : Int,
+) -> Unit = "actql_native_acceptance_identity"
+
+///|
+// Borrow original CID DATA; the fixed C recorder validates and copies <=71
+// UTF16 units. No payload allocation, authority or cleanup ACK is introduced.
+fn native_acceptance_identity(
+  tag : Int,
+  ordinal : Int,
+  identity : String,
+) -> Unit {
+  native_acceptance_identity_raw(tag, ordinal, identity, identity.length())
+}

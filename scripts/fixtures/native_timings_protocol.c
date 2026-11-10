@@ -41,7 +41,24 @@ int main(int argc, char **argv) {
   /* Registered before the timing report: verify after its actual emission. */
   assert(atexit(verify_original_signal_state) == 0);
   errno = EDOM; actql_native_timing_begin(ACTQL_NATIVE_PHASE_STARTUP); assert(errno == EDOM);
-  if (strcmp(argv[1], "sql") == 0) {
+  if (strncmp(argv[1], "acceptance", 10) == 0) {
+    uint16_t identity[71];
+    const char *text = "sha256:1111111111111111111111111111111111111111111111111111111111111111";
+    for (int index = 0; index < 71; index++) identity[index] = text[index];
+    errno = EDOM;
+    for (int tag = 0; tag < 3; tag++) actql_native_acceptance_identity(tag, 0, identity, 71);
+    actql_native_acceptance_identity(5, 0, identity, 71);
+    actql_native_acceptance_mutation(6); actql_native_acceptance_mutation(7);
+    actql_native_acceptance_identity(8, 0, identity, 71);
+    assert(errno == EDOM);
+    if (strcmp(argv[1], "acceptance-invalid") == 0) {
+      identity[0] = 'P'; actql_native_acceptance_identity(1, 0, identity, 71);
+    }
+    if (strcmp(argv[1], "acceptance-overflow") == 0)
+      for (int index = 0; index < 40; index++) actql_native_acceptance_mutation(6);
+    /* The recorder owns its fixed copy and never retains a managed pointer. */
+    for (int index = 0; index < 71; index++) identity[index] = 'X';
+  } else if (strcmp(argv[1], "sql") == 0) {
     struct timespec pause = {0, 2000000};
     nanosleep(&pause, NULL);
     actql_native_timing_begin(ACTQL_NATIVE_PHASE_EXECUTION);

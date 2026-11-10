@@ -2112,12 +2112,14 @@ int32_t actql_native_filesystem_replace_observed_file(
     free(text);
     return 2;
   }
+  actql_native_acceptance_mutation(6); /* actual syscall attempt, not an ACK */
   if (renameat(root->fd, writer->staging_name, root->fd, text) != 0) {
     actql_replace_bounded_errno_error(&writer->error, root->diagnostic_ceiling,
       "replace observed file", errno);
     free(text);
     return -1;
   }
+  actql_native_acceptance_mutation(7); /* rename succeeded; fsync can still fail */
   /* The public target is now business state, not removable staging custody.
    * Even a failed directory sync must leave these facts recorded first. */
   writer->staging_present = false;

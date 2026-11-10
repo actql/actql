@@ -450,3 +450,44 @@ test('installed init silences only private query timings and preserves adoption 
   assert.doesNotMatch(result.stderr, /query timing diagnostics/u);
   assert.deepEqual(await readdir(join(f.cwd, 'project')), ['actql.config.json', 'connectors.json', 'model-tasks.json']);
 });
+
+function observation(pid, events = []) {
+  return 'ACTQL_NATIVE_TIMINGS ' + JSON.stringify({pid, origin:'first_hook',elapsed_ns:1,clock_current:true,nested_inclusive:true,
+    child_process_counters:false,phase_slots:32,counter_slots:64,initializing_drops:0,invalid_tags:0,invalid_amounts:0,clock_failures:0,overflow:false,stack_overflows:0,parallel_observed:false}) + '\n' +
+    Array.from({length:32},(_,tag)=>'ACTQL_NATIVE_PHASE '+JSON.stringify({tag,name:['startup','config_auth','preparation','execution','save','close','saved_result','journal'][tag] ?? 'private_phase',begins:0,ends:0,inclusive_ns:0,exclusive_ns:0,active:0,overlap:0,unmatched_end:0})+'\n').join('') +
+    Array.from({length:64},(_,tag)=>'ACTQL_NATIVE_COUNTER '+JSON.stringify({tag,name:({0:'sqlite_open_calls',1:'sqlite_prepare_calls',2:'sqlite_step_calls',3:'sqlite_exec_calls',16:'member_hash_calls',17:'parse_check_calls',18:'current_calls',19:'account_auth_calls',20:'run_record_save_calls',22:'host_authorize_calls',23:'captured_read_authorize_calls',24:'publisher_authorize_calls',25:'run_record_read_calls',26:'adoption_digest_calls',46:'backing_allocated_bytes',47:'backing_explicit_zeroed_bytes'})[tag] ?? 'private_counter',count:0})+'\n').join('') +
+    'ACTQL_NATIVE_ACCEPTANCE_BEGIN ' + JSON.stringify({pid, count: events.length, limit: 32, complete: true}) + '\n' +
+    events.map((event, seq) => 'ACTQL_NATIVE_ACCEPTANCE_EVENT ' + JSON.stringify({pid, seq, ...event}) + '\n').join('') +
+    'ACTQL_NATIVE_ACCEPTANCE_END ' + JSON.stringify({pid, count: events.length}) + '\n';
+}
+
+test('opt-in init observations forward only complete original child metadata with unchanged support contract', () => {
+  const diagnostics = observation(123);
+  const module = new URL('../packages/native-cli/lib/project-scaffold.mjs', import.meta.url).href;
+  const program = `import assert from 'node:assert/strict';
+    import {requireProjectInitSupport} from ${JSON.stringify(module)};
+    const env = Object.freeze({ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS:'1',ACTQL_NATIVE_TIMINGS:'original'});
+    requireProjectInitSupport('/original/native',env,undefined,(executable,args,options)=>{
+      assert.equal(executable,'/original/native');assert.deepEqual(args,['project-init-support']);
+      assert.equal(options.timeout,5000);assert.equal(options.maxBuffer,32768);
+      assert.equal(options.env.ACTQL_NATIVE_TIMINGS,'1');assert.equal(env.ACTQL_NATIVE_TIMINGS,'original');
+      return {status:0,signal:null,stdout:JSON.stringify({version:'actql-project-init-support/0.1',sourceFree:true,mock:false}),stderr:process.argv[1]};
+    }); console.log('supported');`;
+  const result = spawnSync(process.execPath,['--input-type=module','-e',program,diagnostics],{encoding:'utf8',timeout:5000,maxBuffer:65536});
+  assert.ifError(result.error);assert.equal(result.signal,null);assert.equal(result.status,0,result.stderr);
+  assert.equal(result.stdout,'supported\n');assert.equal(result.stderr,diagnostics);
+});
+
+test('opt-in init keeps unknown error malformed and partial diagnostics as refusal', () => {
+  const good = observation(123);
+  for (const stderr of [
+    '', 'ACTQL_NATIVE_ERROR {"code":"PRIVATE"}\n', good+'plain error\n',
+    good.replace(/ACTQL_NATIVE_ACCEPTANCE_END[^\n]*\n/u,''),
+    good.replace('"complete":true','"complete":"true"'),
+    good.replace('"tag":0,','"tag":0,"payload":"PRIVATE",'),
+    good.replace('"count":0','"count":0,"count":0'),
+  ]) {
+    assert.throws(()=>requireProjectInitSupport('/original/native',{ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS:'1'},undefined,
+      ()=>({...supportReply(),stderr})),{exitCode:69});
+  }
+});

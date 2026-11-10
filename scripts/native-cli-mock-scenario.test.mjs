@@ -23,6 +23,27 @@ test('installed Mock acceptance requires both complete same-cohort public templa
   assert.equal(installed.indexOf('await registry.close()') < installed.indexOf('await writeFile(receiptFile'), true);
 });
 
+function observation(pid, events = []) {
+  return 'ACTQL_NATIVE_TIMINGS ' + JSON.stringify({pid, origin:'first_hook',elapsed_ns:1,clock_current:true,nested_inclusive:true,
+    child_process_counters:false,phase_slots:32,counter_slots:64,initializing_drops:0,invalid_tags:0,invalid_amounts:0,clock_failures:0,overflow:false,stack_overflows:0,parallel_observed:false}) + '\n' +
+    Array.from({length:32},(_,tag)=>'ACTQL_NATIVE_PHASE '+JSON.stringify({tag,name:['startup','config_auth','preparation','execution','save','close','saved_result','journal'][tag] ?? 'private_phase',begins:0,ends:0,inclusive_ns:0,exclusive_ns:0,active:0,overlap:0,unmatched_end:0})+'\n').join('') +
+    Array.from({length:64},(_,tag)=>'ACTQL_NATIVE_COUNTER '+JSON.stringify({tag,name:({0:'sqlite_open_calls',1:'sqlite_prepare_calls',2:'sqlite_step_calls',3:'sqlite_exec_calls',16:'member_hash_calls',17:'parse_check_calls',18:'current_calls',19:'account_auth_calls',20:'run_record_save_calls',22:'host_authorize_calls',23:'captured_read_authorize_calls',24:'publisher_authorize_calls',25:'run_record_read_calls',26:'adoption_digest_calls',46:'backing_allocated_bytes',47:'backing_explicit_zeroed_bytes'})[tag] ?? 'private_counter',count:0})+'\n').join('') +
+    'ACTQL_NATIVE_ACCEPTANCE_BEGIN ' + JSON.stringify({pid, count: events.length, limit: 32, complete: true}) + '\n' +
+    events.map((event, seq) => 'ACTQL_NATIVE_ACCEPTANCE_EVENT ' + JSON.stringify({pid, seq, ...event}) + '\n').join('') +
+    'ACTQL_NATIVE_ACCEPTANCE_END ' + JSON.stringify({pid, count: events.length}) + '\n';
+}
+const observedCid = digit => 'sha256:' + digit.repeat(64);
+function commandObservations(command, pid) {
+  const events = [];
+  for (let ordinal = 0; ordinal < 2; ordinal++) {
+    if (command === 'run') for (const tag of [0, 1, 2]) events.push({tag, ordinal, identity: observedCid(String(ordinal + 1))});
+    if (command === 'approve') for (const tag of [5, 6, 7, 8, 9, 10, 11]) events.push({tag,
+      ordinal: tag === 6 || tag === 7 ? -1 : ordinal,
+      identity: tag === 6 || tag === 7 ? '' : observedCid(String(ordinal + (tag === 9 ? 5 : tag === 10 ? 7 : tag === 11 ? 9 : 3)).replace('10', 'a'))});
+  }
+  return observation(pid, events) + (command === 'init' ? observation(pid + 1) : '');
+}
+
 async function fixture(t, template, mutate = () => {}) {
   const root = await mkdtemp(join(tmpdir(), 'actql-mock-scenario-unit-'));
   t.after(() => rm(root, {recursive: true, force: true}));
@@ -62,7 +83,7 @@ async function fixture(t, template, mutate = () => {}) {
       await writeFile(file, JSON.stringify(data));
       value = {resolved: true};
     }
-    const record = {code: 0, signal: null, stderr: '', stdout: value ? JSON.stringify(value) : ''};
+    const record = {code: 0, signal: null, stderr: commandObservations(args[0], 100 + calls.length * 2), stdout: value ? JSON.stringify(value) : ''};
     if (args[0] === 'status' && !args.includes('--json')) {
       assert.equal(approved, false);
       const resource = template === 'deal-review-mock' ? 'Opportunity' : 'Account';
@@ -227,4 +248,56 @@ test('harness rejects restricted Preview contents added to canonical JSON state'
       effect_preview: {before: 'restricted original'}});
   });
   await assert.rejects(runNativeCliMockScenario(options), /JSON Run state must not embed restricted Preview/u);
+});
+
+for (const [name, mutate, pattern] of [
+  ['missing diagnostics', record => { record.stderr = ''; }, /Missing complete Native observations/u],
+  ['truncated diagnostics', record => { record.stderr = record.stderr.replace(/ACTQL_NATIVE_ACCEPTANCE_END[^\n]*\n/gu, ''); }, /Missing complete Native observations/u],
+  ['overflow or failed recording', record => { record.stderr = record.stderr.replace('"complete":true', '"complete":false'); }, /Incomplete Native observations/u],
+  ['foreign process', record => { record.stderr = record.stderr.replace('"pid":104,"seq":0', '"pid":999,"seq":0'); }, /Foreign or extra Native event/u],
+  ['wrong attempt identity', record => { record.stderr = record.stderr.replace('"tag":1,"ordinal":0,"identity":"sha256:' + '1'.repeat(64), '"tag":1,"ordinal":0,"identity":"sha256:' + '2'.repeat(64)); }, /Changed original Model attempt/u],
+  ['same-byte Effect replay', record => { record.stderr = commandObservations('approve', 900); }, /replayed Model or Effect work/u],
+]) test(`Native acceptance refuses ${name} instead of claiming zero replay`, async t => {
+  const options = await fixture(t, 'deal-review-mock', ({args, record}) => {
+    if (args[0] === (name === 'same-byte Effect replay' ? 'status' : 'run')) mutate(record);
+  });
+  await assert.rejects(runNativeCliMockScenario(options), pattern);
+});
+
+for (const [name, edit, pattern] of [
+  ['foreign dispatch ACK', text => text.replace('"tag":8,"ordinal":0,"identity":"sha256:'+'3'.repeat(64), '"tag":8,"ordinal":0,"identity":"sha256:'+'4'.repeat(64)), /Changed original Effect dispatch key/u],
+  ['rename attempt confused with success', text => text.replace('"seq":2,"tag":7', '"seq":2,"tag":6'), /retain attempt, rename, final ACK/u],
+  ['repeated original operation', text => text.replaceAll('sha256:'+'4'.repeat(64), 'sha256:'+'3'.repeat(64)), /Repeated Effect operation/u],
+  ['repeated file receipt', text => text.replaceAll('sha256:'+'8'.repeat(64), 'sha256:'+'7'.repeat(64)), /Repeated Effect operation/u],
+]) test(`Native acceptance refuses ${name}`, async t => {
+  const options = await fixture(t, 'deal-review-mock', ({args, record}) => {
+    if (args[0] === 'approve') record.stderr = edit(record.stderr);
+  });
+  await assert.rejects(runNativeCliMockScenario(options), pattern);
+});
+
+test('fresh command observation groups do not treat an OS PID as an operation identity', async t => {
+  const options = await fixture(t, 'deal-review-mock', ({args, record}) => {
+    if (args[0] !== 'init') record.stderr = record.stderr.replace(/"pid":\d+/gu,'"pid":999');
+  });
+  const receipt = await runNativeCliMockScenario(options);
+  assert.equal(receipt.resultRows,2);
+});
+
+test('unrelated timing precision does not replace acceptance event completeness', async t => {
+  const options = await fixture(t, 'deal-review-mock', ({record}) => {
+    record.stderr = record.stderr.replaceAll('"clock_current":true','"clock_current":false')
+      .replaceAll('"clock_failures":0','"clock_failures":1')
+      .replaceAll('"overflow":false','"overflow":true')
+      .replaceAll('"stack_overflows":0','"stack_overflows":1')
+      .replaceAll('"parallel_observed":false','"parallel_observed":true');
+  });
+  assert.equal((await runNativeCliMockScenario(options)).resultRows,2);
+});
+
+test('different attempts cannot replace the original two Model slots', async t => {
+  const options = await fixture(t, 'deal-review-mock', ({args,record}) => {
+    if (args[0] === 'run') record.stderr = record.stderr.replaceAll('"ordinal":1','"ordinal":0');
+  });
+  await assert.rejects(runNativeCliMockScenario(options),/Changed original Model slots/u);
 });

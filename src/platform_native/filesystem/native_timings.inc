@@ -38,6 +38,13 @@ static _Atomic uint64_t actql_timing_active[ACTQL_TIMING_PHASES];
 static _Atomic uint64_t actql_timing_overlap[ACTQL_TIMING_PHASES];
 static _Atomic uint64_t actql_timing_unmatched[ACTQL_TIMING_PHASES];
 static _Atomic uint64_t actql_timing_exclusive[ACTQL_TIMING_PHASES];
+/* Fixed metadata only: no paths, payloads, borrowed pointers or heap storage. */
+#define ACTQL_ACCEPTANCE_EVENTS 32
+typedef struct { int32_t tag, ordinal; char identity[72]; _Atomic bool ready; } actql_acceptance_event;
+static actql_acceptance_event actql_acceptance_events[ACTQL_ACCEPTANCE_EVENTS];
+static _Atomic unsigned actql_acceptance_count;
+static _Atomic bool actql_acceptance_invalid;
+static bool actql_acceptance_selected;
 typedef struct { int32_t tag; uint64_t start, child_ns; } actql_timing_frame;
 static _Thread_local actql_timing_frame actql_timing_stack[ACTQL_TIMING_PHASES];
 static _Thread_local uint32_t actql_timing_depth;
@@ -161,6 +168,22 @@ static void actql_timing_report(void) {
     ACTQL_TIMING_APPEND("ACTQL_NATIVE_COUNTER {\"tag\":%d,\"name\":\"%s\","
       "\"count\":%" PRIu64 "}\n", tag, actql_timing_counter_name(tag), count);
   }
+  if (actql_acceptance_selected) {
+    unsigned total = atomic_load_explicit(&actql_acceptance_count, memory_order_acquire);
+    bool complete = total <= ACTQL_ACCEPTANCE_EVENTS && !ACTQL_TIMING_LOAD(actql_acceptance_invalid);
+    unsigned count = total > ACTQL_ACCEPTANCE_EVENTS ? ACTQL_ACCEPTANCE_EVENTS : total;
+    for (unsigned index = 0; index < count; index++)
+      if (!atomic_load_explicit(&actql_acceptance_events[index].ready, memory_order_acquire)) complete = false;
+    ACTQL_TIMING_APPEND("ACTQL_NATIVE_ACCEPTANCE_BEGIN {\"pid\":%ld,\"count\":%u,\"limit\":32,\"complete\":%s}\n",
+      (long)actql_timing_process, count, complete ? "true" : "false");
+    for (unsigned index = 0; index < count; index++) {
+      actql_acceptance_event *event = &actql_acceptance_events[index];
+      if (!atomic_load_explicit(&event->ready, memory_order_acquire)) continue;
+      ACTQL_TIMING_APPEND("ACTQL_NATIVE_ACCEPTANCE_EVENT {\"pid\":%ld,\"seq\":%u,\"tag\":%d,\"ordinal\":%d,\"identity\":\"%s\"}\n",
+        (long)actql_timing_process, index, event->tag, event->ordinal, event->identity);
+    }
+    ACTQL_TIMING_APPEND("ACTQL_NATIVE_ACCEPTANCE_END {\"pid\":%ld,\"count\":%u}\n", (long)actql_timing_process, count);
+  }
   actql_timing_emit(body, used);
 #undef ACTQL_TIMING_APPEND
   errno = saved_errno;
@@ -173,6 +196,8 @@ static bool actql_timing_enabled(void) {
         memory_order_acq_rel, memory_order_acquire)) {
       const char *value = getenv("ACTQL_NATIVE_TIMINGS");
       bool enabled = value && strcmp(value, "1") == 0;
+      const char *acceptance = getenv("ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS");
+      actql_acceptance_selected = enabled && acceptance && strcmp(acceptance, "1") == 0;
       actql_timing_process = getpid();
       if (enabled && (!actql_timing_now(&actql_timing_origin) || atexit(actql_timing_report) != 0))
         enabled = false;
@@ -182,6 +207,62 @@ static bool actql_timing_enabled(void) {
   }
   if (selected == 1) actql_timing_add(&actql_timing_initializing_drops, 1);
   return selected == 3;
+}
+int32_t actql_native_acceptance_enabled(void) {
+  int saved_errno = errno;
+  bool enabled = actql_timing_enabled() && actql_acceptance_selected && getpid() == actql_timing_process;
+  errno = saved_errno;
+  return enabled;
+}
+void actql_native_acceptance_incomplete(void) {
+  int saved_errno = errno;
+  if (actql_native_acceptance_enabled()) atomic_store_explicit(&actql_acceptance_invalid, true, memory_order_relaxed);
+  errno = saved_errno;
+}
+static actql_acceptance_event *actql_acceptance_next(void) {
+  unsigned index = atomic_load_explicit(&actql_acceptance_count, memory_order_relaxed);
+  while (index < ACTQL_ACCEPTANCE_EVENTS &&
+      !atomic_compare_exchange_weak_explicit(&actql_acceptance_count, &index, index + 1,
+        memory_order_relaxed, memory_order_relaxed)) {}
+  if (index >= ACTQL_ACCEPTANCE_EVENTS) {
+    atomic_store_explicit(&actql_acceptance_invalid, true, memory_order_relaxed);
+    return NULL;
+  }
+  return &actql_acceptance_events[index];
+}
+void actql_native_acceptance_identity(int32_t tag, int32_t ordinal,
+    const uint16_t *identity, int32_t length) {
+  int saved_errno = errno;
+  if (actql_native_acceptance_enabled()) {
+    bool valid = tag >= 0 && tag <= 11 && tag != 6 && tag != 7 && ordinal >= 0 && identity && length == 71;
+    const char *prefix = "sha256:";
+    for (int index = 0; valid && index < 71; index++)
+      valid = index < 7 ? identity[index] == (uint16_t)prefix[index]
+        : ((identity[index] >= '0' && identity[index] <= '9') || (identity[index] >= 'a' && identity[index] <= 'f'));
+    if (!valid) atomic_store_explicit(&actql_acceptance_invalid, true, memory_order_relaxed);
+    else {
+      actql_acceptance_event *event = actql_acceptance_next();
+      if (event) {
+        event->tag = tag; event->ordinal = ordinal;
+        for (int index = 0; index < 71; index++) event->identity[index] = (char)identity[index];
+        event->identity[71] = 0;
+        atomic_store_explicit(&event->ready, true, memory_order_release);
+      }
+    }
+  }
+  errno = saved_errno;
+}
+void actql_native_acceptance_mutation(int32_t tag) {
+  int saved_errno = errno;
+  if (actql_native_acceptance_enabled()) {
+    if (tag != 6 && tag != 7) atomic_store_explicit(&actql_acceptance_invalid, true, memory_order_relaxed);
+    else {
+      actql_acceptance_event *event = actql_acceptance_next();
+      if (event) { event->tag = tag; event->ordinal = -1; event->identity[0] = 0;
+        atomic_store_explicit(&event->ready, true, memory_order_release); }
+    }
+  }
+  errno = saved_errno;
 }
 void actql_native_timing_amount(int32_t tag, int64_t amount) {
   int saved_errno = errno;

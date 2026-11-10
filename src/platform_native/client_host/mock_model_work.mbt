@@ -636,6 +636,23 @@ fn NativeClientMockModelWork::bind_prepared(
         })
       }).map_err(issue => NativeClientMockModelIssue::Binding(issue)),
     )
+    if native_acceptance_enabled() &&
+      !@infer.bind_model_observation(active, prepared, observed => {
+        let (slot, attempt, event, _) = @model.model_physical_observation_facts(
+          observed,
+        )
+        let tag = match event {
+          "before_invoke" => 0
+          "started" => 1
+          "returned" => 2
+          "failed" => 3
+          "cancelled" => 4
+          _ => -1
+        }
+        native_acceptance_identity(tag, slot, attempt)
+      }) {
+      native_acceptance_incomplete()
+    }
     Ok(())
   } catch {
     NativeMockModelStop(issue) => Err(issue)

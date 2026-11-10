@@ -657,6 +657,9 @@ pub fn NativeLocalEffectResumeOriginal::record_file_row_receipt_in_original_read
     Ok(value) => value
     Err(_) => return Err(HostAttestationUnavailable)
   }
+  if native_acceptance_enabled() {
+    native_acceptance_identity(9, row_ordinal, operation.dispatch_entry_cid)
+  }
   match
     self.host.journal.record_effect_file_response(
       dispatch,
