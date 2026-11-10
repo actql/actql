@@ -167,6 +167,10 @@ fn normalization_source_fixture(
   match prepared {
     Err(Syntax(_)) => println("normalization Source fixture: Syntax")
     Err(Candidate(_)) => println("normalization Source fixture: Candidate")
+    Err(RequestValuePolicies(_)) =>
+      println("normalization Source fixture: RequestValuePolicies")
+    Err(RequestValuePolicyConstruction) =>
+      println("normalization Source fixture: RequestValuePolicyConstruction")
     Err(Mapping(_)) => println("normalization Source fixture: Mapping")
     Err(Static(_)) => println("normalization Source fixture: Static")
     Err(Stage(_)) => println("normalization Source fixture: Stage")

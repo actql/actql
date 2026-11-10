@@ -113,6 +113,26 @@ saved Template, compiled Plan, Request, Run and canonical material checks
 remain mandatory; missing, malformed or foreign profile input cannot become
 read or execution authority. Non-keyed material bytes remain unchanged.
 
+When restoring pending Native approval, static Source Request values must keep
+their original policy meaning in the rebuilt Plan. The trusted installed Host
+verifies Core's exact reconstructed subjects before Graph/compiler construction,
+using the same Source/view and literal/parameter-origin verifier as first use.
+Saved policy CIDs do not supply this verification. The existing nominal binder
+and policy-only continuation retain the checked Program and Parameters; neither
+parsing/checking the Program again nor selecting a different Model is required.
+An absent or declined proof stays Unknown and cannot bypass the original Plan,
+Request or Run checks. This preparation grants no Source read or Effect apply.
+
+Subject hashing/origins and measured descriptor/verifier output use the same
+constructor inventory as ordinary Request preparation, backed before allocation
+by the original restoration business entry. The complete existing subject work
+phase covers inspection, measurement/rendering and each binder's logical bound;
+restoration enforces it cumulatively without refilling per subject. Ordinary
+Request callers retain their existing cumulative Resource receipt and the
+policy-only continuation retains its distinct selected work bound. Partial
+subjects retire on failure, while the original review owns outstanding physical
+cleanup and its independent current/custody recheck.
+
 The reconstructed preparation and graph are a new in-process nominal pair
 which must be used together. A caller cannot graft the old graph onto the new
 preparation, use an equal CID as physical custody, or adopt these materials as

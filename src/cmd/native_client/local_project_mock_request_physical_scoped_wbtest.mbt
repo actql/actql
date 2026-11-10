@@ -216,6 +216,8 @@ fn native_mock_readme_phase_issue(
       let label = match cause {
         Syntax(_) => "Syntax"
         Candidate(_) => "Candidate"
+        RequestValuePolicies(_) => "RequestValuePolicies"
+        RequestValuePolicyConstruction => "RequestValuePolicyConstruction"
         Mapping(_) => "Mapping"
         Static(_) => "Static"
         Stage(_) => "Stage"
@@ -549,11 +551,34 @@ fn native_mock_readme_request_payload(
                 )
                 is Ok(_),
               )
+              let saved_policies = if check_policy {
+                Some(computation => {
+                  local_saved_effect_request_value_policies(
+                    computation,
+                    @run_host.client_standard_program_preparation_limits().checking.compilation,
+                    inventory => {
+                      guard @execution.preparation_representation_cost(
+                          inventory,
+                        )
+                        is Some(bytes) &&
+                        bytes >= 0L else {
+                        return Err(@run_host.RequestValuePolicyConstruction)
+                      }
+                      Ok(())
+                    },
+                    subject => {
+                      original.verify_restored_static_request_policy(subject)
+                    },
+                  )
+                })
+              } else {
+                None
+              }
               if effect_material_restore {
                 let wire = @run_host.client_effect_issued_normalization_materials_wire(
                   compiled.issued,
                 )
-                let read = (candidate : String) => {
+                let read_with_policies = (candidate : String, reverify : Bool) => {
                   @run_host.admit_client_effect_run_materials(
                     candidate,
                     @publication.publication_contract_identity(
@@ -579,7 +604,21 @@ fn native_mock_readme_request_payload(
                     },
                     @run_host.client_standard_effect_computation_limits(),
                     expected_request=Some(compiled.request),
+                    request_value_policies=if reverify {
+                      saved_policies
+                    } else {
+                      None
+                    },
                   )
+                }
+                if check_policy {
+                  assert_true(
+                    read_with_policies(wire, false)
+                    is Err(Normalization(UnverifiedOriginalMaterials)),
+                  )
+                }
+                let read = (candidate : String) => {
+                  read_with_policies(candidate, true)
                 }
                 let restored = match read(wire) {
                   Ok(value) => value
@@ -684,6 +723,7 @@ fn native_mock_readme_request_payload(
                     max_evidence_depth: 64,
                   },
                   @run_host.client_standard_effect_computation_limits(),
+                  request_value_policies=saved_policies,
                 ).unwrap()
                 let compilation = @run_host.client_effect_prepared_original_compilation(
                   restored,
@@ -1327,6 +1367,7 @@ test "Native README saved keyed Model Effect restores the exact original first T
     readme_request=true,
     effect_compilation=true,
     effect_source_inputs=true,
+    static_policy=true,
     effect_material_restore=true,
   )
 }
@@ -1338,6 +1379,7 @@ test "Native README held keyed Model Effect restores its exact prepared-original
     readme_request=true,
     effect_compilation=true,
     effect_source_inputs=true,
+    static_policy=true,
     effect_prepared_restore=true,
   )
 }

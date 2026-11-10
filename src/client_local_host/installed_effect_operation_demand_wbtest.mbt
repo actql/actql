@@ -462,6 +462,10 @@ fn effect_operation_source_plan_fixture(
     Err(Stage(_)) => fail("fixture Source Effect Stage")
     Err(Graph(_)) => fail("fixture Source Effect Graph")
     Err(TargetSelection(_)) => fail("fixture Source Effect TargetSelection")
+    Err(RequestValuePolicies(_)) =>
+      fail("fixture Source Effect RequestValuePolicies")
+    Err(RequestValuePolicyConstruction) =>
+      fail("fixture Source Effect RequestValuePolicyConstruction")
   }
   let request = @publication_host.prepare_client_effect_request_identity(
     prepared,

@@ -62,6 +62,10 @@ fn restore_original_effect_material_packet(
   manifests : @host.ClientCompilationManifests,
   limits : @host.ClientValuesRunMaterialsLimits,
   effect_limits : @host.ClientEffectComputationLimits,
+  request_value_policies? : ((@checked.EffectComputationCandidate) -> Result[
+    Array[@checked.HostRequestValuePolicyEvidence],
+    @host.ClientEffectComputationIssue,
+  ])? = None,
   before_compilation? : ((@host.ClientEffectCompilationConstructionInput) -> Result[
     Unit,
     @host.ClientEffectRunMaterialsIssue,
@@ -78,6 +82,7 @@ fn restore_original_effect_material_packet(
       effect_limits,
       expected_request=Some(original.request),
       before_compilation~,
+      request_value_policies~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)

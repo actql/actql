@@ -243,6 +243,24 @@ fn LocalCommandPreparationOriginal::resolve_checkpoint_review(
           work, input, material_limits,
         )
       },
+      request_value_policies=match self.project {
+        Some(project) =>
+          project.mock_declarations.map(original => {
+            computation => {
+              local_saved_effect_request_value_policies(
+                computation,
+                compilation,
+                inventory => {
+                  self.reserve_saved_effect_policy_inventory(work, inventory)
+                },
+                subject => {
+                  original.verify_restored_static_request_policy(subject)
+                },
+              )
+            }
+          })
+        None => None
+      },
       publication_required=operation == "approve",
     )
     if review.restored_material_issue() is Some(issue) {

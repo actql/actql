@@ -233,6 +233,8 @@ test "valid mixed UPDATE and published STORE keep ordered separate original occu
       match issue {
         Syntax(_) => "syntax"
         Candidate(_) => "candidate"
+        RequestValuePolicies(_) => "request_value_policies"
+        RequestValuePolicyConstruction => "request_value_policy_construction"
         Mapping(_) => "mapping"
         Static(_) => "static"
         Stage(_) => "stage"

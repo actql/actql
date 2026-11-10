@@ -3323,6 +3323,8 @@ pub fn client_program_effect_preparation_issue_code(
           Input(SourcePreparation(_)) => "invalid_input_owner"
           Preparation(Syntax(_)) => "program_syntax"
           Preparation(Candidate(_)) => "effect_candidate_rejected"
+          Preparation(RequestValuePolicies(_) | RequestValuePolicyConstruction) =>
+            "effect_request_policy_rejected"
           Preparation(Mapping(_)) => "effect_mapping_rejected"
           Preparation(Static(_)) => "effect_static_rejected"
           Preparation(Stage(_)) => "stage_rejected"

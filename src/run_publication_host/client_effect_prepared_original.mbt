@@ -123,6 +123,10 @@ pub fn admit_client_effect_prepared_original(
   manifests : ClientCompilationManifests,
   limits : ClientValuesRunMaterialsLimits,
   effect_limits : ClientEffectComputationLimits,
+  request_value_policies? : ((@checked.EffectComputationCandidate) -> Result[
+    Array[@checked.HostRequestValuePolicyEvidence],
+    ClientEffectComputationIssue,
+  ])? = None,
 ) -> Result[ClientEffectPreparedOriginal, ClientEffectRunMaterialsIssue] {
   if !valid_client_request_cid(expected_compiled_plan_cid) {
     return Err(TargetSelection(InvalidMaterials))
@@ -199,6 +203,7 @@ pub fn admit_client_effect_prepared_original(
       supplied,
       [],
       effect_limits,
+      request_value_policies~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Program(issue))
