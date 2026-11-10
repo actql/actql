@@ -1611,3 +1611,51 @@ test('canonical query launcher forwards one selected envelope to deadline and co
     finally { owner.close(); }
   }
 });
+
+async function nativeGraphLauncherControl(capture) {
+  const {source, nodes} = await fixtureSyntax('./test-packed-public-query.mjs');
+  const functions = ['run', 'exerciseNativeGraphSource'].map(name => {
+    const selected = nodes.filter(node => node.type === 'FunctionDeclaration' && node.id?.name === name);
+    assert.equal(selected.length, 1);
+    return source.slice(selected[0].start, selected[0].end);
+  });
+  const context = {root: 'owned-consumer', repository: 'original-repository', directory: 'owned-evidence',
+    environment: Object.freeze({compiler: 'original'}), runtimeEnvironment: Object.freeze({runtime: 'original'})};
+  const launch = Function('capture', 'root', 'environment', 'repository', 'runtimeEnvironment',
+    'directory', 'join', 'process', 'console', functions.join('\n') + '\nreturn exerciseNativeGraphSource;')(
+    capture, context.root, context.environment, context.repository, context.runtimeEnvironment,
+    context.directory, join, {execPath: process.execPath}, {log() {}});
+  return {...context, launch};
+}
+
+test('canonical Native Graph launcher selects the existing compile budget without changing runtime scope', async () => {
+  for (const sourceOnly of [false, true]) {
+    const calls = [];
+    const original = await nativeGraphLauncherControl((...args) => { calls.push(args); return ''; });
+    await original.launch(sourceOnly);
+    assert.equal(calls.length, 2);
+    assert.equal(calls[0][0], 'moon');
+    assert.deepEqual(calls[0][1], ['build', '--target', 'native', '--release', 'src/cmd/native_client']);
+    assert.deepEqual(calls[0][2], {cwd: original.repository, env: original.environment, timeout: 900_000});
+    assert.equal(calls[1][0], process.execPath);
+    assert.deepEqual(calls[1][1], [join(original.repository, 'scripts/test-native-sga-public-source.mjs'),
+      original.root, join(original.repository, '_build/native/release/build/cmd/native_client/native_client.exe'),
+      original.directory, ...(sourceOnly ? ['--authored-source-only'] : [])]);
+    assert.deepEqual(calls[1][2], {cwd: original.root, env: original.runtimeEnvironment, timeout: 240_000});
+  }
+});
+
+test('canonical Native Graph launcher preserves original build and consumer failures without retry', async () => {
+  for (const phase of ['build', 'consumer']) {
+    const calls = [];
+    const failure = Object.assign(new Error('fixture Native phase failure'),
+      {code: phase === 'build' ? 'ETIMEDOUT' : 'PackedQueryCommandFailed'});
+    const original = await nativeGraphLauncherControl((...args) => {
+      calls.push(args);
+      if (phase === 'build' || calls.length === 2) throw failure;
+      return '';
+    });
+    await assert.rejects(original.launch(), error => error === failure);
+    assert.equal(calls.length, phase === 'build' ? 1 : 2);
+  }
+});
