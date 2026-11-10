@@ -3507,8 +3507,13 @@ resolve, resume, replay Model work or establish physical cleanup.
 Only Effect kind/target/count/strength and original row identity/before/after
 are rendered, with bounded canonical literals that preserve admitted numeric
 values, distinct DATA-key spellings and escaped terminal controls. Unavailable and absent evidence remain explicit.
-The private continuation, guards, permissions and authoring evidence are not
-printed. This Local presentation does not issue the distinct redaction-bound
+The same admitted canonical Preview root reaches the renderer; display does
+not parse or canonicalize that wire again. The funded saved cursor uses the
+same exact-wire, complete shape and nested identity checks as wire admission.
+Construction demand uses original packet/Preview geometry and coheld returned
+DATA; a finished decrypt/parser execution peak is not accumulated as a live
+frame for the next phase. The private continuation, guards, permissions and
+authoring evidence are not printed. This Local presentation does not issue the distinct redaction-bound
 `actql-review-projection/0.1` artifact or become approval evidence. JSON state
 and checkpoint-metadata responses retain their existing private-free shape
 and do not read the Preview for presentation.

@@ -3,6 +3,7 @@ package "actql/actql/run_publication"
 
 import {
   "actql/actql/canonical_json",
+  "actql/actql/decode_core",
   "actql/actql/encode_core",
   "actql/actql/relation_schema",
   "actql/actql/value_admission",
@@ -46,6 +47,8 @@ pub fn admit_effect_file_replacement_evidence(Bytes, String, String, Int64, Int)
 pub fn admit_effect_local_operation_receipt(EffectLocalOperation, String, Int, Int, Int) -> Result[EffectLocalOperationReceipt, EffectRowOutcomeIssue]
 
 pub fn admit_effect_preview_identity(String, String, String, Int, Int, Int) -> Result[EffectPreviewIdentity, EffectPreviewIdentityIssue]
+
+pub fn admit_effect_preview_identity_cursor_with_original(String, @decode_core.Cursor, String, String, Int, Int, Int) -> Result[(EffectPreviewIdentity, @canonical_json.CanonicalValue), EffectPreviewIdentityIssue]
 
 pub fn admit_effect_preview_identity_with_original(String, String, String, Int, Int, Int) -> Result[(EffectPreviewIdentity, @canonical_json.CanonicalValue), EffectPreviewIdentityIssue]
 

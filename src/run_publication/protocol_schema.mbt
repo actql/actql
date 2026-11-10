@@ -396,6 +396,21 @@ pub fn parse_effect_preview_shape(
     Ok(parsed) => parsed
     Err(issue) => return Err(issue)
   }
+  check_effect_preview_shape_original(
+    wire, value, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+// Both the wire parser and a funded original cursor use this SAME complete
+// canonical-wire and generated shape check. Neither path supplies authority.
+fn check_effect_preview_shape_original(
+  wire : String,
+  value : @json.CanonicalValue,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@json.CanonicalValue, PublicationContractIssue] {
   let canonical = @json.stringify_value(
     value, max_wire_bytes, max_nodes, max_depth,
   ) catch {

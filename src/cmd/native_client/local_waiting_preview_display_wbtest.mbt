@@ -1,4 +1,25 @@
 ///|
+fn waiting_preview_fixture_display(
+  state : String,
+  preview : String,
+  maximum? : Int = 65536,
+) -> String? {
+  try {
+    let source = @source.parse_json_bytes_preserving(@utf8.encode(preview), {
+      max_input_bytes: 65536,
+      max_nodes: 8192,
+      max_depth: 64,
+    }).unwrap_or_else(() => stop("LocalEffectReviewDisplayUnavailable"))
+    let root = @canonical.from_source(source, 8192, 64, 65536, data_keys=true) catch {
+      _ => stop("LocalEffectReviewDisplayUnavailable")
+    }
+    local_waiting_preview_display(state, root, maximum~)
+  } catch {
+    ClientStop(_) => None
+  }
+}
+
+///|
 let waiting_preview_state : String =
   #|{"version":"actql-run-state/0.1","run_id":"paused-run","status":"waiting_checkpoint","revision":3,"updated_at":"2026-10-17T00:00:00.000Z","checkpoint":{"checkpoint_id":"original-checkpoint","checkpoint_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","kind":"effect_set"},"next_action":{"kind":"resolve_checkpoint","checkpoint_id":"original-checkpoint"},"result_available":false,"result_availability":{}}
 
@@ -10,7 +31,7 @@ let waiting_preview_data : String =
 
 ///|
 test "waiting human Preview retains exact stored changes and numeric precision" {
-  let human = local_waiting_preview_display(
+  let human = waiting_preview_fixture_display(
     waiting_preview_state, waiting_preview_data,
   ).unwrap()
   assert_true(
@@ -48,7 +69,7 @@ test "waiting human Preview preserves unavailable and absent rather than inventi
       old="{\"state\":\"present\",\"value\":{\"StageName\":\"Negotiation\",\"Precise\":9007199254740994}}",
       new="{\"state\":\"absent\"}",
     )
-  let human = local_waiting_preview_display(waiting_preview_state, targeted).unwrap()
+  let human = waiting_preview_fixture_display(waiting_preview_state, targeted).unwrap()
   assert_true(human.contains("Preview strength: \"targeted\""))
   assert_true(human.contains("Before: {\"state\":\"unavailable\"}"))
   assert_true(human.contains("After: {\"state\":\"absent\"}"))
@@ -57,12 +78,12 @@ test "waiting human Preview preserves unavailable and absent rather than inventi
 
 ///|
 test "waiting human Preview enforces exact text bound and no nonwaiting fallback" {
-  let human = local_waiting_preview_display(
+  let human = waiting_preview_fixture_display(
     waiting_preview_state, waiting_preview_data,
   ).unwrap()
   let bytes = @utf8.encode(human).length()
   assert_eq(
-    local_waiting_preview_display(
+    waiting_preview_fixture_display(
       waiting_preview_state,
       waiting_preview_data,
       maximum=bytes,
@@ -70,7 +91,7 @@ test "waiting human Preview enforces exact text bound and no nonwaiting fallback
     Some(human),
   )
   assert_eq(
-    local_waiting_preview_display(
+    waiting_preview_fixture_display(
       waiting_preview_state,
       waiting_preview_data,
       maximum=bytes - 1,
@@ -85,13 +106,13 @@ test "waiting human Preview enforces exact text bound and no nonwaiting fallback
       waiting_preview_state.replace_all(old="effect_set", new="preparation"),
     ] {
     assert_eq(
-      local_waiting_preview_display(invalid, waiting_preview_data),
+      waiting_preview_fixture_display(invalid, waiting_preview_data),
       None,
     )
   }
   for invalid in ["{", "{}", "{\"effects\":[{}]}"] {
     assert_eq(
-      local_waiting_preview_display(waiting_preview_state, invalid),
+      waiting_preview_fixture_display(waiting_preview_state, invalid),
       None,
     )
   }
@@ -103,7 +124,7 @@ test "waiting human Preview keeps distinct composed and decomposed DATA keys" {
     old="\"StageName\":\"Proposal\"",
     new="\"StageName\":\"Proposal\",\"é\":1,\"é\":2",
   )
-  let human = local_waiting_preview_display(waiting_preview_state, original).unwrap()
+  let human = waiting_preview_fixture_display(waiting_preview_state, original).unwrap()
   assert_true(human.contains("\"é\":1"))
   assert_true(human.contains("\"é\":2"))
 }

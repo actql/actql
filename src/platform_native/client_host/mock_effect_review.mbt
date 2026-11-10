@@ -19,6 +19,7 @@ priv struct NativeMockEffectReview {
   mut checkpoint_confirmed : Bool
   mut waiting_attempted : Bool
   mut waiting : NativeClientRunRecord?
+  mut _retained_display_constructor_bytes : Int64
 }
 
 ///|
@@ -66,6 +67,7 @@ fn NativeClientMockModelWork::save_effect_review_original_in_scope(
       checkpoint_confirmed: false,
       waiting_attempted: false,
       waiting: None,
+      _retained_display_constructor_bytes: 0L,
     }
     self.effect_review = Some(saved)
     let capture_wire = @publication.publication_contract_json(
@@ -82,21 +84,23 @@ fn NativeClientMockModelWork::save_effect_review_original_in_scope(
       )
       .map_err(issue => Original(issue)),
     )
-    mock_model_require(
-      self.capture.prepare_private_store_children_construction(
-        store,
+    let retained_construction = mock_model_require(
+      self.capture.prepare_private_store_layouts_construction(
         4,
         index => {
-          match index {
-            0 => capture_wire
-            1 => review_wire
-            2 => continuation_wire
-            _ => checkpoint.wire
-          }
+          store.private_evidence_custody_construction(
+            match index {
+              0 => capture_wire
+              1 => review_wire
+              2 => continuation_wire
+              _ => checkpoint.wire
+            },
+          )
         },
         additional_retained=retained_metadata,
       ),
     )
+    saved._retained_display_constructor_bytes = retained_construction
     guard @publication.effect_computation_record_holding_cid(
         self.definition,
         @publication.effect_capture_holding_authority(binding),

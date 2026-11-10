@@ -991,6 +991,56 @@ pub fn admit_effect_preview_identity_with_original(
 }
 
 ///|
+/// Admit the original funded cursor without parsing its wire again. Exact
+/// canonical wire, complete shape and all Run/member/row identities use the
+/// existing owners. The returned same root is DATA, never apply authority.
+pub fn admit_effect_preview_identity_cursor_with_original(
+  wire : String,
+  cursor : @decode.Cursor,
+  expected_run_identity_cid : String,
+  expected_authoring_context_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (EffectPreviewIdentity, @json.CanonicalValue),
+  EffectPreviewIdentityIssue,
+] {
+  if max_wire_bytes < 1 || max_nodes < 1 || max_depth < 1 {
+    return Err(PreviewShape(InvalidLimits))
+  }
+  let admission = @json.start_cursor_admission(
+    cursor,
+    max_nodes,
+    max_depth,
+    max_wire_bytes,
+    max_wire_bytes,
+    data_keys=true,
+  ).unwrap_or_else(() => abort("Checked cursor admission limits"))
+  defer @json.cancel_cursor_admission(admission)
+  let root = while true {
+    match @json.advance_cursor_admission(admission) {
+      @json.CursorAdmissionContinue => continue
+      @json.CursorAdmissionComplete(value, _, _) => break value
+      _ => return Err(PreviewShape(InvalidWire))
+    }
+  } nobreak {
+    return Err(PreviewShape(InvalidWire))
+  }
+  let preview = match
+    check_effect_preview_shape_original(
+      wire, root, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(PreviewShape(issue))
+  }
+  admit_effect_preview_identity_original(
+    preview, expected_run_identity_cid, expected_authoring_context_cid, max_wire_bytes,
+    max_nodes, max_depth,
+  ).map(identity => (identity, preview))
+}
+
+///|
 // Both wire entrances use this SAME shape-admitted original. Retaining the
 // canonical tree is an explicit caller choice, not another semantic check.
 fn admit_effect_preview_identity_original(
