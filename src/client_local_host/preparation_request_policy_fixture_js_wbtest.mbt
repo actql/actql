@@ -36,6 +36,7 @@ fn request_policy_supplement_fixture(
   environment : @checked.CheckEnvironment,
   supplied? : Bool = false,
   effect? : Bool = false,
+  document? : String? = None,
   current? : () -> Bool = () => true,
 ) -> (ClientRequestPreparation[Array[Int]], Array[Int]) {
   let text = if effect {
@@ -46,6 +47,7 @@ fn request_policy_supplement_fixture(
   } else {
     policy_supplement_program
   }
+  let text = document.unwrap_or(text)
   let input = [1]
   let parent = begin_request_preparation(
     request_parent_fixture(input, current~),
