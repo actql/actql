@@ -72,7 +72,7 @@ function waitingHuman(record, original, before, change) {
     ['Checkpoint: ', `Checkpoint: ${JSON.stringify(original.checkpoint.checkpoint_id)}`],
     ['  Original CID: ', `  Original CID: ${JSON.stringify(original.checkpoint.checkpoint_cid)}`],
     ['Stored Effect Preview', 'Stored Effect Preview (read-only; not approval):'],
-    ['  Effect: ', `  Effect: "update"  Target: ${JSON.stringify('salesforce.' + change.resource)}`],
+    ['  Effect: ', `  Effect: "update"  Target: ${JSON.stringify('connector://salesforce/' + change.resource)}`],
     ['  Items: ', `  Items: ${change.rows.length}`],
     ['  Preview strength: ', '  Preview strength: "full_diff"'],
     ['  Changes:', '  Changes:'],
