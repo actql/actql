@@ -109,6 +109,8 @@ pub fn captured_any_result_borrow_matches_run(CapturedAnyResultBorrow, CapturedD
 
 pub fn captured_any_result_borrow_occurrence(CapturedAnyResultBorrow) -> @execution_relation.ManagedResultOccurrence
 
+pub fn captured_any_result_borrow_requires_managed_export(CapturedAnyResultBorrow) -> Bool
+
 pub fn captured_any_result_borrow_row_count(CapturedAnyResultBorrow) -> Int?
 
 pub fn captured_any_result_borrows_share_view(CapturedAnyResultBorrow, CapturedAnyResultBorrow) -> Bool

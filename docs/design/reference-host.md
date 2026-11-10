@@ -3389,3 +3389,15 @@ a claim, a provider send or a cleanup acknowledgement. The installing caller
 reserves constructor work before invocation and retains the resulting material;
 normal current, authorization, cancellation and physical cleanup duties remain
 with their existing owners. The RelA bridge is generated from the same body.
+
+
+Native Effect manifest construction selects the physical exporter from the
+original captured Result borrow. Cells and acquired Source completions use the
+existing direct captured export; a resident completion uses its original managed
+operations and generation bridge. A suffix task inventory contains only work
+that suffix actually performed, so it cannot stand in for an earlier completed
+Source or Model Result. The representation projection is immutable DATA and
+provides no liveness or disclosure grant. Both exporters retain the same checked
+Result occurrence, original Run, bounded construction allowance and cleanup
+order, and independently reject a revoked or foreign borrow. Export failure is
+never a signal to retry through another representation.

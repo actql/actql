@@ -71,9 +71,8 @@ fn native_mock_effect_extra_unit_results(
 }
 
 ///|
-// Complete the SAME Unit Manifest. The original Model Result and later
-// managed suffix have different completions; select their existing exporters
-// by checked task identity, never by a failed export or equal row contents.
+// Complete the SAME Unit Manifest. Select each original borrow's physical
+// exporter, never a Model task number, failed export or equal row contents.
 fn LocalCommandBusinessPreparation::prepare_mock_effect_unit_results(
   self : Self,
   state : LocalNativeMockEffectPlan,
@@ -88,9 +87,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_unit_results(
     held.unit_results.is_empty() else {
     stop("LocalOriginalEffectUnitResultsUnavailable")
   }
-  let (model_task, unit, _) = @run_host.client_infer_plan_graph_coordinates(
-    state.graph,
-  )
+  let (_, unit, _) = @run_host.client_infer_plan_graph_coordinates(state.graph)
   let limits = state.first._retained_models[0]._retained_limits
   let wire = limits.identity.wire
   let expected = native_mock_effect_extra_unit_results(
@@ -123,28 +120,10 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_unit_results(
       _retained_dependency: None,
     }
     held.unit_results.push(entry)
-    let exported = if @strategy.captured_effect_local_result_task(result) ==
-      model_task {
-      @strategy.start_captured_effect_local_result_export(
-        held.inputs,
-        index,
-        {
-          max_fields: wire.max_columns,
-          max_mapping_work: wire.max_order_work,
-          max_order_work: wire.max_order_work,
-          max_workspace_entries: limits.output_workspace,
-        },
-        limits.output_rows,
-        limits.output_values,
-        wire,
-        limits.identity.logical_wire,
-        limits.identity.schema,
-        Int::min(wire.max_bytes, 16384),
-      )
-      .map_err(issue => {
-        LocalNativeMockEffectProposalIssue::ManagedExport(Binding(issue))
-      })
-      .native_effect_proposal(self.original)
+    let exported = if !@strategy.captured_any_result_borrow_requires_managed_export(
+        @strategy.captured_effect_local_result_borrow(result),
+      ) {
+      self.prepare_mock_effect_direct_result_export(state, held, index)
     } else {
       let managed = self.prepare_mock_effect_local_result_export(
         state, held, index,

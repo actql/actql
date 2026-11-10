@@ -554,6 +554,19 @@ pub fn captured_any_result_borrows_share_view(
 }
 
 ///|
+/// Select the existing physical exporter from this original borrow's retained
+/// representation. This immutable projection does not check or grant liveness;
+/// the selected exporter still validates the original pin, owner and current.
+pub fn captured_any_result_borrow_requires_managed_export(
+  borrow : CapturedAnyResultBorrow,
+) -> Bool {
+  match borrow.kind {
+    Resident(_) => true
+    Cells(_) | Source(_) => false
+  }
+}
+
+///|
 pub fn captured_any_result_borrow_cell_output(
   borrow : CapturedAnyResultBorrow,
 ) -> @execution.CompletedOutput? {

@@ -168,13 +168,19 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_source_imports(
       if @strategy.captured_effect_local_result_stage(result) != stage {
         continue
       }
-      let managed = self.prepare_mock_effect_local_result_export(
-        state, held, index,
-      )
-      source.managed_export = Some(managed)
-      let exported = managed
+      let exported = if !@strategy.captured_any_result_borrow_requires_managed_export(
+          @strategy.captured_effect_local_result_borrow(result),
+        ) {
+        self.prepare_mock_effect_direct_result_export(state, held, index)
+      } else {
+        let managed = self.prepare_mock_effect_local_result_export(
+          state, held, index,
+        )
+        source.managed_export = Some(managed)
+        managed
         .captured_export()
         .unwrap_or_else(() => stop("LocalOriginalEffectImportsUnavailable"))
+      }
       source.exported = Some(exported)
       let preparation = @strategy.captured_effect_local_result_export_preparation(
         exported,

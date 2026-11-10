@@ -310,3 +310,42 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_local_result_export(
   .map_err(issue => LocalNativeMockEffectProposalIssue::ManagedExport(issue))
   .native_effect_proposal(self.original)
 }
+
+///|
+// Cells and acquired Sources retain their own original completion. The SAME
+// capture construction still backs the bounded export; it does not decode a
+// second managed row stream or borrow an unrelated suffix operation.
+fn LocalCommandBusinessPreparation::prepare_mock_effect_direct_result_export(
+  self : Self,
+  state : LocalNativeMockEffectPlan,
+  held : LocalNativeMockEffectProposals,
+  index : Int,
+) -> @strategy.CapturedEffectLocalResultExport raise ClientStop {
+  guard state.suffix is Some(_) &&
+    state.effect_capture is Some(_) &&
+    held.construction is Some(_) else {
+    stop("LocalOriginalEffectImportsUnavailable")
+  }
+  let limits = state.first._retained_models[0]._retained_limits
+  let wire = limits.identity.wire
+  @strategy.start_captured_effect_local_result_export(
+    held.inputs,
+    index,
+    {
+      max_fields: wire.max_columns,
+      max_mapping_work: wire.max_order_work,
+      max_order_work: wire.max_order_work,
+      max_workspace_entries: limits.output_workspace,
+    },
+    limits.output_rows,
+    limits.output_values,
+    wire,
+    limits.identity.logical_wire,
+    limits.identity.schema,
+    Int::min(wire.max_bytes, 16384),
+  )
+  .map_err(issue => {
+    LocalNativeMockEffectProposalIssue::ManagedExport(Binding(issue))
+  })
+  .native_effect_proposal(self.original)
+}
