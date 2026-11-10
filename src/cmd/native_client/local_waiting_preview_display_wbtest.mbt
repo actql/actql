@@ -128,3 +128,40 @@ test "waiting human Preview keeps distinct composed and decomposed DATA keys" {
   assert_true(human.contains("\"é\":1"))
   assert_true(human.contains("\"é\":2"))
 }
+
+///|
+test "waiting human Preview preserves an original with no observation revision" {
+  // The existing waiting-state issuer omits revision before an observation
+  // counter is committed. Its separate control revision is not that counter.
+  let original = waiting_preview_state.replace_all(
+    old="\"revision\":3,",
+    new="",
+  )
+  let human = waiting_preview_fixture_display(original, waiting_preview_data).unwrap()
+  assert_true(human.contains("State: \"waiting_checkpoint\"\n"))
+  assert_true(human.contains("Checkpoint: \"original-checkpoint\"\n"))
+  assert_true(
+    human.contains("Stored Effect Preview (read-only; not approval):\n"),
+  )
+  assert_true(human.contains("\"StageName\":\"Proposal\""))
+  assert_true(human.contains("\"StageName\":\"Negotiation\""))
+  assert_false(human.contains("State revision:"))
+  let controlled = original.replace_all(
+    old="\"result_available\":false",
+    new="\"control\":{\"revision\":9,\"cancellation_requested\":false,\"physical_stop\":\"unknown\"},\"result_available\":false",
+  )
+  let human = waiting_preview_fixture_display(controlled, waiting_preview_data).unwrap()
+  assert_true(human.contains("Control revision: 9\n"))
+  assert_true(human.contains("Physical stop: \"unknown\"\n"))
+  assert_false(human.contains("State revision:"))
+  assert_eq(
+    waiting_preview_fixture_display(
+      waiting_preview_state.replace_all(
+        old="\"revision\":3",
+        new="\"revision\":\"invalid\"",
+      ),
+      waiting_preview_data,
+    ),
+    None,
+  )
+}
