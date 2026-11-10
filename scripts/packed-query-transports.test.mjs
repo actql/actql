@@ -32,6 +32,53 @@ async function fixtureSyntax(path) {
   return {source, nodes};
 }
 
+for (const [name, expression] of Object.entries({
+  normal: {gte: [{field: 'amount'}, {literal: 20}]},
+  unsupportedPredicate: {gt: [{add: [{field: 'id'}, {literal: 1}]}, {literal: 2}]},
+})) test(`planner requirement vectors independently bind ${name} input and every identity preimage`, async () => {
+  const vectors = JSON.parse(await readFile(new URL('./fixtures/planner-selection-requirement-preimages.json', import.meta.url), 'utf8'));
+  const vector = vectors[name];
+  const {plannerSelectionProgram, plannerSelectionRequirementCids} = await import('./fixtures/planner-selection-public-query.mjs');
+  const input = JSON.parse(plannerSelectionProgram(vector.filter));
+  const environment = JSON.parse(await readFile(new URL('../adapters/host-node/fixtures/two-source/left.environment.json', import.meta.url), 'utf8'));
+  const aoa = JSON.parse(await readFile(new URL('../spec/contracts/actql-aoa.json', import.meta.url), 'utf8'));
+  const canonical = value => Array.isArray(value) ? '[' + value.map(canonical).join(',') + ']' :
+    value !== null && typeof value === 'object' ? '{' + Object.keys(value).sort().map(key =>
+      JSON.stringify(key) + ':' + canonical(value[key])).join(',') + '}' : JSON.stringify(value);
+  const cid = value => 'sha256:' + createHash('sha256').update(canonical(value)).digest('hex');
+  const common = {binding_references: [], bindings: {}, expression_contract_cid: aoa.expression_contract_cid,
+    parameter_references: [], parameters: {}};
+  const stages = input.stages.map((stage, index) => ({...common,
+    local_body: {effects: {}, inputs: stage.inputs, results: stage.results,
+      steps: stage.steps.map((step, ordinal) => index === 0 && ordinal === 0 ? {...step, filter: expression} : step)},
+    version: 'actql-stage-semantics/0.1'}));
+  assert.deepEqual(vector.expression, expression);
+  assert.deepEqual(vector.stageSemantics, stages);
+  const semantics = {...common, actql_version: input.version,
+    program_template: {exports: input.results, stages: [
+      {after: 'initial', id: 'acquire', imports: {}, stage_semantics_cid: cid(stages[0])},
+      {after: 'completed', id: 'ordered_result', imports: input.stages[1].inputs, stage_semantics_cid: cid(stages[1])},
+    ]}, version: 'actql-program-semantics/0.1'};
+  assert.deepEqual(vector.programSemantics, semantics);
+  const definition = {id: input.id, program_semantics_cid: cid(semantics), version: 'actql-program-definition/0.1'};
+  assert.deepEqual(vector.programDefinition, definition);
+  const view = environment.source_views[0];
+  const schema = environment.connector_catalogs[0].contracts.find(contract => contract.cid === view.output.schema.cid).body.fields;
+  const requirement = {filter: {expression_cid: cid(expression), occurrence: '/steps/0/filter'},
+    input_contract_cid: cid(schema), logical_guards: {max_rows: 100, max_value_bytes: 10000},
+    output_contract_cid: cid({id: schema.id}),
+    owner: {input: 'remote', program_source_cid: cid(definition), stage: 'acquire'},
+    parameter_values_cid: cid({values: {}, version: 'actql-parameter-values/0.1'}), request: {},
+    select: {fields: [{input: 'id', output: 'id'}], occurrence: '/steps/1/select'},
+    source_contract_cid: view.contract_cid, source_order_cid: null,
+    source_ref: environment.schema_snapshots[0].source_ref,
+    source_validation: {fields: Object.keys(schema).sort(), scope: 'selected_scan'}, version: 'actql-query-acquisition/0.1'};
+  assert.deepEqual(vector.requirement, requirement);
+  assert.equal(vector.cid, cid(requirement));
+  assert.equal(plannerSelectionRequirementCids[name], vector.cid,
+    'installation estimates must bind this complete original requirement, never a historical hash');
+});
+
 test('public query HTTPS observation selects only its original operator and authored Result names', async () => {
   const {parse} = await import('acorn');
   const source = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');

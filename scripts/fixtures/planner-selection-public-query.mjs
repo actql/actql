@@ -23,11 +23,11 @@ export const plannerSelectionRows = [
 const acquisitionRows = [{id: 3}, {id: 2}, {id: 3}];
 const expectedRows = [{id: 2}, {id: 3}, {id: 3}];
 const expectedColumns = [{name: 'id', contract: {type: 'number', nullable: false}}];
-// Obtained once by offline common preparation of the authored Program against
-// the pinned left.environment.json; never derived from an executed Result.
+// Independently reconstructed from the complete authored identity preimages,
+// then checked against the pure owner; never derived from an executed Result.
 export const plannerSelectionRequirementCids = Object.freeze({
-  normal: 'sha256:1eaca4154c1d97c24db2bbff2fd875ee9ebdcc929d7e103ad818129ebc050d48',
-  unsupportedPredicate: 'sha256:84feddd46622948d1375d8f3f0ac80e511aa83fa6f29914ca1878f95740b3fa9',
+  normal: 'sha256:9578333c35278f89a5a06e26448b541bd41ac092b6acf2afb2ee334ebd11264e',
+  unsupportedPredicate: 'sha256:2d30267ef42eaade1facc845e8533ed68fe75ec79af17285542cb6f6f1de6473',
 });
 const requirementCidFor = item => item.filter === undefined
   ? plannerSelectionRequirementCids.normal : plannerSelectionRequirementCids.unsupportedPredicate;
