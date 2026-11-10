@@ -521,6 +521,16 @@ pub fn NativeLocalInitialSigningOriginal::require_current(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  self.require_current_after_host_binding()
+}
+
+///|
+// Private continuation of this SAME Host's immediately preceding binding
+// check. No callback or IO may intervene. All original control/key projection
+// reads and the final post-IO binding fence remain below.
+fn NativeLocalInitialSigningOriginal::require_current_after_host_binding(
+  self : NativeLocalInitialSigningOriginal,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
   guard self.host.database.read("client_local_installation_custody", "host")
     is Ok(row) &&
     row.revision == 0L &&

@@ -73,10 +73,12 @@ pub fn request_policy_subject_prelude_inventory(
   // per static field. The SAME bounded writer refuses before exceeding its
   // existing installed node/depth allowance; enumeration arrays still use
   // the actual untruncated field count below.
+  // Fields are the multiplicity, including zero. The admitted Program has a
+  // positive node extent; it is not a zero coefficient for the shared counter.
   guard @execution.checked_preparation_add_product(
       10L + 3L * largest.to_int64(),
-      nodes,
       largest.to_int64(),
+      nodes,
     )
     is Some(encoded_nodes) else {
     return None
