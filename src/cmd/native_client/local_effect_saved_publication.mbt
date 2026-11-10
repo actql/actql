@@ -317,7 +317,11 @@ fn LocalCommandPreparationOriginal::close_saved_effect_publication(
   guard self.business is Some(business) && business.store is Some(store) else {
     return Err(CommandBusinessPublication)
   }
-  if saved.commit_attempted && saved.committed is None {
+  // A lost pending original cannot be reconstructed from an error flag.
+  // With the SAME pending original, its existing cancel first reconciles the
+  // actual Store index/attempt, then reclaims ONLY proven uncommitted payloads.
+  // Committed/Unknown outcomes remain held and never authorize a resend.
+  if saved.commit_attempted && saved.committed is None && saved.pending is None {
     return Err(CommandBusinessPublication)
   }
   if saved.committed is None {
