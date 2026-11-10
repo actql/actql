@@ -12,7 +12,6 @@ fn LocalCommandBusinessPreparation::execute_mock_effect_model(
     business.store is Some(store) &&
     business.model_work.length() == 1 &&
     state.scope is Some(scope) &&
-    state.lookup is Some(lookup) &&
     state.source_started_at is Some(started_at) &&
     state.source_completed_at is Some(source_completed_at) &&
     state.captured_inputs.length() == state.first._retained_sources.length() &&
@@ -33,79 +32,126 @@ fn LocalCommandBusinessPreparation::execute_mock_effect_model(
     stop("LocalOriginalModelCaptureClockUnavailable")
   }
   state.source_completed_at = Some(completed_at)
-  let (sequence, sources, consumer, read_retained, read_execution) = self.original.with_business_request(
-    self.capture,
-    () => {
-      let base_retained = limits.mapping.logical.max_live_value_bytes
-      let base_execution = limits.identity.wire.max_bytes.to_int64()
-      let read = @run_host.prepare_client_model_read(
-          scope, base_retained, base_execution,
-        )
-        .map_err(issue => LocalNativeMockSourceIdentityIssue::Read(issue))
-        .native_source_identity(self.original)
-      state.model_read = Some(read)
-      let consumer = @run_host.claim_client_model_read_preparation(
-          read,
-          compiled,
-          first.definition,
-          state.graph,
-          base_retained,
-          base_execution,
-        )
-        .map_err(issue => LocalNativeMockSourceIdentityIssue::Read(issue))
-        .native_source_identity(self.original)
-      let captured_sources = []
-      let identities = []
-      let logicals = []
-      let observations = []
-      let authority = @run_host.client_request_authority_scope_cid(
-        first.request,
+  let (
+    sequence,
+    sources,
+    consumer,
+    read_retained,
+    read_execution,
+    provider_inputs,
+  ) = self.original.with_business_request(self.capture, () => {
+    let controls = native_mock_model_read_controls(
+      state.captured_inputs.length(),
+    ).unwrap_or_else(() => stop("LocalOriginalModelSourceIdentityUnavailable"))
+    let base_retained = @execution.checked_preparation_add_product(
+      limits.mapping.logical.max_live_value_bytes,
+      controls,
+      1L,
+    ).unwrap_or_else(() => stop("LocalOriginalModelSourceIdentityUnavailable"))
+    let base_execution = @execution.checked_preparation_add_product(
+      limits.identity.wire.max_bytes.to_int64(),
+      controls,
+      1L,
+    ).unwrap_or_else(() => stop("LocalOriginalModelSourceIdentityUnavailable"))
+    let read = @run_host.prepare_client_model_read(
+        scope, base_retained, base_execution,
       )
-      for index, input in state.captured_inputs {
-        let source = @row_host.row_captured_input_source(input).unwrap_or_else(() => {
-          stop("LocalOriginalModelSourceUnavailable")
-        })
-        let original = @run_host.client_keyed_native_source_evidence(
-          lookup, index,
-        ).unwrap_or_else(() => {
-          stop("LocalOriginalModelSourceEvidenceUnavailable")
-        })
-        captured_sources.push(source)
-        identities.push(original.identity)
-        logicals.push(original.logical)
-        observations.push(original.observation)
+      .map_err(issue => LocalNativeMockSourceIdentityIssue::Read(issue))
+      .native_source_identity(self.original)
+    let held : LocalNativeMockModelRead = {
+      read,
+      consumer: None,
+      scan: None,
+      identities: [],
+      logicals: [],
+      observations: [],
+      retained: base_retained,
+      execution: base_execution,
+    }
+    state.model_read = Some(held)
+    let consumer = @run_host.claim_client_model_read_preparation(
+        read,
+        compiled,
+        first.definition,
+        state.graph,
+        base_retained,
+        base_execution,
+      )
+      .map_err(issue => LocalNativeMockSourceIdentityIssue::Read(issue))
+      .native_source_identity(self.original)
+    held.consumer = Some(consumer)
+    let captured_sources = []
+    let provider_inputs = []
+    let authority = @run_host.client_request_authority_scope_cid(first.request)
+    for index, input in state.captured_inputs {
+      let source = @row_host.row_captured_input_source(input).unwrap_or_else(() => {
+        stop("LocalOriginalModelSourceUnavailable")
+      })
+      match state.lookup {
+        Some(lookup) => {
+          // The keyed path retains its existing identities and backing; do
+          // not rescan, reissue or charge those originals to Model startup.
+          let original = @run_host.client_keyed_native_source_evidence(
+            lookup, index,
+          ).unwrap_or_else(() => {
+            stop("LocalOriginalModelSourceEvidenceUnavailable")
+          })
+          held.identities.push(original.identity)
+          held.logicals.push(original.logical)
+          held.observations.push(original.observation)
+        }
+        None => {
+          self.prepare_mock_model_whole_source(state, held, index, completed_at)
+          let read = @query.captured_source_original_input_read(source).unwrap_or_else(() => {
+              stop("LocalOriginalModelSourceUnavailable")
+            },
+          )
+          provider_inputs.push(
+            @local_compute.managed_provider_supplied_relation_input(read),
+          )
+        }
       }
-      let keyed = @run_host.issue_client_keyed_lookup_observation(
+      captured_sources.push(source)
+    }
+    let keyed = state.lookup.map(lookup => {
+      @run_host.issue_client_keyed_lookup_observation(
         lookup, authority, completed_at,
       ).unwrap_or_else(() => {
         stop("LocalOriginalModelKeyedObservationUnavailable")
       })
-      let sources = @run_host.admit_client_infer_composed_whole_sources(
-        state.graph.occurrence,
-        captured_sources,
-        identities,
-        state.input_originals.map(pair => pair.0),
-        logicals,
-        observations,
-        authority,
-        started_at,
-        completed_at,
-        keyed=Some(keyed),
-      ).unwrap_or_else(() => stop("LocalOriginalModelSourcesUnavailable"))
-      let plan = @local_values.installed_effect_managed_operation_plan(
-        run,
-        state._retained_prepared,
-        first.request,
-      ).unwrap_or_else(() => stop("LocalOriginalModelSequenceUnavailable"))
-      let sequence = @local_values.prepared_installed_effect_model_sequence(
-        plan,
-        state.graph,
-      ).unwrap_or_else(() => stop("LocalOriginalModelSequenceUnavailable"))
-      // Enter this SAME late Read once in Work.open. The original lookup
-      // retains Source preimages; do not rescan or debit them again here.
-      (sequence, sources, consumer, base_retained, base_execution)
-    },
-  )
+    })
+    let sources = @run_host.admit_client_infer_composed_whole_sources(
+      state.graph.occurrence,
+      captured_sources,
+      held.identities,
+      state.input_originals.map(pair => pair.0),
+      held.logicals,
+      held.observations,
+      authority,
+      started_at,
+      completed_at,
+      keyed~,
+    ).unwrap_or_else(() => stop("LocalOriginalModelSourcesUnavailable"))
+    let plan = @local_values.installed_effect_managed_operation_plan(
+      run,
+      state._retained_prepared,
+      first.request,
+    ).unwrap_or_else(() => stop("LocalOriginalModelSequenceUnavailable"))
+    let sequence = @local_values.prepared_installed_effect_model_sequence(
+      plan,
+      state.graph,
+    ).unwrap_or_else(() => stop("LocalOriginalModelSequenceUnavailable"))
+    // Enter this SAME late Read once. Both source metadata and the actual
+    // producer-read vector stay on its grown original extent through input.
+    (
+      sequence,
+      sources,
+      consumer,
+      held.retained,
+      held.execution,
+      provider_inputs,
+    )
+  })
   let require_model = (
     result : Result[Unit, @local_host.NativeClientMockModelIssue],
   ) => {
@@ -130,7 +176,8 @@ fn LocalCommandBusinessPreparation::execute_mock_effect_model(
         // preimages stay on lookup and are not charged again to Model startup.
         limits.mapping.logical.max_live_value_bytes,
         limits.identity.wire.max_bytes.to_int64(),
-        input_body_read=state.model_read,
+        input_body_read=state.model_read.map(held => held.read),
+        inputs=provider_inputs,
       ),
     )
   })

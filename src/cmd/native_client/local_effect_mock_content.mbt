@@ -149,7 +149,6 @@ fn LocalCommandBusinessPreparation::capture_mock_effect_content(
     business.execution is Some(physical) &&
     self.original.project is Some(project) &&
     project.mock_declarations is Some(mock) &&
-    mock.file_sources is Some(files) &&
     state.first._retained_models.length() == 1 else {
     stop("LocalOriginalModelContentUnavailable")
   }
@@ -159,13 +158,18 @@ fn LocalCommandBusinessPreparation::capture_mock_effect_content(
     stop("LocalOriginalModelContentUnavailable")
   })
   let work = business.model_work[0]
-  let keyed = self.original.with_business_request(self.capture, () => {
-    let keyed = @run_host.select_client_effect_composed_model_keyed_acquisition(
-        state._retained_prepared,
-        state.graph,
-      )
-      .unwrap_or_else(() => stop("LocalOriginalModelContentUnavailable"))
-      .unwrap_or_else(() => stop("LocalOriginalModelContentUnavailable"))
+  let selected_files = mock.file_sources
+  let selected = self.original.with_business_request(self.capture, () => {
+    let selected = @run_host.select_client_effect_composed_model_keyed_acquisition(
+      state._retained_prepared,
+      state.graph,
+    ).unwrap_or_else(() => stop("LocalOriginalModelContentUnavailable"))
+    // Absence is the checked original's legitimate no-Content shape. Its whole
+    // Source evidence and producer reads use the SAME later Model Read.
+    guard selected is Some(keyed) else { return None }
+    guard selected_files is Some(_) else {
+      stop("LocalOriginalModelContentUnavailable")
+    }
     let prefix = @local_values.start_installed_original_composed_keyed_input_prefix(
       run,
       scope,
@@ -178,7 +182,11 @@ fn LocalCommandBusinessPreparation::capture_mock_effect_content(
       limits.measurement,
     ).unwrap_or_else(() => stop("LocalOriginalModelPrefixUnavailable"))
     state.prefix = Some(prefix)
-    keyed
+    Some(keyed)
+  })
+  guard selected is Some(keyed) else { return }
+  let files = selected_files.unwrap_or_else(() => {
+    stop("LocalOriginalModelContentUnavailable")
   })
   let authorize = (
     source : LocalProjectMockSourceDeclaration,

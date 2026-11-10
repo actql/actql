@@ -324,6 +324,7 @@ pub fn NativeClientMockModelWork::open(
   model_retained_bytes : Int64,
   model_execution_bytes : Int64,
   input_body_read? : @host.ClientModelReadPreparation? = None,
+  inputs? : Array[@compute_local.ManagedProviderInput] = [],
 ) -> Result[Unit, NativeClientMockModelIssue] {
   try {
     if self.open_attempted ||
@@ -340,7 +341,7 @@ pub fn NativeClientMockModelWork::open(
         self.graph.occurrence,
         self.graph,
         sequence,
-        [],
+        inputs,
         self._retained_provider,
         self._retained_limits,
         self.compiled,

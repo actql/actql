@@ -360,6 +360,23 @@ fn command_preparation_cleanup_cause(
       }
     CommandBusinessSourceIdentity(cause) =>
       match cause {
+        Capture(issue) =>
+          match issue {
+            Unavailable => "SourceIdentityUnavailable"
+            _ => "SourceIdentityCapture"
+          }
+        Logical(issue) =>
+          match issue {
+            ForeignIdentity => "SourceIdentityForeignIdentity"
+            ForeignPrepared | ForeignRequirement =>
+              "SourceIdentityForeignSource"
+            _ => "SourceIdentityLogical"
+          }
+        Observation(issue) =>
+          match issue {
+            SourceEvidence(_) => "SourceIdentityEvidence"
+            _ => "SourceIdentityObservation"
+          }
         Read(issue) =>
           match issue {
             ForeignRun => "ReadForeignRun"
