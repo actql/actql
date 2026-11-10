@@ -833,7 +833,7 @@ done`,
   for (const name of groups.filter(name => name !== 'client-supported-versions')) {
     assert.equal(jobs[name].if, normal);
     assert.equal(jobs[name]['runs-on'], 'ubuntu-24.04');
-    assert.equal(jobs[name]['timeout-minutes'], name === 'client-packed' ? 60 : 30, name);
+    assert.equal(jobs[name]['timeout-minutes'], name === 'client-packed' ? 75 : 30, name);
     assert.equal(jobs[name].strategy, undefined, 'no fail-fast sibling cancellation');
     for (const step of jobs[name].steps.filter(step => step.run)) {
       let preparation;
@@ -862,7 +862,7 @@ test('packed Native Graph compiler setup retains exact cc and ar selection', () 
   assert(job.steps.indexOf(setup) < job.steps.indexOf(query));
   assert.deepEqual(job.needs, ['select-targets', 'preflight', 'client-packages']);
   assert.equal(job['runs-on'], 'ubuntu-24.04');
-  assert.equal(job['timeout-minutes'], 60);
+  assert.equal(job['timeout-minutes'], 75);
   assert.equal(setup['continue-on-error'], undefined);
   assert.equal(query['continue-on-error'], undefined);
   assert.equal(query.env.ACTQL_TEST_NATIVE_QUERY_COMPILER, 'clang-19');
