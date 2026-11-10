@@ -168,6 +168,12 @@ The sibling publication Store may already have selected cleanup on their same
 paired Host; an independently healthy Journal routing carrier cannot resume
 normal scope after that transition. The original Database close, scope return
 and metadata retirement each keep their separate acknowledgements.
+An acquired Effect's first material acceptance also stores its checked Result
+DataPolicy closure through the existing common policy-original packet codec.
+The original root, Source policies and dependency bodies remain unchanged;
+current Read selection and egress admission are still independent. A missing
+checked closure cannot select a source-free policy, and a missing accepted
+packet cannot be reconstructed during Result or Saved reads.
 The restoration-to-application boundary first retains the composed extent as
 data, then enters that same original constructor to acquire usable backing before
 resizing its byte token. A Read-side resize alone cannot acquire more business

@@ -1717,6 +1717,8 @@ pub fn issue_client_effect_run_definition(ClientEffectAllowedRun, String, String
 
 pub fn issue_client_effect_run_materials(ClientEffectAllowedRun, @run_publication.PublicationContract, @program_check.CheckEnvironment, String, String, String?, ClientEffectComputationLimits, request? : ClientRequestIdentity?) -> Result[String, ClientEffectRunMaterialsIssue]
 
+pub fn issue_client_effect_run_policy_originals(PreparedClientEffectComputation) -> Result[String, ClientRunPolicyOriginalsIssue]
+
 pub fn issue_client_effect_source_free_invocation(ClientEffectCompilation, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
 
 pub fn issue_client_effect_target_installation(String) -> Result[(String, String), ClientEffectUpdateTargetIssue]
