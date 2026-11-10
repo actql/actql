@@ -301,6 +301,23 @@ test('cleanup category never serializes payloads and keeps public error code', {
   const sourceIdentity = functionSource.slice(identityStart, identityEnd);
   assert.equal(sourceIdentity, `    CommandBusinessSourceIdentity(cause) =>
       match cause {
+        Capture(issue) =>
+          match issue {
+            Unavailable => "SourceIdentityUnavailable"
+            _ => "SourceIdentityCapture"
+          }
+        Logical(issue) =>
+          match issue {
+            ForeignIdentity => "SourceIdentityForeignIdentity"
+            ForeignPrepared | ForeignRequirement =>
+              "SourceIdentityForeignSource"
+            _ => "SourceIdentityLogical"
+          }
+        Observation(issue) =>
+          match issue {
+            SourceEvidence(_) => "SourceIdentityEvidence"
+            _ => "SourceIdentityObservation"
+          }
         Read(issue) =>
           match issue {
             ForeignRun => "ReadForeignRun"
@@ -702,13 +719,40 @@ test('cleanup category never serializes payloads and keeps public error code', {
   outer.push('  CommandBusinessEffectProposals(ProbeCommandBusinessEffectProposals)');
   const identityIssues = enumCases('src/cmd/native_client/local_effect_mock_source_identity.mbt',
     'LocalNativeMockSourceIdentityIssue');
-  assert.deepEqual(identityIssues, [{name: 'Read', arity: 1}]);
+  assert.deepEqual(identityIssues, ['Read', 'Capture', 'Logical', 'Observation']
+    .map(name => ({name, arity: 1})));
   const identityFamilies = {
     Read: {
       path: 'src/run_publication_host/client_model_read_preparation.mbt', name: 'ClientModelReadPreparationIssue',
       tags: {ForeignRun: 'ReadForeignRun', InvalidBootstrap: 'ReadInvalidBootstrap', Resource: 'ReadResource'},
     },
+    Capture: {
+      path: 'src/execution_query/captured_source.mbt', name: 'CapturedSourceIssue',
+      tags: {Unavailable: 'SourceIdentityUnavailable', Binding: 'SourceIdentityCapture',
+        Completion: 'SourceIdentityCapture', Storage: 'SourceIdentityCapture',
+        Export: 'SourceIdentityCapture', DependencyBodyLimit: 'SourceIdentityCapture'},
+    },
+    Logical: {
+      path: 'src/run_publication_host/client_source_input_logical.mbt', name: 'ClientCapturedSourceLogicalIssue',
+      tags: {ForeignPrepared: 'SourceIdentityForeignSource', ForeignIdentity: 'SourceIdentityForeignIdentity',
+        ForeignRequirement: 'SourceIdentityForeignSource', Encoding: 'SourceIdentityLogical',
+        Evidence: 'SourceIdentityLogical', Admission: 'SourceIdentityLogical'},
+    },
+    Observation: {
+      path: 'src/client_row_source_host/host.mbt', name: 'RowHostIssue',
+      tags: {InvalidSpecification: 'SourceIdentityObservation', Declaration: 'SourceIdentityObservation',
+        ForeignDeclaration: 'SourceIdentityObservation', Source: 'SourceIdentityObservation',
+        InvalidContracts: 'SourceIdentityObservation', Registration: 'SourceIdentityObservation',
+        Candidate: 'SourceIdentityObservation', Selection: 'SourceIdentityObservation',
+        Evidence: 'SourceIdentityObservation', Attempt: 'SourceIdentityObservation',
+        Consumer: 'SourceIdentityObservation', SourceEvidence: 'SourceIdentityEvidence',
+        Physical: 'SourceIdentityObservation', Residual: 'SourceIdentityObservation',
+        ResidualWork: 'SourceIdentityObservation', InputValidationWork: 'SourceIdentityObservation',
+        InputKeys: 'SourceIdentityObservation', InputScores: 'SourceIdentityObservation',
+        InvalidState: 'SourceIdentityObservation'},
+    },
   };
+  assert.deepEqual(Object.keys(identityFamilies), identityIssues.map(item => item.name));
   const identityTypes = {};
   for (const [family, owner] of Object.entries(identityFamilies)) {
     const cases = enumCases(owner.path, owner.name);
