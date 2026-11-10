@@ -203,27 +203,78 @@ test "fresh Run selection requires its compiled layout before Compute acquisitio
 ///|
 test "Plain and waiting approvals select the same backed saved application without a new Request" {
   let original = native_storage_finite_arithmetic_profile()
+  let selected_layout = local_command_test_selected_layout()
+  let layout_name = if selected_layout { "selected" } else { "unselected" }
+  println("ACTQL_APPROVAL_SELECTION_LAYOUT " + layout_name)
+  let quotations : Array[(Int64, Int64, @initial_resources.LedgerLimits)] = []
   for options in [[], ["--wait"]] {
     let argv = ["--mode", "local", "approve", "original-checkpoint"]
     for option in options {
       argv.push(option)
     }
-    let (profile, business) = local_command_profile_selection(
-      original,
-      command().parse(argv~),
+    let parsed = command().parse(argv~, env=Map([]))
+    if selected_layout {
+      let (profile, business) = local_command_profile_selection(
+        original, parsed,
+      )
+      guard business is Some(business) else {
+        fail("missing original saved application")
+      }
+      assert_true(business.kind == SavedEffectApply)
+      assert_eq(profile.read_domain_bytes, original.read_domain_bytes)
+      assert_true(business.limits.retained_bytes > 0L)
+      assert_true(business.limits.execution_bytes > 0L)
+      quotations.push(
+        (
+          business.domain_bytes,
+          business.payload_facility_bytes,
+          business.limits,
+        ),
+      )
+    } else {
+      // Ordinary unselected Core cannot supply an installed layout. Both
+      // public forms refuse before any acquisition; neither gets a fallback.
+      let failure = try {
+        ignore(local_command_profile_selection(original, parsed))
+        "unexpected saved application"
+      } catch {
+        ClientStop(message) => message
+      }
+      assert_eq(failure, "LocalBusinessLayoutUnavailable")
+    }
+  }
+  if selected_layout {
+    assert_eq(quotations.length(), 2)
+    assert_eq(quotations[0], quotations[1])
+  }
+  let rejected = command().parse(
+    argv=["--mode", "local", "reject", "original-checkpoint"],
+    env=Map([]),
+  )
+  if selected_layout {
+    // Rejection uses the same funded pure restoration/signing constructor.
+    // This DATA selection cannot authorize the approve-only file apply path.
+    let (profile, rejection) = local_command_profile_selection(
+      original, rejected,
     )
-    guard business is Some(business) else {
-      fail("missing original saved application")
+    guard rejection is Some(business) else {
+      fail("missing original rejection constructor")
     }
     assert_true(business.kind == SavedEffectApply)
     assert_eq(profile.read_domain_bytes, original.read_domain_bytes)
-    assert_true(business.limits.retained_bytes > 0L)
-    assert_true(business.limits.execution_bytes > 0L)
+    assert_eq(
+      (business.domain_bytes, business.payload_facility_bytes, business.limits),
+      quotations[0],
+    )
+  } else {
+    let failure = try {
+      ignore(local_command_profile_selection(original, rejected))
+      "unexpected saved rejection constructor"
+    } catch {
+      ClientStop(message) => message
+    }
+    assert_eq(failure, "LocalBusinessLayoutUnavailable")
   }
-  let (_, rejection) = local_command_profile_selection(
-    original,
-    command().parse(argv=["--mode", "local", "reject", "original-checkpoint"]),
-  )
-  assert_true(rejection is None)
   assert_true(command_preparation_invocation.val is None)
+  assert_true(initial_crypto_invocation.val is None)
 }
