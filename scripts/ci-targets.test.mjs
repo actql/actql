@@ -1469,7 +1469,7 @@ test('same-environment duplicate checks retain one explicit owner without weaken
 
 test('mandatory packed query CI selects its finite full-corpus envelope inside the job', () => {
   const job = jobs['client-packed'];
-  assert.equal(job['timeout-minutes'], 60);
+  assert.equal(job['timeout-minutes'], 75);
   const step = job.steps.find(value => value.id === 'packed-query');
   assert.ok(step);
   assert.equal(step.env.ACTQL_TEST_QUERY_TIMEOUT_MS, '1800000');
