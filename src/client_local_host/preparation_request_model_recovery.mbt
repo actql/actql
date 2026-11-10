@@ -3,7 +3,7 @@
 // material, nested Program/Environment, typed contracts and compiler output
 // coexist; source text and retained wire are distinct from active parse work.
 // These are existing managed execution units, not an RSS/GC guarantee.
-fn request_model_recovery_capacity(
+pub fn request_model_recovery_capacity(
   units : Int64,
   containers : Int,
 ) -> @execution.ExecutionCapacity? {

@@ -174,7 +174,8 @@ fn local_command_profile_selection(
       static_profile,
     )
     (profile, Some(business))
-  } else if matches.subcommand is Some(("approve", _)) {
+  } else if matches.subcommand is Some(("approve", _)) ||
+    matches.subcommand is Some(("reject", _)) {
     let (profile, business) = local_command_backed_business_profile(
       static_profile,
       SavedEffectApply,

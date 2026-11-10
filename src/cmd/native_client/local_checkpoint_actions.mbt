@@ -185,35 +185,75 @@ fn LocalCommandPreparationOriginal::resolve_checkpoint_review(
     .begin_captured_journal_read()
     .map_err(issue => CommandStoreOperation(issue)),
   )
+  let capacity = review.prepare_approval_restoration_in_original_read(
+    @env.now().to_double(),
+  )
+  let returned = journal.finish_captured_journal_read()
+  if returned is Err(issue) {
+    self.retain_primary(CommandStoreOperation(issue))
+  }
+  let capacity = match (capacity, returned) {
+    (Ok(value), Ok(_)) => value
+    (Err(issue), _) => {
+      self.retain_primary(CommandAdoption(issue))
+      stop("LocalCheckpointOriginalUnavailable")
+    }
+    (_, Err(_)) => stop("LocalCheckpointReadReturnUnavailable")
+  }
+  command_preparation_result(
+    self.prepare_saved_effect_construction_capacity(capture, capacity),
+  )
+  capture
+  .prepare_saved_effect_file_entry_in_original_read()
+  .map_err(issue => CommandSavedFileResume(issue))
+  |> command_preparation_result
+  self.prepare_saved_effect_file_entry(capacity)
+  let work = self.business.unwrap().saved_effect_files.unwrap()
+  let material_limits : @run_host.ClientValuesRunMaterialsLimits = {
+    preparation: policy.program,
+    sequence,
+    max_sequence_steps: compilation.structure.steps,
+    max_sequence_work: compilation.work,
+    max_evidence_bytes: compilation.artifacts.bytes,
+    max_evidence_nodes: compilation.artifacts.nodes,
+    max_evidence_depth: compilation.artifacts.depth,
+  }
+  self.with_business_request(capture, () => {
+    let constructed = review.construct_approval_in_entered_constructor(
+      work.entry.unwrap(),
+      { text_time: false, veca: false, },
+      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+      native_request_manifests,
+      material_limits,
+      policy,
+      {
+        max_wire_bytes: native_mock_effect_record_bytes(installation),
+        max_nodes: policy.effects.max_admission_nodes,
+        max_depth: policy.effects.max_admission_depth,
+      },
+      input => {
+        self.prepare_saved_effect_compiler_placement(
+          work, input, material_limits,
+        )
+      },
+      publication_required=operation == "approve",
+    )
+    if review.restored_material_issue() is Some(issue) {
+      self.retain_primary(CommandBusinessEffectAcceptance(issue))
+    }
+    if constructed is Err(issue) {
+      self.retain_primary(CommandAdoption(issue))
+    }
+  })
+  command_preparation_result(
+    journal
+    .begin_captured_journal_read()
+    .map_err(issue => CommandStoreOperation(issue)),
+  )
   let answer = try {
     match
-      review.restore_approval_in_original_read(
+      review.complete_approval_restoration_in_original_read(
         @env.now().to_double(),
-        { text_time: false, veca: false, },
-        {
-          rela: true,
-          sga: false,
-          tea: false,
-          calendar: false,
-          text_rank: false,
-        },
-        native_request_manifests,
-        {
-          preparation: policy.program,
-          sequence,
-          max_sequence_steps: compilation.structure.steps,
-          max_sequence_work: compilation.work,
-          max_evidence_bytes: compilation.artifacts.bytes,
-          max_evidence_nodes: compilation.artifacts.nodes,
-          max_evidence_depth: compilation.artifacts.depth,
-        },
-        policy,
-        {
-          max_wire_bytes: native_mock_effect_record_bytes(installation),
-          max_nodes: policy.effects.max_admission_nodes,
-          max_depth: policy.effects.max_admission_depth,
-        },
-        publication_required=operation == "approve",
       ) {
       Ok(_) => ()
       Err(issue) => {
@@ -260,7 +300,8 @@ fn LocalCommandPreparationOriginal::resolve_checkpoint_review(
   }
   match (answer, returned) {
     (Ok(wire), Ok(_)) => {
-      if self.business is Some(business) &&
+      if operation == "approve" &&
+        self.business is Some(business) &&
         business.profile.kind == SavedEffectApply {
         let continuation = observation.effect_resume.unwrap_or_else(() => {
           stop("LocalCheckpointOriginalUnavailable")

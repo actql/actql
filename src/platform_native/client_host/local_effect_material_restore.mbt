@@ -36,20 +36,12 @@ pub fn NativeLocalHostConnection::restore_submitted_effect_material_original(
   // the pure restore, including before returning a material refusal. Control
   // revision changes alone do not replace packet
   // identity and do not turn a read into execution or a new admission.
-  let current = match
-    self.lookup_submitted_effect_material_original(
-      crypto, principal, connection, reference, request, now,
+  match
+    self.require_original_effect_material_current(
+      crypto, principal, connection, reference, request, now, original,
     ) {
-    Ok(value) => value
+    Ok(_) => ()
     Err(issue) => return Err(issue)
-  }
-  if current.materials_wire != original.materials_wire ||
-    current.materials_cid != original.materials_cid ||
-    @host.client_request_identity_relation(current.request, original.request) !=
-    @host.SameRequest ||
-    @publication.publication_contract_identity(current.definition) !=
-    @publication.publication_contract_identity(original.definition) {
-    return Err(Journal(CustodyLost))
   }
   materials.map_err(issue => Materials(issue))
 }
@@ -65,6 +57,10 @@ fn restore_original_effect_material_packet(
   manifests : @host.ClientCompilationManifests,
   limits : @host.ClientValuesRunMaterialsLimits,
   effect_limits : @host.ClientEffectComputationLimits,
+  before_compilation? : ((@host.ClientEffectCompilationConstructionInput) -> Result[
+    Unit,
+    @host.ClientEffectRunMaterialsIssue,
+  ])? = None,
 ) -> Result[@host.ClientEffectRunMaterials, @host.ClientEffectRunMaterialsIssue] {
   let materials = match
     @host.admit_client_effect_run_materials(
@@ -76,6 +72,7 @@ fn restore_original_effect_material_packet(
       limits,
       effect_limits,
       expected_request=Some(original.request),
+      before_compilation~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -95,4 +92,35 @@ fn restore_original_effect_material_packet(
     return Err(Normalization(UnverifiedOriginalMaterials))
   }
   Ok(materials)
+}
+
+///|
+// SAME independent current/custody relookup after pure construction, including
+// failed construction. Neither an earlier read nor an equal CID refreshes it.
+fn NativeLocalHostConnection::require_original_effect_material_current(
+  self : NativeLocalHostConnection,
+  crypto : @crypto.Library,
+  principal : String,
+  connection : String,
+  reference : NativeClientSubmissionReference,
+  request : @host.ClientRequestIdentity,
+  now : Double,
+  original : NativeClientRetainedEffectMaterials,
+) -> Result[Unit, NativeClientSubmittedEffectMaterialsIssue] {
+  let current = match
+    self.lookup_submitted_effect_material_original(
+      crypto, principal, connection, reference, request, now,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if current.materials_wire != original.materials_wire ||
+    current.materials_cid != original.materials_cid ||
+    @host.client_request_identity_relation(current.request, original.request) !=
+    @host.SameRequest ||
+    @publication.publication_contract_identity(current.definition) !=
+    @publication.publication_contract_identity(original.definition) {
+    return Err(Journal(CustodyLost))
+  }
+  Ok(())
 }
