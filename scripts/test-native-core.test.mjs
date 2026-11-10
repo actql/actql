@@ -1,6 +1,9 @@
 import './native-http-library-lifetime.test.mjs';
 import assert from 'node:assert/strict';
 import {spawn, spawnSync} from 'node:child_process';
+import {createHash, createPublicKey, generateKeyPairSync, verify} from 'node:crypto';
+import {nativeResolutionFixture} from './fixtures/native-effect-resolution-fixture.mjs';
+import {canonicalText, verifyIdentity} from './check-canonical-json.mjs';
 import {chmodSync, copyFileSync, existsSync, lstatSync, mkdirSync, mkdtempSync,
   readFileSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {mkdtemp} from 'node:fs/promises';
@@ -1823,6 +1826,65 @@ test('Native target child keeps a finite cold Core budget without widening ordin
   }
 });
 
+
+test('Native saved target approval fixture supplies both closed claim families without another producer', () => {
+  const source = readFileSync(new URL('native-client-checkpoint-fixture.mjs', import.meta.url), 'utf8');
+  const start = source.indexOf('export function nativeClientCheckpointFixture(');
+  assert(start >= 0);
+  const calls = [];
+  const signers = {reviewer: generateKeyPairSync('ed25519'), host: generateKeyPairSync('ed25519')};
+  const reference = nativeResolutionFixture(undefined, signers).ACTQL_TEST_EFFECT_CHECKPOINT_WIRE;
+  // Reuse one reviewer/Host key pair across the existing original producers
+  // and these pure admission inputs. No additional Native compilation runs.
+  let keyIndex = 0;
+  const keys = [signers.reviewer, signers.host];
+  const fixture = runInNewContext('(' + source.slice(start).replace('export ', '').trim() + ')', {
+    generateKeyPairSync: kind => { assert.equal(kind, 'ed25519'); return keys[keyIndex++]; },
+    nativeResolutionFixture,
+    originalReference(root, env, file, ...mode) {
+      assert.equal(root, '/original/root'); assert.equal(env.selected, 'original');
+      calls.push([file, ...mode]); return reference;
+    },
+  });
+  const env = {selected: 'original', ACTQL_TEST_SAVED_EFFECT_APPROVAL_SINGLE_WIRE: 'foreign'};
+  const actual = fixture('/original/root', env, true, true, true);
+  assert.deepEqual(calls, [
+    ['src/platform_native/client_host/run_checkpoint_wbtest.mbt', true, true, true],
+    ['src/platform_native/client_host/run_effect_receipt_wbtest.mbt', true, true, true],
+  ]);
+  assert.equal(keyIndex, 2);
+  assert.equal(env.ACTQL_TEST_SAVED_EFFECT_APPROVAL_SINGLE_WIRE, 'foreign');
+  for (const singleClaim of ['true', 1, null]) {
+    assert.throws(() => nativeResolutionFixture(undefined, {...signers, singleClaim}),
+      /Invalid self-contained fixture claim selection/u);
+  }
+  assert.throws(() => nativeResolutionFixture(reference, {...signers, singleClaim: true}),
+    /Invalid self-contained fixture claim selection/u);
+  const without = (value, ...fields) => Object.fromEntries(Object.entries(value)
+    .filter(([key]) => !fields.includes(key)));
+  for (const [kind, claims] of [
+    ['SINGLE', ['effect_scope_approved']],
+    ['PARTIAL', ['effect_scope_approved', 'partial_application_accepted']],
+  ]) {
+    const wire = actual[`ACTQL_TEST_SAVED_EFFECT_APPROVAL_${kind}_WIRE`];
+    assert.equal(typeof wire, 'string');
+    const value = JSON.parse(wire);
+    assert.deepEqual(value.requirements, claims);
+    assert.equal(value.verified_reviewer_id, 'native-reviewer');
+    const approval = value.approval_evidence.compatibility_approval;
+    assert.deepEqual(approval.claims, claims);
+    assert.equal(approval.approver, 'native-reviewer');
+    verifyIdentity(without(value, 'verified_resolution_cid'), value.verified_resolution_cid);
+    verifyIdentity(without(approval, 'attestation_cid'), approval.attestation_cid);
+    const unsignedApproval = without(approval, 'attestation_cid', 'proof');
+    // Both actual proof layers must verify with the fixture's same keys.
+    const digest = value => 'sha256:' + createHash('sha256').update(canonicalText(value)).digest('hex');
+    assert(verify(null, Buffer.from(digest(unsignedApproval)), signers.reviewer.publicKey,
+      Buffer.from(approval.proof.signature, 'base64')));
+    assert(verify(null, Buffer.from(digest(without(value, 'verified_resolution_cid', 'host_attestation'))),
+      createPublicKey(actual.ACTQL_TEST_CLIENT_HOST_PUBLIC_KEY), Buffer.from(value.host_attestation.signature, 'base64')));
+  }
+});
 
 test('Native checkpoint producers retain the selected optimization and debug mode before the same full Core command', () => {
   const source=readFileSync(new URL('native-client-checkpoint-fixture.mjs',import.meta.url),'utf8');

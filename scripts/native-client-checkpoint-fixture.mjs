@@ -57,5 +57,11 @@ export function nativeClientCheckpointFixture(root, env = process.env, strip = f
       result[`ACTQL_TEST_CLIENT_${prefix}${mode}_VERIFIED_WIRE`] = fixture.ACTQL_TEST_EFFECT_VERIFIED_WIRE;
     }
   }
+  // DATA for the private saved-target binding test, not a production approval.
+  // Use the same independent protocol signer; do not compile another reference.
+  for (const [kind, singleClaim] of [['SINGLE', true], ['PARTIAL', false]]) {
+    result[`ACTQL_TEST_SAVED_EFFECT_APPROVAL_${kind}_WIRE`] =
+      nativeResolutionFixture(undefined, {...signers, singleClaim}).ACTQL_TEST_EFFECT_VERIFIED_WIRE;
+  }
   return result;
 }
