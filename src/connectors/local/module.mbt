@@ -1145,7 +1145,10 @@ fn local_bounded_binary_relation_step(
   required_step : Int,
   operation : LocalBinaryRelationOperation,
 ) -> Bool {
-  guard installed.sequences.get(slot) is Some(sequence) else { return false }
+  guard local_module_relation_obligation_segment(installed, slot, required_step)
+    is Some((sequence, execution, measurement, family)) else {
+    return false
+  }
   let count = @execution.generated_sequence_step_count(sequence)
   let mut position = -1
   for index in 0..<count {
@@ -1174,26 +1177,22 @@ fn local_bounded_binary_relation_step(
   }
   // Family registrations precede the built-in Relation providers. Do not
   // discharge a Relation check with a different provider's acceptance.
-  for provider in installed.managed_providers {
+  for provider in family {
     if managed_provider_accepts(provider, sequence) {
       return false
     }
   }
   if count > 1 &&
     !managed_provider_accepts(
-      selected_relation_provider(
-        installed.execution,
-        installed.measurement,
-        family=installed.managed_providers,
-      ),
+      selected_relation_provider(execution, measurement, family~),
       sequence,
     ) {
     return false
   }
   let provider = match operation {
-    Append => append_provider(installed.execution, installed.measurement)
-    Set => set_provider(installed.execution, installed.measurement)
-    CrossJoin => cross_join_provider(installed.execution, installed.measurement)
+    Append => append_provider(execution, measurement)
+    Set => set_provider(execution, measurement)
+    CrossJoin => cross_join_provider(execution, measurement)
   }
   managed_provider_accepts(provider, selected)
 }

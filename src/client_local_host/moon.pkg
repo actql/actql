@@ -57,6 +57,7 @@ import {
 }
 
 import {
+  "actql/actql/client_infer_host" @infer_host,
   "actql/actql/effect_application" @effect,
   "actql/actql/capacity_host_witness" @binding_host,
   "actql/actql/capacity_witness" @binding_wire,
