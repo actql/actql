@@ -367,15 +367,17 @@ pub fn NativeLocalEffectResumeOriginal::prepare_saved_publication_construction_i
       // Additional current callback/Some/Result and routing-exchange frames.
       // The outcome and routing-issue Some values can coexist after a lost
       // reentry: 2H2R plus their two fields, with no copied Result strings.
-      114L +
+      // Final Saved-state CAS: retained-current closure1H3R1W, selected
+      // route/result and return frames4H5R1W. Original state/IDs are borrowed.
+      119L +
       12L * rows +
       16L * results.to_int64(),
       reference_slots: writer.reference_slots +
-      420L +
+      428L +
       32L * rows +
       48L * results.to_int64(),
       scalar_words: writer.scalar_words +
-      208L +
+      210L +
       16L * rows +
       24L * results.to_int64(),
       owned_utf16_units: writer.owned_utf16_units + bound,
@@ -458,18 +460,31 @@ pub fn NativeLocalEffectResumeOriginal::retain_saved_publication_state_in_origin
   guard self.subject is Some(SavedSigningSubject(read)) && !self.retired else {
     return Err(Construction)
   }
-  read.owner.capture
-  .retain_observed_run_state_in_original_read(
-    self.principal,
-    self.connection,
-    self.reference,
-    self.request,
-    observed,
-    now,
-  )
-  .map_err(issue => {
-    NativeLocalSavedEffectPublicationIssue::Original(
-      HostAttestationOriginal(issue),
+  // The opaque observation already retains the original publisher. Borrow
+  // its same bound Journal route for this final Submission-state CAS too;
+  // the Store commit alone cannot supply a Saved-state acknowledgement.
+  guard physical_equal(observed.host, self.host) &&
+    observed.request == self.request &&
+    observed.publisher.authority.capture is Some(capture) &&
+    physical_equal(capture, read.owner.capture) &&
+    observed.publisher.journal_operation is Some(_) else {
+    return Err(Construction)
+  }
+  observed.publisher
+  .with_original_journal_read((host, _) => {
+    if !physical_equal(host, self.host) {
+      return Err(SelectionMismatch)
+    }
+    capture
+    .retain_observed_run_state_in_original_read(
+      self.principal,
+      self.connection,
+      self.reference,
+      self.request,
+      observed,
+      now,
     )
+    .map_err(issue => NativeLocalPublisherBindingIssue::Adoption(issue))
   })
+  .map_err(issue => NativeLocalSavedEffectPublicationIssue::Publisher(issue))
 }

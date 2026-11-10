@@ -152,6 +152,10 @@ its original error, before attempting Journal reentry. A separate typed routing
 issue preserves a failed return/reentry. Neither observation promotes success
 through a missing acknowledgement, and another commit is refused; the same
 pending publication remains responsible for reconciliation and retirement.
+The final Saved Run-state CAS also borrows the same Journal operation from the
+actual opaque publication observation's original publisher. Its original
+reference/Request join, independent RunRead Account, current publication and CAS
+remain in place; Store commit is not a substitute for that acknowledgement.
 The restoration-to-application boundary first retains the composed extent as
 data, then enters that same original constructor to acquire usable backing before
 resizing its byte token. A Read-side resize alone cannot acquire more business
