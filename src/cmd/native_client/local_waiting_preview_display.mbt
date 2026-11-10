@@ -63,12 +63,12 @@ fn local_waiting_preview_display(
     return None
   }
   try {
-    let source = @source.parse_json(preview, {
+    let source = @source.parse_json_bytes_preserving(@utf8.encode(preview), {
       max_input_bytes: 65536,
       max_nodes: 8192,
       max_depth: 64,
     }).unwrap_or_else(() => stop("LocalEffectReviewDisplayUnavailable"))
-    let root = @canonical.from_source(source, 8192, 64, 65536) catch {
+    let root = @canonical.from_source(source, 8192, 64, 65536, data_keys=true) catch {
       _ => stop("LocalEffectReviewDisplayUnavailable")
     }
     guard local_preview_field(root, "effects") is @canonical.Array(effects) else {

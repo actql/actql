@@ -508,7 +508,8 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
   if operation == "status" ||
     operation == "cancel" ||
     operation == "approve" ||
-    operation == "reject" {
+    operation == "reject" ||
+    (public_run && !child.flags.get("json").unwrap_or(false)) {
     command_preparation_result(
       self.prepare_run_observation_operation(
         journal=operation == "approve" || operation == "reject",
@@ -692,12 +693,16 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
               stop("LocalReadOriginalCustodyUnavailable")
             })
             return Ok(
-              local_run_reply(
-                child,
+              if child.flags.get("json").unwrap_or(false) {
                 self.present_retained_run(
                   host, capture, configuration, runtime, crypto, child, reply,
-                ),
-              ),
+                )
+              } else {
+                let wire = self.present_retained_run(
+                  host, capture, configuration, runtime, crypto, child, reply,
+                )
+                self.display_saved_waiting_run(capture, configuration, wire)
+              },
             )
           }
           let original_input = match preflight {

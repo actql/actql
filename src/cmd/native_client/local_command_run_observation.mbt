@@ -414,7 +414,18 @@ fn LocalCommandPreparationOriginal::saved_observation_business_disjoint(
   match self.business {
     None => true
     Some(business) =>
-      business.profile.kind == SavedEffectApply &&
+      (
+        business.profile.kind == SavedEffectApply ||
+        (
+          business.profile.kind == SourceFreeCompute &&
+          business.selected_profile is None &&
+          business.domain is None &&
+          business.execution is None &&
+          business.operation is None &&
+          business.request_intent is None &&
+          business.request_body is None
+        )
+      ) &&
       business.request_input is None &&
       business.request_initial is None &&
       business.request_parent is None &&

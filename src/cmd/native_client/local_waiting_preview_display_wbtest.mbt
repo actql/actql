@@ -6,7 +6,7 @@ let waiting_preview_state : String =
 // A presentation-only fixture; the Host admits the real Preview before this
 // renderer. Sentinels must stay private even when supplied beside visible DATA.
 let waiting_preview_data : String =
-  #|{"effects":[{"effect_id":"original-effect","effect_kind":"update","target":"Salesforce Opportunity","count":1,"preview_strength":"full_diff","changes":[{"target_row_identity":"Acme\n\u001b[31m","before":{"state":"present","value":{"StageName":"Proposal","Precise":9007199254740993}},"after":{"state":"present","value":{"StageName":"Negotiation","Precise":9007199254740995}},"target_guard":{"secret":"guard-private"}}],"required_permissions":["permission-private"]}],"private_continuation":"continuation-private","authoring_context":"authoring-private"}
+  #|{"effects":[{"effect_id":"original-effect","effect_kind":"update","target":"Salesforce Opportunity","count":1,"preview_strength":"full_diff","changes":[{"target_row_identity":"Acme\n\u001b[31m","before":{"state":"present","value":{"StageName":"Proposal","Precise":9007199254740992}},"after":{"state":"present","value":{"StageName":"Negotiation","Precise":9007199254740994}},"target_guard":{"secret":"guard-private"}}],"required_permissions":["permission-private"]}],"private_continuation":"continuation-private","authoring_context":"authoring-private"}
 
 ///|
 test "waiting human Preview retains exact stored changes and numeric precision" {
@@ -23,8 +23,8 @@ test "waiting human Preview retains exact stored changes and numeric precision" 
   assert_true(human.contains("Preview strength: \"full_diff\""))
   assert_true(human.contains("\"StageName\":\"Proposal\""))
   assert_true(human.contains("\"StageName\":\"Negotiation\""))
-  assert_true(human.contains("9007199254740993"))
-  assert_true(human.contains("9007199254740995"))
+  assert_true(human.contains("9007199254740992"))
+  assert_true(human.contains("9007199254740994"))
   assert_true(human.contains("Acme\\n\\u001b[31m"))
   assert_false(human.contains("\u{001b}"))
   for
@@ -41,11 +41,11 @@ test "waiting human Preview preserves unavailable and absent rather than inventi
   let targeted = waiting_preview_data
     .replace_all(old="full_diff", new="targeted")
     .replace_all(
-      old="{\"state\":\"present\",\"value\":{\"StageName\":\"Proposal\",\"Precise\":9007199254740993}}",
+      old="{\"state\":\"present\",\"value\":{\"StageName\":\"Proposal\",\"Precise\":9007199254740992}}",
       new="{\"state\":\"unavailable\"}",
     )
     .replace_all(
-      old="{\"state\":\"present\",\"value\":{\"StageName\":\"Negotiation\",\"Precise\":9007199254740995}}",
+      old="{\"state\":\"present\",\"value\":{\"StageName\":\"Negotiation\",\"Precise\":9007199254740994}}",
       new="{\"state\":\"absent\"}",
     )
   let human = local_waiting_preview_display(waiting_preview_state, targeted).unwrap()
@@ -95,4 +95,15 @@ test "waiting human Preview enforces exact text bound and no nonwaiting fallback
       None,
     )
   }
+}
+
+///|
+test "waiting human Preview keeps distinct composed and decomposed DATA keys" {
+  let original = waiting_preview_data.replace_all(
+    old="\"StageName\":\"Proposal\"",
+    new="\"StageName\":\"Proposal\",\"é\":1,\"é\":2",
+  )
+  let human = local_waiting_preview_display(waiting_preview_state, original).unwrap()
+  assert_true(human.contains("\"é\":1"))
+  assert_true(human.contains("\"é\":2"))
 }

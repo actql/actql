@@ -3505,8 +3505,8 @@ revision before disclosure. Display does not reconstruct approval, sign,
 resolve, resume, replay Model work or establish physical cleanup.
 
 Only Effect kind/target/count/strength and original row identity/before/after
-are rendered, with bounded canonical literals that preserve numeric precision
-and escape terminal controls. Unavailable and absent evidence remain explicit.
+are rendered, with bounded canonical literals that preserve admitted numeric
+values, distinct DATA-key spellings and escaped terminal controls. Unavailable and absent evidence remain explicit.
 The private continuation, guards, permissions and authoring evidence are not
 printed. This Local presentation does not issue the distinct redaction-bound
 `actql-review-projection/0.1` artifact or become approval evidence. JSON state
