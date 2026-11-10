@@ -247,6 +247,13 @@ fn NativeLocalHostConnection::accept_submitted_effect_material_with_policy(
     is Some(materials_cid) else {
     return Err(Materials(Normalization(UnverifiedOriginalMaterials)))
   }
+  let observation = match
+    @host.capture_client_effect_run_observation_originals(
+      prepared, allowed, definition,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(Journal(ForeignRun))
+  }
   let packet : NativeClientEffectMaterialOriginalPacket = {
     intent_cid: preparation.intent_cid,
     materials_cid,
@@ -338,6 +345,7 @@ fn NativeLocalHostConnection::accept_submitted_effect_material_with_policy(
     effect_material_originals=Some(wire),
     publication_policy_originals=policy_wire,
     local_run_policy_original~,
+    run_observation_originals=Some(observation),
     current_fence=Some(current),
     operations~,
   )

@@ -109,7 +109,24 @@ test "Native Effect finite Policy commits with original material and reopens wit
   assert_eq(accepted.run_admission.unwrap().revision, record.revision)
   assert_false(record.physical_start_claimed)
   assert_false(record.dispatch_reserved)
-  assert_true(record.run_observation_originals is None)
+  guard record.run_observation_originals is Some(observation_wire) else {
+    fail("first Effect admission omitted original Run observation evidence")
+  }
+  let observation = read_native_run_observation_originals(
+    observation_wire, definition,
+  ).unwrap()
+  assert_eq(
+    @publication.run_evidence_value_json(observation.prepared()),
+    @publication.run_evidence_value_json(
+      @host.client_effect_allowed_run_prepared(allowed),
+    ),
+  )
+  assert_eq(
+    @publication.run_evidence_value_json(observation.authorization()),
+    @publication.run_evidence_value_json(
+      @host.client_effect_allowed_run_authorization(allowed),
+    ),
+  )
   let saved = policy
     .lookup_submitted_run_policy(reference, request, 1003.0)
     .unwrap()

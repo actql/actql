@@ -307,6 +307,8 @@ pub fn cancel_client_model_current_state_comparison(@physical_resources.Original
 
 pub fn cancel_client_model_current_state_write(@physical_resources.OriginalCurrentStateWrite[ClientModelReadOrigin]) -> Unit
 
+pub fn capture_client_effect_run_observation_originals(PreparedClientEffectComputation, ClientEffectAllowedRun, @run_publication.PublicationContract) -> Result[ClientRunObservationOriginals, ClientRunObservationOriginalsIssue]
+
 pub fn capture_client_run_observation_originals(ClientCompiledRun, @run_publication.PublicationContract) -> Result[ClientRunObservationOriginals, ClientRunObservationOriginalsIssue]
 
 pub fn charge_client_keyed_lookup_verification(ClientKeyedLookupInput, ClientKeyedRequest, Int) -> Result[Unit, ClientKeyedRequestIssue]
