@@ -67,7 +67,7 @@ pub fn admit_client_effect_review_checkpoint_preview(@checkpoint_runtime.SealedC
 
 pub fn admit_client_effect_review_checkpoint_preview_with_original(@checkpoint_runtime.SealedCheckpoint, ClientEffectAllowedRun, @run_publication.PublicationContract, String, String, @checkpoint_runtime.WireLimits) -> Result[(@run_publication.EffectPreviewIdentity, @canonical_json.CanonicalValue), ClientEffectCheckpointReconciliationIssue]
 
-pub fn admit_client_effect_run_materials(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, ClientCompilationManifests, ClientValuesRunMaterialsLimits, ClientEffectComputationLimits, original_materials? : ClientEffectIssuedNormalizationMaterials?, expected_request? : ClientRequestIdentity?, original_source? : ClientSourcePreparation?, numeric_profile_cid? : String?, original_compilation? : ClientEffectCompilation?) -> Result[ClientEffectRunMaterials, ClientEffectRunMaterialsIssue]
+pub fn admit_client_effect_run_materials(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, ClientCompilationManifests, ClientValuesRunMaterialsLimits, ClientEffectComputationLimits, original_materials? : ClientEffectIssuedNormalizationMaterials?, expected_request? : ClientRequestIdentity?, original_source? : ClientSourcePreparation?, numeric_profile_cid? : String?, original_compilation? : ClientEffectCompilation?, before_compilation? : ((ClientEffectCompilationConstructionInput) -> Result[Unit, ClientEffectRunMaterialsIssue])?) -> Result[ClientEffectRunMaterials, ClientEffectRunMaterialsIssue]
 
 pub fn admit_client_effect_serialization_captured_input(ClientCompiledRun, PreparedClientEffectComputation, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, String) -> Result[ClientSerializationCapturedInput, @run_publication.RunEvidenceValueIssue]
 
@@ -506,6 +506,10 @@ pub fn client_effect_command_content_matches_issued(ClientEffectCommandContent, 
 pub fn client_effect_command_content_wire(ClientEffectCommandContent) -> Result[String, ClientEffectCommandContentIssue]
 
 pub fn client_effect_compilation_compiled_plan(ClientEffectCompilation) -> @run_publication.PublicationContract
+
+pub fn client_effect_compilation_construction_geometry(ClientEffectCompilationConstruction) -> ClientPureCompilationConstruction
+
+pub fn client_effect_compilation_construction_matches(ClientEffectCompilationConstruction, PreparedClientEffectComputation) -> Bool
 
 pub fn client_effect_compilation_infer_original(ClientEffectCompilation) -> (ClientInferPlanGraph, ClientInferOccurrence)?
 
@@ -1897,6 +1901,8 @@ pub fn measure_client_model_provider_binding_construction(String) -> (Int, Int, 
 
 pub fn measure_installed_client_composed_infer_graph_construction(ClientInferOccurrence, @check_environment.ModelExecutionContract, @lowering_relation.SequenceLimits, Int, Int, Int, serialization? : ClientSerializationPlanGraph?, keyed_native_read? : (ClientKeyedAcquisition, @run_publication.PublicationContract)?) -> Result[ClientInferGraphConstruction, ClientInferPlanGraphIssue]
 
+pub fn measure_prepared_client_effect_compilation_construction(ClientEffectCompilationConstructionInput, ClientCompilationManifests, @lowering_relation.SequenceLimits, ClientPureCompilationLimits) -> Result[ClientEffectCompilationConstruction, ClientValuesExecutablePlanIssue]
+
 pub fn measure_prepared_client_execution_material(PreparedClientProgram, ClientCompilationManifests, Int, Int, Int) -> Result[(Int, Int, Int), ClientExecutionMaterialIssue]
 
 pub fn measure_prepared_client_model_compilation_construction(PreparedClientProgram, Array[ClientInferPlanGraph], ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int, Int, Int) -> Result[ClientPureCompilationConstruction, ClientValuesExecutablePlanIssue]
@@ -2208,6 +2214,8 @@ pub fn prepared_client_effect_identity(PreparedClientEffectComputation) -> Clien
 pub fn prepared_client_effect_infer_occurrence(PreparedClientEffectComputation) -> ClientInferOccurrence?
 
 pub fn prepared_client_effect_infer_occurrences(PreparedClientEffectComputation) -> Array[ClientInferOccurrence]?
+
+pub fn prepared_client_effect_measurement_storage(ClientEffectCompilationConstructionInput, ClientPureCompilationLimits) -> Result[@execution_relation.PreparationRepresentationUnits, ClientValuesExecutablePlanIssue]
 
 pub fn prepared_client_effect_normalization_evidence(PreparedClientEffectComputation, ClientEffectNormalization) -> Result[@run_publication.RunEvidenceValue, ClientEffectNormalizationIssue]
 
@@ -2813,6 +2821,14 @@ pub struct ClientEffectCompilation {
 pub(all) enum ClientEffectCompilationAdmissionIssue {
   Issue(ClientEffectCompilationIssue)
   MismatchedCompilation
+}
+
+pub struct ClientEffectCompilationConstruction {
+  // private fields
+}
+
+pub struct ClientEffectCompilationConstructionInput {
+  // private fields
 }
 
 pub(all) enum ClientEffectCompilationIssue {

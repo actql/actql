@@ -104,12 +104,13 @@ fn client_pure_measurement_storage_owned(
   value : PreparedClientProgram,
   components : Array[ClientInferPlanGraph],
   serialization? : ClientSerializationPlanGraph? = None,
+  allow_empty_results? : Bool = false,
 ) -> @execution.PreparationRepresentationUnits? {
   let graph = value.graph
   let tasks = @strategy.graph_task_count(graph).to_int64()
   let results = @strategy.graph_result_count(graph).to_int64()
   let edges = @strategy.graph_data_count(graph).to_int64()
-  if tasks < 1L || results < 1L || edges < 0L {
+  if tasks < 1L || (results < 1L && !allow_empty_results) || edges < 0L {
     return None
   }
   let mut component_nodes = 0L
@@ -314,11 +315,13 @@ fn client_pure_measurement_storage_owned(
   } else {
     0L
   }
-  let result_label = client_compilation_result_node_id(
-      @strategy.graph_result_count(graph) - 1,
-    )
+  let result_label = if results == 0L {
+    0L
+  } else {
+    client_compilation_result_node_id(@strategy.graph_result_count(graph) - 1)
     .length()
     .to_int64()
+  }
   let text = if task_compiler {
     guard @execution.checked_preparation_add_product(
         result_label, tasks, task_label,

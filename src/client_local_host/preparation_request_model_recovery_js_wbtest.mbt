@@ -282,3 +282,111 @@ test "cold Model Scope binds the original recovery Request census and ledger wit
   assert_false(@resources.return_preparation_body_borrow(f.holder).unwrap())
   abort_request_preparation_after_cleanup(f.parent).unwrap()
 }
+
+///|
+test "saved material geometry keeps long text distinct from original Value slots" {
+  let observe = (text : String) => {
+    let cursor = @decode.admit_raw_json(
+      @json.parse(text),
+      {
+        start_byte: 0,
+        end_byte: text.length(),
+        start_line: 1,
+        start_column: 1,
+        end_line: 1,
+        end_column: text.length() + 1,
+        source_path: "<original-material>",
+      },
+      {
+        max_nodes: 20,
+        max_depth: 4,
+        max_string_bytes: 20000,
+        max_total_string_bytes: 20000,
+      },
+    ).unwrap()
+    cursor
+  }
+  let short = "{\"program\":\"x\"}"
+  let long = "{\"program\":\"" + "x".repeat(10000) + "\"}"
+  let short_cursor = observe(short)
+  let long_cursor = observe(long)
+  let a = @decode.observe_subtree_construction_geometry(short_cursor)
+  let b = @decode.observe_subtree_construction_geometry(long_cursor)
+  assert_eq(a.nodes, 2)
+  assert_eq(b.nodes, 2)
+  assert_eq(b.total_utf16 - a.total_utf16, 9999L)
+  let old_a = request_model_recovery_capacity(short.length().to_int64() * 3L, 1).unwrap()
+  let old_b = request_model_recovery_capacity(long.length().to_int64() * 3L, 1).unwrap()
+  let new_a = request_model_recovery_material_capacity(
+    short,
+    a,
+    @decode.admission_usage(short_cursor).depth,
+    1,
+  ).unwrap()
+  let new_b = request_model_recovery_material_capacity(
+    long,
+    b,
+    @decode.admission_usage(long_cursor).depth,
+    1,
+  ).unwrap()
+  // Six original decoded-text roles and four canonical-wire roles grow;
+  // neither Value-slot nor cursor-depth quantity changes with Text length.
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(new_b) -
+    @execution.execution_capacity_retained_bytes(new_a),
+    9999L * (3L * 6L * 8L + 3L * 4L * 8L),
+  )
+  assert_true(
+    @execution.execution_capacity_retained_bytes(new_b) <
+    @execution.execution_capacity_retained_bytes(old_b),
+  )
+  assert_true(
+    @execution.execution_capacity_retained_bytes(old_b) >
+    @execution.execution_capacity_retained_bytes(old_a),
+  )
+  assert_true(
+    request_model_recovery_material_capacity(
+      long,
+      b,
+      @decode.admission_usage(long_cursor).depth,
+      -1,
+    )
+    is None,
+  )
+  assert_true(request_model_recovery_capacity(-1L, 1) is None)
+}
+
+///|
+test "saved structured Program quote uses original constructor inventory not literal text length" {
+  let limits = @publication_host.client_standard_program_preparation_limits().checking.input
+  let prefix = "{\"version\":\"actql/0.1\",\"id\":\"recovery-original\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"text\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"text\":\""
+  let suffix = "\"}]},\"as\":\"seed\"}],\"results\":{\"rows\":{\"from\":\"seed\",\"fields\":[\"text\"]}}}],\"results\":{\"rows\":{\"from\":{\"stage\":\"main\",\"result\":\"rows\"}}}}"
+  let observe = (literal : String) => {
+    let input = @syntax.parse_program_input(prefix + literal + suffix, limits).unwrap()
+    let cursor = @syntax.program_input_cursor(input)
+    let (inventory, spent) = @syntax.observe_program_constructor_inventory(
+      cursor,
+      @syntax.program_constructor_inspection_work_bound(input),
+    )
+    (inventory.unwrap(), @decode.admission_usage(cursor).depth, spent)
+  }
+  let (short, depth, short_work) = observe("x")
+  let (long, long_depth, long_work) = observe("x".repeat(10000))
+  assert_eq(short.retained, long.retained)
+  assert_eq(depth, long_depth)
+  assert_eq(short_work, long_work)
+  let a = request_model_recovery_program_capacity(short, depth).unwrap()
+  let b = request_model_recovery_program_capacity(long, long_depth).unwrap()
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(a),
+    @execution.execution_capacity_retained_bytes(b),
+  )
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(a),
+    @execution.execution_capacity_execution_bytes(b),
+  )
+  // These borrowed original literals remain backed by the Source index;
+  // the Program decoder allocates no additional Value forest for their text.
+  assert_true(@execution.execution_capacity_retained_bytes(a) > 0L)
+  assert_true(request_model_recovery_program_capacity(short, -1) is None)
+}

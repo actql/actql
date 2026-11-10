@@ -67,28 +67,7 @@ fn encode_client_effect_target_selections(
   }
   let wire = try {
     let writer = @encode.writer(65536, 8192, 4)
-    @encode.begin_array(writer)
-    for entry in entries {
-      @encode.begin_object(writer)
-      @encode.key(writer, "check_environment_cid")
-      @encode.string_value(writer, entry.check_environment_cid)
-      @encode.key(writer, "effect_id")
-      @encode.string_value(writer, entry.effect_id)
-      @encode.key(writer, "installation_binding_cid")
-      @encode.string_value(writer, entry.installation_binding_cid)
-      @encode.key(writer, "installation_owner_cid")
-      @encode.string_value(writer, entry.installation_owner_cid)
-      @encode.key(writer, "mapping_cid")
-      @encode.string_value(writer, entry.mapping_cid)
-      @encode.key(writer, "mapping_ref")
-      @encode.string_value(writer, entry.mapping_ref)
-      @encode.key(writer, "stage_index")
-      @encode.number_value(writer, entry.stage_index.to_double())
-      @encode.key(writer, "target_ref")
-      @encode.string_value(writer, entry.target_ref)
-      @encode.end_object(writer)
-    }
-    @encode.end_array(writer)
+    emit_client_effect_target_selection_entries(entries, writer)
     @encode.finish(writer)
   } catch {
     _ => return Err(Encoding)
@@ -564,4 +543,33 @@ pub fn restore_client_effect_run_target_selections(
     return Err(ForeignRun)
   }
   Ok(prepared_client_effect_target_selections(materials.prepared))
+}
+
+///|
+fn emit_client_effect_target_selection_entries(
+  entries : Array[ClientEffectUpdateTargetSelection],
+  writer : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_array(writer)
+  for entry in entries {
+    @encode.begin_object(writer)
+    @encode.key(writer, "check_environment_cid")
+    @encode.string_value(writer, entry.check_environment_cid)
+    @encode.key(writer, "effect_id")
+    @encode.string_value(writer, entry.effect_id)
+    @encode.key(writer, "installation_binding_cid")
+    @encode.string_value(writer, entry.installation_binding_cid)
+    @encode.key(writer, "installation_owner_cid")
+    @encode.string_value(writer, entry.installation_owner_cid)
+    @encode.key(writer, "mapping_cid")
+    @encode.string_value(writer, entry.mapping_cid)
+    @encode.key(writer, "mapping_ref")
+    @encode.string_value(writer, entry.mapping_ref)
+    @encode.key(writer, "stage_index")
+    @encode.number_value(writer, entry.stage_index.to_double())
+    @encode.key(writer, "target_ref")
+    @encode.string_value(writer, entry.target_ref)
+    @encode.end_object(writer)
+  }
+  @encode.end_array(writer)
 }

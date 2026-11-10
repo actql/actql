@@ -395,6 +395,7 @@ fn[P, C] emit_client_execution_material_body(
   effect_target_selections : @canonical.CanonicalValue?,
   emit_program : (P, @encode.Writer) -> Unit raise @encode.EncodeFailure,
   emit_cid : (C, @encode.Writer) -> Unit raise @encode.EncodeFailure,
+  measured_effect_targets? : @encode.EncodingConstructionGeometry? = None,
 ) -> Unit raise @encode.EncodeFailure {
   let identity = prepared_client_identity(value)
   @encode.begin_object(writer)
@@ -411,9 +412,16 @@ fn[P, C] emit_client_execution_material_body(
     @encode.string_value(writer, cid)
   }
   @encode.end_object(writer)
-  if effect_target_selections is Some(body) {
-    @encode.key(writer, "effect_target_selections")
-    @canonical.emit_value(body, writer)
+  match measured_effect_targets {
+    Some(shape) => {
+      @encode.key(writer, "effect_target_selections")
+      @encode.emit_construction_measurement(writer, shape)
+    }
+    None =>
+      if effect_target_selections is Some(body) {
+        @encode.key(writer, "effect_target_selections")
+        @canonical.emit_value(body, writer)
+      }
   }
   @encode.key(writer, "grammar_manifest_cid")
   @encode.string_value(writer, manifests.grammar_manifest_cid)

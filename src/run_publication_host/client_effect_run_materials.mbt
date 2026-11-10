@@ -195,6 +195,10 @@ pub fn admit_client_effect_run_materials(
   original_source? : ClientSourcePreparation? = None,
   numeric_profile_cid? : String? = None,
   original_compilation? : ClientEffectCompilation? = None,
+  before_compilation? : ((ClientEffectCompilationConstructionInput) -> Result[
+    Unit,
+    ClientEffectRunMaterialsIssue,
+  ])? = None,
 ) -> Result[ClientEffectRunMaterials, ClientEffectRunMaterialsIssue] {
   let body = match
     read_client_run_materials_body(
@@ -366,6 +370,25 @@ pub fn admit_client_effect_run_materials(
       } else {
         (Some(inventory), Some(inventory), Some(journal))
       }
+    }
+  }
+  // The original parser/checker/Model preparation has already completed.
+  // A caller may grow its SAME current construction holding here, before
+  // the single artifact compiler. Failure retains that caller's responsibility.
+  // Existing wire-only/default and already-compiled entrances stay unchanged.
+  if original_compilation is None && before_compilation is Some(prepare) {
+    let components = match infer {
+      Some(component) => [component]
+      None => infers
+    }
+    match
+      prepare({
+        owner: prepared,
+        components,
+        normalization: normalization_profile,
+      }) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
     }
   }
   let compilation = match original_compilation {

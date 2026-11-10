@@ -659,6 +659,43 @@ test "Effect compiler keeps the original Model barrier and KEEP in one Plan" {
     100,
     include_results=false,
   ).unwrap()
+  let construction_input = {
+    owner,
+    components: [component],
+    normalization: None,
+  }
+  let codec = {
+    max_facts: 1000,
+    max_witnesses: 10000,
+    max_wire_bytes: 100000,
+    max_nodes: 10000,
+    max_depth: 100,
+  }
+  let storage = prepared_client_effect_measurement_storage(
+    construction_input, codec,
+  ).unwrap()
+  assert_true(storage.record_headers > 0L && storage.reference_slots > 0L)
+  let measured = measure_prepared_client_effect_compilation_construction(
+    construction_input,
+    manifests,
+    run_materials_limits().sequence,
+    codec,
+  ).unwrap()
+  assert_true(client_effect_compilation_construction_matches(measured, owner))
+  assert_true(
+    measure_prepared_client_model_compilation_construction(
+      component.owner,
+      [component],
+      manifests,
+      run_materials_limits().sequence,
+      1000,
+      10000,
+      100000,
+      10000,
+      100,
+    )
+    is Err(TaskGraph(UnsupportedGraph)),
+  )
   let compilation = issue_prepared_client_effect_compilation(
     owner,
     manifests,
@@ -675,6 +712,31 @@ test "Effect compiler keeps the original Model barrier and KEEP in one Plan" {
   )
   assert_true(physical_equal(compilation.compiled.infer.unwrap(), component))
   assert_eq(compilation.compiled.result_names, ["published"])
+  let measured_geometry = client_effect_compilation_construction_geometry(
+    measured,
+  )
+  let actual_plan = parse_plan_identity_value(
+    compilation.compiled.plan.plan.wire,
+    100000,
+    10000,
+    100,
+  ).unwrap()
+  for
+    (name, bound) in [
+      ("nodes", measured_geometry.nodes),
+      ("data_edges", measured_geometry.edges),
+      ("root_refs", measured_geometry.roots),
+      ("execution_material", measured_geometry.material),
+    ] {
+    assert_compilation_geometry_covers(
+      bound,
+      @canonical.object_field(actual_plan, name).unwrap(),
+    )
+  }
+  assert_compilation_geometry_covers(
+    measured_geometry.executable_plan,
+    actual_plan,
+  )
   let allowed = issue_client_effect_allowed_run(
     compilation,
     "sha256:" + "a".repeat(64),
@@ -833,6 +895,18 @@ test "Effect compiler keeps the original Model barrier and KEEP in one Plan" {
       infer=Some(component),
     )
     is Err(ForeignInferOwner),
+  )
+  assert_false(
+    client_effect_compilation_construction_matches(measured, foreign),
+  )
+  assert_true(
+    measure_prepared_client_effect_compilation_construction(
+      { owner: foreign, components: [component], normalization: None, },
+      manifests,
+      run_materials_limits().sequence,
+      codec,
+    )
+    is Err(TaskGraph(UnsupportedGraph)),
   )
   let template = parse_plan_identity_value(
     @publication.run_evidence_value_json(compilation.compiled.template),

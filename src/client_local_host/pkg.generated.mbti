@@ -1077,7 +1077,13 @@ pub fn[I] request_model_direct_occurrences(ClientRequestPreparation[I], I) -> Re
 
 pub fn[I] request_model_recovery_direct_occurrences(ClientRequestPreparation[I], I, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, @run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientDirectAcquisitionOccurrences, ClientInstalledManagedRunIssue]
 
+pub fn request_model_recovery_effect_compiler_capacity(@run_publication_host.ClientEffectCompilationConstruction) -> @execution_relation.ExecutionCapacity?
+
 pub fn[I] request_model_recovery_ledger(ClientRequestPreparation[I], I, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract) -> Result[@physical_resources.Ledger, ClientRequestPreparationIssue]
+
+pub fn request_model_recovery_material_capacity(String, @decode_core.SubtreeConstructionGeometry, Int, Int) -> @execution_relation.ExecutionCapacity?
+
+pub fn request_model_recovery_program_capacity(@stage_syntax.ProgramConstructorInventory, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn[I] request_model_recovery_usage_isolated(ClientRequestPreparation[I], I, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, @physical_strategy_host.CapturedDAG) -> Bool
 

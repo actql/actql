@@ -1,7 +1,9 @@
 ///|
-/// Complete variable construction inputs for the existing effect-free Values/Task/Model
-/// compiler. Every wire extent comes from the original codec. This is sizing
-/// DATA, not an issued Plan, admission, work receipt or capacity reservation.
+/// Complete variable geometry of the existing fragment/final-emitter recipe.
+/// Public Values/Task/Model entrances remain effect-free; the typed Effect
+/// companion retains its own original and reuses this sizing DATA only.
+/// Every wire extent comes from the original codec, never an issued Plan,
+/// admission, work receipt or capacity reservation.
 pub(all) struct ClientPureCompilationConstruction {
   limits : ClientPureCompilationLimits
   parser_geometry : ClientPureCompilationParserGeometry
@@ -189,6 +191,8 @@ fn measure_prepared_client_compilation_construction_owned(
   max_nodes : Int,
   max_depth : Int,
   components : Array[ClientInferPlanGraph],
+  effect? : PreparedClientEffectComputation? = None,
+  extra_profiles? : Array[(String, Unit)] = [],
 ) -> Result[ClientPureCompilationConstruction, ClientValuesExecutablePlanIssue] {
   if !client_pure_compilation_limits_valid(
       max_facts, max_witnesses, max_wire_bytes, max_nodes, max_depth,
@@ -199,11 +203,36 @@ fn measure_prepared_client_compilation_construction_owned(
     prepared_client_requires_task_compilation(value)
   let graph = value.graph
   let count = @strategy.graph_task_count(graph)
+  let mut planned_inputs = @strategy.graph_ordered_inputs_complete(graph)
+  if effect is Some(_) && !planned_inputs {
+    for component in components {
+      if physical_equal(component.owner, value) &&
+        @strategy.graph_keyed_model_plan_inputs_complete(
+          graph,
+          component.task,
+          component.source_ordinal,
+        ) {
+        planned_inputs = true
+        break
+      }
+    }
+  }
   if count == 0 ||
     count > max_nodes ||
-    @strategy.graph_result_count(graph) == 0 ||
-    @strategy.graph_program_has_effects(graph) ||
-    !@strategy.graph_ordered_inputs_complete(graph) {
+    (@strategy.graph_result_count(graph) == 0 && effect is None) ||
+    (@strategy.graph_program_has_effects(graph) && effect is None) ||
+    !planned_inputs {
+    return Err(TaskGraph(UnsupportedGraph))
+  }
+  if effect is Some(original) &&
+    (
+      !physical_equal(
+        graph,
+        @strategy.checked_effect_computation_graph(original.graph),
+      ) ||
+      !physical_equal(value.source, original.source) ||
+      components.is_empty()
+    ) {
     return Err(TaskGraph(UnsupportedGraph))
   }
   let by_task : Map[Int, ClientInferPlanGraph] = Map([])
@@ -375,6 +404,68 @@ fn measure_prepared_client_compilation_construction_owned(
       ),
     )
   }
+  let effect_plans : Array[(String, String)] = []
+  let mut effect_targets = None
+  if effect is Some(original) {
+    let (roots, terminals) = match
+      client_effect_compilation_original_roots(original, max_nodes) {
+      Ok(value) => value
+      Err(_) => return Err(TaskGraph(UnsupportedGraph))
+    }
+    try {
+      if original.target_selections is Some(selection) {
+        let writer = @encode.construction_measuring_writer(
+          max_wire_bytes, max_nodes, max_depth,
+        )
+        emit_client_effect_target_selection_entries(selection.entries, writer)
+        let geometry = finish_client_compilation_measurement(writer)
+        effect_targets = Some(geometry.shape.unwrap())
+        // The actual material issuer parses this original selection before
+        // emission; keep its independent temporary parser/tree and text.
+        results.push(geometry.usage)
+      }
+      for (name, task) in roots {
+        guard outputs.get(task) is Some((node, port, _)) else {
+          return Err(TaskGraph(InvalidEdge))
+        }
+        let writer = @encode.construction_measuring_writer(
+          max_wire_bytes, max_nodes, max_depth,
+        )
+        emit_client_compilation_effect_root(writer, name, node, port)
+        graph_roots.push(finish_client_compilation_measurement(writer))
+      }
+      // Fixed-length placeholders are emitted only into measuring writers.
+      // They cannot become admitted CIDs, Plans, permissions or material.
+      let placeholder = "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+      for (name, terminal) in terminals {
+        let writer = @encode.construction_measuring_writer(
+          max_wire_bytes, max_nodes, max_depth,
+        )
+        @stage_results.emit_effect_plan_pipeline(terminal, writer)
+        results.push(finish_client_compilation_measurement(writer).usage)
+        effect_plans.push((name, placeholder))
+      }
+    } catch {
+      _ => return Err(Encoding)
+    }
+  }
+  let profiles = if components.is_empty() {
+    []
+  } else {
+    client_multi_infer_required_profiles(
+      (),
+      content_contract=if components.any(component => {
+          component.serialization is Some(_)
+        }) {
+        Some(())
+      } else {
+        None
+      },
+    )
+  }
+  for profile in extra_profiles {
+    profiles.push(profile)
+  }
   try {
     if tasks {
       for index in 0..<@strategy.graph_data_count(graph) {
@@ -445,21 +536,10 @@ fn measure_prepared_client_compilation_construction_owned(
       graph_nodes,
       graph_edges,
       graph_roots,
-      if components.is_empty() {
-        []
-      } else {
-        client_multi_infer_required_profiles(
-          (),
-          content_contract=if components.any(component => {
-              component.serialization is Some(_)
-            }) {
-            Some(())
-          } else {
-            None
-          },
-        )
-      },
+      profiles,
       borrowed_input_geometry~,
+      effect_plans~,
+      effect_targets~,
     )
   } catch {
     _ => Err(Encoding)
@@ -490,6 +570,8 @@ fn measure_client_compilation_final_construction(
   graph_roots : Array[ClientMeasuredCompilationGeometry],
   required_profiles : Array[(String, Unit)],
   borrowed_input_geometry? : Array[@encode.EncodingConstructionGeometry?] = [],
+  effect_plans? : Array[(String, String)] = [],
+  effect_targets? : @encode.EncodingConstructionGeometry? = None,
 ) -> Result[ClientPureCompilationConstruction, ClientValuesExecutablePlanIssue] {
   try {
     let nodes = measure_client_compilation_array(graph_nodes)
@@ -543,10 +625,11 @@ fn measure_client_compilation_final_construction(
       (),
       names,
       result_cids,
-      [],
+      effect_plans,
       None,
       (value, writer) => emit_client_compilation_measurement(writer, value),
       measure_client_fragment_cid,
+      measured_effect_targets=effect_targets,
     )
     let material = finish_client_compilation_measurement(material_writer)
     let facts = match
