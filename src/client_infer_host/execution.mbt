@@ -1538,6 +1538,19 @@ pub fn cancel(active : Execution) -> Bool {
 }
 
 ///|
+/// Progress only this original child's confirmed cancellation. A refused stop
+/// leaves the latch unset, so cleanup cannot accidentally advance live work.
+pub fn advance_cancelled(
+  active : Execution,
+  quantum : Int,
+) -> Result[Poll, Issue] {
+  if !active.cancelled {
+    return Err(InvalidAdvance)
+  }
+  advance(active, quantum)
+}
+
+///|
 /// Read a bounded physical phase for cancellation tests and diagnostics.
 /// This grants no Run, model-egress or evidence authority.
 pub fn request_preflight_pending(active : Execution) -> Bool {

@@ -882,6 +882,13 @@ pub fn NativeClientMockModelWork::close(
           return Ok(false)
         }
         @infer.cancel(active) |> ignore
+        if !@infer.execution_stopped(active) {
+          match @infer.advance_cancelled(active, 31) {
+            Err(issue) | Ok(@infer.Failed(issue, ..)) =>
+              return Err(Model(issue))
+            Ok(_) => ()
+          }
+        }
         let closed = mock_model_require(
           @infer.cleanup(active).map_err(issue => {
             NativeClientMockModelIssue::Model(issue)
