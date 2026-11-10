@@ -5,6 +5,8 @@ import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
+import {parse} from 'acorn';
+import {configuration} from './fixtures/installed-infer-fixture.mjs';
 import {exercisePackedInferSource} from './packed-infer-source-acceptance.mjs';
 
 // Independent literal inventories, never read from the selected fixture map.
@@ -138,3 +140,43 @@ for (const failAt of [
     });
   });
 }
+
+
+test('Source INFER Hosts retain the same authored Environment capacity as their Model original', async () => {
+  const source = await readFile(new URL('./fixtures/packed-infer-source.mjs', import.meta.url), 'utf8');
+  const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  const calls = [];
+  function visit(node) {
+    if (node === null || typeof node !== 'object') return;
+    if (node.type === 'CallExpression' && node.callee.type === 'Identifier' &&
+        ['connect', 'openInstalledRemoteHttpHost'].includes(node.callee.name)) calls.push(node);
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value !== null && typeof value === 'object') visit(value);
+    }
+  }
+  visit(tree);
+  const baseEnvironment = JSON.parse(await readFile(new URL('../spec/local-check-environment.json', import.meta.url), 'utf8'));
+  const {installation} = configuration(baseEnvironment);
+  const authorization = Object.freeze({fixture: 'same-authorization'});
+  const registerModelProviders = () => {throw new Error('NoProviderExecutionInSourceControl');};
+  const entrances = calls.filter(call => call.callee.name === 'openInstalledRemoteHttpHost' ||
+    call.arguments[0]?.properties?.some(property => property.key.name === 'installation'));
+  assert.equal(entrances.length, 2, 'exercise the actual Local and HTTPS Host option expressions');
+  for (const call of entrances) {
+    const argument = call.arguments[0];
+    const options = new Function('root', 'authorization', 'installation',
+      'registerModelProviders', 'baseEnvironment', 'userInfo',
+      `return (${source.slice(argument.start, argument.end)});`)(
+      'fixture-root', authorization, installation, registerModelProviders,
+      baseEnvironment, () => ({username: 'fixture-owner'}));
+    const selected = call.callee.name === 'connect' ? options.installation : options;
+    assert.equal(selected.hostCapacityPolicy, baseEnvironment.host_policy_profile.capacity,
+      'the Host must select the same original policy that configuration encoded');
+    assert.equal(selected.modelInstallation, installation);
+    assert.equal(selected.authorization, authorization);
+    assert.equal(selected.registerModelProviders, registerModelProviders);
+    assert.deepEqual(JSON.parse(selected.modelInstallation.environmentWire).host_policy_profile.capacity,
+      selected.hostCapacityPolicy, 'no replacement policy or derived capacity');
+  }
+});
