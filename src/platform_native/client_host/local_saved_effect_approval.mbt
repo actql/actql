@@ -50,6 +50,15 @@ fn saved_effect_review_fields(
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
+  saved_effect_review_fields_from_cursor(cursor)
+}
+
+///|
+// SAME closed private codec for an already funded/admitted original cursor.
+// This neither parses again nor upgrades wire DATA to approval or disclosure.
+fn saved_effect_review_fields_from_cursor(
+  cursor : @decode.Cursor,
+) -> Result[@decode.ObjectView, NativeClientRunJournalIssue] {
   let names = [
     "version", "provider", "request_scope_cid", "authority_scope_cid", "request_id",
     "run_definition_wire", "invocation_wire", "result_manifest_wire", "computation_receipt_wire",
