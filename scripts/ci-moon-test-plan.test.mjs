@@ -253,7 +253,7 @@ test('the actual pinned compiler graph narrows a real Gmail source change and re
   }
 });
 
-test('the actual repository Native compiler narrows a reverse dependency closure with original profiles and partitions', () => {
+test('the actual repository Native compiler retains full profiles and partitions for oversized reverse dependencies', () => {
   const tree = git(['ls-tree', '-rz', 'HEAD', '--', 'src']).slice(0, -1).split('\0').map(line => {
     const [, mode, object, path] = /^(\d{6}) blob ([a-f0-9]{40})\t(.+)$/u.exec(line);
     return {mode, object, path};
@@ -261,14 +261,39 @@ test('the actual repository Native compiler narrows a reverse dependency closure
   const raw = JSON.parse(execFileSync('moon', ['tree', '--package', '--json'],
     {cwd:repository, encoding:'utf8', timeout:60000, maxBuffer:16 * 1024 ** 2}));
   const graph = normalizeMoonGraph(raw, tree, repository);
-  const plan = planMoonTests(['src/bounded_graph_diff/apply_before.mbt'], graph, tree);
+  const paths = ['src/bounded_graph_diff/apply_before.mbt'];
+  // This real reverse closure outgrew the finite file argv. The selector must
+  // retain the complete backend, not raise the bound or truncate its inventory.
+  let moonGraphFailure;
+  assert.throws(() => planMoonTests(paths, graph, tree), error => {
+    assert.equal(error.code, 'ERR_ASSERTION');
+    assert.equal(error.message, 'Selected argv exceeds its finite bound');
+    moonGraphFailure = error.message;
+    return true;
+  });
+  const selection = validateSelection(selectTargets(paths, {moonGraphFailure}));
+  assert.equal(selection.profile, 'full');
+  assert.equal(selection.moonTests, undefined);
+  assert.deepEqual(selection.targets, ['js', 'wasm', 'native']);
+  assert(selection.reason.includes(moonGraphFailure));
+  for (const name of gateJobs) assert.equal(gateJobRequired(selection, name),
+    !['focused-tests', 'main-performance', 'health-quick'].includes(name), name);
+  const executionPackages = nativeMoonPackages({CI_PLAN:JSON.stringify({sourceRevision:hash, selection})});
+  assert.equal(executionPackages, undefined, 'Full fallback must not narrow the original Native entrance');
   const selected = nativeCoreTestSelection(repository, ['--deny-warn', '--release', '--strip', '-j', '2', '--no-parallelize'],
     {env:{...process.env, MOONBIT_NEW_NATIVE:'0'}, partitionProfiles:true, ordinaryPartitions:true,
-      timeoutMs:5 * 60_000, executionPackages:plan.packages});
-  assert.equal(selected.executionScope.mode, 'subset');
-  assert(selected.cases > 0 && selected.cases < selected.executionScope.originalCases);
-  assert.equal(selected.profiles.ordinary.partitions.length, 2);
-  assert(selected.profiles.ordinary.partitions.every(part => part.cases > 0));
+      timeoutMs:5 * 60_000, executionPackages});
+  assert.equal(selected.executionScope, undefined);
+  const profiles = selected.profiles;
+  assert.equal(profiles.uniqueCases, selected.cases);
+  assert.equal(profiles.ordinary.cases + profiles.http.cases + profiles.source.cases +
+    profiles.physicalCases + (profiles.benchmarkDeclarations ?? 0), selected.cases);
+  for (const name of ['ordinary', 'http', 'source', 'scoped']) assert(profiles[name].cases > 0, name);
+  assert.equal(profiles.scoped.cases, profiles.physicalCases + profiles.repeatedGeometryCases);
+  assert.equal(profiles.scoped.tests.length, profiles.scoped.cases);
+  assert.equal(profiles.ordinary.partitions.length, 2);
+  assert(profiles.ordinary.partitions.every(part => part.cases > 0));
+  assert.equal(profiles.ordinary.partitions.reduce((sum, part) => sum + part.cases, 0), profiles.ordinary.cases);
 });
 
 test('executed documentation Quickstart changes retain product owners while pure prose stays maintenance', () => {
