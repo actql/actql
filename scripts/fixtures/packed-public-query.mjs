@@ -1282,54 +1282,61 @@ async function exerciseExactPhysicalTargets() {
     const firstDirectory = resolve(`exact-${field}-local-0`);
     const firstOptions = {mode: 'local', owner: 'local', durability: 'durable',
       installation: {directory: firstDirectory, sourceProfilePath: path, hostCapacityPolicy}};
-    for (const [index, target] of targets.entries()) {
-      const profile = {...baseProfile, schema: target.schema, table: target.table};
-      await writeFile(path, JSON.stringify(profile));
-      if (index === 1) {
-        const before = observe(firstDirectory)();
-        await assert.rejects(connect(firstOptions),
-          {name: 'TypeError', message: 'InstalledHostConfigurationMismatch'});
-        assert.deepEqual(observe(firstDirectory)(), before,
-          'changing only the physical target must refuse without provider I/O');
-      }
-      const directory = resolve(`exact-${field}-local-${index}`);
-      const options = {...firstOptions, installation: {directory, sourceProfilePath: path, hostCapacityPolicy}};
-      const fixture = {name: `exact-${field}-${index}`, format: 'sql',
-        text: 'SELECT id, amount FROM records ORDER BY id',
-        expected: target.rows, columns: [
-          {name: 'id', contract: {type: 'number', nullable: false}},
-          {name: 'amount', contract: {type: 'number', nullable: true}},
-        ]};
-      await exercisePublicQueryInput(connect, options, {
-        requestPrefix: 'exact-local', observe: observe(directory),
-        successes: [fixture], refusals: []});
-      const before = observe(directory)();
-      await writeFile(path, JSON.stringify(Object.fromEntries(
-        Object.entries(profile).reverse()), null, 2) + '\n');
-      const unchanged = await connect(options);
-      unchanged.close();
-      assert.deepEqual(observe(directory)(), before,
-        'unchanged target with reordered JSON must reuse without provider I/O');
-      const remoteDirectory = resolve(`exact-${field}-remote-${index}`);
-      const remoteHost = await openInstalledRemoteHttpHost({directory: remoteDirectory,
-        sourceProfilePath: path, hostCapacityPolicy,
-        authorization: createPublicQueryHttpAuthorization({successes: [fixture]}),
-        authenticate: header => header === 'Bearer fixture-token'
-          ? userInfo().username : undefined});
-      const remoteServer = createServer({key: await readFile('remote.key'),
-        cert: await readFile('remote.crt')}, remoteHost.handler);
-      try {
-        await new Promise(resolve => remoteServer.listen(0, '127.0.0.1', resolve));
-        await exercisePublicQueryInput(connect, {mode: 'remote',
-          endpoint: `https://127.0.0.1:${remoteServer.address().port}/`,
-          token: 'fixture-token', durability: 'durable'}, {
-          requestPrefix: 'exact-http', observe: observe(remoteDirectory),
+    // Configuration comparison belongs to the same live Host, before final close.
+    let original;
+    try {
+      for (const [index, target] of targets.entries()) {
+        const profile = {...baseProfile, schema: target.schema, table: target.table};
+        await writeFile(path, JSON.stringify(profile));
+        if (index === 1) {
+          const before = observe(firstDirectory)();
+          await assert.rejects(connect(firstOptions),
+            {name: 'TypeError', message: 'InstalledHostConfigurationMismatch'});
+          assert.deepEqual(observe(firstDirectory)(), before,
+            'changing only the physical target must refuse without provider I/O');
+        }
+        const directory = resolve(`exact-${field}-local-${index}`);
+        const options = {...firstOptions, installation: {directory, sourceProfilePath: path, hostCapacityPolicy}};
+        const fixture = {name: `exact-${field}-${index}`, format: 'sql',
+          text: 'SELECT id, amount FROM records ORDER BY id',
+          expected: target.rows, columns: [
+            {name: 'id', contract: {type: 'number', nullable: false}},
+            {name: 'amount', contract: {type: 'number', nullable: true}},
+          ]};
+        await exercisePublicQueryInput(connect, options, {
+          requestPrefix: 'exact-local', observe: observe(directory),
           successes: [fixture], refusals: []});
-      } finally {
-        remoteServer.closeAllConnections();
-        await new Promise(resolve => remoteServer.close(resolve));
-        await remoteHost.close();
+        const before = observe(directory)();
+        await writeFile(path, JSON.stringify(Object.fromEntries(
+          Object.entries(profile).reverse()), null, 2) + '\n');
+        const unchanged = await connect(options);
+        if (index === 0) original = unchanged;
+        else await unchanged.close();
+        assert.deepEqual(observe(directory)(), before,
+          'unchanged target with reordered JSON must reuse without provider I/O');
+        const remoteDirectory = resolve(`exact-${field}-remote-${index}`);
+        const remoteHost = await openInstalledRemoteHttpHost({directory: remoteDirectory,
+          sourceProfilePath: path, hostCapacityPolicy,
+          authorization: createPublicQueryHttpAuthorization({successes: [fixture]}),
+          authenticate: header => header === 'Bearer fixture-token'
+            ? userInfo().username : undefined});
+        const remoteServer = createServer({key: await readFile('remote.key'),
+          cert: await readFile('remote.crt')}, remoteHost.handler);
+        try {
+          await new Promise(resolve => remoteServer.listen(0, '127.0.0.1', resolve));
+          await exercisePublicQueryInput(connect, {mode: 'remote',
+            endpoint: `https://127.0.0.1:${remoteServer.address().port}/`,
+            token: 'fixture-token', durability: 'durable'}, {
+            requestPrefix: 'exact-http', observe: observe(remoteDirectory),
+            successes: [fixture], refusals: []});
+        } finally {
+          remoteServer.closeAllConnections();
+          await new Promise(resolve => remoteServer.close(resolve));
+          await remoteHost.close();
+        }
       }
+    } finally {
+      await original?.close();
     }
   }
 }

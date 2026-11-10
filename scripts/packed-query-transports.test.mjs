@@ -88,18 +88,20 @@ test('exact physical HTTPS targets forward only their authored Run and Result ob
     async connect(options) {
       const {directory, sourceProfilePath} = options.installation;
       const profile = files.get(sourceProfilePath), original = installed.get(directory);
-      if (original !== undefined && (profile.schema !== original.schema || profile.table !== original.table)) {
+      if (original !== undefined && (profile.schema !== original.profile.schema || profile.table !== original.profile.table)) {
         throw new TypeError('InstalledHostConfigurationMismatch');
       }
-      installed.set(directory, profile);
-      return {close() {}};
+      const entry = original ?? {profile, leases: 0};
+      entry.leases++;
+      installed.set(directory, entry);
+      return {async close() {if (--entry.leases === 0) installed.delete(directory);}};
     },
     createPublicQueryHttpAuthorization: create,
     async exercisePublicQueryInput(_connect, options, input) {
       calls.push({options, input});
       if (options.mode === 'local') {
-        const {directory, sourceProfilePath} = options.installation;
-        installed.set(directory, files.get(sourceProfilePath));
+        const client = await ports.connect(options);
+        await client.close();
         return;
       }
       const host = opened.at(-1);
@@ -130,6 +132,7 @@ test('exact physical HTTPS targets forward only their authored Run and Result ob
   assert.equal(hostCloses, 4);
   assert.equal(serverCloses, 4);
   assert.equal(calls.length, 8);
+  assert.equal(installed.size, 0, 'every retained original Host lease must be closed');
   assert.deepEqual(calls.map(({input}) => input.successes[0].expected), [
     [{id: 101, amount: 11}], [{id: 101, amount: 11}],
     [{id: 202, amount: 22}], [{id: 202, amount: 22}],
