@@ -55,6 +55,10 @@ fn local_reviewer_proof_snapshot_locked(
   expected_run : String,
   expected_checkpoint : String,
 ) -> Result[NativeLocalReviewerProofSnapshot, NativeClientRunJournalIssue] {
+  // Cold retained reads admit the complete checkpoint in read_checkpoint_record;
+  // the existing operation/transaction slot reuses only that admitted record,
+  // with its row bytes/revision and normal invalidation checks. Keep its opaque
+  // sealed artifact here instead of parsing the same immutable wire again.
   let record = match journal.retained(request) {
     Ok(Some(value)) => value
     Ok(None) => return Err(CustodyLost)
@@ -74,12 +78,7 @@ fn local_reviewer_proof_snapshot_locked(
     checkpoint.artifact.checkpoint.kind == @checkpoint.EffectSet &&
     checkpoint.artifact.checkpoint.run_id() == Some(run_id) &&
     checkpoint.artifact.checkpoint.run_definition_cid() == Some(expected_run) &&
-    checkpoint.state.run_id == run_id &&
-    @checkpoint.admit_checkpoint_wire(
-      checkpoint.artifact.wire,
-      native_checkpoint_limits(),
-    ) ==
-    Ok(checkpoint.artifact) else {
+    checkpoint.state.run_id == run_id else {
     return Err(ForeignRun)
   }
   // These are captured facts, not an eligibility decision. Unknown Effects,
