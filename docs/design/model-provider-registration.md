@@ -104,6 +104,15 @@ ordinary installed inverse, and custom dependency graphs refuse before emitting
 an unrestorable bundle. Other compositions retain their distinct original-material
 paths; this is not a language restriction or permission to discard them.
 
+A single keyed Native Effect Model also retains its original selected
+`native_file_content_read` contract in `infer_native_read_profile_json`.
+Restoration admits that exact contract and binds it to the same checked
+Source/acquisition before rebuilding the existing keyed Model Graph. It does
+not select a current installation or fabricate a default read profile. The
+saved Template, compiled Plan, Request, Run and canonical material checks
+remain mandatory; missing, malformed or foreign profile input cannot become
+read or execution authority. Non-keyed material bytes remain unchanged.
+
 The reconstructed preparation and graph are a new in-process nominal pair
 which must be used together. A caller cannot graft the old graph onto the new
 preparation, use an equal CID as physical custody, or adopt these materials as

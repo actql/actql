@@ -46,8 +46,9 @@ pub fn NativeLocalJournalCapture::prepare_saved_effect_review(
       additional_controls=Some({
         // Receiver, returned Some/Result and the restoration callback. All
         // input identity/Store/String fields remain original borrowed values.
+        // The restoration child retains one original material reference.
         record_headers: 9L,
-        reference_slots: 33L,
+        reference_slots: 34L,
         scalar_words: 8L,
         owned_utf16_units: 0L,
         owned_wire_bytes: 0L,
@@ -256,6 +257,12 @@ pub fn NativeLocalSavedEffectReview::retire_read_aliases(
   self._retained_original = None
   self.retained_persisted = None
   self.approval_original = None
+  if self._retained_restoration is Some(restoration) &&
+    restoration.materials is Some(materials) {
+    @host.clear_prepared_client_effect_custody_after_cleanup(materials.prepared)
+    restoration.materials = None
+    restoration.candidate = None
+  }
   self._retained_restoration = None
   self._retained_file_entry_control = None
   self._retained_publication_construction = None

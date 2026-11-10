@@ -29,6 +29,38 @@ fn client_effect_original_infer_input(
 }
 
 ///|
+// Preserve the selected implementation input of the same original keyed
+// Graph. These bytes are compiler material, never a read or current grant.
+fn client_effect_original_infer_native_read_profile(
+  compilation : ClientEffectCompilation,
+) -> Result[String?, ClientEffectRunMaterialsIssue] {
+  guard compilation.compiled.infer is Some(component) else { return Ok(None) }
+  guard client_effect_compilation_infer_original(compilation) is Some(_) else {
+    return Err(Compilation(ForeignInferOwner))
+  }
+  Ok(
+    client_infer_plan_native_keyed_read_profile(component).map(profile => {
+      @publication.publication_contract_json(profile)
+    }),
+  )
+}
+
+///|
+fn read_client_effect_original_native_read_profile(
+  cursor : @decode.Cursor?,
+  infer : (String, String)?,
+) -> Result[String?, ClientValuesRunMaterialsIssue] {
+  match (cursor, infer) {
+    (None, _) => Ok(None)
+    (Some(value), Some(_)) =>
+      @decode.text(value)
+      .map(wire => Some(wire))
+      .map_err(_ => MaterialsMalformed)
+    _ => Err(MaterialsMalformed)
+  }
+}
+
+///|
 /// Pairing is checked before reconstruction. A half-present or non-string
 /// execution original is malformed, including on a non-Model Program.
 fn read_client_effect_original_infer_input(
@@ -55,13 +87,14 @@ fn restore_client_effect_original_infer(
   prepared : PreparedClientEffectComputation,
   input : (String, String)?,
   limits : ClientValuesRunMaterialsLimits,
+  native_read_profile? : String? = None,
 ) -> Result[ClientInferPlanGraph?, ClientEffectRunMaterialsIssue] {
   let occurrence = prepared_client_effect_infer_occurrence(prepared)
   let missing = ClientEffectRunMaterialsIssue::Input(
     MaterialsEvidence("infer_execution_contract"),
   )
   match (occurrence, input) {
-    (None, None) => Ok(None)
+    (None, None) if native_read_profile is None => Ok(None)
     (Some(occurrence), Some((cid, wire))) => {
       let execution = match
         read_client_infer_occurrence_model_execution(
@@ -79,6 +112,28 @@ fn restore_client_effect_original_infer(
         Ok(value) => value
         Err(_) => return Err(missing)
       }
+      let keyed_native_read = match native_read_profile {
+        None => None
+        Some(wire) => {
+          let profile = match
+            @publication.admit_publication_contract(
+              "native_file_content_read",
+              wire,
+              limits.max_evidence_bytes,
+              limits.max_evidence_nodes,
+              limits.max_evidence_depth,
+            ) {
+            Ok(value) => value
+            Err(_) => return Err(missing)
+          }
+          let keyed = match
+            select_client_effect_model_keyed_acquisition(prepared, occurrence) {
+            Ok(Some(value)) => value
+            _ => return Err(missing)
+          }
+          Some((keyed, profile))
+        }
+      }
       match
         issue_installed_client_composed_infer_plan_graph(
           occurrence,
@@ -87,6 +142,7 @@ fn restore_client_effect_original_infer(
           limits.max_evidence_bytes,
           limits.max_evidence_nodes,
           limits.max_evidence_depth,
+          keyed_native_read~,
         ) {
         Ok(value) => Ok(Some(value))
         Err(_) => Err(missing)

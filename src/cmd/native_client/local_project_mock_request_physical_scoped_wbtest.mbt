@@ -302,6 +302,8 @@ fn native_mock_readme_request_payload(
   authored_predicate? : Bool = false,
   effect_result_source? : Bool = false,
   effect_recipe? : Bool = false,
+  effect_material_restore? : Bool = false,
+  effect_prepared_restore? : Bool = false,
 ) -> String? raise {
   facility.arena.enter_domain_retained_execution(facility.physical).unwrap()
   let wire : Json = {
@@ -547,6 +549,164 @@ fn native_mock_readme_request_payload(
                 )
                 is Ok(_),
               )
+              if effect_material_restore {
+                let wire = @run_host.client_effect_issued_normalization_materials_wire(
+                  compiled.issued,
+                )
+                let read = (candidate : String) => {
+                  @run_host.admit_client_effect_run_materials(
+                    candidate,
+                    @publication.publication_contract_identity(
+                      compiled.definition,
+                    ),
+                    { text_time: false, veca: false, },
+                    {
+                      rela: true,
+                      sga: false,
+                      tea: false,
+                      calendar: false,
+                      text_rank: false,
+                    },
+                    native_request_manifests,
+                    {
+                      preparation: @run_host.client_standard_program_preparation_limits(),
+                      sequence: @run_host.client_standard_values_sequence_limits(),
+                      max_sequence_steps: 1000,
+                      max_sequence_work: 1000,
+                      max_evidence_bytes: 65536,
+                      max_evidence_nodes: 8192,
+                      max_evidence_depth: 64,
+                    },
+                    @run_host.client_standard_effect_computation_limits(),
+                    expected_request=Some(compiled.request),
+                  )
+                }
+                let restored = match read(wire) {
+                  Ok(value) => value
+                  Err(Normalization(UnverifiedOriginalMaterials)) =>
+                    fail("Original saved keyed Template did not restore")
+                  Err(_) => fail("Original saved keyed materials refused")
+                }
+                assert_eq(
+                  @publication.run_evidence_value_json(
+                    @run_host.client_effect_compilation_template(
+                      restored.compilation,
+                    ),
+                  ),
+                  @publication.run_evidence_value_json(
+                    @run_host.client_effect_compilation_template(
+                      compiled.allowed.compilation,
+                    ),
+                  ),
+                )
+                assert_true(
+                  @run_host.restore_client_effect_run_normalization(restored)
+                  is Ok(_),
+                )
+                guard @json.parse(wire) is Object(fields) &&
+                  fields["infer_native_read_profile_json"] is String(profile) else {
+                  fail("Original selected native read profile was not retained")
+                }
+                let malformed = fields.copy()
+                malformed["infer_native_read_profile_json"] = Json::number(1)
+                assert_true(
+                  read(
+                    local_project_mock_relation_wire(Json::object(malformed)).unwrap(),
+                  )
+                  is Err(Input(MaterialsMalformed)),
+                )
+                let foreign = fields.copy()
+                guard @json.parse(profile) is Object(profile_fields) else {
+                  fail("Original Native read profile shape")
+                }
+                profile_fields.remove("transport_cid")
+                profile_fields["source_view_contract_cid"] = Json::string(
+                  "sha256:" + "0".repeat(64),
+                )
+                let changed = @publication.seal_publication_contract(
+                  "native_file_content_read",
+                  local_project_mock_relation_wire(Json::object(profile_fields)).unwrap(),
+                  65536,
+                  8192,
+                  64,
+                ).unwrap()
+                foreign["infer_native_read_profile_json"] = Json::string(
+                  @publication.publication_contract_json(changed),
+                )
+                assert_true(
+                  read(
+                    local_project_mock_relation_wire(Json::object(foreign)).unwrap(),
+                  )
+                  is Err(Input(MaterialsEvidence("infer_execution_contract"))),
+                )
+                let missing = fields.copy()
+                missing.remove("infer_native_read_profile_json")
+                assert_true(
+                  read(
+                    local_project_mock_relation_wire(Json::object(missing)).unwrap(),
+                  )
+                  is Err(Normalization(UnverifiedOriginalMaterials)),
+                )
+                // This isolated restored preparation has no Run borrowers.
+                // Cut its existing custody back-references before the same
+                // physical Request close checks that all aliases have left.
+                @run_host.clear_prepared_client_effect_custody_after_cleanup(
+                  restored.prepared,
+                )
+              }
+              if effect_prepared_restore {
+                let wire = @run_host.issue_client_effect_prepared_original(
+                  compiled.allowed.compilation,
+                ).unwrap()
+                let restored = @run_host.admit_client_effect_prepared_original(
+                  wire,
+                  @publication.publication_contract_identity(
+                    @run_host.client_effect_compilation_compiled_plan(
+                      compiled.allowed.compilation,
+                    ),
+                  ),
+                  { text_time: false, veca: false, },
+                  {
+                    rela: true,
+                    sga: false,
+                    tea: false,
+                    calendar: false,
+                    text_rank: false,
+                  },
+                  native_request_manifests,
+                  {
+                    preparation: @run_host.client_standard_program_preparation_limits(),
+                    sequence: @run_host.client_standard_values_sequence_limits(),
+                    max_sequence_steps: 1000,
+                    max_sequence_work: 1000,
+                    max_evidence_bytes: 65536,
+                    max_evidence_nodes: 8192,
+                    max_evidence_depth: 64,
+                  },
+                  @run_host.client_standard_effect_computation_limits(),
+                ).unwrap()
+                let compilation = @run_host.client_effect_prepared_original_compilation(
+                  restored,
+                )
+                assert_true(
+                  @run_host.issue_client_effect_prepared_original(compilation)
+                  is Ok(same) &&
+                  same == wire,
+                )
+                assert_eq(
+                  @publication.run_evidence_value_json(
+                    @run_host.client_effect_compilation_template(compilation),
+                  ),
+                  @publication.run_evidence_value_json(
+                    @run_host.client_effect_compilation_template(
+                      compiled.allowed.compilation,
+                    ),
+                  ),
+                )
+                @run_host.clear_prepared_client_effect_custody_after_cleanup(
+                  @run_host.client_effect_prepared_original_prepared(restored),
+                )
+              }
               let selected = models[0]
               if effect_recipe {
                 native_mock_readme_effect_recipe(
@@ -658,6 +818,8 @@ fn native_mock_readme_request_in_metadata_read(
   authored_predicate? : Bool = false,
   effect_result_source? : Bool = false,
   effect_recipe? : Bool = false,
+  effect_material_restore? : Bool = false,
+  effect_prepared_restore? : Bool = false,
 ) -> String? raise {
   let original = native_project_mock_model_fixture(
     if content_join {
@@ -730,6 +892,8 @@ fn native_mock_readme_request_in_metadata_read(
     authored_predicate~,
     effect_result_source~,
     effect_recipe~,
+    effect_material_restore~,
+    effect_prepared_restore~,
   )
   facility.arena
   .close_domain_retained_execution(facility.physical)
@@ -1153,5 +1317,27 @@ test "Native original two-row staged import construction fits its unchanged faci
     effect_source_inputs=true,
     static_policy=true,
     effect_recipe=true,
+  )
+}
+
+///|
+test "Native README saved keyed Model Effect restores the exact original first Template" {
+  native_project_mock_model_backed_read(
+    false,
+    readme_request=true,
+    effect_compilation=true,
+    effect_source_inputs=true,
+    effect_material_restore=true,
+  )
+}
+
+///|
+test "Native README held keyed Model Effect restores its exact prepared-original material" {
+  native_project_mock_model_backed_read(
+    false,
+    readme_request=true,
+    effect_compilation=true,
+    effect_source_inputs=true,
+    effect_prepared_restore=true,
   )
 }

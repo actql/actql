@@ -11,6 +11,7 @@ priv struct NativeLocalSavedEffectRestoration {
     NativeLocalSavedEffectApprovalOriginal,
     NativeLocalAdoptionIssue,
   ]?
+  mut materials : @host.ClientEffectRunMaterials?
   mut material_issue : @host.ClientEffectRunMaterialsIssue?
 }
 
@@ -91,6 +92,7 @@ pub fn NativeLocalSavedEffectReview::prepare_approval_restoration_in_original_re
     attempted: false,
     completed: false,
     candidate: None,
+    materials: None,
     material_issue: None,
   })
   Ok(capacity)
@@ -246,6 +248,9 @@ pub fn NativeLocalSavedEffectReview::construct_approval_in_entered_constructor(
         return Err(Journal(CustodyLost))
       }
     }
+    // Retain the restored preparation before the fallible approval builder.
+    // The same review retires its custody cycle even if that builder refuses.
+    restoration.materials = Some(materials)
     saved_effect_approval_original_from_fields(
       fields, materials, request, persisted, wire_limits, effect_limits, publication_present,
     )
