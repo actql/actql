@@ -5,6 +5,7 @@ import {spawnSync} from 'node:child_process';
 import {generateKeyPairSync} from 'node:crypto';
 import {mkdir, readFile, writeFile} from 'node:fs/promises';
 import {createRequire} from 'node:module';
+import {userInfo} from 'node:os';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {connect} from '@actql/node';
@@ -40,7 +41,12 @@ try {
     accountConfiguration: canonical({version: 'actql-execution-account-config/0.1',
       account_id: 'two-source-host', entries: [{entry_id: 'allow-owned-test-run',
         outcome: 'allow', principal: {all: true}, connection: {all: true},
-        resource: {all: true}, operation: {any_of: ['write']}, exclusions: []}]}),
+        resource: {all: true}, operation: {any_of: ['write']}, exclusions: []},
+      {entry_id: 'read-owned-test-run-results', outcome: 'allow',
+        principal: {any_of: [userInfo().username]},
+        connection: {any_of: ['actql-remote-host']},
+        resource: {any_of: ['result/joined', 'result/single_source', 'run']},
+        operation: {any_of: ['read']}, exclusions: []}]}),
     reviewers: [{keyId: 'fixture-reviewer-key', reviewerId: 'fixture-reviewer',
       principalId: 'fixture-reviewer', publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
     hostKey: {keyId: 'fixture-host-key', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})},

@@ -44,10 +44,13 @@ async function readRetained(mode, options, directory) {
   } finally { await client.close(); }
 }
 if (mode === undefined || mode === 'local') await readRetained('local', {mode: 'local', owner: 'local', durability: 'durable',
-  installation: {directory: resolve('local-state'), sourceProfilePath: sourceProfilePath('local'), hostCapacityPolicy}}, 'local-state');
+  installation: {directory: resolve('local-state'), sourceProfilePath: sourceProfilePath('local'), hostCapacityPolicy,
+    ...(retained.local.authorization === undefined ? {} : {authorization: retained.local.authorization})}}, 'local-state');
 if (mode === undefined || mode === 'remote') {
 const host = await openInstalledRemoteHttpHost({directory: resolve('remote-state'),
-  sourceProfilePath: sourceProfilePath('remote'), hostCapacityPolicy, authenticate: header => header === 'Bearer fixture-token'
+  sourceProfilePath: sourceProfilePath('remote'), hostCapacityPolicy,
+  ...(retained.remote.authorization === undefined ? {} : {authorization: retained.remote.authorization}),
+  authenticate: header => header === 'Bearer fixture-token'
     ? userInfo().username : undefined});
 const server = createServer({key: await readFile('remote.key'),
   cert: await readFile('remote.crt')}, host.handler);

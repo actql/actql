@@ -105,8 +105,12 @@ const accountConfiguration = (outcome, operation, accountId) => canonical({
 
 function hostAuthorization(observe) {
   const keys = generateKeyPairSync('ed25519');
+  const account = JSON.parse(accountConfiguration('allow', 'write', 'planner-selection-host'));
+  account.entries.push({entry_id: 'read-original', outcome: 'allow',
+    principal: {any_of: [userInfo().username]}, connection: {any_of: ['actql-remote-host']},
+    resource: {any_of: ['result/selected', 'run']}, operation: {any_of: ['read']}, exclusions: []});
   return {
-    accountConfiguration: accountConfiguration('allow', 'write', 'planner-selection-host'),
+    accountConfiguration: canonical(account),
     reviewers: [{keyId: 'fixture-reviewer-key', reviewerId: 'fixture-reviewer',
       principalId: 'fixture-reviewer', publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
     hostKey: {keyId: 'fixture-host-key', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})},

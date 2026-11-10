@@ -1341,8 +1341,10 @@ async function exerciseExactPhysicalTargets() {
   }
 }
 const retainedStrings = {};
-const recordString = mode => item => {
-  if (item.name === 'exact-string-values') retainedStrings[mode] = item;
+const recordString = (mode, authorization) => item => {
+  if (item.name === 'exact-string-values') retainedStrings[mode] = {
+    ...item, ...(authorization === undefined ? {} : {authorization}),
+  };
 };
 const cohortDirectory = (root, index) => index === 0 ? root : `${root}-cohort-${index + 1}`;
 const cohortRunCount = cohort => cohort.successes.length + cohort.executionFailures.length;
@@ -1397,7 +1399,7 @@ const recordCohort = (mode, directory, cohort, authorization) => {
   if (authorization !== undefined) saved.authorization = authorization;
   if (cohort.successes.length > 0) retainedCohorts.push(saved);
   return async item => {
-    recordString(mode)(item);
+    recordString(mode, authorization)(item);
     if (item.name.startsWith('time-series-primary-')) await timeSeriesPrimaryReceipts.record(item, mode);
     if (item.name.startsWith('carrier-continuation-')) await carrierContinuationReceipts.record(item, mode);
     if (item.name.startsWith('temporal-')) await temporalJoinReceipts.record(item, mode);

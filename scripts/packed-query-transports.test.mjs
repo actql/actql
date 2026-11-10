@@ -16,6 +16,22 @@ import {publicQueryResultOracles} from './fixtures/public-query-input.mjs';
 const helper = new URL('./fixtures/packed-query-transport-owner.mjs', import.meta.url).href;
 const command = (name, source) => ({name, args: ['--input-type=module', '-e', source]});
 
+async function fixtureSyntax(path) {
+  const {parse} = await import('acorn');
+  const source = await readFile(new URL(path, import.meta.url), 'utf8');
+  const nodes = [];
+  const visit = node => {
+    if (node === null || typeof node !== 'object') return;
+    if (typeof node.type === 'string') nodes.push(node);
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value !== null && typeof value === 'object') visit(value);
+    }
+  };
+  visit(parse(source, {sourceType: 'module', ecmaVersion: 'latest'}));
+  return {source, nodes};
+}
+
 test('public query HTTPS observation selects only its original operator and authored Result names', async () => {
   const {parse} = await import('acorn');
   const source = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
@@ -139,6 +155,121 @@ test('exact physical HTTPS targets forward only their authored Run and Result ob
     [{id: 303, amount: 33}], [{id: 303, amount: 33}],
     [{id: 404, amount: 44}], [{id: 404, amount: 44}],
   ]);
+});
+
+test('packed two-source observations retain the same scoped policy as their source registration', async () => {
+  const {parse} = await import('acorn');
+  const accountFrom = async path => {
+    const source = await readFile(new URL(path, import.meta.url), 'utf8');
+    const syntax = parse(source, {sourceType: 'module', ecmaVersion: 'latest'});
+    const accounts = [];
+    const visit = node => {
+      if (node === null || typeof node !== 'object') return;
+      if (node.type === 'Property' && node.key.name === 'accountConfiguration') accounts.push(node.value);
+      for (const value of Object.values(node)) {
+        if (Array.isArray(value)) value.forEach(visit);
+        else if (value !== null && typeof value === 'object') visit(value);
+      }
+    };
+    visit(syntax);
+    assert.equal(accounts.length, 1);
+    const [account] = accounts;
+    return JSON.parse(Function('canonical', 'userInfo',
+      `return (${source.slice(account.start, account.end)});`)(JSON.stringify,
+        () => ({username: 'two-source-operator'})));
+  };
+  const packed = await accountFrom('./fixtures/packed-two-source-public-query.mjs');
+  const source = await accountFrom('../adapters/host-node/two-source-public-host.test.mjs');
+  assert.deepEqual(packed, source, 'ordinary packed observations use the existing source operator policy');
+  assert.deepEqual(packed.entries[1], {entry_id: 'read-owned-test-run-results', outcome: 'allow',
+    principal: {any_of: ['two-source-operator']}, connection: {any_of: ['actql-remote-host']},
+    resource: {any_of: ['result/joined', 'result/single_source', 'run']},
+    operation: {any_of: ['read']}, exclusions: []});
+});
+
+test('documented two-source HTTPS example uses the existing exact Result observer policy', async () => {
+  const {source, nodes} = await fixtureSyntax('./fixtures/packed-two-source-example.mjs');
+  const accounts = nodes.filter(node => node.type === 'Property' && node.key.name === 'accountConfiguration');
+  assert.equal(accounts.length, 1);
+  const value = accounts[0].value;
+  const actual = JSON.parse(Function('canonical', 'userInfo',
+    `return (${source.slice(value.start, value.end)});`)(JSON.stringify,
+      () => ({username: 'example-operator'})));
+  const original = await fixtureSyntax('./fixtures/packed-public-query.mjs');
+  const declaration = original.nodes.find(node => node.type === 'FunctionDeclaration' &&
+    node.id.name === 'createPublicQueryHttpAuthorization');
+  const create = Function('userInfo', 'canonical', 'publicQueryResultOracles',
+    `return (${original.source.slice(declaration.start, declaration.end)});`)(
+      () => ({username: 'example-operator'}), JSON.stringify, publicQueryResultOracles);
+  assert.deepEqual(actual, JSON.parse(create({successes: [{resultName: 'joined'}]}).accountConfiguration));
+});
+
+test('planner Host observation policy leaves original provider read Deny independent', async () => {
+  const {source, nodes} = await fixtureSyntax('./fixtures/planner-selection-public-query.mjs');
+  const account = nodes.find(node => node.type === 'VariableDeclarator' && node.id.name === 'accountConfiguration');
+  const accountConfiguration = Function('canonical', `return (${source.slice(account.init.start, account.init.end)});`)(JSON.stringify);
+  const declaration = nodes.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'hostAuthorization');
+  const create = Function('generateKeyPairSync', 'accountConfiguration', 'canonical', 'userInfo',
+    `return (${source.slice(declaration.start, declaration.end)});`)(
+      () => ({publicKey: {export: () => 'public-fixture'}, privateKey: {export: () => 'private-fixture'}}),
+      accountConfiguration, JSON.stringify, () => ({username: 'planner-operator'}));
+  const observe = () => {};
+  const authorization = create(observe);
+  const policy = JSON.parse(authorization.accountConfiguration);
+  assert.equal(authorization.observe, observe);
+  assert.deepEqual(policy.entries[0], JSON.parse(accountConfiguration('allow', 'write', 'planner-selection-host')).entries[0]);
+  assert.deepEqual(policy.entries[1], {entry_id: 'read-original', outcome: 'allow',
+    principal: {any_of: ['planner-operator']}, connection: {any_of: ['actql-remote-host']},
+    resource: {any_of: ['result/selected', 'run']}, operation: {any_of: ['read']}, exclusions: []});
+  assert.deepEqual(JSON.parse(accountConfiguration('deny', 'read', 'provider-original')).entries,
+    [{entry_id: 'fixture-entry', outcome: 'deny', principal: {all: true}, connection: {all: true},
+      resource: {all: true}, operation: {any_of: ['read']}, exclusions: []}]);
+});
+
+test('exact-string fresh Saved readers forward only the originally recorded operator policy', async () => {
+  const original = await fixtureSyntax('./fixtures/packed-public-query.mjs');
+  const record = original.nodes.find(node => node.type === 'VariableDeclarator' && node.id.name === 'recordString').init;
+  const reader = await fixtureSyntax('./fixtures/string-values-restart.mjs');
+  const entry = reader.nodes.find(node => node.type === 'IfStatement' &&
+    node.test.type === 'UnaryExpression' && node.test.operator === '!' && node.test.argument.name === 'cohortOnly');
+  assert.match(original.source, /recordString\(mode, authorization\)\(item\)/u);
+  for (const authorization of [undefined, Object.freeze({accountConfiguration: 'original-scoped-policy'})]) {
+    const retained = {hostCapacityPolicy: {original: 'capacity'}, sourceProfilePaths: {local: 'local-source', remote: 'remote-source'}};
+    const recordString = Function('retainedStrings', `return (${original.source.slice(record.start, record.end)});`)(retained);
+    const item = {name: 'exact-string-values', ref: {original: 'run'}, expected: [{value: 'e\u0301'}], columns: [{name: 'value'}]};
+    recordString('local', undefined)(item);
+    recordString('remote', authorization)(item);
+    assert.equal(retained.remote.authorization, authorization);
+    if (authorization === undefined) assert.equal(Object.hasOwn(retained.remote, 'authorization'), false);
+    const opened = [], connections = [];
+    let hostCloses = 0, clientCloses = 0;
+    const ports = {
+      assert, cohortOnly: false, mode: undefined, resolve: path => path, accepted: () => 1,
+      async readFile(path) {return path === 'retained-string-results.json' ? JSON.stringify(retained) : 'fixture-TLS';},
+      async connect(options) {
+        connections.push(options);
+        return {async attach(ref) {
+          assert.deepEqual(ref, item.ref);
+          return {async status() {return {status: 'succeeded'};}, result() {
+            return {async all() {return item.expected;}, async describe() {return {columns: item.columns};}};
+          }};
+        }, async close() {clientCloses++;}};
+      },
+      async openInstalledRemoteHttpHost(options) {
+        opened.push(options);return {handler() {}, async close() {hostCloses++;}};
+      },
+      createServer() {return {listen(_port, _host, callback) {callback();}, address() {return {port: 443};},
+        closeAllConnections() {}, close(callback) {callback();}};},
+      userInfo: () => ({username: 'saved-operator'}), console: {log() {}},
+    };
+    const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+    await AsyncFunction(...Object.keys(ports), reader.source.slice(entry.start, entry.end))(...Object.values(ports));
+    assert.equal(opened.length, 1);
+    assert.deepEqual(opened[0].authorization, authorization);
+    assert.equal(connections.length, 2);
+    assert.equal(hostCloses, 1);
+    assert.equal(clientCloses, 2);
+  }
 });
 
 test('Host failure diagnostics preserve original authorization and observer call semantics', () => {
