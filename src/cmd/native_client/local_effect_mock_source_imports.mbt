@@ -57,7 +57,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_source_imports(
       state._retained_prepared,
     ),
   )
-  let unit = @run_host.client_infer_occurrence_coordinates(occurrence).0
+  let unit = @run_host.client_infer_occurrence_coordinates(occurrence).1
   let count = @checked.unit_result_import_count(program, unit).unwrap_or_else(() => {
     stop("LocalOriginalEffectImportsUnavailable")
   })
@@ -66,7 +66,6 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_source_imports(
   }
   guard held.imports is None &&
     held.source_imports.is_empty() &&
-    state.lookup is Some(lookup) &&
     held.publication_context is Some((observation, invocation, retention)) else {
     stop("LocalOriginalEffectImportsUnavailable")
   }
@@ -92,7 +91,8 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_source_imports(
     let (stage, _, _) = @run_host.client_direct_acquisition_occurrence_at(
       direct, source_index,
     ).unwrap()
-    let acquired = @run_host.issue_client_keyed_native_effect_source_unit(
+    let pending = if state.lookup is Some(lookup) {
+      @run_host.issue_client_keyed_native_effect_source_unit(
         state._retained_prepared,
         lookup,
         source_index,
@@ -101,6 +101,33 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_source_imports(
         1024,
         20,
       )
+    } else {
+      guard state.model_read is Some(read) &&
+        state.captured_inputs.get(source_index) is Some(input) &&
+        @row_host.row_captured_input_source(input) is Some(captured) &&
+        read.identities.get(source_index) is Some(identity) &&
+        read.logicals.get(source_index) is Some(logical) &&
+        read.observations.get(source_index) is Some(observed) &&
+        state.input_originals.get(source_index) is Some((acquisition, _)) else {
+        stop("LocalOriginalEffectImportsUnavailable")
+      }
+      @run_host.issue_client_whole_native_effect_source_unit(
+        state._retained_prepared,
+        direct,
+        source_index,
+        captured,
+        identity,
+        acquisition,
+        logical,
+        observed,
+        @run_host.client_request_authority_scope_cid(state.first.request),
+        retention,
+        16384,
+        1024,
+        20,
+      )
+    }
+    let acquired = pending
       .map_err(issue => LocalNativeMockEffectProposalIssue::Source(issue))
       .native_effect_proposal(self.original)
     let source : LocalNativeMockEffectSourceImport = {
@@ -123,6 +150,16 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_source_imports(
         @run_host.client_effect_acquired_invocation(acquired),
       ),
     )
+    if state.lookup is None {
+      // These are newly encoded whole-input metadata originals. The keyed
+      // branch already retains its identical bodies on the original lookup.
+      for
+        (_, body) in @run_host.client_effect_acquired_dependency_bodies(
+          acquired,
+        ) {
+        construction.retain_wire(self.original, body)
+      }
+    }
     for index in 0..<@strategy.captured_effect_local_result_count(held.inputs) {
       let result = @strategy.captured_effect_local_result_at(held.inputs, index).unwrap_or_else(() => {
           stop("LocalOriginalEffectImportsUnavailable")
