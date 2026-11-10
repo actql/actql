@@ -33,9 +33,16 @@ test('deal-review fixture declares its three internal Source policies without a 
   const views = Object.values(catalogue.connections).flatMap(connection => connection.views);
   assert.deepEqual(views.map(view => [view.resource, view.data_classification]),
     [['Opportunity', 'internal'], ['files', 'internal'], ['contents', 'internal']]);
-  const old = JSON.parse(projectTemplateFiles('churn-risk-mock')['mock/catalog.json']);
-  assert(Object.values(old.connections).flatMap(connection => connection.views)
-    .every(view => view.data_classification === undefined));
+  const plain = JSON.parse(projectTemplateFiles()['actql.config.json']);
+  assert.equal(Object.hasOwn(plain, 'mock'), false);
+});
+
+test('churn-risk fixture declares the classification of both original input Sources', () => {
+  const files = projectTemplateFiles('churn-risk-mock');
+  const catalogue = JSON.parse(files['mock/catalog.json']);
+  const views = Object.values(catalogue.connections).flatMap(connection => connection.views);
+  assert.deepEqual(views.map(view => [view.resource, view.data_classification]),
+    [['Account', 'internal'], ['usage_30d', 'internal']]);
 });
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
