@@ -35,6 +35,12 @@ fn effect_serialization_prefix_fixture(
       fail("Effect serialization fixture Graph preparation failed")
     Err(TargetSelection(_)) =>
       fail("Effect serialization fixture target selection failed")
+    Err(RequestValuePolicies(_)) =>
+      fail("Effect serialization fixture request value policies failed")
+    Err(RequestValuePolicyConstruction) =>
+      fail(
+        "Effect serialization fixture request value policy construction failed",
+      )
   }
 }
 
