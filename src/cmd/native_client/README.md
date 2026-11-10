@@ -65,10 +65,12 @@ mock target updates, and retained Named Result rereads without replaying writes.
 An unsupported binding or approval supplier fails; it is never a skip or a
 successful refusal. Its harness unit tests alone do not establish this acceptance.
 
-The Native project adapter currently refuses mock execution. Complete acceptance
-still requires its physical project/catalog/Source/Model bindings, original
-Effect authority supplier, and same-Run approval/continuation to be connected.
-The source-free and Remote installed checks do not establish this workflow.
+The Native project adapter connects physical project/catalog/Source/Model
+bindings and the original Effect authority supplier to same-Run approval and
+continuation. Complete acceptance requires the installed workflow to finish
+approval, publication, its first close and cold Named Result reads with the
+same matching artifact. Source connections, source-free checks and Remote
+installed checks do not establish that complete workflow.
 
 Native Project declaration preparation uses the original connection's connector,
 complete catalogue wire and resolved payload locator for the declared-file scope
