@@ -108,6 +108,15 @@ allocates at most its actual encoded payload size and the existing 64KiB chunk
 maximum; the Read quote uses the same selected chunk size. These are lifetime
 and representation correspondences, not a raised Read ticket or a new grant.
 
+The saved file application keeps restoration and response construction on the
+same original byte reservation. After its original Ledger view is issued, a
+response continuation may grow that reservation only with that exact view in
+the same entered business scope. The default constructor retains its pristine,
+unclaimed contract. Absolute extents grow monotonically, including actual
+response backing and every earlier ACK; attempts, holdings and transfers are
+never reset or refunded. The callback runs outside file locks, followed by the
+same current filesystem generation and original logical row-version checks.
+
 ## Reviewer proof artifacts
 
 Approved Effect Resolutions already require both the same-key signed Approval

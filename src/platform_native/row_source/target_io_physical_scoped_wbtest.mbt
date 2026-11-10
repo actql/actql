@@ -386,6 +386,103 @@ fn target_io_fixture_funding_work(directory : String) -> Unit raise {
     )
     is Err(InvalidInput),
   )
+  // A distinct named update entrance stages its SAME response outside locks.
+  // Decline happens before Reader/body/write and keeps the partial Root for
+  // the original close; the general update+callback refusal above stays exact.
+  let update_holder : Ref[NativeRelationFileTargetIO?] = Ref(None)
+  let update_calls = Ref(0)
+  let update_before_body = Ref(false)
+  let update = prepare_native_relation_file_target_update_io(
+    provider,
+    ["value"],
+    "first",
+    (
+      "sha256:a77b7acbf9bec014f38f734e7a6a4aad2907d4ca590d3a5e25cd108485f356b1",
+      "{\"value\":9}", "target-staged-update",
+    ),
+    bytes => {
+      let current = update_holder.val.unwrap()
+      update_calls.val += 1
+      update_before_body.val = bytes == target_io_fixture_text.length() &&
+        current.lock is None &&
+        current.reader is None &&
+        current.buffer is None &&
+        current.advance() is Err(Unavailable) &&
+        current.close() is Err(Unavailable)
+      true
+    },
+  ).unwrap()
+  update_holder.val = Some(update)
+  target_io_fixture_run(update)
+  assert_eq(update_calls.val, 1)
+  assert_true(update_before_body.val)
+  assert_true(update.replacement_attempted)
+  assert_eq(
+    update.replacement_acknowledgment().unwrap().replacement(),
+    @utf8.encode(
+      target_io_fixture_text.replace_all(old="\"value\":1", new="\"value\":9"),
+    ),
+  )
+  assert_true(update.close().unwrap())
+  update_holder.val = None
+  let declined = prepare_native_relation_file_target_update_io(
+    provider,
+    ["value"],
+    "first",
+    ("version", "{}", "declined-update"),
+    _ => false,
+  ).unwrap()
+  assert_true(declined.advance() is Err(Capacity))
+  assert_true(
+    declined.lock is None && declined.reader is None && declined.buffer is None,
+  )
+  assert_false(declined.replacement_attempted)
+  assert_eq(declined.byte_counts(), (0L, 0L))
+  assert_true(declined.close().unwrap())
+  let external = @utf8.encode(
+    target_io_fixture_text.replace_all(old="\"value\":1", new="\"value\":7"),
+  )
+  let descriptor = capture_fixture_open(
+    @utf8.encode(directory + "/target-funding.json\u{0000}"),
+    2,
+  )
+  assert_true(descriptor >= 0)
+  let mutated = Ref(false)
+  let stale_after_callback = prepare_native_relation_file_target_update_io(
+    provider,
+    ["value"],
+    "first",
+    (
+      "sha256:286d43ac0985c9c0fcba88ffdf628b47d1cd3ded536717747180f7364501d408",
+      "{\"value\":8}", "stale-after-callback",
+    ),
+    _ => {
+      mutated.val = target_lineage_pwrite(
+          descriptor,
+          external,
+          external.length().to_int64(),
+          0L,
+        ) ==
+        external.length().to_int64() &&
+        target_lineage_sync(descriptor) == 0
+      true
+    },
+  ).unwrap()
+  let mut refused_after_callback = false
+  for _ in 0..<100 {
+    match stale_after_callback.advance() {
+      Ok(false) => ()
+      Err(Document(@rows.ForeignSource)) => {
+        refused_after_callback = true
+        break
+      }
+      _ => fail("post-callback original version must refuse before replacement")
+    }
+  }
+  assert_true(mutated.val && refused_after_callback)
+  assert_false(stale_after_callback.replacement_attempted)
+  assert_true(stale_after_callback.close().unwrap())
+  assert_eq(capture_fixture_close(descriptor), 0)
   for bytes in [-1, provider.limits.page.max_bytes + 1] {
     assert_true(
       native_relation_file_target_read_io_capacity(

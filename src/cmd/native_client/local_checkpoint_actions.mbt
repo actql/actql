@@ -513,20 +513,23 @@ fn LocalCommandPreparationOriginal::saved_effect_file_constructor_capacity(
         changes_wire,
         version,
       })
+      let (physical, _) = @row_file.native_relation_file_target_update_construction(
+        row_binding.provider,
+        installation.write.mapping.write_fields.length(),
+        0,
+        changes_wire,
+      ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
+      demand = Some(
+        match demand {
+          None => physical
+          Some(prior) =>
+            native_mock_effect_capacity_envelope(prior, physical).unwrap_or_else(() => {
+                stop("LocalOriginalEffectCapacityUnavailable")
+              },
+            )
+        },
+      )
     }
-    let physical = @row_file.native_relation_file_target_io_capacity(
-      row_binding.provider,
-      installation.write.mapping.write_fields.length(),
-    ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
-    demand = Some(
-      match demand {
-        None => physical
-        Some(prior) =>
-          native_mock_effect_capacity_envelope(prior, physical).unwrap_or_else(() => {
-            stop("LocalOriginalEffectCapacityUnavailable")
-          })
-      },
-    )
   }
   // Explicit no-file-call inventory, not a successful missing constructor.
   // Zero rows still require the later original Set/Run/publication chain.

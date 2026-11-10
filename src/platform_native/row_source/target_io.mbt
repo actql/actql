@@ -195,6 +195,51 @@ pub fn prepare_native_relation_file_target_io(
   predecessor? : NativeRelationFileReplacementAck? = None,
   before_response? : ((Int) -> Bool)? = None,
 ) -> Result[NativeRelationFileTargetIO, NativeRelationFileIssue] {
+  if update is Some(_) && before_response is Some(_) {
+    return Err(InvalidInput)
+  }
+  prepare_native_relation_file_target_io_original(
+    provider,
+    writable,
+    identity,
+    update~,
+    predecessor~,
+    before_response~,
+  )
+}
+
+///|
+/// Same physical child for a checked update whose response backing is staged.
+/// The callback runs before any lock/Reader/body and supplies no permission.
+/// After it returns the owner locks and reobserves the original file, then
+/// performs the unchanged typed expected-version and replacement checks.
+pub fn prepare_native_relation_file_target_update_io(
+  provider : NativeRelationFilePreparedProvider,
+  writable : Array[String],
+  identity : String,
+  update : (String, String, String),
+  before_response : (Int) -> Bool,
+  predecessor? : NativeRelationFileReplacementAck? = None,
+) -> Result[NativeRelationFileTargetIO, NativeRelationFileIssue] {
+  prepare_native_relation_file_target_io_original(
+    provider,
+    writable,
+    identity,
+    update=Some(update),
+    predecessor~,
+    before_response=Some(before_response),
+  )
+}
+
+///|
+fn prepare_native_relation_file_target_io_original(
+  provider : NativeRelationFilePreparedProvider,
+  writable : Array[String],
+  identity : String,
+  update? : (String, String, String)? = None,
+  predecessor? : NativeRelationFileReplacementAck? = None,
+  before_response? : ((Int) -> Bool)? = None,
+) -> Result[NativeRelationFileTargetIO, NativeRelationFileIssue] {
   if !file_capture_text(identity, provider.limits.page.max_bytes) ||
     writable.is_empty() ||
     writable.length() > provider.limits.page.max_nodes {
@@ -215,9 +260,6 @@ pub fn prepare_native_relation_file_target_io(
   if predecessor is Some(prior) &&
     (update is None || !physical_equal(prior.provider, provider)) {
     return Err(ForeignOriginal)
-  }
-  if update is Some(_) && before_response is Some(_) {
-    return Err(InvalidInput)
   }
   let child : NativeRelationFileTargetIO = {
     original: None,
@@ -275,7 +317,7 @@ fn NativeRelationFileTargetIO::open(self : Self) -> Unit raise FileCaptureStop {
     }
   }
   self.root = Some(root)
-  if self.update is Some(_) {
+  if self.update is Some(_) && self.before_response is None {
     match root.acquire_lock_with_custody(selection.name + ".actql-write.lock") {
       Ok(value) => self.lock = Some(value)
       Err(failure) => {
@@ -284,7 +326,7 @@ fn NativeRelationFileTargetIO::open(self : Self) -> Unit raise FileCaptureStop {
       }
     }
   }
-  let observed = file_require(
+  let mut observed = file_require(
     root.observe_file(selection.name).map_err(issue => Filesystem(issue)),
   )
   self.observation = Some(observed)
@@ -318,6 +360,33 @@ fn NativeRelationFileTargetIO::open(self : Self) -> Unit raise FileCaptureStop {
       raise FileCaptureStop(Unavailable)
     }
     self.before_response = None
+    if self.update is Some(_) {
+      // No external callback runs with this lock held. A fresh observation
+      // after acquiring it must match the size/generation used for backing.
+      match
+        root.acquire_lock_with_custody(selection.name + ".actql-write.lock") {
+        Ok(value) => self.lock = Some(value)
+        Err(failure) => {
+          self.rejected_lock = Some(failure)
+          raise FileCaptureStop(Filesystem(failure.issue()))
+        }
+      }
+      let current = file_require(
+        root.observe_file(selection.name).map_err(issue => Filesystem(issue)),
+      )
+      let actual = file_require(
+        current.generation().map_err(issue => Filesystem(issue)),
+      )
+      if actual.device != generation.device ||
+        actual.inode != generation.inode ||
+        actual.size != generation.size ||
+        !self.same() ||
+        !(self.root is Some(original) && physical_equal(original, root)) {
+        raise FileCaptureStop(ForeignOriginal)
+      }
+      observed = current
+      self.observation = Some(current)
+    }
   }
   match observed.open_reader_with_custody() {
     Ok(value) => self.reader = Some(value)
@@ -741,8 +810,12 @@ pub fn native_relation_file_target_read_io_capacity(
 fn native_relation_target_observation_capacity(
   provider : NativeRelationFilePreparedProvider,
   writable_fields : Int,
+  page? : @rows.RowPageLimits? = None,
 ) -> Int64? {
-  let limits = provider.limits
+  let limits = {
+    ..provider.limits,
+    page: page.unwrap_or(provider.limits.page),
+  }
   guard @encode.text_writer_construction_inventory(
       limits.page.max_bytes,
       limits.page.max_nodes,

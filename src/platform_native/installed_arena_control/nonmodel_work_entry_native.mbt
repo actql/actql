@@ -261,6 +261,31 @@ pub fn InstalledArenaNonModelWorkEntry::grow_in_original_read(
 }
 
 ///|
+// The default constructor keeps its pristine, unclaimed contract. A physical
+// response continuation can supply ONLY this original entry's already issued
+// Ledger view in the same entered business scope. Capacity growth still spends
+// the same reservation and preserves every attempt/transfer/holding counter.
+fn InstalledArenaNonModelWorkEntry::constructor_capacity_original(
+  self : Self,
+  ledger : @resources.Ledger?,
+) -> Bool {
+  match ledger {
+    None => !self.claimed && self.owns_only_control()
+    Some(original) =>
+      self.claimed &&
+      self.ledger_view is Some(view) &&
+      physical_equal(original, view) &&
+      physical_equal(original, self.ledger) &&
+      @resources.capacity_reservation_matches(
+        self.ledger,
+        self.control,
+        self.retained_bytes,
+        self.execution_bytes,
+      )
+  }
+}
+
+///|
 /// Fund a constructor inside this SAME original business scope before its
 /// first allocation. Actual contiguous placement is independent of the R/E
 /// envelope. The existing backing owner checks policy/current, acquires and
@@ -271,17 +296,17 @@ pub fn InstalledArenaNonModelWorkEntry::prepare_constructor_in_entered_scope(
   retained_bytes : Int64,
   execution_bytes : Int64,
   contiguous_bytes : Int64,
+  entered_ledger? : @resources.Ledger? = None,
 ) -> Result[Unit, InstalledArenaNonModelWorkEntryIssue] {
   guard self.is_original() &&
     !self.closed &&
     !self.growing &&
-    !self.claimed &&
     !self.finished &&
     !self.settled &&
     retained_bytes >= self.retained_bytes &&
     execution_bytes >= self.execution_bytes &&
     contiguous_bytes > 0L &&
-    self.owns_only_control() &&
+    self.constructor_capacity_original(entered_ledger) &&
     self.execution.live is Some(live) &&
     self.host.nonmodel_entry_scopes_match(
       self.pair,
@@ -325,10 +350,9 @@ pub fn InstalledArenaNonModelWorkEntry::prepare_constructor_in_entered_scope(
   self.execution_bytes = execution_bytes
   if !self.is_original() ||
     self.closed ||
-    self.claimed ||
     self.finished ||
     self.settled ||
-    !self.owns_only_control() ||
+    !self.constructor_capacity_original(entered_ledger) ||
     !self.host.nonmodel_entry_scopes_match(
       self.pair,
       self.read,

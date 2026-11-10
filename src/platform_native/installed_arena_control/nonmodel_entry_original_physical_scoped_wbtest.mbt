@@ -453,6 +453,54 @@ fn nonmodel_constructor_phases(
     entry.usage().attempts == 0 &&
     entry.usage().holdings == 0 &&
     entry.usage().transferred_bytes == 0L
+  let child = @resources.reserve_capacity(ledger, 1024L, 1024L).unwrap()
+  let before_growth = entry.usage()
+  let copied = { ..entry, }
+  assert_true(
+    copied.prepare_constructor_in_entered_scope(
+      20480L,
+      73728L,
+      512L,
+      entered_ledger=Some(ledger),
+    )
+    is Err(Unavailable),
+  )
+  let foreign = @resources.create_ledger({
+    planning_work: 0,
+    attempts: 0,
+    holdings: 0,
+    transfer_bytes: 0L,
+    retained_bytes: 32768L,
+    execution_bytes: 131072L,
+  }).unwrap()
+  assert_true(
+    entry.prepare_constructor_in_entered_scope(
+      20480L,
+      73728L,
+      512L,
+      entered_ledger=Some(foreign),
+    )
+    is Err(Unavailable),
+  )
+  assert_true(
+    entry.prepare_constructor_in_entered_scope(20480L, 73728L, 512L)
+    is Err(Unavailable),
+  )
+  assert_eq(entry.usage(), before_growth)
+  entry
+  .prepare_constructor_in_entered_scope(
+    20480L,
+    73728L,
+    512L,
+    entered_ledger=Some(ledger),
+  )
+  .unwrap()
+  assert_eq(entry.usage().live_reservations, before_growth.live_reservations)
+  assert_eq(entry.usage().attempts, before_growth.attempts)
+  assert_eq(entry.usage().transferred_bytes, before_growth.transferred_bytes)
+  assert_eq(entry.retained_bytes, 20480L)
+  assert_eq(entry.execution_bytes, 73728L)
+  @resources.settle_capacity(ledger, child).unwrap()
   let finished = entry.finish_business_cleanup()
   host.leave_domain_retained_execution(execution).unwrap()
   first && second && token_same && cancel_refused && same && finished

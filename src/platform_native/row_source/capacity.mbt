@@ -275,6 +275,25 @@ fn file_capture_provider_capacity(
   response_bytes? : Int? = None,
   writable_fields? : Int = 0,
 ) -> @execution.ExecutionCapacity? {
+  file_capture_provider_construction(
+    selection,
+    limits,
+    contract,
+    prepared_contract~,
+    response_bytes~,
+    writable_fields~,
+  ).map(value => value.0)
+}
+
+///|
+fn file_capture_provider_construction(
+  selection : NativeRelationFileSelection,
+  limits : NativeRelationFileLimits,
+  contract : @contract.Contract,
+  prepared_contract? : @rows.RelationDocumentPreparedContract? = None,
+  response_bytes? : Int? = None,
+  writable_fields? : Int = 0,
+) -> (@execution.ExecutionCapacity, @execution.PreparationRepresentationUnits)? {
   let page = match
     file_capture_response_backing_page(limits.page, response_bytes) {
     Some(value) => value
@@ -318,7 +337,9 @@ fn file_capture_provider_capacity(
     is Some(total) else {
     return None
   }
-  @execution.execution_capacity(total, total)
+  @execution.execution_capacity(total, total).map(capacity => {
+    (capacity, document)
+  })
 }
 
 ///|

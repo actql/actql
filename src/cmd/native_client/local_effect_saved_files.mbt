@@ -14,6 +14,7 @@ priv struct LocalNativeSavedEffectRowTerminal {
 // owners of their respective acknowledgements; this record issues none.
 priv struct LocalNativeSavedEffectFileWork {
   mut capacity : @execution.ExecutionCapacity
+  mut application_base_retained : Int64?
   mut entry : @initial_arena.InstalledArenaNonModelWorkEntry?
   mut ledger : @initial_resources.Ledger?
   mut reservation : @initial_resources.Reservation?
@@ -110,9 +111,9 @@ fn saved_effect_file_application_capacity(
   guard @execution.preparation_representation_cost({
       // Work, entry/reservation/optional controls and one original child;
       // ACK/provider pairs and row-receipt tuples plus both growable backings.
-      record_headers: 24L + 12L * count,
-      reference_slots: 72L + 32L * count,
-      scalar_words: 24L + 12L * count,
+      record_headers: 29L + 12L * count,
+      reference_slots: 84L + 32L * count,
+      scalar_words: 28L + 12L * count,
       owned_utf16_units: 0L,
       owned_wire_bytes: ack_bytes,
     })
@@ -204,6 +205,7 @@ fn LocalCommandPreparationOriginal::prepare_saved_effect_file_entry(
   }
   let work : LocalNativeSavedEffectFileWork = {
     capacity,
+    application_base_retained: None,
     entry: None,
     ledger: None,
     reservation: None,
@@ -246,6 +248,77 @@ fn LocalCommandPreparationOriginal::prepare_saved_effect_file_entry(
 }
 
 ///|
+// Invoked only by the current original child after actual FS metadata and
+// BEFORE lock/Reader/body. The restoration and all earlier ACKs still cohold.
+// Totals grow monotonically; no logical work or transfer debit is refunded.
+fn LocalCommandPreparationOriginal::prepare_saved_effect_response_construction(
+  self : Self,
+  work : LocalNativeSavedEffectFileWork,
+  row : LocalNativeSavedEffectFileRow,
+  ledger : @initial_resources.Ledger,
+  bytes : Int,
+) -> Bool {
+  guard work.entry is Some(entry) &&
+    work.application_base_retained is Some(base) &&
+    self.business is Some(business) &&
+    business.saved_effect_files is Some(actual) &&
+    physical_equal(work, actual) &&
+    @row_file.native_relation_file_target_update_construction(
+      row._retained_row_binding.provider,
+      row._retained_installation.write.mapping.write_fields.length(),
+      bytes,
+      row.changes_wire,
+    )
+    is Some((physical, raw)) &&
+    saved_effect_file_application_capacity(business.saved_effect_rows, physical)
+    is Some(phase) &&
+    @execution.checked_preparation_add_product(
+      base,
+      @execution.execution_capacity_retained_bytes(phase),
+      1L,
+    )
+    is Some(retained) &&
+    @execution.checked_preparation_add_product(
+      base,
+      @execution.execution_capacity_execution_bytes(phase),
+      1L,
+    )
+    is Some(peak) &&
+    @execution.execution_capacity(
+      Int64::max(
+        @execution.execution_capacity_retained_bytes(work.capacity),
+        retained,
+      ),
+      Int64::max(
+        @execution.execution_capacity_execution_bytes(work.capacity),
+        peak,
+      ),
+    )
+    is Some(capacity) else {
+    return false
+  }
+  work.capacity = capacity
+  match
+    entry.prepare_constructor_in_entered_scope(
+      @execution.execution_capacity_retained_bytes(capacity),
+      @execution.execution_capacity_execution_bytes(capacity),
+      raw,
+      entered_ledger=Some(ledger),
+    ) {
+    Err(issue) => {
+      self.retain_primary(CommandSavedFileEntry(issue))
+      false
+    }
+    Ok(_) =>
+      !self.closing &&
+      !self.closed &&
+      self.primary is None &&
+      work.child is Some(_) &&
+      entry.matches_business_scope(false)
+  }
+}
+
+///|
 fn LocalCommandPreparationOriginal::apply_saved_effect_files(
   self : Self,
   capture : @local_host.NativeLocalJournalCapture,
@@ -269,8 +342,14 @@ fn LocalCommandPreparationOriginal::apply_saved_effect_files(
   .prepare_file_application_controls_in_original_read()
   .map_err(issue => CommandSavedFileResume(issue))
   |> command_preparation_result
-  self.prepare_saved_effect_file_entry(capacity)
   let work = business.saved_effect_files.unwrap()
+  guard work.application_base_retained is None else {
+    stop("LocalOriginalEffectEntryUnavailable")
+  }
+  work.application_base_retained = Some(
+    @execution.execution_capacity_retained_bytes(work.capacity),
+  )
+  self.prepare_saved_effect_file_entry(capacity)
   let capacity = work.capacity
   self.with_business_request(capture, () => {
     let entry = work.entry.unwrap()
@@ -364,12 +443,28 @@ fn LocalCommandPreparationOriginal::apply_saved_effect_files(
         member_index.to_string() +
         "-" +
         ordinal.to_string()
+      let holder : Ref[@row_file.NativeRelationFileTargetIO?] = Ref(None)
       let child = match
-        @row_file.prepare_native_relation_file_target_io(
+        @row_file.prepare_native_relation_file_target_update_io(
           provider,
           row._retained_installation.write.mapping.write_fields,
           row.identity,
-          update=Some((row.version, row.changes_wire, staging)),
+          (row.version, row.changes_wire, staging),
+          bytes => {
+            guard holder.val is Some(child) &&
+              work.child is Some(actual) &&
+              physical_equal(child, actual) &&
+              !self.closing &&
+              !self.closed &&
+              self.primary is None &&
+              work.ledger is Some(original) &&
+              physical_equal(original, ledger) else {
+              return false
+            }
+            self.prepare_saved_effect_response_construction(
+              work, row, ledger, bytes,
+            )
+          },
           predecessor~,
         ) {
         Ok(value) => value
@@ -378,6 +473,7 @@ fn LocalCommandPreparationOriginal::apply_saved_effect_files(
           stop("LocalOriginalEffectTargetUnavailable")
         }
       }
+      holder.val = Some(child)
       work.child = Some(child)
       command_preparation_result(
         @initial_resources.consume_reserved_attempt(ledger, reservation).map_err(issue => {

@@ -31,6 +31,26 @@ RowAcquisition or whole-Source RowInputAcquisition/RowRun owners. It is a compon
 installed Source or mock profile. It does not enable the CLI, select an Account,
 issue a journal/permission decision, or establish full mock workflow support.
 
+Saved updates can use `prepare_native_relation_file_target_update_io` with a
+staged response constructor. The general `prepare_native_relation_file_target_io`
+still refuses update plus `before_response`. The staged entrance uses the same
+physical child: its initial metadata observation supplies the actual size before
+any lock, Reader or body allocation. The constructor callback backs the complete
+simultaneous document, changes, Writer and failed-child inventory; it grants no
+Account, claim or filesystem authority. After the callback the child acquires its
+original same-path lock, reobserves the generation and size, and performs the
+unchanged typed original-row version and replacement checks. No counting-only
+payload read or second parser is introduced. Refusal retains the same partial
+Root, observation or lock for original cleanup.
+
+`native_relation_file_target_update_construction` reuses the original prepared
+Contract and parser/projection inventories. The existing closed Text projection
+law can use actual response bytes and retained changes; other Contracts keep
+full output bounds. The original policy guards remain unchanged at admission.
+Its Native contiguous estimate comes from representation families and Native
+layout, independently of logical R/E. Returned ACK bodies continue to cohold
+with reconstruction material and later rows until their actual retirement.
+
 The caller supplies the original InstalledArenaHost and retained execution,
 checks its own declaration/path authorization, and enters that same physical
 execution before preparation or advancement. The component borrows only that
