@@ -166,7 +166,7 @@ try {
   }
   const inputCodes = new Set(['ClientProgramInvalidInput', 'ClientParametersInvalid',
     'ClientParametersTooLarge', 'ClientProgramUnsupported', 'ClientProgramNeedsInputs', 'ClientProgramRejected']);
-  for (const {name, text, format} of graphSourceRefusals) {
+  for (const {name, text, format, expectedCode} of graphSourceRefusals) {
     const sourceFile = `${name}.native-source`;
     await writeFile(join(installation, sourceFile), text);
     const requestId = `sga-native-refuse-${name}-${randomUUID()}`;
@@ -174,7 +174,8 @@ try {
     await assert.rejects(run('aql', '--program-file', sourceFile, '--format', format,
       '--request-id', requestId), error => {
       const code = /^aql: actql-native-client: (\w+)\s*$/u.exec(String(error.message))?.[1];
-      assert.ok(inputCodes.has(code), `confirmed typed preparation refusal: ${code}`);
+      assert.ok(expectedCode === undefined ? inputCodes.has(code) : code === expectedCode,
+        `confirmed typed preparation refusal: ${code}`);
       return true;
     });
     const refused = JSON.parse(await run('lookup-submission', '--request-id', requestId));

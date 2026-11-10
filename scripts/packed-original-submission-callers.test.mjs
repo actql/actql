@@ -206,6 +206,75 @@ test('Native Graph submission failures preserve the original error without retry
   assert.equal(calls, 2);assert.equal(writes, 1);assert.equal(submissions, 1);
 });
 
+function nativeGraphRefusalCaller(ports) {
+  const text = readFileSync(new URL('./test-native-sga-public-source.mjs', import.meta.url), 'utf8');
+  const parsed = parse(text, {ecmaVersion: 'latest', sourceType: 'module'});
+  const declarations = nodes(parsed, node => node.type === 'VariableDeclaration' &&
+    node.declarations.some(value => value.id.name === 'inputCodes'));
+  const loops = nodes(parsed, node => node.type === 'ForOfStatement' && node.right.name === 'graphSourceRefusals');
+  assert.equal(declarations.length, 1); assert.equal(loops.length, 1);
+  // Exercise the actual refusal loop, including its original lookup/no-I/O
+  // checks, with explicit process/file ports and no Native or product import.
+  return new Function('assert', 'graphSourceRefusals', 'writeFile', 'join', 'installation',
+    'randomUUID', 'observe', 'run', 'console', 'return (async () => {\n' +
+    text.slice(declarations[0].start, declarations[0].end) + '\n' +
+    text.slice(loops[0].start, loops[0].end) + '\n})();')(
+    assert, ports.refusals, ports.writeFile, (...parts) => parts.join('/'), 'fixture-root',
+    () => 'original-nonce', ports.observe, ports.run, ports.console);
+}
+
+test('Native Graph refusals preserve exact authored codes and closed fallback', async () => {
+  async function execute({expectedCode, message, admitted = false, changed = false}) {
+    const item = Object.freeze({name: 'original-refusal', text: 'original source', format: 'aql-text',
+      ...(expectedCode === undefined ? {} : {expectedCode})});
+    const calls = [], writes = [], logs = [];
+    let observations = 0;
+    const result = nativeGraphRefusalCaller({refusals: [item],
+      async writeFile(path, body) {writes.push({path, body});},
+      observe() {observations++;return {providerIo: 0, dispatches: 0,
+        acceptedRuns: changed && observations > 1 ? 1 : 0};},
+      async run(...args) {
+        calls.push(args);
+        if (args[0] === 'aql') throw new Error(message);
+        assert.equal(args[0], 'lookup-submission');
+        assert.deepEqual(args.slice(1), ['--request-id', calls[0].at(-1)]);
+        return JSON.stringify(admitted ? {kind: 'not_accepted', admission: {}} : {kind: 'not_accepted'});
+      }, console: {log: line => logs.push(line)},
+    });
+    return {result, calls, writes, logs, observations: () => observations};
+  }
+  const refusal = code => `aql: actql-native-client: ${code}\n`;
+  const explicit = await execute({expectedCode: 'ClientProgramImplementationLimit',
+    message: refusal('ClientProgramImplementationLimit')});
+  await explicit.result;
+  assert.deepEqual(explicit.calls.map(args => args[0]), ['aql', 'lookup-submission']);
+  assert.deepEqual(explicit.writes, [{path: 'fixture-root/original-refusal.native-source', body: 'original source'}]);
+  assert.equal(explicit.observations(), 2); assert.equal(explicit.logs.length, 1);
+  for (const code of ['ClientProgramInvalidInput', 'ClientParametersInvalid', 'ClientParametersTooLarge',
+    'ClientProgramUnsupported', 'ClientProgramNeedsInputs', 'ClientProgramRejected']) {
+    const fallback = await execute({message: refusal(code)});
+    await fallback.result;
+    assert.equal(fallback.calls.length, 2);
+  }
+  for (const options of [
+    {expectedCode: 'ClientProgramImplementationLimit', message: refusal('ClientProgramInvalidInput')},
+    {expectedCode: 'ClientProgramImplementationLimit', message: refusal('UnknownRefusal')},
+    {message: refusal('ClientProgramImplementationLimit')},
+    {message: refusal('UnknownRefusal')},
+    {message: 'untyped preparation failure'},
+  ]) {
+    const rejected = await execute(options);
+    await assert.rejects(rejected.result, {code: 'ERR_ASSERTION'});
+    assert.equal(rejected.calls.length, 1); assert.equal(rejected.observations(), 1);
+    assert.deepEqual(rejected.logs, []);
+  }
+  for (const extra of [{admitted: true}, {changed: true}]) {
+    const rejected = await execute({message: refusal('ClientProgramInvalidInput'), ...extra});
+    await assert.rejects(rejected.result, {code: 'ERR_ASSERTION'});
+    assert.equal(rejected.calls.length, 2); assert.deepEqual(rejected.logs, []);
+  }
+});
+
 const limits = {maxReadWireBytes: 4096, maxRowWireBytes: 1024, maxRowRetainedValueBytes: 1024,
   maxRetainedValueBytes: 4096, maxRows: 10, maxBatchRows: 3, maxBatchRetainedValueBytes: 1024};
 
