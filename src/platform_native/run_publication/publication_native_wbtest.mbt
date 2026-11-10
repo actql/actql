@@ -340,8 +340,13 @@ test "standard native publication reconciles one durable Run commit" {
   }
   let token = "standard-publication-" + @env.now().to_string()
   let authority = publication_test_cid(token + "-store-authority")
-  let library = @sqlite.load_library(library_path).unwrap()
-  let store = @store.open_store(library, root, authority, 1024L, 8L, 65536L).unwrap()
+  let library = @sqlite.load_library(library_path).unwrap_or_else(() => {
+    abort("publication fixture SQLite load")
+  })
+  let store = @store.open_store(library, root, authority, 1024L, 8L, 65536L).unwrap_or_else(() => {
+      abort("publication fixture Store open")
+    },
+  )
   let authorization_stages : Array[String] = []
   let publication_authority = install_native_run_publication_authority(fn(
     authorization,
@@ -355,6 +360,75 @@ test "standard native publication reconciles one durable Run commit" {
   let (evidence, intent, occurrence) = publication_test_fixture(
     store, authority, token,
   )
+  // SAME checked snapshot serializer used by the Effectful caller. This is
+  // physical payload/cleanup coverage, not a fabricated Effect completion.
+  let preparation = prepare_effect_free_run_publication_native(
+    service,
+    evidence.run_definition,
+    evidence.definitions,
+    intent,
+    occurrence,
+  ).unwrap()
+  let snapshot = @publication.admit_captured_result_snapshot(
+    evidence.definitions[0],
+    evidence.artifacts[0],
+    "[{\"value\":7}]",
+    ["value"],
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let context : NativePublicationOutputContext = {
+    run_definition: evidence.run_definition,
+    invocation: evidence.invocation,
+    retention: evidence.retentions[0],
+    publication_attempt: preparation.publication_attempt(),
+    computation_contract_cid: publication_test_cid(token + "-compute"),
+    input_relation_cids: [],
+    scope_cid: publication_test_cid(token + "-result-scope"),
+    effective_data_policy_cid: publication_test_cid(token + "-data-policy"),
+    authority_scope_cid: intent.authority_scope_cid,
+    store_authority_cid: authority,
+    material_generation_cid: publication_test_cid(token + "-restored-material"),
+    max_payload_bytes: 64L,
+  }
+  assert_true(
+    persist_effectful_result_snapshot_native(
+      store,
+      snapshot,
+      {
+        ..context,
+        material_generation_cid: publication_test_cid(
+          token + "-bad-schema-material",
+        ),
+      },
+      evidence.orderings[0],
+      "{}",
+      publication_test_cid(token + "-codec"),
+      65536,
+      4096,
+      32,
+    )
+    is Err(Binding(_)),
+  )
+  let restored = persist_effectful_result_snapshot_native(
+    store,
+    snapshot,
+    context,
+    evidence.orderings[0],
+    evidence.binding_schema_wires[0],
+    publication_test_cid(token + "-codec"),
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  assert_eq(restored.payload.row_count, 1L)
+  assert_eq(restored.payload.generation.size, 13L)
+  let evidence = {
+    ..evidence,
+    bindings: [restored.binding],
+    binding_schema_wires: [restored.binding_schema_wire],
+  }
   let first = publish_effect_free_run_native(
     service, evidence, intent, occurrence,
   ).unwrap()
@@ -376,7 +450,7 @@ test "standard native publication reconciles one durable Run commit" {
   assert_eq(retry.public_index_entry_cid, first.public_index_entry_cid)
   assert_eq(retry.publication_attempt_cid, first.publication_attempt_cid)
   assert_eq(authorization_stages, [
-    "request", "commit", "request", "return_committed",
+    "request", "request", "commit", "request", "return_committed",
   ])
   let conflicting_intent : NativeRunPublicationIntent = {
     ..intent,

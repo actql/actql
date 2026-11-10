@@ -21,6 +21,11 @@ pub(all) enum NativeRunPublicationIssue {
 /// physical cleanup observation.
 pub(all) enum NativePublicationOutputIssue {
   InvalidOutputConfiguration
+  Snapshot(@publication.CapturedRunIssuanceIssue)
+  SnapshotCleanup(
+    @publication.CapturedRunIssuanceIssue,
+    @store.NativePublicationStoreIssue
+  )
   Preparation(@local.ClientClosedValuesPreparationIssue)
   Output(@publication_host.PublicationOutputExportIssue)
   Payload(@payload.PublicationPayloadIssue)

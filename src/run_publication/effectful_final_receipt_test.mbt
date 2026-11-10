@@ -1988,3 +1988,216 @@ test "retained public Effect evidence snapshots the admitted chain without reiss
     is Err(ResultEvidence(_)),
   )
 }
+
+///|
+test "retained Effectful computation transfers SAME checked Result before final publication" {
+  let chain = captured_run_test_chain()
+  let preview = final_test_preview(chain)
+  let captured = final_test_captured(chain)
+  let original = admit_retained_effectful_computation(
+    chain.run,
+    chain.invocation,
+    [chain.definition],
+    [chain.artifact],
+    chain.manifest,
+    chain.receipt,
+    captured,
+    preview,
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  assert_eq(retained_effectful_computation_result_count(original), 1)
+  let snapshot = retained_effectful_computation_result_at(original, 0).unwrap()
+  assert_true(retained_effectful_computation_result_at(original, -1) is None)
+  assert_true(retained_effectful_computation_result_at(original, 1) is None)
+  assert_true(
+    physical_equal(
+      snapshot,
+      retained_effectful_computation_result_at(original, 0).unwrap(),
+    ),
+  )
+  assert_eq(
+    publication_contract_json(captured_result_snapshot_definition(snapshot)),
+    publication_contract_json(chain.definition),
+  )
+  let (_, _, _, rows, bytes) = captured_result_snapshot_payload_identity(
+    snapshot,
+  )
+  assert_eq(rows, 1)
+  assert_eq(bytes, 13)
+  let stream = start_captured_result_snapshot_payload(snapshot, 65536).unwrap()
+  let chunks = []
+  while true {
+    match stream.next().unwrap() {
+      Some(chunk) => chunks.push(chunk)
+      None => break
+    }
+  }
+  assert_eq(chunks.join(""), "[{\"value\":7}]")
+  assert_true(stream.next() is Err(_))
+  stream.cancel()
+  let (set_wire, members, set_cid) = final_test_receipts(preview)
+  let final_wire = final_test_receipt_wire(
+    chain.receipt,
+    preview,
+    set_cid,
+    captured,
+  )
+  let receipt = admit_publication_contract(
+    "run_receipt", final_wire, 65536, 4096, 32,
+  ).unwrap()
+  let derivations = [result_ordering_derivation_contract(chain.evidence)]
+  let orderings = [result_ordering_evidence_contract(chain.evidence)]
+  let finalized = admit_retained_effectful_final_run_evidence(
+    chain.run,
+    chain.invocation,
+    [chain.definition],
+    [chain.artifact],
+    derivations,
+    orderings,
+    [chain.retention],
+    chain.manifest,
+    chain.receipt,
+    captured,
+    preview,
+    set_wire,
+    members,
+    final_wire,
+    65536,
+    4096,
+    32,
+    computation=Some(original),
+  ).unwrap()
+  // Legitimately re-admitted canonical DATA need not be pointer-identical.
+  let re_admitted = admit_publication_contract(
+    "result_definition",
+    publication_contract_json(chain.definition),
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  validate_retained_effectful_publication_materials(
+    finalized,
+    chain.run,
+    chain.invocation,
+    [re_admitted],
+    [chain.artifact],
+    derivations,
+    orderings,
+    [chain.retention],
+    chain.manifest,
+    receipt,
+    captured,
+  ).unwrap()
+  assert_true(
+    validate_retained_effectful_publication_materials(
+      finalized,
+      chain.run,
+      chain.invocation,
+      [chain.artifact],
+      [chain.artifact],
+      derivations,
+      orderings,
+      [chain.retention],
+      chain.manifest,
+      receipt,
+      captured,
+    )
+    is Err(_),
+  )
+  assert_true(
+    admit_retained_effectful_final_run_evidence(
+      chain.run,
+      chain.invocation,
+      [chain.definition],
+      [chain.artifact],
+      derivations,
+      orderings,
+      [chain.retention],
+      chain.manifest,
+      chain.receipt,
+      captured,
+      preview,
+      set_wire,
+      members,
+      final_wire,
+      65536,
+      4095,
+      32,
+      computation=Some(original),
+    )
+    is Err(_),
+  )
+}
+
+///|
+test "retained computation rejects foreign chains and serializer failure keeps original snapshot" {
+  let chain = captured_run_test_chain()
+  let preview = final_test_preview(chain)
+  let captured = final_test_captured(chain)
+  let original = admit_retained_effectful_computation(
+    chain.run,
+    chain.invocation,
+    [chain.definition],
+    [chain.artifact],
+    chain.manifest,
+    chain.receipt,
+    captured,
+    preview,
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let snapshot = retained_effectful_computation_result_at(original, 0).unwrap()
+  assert_true(
+    admit_retained_effectful_computation(
+      chain.run,
+      chain.invocation,
+      [chain.definition],
+      [chain.artifact],
+      chain.manifest,
+      chain.artifact,
+      captured,
+      preview,
+      65536,
+      4096,
+      32,
+    )
+    is Err(_),
+  )
+  assert_true(
+    admit_retained_effectful_computation(
+      chain.run,
+      chain.invocation,
+      [chain.definition],
+      [chain.artifact],
+      chain.manifest,
+      chain.receipt,
+      captured,
+      preview,
+      65536,
+      1,
+      32,
+    )
+    is Err(_),
+  )
+  let short = start_captured_result_snapshot_payload(snapshot, 1).unwrap()
+  assert_true(short.next() is Err(_))
+  assert_true(short.next() is Err(_))
+  short.cancel()
+  let cancelled = start_captured_result_snapshot_payload(snapshot, 65536).unwrap()
+  cancelled.next().unwrap() |> ignore
+  cancelled.cancel()
+  assert_true(cancelled.next() is Err(_))
+  assert_true(
+    physical_equal(
+      snapshot,
+      retained_effectful_computation_result_at(original, 0).unwrap(),
+    ),
+  )
+  let (_, _, _, rows, bytes) = captured_result_snapshot_payload_identity(
+    snapshot,
+  )
+  assert_eq((rows, bytes), (1, 13))
+}

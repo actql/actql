@@ -91,7 +91,9 @@ pub fn admit_result_material_holds(String) -> Result[ResultMaterialHolds, Result
 
 pub fn admit_result_material_row(ResultMaterialSchema, String) -> Result[ResultMaterialRow, ResultMaterialIssue]
 
-pub fn admit_retained_effectful_final_run_evidence(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, EffectPreviewIdentity, String, Array[String], String, Int, Int, Int) -> Result[EffectfulFinalRunEvidence, EffectfulPublicationCommitIssue]
+pub fn admit_retained_effectful_computation(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, EffectPreviewIdentity, Int, Int, Int) -> Result[RetainedEffectfulComputation, RunEvidenceChainIssue]
+
+pub fn admit_retained_effectful_final_run_evidence(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, EffectPreviewIdentity, String, Array[String], String, Int, Int, Int, computation? : RetainedEffectfulComputation?) -> Result[EffectfulFinalRunEvidence, EffectfulPublicationCommitIssue]
 
 pub fn admit_run_evidence_value(String, String, Int, Int, Int) -> Result[RunEvidenceValue, RunEvidenceValueIssue]
 
@@ -218,6 +220,14 @@ pub fn captured_effect_source_store_authority_cid(CapturedEffectSourceArtifact) 
 pub fn captured_effect_source_table_input_from_capture(EffectPreviewIdentity, Int, PublicationContract, CapturedEffectSourceArtifact, PublicationContract, String, Int, Int, Int) -> Result[PublicationContract, CapturedRunIssuanceIssue]
 
 pub fn captured_local_effect_source_json(CapturedLocalEffectSourceEvidence, Int, Int, Int) -> String?
+
+pub fn captured_result_snapshot_artifact(CapturedResultSnapshot) -> PublicationContract
+
+pub fn captured_result_snapshot_definition(CapturedResultSnapshot) -> PublicationContract
+
+pub fn captured_result_snapshot_payload_extent(CapturedResultSnapshot) -> (Int, Int, Int)
+
+pub fn captured_result_snapshot_payload_identity(CapturedResultSnapshot) -> (String, String, String, Int, Int)
 
 pub fn captured_run_preparation_fixture_inventory(CapturedRunIssuancePreparation) -> (Int, Int, Bool, Bool)
 
@@ -554,6 +564,8 @@ pub fn issue_delivery_record(PublicationContract, PublicationContract?, String, 
 pub fn issue_derived_input_relation(PublicationContract, ResultOrderingEvidence, PublicationContract, PublicationContract, Int, Int, Int) -> Result[PublicationContract, AcquisitionRelationIssue]
 
 pub fn issue_durable_result_binding(PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, String, Array[String], String, String, String, Int, Int, String, Int, Int, Int) -> Result[PublicationContract, DurableResultBindingIssue]
+
+pub fn issue_durable_result_binding_from_snapshot(CapturedResultSnapshot, PublicationContract, PublicationContract, PublicationContract, PublicationContract, String, String, String, String, Int, String, Int, Int, Int) -> Result[PublicationContract, DurableResultBindingIssue]
 
 pub fn issue_effect_free_captured_run(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, Array[CapturedResultSnapshot], Array[PendingSourceStateAdvance], RunEvidenceValue, Array[RunEvidenceValue], Int, Int, Int, content_generations? : Array[BoundContentGeneration]) -> Result[PublicationContract, CapturedRunIssuanceIssue]
 
@@ -1037,6 +1049,10 @@ pub fn result_serialization_contract_cid(String, Int, Int, Int) -> Result[String
 
 pub fn retain_model_capture_bundle_read(ModelCaptureBundleRead) -> ModelCaptureBundleRead?
 
+pub fn retained_effectful_computation_result_at(RetainedEffectfulComputation, Int) -> CapturedResultSnapshot?
+
+pub fn retained_effectful_computation_result_count(RetainedEffectfulComputation) -> Int
+
 pub fn run_definition_has_empty_initial_input_artifact_set(PublicationContract) -> Bool
 
 pub fn run_definition_lifetime(PublicationContract) -> (String, String)?
@@ -1088,6 +1104,8 @@ pub fn seal_run_evidence_value(String, String, Int, Int, Int) -> Result[RunEvide
 pub fn source_effect_catalog_dependencies(RunEvidenceValue) -> Result[Array[(String, String)], CapturedEffectDependencyIssue]
 
 pub fn start_captured_result_snapshot(PublicationContract, PublicationContract, String, Array[String], Int, Int, Int, Int) -> Result[CapturedResultSnapshotPreparation, CapturedRunIssuanceIssue]
+
+pub fn start_captured_result_snapshot_payload(CapturedResultSnapshot, Int) -> Result[CapturedSnapshotPayload, CapturedRunIssuanceIssue]
 
 pub fn start_content_byte_encoder(ContentSerializationProfile, max_rows~ : Int, max_bytes~ : Int, max_value_nodes~ : Int, max_value_depth~ : Int, max_frames~ : Int) -> Result[ContentByteEncoder, ContentSerializationIssue]
 
@@ -1164,6 +1182,8 @@ pub fn validate_result_occurrence_ordering_for_producer(String, PublicationContr
 pub fn validate_result_schema_wire(String, String, Int, Int, Int) -> Result[Unit, DeliveryIssuanceIssue]
 
 pub fn validate_retained_effectful_publication_commit(EffectfulFinalRunEvidence, Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract) -> Result[Unit, EffectfulPublicationCommitIssue]
+
+pub fn validate_retained_effectful_publication_materials(EffectfulFinalRunEvidence, PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, limits? : (Int, Int, Int)?) -> Result[Unit, PublicationCommitIssue]
 
 pub fn validate_run_publication_chain(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, Int, Int, Int) -> Result[Unit, RunPublicationChainIssue]
 
@@ -1286,6 +1306,10 @@ pub fn CapturedRunIssuancePreparation::advance(Self, Int) -> Result[(Bool, Int),
 pub fn CapturedRunIssuancePreparation::cancel(Self) -> Unit
 pub fn CapturedRunIssuancePreparation::finish(Self) -> Result[PublicationContract, CapturedRunIssuanceIssue]
 pub fn CapturedRunIssuancePreparation::finish_retained(Self) -> Result[PublicationContract, CapturedRunIssuanceIssue]
+
+type CapturedSnapshotPayload
+pub fn CapturedSnapshotPayload::cancel(Self) -> Unit
+pub fn CapturedSnapshotPayload::next(Self) -> Result[String?, CapturedRunIssuanceIssue]
 
 type CheckedPublicationInventory
 
@@ -2311,6 +2335,8 @@ pub(all) enum ResultOrderingEvidenceIssue {
   WitnessMismatch
   Encoding
 } derive(Eq, @debug.Debug)
+
+type RetainedEffectfulComputation
 
 pub(all) enum RunControlMoneyIssue {
   InvalidControlAmount

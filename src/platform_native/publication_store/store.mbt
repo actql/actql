@@ -24,6 +24,7 @@ pub(all) enum NativePublicationStoreIssue {
   DeliveryGrantUsage(@publication.DeliveryGrantUsageIssue)
   PublicationPreparation(@local.ClientProgramValidationIssue)
   PublicationCommit(@publication.PublicationCommitIssue)
+  EffectfulPublication(@publication.EffectfulPublicationCommitIssue)
   PublicationCommitIssuance(@publication.PublicationCommitIssuanceIssue)
   PublicationCommitConflict
   ClockRegression
