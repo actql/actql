@@ -1,4 +1,52 @@
 ///|
+test "Native saved file request measures the same original canonical subtrees before text construction" {
+  let before = @canonical.from_json(
+    { "id": "e\u0301", "Name": "日😀" },
+    64,
+    8,
+    4096,
+    data_keys=true,
+  )
+  let target = @canonical.from_json("row", 64, 8, 4096, data_keys=true)
+  let value = @canonical.from_json(
+    { "NextStep": "a\n\"\\b", "metadata": [1, 2] },
+    64,
+    8,
+    4096,
+    data_keys=true,
+  )
+  let measure = @encode.measuring_writer(4096, 64, 8)
+  emit_native_local_effect_update_request(
+    measure, "binding", "mapping", target, value, before, "version",
+  )
+  let (bytes, nodes, depth) = @encode.finish_measurement_usage(measure)
+  let wire = native_local_effect_update_request_wire(
+    "binding", "mapping", target, value, before, "version", 4096, 64, 8,
+  ).unwrap()
+  assert_eq(
+    wire, "{\"before\":{\"Name\":\"日😀\",\"id\":\"e\u0301\"},\"binding\":\"binding\",\"mapping\":\"mapping\",\"target\":\"row\",\"value\":{\"NextStep\":\"a\\n\\\"\\\\b\",\"metadata\":[1,2]},\"version\":\"version\"}",
+  )
+  assert_eq(bytes, @utf8.encode(wire).length())
+  assert_eq(nodes, 13)
+  assert_eq(depth, 3)
+  assert_true(bytes < 4096)
+  assert_true(
+    native_local_effect_update_request_wire(
+      "binding",
+      "mapping",
+      target,
+      value,
+      before,
+      "version",
+      bytes - 1,
+      64,
+      8,
+    )
+    is Err(_),
+  )
+}
+
+///|
 // Authored two-row input from scripts/fixtures/effect-file-operation-vectors.mjs.
 // Pure immutable-key projection only; no Host, Account, signer or IO is admitted.
 fn native_application_projection_fixture() -> (

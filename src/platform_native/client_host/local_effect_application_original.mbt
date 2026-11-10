@@ -96,24 +96,41 @@ pub fn native_local_effect_update_request_wire(
 ) -> Result[String, Unit] {
   try {
     let writer = @encode.writer(max_bytes, max_nodes, max_depth)
-    @encode.begin_object(writer)
-    @encode.key(writer, "before")
-    @canonical.emit_value(before, writer)
-    @encode.key(writer, "binding")
-    @encode.string_value(writer, binding)
-    @encode.key(writer, "mapping")
-    @encode.string_value(writer, mapping)
-    @encode.key(writer, "target")
-    @canonical.emit_value(target, writer)
-    @encode.key(writer, "value")
-    @canonical.emit_value(value, writer)
-    @encode.key(writer, "version")
-    @encode.string_value(writer, version)
-    @encode.end_object(writer)
+    emit_native_local_effect_update_request(
+      writer, binding, mapping, target, value, before, version,
+    )
     Ok(@encode.finish(writer))
   } catch {
     _ => Err(())
   }
+}
+
+///|
+// One protocol body for measurement and emission. Original canonical subtrees
+// remain borrowed; measuring cannot issue a request, CID, grant or text body.
+fn emit_native_local_effect_update_request(
+  writer : @encode.Writer,
+  binding : String,
+  mapping : String,
+  target : @canonical.CanonicalValue,
+  value : @canonical.CanonicalValue,
+  before : @canonical.CanonicalValue,
+  version : String,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_object(writer)
+  @encode.key(writer, "before")
+  @canonical.emit_value(before, writer)
+  @encode.key(writer, "binding")
+  @encode.string_value(writer, binding)
+  @encode.key(writer, "mapping")
+  @encode.string_value(writer, mapping)
+  @encode.key(writer, "target")
+  @canonical.emit_value(target, writer)
+  @encode.key(writer, "value")
+  @canonical.emit_value(value, writer)
+  @encode.key(writer, "version")
+  @encode.string_value(writer, version)
+  @encode.end_object(writer)
 }
 
 ///|
@@ -427,7 +444,59 @@ pub fn NativeLocalEffectResumeOriginal::prepare_application_file_request_in_orig
   // A request adds three structural scalar fields to the admitted data
   // subtrees. Its existing installed request limit is checked by the writer;
   // no separate subtree admission multiplies the accepted JSON limits.
-  let bytes = limits.max_wire_bytes
+  // Before learning output size, back only the non-text observation frame.
+  // The outer request has six unordered keys; canonical children use ordered
+  // keys. Each active canonical container retains one rest cursor and at most
+  // one pending key/value cursor, bounded by the admitted traversal depth.
+  guard limits.max_depth >= 1 &&
+    limits.max_depth < 1073741823 &&
+    @encode.text_writer_construction_inventory(0, 6, limits.max_depth)
+    is Some(measurement) &&
+    @shape.collection_construction_extent({
+      records: 4L * limits.max_depth.to_int64() + 8L,
+      record_references: 8L * limits.max_depth.to_int64() + 16L,
+      record_words: 4L * limits.max_depth.to_int64() + 8L,
+      reference_arrays: 1L,
+      reference_items: 2L * (limits.max_depth.to_int64() + 1L),
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(traversal) else {
+    return Err(HostAttestationUnavailable)
+  }
+  match
+    read.owner.capture.prepare_model_entry_construction(
+      None,
+      additional_controls=Some({
+        record_headers: measurement.record_headers + traversal.record_headers,
+        reference_slots: measurement.reference_slots + traversal.reference_slots,
+        scalar_words: measurement.scalar_words + traversal.scalar_words,
+        owned_utf16_units: measurement.owned_utf16_units +
+        retained_request_units,
+        owned_wire_bytes: 0L,
+      }),
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(HostAttestationOriginal(issue))
+  }
+  if !read.owner.saved_approval_original_live(original) || self.retired {
+    return Err(HostAttestationUnavailable)
+  }
+  let (bytes, nodes, depth) = try {
+    let measure = @encode.measuring_writer(
+      limits.max_wire_bytes,
+      limits.max_nodes,
+      limits.max_depth,
+    )
+    emit_native_local_effect_update_request(
+      measure, binding, mapping, target, changes, full_before, version,
+    )
+    @encode.finish_measurement_usage(measure)
+  } catch {
+    _ => return Err(HostAttestationUnavailable)
+  }
   guard @execution.checked_preparation_add_product(
       retained_request_units,
       bytes.to_int64(),
@@ -447,8 +516,8 @@ pub fn NativeLocalEffectResumeOriginal::prepare_application_file_request_in_orig
   match
     read.owner.capture.prepare_model_entry_construction(
       Some(bytes),
-      nodes=limits.max_nodes,
-      depth=limits.max_depth,
+      nodes~,
+      depth~,
       additional_controls=Some({
         // Existing retained row records/tuples and growable outer backing,
         // Current request/changes, original selector and prepared outcome
@@ -477,7 +546,7 @@ pub fn NativeLocalEffectResumeOriginal::prepare_application_file_request_in_orig
       changes,
       full_before,
       version,
-      bytes,
+      limits.max_wire_bytes,
       limits.max_nodes,
       limits.max_depth,
     ) {
@@ -486,7 +555,7 @@ pub fn NativeLocalEffectResumeOriginal::prepare_application_file_request_in_orig
   }
   let changes_wire = @canonical.stringify_value(
     changes,
-    bytes,
+    limits.max_wire_bytes,
     limits.max_nodes,
     limits.max_depth,
   ) catch {
