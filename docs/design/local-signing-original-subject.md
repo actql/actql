@@ -163,6 +163,11 @@ original Effect owner and Run; it creates no Effect-free compilation, policy or
 permission. Saved observation uses this retained metadata with its independent
 current Read. Already accepted rows without these originals remain unavailable;
 restoration and repeated acceptance cannot backfill them from a new compiler.
+Terminal Journal Database close explicitly enters its existing cleanup route.
+The sibling publication Store may already have selected cleanup on their same
+paired Host; an independently healthy Journal routing carrier cannot resume
+normal scope after that transition. The original Database close, scope return
+and metadata retirement each keep their separate acknowledgements.
 The restoration-to-application boundary first retains the composed extent as
 data, then enters that same original constructor to acquire usable backing before
 resizing its byte token. A Read-side resize alone cannot acquire more business

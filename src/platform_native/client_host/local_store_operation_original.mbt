@@ -913,7 +913,10 @@ pub fn NativeLocalStoreOperation::close_captured_journal_database(
   }
   if receiver.capture.opening is JournalAcquired(host) &&
     host.database.matches_original_store_operation(bridge) {
-    match bridge.enter_cleanup_work() {
+    // A sibling Store may already have spent this same paired Host's normal
+    // scope. Closing the retained Journal is terminal cleanup regardless of
+    // whether THIS routing carrier previously needed its own cleanup flight.
+    match bridge.enter_cleanup() {
       Err(issue) => return Err(StoreOperationSqlite(issue))
       Ok(_) => ()
     }
