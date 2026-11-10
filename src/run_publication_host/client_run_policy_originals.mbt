@@ -42,7 +42,21 @@ pub fn issue_client_run_policy_originals(
 }
 
 ///|
-// Both callers use the same existing packet and bounds. Policy selection and
+/// Borrow the original checked Effect's Result policy closure for the existing
+/// packet. This issues no compilation, policy, current permission or read grant.
+pub fn issue_client_effect_run_policy_originals(
+  prepared : PreparedClientEffectComputation,
+) -> Result[String, ClientRunPolicyOriginalsIssue] {
+  let bodies = match
+    prepared_client_effect_publication_policy_bodies(prepared, 65536, 8192, 64) {
+    Ok(value) => value
+    Err(issue) => return Err(PublicationPolicy(issue))
+  }
+  encode_client_run_policy_originals(bodies)
+}
+
+///|
+// All callers use the same existing packet and bounds. Policy selection and
 // original Host/journal authenticity are separate from this pure encoding.
 fn encode_client_run_policy_originals(
   bodies : Array[(String, String, String)],

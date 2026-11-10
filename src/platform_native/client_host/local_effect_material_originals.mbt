@@ -269,7 +269,19 @@ fn NativeLocalHostConnection::accept_submitted_effect_material_with_policy(
     Err(issue) => return Err(Journal(issue))
   }
   let (policy_wire, policy_selection) = match source_free_run_file {
-    None => (None, None)
+    None =>
+      if @host.prepared_client_effect_publication_data_policy_cid(prepared)
+        is Some(_) {
+        // The checked Source/Result closure is immutable compiler DATA. Keep
+        // its existing original bodies with first acceptance, not a current
+        // installation policy or a replacement inferred during Saved read.
+        match @host.issue_client_effect_run_policy_originals(prepared) {
+          Ok(wire) => (Some(wire), None)
+          Err(issue) => return Err(Journal(policy_originals_issue(issue)))
+        }
+      } else {
+        (None, None)
+      }
     Some(file) => {
       let graph = @strategy.checked_effect_computation_graph(
         @host.prepared_client_effect_computation_graph(prepared),

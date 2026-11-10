@@ -1,4 +1,44 @@
 ///|
+test "Effect policy packet retains the exact checked Source closure without issuing a compilation" {
+  let prepared = normalization_source_fixture(true)
+  let original = prepared_client_effect_publication_policy_bodies(
+    prepared, 65536, 8192, 64,
+  ).unwrap()
+  let wire = issue_client_effect_run_policy_originals(prepared).unwrap()
+  let restored = read_client_run_policy_originals(wire).unwrap()
+  assert_eq(
+    restored.map(body => {
+      (
+        @publication.captured_effect_dependency_body_kind(body),
+        @publication.captured_effect_dependency_body_cid(body),
+        @publication.captured_effect_dependency_body_json(body),
+      )
+    }),
+    original,
+  )
+  assert_eq(
+    Some(original[0].1),
+    prepared_client_effect_publication_data_policy_cid(prepared),
+  )
+  assert_true(
+    original.any(body => {
+      body.0 == "data_policy" &&
+      body.1 ==
+      "sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf"
+    }),
+  )
+}
+
+///|
+test "Effect policy packet refuses a missing checked closure instead of inventing a source-free policy" {
+  let (prepared, _, _) = original_effect_materials_fixture()
+  assert_true(
+    issue_client_effect_run_policy_originals(prepared)
+    is Err(PublicationPolicy(@checked.MissingDependency)),
+  )
+}
+
+///|
 // The preimage and identities below were independently derived from the fixed
 // input Catalog and existing normative policy contract, not product output.
 test "Effect-free original policy closure retains exact checked and Catalog identities" {
