@@ -2,9 +2,9 @@
 test "generated protocol table shares identical immutable rules without merging constraints" {
   let first = generated_protocol_schema_nodes()
   let second = generated_protocol_schema_nodes()
-  // Previous8612 + lookup accounting69 + attempt receipt131 + evidence67.
+  // Original8879 + closed json_file alternative53 = 8932 descriptor slots.
   // Constructor sharing keeps each registered array slot and its constraints.
-  assert_eq(first.length(), 8879)
+  assert_eq(first.length(), 8932)
   assert_eq(second.length(), first.length())
   // Slots 1 and 3 describe the same nonempty String rule. The CID
   // pattern at slot 2 is distinct, and another construction owns its own data.
