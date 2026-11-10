@@ -451,6 +451,13 @@ fn LocalCommandPreparationOriginal::apply_saved_effect_files(
         }
       }
     })
+    if native_acceptance_enabled() {
+      native_acceptance_identity(
+        5,
+        ordinal,
+        @effect.effect_dispatch_key_cid(key),
+      )
+    }
     // A foreign provider, even for an equal path, cannot inherit a prior ACK.
     let provider = row._retained_row_binding.provider
     let mut predecessor = None
@@ -611,6 +618,13 @@ fn LocalCommandPreparationOriginal::apply_saved_effect_files(
     if ack.identity() != row.identity {
       stop("LocalOriginalEffectAckForeignRow")
     }
+    if native_acceptance_enabled() {
+      native_acceptance_identity(
+        8,
+        ordinal,
+        @effect.effect_dispatch_key_cid(key),
+      )
+    }
     // Prepared DATA becomes outcome evidence only with this SAME actual
     // fsync/generation ACK, never from the Preview or template alone.
     let outcome = row.outcome_template
@@ -632,6 +646,13 @@ fn LocalCommandPreparationOriginal::apply_saved_effect_files(
       .map_err(issue => CommandSavedFileResume(issue))
       |> command_preparation_result
     })
+    if native_acceptance_enabled() {
+      native_acceptance_identity(
+        11,
+        ordinal,
+        @publication.publication_contract_identity(receipt),
+      )
+    }
     work.receipts.push({
       member_index,
       ordinal,

@@ -1,3 +1,4 @@
+import {nativeMockAcceptanceObservations} from '../packages/native-cli/lib/project-scaffold.mjs';
 // Public README/Quickstart commands only. The installed runner supplies a new
 // exited process for every invocation. Unit doubles validate these assertions,
 // not Native execution, signatures, custody or an installed package.
@@ -100,6 +101,37 @@ function waitingHuman(record, original, before, change) {
     checkpointCid: original.checkpoint.checkpoint_cid, rows: identities.length};
 }
 
+
+function requireNativeMockWork(args, groups, rows) {
+  const model = [], modelSlots = [], writes = [];
+  for (const group of groups) {
+    const events = group.events;
+    if (args[0] === 'run') {
+      for (let index = 0; index < events.length; index += 3) {
+        const chain = events.slice(index, index + 3);
+        assert.deepEqual(chain.map(event => event.tag), [0, 1, 2], 'Model entry must return without retry/failure');
+        assert(chain.every(event => event.ordinal === chain[0].ordinal && event.identity === chain[0].identity), 'Changed original Model attempt');
+        model.push(chain[0].identity); modelSlots.push(chain[0].ordinal);
+      }
+    } else if (args[0] === 'approve') {
+      for (let index = 0; index < events.length; index += 7) {
+        const chain = events.slice(index, index + 7);
+        assert.deepEqual(chain.map(event => event.tag), [5, 6, 7, 8, 9, 10, 11], 'Effect replacement must retain attempt, rename, final ACK and receipts');
+        assert.equal(chain[0].identity, chain[3].identity, 'Changed original Effect dispatch key');
+        assert(chain.filter(event => event.tag !== 6 && event.tag !== 7).every(event => event.ordinal === chain[0].ordinal), 'Changed original Effect row');
+        writes.push({ordinal: chain[0].ordinal, key: chain[0].identity, dispatch: chain[4].identity, fileReceipt: chain[5].identity, rowReceipt: chain[6].identity});
+      }
+    } else assert.equal(events.length, 0, 'Status/Result/initialization replayed Model or Effect work');
+  }
+  assert.equal(model.length, args[0] === 'run' ? rows : 0, 'Actual Model start count differs');
+  assert.equal(new Set(model).size, model.length, 'Repeated original Model attempt');
+  assert.deepEqual([...modelSlots].sort((a,b)=>a-b), args[0] === 'run' ? Array.from({length:rows},(_,index)=>index) : [], 'Changed original Model slots');
+  assert.equal(writes.length, args[0] === 'approve' ? rows : 0, 'Actual target replacement count differs');
+  assert.deepEqual(writes.map(row=>row.ordinal).sort((a,b)=>a-b), args[0] === 'approve' ? Array.from({length:rows},(_,index)=>index) : [], 'Changed original Effect ordinals');
+  for (const field of ['key', 'fileReceipt', 'rowReceipt']) assert.equal(new Set(writes.map(row => row[field])).size, writes.length, 'Repeated Effect operation/receipt');
+  return {modelAttempts: model, writes};
+}
+
 export async function runNativeCliMockScenario({root, template, run}) {
   assert(mockTemplates.includes(template), 'Unknown Native mock acceptance template');
   assert.equal(typeof run, 'function');
@@ -110,6 +142,10 @@ export async function runNativeCliMockScenario({root, template, run}) {
     commands.push({args, cwd, ...record});
     assert.equal(record.signal, null, `${args[0]} terminated by signal`);
     assert.equal(record.code, 0, `${args.join(' ')} failed: ${record.stderr}`);
+    const observations = nativeMockAcceptanceObservations(record.stderr);
+    assert.equal(observations.length, args[0] === 'init' ? 2 : 1, 'Native child observations missing or duplicated');
+    record.acceptance = requireNativeMockWork(args, observations, expectedChanges[template].rows.length);
+    commands.at(-1).acceptance = record.acceptance;
     return record;
   }
   await invoke(['init', '--template', template, project], root);

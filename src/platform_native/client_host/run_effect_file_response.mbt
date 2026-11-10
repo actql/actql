@@ -220,6 +220,13 @@ pub fn NativeClientRunJournal::record_effect_file_response(
     Ok(value) => value
     Err(_) => return Err(Checkpoint(InvalidMaterial))
   }
+  if native_acceptance_enabled() {
+    native_acceptance_identity(
+      10,
+      row_index,
+      @publication.effect_file_operation_receipt_cid(response),
+    )
+  }
   let metadata = @utf8.encode(
     @publication.effect_file_operation_receipt_wire(response),
   )
