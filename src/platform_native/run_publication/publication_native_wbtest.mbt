@@ -378,16 +378,11 @@ test "standard native publication reconciles one durable Run commit" {
     4096,
     32,
   ).unwrap()
-  let context : NativePublicationOutputContext = {
+  let context : NativeEffectfulSnapshotOutputContext = {
     run_definition: evidence.run_definition,
     invocation: evidence.invocation,
     retention: evidence.retentions[0],
     publication_attempt: preparation.publication_attempt(),
-    computation_contract_cid: publication_test_cid(token + "-compute"),
-    input_relation_cids: [],
-    scope_cid: publication_test_cid(token + "-result-scope"),
-    effective_data_policy_cid: publication_test_cid(token + "-data-policy"),
-    authority_scope_cid: intent.authority_scope_cid,
     store_authority_cid: authority,
     material_generation_cid: publication_test_cid(token + "-restored-material"),
     max_payload_bytes: 64L,

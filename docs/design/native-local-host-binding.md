@@ -3505,3 +3505,31 @@ Settlement-only or retired views cannot dispatch. This custody connection does
 not authorize a target, replace the installed request, establish physical IO or
 supply a response/outcome receipt. The actual write caller must preserve those
 independent current, backing and cleanup obligations.
+
+
+## Saved Native file Effect completion
+
+A saved approval restores the original checked computation and canonical
+Preview under the authenticated review custody. The computation receipt is
+still the existing `run_receipt` contract; its private metadata field name
+`computation_receipt_wire` does not introduce another contract kind. The
+original public Result derivation, ordering, retention, schema and codec are
+retained while the first export is alive and stored with that same review.
+Legacy metadata remains inspectable; missing publication originals cannot
+execute approval, and are never inferred from Preview or replacement rows.
+
+Plain approval and waiting approval select the same backed saved application.
+The original Source and Model are not executed again. Each ordered file write
+retains its actual generation/fsync acknowledgment before recording the same
+Journal response and terminal row receipt. Member and Set completion consume
+those actual row partitions. The original computation's checked Result
+snapshots are serialized through the existing Store and final publication
+owners, with independent current publication and RunRead authority.
+
+New publication controls and serializer overlap are backed on the same Read
+before file writes, separately from the file-execution allowance. Uncertain
+response, commit or physical-close outcomes retain their original children.
+Cleanup settles publication children before retiring their saved review aliases,
+then closes file children and Store/Roots/routing before the original entry
+acknowledges its C context, settles its token and closes the execution. Neither
+an exited process nor an empty pending flag substitutes for those acknowledgments.

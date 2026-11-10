@@ -6,6 +6,13 @@ struct NativeLocalSavedEffectApprovalOriginal {
   invocation : @publication.PublicationContract
   definitions : Array[@publication.PublicationContract]
   artifacts : Array[@publication.PublicationContract]
+  derivations : Array[@publication.PublicationContract]
+  orderings : Array[@publication.PublicationContract]
+  retentions : Array[@publication.PublicationContract]
+  schema_wires : Array[String]
+  codec_cids : Array[String]
+  computation : @publication.RetainedEffectfulComputation
+  wire_limits : @checkpoint.WireLimits
   manifest : @publication.PublicationContract
   receipt : @publication.PublicationContract
   captured : @publication.PublicationContract
@@ -47,7 +54,8 @@ fn saved_effect_review_fields(
     "version", "provider", "request_scope_cid", "authority_scope_cid", "request_id",
     "run_definition_wire", "invocation_wire", "result_manifest_wire", "computation_receipt_wire",
     "captured_run_wire", "review_wire", "authoring_context_cid", "result_definition_wires",
-    "result_artifact_wires",
+    "result_artifact_wires", "result_derivation_wires", "result_ordering_wires",
+    "result_retention_wires", "result_schema_wires", "result_codec_cids",
   ]
   let fields = match @decode.closed_object(cursor, names) {
     Ok(value) => value
@@ -74,7 +82,61 @@ fn saved_effect_review_fields(
       }
     }
   }
+  // Old review DATA remains inspectable. Execution separately requires the
+  // complete original publication group; a partial or malformed group never
+  // receives a replacement contract/schema inferred from Preview.
+  let publication_names = [
+    "result_derivation_wires", "result_ordering_wires", "result_retention_wires",
+    "result_schema_wires", "result_codec_cids",
+  ]
+  let mut present = 0
+  for name in publication_names {
+    if @decode.lookup(fields, name) is Some(_) {
+      present += 1
+    }
+  }
+  if present != 0 {
+    if present != publication_names.length() {
+      return Err(CustodyLost)
+    }
+    let count = @decode.elements(
+        @decode.lookup(fields, "result_definition_wires").unwrap(),
+      )
+      .unwrap()
+      .length()
+    for name in publication_names {
+      guard @decode.lookup(fields, name) is Some(array) &&
+        @decode.elements(array) is Ok(elements) &&
+        elements.length() == count else {
+        return Err(CustodyLost)
+      }
+      for element in elements {
+        guard @decode.text(element) is Ok(value) && !value.is_empty() else {
+          return Err(CustodyLost)
+        }
+      }
+    }
+  }
   Ok(fields)
+}
+
+///|
+fn saved_effect_review_texts(
+  fields : @decode.ObjectView,
+  name : String,
+) -> Result[Array[String], NativeClientRunJournalIssue] {
+  guard @decode.lookup(fields, name) is Some(array) &&
+    @decode.elements(array) is Ok(elements) else {
+    return Err(CustodyLost)
+  }
+  let result = []
+  for element in elements {
+    guard @decode.text(element) is Ok(value) && !value.is_empty() else {
+      return Err(CustodyLost)
+    }
+    result.push(value)
+  }
+  Ok(result)
 }
 
 ///|
@@ -140,6 +202,7 @@ pub fn NativeLocalSavedEffectReview::restore_approval_in_original_read(
   limits : @host.ClientValuesRunMaterialsLimits,
   effect_limits : @host.ClientEffectComputationLimits,
   wire_limits : @checkpoint.WireLimits,
+  publication_required? : Bool = false,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
   if self.approval_attempted || self.retired {
     return Err(Journal(CustodyLost))
@@ -167,10 +230,10 @@ pub fn NativeLocalSavedEffectReview::restore_approval_in_original_read(
         ),
       ),
       additional_controls=Some({
-        // Original (15 refs), read view (2), two private sums (1 each),
+        // Original (22 refs), read view (2), two private sums (1 each),
         // returned Some/Result (1 each) and subject tuple (2). Borrowed DATA.
         record_headers: 9L,
-        reference_slots: 26L,
+        reference_slots: 33L,
         scalar_words: 0L,
         owned_utf16_units: 0L,
         owned_wire_bytes: 0L,
@@ -182,6 +245,11 @@ pub fn NativeLocalSavedEffectReview::restore_approval_in_original_read(
   let fields = match saved_effect_review_fields(wire, wire_limits) {
     Err(issue) => return Err(Journal(issue))
     Ok(value) => value
+  }
+  let publication_present = @decode.lookup(fields, "result_derivation_wires")
+    is Some(_)
+  if publication_required && !publication_present {
+    return Err(Journal(CustodyLost))
   }
   let request = self.selected.request
   if epoch_text(fields, "request_scope_cid") !=
@@ -235,6 +303,55 @@ pub fn NativeLocalSavedEffectReview::restore_approval_in_original_read(
     Ok(value) => value
     Err(issue) => return Err(Journal(issue))
   }
+  let derivations = if !publication_present {
+    []
+  } else {
+    match
+      saved_effect_review_contracts(
+        fields, "result_derivation_wires", "derivation_evidence", wire_limits,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Journal(issue))
+    }
+  }
+  let orderings = if !publication_present {
+    []
+  } else {
+    match
+      saved_effect_review_contracts(
+        fields, "result_ordering_wires", "ordering_evidence", wire_limits,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Journal(issue))
+    }
+  }
+  let retentions = if !publication_present {
+    []
+  } else {
+    match
+      saved_effect_review_contracts(
+        fields, "result_retention_wires", "result_retention_policy", wire_limits,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Journal(issue))
+    }
+  }
+  let schema_wires = if !publication_present {
+    []
+  } else {
+    match saved_effect_review_texts(fields, "result_schema_wires") {
+      Ok(value) => value
+      Err(issue) => return Err(Journal(issue))
+    }
+  }
+  let codec_cids = if !publication_present {
+    []
+  } else {
+    match saved_effect_review_texts(fields, "result_codec_cids") {
+      Ok(value) => value
+      Err(issue) => return Err(Journal(issue))
+    }
+  }
   let manifest = match
     saved_effect_review_contract(
       fields, "result_manifest_wire", "result_manifest", wire_limits,
@@ -244,7 +361,7 @@ pub fn NativeLocalSavedEffectReview::restore_approval_in_original_read(
   }
   let receipt = match
     saved_effect_review_contract(
-      fields, "computation_receipt_wire", "computation_receipt", wire_limits,
+      fields, "computation_receipt_wire", "run_receipt", wire_limits,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Journal(issue))
@@ -275,7 +392,8 @@ pub fn NativeLocalSavedEffectReview::restore_approval_in_original_read(
     Some(@publication.effect_preview_authoring_context_cid(preview)) {
     return Err(Journal(CustodyLost))
   }
-  if @publication.validate_effectful_computation_evidence_chain(
+  let computation = match
+    @publication.admit_retained_effectful_computation(
       materials.run_definition,
       invocation,
       definitions,
@@ -287,9 +405,9 @@ pub fn NativeLocalSavedEffectReview::restore_approval_in_original_read(
       wire_limits.max_wire_bytes,
       wire_limits.max_nodes,
       wire_limits.max_depth,
-    )
-    is Err(_) {
-    return Err(Journal(CustodyLost))
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(Journal(CustodyLost))
   }
   let scope = match
     @host.prepared_client_effect_request_scope(materials.prepared, request) {
@@ -348,6 +466,13 @@ pub fn NativeLocalSavedEffectReview::restore_approval_in_original_read(
     invocation,
     definitions,
     artifacts,
+    derivations,
+    orderings,
+    retentions,
+    schema_wires,
+    codec_cids,
+    computation,
+    wire_limits,
     manifest,
     receipt,
     captured,

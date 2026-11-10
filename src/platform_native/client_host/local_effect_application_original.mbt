@@ -667,3 +667,48 @@ pub fn NativeLocalEffectResumeOriginal::prepare_file_application_controls_in_ori
   }
   Ok(())
 }
+
+///|
+/// Borrow the SAME public Result originals restored from authenticated review
+/// custody. These DATA projections allocate no arrays and issue no evidence,
+/// permission, new Request or physical Store acknowledgment.
+pub fn NativeLocalSavedEffectApprovalOriginal::result_publication_originals(
+  self : Self,
+) -> (
+  Array[@publication.PublicationContract],
+  Array[@publication.PublicationContract],
+  Array[@publication.PublicationContract],
+  Array[@publication.PublicationContract],
+  Array[@publication.PublicationContract],
+  Array[String],
+  Array[String],
+) {
+  (
+    self.definitions,
+    self.artifacts,
+    self.derivations,
+    self.orderings,
+    self.retentions,
+    self.schema_wires,
+    self.codec_cids,
+  )
+}
+
+///|
+pub fn NativeLocalSavedEffectApprovalOriginal::computation_publication_originals(
+  self : Self,
+) -> (
+  @publication.PublicationContract,
+  @publication.PublicationContract,
+  @publication.PublicationContract,
+  @publication.PublicationContract,
+  @publication.RetainedEffectfulComputation,
+) {
+  (
+    self.invocation,
+    self.manifest,
+    self.receipt,
+    self.captured,
+    self.computation,
+  )
+}

@@ -31,13 +31,13 @@ fn local_checkpoint_answer_by_id(
   if operation != "approve" && operation != "reject" {
     stop("InvalidCheckpointAction")
   }
-  // Keep these original public selections explicit while their consuming
-  // continuations are unfinished. A named signer never falls back to the
-  // initialized machine key, and --wait cannot become a nonwaiting success.
+  // A named signer never falls back to the initialized machine key. Both
+  // plain approve and --wait execute the SAME backed saved continuation;
+  // no asynchronous replacement Run or Model re-execution is introduced.
   if optional(child, "signer") is Some(_) {
     stop("LocalConfiguredCheckpointSignerUnavailable")
   }
-  if child.flags.get("wait").unwrap_or(false) {
+  if operation != "approve" && child.flags.get("wait").unwrap_or(false) {
     stop("LocalCheckpointContinuationUnavailable")
   }
   let id = required(child, "checkpoint-id")
@@ -213,6 +213,7 @@ fn LocalCommandPreparationOriginal::resolve_checkpoint_review(
           max_nodes: policy.effects.max_admission_nodes,
           max_depth: policy.effects.max_admission_depth,
         },
+        publication_required=operation == "approve",
       ) {
       Ok(_) => ()
       Err(issue) => {
@@ -280,10 +281,9 @@ fn LocalCommandPreparationOriginal::resolve_checkpoint_review(
             capture, configuration, continuation, capacity,
           )
         }
-        // The public --wait gate above remains closed until the same caller's
-        // request/Account/IO/receipt/publication chain is complete. Even an
-        // internal caller cannot report this constructor prefix as completion.
-        stop("LocalCheckpointContinuationUnavailable")
+        return self.publish_saved_effect_files(
+          capture, configuration, installation, continuation,
+        )
       }
       wire
     }

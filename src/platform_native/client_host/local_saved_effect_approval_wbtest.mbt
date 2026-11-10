@@ -66,3 +66,64 @@ test "Native saved review wire refuses missing duplicate foreign and malformed f
     is Err(CustodyLost),
   )
 }
+
+///|
+test "Native saved review preserves complete original publication metadata without upgrading legacy DATA" {
+  let limits : @checkpoint.WireLimits = {
+    max_wire_bytes: 4096,
+    max_nodes: 128,
+    max_depth: 4,
+  }
+  let legacy = saved_effect_review_codec_fixture()
+  let suffix =
+    #|,"result_derivation_wires":["derivation one","derivation two"],"result_ordering_wires":["ordering one","ordering two"],"result_retention_wires":["retention one","retention two"],"result_schema_wires":["schema one","schema two"],"result_codec_cids":["codec one","codec two"]}
+  let current = legacy[0:legacy.length() - 1].to_owned() + suffix
+  let fields = saved_effect_review_fields(current, limits).unwrap()
+  assert_eq(saved_effect_review_texts(fields, "result_schema_wires").unwrap(), [
+    "schema one", "schema two",
+  ])
+  assert_true(
+    saved_effect_review_contracts(
+      fields, "result_derivation_wires", "derivation_evidence", limits,
+    )
+    is Err(CustodyLost),
+  )
+  let old_fields = saved_effect_review_fields(legacy, limits).unwrap()
+  assert_true(
+    saved_effect_review_texts(old_fields, "result_schema_wires")
+    is Err(CustodyLost),
+  )
+  for
+    (old, replacement) in [
+      (
+        (
+          #|,"result_codec_cids":["codec one","codec two"]
+        ),
+        "",
+      ),
+      (
+        (
+          #|["schema one","schema two"]
+        ),
+        (
+          #|["schema one"]
+        ),
+      ),
+      (
+        (
+          #|["retention one","retention two"]
+        ),
+        (
+          #|["retention one",null]
+        ),
+      ),
+    ] {
+    assert_true(
+      saved_effect_review_fields(
+        current.replace_all(old~, new=replacement),
+        limits,
+      )
+      is Err(CustodyLost),
+    )
+  }
+}

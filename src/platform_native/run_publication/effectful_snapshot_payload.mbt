@@ -1,4 +1,18 @@
 ///|
+/// Only the physical-output facts consumed by restored snapshot persistence.
+/// Computation, policy and input relations remain in the original admitted
+/// artifact/derivation; this caller cannot fabricate unused issuer fields.
+pub(all) struct NativeEffectfulSnapshotOutputContext {
+  run_definition : @publication.PublicationContract
+  invocation : @publication.PublicationContract
+  retention : @publication.PublicationContract
+  publication_attempt : @publication.PublicationContract
+  store_authority_cid : String
+  material_generation_cid : String
+  max_payload_bytes : Int64
+}
+
+///|
 /// Physical binding only: original Result definitions/artifacts are retained,
 /// never reissued from Preview or a new computation.
 pub(all) struct NativePublishedEffectfulResult {
@@ -14,7 +28,7 @@ pub(all) struct NativePublishedEffectfulResult {
 pub fn persist_effectful_result_snapshot_native(
   store : @store.Store,
   snapshot : @publication.CapturedResultSnapshot,
-  context : NativePublicationOutputContext,
+  context : NativeEffectfulSnapshotOutputContext,
   ordering : @publication.PublicationContract,
   result_schema_wire : String,
   codec_contract_cid : String,

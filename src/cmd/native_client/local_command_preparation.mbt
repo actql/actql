@@ -37,6 +37,11 @@ priv enum LocalCommandPreparationIssue {
   CommandSavedFileResource(@initial_resources.LedgerIssue)
   CommandSavedFileEntry(@initial_arena.InstalledArenaNonModelWorkEntryIssue)
   CommandSavedFileResume(@local_host.NativeLocalInitialHostAttestationIssue)
+  CommandSavedEffectPublication(
+    @local_host.NativeLocalSavedEffectPublicationIssue
+  )
+  CommandSavedEffectOutput(@local_publication.NativePublicationOutputIssue)
+  CommandSavedEffectCompletion(LocalSavedEffectCompletionIssue)
   CommandBusinessSource(@row_file.NativeRelationFileIssue)
   CommandBusinessSourceIdentity(LocalNativeMockSourceIdentityIssue)
   CommandBusinessModel(@local_host.NativeClientMockModelIssue)
@@ -823,12 +828,21 @@ fn LocalCommandPreparationOriginal::close_checked(
         .map_err(issue => CommandAdoption(issue)),
       )
     }
+    // A pending Saved publication still borrows its original review/current
+    // scope. Settle its actual payload children before cutting those aliases.
+    if self.business is Some(business) &&
+      business.saved_effect_files is Some(work) {
+      self.cleanup_stage = "saved-effect-publication"
+      command_preparation_value(self.close_saved_effect_publication(work))
+    }
     self.cleanup_stage = "run-observation"
     command_preparation_value(self.close_run_observation())
     self.cleanup_stage = "business-children"
     command_preparation_value(self.close_business_children())
     self.cleanup_stage = "business-operation"
     command_preparation_value(self.close_business_operation())
+    self.cleanup_stage = "saved-effect-entry"
+    command_preparation_value(self.close_saved_effect_entry_after_stores())
     if self.journal is Some(journal) {
       command_preparation_value(
         journal

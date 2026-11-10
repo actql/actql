@@ -199,3 +199,31 @@ test "fresh Run selection requires its compiled layout before Compute acquisitio
   assert_true(command_preparation_invocation.val is None)
   assert_true(initial_crypto_invocation.val is None)
 }
+
+///|
+test "Plain and waiting approvals select the same backed saved application without a new Request" {
+  let original = native_storage_finite_arithmetic_profile()
+  for options in [[], ["--wait"]] {
+    let argv = ["--mode", "local", "approve", "original-checkpoint"]
+    for option in options {
+      argv.push(option)
+    }
+    let (profile, business) = local_command_profile_selection(
+      original,
+      command().parse(argv~),
+    )
+    guard business is Some(business) else {
+      fail("missing original saved application")
+    }
+    assert_true(business.kind == SavedEffectApply)
+    assert_eq(profile.read_domain_bytes, original.read_domain_bytes)
+    assert_true(business.limits.retained_bytes > 0L)
+    assert_true(business.limits.execution_bytes > 0L)
+  }
+  let (_, rejection) = local_command_profile_selection(
+    original,
+    command().parse(argv=["--mode", "local", "reject", "original-checkpoint"]),
+  )
+  assert_true(rejection is None)
+  assert_true(command_preparation_invocation.val is None)
+}

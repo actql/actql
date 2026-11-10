@@ -93,6 +93,51 @@ fn command_preparation_cleanup_cause(
           "SavedFileEntryResource" +
           local_submission_ledger_tag(ledger).to_string()
       }
+    CommandSavedEffectOutput(cause) =>
+      match cause {
+        Snapshot(_) => "SavedPublicationSnapshot"
+        SnapshotCleanup(_, _) => "SavedPublicationSnapshotCleanup"
+        OutputCleanup(_, _) | StoreCleanup(_, _) | BindingCleanup(_, _) =>
+          "SavedPublicationOutputCleanup"
+        Store(_) => "SavedPublicationOutputStore"
+        Binding(_) => "SavedPublicationOutputBinding"
+        _ => "SavedPublicationOutput"
+      }
+    CommandSavedEffectCompletion(cause) =>
+      match cause {
+        Member(issue) =>
+          match issue {
+            ActivePhysicalOwner(_) => "SavedEffectMemberPhysicalOwner"
+            MissingTerminalReceipt(_) => "SavedEffectMemberMissingReceipt"
+            ForeignLedgerHead(_) => "SavedEffectMemberForeignLedger"
+            _ => "SavedEffectMemberReceipt"
+          }
+        Set(issue) =>
+          match issue {
+            MemberReceipt(_, _) => "SavedEffectSetMemberReceipt"
+            InvalidInventory => "SavedEffectSetInventory"
+            _ => "SavedEffectSetReceipt"
+          }
+        Final(issue) =>
+          match issue {
+            InvalidComputation => "SavedEffectFinalComputation"
+            References(_) => "SavedEffectFinalReferences"
+            _ => "SavedEffectFinalReceipt"
+          }
+        Admission(issue) =>
+          match issue {
+            ResultEvidence(_) => "SavedEffectFinalResultEvidence"
+            FinalChain(_) => "SavedEffectFinalChain"
+            _ => "SavedEffectFinalAdmission"
+          }
+      }
+    CommandSavedEffectPublication(cause) =>
+      match cause {
+        Original(_) => "SavedPublicationOriginal"
+        Journal(_) => "SavedPublicationJournal"
+        Service(_) => "SavedPublicationService"
+        Construction => "SavedPublicationConstruction"
+      }
     CommandSavedFileResume(cause) =>
       match cause {
         HostAttestationUnavailable => "SavedFileOriginalUnavailable"

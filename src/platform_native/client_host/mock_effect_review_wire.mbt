@@ -9,6 +9,11 @@ fn emit_native_mock_effect_review(
   invocation : @publication.PublicationContract,
   definitions : Array[@publication.PublicationContract],
   artifacts : Array[@publication.PublicationContract],
+  derivations : Array[@publication.PublicationContract],
+  orderings : Array[@publication.PublicationContract],
+  retentions : Array[@publication.PublicationContract],
+  schema_wires : Array[String],
+  codec_cids : Array[String],
   manifest : @publication.PublicationContract,
   receipt : @publication.PublicationContract,
   captured : @publication.PublicationContract,
@@ -52,6 +57,34 @@ fn emit_native_mock_effect_review(
     @encode.string_value(writer, @publication.publication_contract_json(value))
   }
   @encode.end_array(writer)
+  for
+    (name, originals) in [
+      ("result_derivation_wires", derivations),
+      ("result_ordering_wires", orderings),
+      ("result_retention_wires", retentions),
+    ] {
+    @encode.key(writer, name)
+    @encode.begin_array(writer)
+    for original in originals {
+      @encode.string_value(
+        writer,
+        @publication.publication_contract_json(original),
+      )
+    }
+    @encode.end_array(writer)
+  }
+  for
+    (name, originals) in [
+      ("result_schema_wires", schema_wires),
+      ("result_codec_cids", codec_cids),
+    ] {
+    @encode.key(writer, name)
+    @encode.begin_array(writer)
+    for original in originals {
+      @encode.string_value(writer, original)
+    }
+    @encode.end_array(writer)
+  }
   @encode.end_object(writer)
 }
 
@@ -67,6 +100,11 @@ pub fn NativeClientMockModelWork::save_effect_review_in_original_read(
   invocation : @publication.PublicationContract,
   definitions : Array[@publication.PublicationContract],
   artifacts : Array[@publication.PublicationContract],
+  derivations : Array[@publication.PublicationContract],
+  orderings : Array[@publication.PublicationContract],
+  retentions : Array[@publication.PublicationContract],
+  schema_wires : Array[String],
+  codec_cids : Array[String],
   manifest : @publication.PublicationContract,
   receipt : @publication.PublicationContract,
   captured : @publication.PublicationContract,
@@ -99,15 +137,23 @@ pub fn NativeClientMockModelWork::save_effect_review_in_original_read(
         additional_controls=Some({
           // Closed emitter field pairs/Array, two digest/hex controls and the
           // following measurement Writer. No input body is copied here.
-          record_headers: 40L,
-          reference_slots: 64L,
-          scalar_words: 400L,
+          record_headers: 52L,
+          reference_slots: 89L,
+          scalar_words: 424L,
           owned_utf16_units: 256L,
           owned_wire_bytes: 192L,
         }),
       )
       .map_err(issue => Original(issue)),
     )
+    if definitions.length() != artifacts.length() ||
+      definitions.length() != derivations.length() ||
+      definitions.length() != orderings.length() ||
+      definitions.length() != retentions.length() ||
+      definitions.length() != schema_wires.length() ||
+      definitions.length() != codec_cids.length() {
+      return Err(ForeignOriginal)
+    }
     let binding = mock_model_require(
       @publication.prepare_effect_capture_holding_binding(
         self.definition,
@@ -132,6 +178,11 @@ pub fn NativeClientMockModelWork::save_effect_review_in_original_read(
       invocation,
       definitions,
       artifacts,
+      derivations,
+      orderings,
+      retentions,
+      schema_wires,
+      codec_cids,
       manifest,
       receipt,
       captured,
@@ -165,6 +216,11 @@ pub fn NativeClientMockModelWork::save_effect_review_in_original_read(
       invocation,
       definitions,
       artifacts,
+      derivations,
+      orderings,
+      retentions,
+      schema_wires,
+      codec_cids,
       manifest,
       receipt,
       captured,

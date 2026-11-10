@@ -599,8 +599,10 @@ fn native_mock_effect_import_construction(
     Int64::max(3L, imports + 2L),
   ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
   let arrays = @execution.preparation_array_representation(
-    3L * units + 3L,
-    units + 3L * results + imports + extra_results,
+    // Five additional public-evidence vectors retain borrowed original
+    // contracts/schema/codec references; no second bodies or rows are made.
+    3L * units + 8L,
+    units + 8L * results + imports + extra_results,
     true,
   ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
   let controls = @execution.preparation_representation_cost(
@@ -613,7 +615,7 @@ fn native_mock_effect_import_construction(
         5L * results +
         3L * imports +
         4L * 4096L * results,
-        reference_slots: 5L +
+        reference_slots: 10L +
         9L * extra_results +
         40L * units +
         24L * results +

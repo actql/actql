@@ -1,4 +1,15 @@
 ///|
+priv struct LocalNativeSavedEffectRowTerminal {
+  member_index : Int
+  ordinal : Int
+  locator : @effect.LogicalItemLocator
+  key : @effect.EffectDispatchKey
+  basis : @effect.EffectLedgerBasis
+  head : @effect.EffectLedgerEntry
+  receipt : @publication.PublicationContract
+}
+
+///|
 // Caller custody on the SAME command. Arena/Resource/FS/Journal remain the
 // owners of their respective acknowledgements; this record issues none.
 priv struct LocalNativeSavedEffectFileWork {
@@ -13,10 +24,11 @@ priv struct LocalNativeSavedEffectFileWork {
       @row_file.NativeRelationFileReplacementAck,
     ),
   ]
-  receipts : Array[(Int, Int, @publication.PublicationContract)]
+  receipts : Array[LocalNativeSavedEffectRowTerminal]
   mut received : Int64
   mut submitted : Int64
   mut response_pending : Bool
+  mut publication : LocalNativeSavedEffectPublication?
 }
 
 ///|
@@ -140,6 +152,10 @@ fn LocalCommandPreparationOriginal::apply_saved_effect_files(
     stop("LocalOriginalEffectExecutionUnavailable")
   }
   continuation
+  .prepare_saved_publication_construction_in_original_read()
+  .map_err(issue => CommandSavedEffectPublication(issue))
+  |> command_preparation_result
+  continuation
   .prepare_file_application_controls_in_original_read()
   .map_err(issue => CommandSavedFileResume(issue))
   |> command_preparation_result
@@ -154,6 +170,7 @@ fn LocalCommandPreparationOriginal::apply_saved_effect_files(
     received: 0L,
     submitted: 0L,
     response_pending: false,
+    publication: None,
   }
   business.saved_effect_files = Some(work)
   let acquired = host
@@ -379,7 +396,7 @@ fn LocalCommandPreparationOriginal::apply_saved_effect_files(
     // Prepared DATA becomes outcome evidence only with this SAME actual
     // fsync/generation ACK, never from the Preview or template alone.
     let outcome = row.outcome_template
-    let (receipt, _) = self.with_saved_effect_journal(() => {
+    let (receipt, head) = self.with_saved_effect_journal(() => {
       continuation
       .record_file_row_receipt_in_original_read(
         dispatch,
@@ -397,7 +414,15 @@ fn LocalCommandPreparationOriginal::apply_saved_effect_files(
       .map_err(issue => CommandSavedFileResume(issue))
       |> command_preparation_result
     })
-    work.receipts.push((member_index, ordinal, receipt))
+    work.receipts.push({
+      member_index,
+      ordinal,
+      locator,
+      key,
+      basis,
+      head,
+      receipt,
+    })
     work.response_pending = false
   }
 }
@@ -436,6 +461,10 @@ fn LocalCommandPreparationOriginal::close_saved_effect_file_children(
   }
   guard self.host is Some(host) && business.execution is Some(execution) else {
     return Err(CommandBusinessChildren)
+  }
+  match self.close_saved_effect_publication(work) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   if work.ledger is Some(ledger) {
     match business.enter_children_cleanup(host) {
@@ -478,14 +507,41 @@ fn LocalCommandPreparationOriginal::close_saved_effect_file_children(
       Err(issue) => return Err(CommandRetainedExecution(issue))
     }
   }
-  // The previous business frame has returned; no local Ledger/ACK/child alias
-  // is live at the original physical-domain retirement acknowledgement.
+  // The Store still uses this SAME execution in its cleanup coordinator.
+  // Keep the original entry/context until Store, Root and routing metadata
+  // acknowledge; completing file children alone cannot retire that context.
+  Ok(())
+}
+
+///|
+fn LocalCommandPreparationOriginal::close_saved_effect_entry_after_stores(
+  self : Self,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  guard self.business is Some(business) &&
+    business.saved_effect_files is Some(work) else {
+    return Ok(())
+  }
+  if business.store is Some(_) ||
+    business.store_failure is Some(_) ||
+    business.operation is Some(_) ||
+    business.store_root is Some(_) ||
+    business.store_parent is Some(_) ||
+    work.child is Some(_) ||
+    work.reservation is Some(_) ||
+    work.ledger is Some(_) ||
+    work.response_pending ||
+    work.publication is Some(_) ||
+    business.active {
+    return Err(CommandBusinessChildren)
+  }
+  work.receipts.clear()
+  work.receipts.shrink_to_fit()
+  // Every child has now returned. Only the existing entry Owner can attest
+  // actual C retirement, settle its original token and report/close domain.
   if work.entry is Some(entry) {
     if !entry.close_after_original_return() {
       return Err(CommandBusinessChildren)
     }
-    // Only this actual ACK closed the original execution. If no entry was
-    // acquired, retain execution for the existing parent cleanup instead.
     business.execution = None
   }
   business.saved_effect_files = None

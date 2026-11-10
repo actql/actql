@@ -8,6 +8,11 @@ priv struct LocalNativeMockEffectComputation {
   definitions : Array[@publication.PublicationContract]
   artifacts : Array[@publication.PublicationContract]
   snapshots : Array[@publication.CapturedResultSnapshot]
+  derivations : Array[@publication.PublicationContract]
+  orderings : Array[@publication.PublicationContract]
+  retentions : Array[@publication.PublicationContract]
+  schema_wires : Array[String]
+  codec_cids : Array[String]
   mut _retained_manifest : @publication.PublicationContract?
   mut _retained_receipt : @publication.PublicationContract?
   mut issuer : @publication.CapturedRunIssuancePreparation?
@@ -45,6 +50,11 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_computation(
       definitions: [],
       artifacts: [],
       snapshots: [],
+      derivations: [],
+      orderings: [],
+      retentions: [],
+      schema_wires: [],
+      codec_cids: [],
       _retained_manifest: None,
       _retained_receipt: None,
       issuer: None,
@@ -184,6 +194,44 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_computation(
           max_nodes,
           max_depth,
         )
+        .map_err(issue => {
+          LocalNativeMockEffectProposalIssue::PublicExport(issue)
+        })
+        .native_effect_proposal(self.original),
+      )
+      // Retain the actual public Result occurrence evidence before its
+      // original local artifact/export can retire. Cold publication borrows
+      // these exact bodies; Preview rows never issue replacement evidence.
+      held.derivations.push(
+        output
+        .derivation()
+        .map_err(issue => {
+          LocalNativeMockEffectProposalIssue::PublicExport(issue)
+        })
+        .native_effect_proposal(self.original),
+      )
+      held.orderings.push(
+        output
+        .ordering()
+        .map_err(issue => {
+          LocalNativeMockEffectProposalIssue::PublicExport(issue)
+        })
+        .native_effect_proposal(self.original),
+      )
+      held.retentions.push(
+        @run_host.client_effect_local_result_retention(original),
+      )
+      held.schema_wires.push(
+        output
+        .result_schema_wire()
+        .map_err(issue => {
+          LocalNativeMockEffectProposalIssue::PublicExport(issue)
+        })
+        .native_effect_proposal(self.original),
+      )
+      held.codec_cids.push(
+        output
+        .codec_contract_cid()
         .map_err(issue => {
           LocalNativeMockEffectProposalIssue::PublicExport(issue)
         })
