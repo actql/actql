@@ -58,6 +58,7 @@ pub fn admit_catalog_effect_dependency_body(
     },
     wire,
     value,
+    wire_usage: None,
   })
 }
 
@@ -158,5 +159,6 @@ fn admit_checked_policy_effect_dependency(
     },
     wire,
     value,
+    wire_usage: None,
   })
 }

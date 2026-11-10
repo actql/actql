@@ -43,6 +43,54 @@ test "durable Result binding fixes semantic and physical identities" {
   assert_true(wire.contains("\"row_count\":2"))
   assert_true(wire.contains("\"byte_count\":97"))
   assert_true(wire.contains("\"result_fields\":[\"answer\"]"))
+  let schema_wire = "{\"answer\":{\"nullable\":false,\"type\":\"integer\"}}"
+  let schema = admit_hashed_effect_dependency_body(
+    "relation_schema", schema_cid, schema_wire, 32768, 256, 8,
+  ).unwrap()
+  let retained = issue_durable_result_binding(
+    run,
+    definition,
+    invocation,
+    artifact,
+    ordering,
+    retention,
+    ordering_test_cid("1"),
+    ["answer"],
+    schema_wire,
+    ordering_test_cid("2"),
+    ordering_test_cid("3"),
+    2,
+    97,
+    "4".repeat(64),
+    32768,
+    256,
+    8,
+    schema_original=Some(schema),
+  ).unwrap()
+  assert_eq(publication_contract_json(retained), wire)
+  assert_true(
+    issue_durable_result_binding(
+      run,
+      definition,
+      invocation,
+      artifact,
+      ordering,
+      retention,
+      ordering_test_cid("1"),
+      ["answer"],
+      "{}",
+      ordering_test_cid("2"),
+      ordering_test_cid("3"),
+      2,
+      97,
+      "4".repeat(64),
+      32768,
+      256,
+      8,
+      schema_original=Some(schema),
+    )
+    is Err(DurableBindingInvalidPhysicalIdentity),
+  )
 }
 
 ///|

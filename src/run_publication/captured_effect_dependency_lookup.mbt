@@ -273,5 +273,6 @@ fn admit_lookup_effect_dependency_body(
     },
     wire,
     value,
+    wire_usage: None,
   })
 }

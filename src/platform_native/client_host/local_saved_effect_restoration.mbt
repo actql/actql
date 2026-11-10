@@ -3,8 +3,9 @@
 // owner. Partial candidate/material failures remain until that review retires.
 priv struct NativeLocalSavedEffectRestoration {
   packet : NativeClientRetainedEffectMaterials
-  capacity : @execution.ExecutionCapacity
+  mut capacity : @execution.ExecutionCapacity
   fields : @decode.ObjectView
+  schema_cursors : Array[@decode.Cursor]
   mut attempted : Bool
   mut completed : Bool
   mut candidate : Result[
@@ -88,17 +89,105 @@ pub fn NativeLocalSavedEffectReview::prepare_approval_restoration_in_original_re
     is Some(capacity) else {
     return Err(ConfigurationLimit)
   }
-  self._retained_restoration = Some({
+  let restoration : NativeLocalSavedEffectRestoration = {
     packet,
     capacity,
     fields,
+    schema_cursors: [],
     attempted: false,
     completed: false,
     candidate: None,
     materials: None,
     material_issue: None,
-  })
-  Ok(capacity)
+  }
+  self._retained_restoration = Some(restoration)
+  if @decode.lookup(fields, "result_derivation_wires") is Some(_) {
+    guard @decode.lookup(fields, "result_schema_wires") is Some(array) &&
+      @decode.array_length(array) is Some(count) &&
+      self.capture.original_resources is Some(resources) else {
+      return Err(Journal(CustodyLost))
+    }
+    // Two append backings (Read cursors and later constructor schema bodies),
+    // including their old/new overlap. Count occurrences, never text units.
+    let controls = @execution.preparation_representation_cost({
+      record_headers: 8L,
+      reference_slots: 16L + 6L * count.to_int64(),
+      scalar_words: 8L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    }).unwrap()
+    guard @execution.checked_preparation_add_product(
+        self._retained_constructor_bytes,
+        controls,
+        1L,
+      )
+      is Some(retained) else {
+      return Err(ConfigurationLimit)
+    }
+    self._retained_constructor_bytes = retained
+    let (_, _, _, array_header, pointer) = @bootstrap.native_managed_value_layout()
+    match
+      resources.host.prepare_domain_original_read_construction(
+        resources.read,
+        retained,
+        retained,
+        Int64::max(
+          controls,
+          array_header + (2L * count.to_int64() + 1L) * pointer,
+        ),
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(OriginalResources(@arena.Read(issue)))
+    }
+    for index in 0..<count {
+      guard @decode.element_at(array, index) is Some(element) &&
+        @decode.text(element) is Ok(schema_wire) else {
+        return Err(Journal(CustodyLost))
+      }
+      // Move the existing schema intake before publication. Its one measured
+      // parser/index stays with this Read, including any partial refusal.
+      let schema = match
+        self.admit_wire_in_original_read(schema_wire, wire_limits) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      restoration.schema_cursors.push(schema)
+      let usage = @decode.admission_usage(schema)
+      let bytes = @decode.cursor_span(schema).end_byte
+      guard @local.installed_json_effect_response_construction_capacity(
+          @execution.execution_capacity(0L, 0L).unwrap(),
+          bytes,
+          usage.nodes,
+          usage.depth,
+        )
+        is Some(construction) &&
+        @execution.add_execution_capacity(restoration.capacity, construction)
+        is Some(combined) else {
+        return Err(ConfigurationLimit)
+      }
+      // Body + dependency node + empty references + usage tuple/Some retain
+      // five controls, eight references and four scalar fields per occurrence.
+      // Their backing is additional to the canonical tree/wire inventory.
+      let carriers = @execution.preparation_representation_cost({
+        record_headers: 5L,
+        reference_slots: 8L,
+        scalar_words: 4L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      }).unwrap()
+      guard @execution.add_execution_capacity(
+          combined,
+          @execution.execution_capacity(carriers, carriers).unwrap(),
+        )
+        is Some(combined) else {
+        return Err(ConfigurationLimit)
+      }
+      // The same original constructor entry receives this complete peak
+      // BEFORE canonical/schema identity admission, not a second parser.
+      restoration.capacity = combined
+    }
+  }
+  Ok(restoration.capacity)
 }
 
 ///|
@@ -260,7 +349,14 @@ pub fn NativeLocalSavedEffectReview::construct_approval_in_entered_constructor(
     // The same review retires its custody cycle even if that builder refuses.
     restoration.materials = Some(materials)
     saved_effect_approval_original_from_fields(
-      fields, materials, request, persisted, wire_limits, effect_limits, publication_present,
+      fields,
+      materials,
+      request,
+      persisted,
+      wire_limits,
+      effect_limits,
+      publication_present,
+      schema_cursors=restoration.schema_cursors,
     )
   })()
   restoration.candidate = Some(result)

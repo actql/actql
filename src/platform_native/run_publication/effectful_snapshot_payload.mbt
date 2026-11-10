@@ -35,6 +35,7 @@ pub fn persist_effectful_result_snapshot_native(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  schema_original? : @publication.CapturedEffectDependencyBody? = None,
 ) -> Result[NativePublishedEffectfulResult, NativePublicationOutputIssue] {
   let (definition, logical, schema, rows, bytes) = @publication.captured_result_snapshot_payload_identity(
     snapshot,
@@ -67,7 +68,10 @@ pub fn persist_effectful_result_snapshot_native(
     Err(issue) => return Err(Store(issue))
   }
   let stream = match
-    @publication.start_captured_result_snapshot_payload(snapshot, 65536) {
+    @publication.start_captured_result_snapshot_payload(
+      snapshot,
+      Int::min(65536, bytes),
+    ) {
     Ok(value) => value
     Err(issue) =>
       return match writer.cancel() {
@@ -113,6 +117,7 @@ pub fn persist_effectful_result_snapshot_native(
       max_wire_bytes,
       max_nodes,
       max_depth,
+      schema_original~,
     ) {
     Ok(value) => value
     Err(issue) =>

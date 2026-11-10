@@ -745,6 +745,15 @@ pub fn NativeLocalSavedEffectApprovalOriginal::result_publication_originals(
 }
 
 ///|
+/// Same already admitted schema occurrence; no parse, encoder or issuer runs.
+pub fn NativeLocalSavedEffectApprovalOriginal::result_schema_original(
+  self : Self,
+  index : Int,
+) -> @publication.CapturedEffectDependencyBody? {
+  self.schema_originals.get(index)
+}
+
+///|
 pub fn NativeLocalSavedEffectApprovalOriginal::computation_publication_originals(
   self : Self,
 ) -> (

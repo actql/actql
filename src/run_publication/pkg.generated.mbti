@@ -76,7 +76,7 @@ pub fn admit_effectful_final_run_evidence_chain(PublicationContract, Publication
 
 pub fn admit_effectful_final_run_evidence_with_outcomes(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, EffectPreviewIdentity, String, Array[String], String, Int, Int, Int) -> Result[(PublicationContract, EffectSetApplyReceiptEvidence), EffectfulFinalChainIssue]
 
-pub fn admit_hashed_effect_dependency_body(String, String, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]
+pub fn admit_hashed_effect_dependency_body(String, String, String, Int, Int, Int, cursor? : @decode_core.Cursor?) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]
 
 pub fn admit_local_effect_dependency_body(String, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]
 
@@ -184,11 +184,15 @@ pub fn captured_content_reference_wire(CapturedContentReference) -> String
 
 pub fn captured_effect_dependency_body_cid(CapturedEffectDependencyBody) -> String
 
+pub fn captured_effect_dependency_body_field_count(CapturedEffectDependencyBody) -> Int?
+
 pub fn captured_effect_dependency_body_json(CapturedEffectDependencyBody) -> String
 
 pub fn captured_effect_dependency_body_kind(CapturedEffectDependencyBody) -> String
 
 pub fn captured_effect_dependency_body_references(CapturedEffectDependencyBody, Int) -> Array[(String, String)]?
+
+pub fn captured_effect_dependency_body_wire_usage(CapturedEffectDependencyBody) -> (Int, Int, Int)?
 
 pub fn captured_effect_dependency_inventory_count(CapturedEffectDependencyInventory) -> Int
 
@@ -570,9 +574,9 @@ pub fn issue_delivery_record(PublicationContract, PublicationContract?, String, 
 
 pub fn issue_derived_input_relation(PublicationContract, ResultOrderingEvidence, PublicationContract, PublicationContract, Int, Int, Int) -> Result[PublicationContract, AcquisitionRelationIssue]
 
-pub fn issue_durable_result_binding(PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, String, Array[String], String, String, String, Int, Int, String, Int, Int, Int) -> Result[PublicationContract, DurableResultBindingIssue]
+pub fn issue_durable_result_binding(PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, String, Array[String], String, String, String, Int, Int, String, Int, Int, Int, schema_original? : CapturedEffectDependencyBody?) -> Result[PublicationContract, DurableResultBindingIssue]
 
-pub fn issue_durable_result_binding_from_snapshot(CapturedResultSnapshot, PublicationContract, PublicationContract, PublicationContract, PublicationContract, String, String, String, String, Int, String, Int, Int, Int) -> Result[PublicationContract, DurableResultBindingIssue]
+pub fn issue_durable_result_binding_from_snapshot(CapturedResultSnapshot, PublicationContract, PublicationContract, PublicationContract, PublicationContract, String, String, String, String, Int, String, Int, Int, Int, schema_original? : CapturedEffectDependencyBody?) -> Result[PublicationContract, DurableResultBindingIssue]
 
 pub fn issue_effect_free_captured_run(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, Array[CapturedResultSnapshot], Array[PendingSourceStateAdvance], RunEvidenceValue, Array[RunEvidenceValue], Int, Int, Int, content_generations? : Array[BoundContentGeneration]) -> Result[PublicationContract, CapturedRunIssuanceIssue]
 

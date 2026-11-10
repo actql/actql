@@ -73,6 +73,41 @@ the preclaim view's absent use cannot substitute for it. A separate public
 candidate read starts with a fresh complete scope observation. Durable history,
 expiry/revocation, cancellation and final locked checks remain independent.
 
+The saved command forwards its actual captured Journal Read into metadata,
+authority and Account observations. Only that active Read may reuse its
+admitted adoption material; relevant original writes invalidate it, and closing
+or leaving the Read refuses further use. A clock callback precedes the next
+Read observation. Resident and configured callers retain their independent
+full-current path. This is no process-wide cache or replacement Allow.
+
+At the Host locked boundary, the existing helper observes the actual Sign
+Account and then the same subject without callbacks. The following immutable
+scope comparison consumes that observation instead of repeating every Account
+and key callback. Transaction, physical signing, public-entry and final subject
+checks remain separate boundaries.
+
+Before application writes, the saved publication constructor uses the original
+receipt encoder's byte/node/depth facts and the closed member/row/final receipt
+structure. CID text length is not a JSON node count. Its parser, writer, output
+and failed-child overlap still acquire backing on the same Read under unchanged
+limits; the quote is neither a policy increase nor publication authority.
+
+Saved schema intake retains the existing admitted dependency body, its actual
+encoder byte/node/depth facts and object width. The same measured Read parser
+cursor feeds canonical admission once; the business constructor backs its
+canonical body and carriers before entry. A longer column label changes text
+bytes, not structural nodes or field count. The final durable binding borrows
+that same opaque body and still checks its kind, schema CID, exact wire, current
+limits and original result fields. Callers without that body retain the existing
+full schema admission path; independent Store verification is unchanged.
+
+Closed PublicationContract constructors retain their canonical return values
+and wires; parser/index/key-normalization scratch remains in their full original
+execution peak rather than a second returned Source forest. Each payload stream
+allocates at most its actual encoded payload size and the existing 64KiB chunk
+maximum; the Read quote uses the same selected chunk size. These are lifetime
+and representation correspondences, not a raised Read ticket or a new grant.
+
 ## Reviewer proof artifacts
 
 Approved Effect Resolutions already require both the same-key signed Approval

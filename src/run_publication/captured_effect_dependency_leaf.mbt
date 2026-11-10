@@ -10,6 +10,7 @@ pub fn admit_hashed_effect_dependency_body(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  cursor? : @decode.Cursor? = None,
 ) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue] {
   if ![
       "local_body", "parameter_declarations", "used_values", "local_contracts", "local_policy",
@@ -22,15 +23,40 @@ pub fn admit_hashed_effect_dependency_body(
   if !valid_contract_cid(identity) {
     return Err(InvalidBody)
   }
-  let value = match parse_contract_wire(wire, max_bytes, max_nodes, max_depth) {
-    Ok(value) => value
-    Err(_) => return Err(InvalidBody)
+  let value = match cursor {
+    None =>
+      match parse_contract_wire(wire, max_bytes, max_nodes, max_depth) {
+        Ok(value) => value
+        Err(_) => return Err(InvalidBody)
+      }
+    Some(original) => {
+      guard @json.start_cursor_admission(
+          original, max_nodes, max_depth, max_bytes, max_bytes,
+        )
+        is Some(admission) else {
+        return Err(InvalidBody)
+      }
+      defer @json.cancel_cursor_admission(admission)
+      while true {
+        match @json.advance_cursor_admission(admission) {
+          @json.CursorAdmissionContinue => continue
+          @json.CursorAdmissionComplete(value, _, _) => break value
+          _ => return Err(InvalidBody)
+        }
+      } nobreak {
+        return Err(InvalidBody)
+      }
+    }
   }
   let actual = @json.cid_value(value, max_bytes, max_nodes, max_depth) catch {
     _ => return Err(InvalidBody)
   }
-  if canonical_value_wire(value, max_bytes, max_nodes, max_depth) != Some(wire) ||
-    actual != identity {
+  let (canonical, bytes, nodes, depth) = @json.stringify_value_with_usage(
+    value, max_bytes, max_nodes, max_depth,
+  ) catch {
+    _ => return Err(InvalidBody)
+  }
+  if canonical != wire || actual != identity {
     return Err(InvalidBody)
   }
   guard object_fields(value) is Ok(fields) else { return Err(InvalidBody) }
@@ -100,13 +126,9 @@ pub fn admit_hashed_effect_dependency_body(
     }
   }
   Ok({
-    node: {
-      kind,
-      identity,
-      canonical_bytes: @utf8.encode(wire).length(),
-      references: [],
-    },
+    node: { kind, identity, canonical_bytes: bytes, references: [], },
     wire,
     value,
+    wire_usage: Some((bytes, nodes, depth)),
   })
 }
