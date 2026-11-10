@@ -310,6 +310,56 @@ pub fn InstalledArenaHost::prepare_domain_original_read_construction(
     view.execution_bytes,
     view.initial_execution_bytes + execution_bytes,
   )
+  self.prepare_original_read_absolute_construction(
+    read, retained, execution, contiguous_bytes,
+  )
+}
+
+///|
+/// Back one new simultaneously retained frame on this SAME current Read.
+/// Unlike a replaceable temporary peak, its constructor overlaps everything
+/// already funded. Existing reservations are neither refunded nor reissued.
+pub fn InstalledArenaHost::prepare_domain_original_read_retained_construction(
+  self : Self,
+  read : InstalledArenaOriginalRead,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+  contiguous_bytes : Int64,
+) -> Result[Unit, InstalledArenaOriginalReadIssue] {
+  guard physical_equal(read.domain.host, self) &&
+    read.consumer is Some(view) &&
+    view.retained_bytes >= 0L &&
+    view.execution_bytes >= 0L &&
+    retained_bytes >= 0L &&
+    execution_bytes >= 0L &&
+    contiguous_bytes > 0L &&
+    retained_bytes <= 9223372036854775807L - view.retained_bytes &&
+    execution_bytes <= 9223372036854775807L - view.execution_bytes else {
+    return Err(Read(@resources.Resource(@resources.InvalidCharge)))
+  }
+  self.prepare_original_read_absolute_construction(
+    read,
+    view.retained_bytes + retained_bytes,
+    view.execution_bytes + execution_bytes,
+    contiguous_bytes,
+  )
+}
+
+///|
+// Shared actual-backing mutation for temporary peaks and simultaneous frames.
+// No extra imported current callback is added by either projection above.
+fn InstalledArenaHost::prepare_original_read_absolute_construction(
+  self : Self,
+  read : InstalledArenaOriginalRead,
+  retained : Int64,
+  execution : Int64,
+  contiguous_bytes : Int64,
+) -> Result[Unit, InstalledArenaOriginalReadIssue] {
+  guard physical_equal(read.domain.host, self) &&
+    read.consumer is Some(view) &&
+    read.domain.domain is Some(_) else {
+    return Err(Read(@resources.Resource(@resources.InvalidCharge)))
+  }
   guard read.ledger is Some(ledger) && read.live is Some(live) else {
     return Err(Read(@resources.IncompleteInventory))
   }

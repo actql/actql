@@ -431,10 +431,10 @@ pub fn NativeLocalEffectResumeOriginal::prepare_application_file_request_in_orig
   guard @execution.checked_preparation_add_product(
       retained_request_units,
       bytes.to_int64(),
-      2L,
+      3L,
     )
     is Some(owned_units) &&
-    @execution.checked_preparation_add_product(owned_units, 135L, 1L)
+    @execution.checked_preparation_add_product(owned_units, 270L, 1L)
     is Some(total_owned_units) &&
     @execution.checked_preparation_add_product(
       16L,
@@ -451,8 +451,11 @@ pub fn NativeLocalEffectResumeOriginal::prepare_application_file_request_in_orig
       depth=limits.max_depth,
       additional_controls=Some({
         // Existing retained row records/tuples and growable outer backing,
-        // current five-field tuple, temporary hex/final CID and retained
-        // request/changes Strings. All sums are checked before constructors.
+        // Current request/changes, original selector and prepared outcome
+        // overlap at most three copies of this request bound: the request
+        // already contains target and intended changes. Two hashes include
+        // their temporary hex/final CIDs. This closed constructor inventory
+        // uses no unrelated Value slack. All sums are checked before entry.
         record_headers: headers,
         reference_slots: 32L + retained_requests.to_int64() * 24L,
         scalar_words: 8L + retained_requests.to_int64() * 4L,
@@ -494,4 +497,173 @@ pub fn NativeLocalEffectResumeOriginal::prepare_application_file_request_in_orig
     Err(_) => return Err(HostAttestationUnavailable)
   }
   Ok((request, cid, identity, changes_wire, version))
+}
+
+///|
+/// The saved computation's SAME member selects its existing retention policy;
+/// no caller CID stands in for a missing contract or physical Store holding.
+pub fn NativeLocalEffectResumeOriginal::prepare_application_file_row_in_original_read(
+  self : Self,
+  member_index : Int,
+  row_ordinal : Int,
+  canonical_request_cid : String,
+) -> Result[
+  (
+    @effect.LogicalItemLocator,
+    @effect.EffectDispatchKey,
+    @effect.EffectLedgerBasis,
+  ),
+  NativeLocalInitialHostAttestationIssue,
+] {
+  let original = match self.application_original_in_original_read() {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  guard @publication.effect_preview_member_effect_id(
+      original.preview,
+      member_index,
+    )
+    is Some(effect_id) &&
+    @publication.captured_run_effect_source_retention_cid(
+      original.captured,
+      effect_id,
+    )
+    is Some(retention) else {
+    return Err(HostAttestationUnavailable)
+  }
+  self.prepare_application_row_in_original_read(
+    member_index, row_ordinal, canonical_request_cid, retention,
+  )
+}
+
+///|
+/// Settle the SAME actual file ACK under this original dispatch. The caller
+/// retains the physical ACK before entry and across any ambiguous append.
+/// This observes original custody/read authority, never another send permit.
+pub fn NativeLocalEffectResumeOriginal::record_file_row_receipt_in_original_read(
+  self : Self,
+  dispatch : NativeClientEffectDispatchClaim,
+  member_index : Int,
+  row_ordinal : Int,
+  locator : @effect.LogicalItemLocator,
+  key : @effect.EffectDispatchKey,
+  installation_cid : String,
+  target_cid : String,
+  canonical_request_cid : String,
+  ack : @row_file.NativeRelationFileReplacementAck,
+  outcome_wire : String,
+  max_response_bytes : Int,
+) -> Result[
+  (@publication.PublicationContract, @effect.EffectLedgerEntry),
+  NativeLocalInitialHostAttestationIssue,
+] {
+  let original = match self.application_original_in_original_read() {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  guard !self.retired &&
+    physical_equal(dispatch.journal, self.host.journal) &&
+    dispatch.request == self.request &&
+    self.record.checkpoint is Some(checkpoint) &&
+    checkpoint.resolution_cid is Some(resolution) else {
+    return Err(HostAttestationUnavailable)
+  }
+  let operation = match
+    @publication.prepare_effect_file_operation(
+      original.preview,
+      member_index,
+      row_ordinal,
+      installation_cid,
+      target_cid,
+      canonical_request_cid,
+      @effect.effect_ledger_entry_cid(dispatch.dispatching),
+      @host.client_request_authority_scope_cid(self.request),
+      resolution,
+      ack.expected_version(),
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(HostAttestationUnavailable)
+  }
+  match
+    self.host.journal.record_effect_file_response(
+      dispatch,
+      original.preview,
+      member_index,
+      row_ordinal,
+      locator,
+      key,
+      operation,
+      ack,
+      outcome_wire,
+      () => self.authority_current(),
+      max_response_bytes,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(HostAttestationJournal(issue))
+  }
+  self.host.journal
+  .record_effect_row_receipt(
+    dispatch,
+    original.preview,
+    member_index,
+    row_ordinal,
+    locator,
+    key,
+    canonical_request_cid,
+    outcome_wire,
+    () => self.authority_current(),
+    max_response_bytes,
+  )
+  .map_err(issue => HostAttestationJournal(issue))
+}
+
+///|
+/// Before the file application's entry/controller exists, fund its distinct
+/// Read-owned frame alongside the SAME already retained Saved materials and
+/// requests. The business child/ACK has its separate actual capacity plan.
+pub fn NativeLocalEffectResumeOriginal::prepare_file_application_controls_in_original_read(
+  self : Self,
+) -> Result[Unit, NativeLocalInitialHostAttestationIssue] {
+  let original = match self.application_original_in_original_read() {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  guard self.subject is Some(SavedSigningSubject(read)) &&
+    read.owner.capture.original_resources is Some(resources) &&
+    resources.active_phase is Some(@arena.HostRead) &&
+    !resources.interrupted else {
+    return Err(HostAttestationUnavailable)
+  }
+  let controls = match
+    @execution.preparation_representation_cost({
+      // Direct original entry H33/R34/S71 (same existing entry constructor).
+      // Work H1/R7/S3; its two empty/growing array controls H4/R18/S4.
+      // Eight Option/Result/closure/failure frontiers H8/R12/S8. All
+      // variable requests are already retained on this SAME original Read.
+      record_headers: 33L + 1L + 4L + 8L,
+      reference_slots: 34L + 7L + 18L + 12L,
+      scalar_words: 71L + 3L + 4L + 8L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    }) {
+    Some(value) => value
+    None => return Err(HostAttestationUnavailable)
+  }
+  match
+    resources.host.prepare_domain_original_read_retained_construction(
+      resources.read,
+      controls,
+      controls,
+      controls,
+    ) {
+    Err(issue) =>
+      return Err(HostAttestationOriginal(OriginalResources(@arena.Read(issue))))
+    Ok(_) => ()
+  }
+  // Actual backing/current may call out. Keep the SAME Saved original after
+  // return without repeating Account, parsing or immutable Plan preparation.
+  if self.retired || !read.owner.saved_approval_original_live(original) {
+    return Err(HostAttestationUnavailable)
+  }
+  Ok(())
 }

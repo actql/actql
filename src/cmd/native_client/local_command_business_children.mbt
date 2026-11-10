@@ -193,8 +193,11 @@ fn LocalCommandPreparationOriginal::close_business_children(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  // No physical child is entered by request construction. Drop these DATA
-  // aliases before the business domain can be retired.
+  match self.close_saved_effect_file_children() {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  // Drop request DATA only after the actual original file children retire.
   business.saved_effect_rows.clear()
   business.saved_effect_rows.shrink_to_fit()
   if !business.model_work.is_empty() || business.effect_model is Some(_) {

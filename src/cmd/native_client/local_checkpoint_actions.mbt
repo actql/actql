@@ -269,8 +269,15 @@ fn LocalCommandPreparationOriginal::resolve_checkpoint_review(
           .unwrap_or_else(() => stop("LocalCheckpointOriginalUnavailable"))
         if self.saved_effect_file_constructor_capacity(original)
           is Some(capacity) {
+          let capacity = saved_effect_file_application_capacity(
+            business.saved_effect_rows,
+            capacity,
+          ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
           command_preparation_result(
             self.prepare_saved_effect_capacity(capture, capacity),
+          )
+          self.apply_saved_effect_files(
+            capture, configuration, continuation, capacity,
           )
         }
         // The public --wait gate above remains closed until the same caller's
@@ -368,6 +375,8 @@ fn LocalCommandPreparationOriginal::saved_effect_file_constructor_capacity(
           text in [
             prior.request_wire,
             prior.request_cid,
+            prior.target_cid,
+            prior.outcome_template,
             prior.identity,
             prior.changes_wire,
             prior.version,
@@ -394,6 +403,36 @@ fn LocalCommandPreparationOriginal::saved_effect_file_constructor_capacity(
           },
         )
         .unwrap_or_else(() => stop("LocalOriginalEffectRequestUnavailable"))
+      // Prepare every immutable response/target frame BEFORE the durable
+      // dispatch and physical Writer. Oversized DATA cannot first fail to
+      // encode only after a real file replacement.
+      let original_row = original
+        .ordered_row_original(member_index, row_ordinal)
+        .unwrap_or_else(() => stop("LocalOriginalEffectRowUnavailable"))
+      let target_value = @canonical.object_field(
+        original_row, "target_row_identity",
+      ).unwrap_or_else(() => stop("LocalOriginalEffectRowUnavailable"))
+      let selector = @canonical.stringify_value(
+        target_value, local_project_mock_relation_wire_bytes, local_project_mock_relation_wire_nodes,
+        local_project_mock_relation_wire_depth,
+      ) catch {
+        _ => stop("LocalOriginalEffectRowUnavailable")
+      }
+      let selected = row_binding._retained_selection
+      let target_cid = @publication.effect_file_target_cid(
+        installation.binding,
+        selected.directory,
+        selected.name,
+        selected.resource,
+        selector,
+        row_binding.limits.page.max_bytes,
+        row_binding.limits.page.max_nodes,
+        row_binding.limits.page.max_depth,
+      ).unwrap_or_else(() => stop("LocalOriginalEffectTargetUnavailable"))
+      let outcome_template = saved_effect_file_outcome_wire(
+        identity,
+        row_binding.limits.page.max_bytes,
+      ).unwrap_or_else(() => stop("LocalOriginalEffectOutcomeUnavailable"))
       // Retain before any later constructor or scope return can fail.
       business.saved_effect_rows.push({
         _retained_member_index: member_index,
@@ -402,6 +441,8 @@ fn LocalCommandPreparationOriginal::saved_effect_file_constructor_capacity(
         _retained_row_binding: row_binding,
         request_wire,
         request_cid,
+        target_cid,
+        outcome_template,
         identity,
         changes_wire,
         version,

@@ -84,6 +84,21 @@ fn command_preparation_cleanup_cause(
         SavedResolutionEncoding => "SavedResolutionEncoding"
       }
     CommandBusinessChildren => "CommandBusinessChildren"
+    CommandSavedFileResource(cause) =>
+      "SavedFileResource" + local_submission_ledger_tag(cause).to_string()
+    CommandSavedFileEntry(cause) =>
+      match cause {
+        Unavailable => "SavedFileEntryUnavailable"
+        Resource(ledger) =>
+          "SavedFileEntryResource" +
+          local_submission_ledger_tag(ledger).to_string()
+      }
+    CommandSavedFileResume(cause) =>
+      match cause {
+        HostAttestationUnavailable => "SavedFileOriginalUnavailable"
+        HostAttestationJournal(_) => "SavedFileJournal"
+        _ => "SavedFileOriginalAuthority"
+      }
     CommandBusinessSource(cause) =>
       match cause {
         InvalidInput => "SourceInvalidInput"

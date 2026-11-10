@@ -56,6 +56,8 @@ priv struct LocalNativeSavedEffectFileRow {
   _retained_row_binding : LocalProjectMockRowBinding
   request_wire : String
   request_cid : String
+  target_cid : String
+  outcome_template : String
   identity : String
   changes_wire : String
   version : String

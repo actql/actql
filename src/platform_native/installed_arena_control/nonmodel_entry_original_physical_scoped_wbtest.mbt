@@ -127,7 +127,10 @@ fn nonmodel_eligible_original_work(
 ///|
 // Same selected provider and original components as the existing pair and
 // retained-execution diagnostics. This is not a normal installed profile.
-test "eligible copied entry refuses while the same original takes once and physically retires" {
+fn nonmodel_physical_entry_case(
+  claimed : Bool,
+  retained_frame? : Bool = false,
+) -> Unit raise {
   let root = @env.get_env_var("ACTQL_TEST_INSTALLED_PROCESS_ROOT").unwrap()
   let sqlite_path = @env.get_env_var("ACTQL_TEST_SQLITE_COMPONENT").unwrap()
   let page = domain_page_bytes()
@@ -154,7 +157,12 @@ test "eligible copied entry refuses while the same original takes once and physi
     attempts: 2,
     holdings: 2,
     transfer_bytes: 3L,
-    retained_bytes: 32L * page + read_entry_bytes,
+    // This distinct case adds exactly one 32B simultaneous frame to its
+    // declared child allowance. Root limits, backing extents, attempts and
+    // both existing case declarations remain unchanged.
+    retained_bytes: 32L * page +
+    read_entry_bytes +
+    (if retained_frame { 32L } else { 0L }),
     execution_bytes: 6144L * page,
   }
   let sqlite_limits : @resources.LedgerLimits = {
@@ -295,9 +303,18 @@ test "eligible copied entry refuses while the same original takes once and physi
       1024L * page + read_entry_bytes,
     )
     .unwrap()
-  let proved = nonmodel_eligible_original_work(
-    host, pair, read, execution, control_bytes,
-  )
+  let proved = if claimed {
+    nonmodel_eligible_original_work(host, pair, read, execution, control_bytes)
+  } else {
+    nonmodel_unclaimed_original_work(
+      host,
+      pair,
+      read,
+      execution,
+      control_bytes,
+      retained_frame~,
+    )
+  }
   assert_true(consumer.scope == ConsumerScopeLeft)
   // The distinct business owner must retire its real loan before the Read
   // pair. This helper has already dropped its Read-created entry and copy.
@@ -309,4 +326,68 @@ test "eligible copied entry refuses while the same original takes once and physi
   host.try_close().unwrap()
   assert_eq(process_test_close(descriptor), 0)
   assert_true(proved)
+}
+
+///|
+fn nonmodel_unclaimed_original_work(
+  host : InstalledArenaHost,
+  pair : InstalledArenaLocalHostResources,
+  read : InstalledArenaOriginalRead,
+  execution : InstalledArenaRetainedExecution,
+  control_bytes : Int64,
+  retained_frame? : Bool = false,
+) -> Bool raise {
+  host.enter_local_host_phase(pair, HostRead).unwrap()
+  if retained_frame {
+    let before_retained = read.funded_retained_bytes
+    let before_execution = read.funded_execution_bytes
+    // One additional fixed H1/S2 frame, alongside existing paid backing.
+    host
+    .prepare_domain_original_read_retained_construction(read, 32L, 32L, 32L)
+    .unwrap()
+    assert_eq(read.funded_retained_bytes, before_retained + 32L)
+    assert_eq(read.funded_execution_bytes, before_execution + 32L)
+  }
+  let entry = match
+    host.prepare_domain_nonmodel_work_entry(
+      pair, read, execution, control_bytes, control_bytes,
+    ) {
+    Some(Ok(ReadyNonModelWorkEntry(value))) => value
+    _ => fail("Expected original unclaimed entry")
+  }
+  let copied = { ..entry, }
+  assert_false(entry.claimed || entry.finished)
+  assert_true(entry.owns_only_control())
+  // Neither a copied carrier nor an active C scope may acknowledge retirement.
+  assert_false(copied.close_after_original_return())
+  assert_false(entry.close_after_original_return())
+  host.leave_local_host_phase(pair).unwrap()
+  assert_false(copied.close_after_original_return())
+  // No business borrower was entered. The actual original C retirement and
+  // exact reservation settlement remain required; no claimed flag is forged.
+  assert_true(entry.close_after_original_return())
+  assert_true(
+    execution.physical_retired && execution.closed && execution.reported,
+  )
+  assert_true(entry.settled && entry.closed && entry.original.val is None)
+  assert_eq(entry.usage().live_reservations, 0)
+  assert_eq(entry.usage().attempts, 0)
+  assert_eq(entry.usage().transferred_bytes, 0L)
+  assert_true(entry.close_after_original_return())
+  true
+}
+
+///|
+test "eligible copied entry refuses while the same original takes once and physically retires" {
+  nonmodel_physical_entry_case(true)
+}
+
+///|
+test "unclaimed original entry retires only after actual parent scope return" {
+  nonmodel_physical_entry_case(false)
+}
+
+///|
+test "simultaneous Read frame preserves prior backing through original retirement" {
+  nonmodel_physical_entry_case(false, retained_frame=true)
 }

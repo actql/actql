@@ -231,6 +231,8 @@ pub fn captured_result_snapshot_payload_extent(CapturedResultSnapshot) -> (Int, 
 
 pub fn captured_result_snapshot_payload_identity(CapturedResultSnapshot) -> (String, String, String, Int, Int)
 
+pub fn captured_run_effect_source_retention_cid(PublicationContract, String) -> String?
+
 pub fn captured_run_preparation_fixture_inventory(CapturedRunIssuancePreparation) -> (Int, Int, Bool, Bool)
 
 pub fn captured_run_preparation_fixture_phase(CapturedRunIssuancePreparation) -> String

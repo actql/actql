@@ -336,7 +336,9 @@ pub fn InstalledArenaNonModelWorkEntry::cancel_unclaimed_in_original_read(
 }
 
 ///|
-/// Existing outer cleanup boundary only. Actual C retirement refuses escaped
+/// Existing outer cleanup boundary only. A never-claimed entry has no
+/// borrower children; it still requires the SAME actual C retirement below.
+/// Actual C retirement refuses escaped
 /// closed Work/export aliases while this exact debit remains live. Only after
 /// that original ACK may settlement precede the existing report/parent return.
 pub fn InstalledArenaNonModelWorkEntry::close_after_original_return(
@@ -347,8 +349,7 @@ pub fn InstalledArenaNonModelWorkEntry::close_after_original_return(
   }
   if !self.is_original() ||
     retained_execution_control_scope_clear_ffi() != 1 ||
-    !self.claimed ||
-    !self.finished ||
+    (self.claimed && !self.finished) ||
     self.execution.active ||
     !self.finalization_owns_report() {
     return false

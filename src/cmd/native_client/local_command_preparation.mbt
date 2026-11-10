@@ -34,6 +34,9 @@ priv enum LocalCommandPreparationIssue {
   CommandStoreOperation(@local_host.NativeLocalStoreOperationIssue)
   CommandSavedResolution(@local_host.NativeLocalSavedEffectResolutionIssue)
   CommandBusinessChildren
+  CommandSavedFileResource(@initial_resources.LedgerIssue)
+  CommandSavedFileEntry(@initial_arena.InstalledArenaNonModelWorkEntryIssue)
+  CommandSavedFileResume(@local_host.NativeLocalInitialHostAttestationIssue)
   CommandBusinessSource(@row_file.NativeRelationFileIssue)
   CommandBusinessSourceIdentity(LocalNativeMockSourceIdentityIssue)
   CommandBusinessModel(@local_host.NativeClientMockModelIssue)
@@ -224,6 +227,7 @@ fn prepare_local_command_preparation_original(
       model_work: [],
       effect_model: None,
       saved_effect_rows: [],
+      saved_effect_files: None,
       values_work: None,
       values_failure: None,
       store: None,
