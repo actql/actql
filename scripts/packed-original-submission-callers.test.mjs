@@ -78,6 +78,101 @@ test('Native Graph source-only Host retains default policy without reading a pro
   assert.equal(actual, host);
 });
 
+function nativeGraphSubmissionCaller(ports) {
+  const text = readFileSync(new URL('./test-native-sga-public-source.mjs', import.meta.url), 'utf8');
+  const parsed = parse(text, {ecmaVersion: 'latest', sourceType: 'module'});
+  const declarations = parsed.body.filter(node => node.type === 'VariableDeclaration' &&
+    node.declarations.some(value => ['log', 'submissions', 'run'].includes(value.id.name)));
+  assert.equal(declarations.length, 3);
+  // Explicit SDK/file/process ports observe the actual argv and retained
+  // submission, without importing product modules or invoking Native.
+  return new Function('assert', 'client', 'writeFile', 'join', 'installation', 'execFile',
+    'executable', 'common', 'randomUUID', declarations.map(node => text.slice(node.start, node.end)).join('\n') +
+    '\nreturn run;')(assert, ports.client, ports.writeFile, (...parts) => parts.join('/'), 'fixture-root',
+    ports.execFile, 'original-native', ['--endpoint', 'https://fixture.invalid/'], ports.randomUUID);
+}
+
+test('Native Graph submission retains its original reference and bounded submit attempt', async () => {
+  const writes = new Map(), calls = [], attempts = new Map();
+  let submissions = 0, uuids = 0;
+  const run = nativeGraphSubmissionCaller({
+    client: {newSubmission({nonce}) {submissions++;return {nonce, epoch: 'original-epoch'};}},
+    async writeFile(path, body, options) {
+      assert.deepEqual(options, {mode: 0o600});assert.equal(writes.has(path), false);
+      writes.set(path, JSON.parse(body));
+    },
+    randomUUID: () => `00000000-0000-4000-8000-${String(++uuids).padStart(12, '0')}`,
+    execFile(command, args, options, callback) {
+      assert.equal(command, 'original-native');
+      assert.deepEqual(args.slice(0, 2), ['--endpoint', 'https://fixture.invalid/']);
+      assert.deepEqual(options, {cwd: 'fixture-root', timeout: 60000, maxBuffer: 1024 * 1024});
+      const argv = args.slice(2), kind = argv[0];calls.push(argv);
+      if (kind === 'aql' || kind === 'start') {
+        assert.equal(argv.filter(value => value === '--submission-ref-file').length, 1);
+        assert.equal(argv.filter(value => value === '--operation-attempt-id').length, 1);
+        const nonce = argv[argv.indexOf('--request-id') + 1];
+        const file = argv[argv.indexOf('--submission-ref-file') + 1];
+        assert.deepEqual(writes.get('fixture-root/' + file), {nonce, epoch: 'original-epoch'});
+        const attempt = argv[argv.indexOf('--operation-attempt-id') + 1];
+        assert.ok(attempt.length > 0 && attempt.length <= 128);
+        if (attempts.has(nonce)) assert.equal(attempt, attempts.get(nonce));
+        else attempts.set(nonce, attempt);
+        assert.equal(argv.includes('--attempt-id'), false, 'submit is not a Result delivery attempt');
+      } else if (kind === 'lookup-submission') {
+        assert.equal(argv.includes('--operation-attempt-id'), false);
+        assert.equal(argv.includes('--request-id'), false);
+        assert.equal(argv.filter(value => value === '--submission-ref-file').length, 1);
+      } else {
+        assert.equal(kind, 'read');
+        assert.equal(argv.includes('--operation-attempt-id'), false);
+        assert.equal(argv.includes('--submission-ref-file'), false);
+        assert.equal(argv[argv.indexOf('--attempt-id') + 1], 'original-read-attempt');
+      }
+      callback(null, 'original reply', '');
+    },
+  });
+  const nonce = 'original-' + 'n'.repeat(110);
+  for (let index = 0; index < 2; index++) {
+    assert.equal(await run('aql', '--program-file', 'original.aql', '--format', 'aql-text',
+      '--request-id', nonce), 'original reply');
+  }
+  await run('lookup-submission', '--request-id', nonce);
+  await run('read', '--ref-file', 'original-ref.json', '--attempt-id', 'original-read-attempt');
+  await run('start', '--program-file', 'original.json', '--request-id', 'second-original');
+  assert.equal(submissions, 2);assert.equal(writes.size, 2);assert.equal(uuids, 2);
+  assert.equal(new Set(attempts.values()).size, 2);
+  assert.deepEqual(calls[0], calls[1]);
+  assert.equal(calls[2][calls[2].indexOf('--submission-ref-file') + 1],
+    calls[0][calls[0].indexOf('--submission-ref-file') + 1]);
+});
+
+test('Native Graph submission failures preserve the original error without retry or replacement', async () => {
+  let writes = 0, submissions = 0, calls = 0;
+  const original = Object.assign(new Error('duplicate operation attempt option'), {code: 2});
+  const run = nativeGraphSubmissionCaller({
+    client: {newSubmission({nonce}) {submissions++;return {nonce};}},
+    async writeFile() {writes++;}, randomUUID: () => '00000000-0000-4000-8000-000000000001',
+    execFile(command, args, options, callback) {
+      calls++;
+      if (args.includes('aql')) {
+        assert.equal(args.filter(value => value === '--operation-attempt-id').length, 2);
+        callback(original, '', 'duplicate operation attempt option');
+      } else {
+        assert.ok(args.includes('lookup-submission'));
+        assert.equal(args.includes('--operation-attempt-id'), false);
+        callback(null, 'same original lookup', '');
+      }
+    },
+  });
+  await assert.rejects(run('lookup-submission', '--request-id', 'never-submitted'), /lookup requires saved original/u);
+  assert.equal(calls + writes + submissions, 0);
+  await assert.rejects(run('aql', '--program-file', 'original.aql', '--format', 'aql-text',
+    '--request-id', 'original', '--operation-attempt-id', 'foreign-attempt'), error => error.cause === original);
+  assert.equal(calls, 1);
+  assert.equal(await run('lookup-submission', '--request-id', 'original'), 'same original lookup');
+  assert.equal(calls, 2);assert.equal(writes, 1);assert.equal(submissions, 1);
+});
+
 const limits = {maxReadWireBytes: 4096, maxRowWireBytes: 1024, maxRowRetainedValueBytes: 1024,
   maxRetainedValueBytes: 4096, maxRows: 10, maxBatchRows: 3, maxBatchRetainedValueBytes: 1024};
 

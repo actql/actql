@@ -91,10 +91,12 @@ const run = async (...args) => {
       const filename = `submission-${nonce}.json`;
       await writeFile(join(installation, filename),
         JSON.stringify(client.newSubmission({nonce})), {mode: 0o600});
-      submissions.set(nonce, filename);
+      submissions.set(nonce, {filename, attemptId: `native-submit-${randomUUID()}`});
     }
-    args.push('--submission-ref-file', submissions.get(nonce));
+    const original = submissions.get(nonce);
+    args.push('--submission-ref-file', original.filename);
     if (args[0] === 'lookup-submission') args.splice(args.indexOf('--request-id'), 2);
+    else args.push('--operation-attempt-id', original.attemptId);
   }
   return new Promise((resolve, reject) => {
   execFile(executable, [...common, ...args], {cwd: installation,
