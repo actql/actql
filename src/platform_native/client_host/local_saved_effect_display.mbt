@@ -14,9 +14,7 @@ fn NativeLocalSavedEffectReview::saved_effect_display_preview(
   }
   guard epoch_text(fields, "review_wire") is Some(wire) &&
     epoch_text(fields, "authoring_context_cid") is Some(authoring) &&
-    persisted.artifact.checkpoint.run_definition_cid() == Some(definition_cid) &&
-    persisted.artifact.checkpoint.review_projection_cid ==
-    "sha256:" + @sha.hex(@utf8.encode(wire)) else {
+    persisted.artifact.checkpoint.run_definition_cid() == Some(definition_cid) else {
     return Err(Journal(CustodyLost))
   }
   let cursor = match self.admit_wire_in_original_read(wire, limits) {
@@ -40,6 +38,12 @@ fn NativeLocalSavedEffectReview::saved_effect_display_preview(
     ) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
+  }
+  // Bound the selected display and fund its actual construction BEFORE
+  // creating this additional UTF8/hash copy of the original Preview.
+  if persisted.artifact.checkpoint.review_projection_cid !=
+    "sha256:" + @sha.hex(@utf8.encode(wire)) {
+    return Err(Journal(CustodyLost))
   }
   let (preview, root) = match
     @publication.admit_effect_preview_identity_cursor_with_original(
@@ -243,8 +247,6 @@ pub fn NativeClientMockModelWork::display_preview_in_original_read(
       @publication.publication_contract_identity(self.definition) ||
       @publication.effect_preview_semantic_identity(identity) !=
       persisted.artifact.checkpoint.required_artifact_cid ||
-      "sha256:" + @sha.hex(@utf8.encode(wire)) !=
-      persisted.artifact.checkpoint.review_projection_cid ||
       !current() {
       return Err(Journal(CustodyLost))
     }
@@ -321,6 +323,13 @@ pub fn NativeClientMockModelWork::display_preview_in_original_read(
       ) {
       Ok(_) => ()
       Err(issue) => return Err(issue)
+    }
+    // The same bounded preflight and actual identity construction precede
+    // this extra UTF8 copy; an overlimit display never reaches the hash.
+    if !current() ||
+      "sha256:" + @sha.hex(@utf8.encode(wire)) !=
+      persisted.artifact.checkpoint.review_projection_cid {
+      return Err(Journal(CustodyLost))
     }
     let (checked, root) = match
       @publication.admit_effect_preview_identity_cursor_with_original(
