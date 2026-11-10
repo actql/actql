@@ -426,6 +426,25 @@ pub fn client_effect_local_result_artifact_cid(
 }
 
 ///|
+/// Borrow the exact retained policy selected for this issued local Artifact.
+/// Its original interval and Model/Source policy are not reconstructed from
+/// an installation default, and this does not authenticate physical custody.
+pub fn client_effect_local_result_retention(
+  value : ClientEffectLocalResultArtifact,
+) -> @publication.PublicationContract {
+  value.retention
+}
+
+///|
+/// Borrow the exact semantic Artifact already issued by this local owner.
+/// It is not re-admitted from wire and carries no physical custody authority.
+pub fn client_effect_local_result_artifact_contract(
+  value : ClientEffectLocalResultArtifact,
+) -> @publication.PublicationContract {
+  value.artifact
+}
+
+///|
 pub fn client_effect_local_artifact_definition_cid(
   value : ClientEffectLocalResultArtifact,
 ) -> String {
@@ -621,4 +640,51 @@ pub fn admit_client_effect_local_source_evidence(
     max_nodes,
     max_depth,
   )
+}
+
+///|
+fn effect_local_result_definition_matches_public_result(
+  owner : PreparedClientEffectComputation,
+  definition : ClientEffectLocalResultDefinition,
+  result : Int,
+) -> Bool {
+  let graph = @strategy.checked_effect_computation_graph(owner.graph)
+  guard @strategy.graph_result_task(graph, result) is Some(task) &&
+    @strategy.graph_result_occurrence(graph, result) is Some(occurrence) &&
+    @strategy.graph_task_unit_index(graph, task) == Some(definition.unit) else {
+    return false
+  }
+  client_effect_local_result_definition_matches(
+    definition,
+    owner,
+    definition.unit,
+    @results.name(
+      @results.port_result(
+        @execution.managed_result_occurrence_port(occurrence),
+      ),
+    ),
+  )
+}
+
+///|
+/// Select the exact original Named Result, including aliases of one task.
+/// This is immutable correspondence only, not an Artifact issuer, current
+/// observation, public Result substitution or physical custody permission.
+pub fn client_effect_local_result_artifact_matches_public_result(
+  owner : PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectInputs,
+  artifact : ClientEffectLocalResultArtifact,
+  result : Int,
+) -> Bool {
+  if !client_effect_local_artifact_matches_computation(artifact, owner) ||
+    !client_effect_local_artifact_matches_inputs(artifact, inputs) {
+    return false
+  }
+  match artifact.source {
+    ResultSource(_, definition) =>
+      effect_local_result_definition_matches_public_result(
+        owner, definition, result,
+      )
+    TableSource(_, _) => false
+  }
 }

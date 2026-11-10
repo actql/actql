@@ -196,7 +196,7 @@ fn request_intent_construction_bytes(
       {
         record_headers: hash.record_headers + 3L,
         reference_slots: hash.reference_slots + 2L,
-        scalar_words: hash.scalar_words + 2L,
+        scalar_words: hash.scalar_words + 3L,
         owned_utf16_units: hash.owned_utf16_units + bytes.to_int64() + 71L,
         owned_wire_bytes: hash.owned_wire_bytes,
       },
@@ -336,7 +336,7 @@ pub fn[I] finish_request_submitted_intent(
   guard @execution.preparation_representation_cost({
       record_headers: 3L,
       reference_slots: 2L,
-      scalar_words: 2L,
+      scalar_words: 3L,
       owned_utf16_units: @publication_host.client_submitted_intent_wire(intent)
       .length()
       .to_int64() +
@@ -421,10 +421,18 @@ pub fn[I] retain_request_submitted_intent(
   guard owner.phase == Open &&
     !owner.intent_attempted &&
     owner.snapshot_base is None &&
-    owner.submitted_intent is None else {
+    owner.native_intake_base is None &&
+    owner.native_intake_wire_bytes == 0 else {
     return Err(WrongPhase)
   }
   guard owner.input is Some(original) && physical_equal(original, input) else {
+    return Err(ForeignOriginal)
+  }
+  // A completed Native producer may already retain this exact output while
+  // its transient construction debit was reconciled. A different value cannot
+  // replace it, and a pending producer must finish or keep its cleanup duty.
+  if owner.submitted_intent is Some(original) &&
+    !physical_equal(original, intent) {
     return Err(ForeignOriginal)
   }
   // Even this first extent read enters the original current callback. Fence
@@ -638,6 +646,272 @@ pub fn[I] reserve_request_retained_program_material(
         return Err(ForeignOriginal)
       }
       owner.snapshot_base = Some((base_r, base_e))
+      Ok(())
+    },
+    () => owner.phase = Open,
+  )
+}
+
+///|
+/// Back the Native caller's original retained wire decoder BEFORE UTF8/Source
+/// construction. Reuse the existing Source parser inventory and the SAME
+/// preflight's observed node count; a long wire never fabricates tree nodes.
+/// This adds no checker, intent, permission or new Resource owner.
+pub fn[I] reserve_request_retained_intent_source(
+  owner : ClientRequestPreparation[I],
+  input : I,
+) -> Result[@source.ParseLimits, ClientRequestPreparationIssue] {
+  guard owner.phase == Open &&
+    !owner.native_parameters_ready &&
+    owner.intent_attempted &&
+    !owner.intent_peak_live &&
+    owner.submitted_intent is Some(intent) &&
+    owner.snapshot_values > 0L &&
+    owner.snapshot_values < 2147483647L else {
+    return Err(WrongPhase)
+  }
+  guard owner.input is Some(original) && physical_equal(original, input) else {
+    return Err(ForeignOriginal)
+  }
+  guard request_retained_intent_limits(
+      @publication_host.client_submitted_intent_wire(intent),
+    )
+    is Some(wire_limits) else {
+    return Err(Policy)
+  }
+  let limits : @source.ParseLimits = {
+    max_input_bytes: wire_limits.max_input_bytes,
+    max_nodes: owner.snapshot_values.to_int(),
+    max_depth: wire_limits.max_depth,
+  }
+  let absolute = match owner.intent_source_quote {
+    Some(original) => original
+    None => {
+      guard @decode.preserving_json_parser_construction_inventory(
+          limits.max_input_bytes,
+          limits.max_nodes,
+          Int::min(limits.max_nodes, limits.max_depth),
+        )
+        is Some(parser) &&
+        @execution.preparation_representation_cost({
+          record_headers: parser.record_headers + 1L,
+          reference_slots: parser.reference_slots,
+          scalar_words: parser.scalar_words,
+          owned_utf16_units: parser.owned_utf16_units,
+          owned_wire_bytes: limits.max_input_bytes.to_int64(),
+        })
+        is Some(bytes) else {
+        return Err(Policy)
+      }
+      owner.phase = Selecting
+      let before : Result[(Int64, Int64), ClientRequestPreparationIssue] = preparation_module_call(
+        () => {
+          @resources.preparation_capacity_working_extents(owner.capacity, input).map_err(issue => {
+              Capacity(issue)
+            },
+          )
+        },
+        () => owner.phase = Open,
+      )
+      let (r, e) = match before {
+        Err(issue) => return Err(issue)
+        Ok(value) => value
+      }
+      guard @execution.checked_preparation_add_product(r, bytes, 1L) is Some(r) &&
+        @execution.checked_preparation_add_product(e, bytes, 1L) is Some(e) else {
+        return Err(Policy)
+      }
+      owner.intent_source_quote = Some((r, e))
+      (r, e)
+    }
+  }
+  owner.phase = Selecting
+  preparation_module_call(
+    () => {
+      @resources.reserve_working_preparation_phase(
+        owner.capacity,
+        input,
+        absolute.0,
+        absolute.1,
+      ).map_err(issue => ClientRequestPreparationIssue::Capacity(issue))
+    },
+    () => owner.phase = Open,
+  ).map(_ => limits)
+}
+
+///|
+/// The Native command's original input frame precedes its admitted intent.
+/// Back the observed transport/encoding envelope on that SAME Request before
+/// reading file payload, encoding or issuing the intent. The fixed original
+/// syntax node/depth policy is preserved; bytes are actual input demand.
+/// A declined grow retains the same baseline and cannot add it twice.
+pub fn[I] reserve_request_native_intake_wire(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  wire_bytes : Int,
+) -> Result[Unit, ClientRequestPreparationIssue] {
+  guard owner.phase == Open &&
+    !owner.intent_attempted &&
+    owner.submitted_intent is None &&
+    wire_bytes > 0 &&
+    wire_bytes < 2147483519 &&
+    wire_bytes >= owner.native_intake_wire_bytes else {
+    return Err(WrongPhase)
+  }
+  guard owner.input is Some(original) && physical_equal(original, input) else {
+    return Err(ForeignOriginal)
+  }
+  if wire_bytes == owner.native_intake_wire_bytes {
+    // A new constructor boundary still needs currentness even when its SAME
+    // existing debit already fits. Do not manufacture a no-op resize/debit.
+    owner.phase = Selecting
+    return preparation_module_call(
+      () => {
+        @resources.check_working_preparation_capacity_current(
+          owner.capacity,
+          input,
+        ).map_err(issue => ClientRequestPreparationIssue::Capacity(issue))
+      },
+      () => owner.phase = Open,
+    )
+  }
+  let standard = @publication_host.client_standard_program_preparation_limits().checking.input.source
+  let nodes = Int::min(wire_bytes, standard.max_nodes)
+  let limits : @source.ParseLimits = {
+    max_input_bytes: wire_bytes,
+    max_nodes: nodes,
+    max_depth: standard.max_depth,
+  }
+  guard request_intent_construction_bytes(
+      wire_bytes.to_int64(),
+      nodes.to_int64(),
+      limits,
+      captured=false,
+    )
+    is Some(intent) &&
+    @execution.preparation_representation_cost({
+      record_headers: 8L,
+      reference_slots: 16L,
+      scalar_words: 16L,
+      owned_utf16_units: wire_bytes.to_int64() * 2L,
+      // Original bounded Reader quantum plus its accumulating/copy buffers.
+      owned_wire_bytes: 65536L + wire_bytes.to_int64() * 4L,
+    })
+    is Some(transport) &&
+    @execution.checked_preparation_add_product(intent, transport, 1L)
+    is Some(bytes) else {
+    return Err(Policy)
+  }
+  guard @execution.preparation_representation_cost({
+      record_headers: 8L,
+      reference_slots: 16L,
+      scalar_words: 16L,
+      // The returned intent or static text fields, not raw Reader/parser/
+      // canonical/writer alternatives that exist only during construction.
+      owned_utf16_units: wire_bytes.to_int64() + 71L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(retained) else {
+    return Err(Policy)
+  }
+  let base = match owner.native_intake_base {
+    Some(value) => value
+    None => {
+      let value = match
+        @resources.preparation_capacity_working_extents(owner.capacity, input) {
+        Err(issue) => return Err(Capacity(issue))
+        Ok(value) => value
+      }
+      owner.native_intake_base = Some(value)
+      value
+    }
+  }
+  guard @execution.checked_preparation_add_product(base.0, retained, 1L)
+    is Some(r) &&
+    @execution.checked_preparation_add_product(base.1, bytes, 1L) is Some(e) else {
+    return Err(Policy)
+  }
+  owner.phase = Selecting
+  preparation_module_call(
+    () => {
+      @resources.reserve_working_preparation_phase(owner.capacity, input, r, e).map_err(issue => {
+          ClientRequestPreparationIssue::Capacity(issue)
+        },
+      )
+    },
+    () => owner.phase = Open,
+  ).map(_ => owner.native_intake_wire_bytes = wire_bytes)
+}
+
+///|
+/// The actual Native producer has returned this SAME admitted output; its
+/// Reader/parser/canonical/writer temporaries no longer escape. Reconcile only
+/// that construction on the existing Request reservation. No physical close,
+/// Run admission, permission or refundable work allowance is issued here.
+pub fn[I] finish_request_native_intake_wire(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  intent : @publication_host.ClientSubmittedIntent,
+) -> Result[Unit, ClientRequestPreparationIssue] {
+  guard owner.phase == Open &&
+    !owner.intent_attempted &&
+    owner.snapshot_base is None &&
+    owner.program_json is None &&
+    !owner.native_parameters_ready &&
+    owner.native_intake_wire_bytes > 0 &&
+    owner.native_intake_base is Some(base) else {
+    return Err(WrongPhase)
+  }
+  guard owner.input is Some(original) && physical_equal(original, input) else {
+    return Err(ForeignOriginal)
+  }
+  if owner.submitted_intent is Some(original) &&
+    !physical_equal(original, intent) {
+    return Err(ForeignOriginal)
+  }
+  let units = @publication_host.client_submitted_intent_wire(intent).length()
+  if units > owner.native_intake_wire_bytes {
+    return Err(Policy)
+  }
+  guard @execution.preparation_representation_cost({
+      record_headers: 3L,
+      reference_slots: 2L,
+      scalar_words: 3L,
+      owned_utf16_units: units.to_int64() + 71L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(retained) &&
+    @execution.checked_preparation_add_product(base.0, retained, 1L) is Some(r) &&
+    @execution.checked_preparation_add_product(base.1, retained, 1L) is Some(e) else {
+    return Err(Policy)
+  }
+  // Retain the original before a fallible resize/current boundary. An error
+  // keeps its old reservation/base and this exact output for retry or cleanup;
+  // it cannot admit a different output or reopen the producer.
+  owner.submitted_intent = Some(intent)
+  owner.phase = Selecting
+  preparation_module_call(
+    () => {
+      match
+        @resources.reconcile_working_preparation_phase(
+          owner.capacity,
+          input,
+          r,
+          e,
+        ) {
+        Err(issue) => return Err(Capacity(issue))
+        Ok(_) => ()
+      }
+      guard owner.phase == Selecting &&
+        owner.input is Some(original) &&
+        physical_equal(original, input) &&
+        owner.native_intake_base == Some(base) &&
+        owner.submitted_intent is Some(original_intent) &&
+        physical_equal(original_intent, intent) else {
+        return Err(ForeignOriginal)
+      }
+      owner.native_intake_base = None
+      owner.native_intake_wire_bytes = 0
       Ok(())
     },
     () => owner.phase = Open,

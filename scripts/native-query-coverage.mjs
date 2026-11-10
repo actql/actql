@@ -231,10 +231,11 @@ function queryDependencySources(sources, reasons) {
 function unreviewedEnvironmentSource(path, source) {
   if (path === 'src/platform_native/remote_journal/inspection_stub.c')
     return source.replace('getenv("TMPDIR")', '');
-  // This existing switch emits optional diagnostic counters; it does not
-  // choose Query fixtures or supply a prerequisite for their execution.
+  // These switches emit optional diagnostics; neither chooses Query fixtures
+  // nor supplies an execution prerequisite. Remove only one literal read each.
   if (path === 'src/platform_native/filesystem/native_timings.inc')
-    return source.replace('getenv("ACTQL_NATIVE_TIMINGS")', '');
+    return source.replace(/\bgetenv\("ACTQL_NATIVE_TIMINGS"\)/u, '')
+      .replace(/\bgetenv\("ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS"\)/u, '');
   if (path === 'src/platform_native/sqlite/sqlite_stub.c') {
     // This exact exec-only WAL producer is referenced solely by Journal WB
     // tests. New Query uses of its symbol are environment readers above; a

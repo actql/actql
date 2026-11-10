@@ -18,7 +18,7 @@ struct NativeLocalEffectReviewerBinding {
   reference : NativeClientSubmissionReference
   request : @host.ClientRequestIdentity
   original : NativeClientOriginalCheckpointMetadata
-  approval_scope : @resident.ResidentOriginalEffectApprovalScope
+  approval_scope : NativeLocalOriginalEffectApprovalScope
   installed : NativeLocalInstalledEffectReviewer
   now : () -> Double
 }
@@ -133,7 +133,14 @@ pub fn NativeLocalHostConnection::bind_effect_reviewer(
     Err(issue) => return Err(issue)
   }
   self.bind_selected_effect_reviewer(
-    crypto, principal, connection, reference, request, approval_scope, now, installed,
+    crypto,
+    principal,
+    connection,
+    reference,
+    request,
+    ResidentApproval(approval_scope),
+    now,
+    installed,
   )
 }
 
@@ -148,7 +155,7 @@ fn NativeLocalHostConnection::bind_selected_effect_reviewer(
   connection : String,
   reference : NativeClientSubmissionReference,
   request : @host.ClientRequestIdentity,
-  approval_scope : @resident.ResidentOriginalEffectApprovalScope,
+  approval_scope : NativeLocalOriginalEffectApprovalScope,
   now : () -> Double,
   installed : NativeLocalInstalledEffectReviewer,
 ) -> Result[
@@ -203,6 +210,38 @@ fn NativeLocalEffectReviewerBinding::selected(
 fn NativeLocalEffectReviewerBinding::original_current(
   self : NativeLocalEffectReviewerBinding,
 ) -> Bool {
+  let now = (self.now)()
+  if self.approval_scope is SavedApproval(saved) {
+    // The clock is a callback; enter the actual current Read only AFTER it.
+    // The same typed query route retains invalidation and SQL return duties.
+    return match
+      saved.capture.with_current_adoption_material_in_original_read((
+        host,
+        _material,
+        operations,
+      ) => {
+        if !physical_equal(host, self.host) {
+          return Err(CustodyLost)
+        }
+        Ok(
+          host.lookup_submitted_checkpoint_metadata_with_operations(
+            self.crypto,
+            self.principal,
+            self.connection,
+            self.reference,
+            self.request,
+            now,
+            operations=Some(operations),
+            capture=Some(saved.capture),
+          ),
+        )
+      }) {
+      Ok(Ok(Some(value))) =>
+        value.checkpoint_cid == self.original.checkpoint_cid &&
+        value.run_definition_cid == self.original.run_definition_cid
+      _ => false
+    }
+  }
   match
     self.host.lookup_submitted_checkpoint_metadata(
       self.crypto,
@@ -210,7 +249,7 @@ fn NativeLocalEffectReviewerBinding::original_current(
       self.connection,
       self.reference,
       self.request,
-      (self.now)(),
+      now,
     ) {
     Ok(Some(value)) =>
       value.checkpoint_cid == self.original.checkpoint_cid &&
@@ -231,18 +270,48 @@ fn NativeLocalEffectReviewerBinding::read_current(
     !self.original_current() {
     return None
   }
-  let context = match
-    self.host.authority_scope_cid(
-      self.installed.reviewer.principal,
-      self.installed.reviewer.connection,
-      self.crypto,
-    ) {
-    Ok(value) => value
-    Err(_) => return None
-  }
-  let policy = match self.host.configuration() {
-    Ok(value) => value.configuration_cid()
-    Err(_) => return None
+  let (context, policy) = if self.approval_scope is SavedApproval(saved) {
+    match
+      saved.capture.with_current_adoption_material_in_original_read((
+        host,
+        material,
+        _,
+      ) => {
+        if !physical_equal(host, self.host) {
+          return Err(CustodyLost)
+        }
+        let context = match
+          saved.capture.operation_scope(
+            host,
+            material,
+            self.installed.reviewer.principal,
+            self.installed.reviewer.connection,
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+        @host.client_local_adopted_current_account(material, host.database)
+        .map(value => (context, value.configuration_cid()))
+        .map_err(local_current_material_issue)
+      }) {
+      Ok(value) => value
+      Err(_) => return None
+    }
+  } else {
+    let context = match
+      self.host.authority_scope_cid(
+        self.installed.reviewer.principal,
+        self.installed.reviewer.connection,
+        self.crypto,
+      ) {
+      Ok(value) => value
+      Err(_) => return None
+    }
+    let policy = match self.host.configuration() {
+      Ok(value) => value.configuration_cid()
+      Err(_) => return None
+    }
+    (context, policy)
   }
   let scope = match
     self.approval_scope.current_for(

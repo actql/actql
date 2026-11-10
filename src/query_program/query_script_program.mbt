@@ -306,8 +306,10 @@ fn lower_script_relation_term(
     sources.unshared.contains(selected.name) &&
     !sources.bound.contains(selected.name) &&
     steps.is_empty() &&
-    source_projection_capture_query(query, allow_vector=false) {
+    source_projection_capture_query(query, selected, fields, allow_vector=false)
+    is Some(input_fields) {
     Some({
+      input_fields,
       projection_name: pipe_physical_name(
         fields + [selected.name],
         "aql_capture_projection_",
@@ -319,7 +321,7 @@ fn lower_script_relation_term(
   } else {
     None
   }
-  let capture_originals : Array[(Int, String, @builder.Node, @builder.Node)] = []
+  let capture_originals : Array[(Int, String, @builder.Node, @builder.Node?)] = []
   let input = bind_script_input(
     construction,
     selected,

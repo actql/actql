@@ -413,6 +413,7 @@ pub fn[P, E] complete_prepared_run_operation_response_projection(
   ledger : Ledger,
   original : () -> Result[Unit, E],
   backing : NodeManagedRunOperationBacking,
+  remaining_retention? : Int64? = None,
 ) -> Result[Unit, NodeManagedRunOperationIssue[E]] {
   match
     check_prepared_run_operation_original(value, prepared, ledger, original) {
@@ -422,9 +423,20 @@ pub fn[P, E] complete_prepared_run_operation_response_projection(
   guard backing is Physical(reservation) else {
     return Err(Control(InvalidCharge))
   }
-  reduce_execution_reservation_current(
-    ledger,
-    reservation,
-    Int64::min(reservation.retention, reservation.execution),
-  ).map_err(issue => Control(issue))
+  let result = match remaining_retention {
+    None =>
+      reduce_execution_reservation_current(
+        ledger,
+        reservation,
+        Int64::min(reservation.retention, reservation.execution),
+      )
+    Some(retained) =>
+      reduce_execution_reservation_capacity_current(
+        ledger,
+        reservation,
+        retained,
+        Int64::min(retained, reservation.execution),
+      )
+  }
+  result.map_err(issue => Control(issue))
 }

@@ -36,7 +36,9 @@ fn unnest_provider(
       .unwrap_or(false)
     },
     sequence => {
-      @execution.generated_sequence_capacity(sequence, limits, measurement)
+      @execution.generated_bounded_sequence_capacity(
+        sequence, limits, measurement,
+      )
     },
     (sequence, inputs, _max_rows, max_value_bytes, execution) => {
       guard inputs is [input] &&

@@ -454,6 +454,26 @@ pub fn NativeClientRunJournal::wait_effect_checkpoint(
   updated_at : String,
   current : () -> Bool,
 ) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
+  self.wait_effect_checkpoint_with_operations(
+    request, allowed, persisted, expected_revision, binding, unknown_effects, updated_at,
+    current,
+  )
+}
+
+///|
+// Same checked Owner and transition; optional original I/O changes no law.
+fn NativeClientRunJournal::wait_effect_checkpoint_with_operations(
+  self : NativeClientRunJournal,
+  request : @host.ClientRequestIdentity,
+  allowed : @host.ClientEffectAllowedRun,
+  persisted : @checkpoint.PersistedCheckpoint,
+  expected_revision : Int64,
+  binding : @checkpoint.ResumeBinding,
+  unknown_effects : Array[String],
+  updated_at : String,
+  current : () -> Bool,
+  operations? : NativeClientJournalOperationAccess? = None,
+) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
   self.wait_original_checkpoint(
     request,
     persisted,
@@ -499,6 +519,7 @@ pub fn NativeClientRunJournal::wait_effect_checkpoint(
       }
       Ok(results)
     },
+    operations~,
   )
 }
 
@@ -518,6 +539,7 @@ fn NativeClientRunJournal::wait_original_checkpoint(
     Array[String],
     NativeClientRunJournalIssue,
   ],
+  operations? : NativeClientJournalOperationAccess? = None,
 ) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
   if unknown_effects.length() > 128 ||
     unknown_effects.any(value => value.length() > 65536) {
@@ -526,79 +548,88 @@ fn NativeClientRunJournal::wait_original_checkpoint(
   if !current() {
     return Err(AuthorizationDenied)
   }
-  self.transaction(() => {
-    let record = match self.retained(request) {
-      Ok(Some(value)) => value
-      Ok(None) => return Err(CustodyLost)
-      Err(issue) => return Err(issue)
-    }
-    if record.revision != expected_revision {
-      return Err(Checkpoint(StaleRevision))
-    }
-    let artifact = persisted.artifact
-    let declared_results = match validate_owner(record.definition) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    guard @publication.run_definition_run_id(record.definition) is Ok(run_id) &&
-      artifact.checkpoint.run_id() == Some(run_id) &&
-      artifact.checkpoint.run_definition_cid() ==
-      Some(@publication.publication_contract_identity(record.definition)) &&
-      record.physical_start_claimed &&
-      !record.cancellation_requested else {
-      return Err(Checkpoint(InvalidMaterial))
-    }
-    if record.checkpoint is Some(_) {
-      return Err(Checkpoint(NeedsOriginalContinuation))
-    }
-    if updated_at < artifact.checkpoint.created_at ||
-      @checkpoint.checkpoint_expired_at(artifact, updated_at) != Ok(false) {
-      return Err(Checkpoint(Expired))
-    }
-    let wire = match
-      @checkpoint.issue_waiting_run_state(
-        persisted,
-        updated_at,
+  let reads = operations.map(value => value.reads)
+  self.transaction_with_reads(
+    () => {
+      let record = match self.retained(request, reads~) {
+        Ok(Some(value)) => value
+        Ok(None) => return Err(CustodyLost)
+        Err(issue) => return Err(issue)
+      }
+      if record.revision != expected_revision {
+        return Err(Checkpoint(StaleRevision))
+      }
+      let artifact = persisted.artifact
+      let declared_results = match validate_owner(record.definition) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      guard @publication.run_definition_run_id(record.definition) is Ok(run_id) &&
+        artifact.checkpoint.run_id() == Some(run_id) &&
+        artifact.checkpoint.run_definition_cid() ==
+        Some(@publication.publication_contract_identity(record.definition)) &&
+        record.physical_start_claimed &&
+        !record.cancellation_requested else {
+        return Err(Checkpoint(InvalidMaterial))
+      }
+      if record.checkpoint is Some(_) {
+        return Err(Checkpoint(NeedsOriginalContinuation))
+      }
+      if updated_at < artifact.checkpoint.created_at ||
+        @checkpoint.checkpoint_expired_at(artifact, updated_at) != Ok(false) {
+        return Err(Checkpoint(Expired))
+      }
+      let wire = match
+        @checkpoint.issue_waiting_run_state(
+          persisted,
+          updated_at,
+          declared_results,
+          native_checkpoint_limits(),
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Checkpoint(State(issue)))
+      }
+      let checkpoint : NativeClientCheckpointRecord = {
+        artifact,
         declared_results,
-        native_checkpoint_limits(),
-      ) {
-      Ok(value) => value
-      Err(issue) => return Err(Checkpoint(State(issue)))
-    }
-    let checkpoint : NativeClientCheckpointRecord = {
-      artifact,
-      declared_results,
-      unknown_effects: unknown_effects.copy(),
-      updated_at,
-      state: @checkpoint.admit_run_state_wire(wire, native_checkpoint_limits()).unwrap(),
-      binding,
-      resolution_cid: None,
-      verified_wire: None,
-      resume_intent_id: None,
-      resume_intent: None,
-      settlement_only: false,
-      effect_ledger: [],
-    }
-    // Reject a projection which could not be safely restored before commit.
-    let body = match checkpoint_record_body(checkpoint) {
-      Ok(value) => value
-      Err(issue) => return Err(Checkpoint(issue))
-    }
-    if read_checkpoint_record(body, record.definition) is Err(_) {
-      return Err(Checkpoint(InvalidMaterial))
-    }
-    let next = { ..record, checkpoint: Some(checkpoint), }
-    match
-      self.database.insert(
-        "client_effect_custody",
-        @host.client_request_scope_cid(request),
-        effect_ledger_custody_body(next).unwrap(),
-      ) {
-      Ok(_) => ()
-      Err(issue) => return Err(Physical(issue))
-    }
-    self.save(next)
-  })
+        unknown_effects: unknown_effects.copy(),
+        updated_at,
+        state: @checkpoint.admit_run_state_wire(
+          wire,
+          native_checkpoint_limits(),
+        ).unwrap(),
+        binding,
+        resolution_cid: None,
+        verified_wire: None,
+        resume_intent_id: None,
+        resume_intent: None,
+        settlement_only: false,
+        effect_ledger: [],
+      }
+      // Reject a projection which could not be safely restored before commit.
+      let body = match checkpoint_record_body(checkpoint) {
+        Ok(value) => value
+        Err(issue) => return Err(Checkpoint(issue))
+      }
+      if read_checkpoint_record(body, record.definition) is Err(_) {
+        return Err(Checkpoint(InvalidMaterial))
+      }
+      let next = { ..record, checkpoint: Some(checkpoint), }
+      match
+        insert_client_journal_value(
+          self.database,
+          "client_effect_custody",
+          @host.client_request_scope_cid(request),
+          effect_ledger_custody_body(next).unwrap(),
+          operations,
+        ) {
+        Ok(_) => ()
+        Err(issue) => return Err(Physical(issue))
+      }
+      self.save_with_operations(next, operations~)
+    },
+    reads~,
+  )
 }
 
 ///|

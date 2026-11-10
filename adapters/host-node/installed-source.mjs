@@ -1,6 +1,6 @@
 import {composeInstalledSourceEnvironment, composeInstalledInventoryEnvironment} from './installed-funded-environment.mjs';
 import {sourceAliasIdentityRow} from './source-alias-request.mjs';
-import {captureSourceAliasConstruction, sourceAliasProfileConstructionGeometry,
+import {captureSourceAliasConstruction,
   sourceAliasIdentityConstructionGeometry, sourceAliasCollectionConstructionGeometry} from './source-alias-construction.mjs';
 // The standard Host's installed source binding, selected by the Host
 // profile's version from the installed connector table. Each installation
@@ -199,7 +199,7 @@ export async function installedSourceIdentity(path, {connectorTable, configurati
   const construct = captureSourceAliasConstruction(configurationReader, moon);
   const readers = captureConfigurationReaders(configurationReader, undefined,
     () => {throw new TypeError('InstalledConfigurationReaderUnavailable');});
-  return identityFromAliasProfile(await readAliasProfile(path, readers, construct, configurationReader),
+  return identityFromAliasProfile(await readAliasProfile(path, readers, configurationReader),
     {connectorTable, configurationReader}, readers.readJson, construct);
 }
 
@@ -222,7 +222,7 @@ async function identityFromAliasProfile({profile, providerProfile, queryAliases}
 
 // The retained original wire selects the complete parse/snapshot demand before
 // either constructor runs. No mutable parsed request crosses a quote callback.
-async function readAliasProfile(path, readers, construct, configurationReader) {
+async function readAliasProfile(path, readers, configurationReader) {
   const snapshot = profile => {
     const split = splitSourceAliasProfile(profile);
     // Identity providers borrow the same immutable request DATA. The parsed
@@ -234,7 +234,8 @@ async function readAliasProfile(path, readers, construct, configurationReader) {
   // They have no installed material to fund and cannot impersonate its reader.
   if (configurationReader === undefined) return snapshot(await readers.readJson(path));
   const wire = await readers.readText(path, {maxBytes: installedConfigurationByteLimit});
-  return construct(sourceAliasProfileConstructionGeometry(wire), () => snapshot(JSON.parse(wire)));
+  const construction = readers.prepareProfile(wire, () => snapshot(JSON.parse(wire)));
+  return Object.freeze({...construction.value, construction});
 }
 
 function constructAliasIdentity(construct, parts, aliases) {
@@ -353,10 +354,11 @@ async function loadInstalledSourceMember(path, {root, principalId, moon,
   const readers = captureConfigurationReaders(configurationReader, undefined,
     () => {throw new TypeError('InstalledConfigurationReaderUnavailable');});
   const read = readers.readJson;
-  const {profile, providerProfile, queryAliases} = await readProfile(path,
-    selected => readAliasProfile(selected, readers, construct, configurationReader));
+  const {profile, providerProfile, queryAliases, construction} = await readProfile(path,
+    selected => readAliasProfile(selected, readers, configurationReader));
   const {entry, module} = await selectInstallation(profile, connectorTable);
-  const checked = module.check(providerProfile);
+  const checked = construction === undefined ? module.check(providerProfile)
+    : construction.construct(() => module.check(providerProfile));
   let identityParts, publicationRevision;
   try {
     // Metadata reads only: no provider request or credential resolution.
@@ -386,7 +388,7 @@ async function loadInstalledSourceMember(path, {root, principalId, moon,
       baseEnvironmentWire, resolveSecret, installation: entry, installationServices,
       sourceInitialization, configurationReader,
       construction: sourceInitialization === undefined ? undefined
-        : bindInstalledSourceConstruction(installationServices, sourceInitialization, checked), ...runtime});
+        : bindInstalledSourceConstruction(installationServices, sourceInitialization, checked, construction), ...runtime});
     verifyInstalledConnectorRegistration(entry, adapter);
     const source = Object.freeze({...adapter, queryAliases});
     if (publicationRevision !== undefined) {
@@ -401,7 +403,7 @@ async function loadInstalledSourceMember(path, {root, principalId, moon,
         // Managed profile construction is funded before optional identity
         // metadata observation. Its quote/parse/snapshot/hash refusal must
         // propagate unchanged, including an undefined or null thrown cause.
-        const currentProfile = await readAliasProfile(path, readers, construct, configurationReader);
+        const currentProfile = await readAliasProfile(path, readers, configurationReader);
         current = await identityFromAliasProfile(currentProfile,
           {connectorTable, configurationReader}, read, construct, true);
       }

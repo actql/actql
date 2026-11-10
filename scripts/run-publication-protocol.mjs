@@ -1,3 +1,6 @@
+import {fileGenerationWordPattern} from './run-publication-contracts.mjs';
+import {nativeFileLookupTransportSchema} from './native-file-lookup-contract.mjs';
+import {verifyNativeFileReadProfile} from './native-file-read-profile-contract.mjs';
 import {execFileSync} from 'node:child_process';
 import {readFileSync, writeFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
@@ -5,8 +8,11 @@ import {dirname, join} from 'node:path';
 import {resolveControlSchema} from './interactive-run-control-schema.mjs';
 import {amountMicroPattern} from './interactive-run-control-contract.mjs';
 import {generateEffectLocalOperationVectors} from './effect-local-operation-vectors.mjs';
+import {generateEffectFileOperationVectors,generateEffectFileLedgerVectors} from './effect-file-operation-vectors.mjs';
 import {generateEffectReviewVectors} from './effect-review-projection-vectors.mjs';
 import {checkInstallationPublicationStorageSchema} from './installation-publication-storage-contract.mjs';
+
+verifyNativeFileReadProfile();
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const source = join(root, 'spec/contracts/actql-protocol-schemas.json');
@@ -19,6 +25,8 @@ const stage = JSON.parse(readFileSync(join(root,
   'spec/contracts/actql-stage-contracts.json'), 'utf8'));
 const profiles = JSON.parse(readFileSync(join(root,
   'spec/contracts/actql-production-profile-schemas.json'), 'utf8'));
+const lookup = JSON.parse(readFileSync(join(root,
+  'spec/contracts/actql-lookup-identities.json'), 'utf8'));
 const control = JSON.parse(readFileSync(join(root,
   'spec/contracts/actql-interactive-run-control.json'), 'utf8'));
 const publication = JSON.parse(readFileSync(join(root,
@@ -145,6 +153,9 @@ const selected = Object.freeze({
   run_review_projection: Object.freeze({
     schema: 'run_review_projection', identity: 'review_projection_cid',
   }),
+  request_key_set: Object.freeze({
+    schema: 'key_set', identity: 'self_cid', registry: 'lookup',
+  }),
 });
 
 const moonString = value => JSON.stringify(value);
@@ -163,11 +174,13 @@ const stringArray = values =>
 function patternTag(schema) {
   if (schema.format === 'date-time') return 2;
   if (schema.pattern === amountMicroPattern) return 12;
+  if (schema.pattern === fileGenerationWordPattern) return 15;
   switch (schema.pattern) {
     case undefined: return 0;
     case '^sha256:[0-9a-f]{64}$':
     case '^sha256:[a-f0-9]{64}$': return 1;
     case '^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$':
+    case '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$':
       return 2;
     case '^[A-Za-z0-9][A-Za-z0-9._+:-]{0,127}$': return 3;
     case '^[0-9a-f]{64}$': return 4;
@@ -194,7 +207,7 @@ const supportedKeywords = new Set([
   'anyOf', 'not', 'if', 'then', 'else',
   'maximum', 'properties', 'required', 'additionalProperties',
   'minProperties', 'maxProperties', 'maxLength', 'propertyNames', 'items',
-  'minItems', 'maxItems', 'uniqueItems', 'prefixItems',
+  'minItems', 'maxItems', 'uniqueItems', 'prefixItems', 'contains',
 ]);
 const annotationKeywords = new Set([
   '$schema', '$id', 'title', 'description', '$comment', 'examples',
@@ -228,6 +241,25 @@ function emitSchema(schema, assumedType) {
     if (!supportedKeywords.has(key)) {
       throw new Error(`Unsupported publication schema keyword: ${key}`);
     }
+  }
+  if (schema.contains !== undefined) {
+    if (!schema.contains || typeof schema.contains !== 'object' ||
+        Array.isArray(schema.contains)) {
+      throw new Error('Unsupported publication contains schema');
+    }
+    const child = schema.contains;
+    const item = emitSchema(child, child.type ??
+      (child.properties !== undefined || child.required !== undefined ? 'object' : undefined));
+    nodes.push(`ContainsRule(${item})`);
+    const contains = nodes.length - 1;
+    const siblings = {...schema};
+    delete siblings.contains;
+    if (Object.keys(siblings).some(key => !annotationKeywords.has(key))) {
+      const sibling = emitSchema(siblings, assumedType);
+      nodes.push(`AllOfRule([${contains}, ${sibling}])`);
+      return nodes.length - 1;
+    }
+    return contains;
   }
   if (schema.maxLength !== undefined || schema.maxProperties !== undefined) {
     const rest = {...schema};
@@ -511,8 +543,9 @@ function omitRequiredProperty(schema, field) {
 }
 
 function registerArtifactSchema(name, selection) {
-  const complete = structuredClone(
+  let complete = structuredClone(
     selection.registry === 'publication' ? publication.schemas[selection.schema]
+      : selection.registry === 'lookup' ? lookup.schemas[selection.schema]
       : selection.registry === 'stage' ? stage.schemas[selection.schema]
         : selection.registry === 'profiles' ? profiles.schemas[selection.schema]
       : document.artifact_schemas[selection.schema],
@@ -520,10 +553,42 @@ function registerArtifactSchema(name, selection) {
   if (complete === undefined) {
     throw new Error(`Missing publication schema: ${selection.schema}`);
   }
+  if (name === 'native_file_lookup_transport' &&
+      selection.registry === 'lookup' && selection.schema === 'transport_plan') {
+    complete = nativeFileLookupTransportSchema(lookup);
+  }
+  if (selection.registry === 'lookup' && selection.schema === 'key_set') {
+    // Preserve the pinned scalar/reference contract branches verbatim. The
+    // recursive object/array branches cannot be KeyComparable and are rejected
+    // by the shared typed reader/order admission as well. Do not introduce a
+    // second recursive value-contract compiler for this scalar key boundary.
+    const hasReference = value => value && typeof value === 'object' &&
+      (Object.hasOwn(value, '$ref') || Object.values(value).some(hasReference));
+    const contracts = structuredClone(complete.$defs.value_contract);
+    contracts.oneOf = contracts.oneOf.filter(branch => !hasReference(branch));
+    // Decimal scale conditions inherit the already-required integer property.
+    // Copy only that declared type into the descriptor fragment; retain every
+    // original precision/scale condition and bound from the registry.
+    for (const branch of contracts.oneOf) {
+      for (const condition of branch.allOf ?? []) {
+        for (const arm of ['then', 'else']) {
+          for (const [name, fragment] of Object.entries(condition[arm]?.properties ?? {})) {
+            if (fragment.type === undefined) {
+              const type = branch.properties?.[name]?.type;
+              if (type === undefined) throw new Error('UnknownLookupConditionalProperty');
+              fragment.type = type;
+            }
+          }
+        }
+      }
+    }
+    complete.properties.key_roles.items.properties.value_contract = contracts;
+    delete complete.$defs;
+  }
   const body = structuredClone(complete);
-  if (['model_invocation_evidence', 'model_capture_bundle', 'effect_row_outcome_receipt'].includes(name)) {
-    // Both exact registered versions exclude only their own identity field.
-    // Unknown versions and mixed embedded captures match neither branch.
+  if (['model_invocation_evidence', 'model_capture_bundle', 'effect_row_outcome_receipt', 'effect_local_operation_receipt', 'lookup_barrier'].includes(name)) {
+    // Each closed registered alternative excludes only its own identity field.
+    // Unknown versions and mixed proof/runtime forms match no branch.
     for (const version of body.oneOf) {
       omitRequiredProperty(version, selection.identity);
     }
@@ -544,7 +609,7 @@ function registerArtifactSchema(name, selection) {
 }
 
 for (const [name, selection] of Object.entries(selected)) {
-  registerArtifactSchema(name, selection);
+  if (name !== "request_key_set") registerArtifactSchema(name, selection);
 }
 
 // EffectOutcome is a value contract, not a self-addressed artifact. Reuse
@@ -601,6 +666,10 @@ if (document.artifact_schemas.installation_publication_storage_binding !== undef
     emitSchema(document.artifact_schemas.installation_publication_storage_binding));
 }
 
+// The existing lookup envelope appends to the same descriptor owner; preserve
+// every prior rule/root index rather than renumbering unrelated contracts.
+registerArtifactSchema('request_key_set', selected.request_key_set);
+
 // Rule descriptors are private immutable DATA. Share only exactly identical
 // constructor expressions during generation; every original table slot and
 // child/root index remains present. No runtime map, schema omission or lazy
@@ -619,7 +688,39 @@ export function shareProtocolRuleConstructors(constructors) {
 // arrays. Each helper borrows the same destination. Capacity uses the pinned
 // target's existing constructor semantics (a hint only on JS), not a new
 // physical memory guarantee or a numerical Model profile.
+registerArtifactSchema('native_file_content_read', {
+  schema: 'native_file_content_read', identity: 'transport_cid', registry: 'profiles',
+});
+registerArtifactSchema('native_file_lookup_transport', {
+  schema: 'transport_plan', identity: 'self_cid', registry: 'lookup',
+});
+registerArtifactSchema('lookup_barrier', {
+  schema: 'lookup_barrier', identity: 'barrier_cid', registry: 'profiles',
+});
+registerArtifactSchema('native_file_lookup_batch_plan', {
+  schema: 'batch_plan', identity: 'self_cid', registry: 'lookup',
+});
+registerArtifactSchema('lookup_accounting', {
+  schema: 'accounting', identity: 'self_cid', registry: 'lookup',
+});
+registerArtifactSchema('acquisition_attempt_receipt', {
+  schema: 'attempt_receipt', identity: 'self_cid', registry: 'lookup',
+});
+registerArtifactSchema('lookup_evidence', {
+  schema: 'lookup_evidence', identity: 'evidence_cid', registry: 'profiles',
+});
+for (const [name, schema] of [
+  ['native_file_lookup_request', 'request'],
+  ['native_file_lookup_call_slot', 'call_slot'],
+  ['native_file_lookup_activation', 'activation'],
+  ['native_file_lookup_raw_response', 'raw_response'],
+  ['native_file_lookup_attempt_event', 'attempt_event'],
+  ['native_file_lookup_adoption', 'adoption'],
+]) {
+  registerArtifactSchema(name, {schema, identity: 'self_cid', registry: 'lookup'});
+}
 const sharedNodes = shareProtocolRuleConstructors(nodes);
+
 const nodeChunks = [];
 for (let offset = 0; offset < sharedNodes.length; offset += 1000) {
   nodeChunks.push(sharedNodes.slice(offset, offset + 1000));
@@ -678,6 +779,17 @@ const localVectors = join(root,
 if (readFileSync(localVectors, 'utf8') !== generateEffectLocalOperationVectors()) {
   throw new Error(`Independent local-operation vectors are stale: ${localVectors}`);
 }
-// EffectOutcome plus the append-only response profile are outside selected.
-console.log(`${Object.keys(selected).length + 2} Run and Effect schemas and ` +
+const fileVectors = join(root, 'src/run_publication/effect_file_operation.generated_wbtest.mbt');
+if (readFileSync(fileVectors, 'utf8') !== generateEffectFileOperationVectors()) {
+  throw new Error(`Independent file-operation vectors are stale: ${fileVectors}`);
+}
+const fileLedgerVectors = join(root, 'src/effect_application/file_outcome_receipt.generated_wbtest.mbt');
+if (readFileSync(fileLedgerVectors, 'utf8') !== generateEffectFileLedgerVectors()) {
+  throw new Error(`Independent reordered file Ledger vectors are stale: ${fileLedgerVectors}`);
+}
+// Count actual registered names, including value-only and appended private
+// descriptors. A second handwritten offset drifts when a consumer is added.
+const registeredNames = new Set([...roots.keys()].map(key => key.slice(0, key.lastIndexOf(':'))));
+const artifactSchemaCount = [...registeredNames].filter(name => !Object.hasOwn(control.schemas, name)).length;
+console.log(`${artifactSchemaCount} Run and Effect schemas and ` +
   `${Object.keys(control.schemas).length} interactive schemas verified.`);

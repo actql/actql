@@ -1,4 +1,36 @@
 ///|
+// This is the original captured snapshot's finite wire/node bound, not a
+// policy-sized allocation or another observation of caller values. Reuse the
+// same native-input geometry owner and reject representation saturation.
+fn request_native_parameter_input_limits(
+  units : Int64,
+  values : Int64,
+) -> (@source.ParseLimits, @decode.Limits)? {
+  let (source, tree) = @local_preparation.local_parameter_input_limits()
+  guard request_native_input_geometry(
+      units,
+      values,
+      2147483646,
+      Int::min(source.max_depth, tree.max_depth),
+    )
+    is Some((bytes, nodes, depth)) &&
+    bytes < 2147483646 else {
+    return None
+  }
+  Some(
+    (
+      { max_input_bytes: bytes, max_nodes: nodes, max_depth: depth, },
+      {
+        max_nodes: nodes,
+        max_depth: depth,
+        max_string_bytes: bytes,
+        max_total_string_bytes: bytes,
+      },
+    ),
+  )
+}
+
+///|
 fn[I, T] prepare_request_native_query_input(
   owner : ClientRequestPreparation[I],
   input : I,
@@ -16,8 +48,19 @@ fn[I, T] prepare_request_native_query_input(
     return Err(Preparation(ForeignOriginal))
   }
   let mut bytes = 0L
-  if supplied is Some(_) {
-    let (source, tree) = @local_preparation.local_parameter_input_limits()
+  let parameter_limits = if supplied is Some(_) {
+    match
+      request_native_parameter_input_limits(
+        owner.snapshot_units,
+        owner.snapshot_values,
+      ) {
+      Some(limits) => Some(limits)
+      None => return Err(Preparation(Policy))
+    }
+  } else {
+    None
+  }
+  if parameter_limits is Some((source, tree)) {
     guard request_native_tree_units(
         owner.snapshot_units,
         owner.snapshot_values,
@@ -79,7 +122,12 @@ fn[I, T] prepare_request_native_query_input(
   owner.native_parameters = match supplied {
     None => None
     Some(value) =>
-      match @local_preparation.admit_captured_local_parameters(value, reader) {
+      match
+        @local_preparation.admit_captured_local_parameters(
+          value,
+          reader,
+          limits=parameter_limits,
+        ) {
         Err(issue) => {
           owner.phase = ProgramJsonFailed
           return Err(Preparation(Parameters(issue)))
@@ -121,6 +169,7 @@ pub fn[I, T] prepare_request_native_query_computation(
   effect_limits : @publication_host.ClientEffectComputationLimits,
   supplied? : T? = None,
   declarations? : T? = None,
+  public_primary? : Bool = true,
 ) -> Result[ClientRequestComputationKind, ClientRequestTerminalIssue] {
   match
     prepare_request_native_query_computation_input(
@@ -132,6 +181,7 @@ pub fn[I, T] prepare_request_native_query_computation(
       environment,
       publication,
       binding_limits=Some(request_query_binding_limits(program_limits.checking)),
+      public_primary~,
       supplied~,
       declarations~,
     ) {
@@ -155,6 +205,7 @@ fn[I, T] prepare_request_native_query_computation_input(
   binding_limits? : @admitted.Limits? = None,
   supplied? : T? = None,
   declarations? : T? = None,
+  public_primary? : Bool = true,
 ) -> Result[Unit, ClientRequestTerminalIssue] {
   match
     prepare_request_native_query_input(
@@ -174,7 +225,7 @@ fn[I, T] prepare_request_native_query_computation_input(
       publication,
       environment,
       None,
-      public_primary=true,
+      public_primary~,
       binding_limits~,
     ) {
     Err(issue) => return Err(QueryLowering(issue))
@@ -198,6 +249,7 @@ pub fn[I, T] prepare_request_native_source_computation(
   program_limits : @publication_host.ClientProgramPreparationLimits,
   effect_limits : @publication_host.ClientEffectComputationLimits,
   supplied? : T? = None,
+  public_primary? : Bool = true,
 ) -> Result[ClientRequestComputationKind, ClientRequestTerminalIssue] {
   match
     prepare_request_native_source_computation_input(
@@ -208,6 +260,7 @@ pub fn[I, T] prepare_request_native_source_computation(
       environment,
       publication,
       program_limits.checking,
+      public_primary~,
       supplied~,
     ) {
     Err(issue) => return Err(issue)
@@ -232,6 +285,7 @@ pub fn[I, T] prepare_request_native_source_computation_check(
   program_limits : @publication_host.ClientProgramPreparationLimits,
   effect_limits : @publication_host.ClientEffectComputationLimits,
   supplied? : T? = None,
+  public_primary? : Bool = true,
 ) -> Result[Unit, ClientRequestTerminalIssue] {
   match
     prepare_request_native_source_computation_input(
@@ -242,6 +296,7 @@ pub fn[I, T] prepare_request_native_source_computation_check(
       environment,
       publication,
       program_limits.checking,
+      public_primary~,
       supplied~,
     ) {
     Err(issue) => return Err(issue)
@@ -262,6 +317,8 @@ fn[I, T] prepare_request_native_source_computation_input(
   publication : @source_publication.PreparedPublishedQueryEnvironment,
   limits : @checked.CheckLimits,
   supplied? : T? = None,
+  public_primary? : Bool = true,
+  default_json? : Bool = false,
 ) -> Result[Unit, ClientRequestTerminalIssue] {
   guard owner.phase == Open &&
     !owner.native_parameters_ready &&
@@ -309,6 +366,11 @@ fn[I, T] prepare_request_native_source_computation_input(
       Err(issue) => return Err(issue)
       Ok(_) => ()
     }
+    if default_json && selected == @frontend.Json {
+      return prepare_request_default_json_computation_input(
+        owner, input, document,
+      )
+    }
     return prepare_request_document_computation_input(
       owner,
       input,
@@ -331,6 +393,7 @@ fn[I, T] prepare_request_native_source_computation_input(
     environment,
     publication,
     binding_limits=Some(request_query_binding_limits(limits)),
+    public_primary~,
     supplied~,
     declarations~,
   )

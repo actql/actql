@@ -62,6 +62,7 @@ fn native_delivery_all(
 fn native_payload_fixture(
   label : String,
   capacity_bytes : Int64,
+  max_record_bytes? : Int64 = 65536L,
 ) -> (Store, String, @sqlite.Library, String)? {
   guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY")
     is Some(library_path) else {
@@ -85,7 +86,7 @@ fn native_payload_fixture(
   parent.close().unwrap()
   let selected = root + "/" + token
   let store = open_store(
-    library, selected, authority, capacity_bytes, 8L, 65536L,
+    library, selected, authority, capacity_bytes, 8L, max_record_bytes,
   ).unwrap()
   Some((store, authority, library, selected))
 }
@@ -1262,6 +1263,9 @@ test "native formal delivery durably binds attempt receipt and success" {
     )
     .unwrap()
   let delivered : Array[Byte] = []
+  // Explicit constructor port exercises chunk aggregation beneath the same
+  // durable attempt/confirmation/reopen protocol; this is not Read funding.
+  delivery.source.source.chunk_construction = Some(_ => Ok(()))
   while true {
     let chunk = delivery.next(3, "2026-09-20T01:00:01.000Z").unwrap()
     for byte in chunk.bytes {
@@ -1327,6 +1331,7 @@ test "native formal delivery durably binds attempt receipt and success" {
       64L,
     )
     .unwrap()
+  cancelled.source.source.chunk_construction = Some(_ => Ok(()))
   let exposed = cancelled.next(3, "2026-09-20T01:00:04.000Z").unwrap()
   assert_eq(exposed.bytes.length(), 3)
   let failure = cancelled

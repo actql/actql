@@ -109,6 +109,8 @@ pub fn captured_any_result_borrow_matches_run(CapturedAnyResultBorrow, CapturedD
 
 pub fn captured_any_result_borrow_occurrence(CapturedAnyResultBorrow) -> @execution_relation.ManagedResultOccurrence
 
+pub fn captured_any_result_borrow_requires_managed_export(CapturedAnyResultBorrow) -> Bool
+
 pub fn captured_any_result_borrow_row_count(CapturedAnyResultBorrow) -> Int?
 
 pub fn captured_any_result_borrows_share_view(CapturedAnyResultBorrow, CapturedAnyResultBorrow) -> Bool
@@ -188,6 +190,10 @@ pub fn captured_effect_local_result_at(CapturedEffectInputs, Int) -> CapturedEff
 pub fn captured_effect_local_result_borrow(CapturedEffectLocalResult) -> CapturedAnyResultBorrow
 
 pub fn captured_effect_local_result_count(CapturedEffectInputs) -> Int
+
+pub fn captured_effect_local_result_export_matches_computed_unit(CapturedEffectLocalResultExport, @physical_strategy.CheckedEffectComputationDAG, Int) -> Bool
+
+pub fn captured_effect_local_result_export_matches_model_suffix(CapturedEffectLocalResultExport, CapturedEffectInputs, @physical_strategy.CheckedEffectComputationDAG, Int, Int, @execution_relation.CompletedOutput, @execution_relation.CompletedRelationExportReceipt) -> Bool
 
 pub fn captured_effect_local_result_export_matches_receipt(CapturedEffectInputs, CapturedEffectLocalResultExport, @execution_relation.CompletedRelationExportReceipt) -> Bool
 
@@ -591,7 +597,7 @@ pub fn graph_task_unit_index(@physical_strategy.CheckedDAG, Int) -> Int?
 
 pub fn graph_with_completed_keyed_model_input(@physical_strategy.CheckedDAG, Int, Int, @execution_relation.SuppliedRelationRead) -> @physical_strategy.CheckedDAG?
 
-pub fn grow_task_execution_workspace(CapturedDAG, TaskExecution, Int64) -> Result[Unit, @physical_resources.LedgerIssue]
+pub fn grow_task_execution_workspace(CapturedDAG, TaskExecution, Int64, retained? : Int64?) -> Result[Unit, @physical_resources.LedgerIssue]
 
 pub fn host_cleanup_pending(Bool, Bool, Bool) -> Bool
 
@@ -636,6 +642,10 @@ pub fn open_source_free_dag(@physical_strategy.CheckedDAG, @physical_resources.L
 pub fn open_source_free_effect_run_dag(@physical_strategy.CheckedEffectRunDAG, @physical_resources.Ledger) -> Result[CapturedEffectRunDAG, RunIssue]
 
 pub fn open_source_input_dag(@physical_strategy.CheckedDAG, @execution_query.CapturedInputSource, @physical_resources.Ledger) -> Result[CapturedDAG, RunIssue]
+
+pub fn open_source_inputs_dag(@physical_strategy.CheckedDAG, Array[@execution_query.CapturedInputSource], @physical_resources.Ledger) -> Result[CapturedDAG, RunIssue]
+
+pub fn open_source_inputs_effect_run_dag(@physical_strategy.CheckedEffectRunDAG, @physical_strategy.CheckedDAG, Array[@execution_query.CapturedInputSource], @physical_resources.Ledger, keyed? : (Int, Int, @execution_relation.SuppliedRelationRead)?, models? : Array[(Int, Int, @execution_relation.CompletedOutput)], source_results? : Array[(Int, @execution_relation.GeneratedSequence, Array[(Int, Int, @execution_relation.ProducerRead)], @execution_relation.CompletedSegmentInputs)]) -> Result[CapturedEffectRunDAG, RunIssue]
 
 pub fn operational_candidate_positions(PolicyCandidateSet) -> Result[Array[Int], SearchIssue]
 
@@ -714,6 +724,8 @@ pub fn prepare_retained_task_projection(@physical_strategy.CheckedDAG, Int) -> R
 pub fn prepare_shared_work(CapturedDAG, Int, Array[@physical_cost.SerialEstimateLine], Int) -> Result[SharedWorkEstimate, SearchIssue]
 
 pub fn prepare_source_input_dag(@physical_strategy.CheckedDAG, @sourceview_resolution.SourceAcquisition) -> Result[@physical_strategy.CheckedDAG, @physical_strategy.GraphIssue]
+
+pub fn prepare_source_inputs_dag(@physical_strategy.CheckedDAG, Array[@sourceview_resolution.SourceAcquisition]) -> Result[@physical_strategy.CheckedDAG, @physical_strategy.GraphIssue]
 
 pub fn prepare_strategy_choices(CapturedDAG, Array[TaskOffer], @connector_sdk.CapabilityRegistry, Array[Int]?) -> Result[StrategyChoiceSet, SearchIssue]
 
@@ -876,6 +888,10 @@ pub fn settle_task_execution(CapturedDAG, TaskExecution, Bool) -> Result[Unit, @
 pub fn shared_work_duration(SharedWorkEstimate) -> @physical_cost.DurationEstimate
 
 pub fn source_input_dag_matches_read(CapturedDAG, @execution_relation.SuppliedRelationRead) -> Bool
+
+pub fn source_input_dag_matches_read_at(CapturedDAG, @execution_relation.SuppliedRelationRead, Int) -> Bool
+
+pub fn source_inputs_dag_matches_original(@physical_strategy.CheckedDAG, @physical_strategy.CheckedDAG) -> Bool
 
 pub fn start_captured_any_result_borrow_export(CapturedAnyResultBorrow, @execution_relation.CompletedResultViewLimits, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int, converted_output? : @execution_relation.CompletedOutput) -> Result[@execution_relation.CompletedResultRelationExportPreparation, @execution_relation.CompletedExportIssue]
 

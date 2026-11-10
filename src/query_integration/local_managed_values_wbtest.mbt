@@ -307,7 +307,7 @@ fn run_standard_host_values_relation_step(
     limits.guards,
     limits.candidate_work,
   ).unwrap()
-  @local_driver.configure_local_retained_inputs(
+  configure_local_managed_test_inputs(
     installed,
     {
       max_rows: 100,
@@ -316,8 +316,9 @@ fn run_standard_host_values_relation_step(
       row: { max_bytes: 100, max_nodes: 20, max_depth: 4, max_text_bytes: 100, },
       max_batch_bytes: 64,
     },
-    None,
-  ).unwrap()
+    limits,
+  )
+  configure_local_managed_test_output(installed, limits)
   let values_live = Ref(true)
   let values_advances = Ref(0)
   let (values_ops, values) = run_local_managed_test_task(
@@ -1466,7 +1467,7 @@ test "Local managed nested values preserve typed rows for two consumers" {
     limits.guards,
     limits.candidate_work,
   ).unwrap()
-  @local_driver.configure_local_retained_inputs(
+  configure_local_managed_test_inputs(
     installed,
     {
       max_rows: 100,
@@ -1480,8 +1481,8 @@ test "Local managed nested values preserve typed rows for two consumers" {
       },
       max_batch_bytes: 1000,
     },
-    None,
-  ).unwrap()
+    limits,
+  )
 
   let producer_live = Ref(true)
   let (producer_ops, producer) = run_local_managed_test_task(
@@ -1492,6 +1493,7 @@ test "Local managed nested values preserve typed rows for two consumers" {
     [],
     1,
     producer_live,
+    before_start=() => configure_local_managed_test_output(installed, limits),
   )
   let rows = local_managed_test_rows(producer_ops)
   assert_eq(rows, [

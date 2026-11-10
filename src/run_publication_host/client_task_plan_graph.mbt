@@ -267,7 +267,11 @@ fn issue_client_task_plan_graph(
       Some(infer) if task == infer.task =>
         match infer.serialization {
           Some(component) => component.input
-          None => infer.input
+          None =>
+            match infer.keyed {
+              Some(component) => component.left
+              None => infer.input
+            }
         }
       _ if content is Some(component) => component.input
       _ => fragment
@@ -525,19 +529,12 @@ fn issue_client_task_plan_graph(
           guard fragments.get(task) is Some(fragment) else {
             return Err(InvalidEdge)
           }
-          @encode.begin_object(writer)
-          @encode.key(writer, "name")
-          @encode.string_value(writer, name)
-          @encode.key(writer, "ref")
-          @encode.begin_object(writer)
-          @encode.key(writer, "node_id")
-          @encode.string_value(writer, fragment.node_id)
-          @encode.key(writer, "port")
-          @encode.string_value(writer, fragment.output_port)
-          @encode.end_object(writer)
-          @encode.key(writer, "role")
-          @encode.string_value(writer, "effect_result")
-          @encode.end_object(writer)
+          emit_client_compilation_effect_root(
+            writer,
+            name,
+            fragment.node_id,
+            fragment.output_port,
+          )
         }
         Ok(())
       },
@@ -586,4 +583,27 @@ pub fn admit_prepared_client_task_plan_graph(
     return Err(MismatchedGraph)
   }
   Ok(issued)
+}
+
+///|
+// The actual Effect graph issuer and its construction measurement share bytes.
+fn emit_client_compilation_effect_root(
+  writer : @encode.Writer,
+  name : String,
+  node_id : String,
+  port : String,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_object(writer)
+  @encode.key(writer, "name")
+  @encode.string_value(writer, name)
+  @encode.key(writer, "ref")
+  @encode.begin_object(writer)
+  @encode.key(writer, "node_id")
+  @encode.string_value(writer, node_id)
+  @encode.key(writer, "port")
+  @encode.string_value(writer, port)
+  @encode.end_object(writer)
+  @encode.key(writer, "role")
+  @encode.string_value(writer, "effect_result")
+  @encode.end_object(writer)
 }

@@ -73,6 +73,14 @@ supplied Parameters, policy and physical acquisition owners remain in force.
 The ordinary checker still resolves the complete projected Result's order.
 Selecting a nonorderable value therefore retains its original refusal.
 
+For this already selected direct projection, the acquisition Select receives
+only original columns resolved by the same frontend column owner. It remains
+before any literal or Parameter Derive, which still runs in its original
+order and feeds the same final aliases. This does not prune the Source
+schema or its full admission, and does not change the predicate. An unresolved
+nested/row binding, a projection with no original column reference, and the
+Vector continuation keep their full original receiving boundary.
+
 Function calls retain their original placement except for the already adopted
 Vector scalar continuation. Aggregates, analytic projections, stars, DISTINCT,
 multiple SELECTs, ORDER, LIMIT/OFFSET and other positional continuations do not

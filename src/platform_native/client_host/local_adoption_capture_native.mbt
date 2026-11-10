@@ -69,7 +69,11 @@ fn prepare_local_existing_adoption_capture(
 ) -> Result[NativeLocalAdoptionCapture, NativeLocalAdoptionIssue] {
   // Reuse the existing configuration limit before copying caller-owned DATA.
   // Selection, ordering and all physical validation remain in Adoption itself.
-  if input.configuration_files.length() > 10 {
+  if input.configuration_files.length() > 11 ||
+    (
+      input.configuration_files.length() == 11 &&
+      !input.configuration_files.contains("host.json")
+    ) {
     return Err(ConfigurationLimit)
   }
   let snapshot = {
@@ -146,12 +150,30 @@ fn NativeLocalAdoptionCapture::reply(
 /// reply allocation. An interruption cannot authorize another physical attempt.
 pub fn NativeLocalAdoptionCapture::open(
   self : NativeLocalAdoptionCapture,
+  product? : NativeLocalProductConfigurationCapture? = None,
+  operator_host? : NativeLocalOperatorHostOriginal? = None,
 ) -> NativeLocalAdoptionCaptureReply {
   if self.closing {
     return self.reply(OpenCapturedAdoption, Some(AdoptionCaptureClosed))
   }
   if self.opening is AdoptionNotAttempted {
     self.opening = AdoptionOpenUnconfirmed
+    // The caller already retains this actual Product before this synchronous
+    // borrow. It is not reopened, copied or replaced by a profile descriptor.
+    let product_original = match product {
+      Some(capture) if !capture.closing &&
+        !capture.operation_failed &&
+        capture.opening is ProductAcquired(original) => Some(original)
+      None => None
+      _ => {
+        self.original.original_issue = UninstalledBootstrapProfile
+        self.opening = AdoptionRefused
+        return self.reply(
+          OpenCapturedAdoption,
+          Some(AdoptionOriginal(UninstalledBootstrapProfile)),
+        )
+      }
+    }
     self.opening = match
       begin_native_local_host_adoption_original(
         self.input.parent_path,
@@ -165,6 +187,8 @@ pub fn NativeLocalAdoptionCapture::open(
         existing_only=self.existing_only,
         custody=Some(self.original),
         root_opening=self.root_opening,
+        product_original~,
+        operator_host~,
       ) {
       Ok(session) => AdoptionAcquired(session)
       Err(issue) => {
@@ -194,6 +218,7 @@ pub fn NativeLocalAdoptionCapture::capture_journal(
   ttl_ms : Double,
   max_records : Int,
   max_snapshot_bytes : Int64,
+  max_retained_intent_bytes? : Int64 = 67108864L,
 ) -> Result[NativeLocalJournalCapture, NativeLocalAdoptionCaptureIssue] {
   let session = match self.journal_capture_session() {
     Err(issue) => return Err(issue)
@@ -206,6 +231,7 @@ pub fn NativeLocalAdoptionCapture::capture_journal(
     ttl_ms,
     max_records,
     max_snapshot_bytes,
+    max_retained_intent_bytes~,
   )
   self.journal = Some(journal)
   Ok(journal)
@@ -243,6 +269,7 @@ pub fn NativeLocalAdoptionCapture::capture_journal_with_original_resources(
   ttl_ms : Double,
   max_records : Int,
   max_snapshot_bytes : Int64,
+  max_retained_intent_bytes? : Int64 = 67108864L,
 ) -> Result[NativeLocalJournalCapture, NativeLocalAdoptionCaptureIssue] {
   self.capture_original_journal_resources(
     host,
@@ -253,6 +280,7 @@ pub fn NativeLocalAdoptionCapture::capture_journal_with_original_resources(
     max_snapshot_bytes,
     false,
     None,
+    max_retained_intent_bytes~,
   )
 }
 
@@ -268,6 +296,7 @@ pub fn NativeLocalAdoptionCapture::capture_command_journal_with_original_resourc
   ttl_ms : Double,
   max_records : Int,
   max_snapshot_bytes : Int64,
+  max_retained_intent_bytes? : Int64 = 67108864L,
 ) -> Result[NativeLocalJournalCapture, NativeLocalAdoptionCaptureIssue] {
   self.capture_original_journal_resources(
     host,
@@ -278,6 +307,7 @@ pub fn NativeLocalAdoptionCapture::capture_command_journal_with_original_resourc
     max_snapshot_bytes,
     true,
     None,
+    max_retained_intent_bytes~,
   )
 }
 
@@ -295,6 +325,7 @@ fn NativeLocalAdoptionCapture::capture_original_journal_resources(
     NativeLocalInitialSigningMaterial,
     @host.ClientLocalSigningBootstrapPolicy,
   )?,
+  max_retained_intent_bytes? : Int64 = 67108864L,
 ) -> Result[NativeLocalJournalCapture, NativeLocalAdoptionCaptureIssue] {
   let session = match self.journal_capture_session() {
     Err(issue) => return Err(issue)
@@ -309,6 +340,7 @@ fn NativeLocalAdoptionCapture::capture_original_journal_resources(
     ttl_ms,
     max_records,
     max_snapshot_bytes,
+    max_retained_intent_bytes~,
   )
   let journal = { ..prepared, command_preparation_journal, initial_signing, }
   self.journal = Some(journal)
@@ -329,6 +361,7 @@ pub fn NativeLocalAdoptionCapture::capture_initial_journal_with_original_resourc
   ttl_ms : Double,
   max_records : Int,
   max_snapshot_bytes : Int64,
+  max_retained_intent_bytes? : Int64 = 67108864L,
 ) -> Result[NativeLocalJournalCapture, NativeLocalAdoptionCaptureIssue] {
   self.capture_original_journal_resources(
     host,
@@ -339,6 +372,7 @@ pub fn NativeLocalAdoptionCapture::capture_initial_journal_with_original_resourc
     max_snapshot_bytes,
     false,
     Some((material, policy)),
+    max_retained_intent_bytes~,
   )
 }
 
@@ -355,6 +389,7 @@ pub fn NativeLocalAdoptionCapture::capture_initial_command_journal_with_original
   ttl_ms : Double,
   max_records : Int,
   max_snapshot_bytes : Int64,
+  max_retained_intent_bytes? : Int64 = 67108864L,
 ) -> Result[NativeLocalJournalCapture, NativeLocalAdoptionCaptureIssue] {
   self.capture_original_journal_resources(
     host,
@@ -365,6 +400,7 @@ pub fn NativeLocalAdoptionCapture::capture_initial_command_journal_with_original
     max_snapshot_bytes,
     true,
     Some((material, policy)),
+    max_retained_intent_bytes~,
   )
 }
 

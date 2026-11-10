@@ -1,5 +1,6 @@
 """Original task/export/capture caller over SQLite and scalar Core, not Wasm."""
 import json
+import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
@@ -210,6 +211,78 @@ class SDKResultAssemblyTests(unittest.TestCase):
             self.assertFalse(any(family == 'publication' for family, _, _ in calls))
             self.assertTrue(host.close())
             self.assertFalse(core._result_loans)
+
+    def test_bounded_steps_share_reader_but_loan_and_cleanup_boundaries_do_not(self):
+        with TemporaryDirectory(prefix='actql-sdk-results-') as directory:
+            host, core, compute, preflight, publisher, calls, _ = self.host(Path(directory))
+            binding = host._installation.binding
+            original = binding.inspect
+            readers = []
+            def inspect(consume):
+                def entered(current):
+                    readers.append(core._journal_callbacks(current.ticket).reader)
+                    consume(current)
+                original(entered)
+            with patch.object(binding, 'inspect', side_effect=inspect):
+                results = host._execute_original_tasks(compute, preflight, publisher)
+                self.assertEqual(len(readers), 7)
+                host._capture_original_results(compute, preflight, results)
+                self.assertEqual(len(readers), 11)
+            self.assertEqual(len({id(reader) for reader in readers}), 11)
+            quanta = [args[1] for family, name, args in calls
+                      if family == 'task' and name in ('feed', 'advance', 'advance_finalization')]
+            self.assertTrue(quanta)
+            self.assertEqual(set(quanta), {256})
+            self.assertTrue(host.close())
+
+    def test_grouped_task_refuses_file_change_before_next_step(self):
+        with TemporaryDirectory(prefix='actql-sdk-results-') as directory:
+            host, core, compute, preflight, publisher, calls, _ = self.host(Path(directory))
+            binding = host._installation.binding
+            original = core.feed_task
+            def mutate(task, quantum):
+                result = original(task, quantum)
+                os.chmod(binding._account.name, 0o644, dir_fd=binding._source._root._open())
+                return result
+            with patch.object(core, 'feed_task', side_effect=mutate):
+                with self.assertRaisesRegex(Exception, 'original generation'):
+                    host._execute_original_tasks(compute, preflight, publisher)
+            self.assertFalse(any((family, name) == ('task', 'advance') for family, name, _ in calls))
+            self.assertEqual(len(host._tasks), 1)
+            self.assertIs(core._task_loans[host._tasks[0].handle], host._tasks[0])
+            self.assertTrue(host.close())
+
+    def test_grouped_task_refuses_same_transaction_write_before_next_step(self):
+        with TemporaryDirectory(prefix='actql-sdk-results-') as directory:
+            host, core, compute, preflight, publisher, calls, _ = self.host(Path(directory))
+            store = host._installation._store
+            original = core.feed_task
+            def mutate(task, quantum):
+                result = original(task, quantum)
+                store._connection.execute('INSERT INTO core_bytes(key,generation,payload) VALUES(?,0,?)',
+                    (store.namespaced_key('client_local_settings', 'unexpected'), b'{}'))
+                return result
+            with patch.object(core, 'feed_task', side_effect=mutate):
+                with self.assertRaises(LocalStorageError):
+                    host._execute_original_tasks(compute, preflight, publisher)
+            self.assertFalse(any((family, name) == ('task', 'advance') for family, name, _ in calls))
+            self.assertEqual(len(host._tasks), 1)
+            self.assertTrue(host.close())
+
+    def test_grouped_chunk_failure_retains_chunk_without_marker_or_cleanup(self):
+        with TemporaryDirectory(prefix='actql-sdk-results-') as directory:
+            host, core, compute, preflight, publisher, calls, failures = self.host(Path(directory))
+            results = host._execute_original_tasks(compute, preflight, publisher)
+            failures['result', 'produce_chunk'] = -41
+            with self.assertRaises(LocalCoreError):
+                host._capture_original_results(compute, preflight, results)
+            self.assertFalse(any(family == 'result' and name in ('chunk_final', 'close_chunk')
+                                 for family, name, _ in calls))
+            chunk = host._result_chunks[0]
+            self.assertIs(core._loans[chunk.ticket], chunk)
+            self.assertIs(core._result_loans[results[0].handle], results[0])
+            failures.clear()
+            self.assertTrue(host.close())
 
 
 if __name__ == '__main__':

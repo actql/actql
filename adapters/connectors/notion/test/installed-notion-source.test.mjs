@@ -45,11 +45,11 @@ test('installed Notion actual SQL and AQL retain original multi-page users and c
     const f=await installedNotionFixture(t),source=await f.load(),preparation=await f.prepare(source,{format});
     const opened=await source.openCapture(preparation);await f.retain(opened,preparation.ledger);
     const exported=checked(f.common.clientProgramExportSourceCapture(opened.capture.source(),opened.requirement,'installed-notion-user-test'));
-    // This is the original acquisition capture, before the query's SELECT.
-    // Its complete declared row shape must remain available to the same Run.
+    // AcquisitionSelect retains only these query-required original columns.
+    // The complete Source schema and provider-row admission remain unchanged.
     assert.deepEqual(f.common.clientProgramSourceCaptureExportRows(exported).map(JSON.parse),[
-      {email:'one@example.test',id:'U1',name:'one',type:'person'},
-      {email:null,id:'U2',name:'two',type:'bot'}]);
+      {id:'U1',name:'one'},
+      {id:'U2',name:'two'}]);
     assert.equal(f.state.requests.length,2);assert.equal(f.state.resolutions,2);
     assert.equal(ledgerUsageHasPendingResources(f.common.clientProgramMultiCapturedLedgerUsage(preparation.ledger)),true);
     await opened.close();

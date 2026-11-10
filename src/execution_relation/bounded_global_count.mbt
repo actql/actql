@@ -1116,8 +1116,17 @@ fn bounded_global_count_step(
           state.output_recheck is Some(_) {
           return global_count_failure(InvalidExecution, progress, used + 1)
         }
-        // The row node, field names, and every value were charged above.
-        // No unchecked or partially measured cell enters the buffer.
+        // The complete original row is measured above. Fund its cumulative
+        // retained DATA on the same task before transferring it to the buffer.
+        if !fund_output_retention(
+            output.buffer.budget,
+            output.buffer.budget.nodes,
+            output.buffer.budget.text,
+          ) ||
+          !output.buffer.open ||
+          output.buffer.reading {
+          return global_count_failure(Capture(CaptureLimit), progress, used)
+        }
         output.buffer.rows.push(state.output_row)
         release_slots(state.workspace, state.output_row.length())
         state.output_row = []
@@ -1203,6 +1212,9 @@ fn start_bounded_global_count_with_input(
     Ok(value) => value
     Err(issue) => return Err(Capture(issue))
   }
+  // The original generated task owns this growth link; no new reservation or
+  // execution authority is created by an output budget attachment.
+  output.buffer.budget.retention = generated.working
   let rows : Ref[AdmittedOutputRows?] = Ref(None)
   let live = Ref(true)
   let accepted = Ref(false)

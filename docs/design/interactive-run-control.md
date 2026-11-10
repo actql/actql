@@ -46,6 +46,16 @@ Control changes and publication conflicts retry with a fresh admitted frame.
 An internal post-Store probe therefore does not repeat admission of identical
 Run bytes, while a new public observation acquires its own current original.
 
+Within one Local wait invocation, the next poll may borrow the last completed
+observation's bounded, nominal Journal frame through private caller arguments.
+The Journal still checks its original controls and lifetime, reads current SQL,
+and compares every field before reusing the admitted DATA. A changed row takes
+full admission, even without a revision change. First/cold observations and a
+distinct wait start without this borrow. Store authorization, cancellation,
+the final physical/current fence, state CAS, readiness, wakeups and unfinished
+read/cleanup duties remain unchanged. No frame is copied, persisted or shared
+between wait invocations, and no Account decision or ACK is retained.
+
 The ordinary Local observer selects committed publication through the existing
 authorized state service, not a preliminary Index probe followed by the same
 probe inside that service. The Store can return its selected entry together

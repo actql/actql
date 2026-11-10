@@ -50,7 +50,7 @@ fn drain_numeric(
     "total",
     0,
     control,
-    { limit: 100, live: 0, peak: 0, },
+    row_workspace(100),
   )
   let mut at_most_one = true
   while true {

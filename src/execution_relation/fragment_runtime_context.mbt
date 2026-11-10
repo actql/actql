@@ -75,18 +75,50 @@ fn prepare_fragment_runtime_context(
 fn fragment_runtime_for_kernel(
   context : FragmentRuntimeContext,
   kernel : @lower.PreparedKernel,
+  growth? : WorkspaceGrowth? = None,
 ) -> Result[LogicalBudget, FragmentRuntimeIssue] {
   if !physical_equal(context.kernel, kernel) {
     return Err(KernelMismatch)
   }
+  let limits = if growth is Some(working) {
+    let request = context.fragment.candidate.material.request.request
+    let (_, maximum) = @lower.fragment_request_ceilings(request)
+    match @lower.fragment_request_row_limits(request) {
+      Some(declared) =>
+        {
+          ..context.limits,
+          max_value_bytes: declared.max_value_bytes,
+          max_live_value_bytes: Int64::min(
+            declared.max_live_value_bytes,
+            working.live_ceiling,
+          ),
+        }
+      None =>
+        {
+          ..context.limits,
+          max_value_bytes: maximum,
+          max_live_value_bytes: working.live_ceiling,
+        }
+    }
+  } else {
+    context.limits
+  }
   match
     logical_budget(
-      context.limits,
-      context.physical.max_body_bytes,
+      limits,
+      if growth is Some(_) {
+        Int::max(
+          context.physical.max_body_bytes,
+          Int64::min(limits.max_value_bytes, 2147483647L).to_int(),
+        )
+      } else {
+        context.physical.max_body_bytes
+      },
       context.physical.max_body_nodes,
       context.physical.max_body_depth,
       root_result_bytes=context.root_result_bytes,
       all_expression_roots=context.all_expression_roots,
+      growth~,
     ) {
     Ok(budget) => Ok(budget)
     Err(issue) => Err(Logical(issue))

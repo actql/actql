@@ -106,7 +106,7 @@ test "Snowflake temporal output parameters follow only the original selected col
       ("TREND", false, true),
     ] {
     let prepared = snowflake_read_preparation(
-      query_text="SELECT " + column + " FROM snowflake.usage_30d",
+      query_text="SELECT " + column + " FROM snowflake.usage_30d WHERE TRUE",
       temporal=true,
       selected_fields=[column],
     ).unwrap()
@@ -142,7 +142,7 @@ test "Snowflake temporal output parameters follow only the original selected col
 ///|
 test "Snowflake final query projection does not rewrite the original physical Source carrier" {
   let prepared = snowflake_read_preparation(
-    query_text="SELECT ACCOUNT_ID FROM snowflake.usage_30d",
+    query_text="SELECT ACCOUNT_ID FROM snowflake.usage_30d WHERE TRUE",
     temporal=true,
   ).unwrap()
   assert_eq(

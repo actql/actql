@@ -494,20 +494,6 @@ pub fn client_program_compile_local_infer(
 }
 
 ///|
-// Retained canonical usage enforces the existing wire admission envelope.
-// This DATA check neither re-admits JSON nor grants Source/Model authority.
-fn check_client_infer_original_evidence(
-  name : String,
-  evidence : @publication.RunEvidenceValue,
-) -> Result[Unit, @publication_host.ClientInferCallScopeIssue] {
-  if @publication.run_evidence_value_name(evidence) != name ||
-    !@publication.run_evidence_value_fits(evidence, 100000, 10000, 100) {
-    return Err(@publication_host.Evidence(@publication.RunEvidenceInvalidWire))
-  }
-  Ok(())
-}
-
-///|
 /// The installed Host retains the checked barrier and derives call identity
 /// from the exact completed input before the first physical model dispatch.
 #export_name("clientProgramAdmitInferCapturedInput")
@@ -3113,13 +3099,10 @@ pub fn client_program_start_infer_call_settlement_export(
   max_bytes : Int,
   max_work : Int,
 ) -> Result[@model.ModelCaptureExport, @model.ModelExecutionIssue] {
-  @model.start_model_call_settlement_export(value, {
-    max_bytes,
-    max_nodes: 100000,
-    max_depth: 100,
-    max_chunk_bytes: 16384,
-    max_work,
-  })
+  @model.start_model_call_settlement_export(
+    value,
+    @model.model_call_settlement_export_limits(max_bytes, max_work),
+  )
 }
 
 ///|

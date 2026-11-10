@@ -135,3 +135,51 @@ test "equal canonical bodies retain distinct checked dependency roles" {
     is Err(WrongDependencyKind),
   )
 }
+
+///|
+test "raw Relation Carrier dependency uses its checked ValueContract not a Catalog envelope" {
+  let row = @contract.object_contract(
+    [("key", @contract.primitive(@contract.StringType, nullable=false))],
+    nullable=false,
+    max_fields=10,
+    max_name_bytes=100,
+  ).unwrap()
+  let wire = @contract.stringify_checked(row, 10000, 1000, 20) catch {
+    _ => fail("typed row fixture encoding")
+  }
+  let cid = "sha256:" + @sha.hex(@utf8.encode(wire))
+  let body = admit_captured_effect_dependency_body(
+    "carrier_contract",
+    Some(cid),
+    wire,
+    10000,
+    1000,
+    20,
+  ).unwrap()
+  assert_eq(captured_effect_dependency_body_cid(body), cid)
+  assert_true(
+    admit_catalog_effect_dependency_body(
+      "carrier_schema", wire, 10000, 1000, 20,
+    )
+    is Err(InvalidBody),
+  )
+  let nullable = @contract.stringify_checked(
+    @contract.with_nullability(row, true),
+    10000,
+    1000,
+    20,
+  ) catch {
+    _ => fail("typed nullable fixture encoding")
+  }
+  assert_true(
+    admit_captured_effect_dependency_body(
+      "carrier_contract",
+      Some("sha256:" + @sha.hex(@utf8.encode(nullable))),
+      nullable,
+      10000,
+      1000,
+      20,
+    )
+    is Err(InvalidBody),
+  )
+}

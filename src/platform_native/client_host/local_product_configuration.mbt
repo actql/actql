@@ -19,9 +19,14 @@ struct NativeLocalProductConfigurationSession {
 
 ///|
 fn product_original_names(originals : Array[(String, Bytes)]) -> Bool {
-  // Account plus ten selected configuration originals, including the
-  // distinct Material, File and packaged runtime selections. Per-file and wire intake bounds stay fixed.
-  if originals.is_empty() || originals.length() > 11 {
+  // Account plus ten existing selections and the distinct initialized Host
+  // original. Per-file, wire, resource and execution allowances stay fixed.
+  if originals.is_empty() ||
+    originals.length() > 12 ||
+    (
+      originals.length() == 12 &&
+      !originals.any(original => original.0 == "host.json")
+    ) {
     return false
   }
   for index, original in originals {
@@ -553,7 +558,9 @@ fn restore_native_local_product_configuration_original(
     Err(_) => return Err(CustodyLost)
   }
   keys.sort()
-  if keys.is_empty() || keys.length() > 11 {
+  if keys.is_empty() ||
+    keys.length() > 12 ||
+    (keys.length() == 12 && !keys.contains("host.json")) {
     return Err(CustodyLost)
   }
   let root = match local_adoption_open_child(parent, directory_name, custody) {
@@ -612,4 +619,28 @@ fn restore_native_local_product_configuration_original(
   // The successful constructor just checked this same locked Product. Consume
   // that observation while checking each original file, without another entry.
   session.stage_configuration_after_original_check().map(_ => session)
+}
+
+///|
+// Join the installed finite Mock metadata to the SAME excluded Product
+// original. A profile CID, equal Account elsewhere, or arbitrary caller DATA
+// cannot replace its live original Root/intent/Account selection. This is
+// bootstrap provenance only; each Source/Model/write still needs its own
+// original implementation and current Account authorization at dispatch.
+fn NativeLocalProductConfigurationSession::require_mock_bootstrap_original(
+  self : Self,
+  source_ownership : @filesystem.NativeFileOwnership,
+  source_name : String,
+  source_body : Bytes,
+  profile : @authorization.BootstrapProfile,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  if profile != @authorization.local_mock_profile_identity() ||
+    source_name != "account.json" ||
+    source_ownership != self.root_ownership ||
+    !self.originals.any(entry => {
+      entry.0 == source_name && entry.1 == source_body
+    }) {
+    return Err(UninstalledBootstrapProfile)
+  }
+  self.check_original()
 }

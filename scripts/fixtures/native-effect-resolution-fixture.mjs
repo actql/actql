@@ -15,8 +15,14 @@ const fixed = value => 'sha256:' + value.repeat(64);
 export function nativeResolutionFixture(checkpointWire, {
   decision = 'approved', resolutionId = 'native-original-resolution',
   reviewer = generateKeyPairSync('ed25519'), host = generateKeyPairSync('ed25519'),
+  singleClaim = false,
 } = {}) {
   if (!['approved', 'rejected'].includes(decision)) throw new Error('Invalid fixture decision');
+  // Only the independent default fixture may select its one-claim variant.
+  // Never rewrite requirements from an actual compiled Checkpoint reference.
+  if (typeof singleClaim !== 'boolean' || (singleClaim && checkpointWire != null)) {
+    throw new Error('Invalid self-contained fixture claim selection');
+  }
   const body = {
     version: 'actql-execution-checkpoint/0.1',
     checkpoint_id: 'native-resolution-checkpoint',
@@ -28,7 +34,8 @@ export function nativeResolutionFixture(checkpointWire, {
     phase: 'commit', kind: 'effect_set',
     required_artifact: {artifact_type: 'effect_set_preview', artifact_cid: fixed('3')},
     review_projection_cid: fixed('4'),
-    requirements: ['effect_scope_approved', 'partial_application_accepted'],
+    requirements: singleClaim ? ['effect_scope_approved']
+      : ['effect_scope_approved', 'partial_application_accepted'],
     reason_code: 'effect_review_required', human_summary: 'Review one scoped update',
     created_at: '2026-10-10T00:00:00.000Z', expires_at: '2026-10-11T00:00:00.000Z',
   };

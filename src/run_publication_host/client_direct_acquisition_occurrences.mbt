@@ -78,10 +78,9 @@ fn select_client_direct_acquisition_occurrences_owned(
     return Err(WorkLimit)
   }
   remaining.val -= captures
-  let slots : Array[(@checked.SourceExecution, (Int, Int, Int))?] = Array::make(
-    captures,
-    None,
-  )
+  let checks : Array[@checked.SourceExecution] = []
+  let coordinates : Array[(Int, Int, Int)] = []
+  let mut whole = false
   for index in 0..<count {
     let check = @checked.source_execution_at(checked, index).unwrap()
     guard @checked.source_execution_kind(check) is @checked.CarrierResponse &&
@@ -96,21 +95,34 @@ fn select_client_direct_acquisition_occurrences_owned(
       Ok(value) => value
       Err(issue) => return Err(issue)
     }
-    let (_, _, task) = coordinate
-    if slots[task] is Some(_) {
+    let (stage, input, task) = coordinate
+    // Three inventory probes and both ordered array shifts spend this same
+    // finite selector allowance before examining or extending the arrays.
+    if coordinates.length() > remaining.val / 5 {
+      return Err(WorkLimit)
+    }
+    remaining.val -= 5 * coordinates.length()
+    if coordinates.any(previous => previous.0 == stage && previous.1 == input) {
       return Err(DuplicateCapture)
     }
-    slots[task] = Some((check, coordinate))
+    if coordinates.any(previous => previous.2 == task) {
+      whole = true
+    }
+    // Preserve captured-task order for Query callers. Complete inputs in the
+    // same task retain their checked Source declaration order.
+    let mut position = coordinates.length()
+    for offset, previous in coordinates {
+      if task < previous.2 {
+        position = offset
+        break
+      }
+    }
+    coordinates.insert(position, coordinate)
+    checks.insert(position, check)
   }
-  if captures > remaining.val {
-    return Err(WorkLimit)
-  }
-  let checks : Array[@checked.SourceExecution] = []
-  let coordinates : Array[(Int, Int, Int)] = []
-  for slot in slots {
-    guard slot is Some((check, coordinate)) else { return Err(MissingCapture) }
-    checks.push(check)
-    coordinates.push(coordinate)
+  if coordinates.length() < captures ||
+    (!whole && coordinates.length() != captures) {
+    return Err(MissingCapture)
   }
   Ok({ program: retained, checks, coordinates, })
 }
@@ -147,28 +159,45 @@ fn client_direct_acquisition_occurrence_coordinate(
     return Err(WorkLimit)
   }
   remaining.val -= tasks
-  let acquisition = match
-    @acquisition.derive_query_acquisition_shape(
+  let route = match
+    @acquisition.select_source_acquisition_route(
       requests,
       subject.input,
       remaining.val,
     ) {
     Ok(value) => value
-    Err(@acquisition.WorkLimit) => return Err(WorkLimit)
+    Err(@acquisition.QueryShape(@acquisition.WorkLimit))
+    | Err(@acquisition.SourceInput(@acquisition.WorkLimit)) =>
+      return Err(WorkLimit)
     Err(_) => return Err(UnsupportedShape)
   }
-  remaining.val -= @acquisition.query_acquisition_work(acquisition)
-  guard @acquisition.query_acquisition_capture(acquisition)
-    is @pipeline.Step(step) &&
-    @strategy.graph_stage_operation_task(graph, subject.stage, step)
-    is Some(task) &&
+  let (target, pipeline) = match route {
+    @acquisition.QueryRoute(acquisition) => {
+      remaining.val -= @acquisition.query_acquisition_work(acquisition)
+      (
+        @acquisition.query_acquisition_capture(acquisition),
+        @acquisition.query_acquisition_pipeline(acquisition),
+      )
+    }
+    @acquisition.WholeInputRoute(acquisition) => {
+      remaining.val -= @acquisition.source_acquisition_work(acquisition)
+      (
+        @pipeline.Input(0),
+        @acquisition.source_acquisition_pipeline(acquisition),
+      )
+    }
+  }
+  let task = match target {
+    @pipeline.Step(step) =>
+      @strategy.graph_stage_operation_task(graph, subject.stage, step)
+    @pipeline.Input(_) =>
+      @strategy.graph_stage_operation_task(graph, subject.stage, 0)
+  }
+  guard task is Some(task) &&
     task >= 0 &&
     task < captures &&
     @strategy.graph_task_owner(graph, task) is Some(owner) &&
-    physical_equal(
-      @lower.pipeline(@lower.bound_preparation(owner)),
-      @acquisition.query_acquisition_pipeline(acquisition),
-    ) else {
+    physical_equal(@lower.pipeline(@lower.bound_preparation(owner)), pipeline) else {
     return Err(UnsupportedShape)
   }
   Ok((subject.stage, subject.input, task))
@@ -210,4 +239,47 @@ pub fn client_direct_acquisition_occurrences_match_effect_program(
     DirectPure(_) => false
     DirectEffect(original) => physical_equal(original, prepared)
   }
+}
+
+///|
+/// Bounded scalar census of checked Direct reads. This allocates no inventory
+/// and grants no source access; Plan selection still checks every original.
+pub fn client_effect_direct_acquisition_count(
+  prepared : PreparedClientEffectComputation,
+  max_work : Int,
+) -> Result[Int, ClientDirectAcquisitionOccurrenceIssue] {
+  if max_work < 0 {
+    return Err(InvalidLimits)
+  }
+  let checked = @strategy.graph_program(
+    @strategy.checked_effect_computation_graph(prepared.graph),
+  )
+  let count = @checked.source_execution_count(checked)
+  if count > max_work {
+    return Err(WorkLimit)
+  }
+  let mut direct = 0
+  for index in 0..<count {
+    let check = @checked.source_execution_at(checked, index).unwrap()
+    if @checked.source_execution_kind(check) is @checked.CarrierResponse &&
+      @checked.source_execution_subject(check).request
+      is @acquisition.Direct(_, _) {
+      direct += 1
+    }
+  }
+  Ok(direct)
+}
+
+///|
+/// Borrow the actual filtered CarrierResponse/Direct original from this
+/// inventory. Other requirements for the same Source are not acquisition
+/// occurrences. No second census, Source constructor or read is performed.
+pub fn client_direct_acquisition_occurrence_subject(
+  value : ClientDirectAcquisitionOccurrences,
+  index : Int,
+) -> @checked.SourceExecutionSubject? {
+  if index < 0 || index >= value.checks.length() {
+    return None
+  }
+  Some(@checked.source_execution_subject(value.checks[index]))
 }

@@ -550,6 +550,46 @@ test('fixed-run CLI remains GET-only and keeps all attempts outside the selected
     assert.equal(group.maximumSeconds, 50);
   });
 
+  test('final check completion is separate from runner consumption and later jobs', async () => {
+    const data = fixture();
+    data[`${path(10)}/jobs?per_page=100`] = pages([
+      job(100, 10, 'build', 20, 60), job(101, 10, 'test', 30, 90),
+      job(102, 10, 'check', 90, 95), job(103, 10, 'later-report', 100, 120),
+    ]);
+    const report = await collect(data, {runs: [10]});
+    assert(Array.isArray(report.timing.aggregateCheckCompletion), 'the unique final check needs its own observed latency');
+    const final = report.timing.aggregateCheckCompletion[0];
+    assert.equal(final.execution.seconds, 85); // attempt starts10, check completes95.
+    assert.equal(final.jobId, 102);
+    assert.equal(final.successfulSample, true);
+    assert.equal(final.execution.from.field, 'run_started_at');
+    assert.equal(final.execution.to.field, 'jobs[id=102].completed_at');
+    assert.equal(report.timing.runnerConsumption[0].totalJobSeconds, 125); //40+60+5+20, distinct jobs once.
+    assert.match(formatHuman(report), /Final check completion:.*85s/u);
+  });
+
+  test('failed or unavailable final checks cannot be successful speedup samples', async () => {
+    for (const outcome of ['failure', 'cancelled', 'skipped', null]) {
+      const data = fixture();
+      data[`${prefix}/10`] = run(10, 1, outcome);
+      data[path(10)] = run(10, 1, outcome);
+      data[`${path(10)}/jobs?per_page=100`] = pages([job(100, 10, 'check', 90, outcome === null ? null : 95, outcome)]);
+      const final = (await collect(data, {runs: [10]})).timing.aggregateCheckCompletion[0];
+      assert.equal(final.successfulSample, false, String(outcome));
+      assert.equal(final.execution.seconds, ['failure', 'cancelled'].includes(outcome) ? 85 : null);
+    }
+    for (const jobs of [[], [job(100,10,'build',20,60)],
+      [job(100,10,'check',90,95),job(101,10,'check',90,95)]]) {
+      const data=fixture();data[`${path(10)}/jobs?per_page=100`]=pages(jobs);
+      const final=(await collect(data,{runs:[10]})).timing.aggregateCheckCompletion[0];
+      assert.equal(final.execution.seconds,null);assert.equal(final.successfulSample,false);
+    }
+    const data=fixture();const check=job(100,10,'check',90,95);check.head_sha='b'.repeat(40);
+    data[`${path(10)}/jobs?per_page=100`]=pages([check]);
+    const final=(await collect(data,{runs:[10]})).timing.aggregateCheckCompletion[0];
+    assert.equal(final.execution.seconds,null);assert.equal(final.successfulSample,false);
+  });
+
   test('runner totals count distinct overlapping jobs once and keep the wall span separate', async () => {
     const report = await collect(), total = report.timing.runnerConsumption.find(item => item.runId === 10);
     assert.equal(total.totalJobSeconds, 100); // build 40 + test 60, including their setup/transfer boundaries.

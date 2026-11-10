@@ -6,6 +6,18 @@ import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
 import {installNodeInferRun} from './installed-infer-run.mjs';
 
+test('composed Model refuses missing original Request preparation before Source or publication allocation', async () => {
+  const prepared = {}, graph = {}, plan = {inferGraph: graph};
+  const selected = {graph, components: [{}]};
+  let allocations = 0;
+  const run = installNodeInferRun({moon: new Proxy({}, {get() {
+    allocations++; throw new Error('NoOriginalRequestAllocation');
+  }}), core: {publicationControl: {}}, selections: new Map([[prepared, selected]])});
+  await assert.rejects(run({preparedProgram: prepared, plan}),
+    {name: 'TypeError', message: 'InvalidInstalledRequestModelPreparation'});
+  assert.equal(allocations, 0);
+});
+
 function mockLedgerFixture({retireDuringBorrow = false} = {}) {
   const mockSource = readFileSync(new URL('../local-node/installed-project-mock.mjs', import.meta.url), 'utf8');
   const functions = new Map();
@@ -360,7 +372,7 @@ test('actual complete Model dispatcher retains its original Run before borrowing
   let selected;
   const visit = node => {
     if (!node || typeof node !== 'object') return;
-    if (node.type === 'IfStatement' && source.slice(node.test.start, node.test.end).startsWith('capacities.some(')) {
+    if (node.type === 'IfStatement' && source.slice(node.test.start, node.test.end).startsWith('capacities.some(value => value.managedRun !== undefined)')) {
       assert(!selected); selected = node;
     }
     for (const child of Object.values(node)) {if (Array.isArray(child)) child.forEach(visit); else if (child && typeof child === 'object') visit(child);}

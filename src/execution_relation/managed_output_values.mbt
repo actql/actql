@@ -70,6 +70,7 @@ pub fn prepare_managed_output_values(
   values : ValueLimits,
   max_value_bytes : Int,
   measurement : FixedInputGuardMeasureLimits,
+  working? : GeneratedSequence? = None,
 ) -> Result[ManagedOutputValues, ManagedOutputValueIssue] {
   if max_value_bytes < 0 ||
     measurement.max_work < 0 ||
@@ -78,7 +79,18 @@ pub fn prepare_managed_output_values(
     measurement.max_depth < 0 {
     return Err(Guard(InvalidLimits))
   }
-  let output = match prepare_admitted_output(owner, target, max_rows, values) {
+  let preparation = match working {
+    Some(generated) => {
+      if !physical_equal(generated_sequence_owner(generated), owner) {
+        return Err(Admission(InvalidCheckedRow))
+      }
+      prepare_bounded_sequence_admitted_output(
+        generated, target, max_rows, values,
+      )
+    }
+    None => prepare_admitted_output(owner, target, max_rows, values)
+  }
+  let output = match preparation {
     Ok(value) => value
     Err(issue) => return Err(Admission(issue))
   }
@@ -339,6 +351,10 @@ fn append_managed_output_values_active(
   let result = append_admitted_buffer_cells(stream.buffer, width, read)
   stream.reading = false
   match result {
+    Err(ClosedCapture) => {
+      cancel_managed_output_values(stream) |> ignore
+      return Err(Closed)
+    }
     Err(issue) => {
       cancel_managed_output_values(stream) |> ignore
       return Err(
@@ -420,6 +436,10 @@ fn append_completed_projection_managed_values_active(
     Ok(_) => ()
   }
   match append_admitted_buffer_values(stream.buffer, schema, values) {
+    Err(ClosedCapture) => {
+      cancel_managed_output_values(stream) |> ignore
+      Err(Closed)
+    }
     Err(issue) => {
       cancel_managed_output_values(stream) |> ignore
       Err(Admission(issue))
@@ -868,4 +888,76 @@ pub fn managed_output_values_reclamation_runnable(
   !value.disposal_complete &&
   value.active_uses == 0 &&
   !value.buffer.reading
+}
+
+///|
+// JSON object punctuation plus a conservative escape bound for actual field
+// names. Cell sizes come from the original successful measurement, not policy.
+fn measured_row_wire_add(
+  total : Int,
+  name : String,
+  cell : Int,
+  maximum : Int,
+) -> Int? {
+  if total < 0 || cell < 0 || maximum < total {
+    return None
+  }
+  let bytes = total.to_int64() +
+    4L +
+    name.length().to_int64() * 6L +
+    cell.to_int64()
+  if bytes > maximum.to_int64() {
+    None
+  } else {
+    Some(bytes.to_int())
+  }
+}
+
+///|
+/// Bound one physical batch from the SAME admitted values and optional checked
+/// Result projection. Uses cached column maxima, never rescans rows or issues
+/// permission. Projection duplicates and renamed fields are counted separately.
+pub fn managed_output_value_row_wire_bound(
+  receipt : ManagedOutputValueReceipt,
+  result : ManagedResultOccurrence?,
+  max_columns : Int,
+  max_bytes : Int,
+) -> Int? {
+  if max_columns < 0 ||
+    max_bytes < 3 ||
+    receipt.column_maxima.length() != @schema.field_count(receipt.schema) {
+    return None
+  }
+  let schema = match result {
+    None => receipt.schema
+    Some(occurrence) => {
+      if !physical_equal(occurrence.owner, receipt.owner) ||
+        @results.port_target(occurrence.port) != receipt.target {
+        return None
+      }
+      @results.port_schema(occurrence.port)
+    }
+  }
+  if @schema.field_count(schema) > max_columns {
+    return None
+  }
+  if receipt.rows == 0 {
+    return Some(3)
+  }
+  let mut cell = 0
+  for maximum in receipt.column_maxima {
+    if maximum < 0 {
+      return None
+    }
+    cell = Int::max(cell, maximum)
+  }
+  let mut total = 3
+  for column in 0..<@schema.field_count(schema) {
+    guard @schema.field_reference_name_at(schema, column) is Some(name) &&
+      measured_row_wire_add(total, name, cell, max_bytes) is Some(next) else {
+      return None
+    }
+    total = next
+  }
+  Some(total)
 }

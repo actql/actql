@@ -63,6 +63,8 @@ pub fn[I] prepare_request_model_graph(
   manifests~ : @publication_host.ClientCompilationManifests,
   compilation_limits~ : @publication_host.ClientPureCompilationLimits,
   serialization? : @publication_host.ClientSerializationPlanGraph? = None,
+  caller_material? : @execution.PreparationRepresentationUnits? = None,
+  keyed_native_profile? : @publication.PublicationContract? = None,
 ) -> Result[
   @publication_host.ClientInferPlanGraph,
   ClientRequestProgramPlanIssue,
@@ -225,6 +227,7 @@ pub fn[I] prepare_request_model_graph(
       guard @publication_host.prepared_client_infer_graph_measurement_storage(
           occurrence,
           serialization~,
+          native_keyed=keyed_native_profile is Some(_),
         )
         is Some(storage) &&
         @execution.preparation_representation_cost(storage)
@@ -247,7 +250,9 @@ pub fn[I] prepare_request_model_graph(
       // These products coexist until issuance, including a refused current.
       // No codec maximum, JS estimate, second policy or new tariff is used.
       let calls = match serialization {
-        None => 2L + (terminal - step).to_int64()
+        None =>
+          (if keyed_native_profile is Some(_) { 3L } else { 2L }) +
+          (terminal - step).to_int64()
         Some(component) => {
           if component.step >= step {
             return Err(Preparation(Policy))
@@ -263,6 +268,21 @@ pub fn[I] prepare_request_model_graph(
         )
         is Some(bytes) else {
         return Err(Preparation(Policy))
+      }
+      // The installed caller owns its selected bounds/provider-holder records,
+      // separately from the Graph. Admit that original constructor inventory
+      // before either constructor; units are DATA and supply no new capacity.
+      let bytes = match caller_material {
+        None => bytes
+        Some(storage) => {
+          guard @execution.preparation_representation_cost(storage)
+            is Some(caller_bytes) &&
+            @execution.checked_preparation_add_product(bytes, caller_bytes, 1L)
+            is Some(total) else {
+            return Err(Preparation(Policy))
+          }
+          total
+        }
       }
       let bytes = if multi is Some(occurrences) && occurrences.length() > 1 {
         // New immutable graph vector plus its old/new backing. The same
@@ -285,6 +305,42 @@ pub fn[I] prepare_request_model_graph(
         Err(issue) => return Err(issue)
         Ok(_) => ()
       }
+      if keyed_native_profile is Some(_) {
+        // This existing inventory describes the same provenance walker; it
+        // constructs no policy or encoded response. Grow before either real
+        // target walk or the separately folded effective Request policy.
+        guard @publication_host.prepared_client_serialization_policy_construction(
+            occurrence.owner,
+            occurrence.task,
+          )
+          is Ok(policy) &&
+          model_keyed_policy_construction_cost(policy) is Some(bytes) else {
+          return Err(Preparation(Policy))
+        }
+        match
+          reserve_request_model_graph_construction(
+            owner, input, prepared, bytes,
+          ) {
+          Ok(_) => ()
+          Err(issue) => return Err(issue)
+        }
+      }
+      // Selection itself allocates the original acquisition holder only AFTER
+      // the same Request has backed its metadata and policy/lowering envelope.
+      let keyed_native_read = match keyed_native_profile {
+        None => None
+        Some(profile) => {
+          guard prepared is Effect(effect) &&
+            serialization is None &&
+            @publication_host.select_client_effect_model_keyed_acquisition(
+              effect, occurrence,
+            )
+            is Ok(Some(keyed)) else {
+            return Err(Preparation(ForeignOriginal))
+          }
+          Some((keyed, profile))
+        }
+      }
       let geometry = match
         @publication_host.measure_installed_client_composed_infer_graph_construction(
           occurrence,
@@ -294,6 +350,7 @@ pub fn[I] prepare_request_model_graph(
           10000,
           100,
           serialization~,
+          keyed_native_read~,
         ) {
         Err(issue) => return Err(ModelGraph(issue))
         Ok(value) => value
@@ -338,6 +395,7 @@ pub fn[I] prepare_request_model_graph(
             10000,
             100,
             construction=Some(original),
+            keyed_native_read~,
           )
         Some(component) =>
           @publication_host.issue_prepared_client_serialized_infer_plan_graph(

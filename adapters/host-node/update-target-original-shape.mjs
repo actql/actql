@@ -2,7 +2,7 @@
 // fields, constraints, canonical identities and original-material matching.
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
-import {encodeUpdateTargetData} from './update-target-data.generated.mjs';
+import {encodeUpdateTargetData, encodeUpdateTargetOriginalData} from './update-target-data.generated.mjs';
 
 // Conversion aliases borrow Common's opaque original. Copying every DATA
 // property cannot copy this association; Common still checks the original on
@@ -30,6 +30,13 @@ export function assertUpdateTargetSelectionCurrent(selections, observations, pre
     binding.original, prepared ?? binding.prepared, encodeUpdateTargetData(observations))) invalid();
 }
 
+export function assertUpdateTargetSelectionCurrentData(selections, observations, installations, prepared) {
+  const binding = selectionOriginals.get(selections);
+  if (binding === undefined || typeof binding.moon.clientProgramEffectTargetSelectionCurrentData !== 'function' ||
+      binding.moon.clientProgramEffectTargetSelectionCurrentData(binding.original,
+        prepared ?? binding.prepared, installations, encodeUpdateTargetData(observations)) !== true) invalid();
+}
+
 export function updateTargetSelectionMatchesRun(selections, prepared, definition) {
   const binding = selectionOriginals.get(selections);
   return binding !== undefined && binding.prepared === prepared &&
@@ -48,10 +55,18 @@ export function issueUpdateTargetInstallation(moon, facts) {
   return Object.freeze({cid: runtimeField(original, 0), wire: runtimeField(original, 1)});
 }
 
+// Physical scalar slots of the existing Core installation port. All field
+// constraints, NFC, canonical order/digest and virtual wire bounds stay there.
+export function issueUpdateTargetInstallationData(moon, values) {
+  const original = checked(moon.clientProgramIssueEffectTargetInstallationData(values));
+  return {installation: Object.freeze({cid: runtimeField(original, 0), wire: runtimeField(original, 1)}),
+    data: runtimeField(original, 2)};
+}
+
 export function updateTargetOriginalDataEqual(moon, left, right) {
   try {
     return moon.clientProgramEffectTargetOriginalDataEqual(
-      encodeUpdateTargetData(left), encodeUpdateTargetData(right));
+      encodeUpdateTargetOriginalData(left), encodeUpdateTargetOriginalData(right));
   } catch { return false; }
 }
 
@@ -61,13 +76,13 @@ export function installationsShape(values, moon) {
 }
 
 export function updateTargetPreparedOriginalShape(value, moon) {
-  try { return moon.clientProgramEffectTargetPreparedOriginalShape(encodeUpdateTargetData(value)); }
+  try { return moon.clientProgramEffectTargetPreparedOriginalShape(encodeUpdateTargetOriginalData(value)); }
   catch { return false; }
 }
 
 export function updateTargetRunOriginalShape(value, evidence, moon) {
   try {
-    return moon.clientProgramEffectTargetRunOriginalShape(encodeUpdateTargetData(value),
+    return moon.clientProgramEffectTargetRunOriginalShape(encodeUpdateTargetOriginalData(value),
       evidence === undefined ? [] : [evidence.prepared, evidence.authorization]);
   } catch { return false; }
 }

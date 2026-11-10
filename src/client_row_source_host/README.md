@@ -110,6 +110,16 @@ After successful settlement the closed RowRun detaches that observer and
 provider declaration; repeated close cannot re-enter the retired reader.
 No numeric profile or transport implementation follows from this primitive.
 
+The selected ordinary installed Credential provider starts without future-page
+transfer prepayment; Table/IPC and other explicit profiles retain their envelope.
+Before each serial native request, `ensure_row_run_response_transfer_capacity`
+backs that request's selected response bound on the SAME cleanup-bound borrow
+and reservation. Received and uncertain bytes plus all outstanding reservations
+still consume the original cumulative Ledger limit. The original current/stop
+fence precedes this mutation and physical I/O; actual body charging still
+precedes projection. An unused remainder is not a refund or another attempt.
+Whole-input and other explicitly funded profiles retain their existing envelope.
+
 An installed native decoder may grow this SAME reservation through
 `grow_row_run_response_capacity` after its original response is charged and
 before projection. The selected native quote owns all prior outputs plus the
@@ -220,3 +230,78 @@ page handling remain with the existing REST page callback and shared Reader.
 `typed_json_page_wbtest.mbt` separately covers typed row admission, exact Signed64
 Strings, NULL/Unicode, schema/bound/cancellation refusal and foreign namespace
 refusal. These components do not establish ordinary installed Source acceptance.
+
+### Captured Query Compute binding
+
+`check_row_capture_compute_binding` observes task zero of the same single-capture
+DAG. The original RowRun must still own its live holding on that DAG's Ledger,
+with no pending cleanup or transferred custody. Source verifier callbacks run
+before the final custody check, so synchronous close cannot leave a valid
+binding. This allocation-free observer grants no Source/Account permission,
+capacity or retirement acknowledgement. The standalone prefix census remains
+unchanged. The consuming [ordinary task adapter](../client_local_host/captured-tasks-interface.md)
+closes dependent Compute before its caller retires the Source.
+
+
+### Selected-schema capture measurement
+
+Query capture measures both the complete original input scan and the completed
+SELECT output. Its column bound is derived from those same checked schemas
+retained by the original acquisition, rather than the unrelated Values default
+or a Host maximum. The original ordering work, node, wire-byte and depth limits
+remain separate and enforced. This does not grant Source access or change a
+provider's declared field bound; strict missing selected properties still refuse.
+
+The existing RowRun reserves the corresponding temporary names/order metadata
+before I/O through `row_acquisition_execution_capacity`. It uses the shared
+preparation representation policy: n tuple records, n borrowed name references,
+up to 3n simultaneous column-growth references, n tuple name/index pairs, and
+bounded cursor/control records. Qualified spelling uses the original schema
+constructor's own header/UTF16 inventory; unqualified strings stay borrowed.
+The two measurements run sequentially, so their variable workspaces use the
+larger original extent. Later capture identity measurement overlaps retained
+evidence-record names, so the same execution reservation also backs that extent. The existing wire/hash payload envelope is unchanged.
+The checked quote is retained in the same immutable RowHost configuration and
+added to its same original reservation, with no new Ledger, attempt or cleanup
+owner. Physical/current refusal retains the existing reader and Source duties.
+
+For the independently authored 102-column fixture this metadata is 6912 logical
+bytes; it is not a heap/RSS measurement. `measurement_capacity_wbtest.mbt` checks
+unqualified/qualified arithmetic and the unchanged explicit ordering refusals;
+the installed HubSpot wide fixture separately tests complete provider input,
+the complete acquisition SELECT port, finite transfer accounting and real cleanup.
+The authored Program SELECT is a later Compute result and has its separate
+three-field oracle; exporting acquisition Source does not execute that result.
+
+The evidence record writer receives that same original input field count.
+Its retained name Array is backed on the same RowRun as well: two Array/backing
+headers, up to 2n retained references and the original qualified-name storage.
+For 102 unqualified fields this adds 1664 logical retained bytes. Its 3n growth
+peak is smaller than the already funded measurement workspace. Parameter,
+byte, node, ordering and work bounds remain independent; this replaces neither
+the writer's field check nor the receiving schema's nominal validation.
+
+Installed Query and Whole identity callers pass the same live RowSourceCapture
+and its exact cached Source. The receiver checks physical identity and the
+original observation variant before reading its checked capture schema width;
+foreign or closed captures refuse. Legacy generic identity limits stay unchanged.
+Query export and restoration independently bind the original checked requirement
+before using that capture port's schema width; descriptor counts cannot enlarge it. For 102 unqualified
+fields, the late metadata/name overlap is 8576 logical execution bytes, alongside
+the separately charged 1664 retained bytes; no new Ledger or authority is issued.
+
+When the Host also retains original input for later dependent reads, its Query
+exporter checks the same nominal receiver/input binding against the original
+QueryRequirement. Export and reconstruction use that checked INPUT schema's
+width, independently of the capture SELECT schema and saved descriptor counts.
+The generic original-input export defaults stay unchanged. The original-input
+receiving quote retains its existing finite wire/tree envelope and adds the
+shared checked-input metadata inventory before allocation on the receiving
+Ledger. This issues no new Source observation or receiving permission; current
+custody and sliced physical backing cleanup remain required.
+
+Restored Whole Source identity likewise consumes its exact original
+ClientInstalledWholeSourceCapacity, checks that Source's nominal acquisition and
+liveness, then forwards the actual checked input width. Constructor max_columns
+and saved counts are not width evidence; a foreign equal-schema capacity refuses.
+The legacy unbound identity APIs keep their original defaults.

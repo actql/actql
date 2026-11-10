@@ -4,6 +4,7 @@ import {pathToFileURL} from 'node:url';
 import {isDeepStrictEqual} from 'node:util';
 import {machineCid} from './actql-spec-family.mjs';
 import {checkLocalTableInputContract} from './local-table-input-contract.mjs';
+import {checkLocalModelObservationContract} from './local-model-observation-contract.mjs';
 
 const registryPath = 'spec/contracts/actql-protocol-schemas.json';
 const cliPath = 'spec/contracts/actql-cli-run-response.schema.json';
@@ -242,7 +243,7 @@ function localUpdateOutcomes(outcome) {
   return {applied, conflict};
 }
 
-export function effectLocalOperationReceiptSchema(outcome) {
+function sqliteEffectLocalOperationReceiptSchema(outcome) {
   const {applied, conflict} = localUpdateOutcomes(outcome);
   const identities = ['effect_preview_cid', 'effect_member_preview_cid', 'row_preview_cid',
     'installation_cid', 'target_cid', 'canonical_request_cid', 'dispatch_entry_cid',
@@ -260,6 +261,50 @@ export function effectLocalOperationReceiptSchema(outcome) {
       {properties: {commit_status: {const: 'committed'}, observed_version_cid: clone(cid), typed_outcome: applied}},
       {properties: {commit_status: {const: 'conflict'}, typed_outcome: conflict}},
     ]};
+}
+
+// Exact canonical UInt64 decimal syntax. Independent Node and Common vectors
+// cover its upper boundary and reject signs, leading zeros and trailing text.
+export const fileGenerationWordPattern = (() => {
+  const upper = '18446744073709551615', branches = ['0', '[1-9][0-9]{0,18}'];
+  for (let i = 0; i < upper.length; i++) {
+    const low = i === 0 ? 1 : 0, high = Number(upper[i]) - 1;
+    if (low > high) continue;
+    const digit = low === high ? String(low) : `[${low}-${high}]`;
+    const remaining = upper.length - i - 1;
+    branches.push(upper.slice(0, i) + digit + (remaining ? `[0-9]{${remaining}}` : ''));
+  }
+  branches.push(upper);
+  return '^(' + branches.join('|') + ')$(?![\\s\\S])';
+})();
+
+export function effectFileOperationReceiptSchema(outcome) {
+  const {applied} = localUpdateOutcomes(outcome);
+  const identities = ['effect_preview_cid', 'effect_member_preview_cid', 'row_preview_cid',
+    'installation_cid', 'target_cid', 'canonical_request_cid', 'dispatch_entry_cid',
+    'authorization_context_cid', 'resolution_cid', 'target_version_cid', 'typed_outcome_cid', 'receipt_cid'];
+  const generationWord = {type: 'string', pattern: fileGenerationWordPattern};
+  return {type: 'object', additionalProperties: false,
+    required: ['version', ...identities, 'backend_kind', 'operation_kind',
+      'replacement_status', 'replacement_physical_sha256', 'replacement_byte_count',
+      'replacement_generation', 'typed_outcome'],
+    properties: {version: {const: 'actql-local-effect-operation-receipt/0.1'},
+      ...Object.fromEntries(identities.map(name => [name, clone(cid)])),
+      backend_kind: {const: 'json_file'}, operation_kind: {const: 'update'},
+      replacement_status: {const: 'acknowledged'},
+      replacement_physical_sha256: {type: 'string', pattern: '^[0-9a-f]{64}$'},
+      replacement_byte_count: {type: 'integer', minimum: 0, maximum: 9007199254740991},
+      replacement_generation: {type: 'object', additionalProperties: false,
+        required: ['device', 'inode', 'size'], properties: {
+          device: clone(generationWord), inode: clone(generationWord), size: clone(generationWord)}},
+      typed_outcome: applied}};
+}
+
+export function effectLocalOperationReceiptSchema(outcome) {
+  // The original SQLite arm, including its atomic-commit semantics and exact
+  // preimages, remains unchanged. File replacement is a distinct physical ACK.
+  return {oneOf: [sqliteEffectLocalOperationReceiptSchema(outcome),
+    effectFileOperationReceiptSchema(outcome)]};
 }
 
 export function effectRowOutcomeReceiptSchema(outcome) {
@@ -639,7 +684,7 @@ export function correctedContracts(registry, cli) {
         'table_input_artifact', 'table_input_derivation', 'table_input_ordering',
         'acquisition_relation', 'acquisition_scope', 'result_retention_policy',
         'local_result_definition', 'local_table_input_definition', 'local_computation', 'local_manifest',
-        'result_import_observation', 'local_dependencies',
+        'result_import_observation', 'local_model_observation', 'local_dependencies',
         'result_import_interface', 'gate_requirement', 'source_input_logical',
         'source_evidence', 'local_body', 'parameter_declarations',
         'used_values', 'local_contracts', 'local_policy', 'result_import_type',
@@ -647,6 +692,14 @@ export function correctedContracts(registry, cli) {
         'relation_schema', 'relation_value',
         'source_contract', 'source_view_contract', 'data_policy',
         'retention_contract', 'metadata_retention_policy', 'clock_contract',
+        'request_schema', 'request_key_set', 'carrier_schema', 'carrier_contract',
+        'task_fragment', 'lookup_execution_policy',
+        'lookup_evidence', 'lookup_accounting', 'acquisition_attempt_receipt',
+        'lookup_barrier', 'native_file_content_read', 'native_file_lookup_transport',
+        'native_file_lookup_batch_plan', 'native_file_lookup_request',
+        'native_file_lookup_call_slot', 'native_file_lookup_activation',
+        'native_file_lookup_raw_response', 'native_file_lookup_attempt_event',
+        'native_file_lookup_adoption',
       ]}, cid: clone(cid), body: {type: 'object'}}},
   };
   for (const [name, schema] of Object.entries(next.artifact_schemas)) {
@@ -701,6 +754,7 @@ export function cliOutputVerificationSchema() {
 
 export function checkContracts(registry, cli) {
   checkLocalTableInputContract(stageRegistry);
+  checkLocalModelObservationContract(stageRegistry);
   const expected = correctedContracts(registry, cli);
   assert.deepEqual(registry, expected.registry, 'Run publication schemas are stale');
   assert.deepEqual(cli, expected.cli, 'CLI Run state embedding is stale');

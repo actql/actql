@@ -9,8 +9,7 @@ const source=readFileSync(new URL('./installed-composed-infer-run.mjs',import.me
 const ast=parse(source,{ecmaVersion:'latest',sourceType:'module'});
 const run=ast.body.map(node=>node.declaration??node).find(node=>node.type==='FunctionDeclaration'&&node.id.name==='runInstalledComposedInfers');
 const cleanup=run.body.body.find(node=>node.type==='FunctionDeclaration'&&node.id.name==='cleanup');
-const issuance=run.body.body.find(node=>node.type==='IfStatement'&&node.test.type==='BinaryExpression'&&node.test.operator==='==='&&
-  node.test.left.name==='originalPreparation'&&node.test.right.name==='undefined');
+const issuance=run.body.body.find(node=>node.type==='IfStatement'&&source.slice(node.test.start,node.test.end).startsWith('originalPreparation === undefined'));
 assert.ok(cleanup);assert.ok(issuance);
 // Execute the installed caller's exact cleanup and issuer-selection statements
 // with explicit Core/physical ports. This is not a funded or installed Host.
@@ -100,13 +99,13 @@ test('composed original issuer selection retains its sealed issuer instead of fo
     ()=>assert.fail('missing original cannot fall back'),checked),/InstalledComposedInferOriginalObservationUnavailable/);
 });
 
-test('composed legacy issuer selection retains its existing explicit metadata Ledger',()=>{
-  const ledger={},children=[{operation:{}}];let issued=0;
-  const selected=selectIssuance(children,undefined,{ledger:{}},{
-    clientProgramInferPublicationLedger(retained,work) {
-      assert.equal(retained,262272n);assert.equal(work,3);issued++;return {$tag:1,_0:ledger};}},
-    1,args=>args,checked);
-  assert.strictEqual(selected.ledger,ledger);assert.equal(issued,1);
+test('composed issuer selection refuses a missing Request instead of creating another Ledger',()=>{
+  let issued=0;
+  assert.throws(()=>selectIssuance([{operation:{}}],undefined,{ledger:{}},{
+    clientProgramInferPublicationLedger(){issued++;throw new Error('NoReplacementLedger');}},
+    1,()=>{issued++;throw new Error('NoReplacementIssuer');},checked),
+    /InstalledComposedInferOriginalObservationUnavailable/);
+  assert.equal(issued,0);
 });
 
 

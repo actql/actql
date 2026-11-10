@@ -120,12 +120,13 @@
           }
         }
       ],
-      "sha256": "92be6a49aa62aa23308fba36ddcab5d9d9d7d4344035bc54cbd0c1ff2754ded5"
+      "sha256": "eab6afc9659e95509a246c2c967586c44b56aa94f5caae7bf6ffdcc88d13aec9"
     },
     {
       "module": "packages/native-cli/lib/project-scaffold.mjs",
-      "sha256": "6dc7dab61378f8b8fd8e263de4444571af74a4596950c948c0b80a4b0104b2a3",
+      "sha256": "0f072b58f8f9daceffe7238951a85a2ead825f767429b549557b585bd59a578c",
       "exports": [
+        "nativeMockAcceptanceObservations",
         "projectInitArguments",
         "projectInitialAdoptionArguments",
         "requireProjectInitSupport",
@@ -148,6 +149,72 @@
           "async": false
         },
         {
+          "name": "nativeMockAcceptanceObservations",
+          "parameters": [
+            "stderr"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeMockAcceptanceObservations/amount/amount",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeMockAcceptanceObservations/exact/exact",
+          "parameters": [
+            "value",
+            "keys"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeMockAcceptanceObservations/exact/exact/exact",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeMockAcceptanceObservations/nativeMockAcceptanceObservations",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeMockAcceptanceObservations/nativeMockAcceptanceObservations#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeMockAcceptanceObservations/nativeMockAcceptanceObservations#3",
+          "parameters": [
+            "group"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeMockAcceptanceObservations/positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeMockAcceptanceObservations/sameField",
+          "parameters": [
+            "actual",
+            "expected",
+            "message"
+          ],
+          "async": false
+        },
+        {
           "name": "projectInitArguments",
           "parameters": [
             "args"
@@ -157,7 +224,8 @@
         {
           "name": "projectInitialAdoptionArguments",
           "parameters": [
-            "project"
+            "project",
+            "hostConfiguration"
           ],
           "async": false
         },
@@ -200,6 +268,7 @@
       ],
       "imports": [
         "./project-template.mjs",
+        "node:assert/strict",
         "node:child_process",
         "node:fs",
         "node:path"
@@ -252,7 +321,7 @@
               },
               {
                 "path": "packages/native-cli/lib/project-scaffold.mjs",
-                "anchor": "export function projectInitialAdoptionArguments(project)"
+                "anchor": "export function projectInitialAdoptionArguments(project, hostConfiguration)"
               }
             ],
             "identity": [
@@ -326,6 +395,14 @@
               {
                 "path": "scripts/native-cli-project-cleanup.test.mjs",
                 "anchor": "// Inject failures into operations on real, fresh handles."
+              },
+              {
+                "path": "scripts/native-cli-project-init.test.mjs",
+                "anchor": "test('init forwards one explicit operator Host path unchanged to the original Native adoption'"
+              },
+              {
+                "path": "scripts/native-cli-project-init.test.mjs",
+                "anchor": "test('installed init dispatcher forwards the original Host selector without reading or creating that file'"
               }
             ]
           }
@@ -333,10 +410,20 @@
         {
           "operations": [
             "requireProjectInitSupport",
-            "requireProjectInitSupport/unavailable/unavailable"
+            "requireProjectInitSupport/unavailable/unavailable",
+            "nativeMockAcceptanceObservations",
+            "nativeMockAcceptanceObservations/amount/amount",
+            "nativeMockAcceptanceObservations/exact/exact",
+            "nativeMockAcceptanceObservations/exact/exact/exact",
+            "nativeMockAcceptanceObservations/nativeMockAcceptanceObservations",
+            "nativeMockAcceptanceObservations/nativeMockAcceptanceObservations#2",
+            "nativeMockAcceptanceObservations/nativeMockAcceptanceObservations#3",
+            "nativeMockAcceptanceObservations/positive/positive",
+            "nativeMockAcceptanceObservations/sameField"
           ],
           "exports": [
-            "requireProjectInitSupport"
+            "requireProjectInitSupport",
+            "nativeMockAcceptanceObservations"
           ],
           "attributes": {
             "responsibility": [
@@ -366,13 +453,13 @@
             "synchronization": [
               {
                 "path": "packages/native-cli/lib/project-scaffold.mjs",
-                "anchor": "env: {...environment, ACTQL_NATIVE_TIMINGS: '0'}, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],"
+                "anchor": "env: {...environment, ACTQL_NATIVE_TIMINGS: observing ? '1' : '0'}, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],"
               }
             ],
             "failure": [
               {
                 "path": "packages/native-cli/lib/project-scaffold.mjs",
-                "anchor": "if (child.error || child.signal || child.status !== 0 || child.stderr !== '' ||"
+                "anchor": "if (child.error || child.signal || child.status !== 0 || (!observing && child.stderr !== '') ||"
               },
               {
                 "path": "packages/native-cli/lib/project-scaffold.mjs",
@@ -382,13 +469,13 @@
             "cancellation": [
               {
                 "path": "packages/native-cli/lib/project-scaffold.mjs",
-                "anchor": "timeout: 5000, killSignal: 'SIGKILL', maxBuffer: 4096,"
+                "anchor": "timeout: 5000, killSignal: 'SIGKILL', maxBuffer: observing ? 32768 : 4096,"
               }
             ],
             "resources": [
               {
                 "path": "packages/native-cli/lib/project-scaffold.mjs",
-                "anchor": "timeout: 5000, killSignal: 'SIGKILL', maxBuffer: 4096,"
+                "anchor": "timeout: 5000, killSignal: 'SIGKILL', maxBuffer: observing ? 32768 : 4096,"
               }
             ],
             "extension": [
@@ -409,6 +496,10 @@
               {
                 "path": "scripts/native-cli-project-init.test.mjs",
                 "anchor": "test('installed init silences only private query timings and preserves adoption diagnostics'"
+              },
+              {
+                "path": "scripts/native-cli-project-init.test.mjs",
+                "anchor": "test('opt-in init observations forward only complete original child metadata with unchanged support contract'"
               }
             ]
           }

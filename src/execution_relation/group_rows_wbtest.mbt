@@ -439,7 +439,7 @@ fn numeric_group_workspace_attempt(
       ),
     )
   })
-  let workspace = { limit, live: 0, peak: 0, }
+  let workspace = { ..row_workspace(limit), live: 0, peak: 0, }
   let result = evaluate_rows_with_workspace(
     row_kernel(owner, 1),
     row_capture(owner),
@@ -572,7 +572,7 @@ fn direct_group_scale_sample(count : Int) -> (Int, Int) raise {
   }
   let maximum = 100000000
   let control = { remaining: maximum, max_frames: 100, }
-  let workspace = { limit: count * 12 + 1000, live: 0, peak: 0, }
+  let workspace = { ..row_workspace(count * 12 + 1000), live: 0, peak: 0, }
   let output = value_budget({
     max_nodes: maximum,
     max_text_bytes: maximum,

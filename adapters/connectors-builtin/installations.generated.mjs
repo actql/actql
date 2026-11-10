@@ -100,9 +100,18 @@ export const installedConnectors = Object.freeze([
     name: "hubspot", registration: "hubspot",
     revision: "hubspot/0.1",
     implementationFiles: Object.freeze([
+      Object.freeze({path: "adapters/connectors/hubspot/host/hubspot-effect-mappings.mjs", href: new URL("../connectors/hubspot/host/hubspot-effect-mappings.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/hubspot/host/hubspot-effect-plan.mjs", href: new URL("../connectors/hubspot/host/hubspot-effect-plan.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/hubspot/host/hubspot-update-driver.mjs", href: new URL("../connectors/hubspot/host/hubspot-update-driver.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/hubspot/host/hubspot-update-observations.mjs", href: new URL("../connectors/hubspot/host/hubspot-update-observations.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/hubspot/host/hubspot-update-request.mjs", href: new URL("../connectors/hubspot/host/hubspot-update-request.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/hubspot/host/installed-hubspot-effect.mjs", href: new URL("../connectors/hubspot/host/installed-hubspot-effect.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/hubspot/host/installed-hubspot-source.mjs", href: new URL("../connectors/hubspot/host/installed-hubspot-source.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/hubspot/site/hubspot-account-read.mjs", href: new URL("../connectors/hubspot/site/hubspot-account-read.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/hubspot/site/hubspot-managed-sequence.mjs", href: new URL("../connectors/hubspot/site/hubspot-managed-sequence.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/hubspot/site/hubspot-object-read.mjs", href: new URL("../connectors/hubspot/site/hubspot-object-read.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/hubspot/site/hubspot-record-write.mjs", href: new URL("../connectors/hubspot/site/hubspot-record-write.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/hubspot/site/hubspot-target-read.mjs", href: new URL("../connectors/hubspot/site/hubspot-target-read.mjs", import.meta.url).href}),
     ]),
     providerBundle: "connectors/hubspot/host_node",
     responseHeaders: Object.freeze([]),
@@ -111,20 +120,36 @@ export const installedConnectors = Object.freeze([
       load: () => import("../connectors/hubspot/host/installed-hubspot-source.mjs")
         .then(module => Object.freeze({check: module.checkInstalledHubSpotSourceProfile, identityParts: module.installedHubSpotSourceIdentityParts, load: module.loadInstalledHubSpotSource})),
     }),
+    effect: Object.freeze({
+      profileVersion: "actql-installed-hubspot-effect/0.1",
+      load: () => import("../connectors/hubspot/host/installed-hubspot-effect.mjs")
+        .then(module => Object.freeze({check: module.checkInstalledHubSpotEffectProfile, identityParts: module.installedHubSpotEffectIdentityParts, load: module.loadInstalledHubSpotEffect})),
+    }),
   }),
   Object.freeze({
     name: "kintone", registration: "kintone",
     revision: "kintone/0.1",
     implementationFiles: Object.freeze([
+      Object.freeze({path: "adapters/connectors/kintone/host/installed-kintone-effect.mjs", href: new URL("../connectors/kintone/host/installed-kintone-effect.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/kintone/host/installed-kintone-source.mjs", href: new URL("../connectors/kintone/host/installed-kintone-source.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/kintone/host/kintone-effect-plan.mjs", href: new URL("../connectors/kintone/host/kintone-effect-plan.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/kintone/host/kintone-update-driver.mjs", href: new URL("../connectors/kintone/host/kintone-update-driver.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/kintone/host/kintone-update-request.mjs", href: new URL("../connectors/kintone/host/kintone-update-request.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/kintone/site/kintone-managed-sequence.mjs", href: new URL("../connectors/kintone/site/kintone-managed-sequence.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/kintone/site/kintone-record-delete.mjs", href: new URL("../connectors/kintone/site/kintone-record-delete.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/kintone/site/kintone-record-read.mjs", href: new URL("../connectors/kintone/site/kintone-record-read.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/kintone/site/kintone-record-write.mjs", href: new URL("../connectors/kintone/site/kintone-record-write.mjs", import.meta.url).href}),
     ]),
     responseHeaders: Object.freeze([]),
     source: Object.freeze({
       profileVersion: "actql-installed-kintone-source/0.1",
       load: () => import("../connectors/kintone/host/installed-kintone-source.mjs")
         .then(module => Object.freeze({check: module.checkInstalledKintoneSourceProfile, identityParts: module.installedKintoneSourceIdentityParts, load: module.loadInstalledKintoneSource})),
+    }),
+    effect: Object.freeze({
+      profileVersion: "actql-installed-kintone-effect/0.1",
+      load: () => import("../connectors/kintone/host/installed-kintone-effect.mjs")
+        .then(module => Object.freeze({check: module.checkInstalledKintoneEffectProfile, identityParts: module.installedKintoneEffectIdentityParts, load: module.loadInstalledKintoneEffect})),
     }),
   }),
   Object.freeze({

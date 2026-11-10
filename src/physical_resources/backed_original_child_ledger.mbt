@@ -15,11 +15,14 @@ fn[P, C, R] backed_original_child_ready(
 
 ///|
 /// Prepare exactly one original child from the same nominal live admission.
-/// No public callbacks, limit DATA, bootstrap amounts or new parent reservation
-/// enter this issuer. Its controls/captures require the original envelope.
+/// Limit DATA and bootstrap amounts cannot supply this original association.
+/// Its physical issuer may attach one actual pool-acquisition callback to a
+/// growable window; successful return is never funding. Controls, the optional
+/// closure and its captures require the original entry envelope before issue.
 pub fn[P, C, R] prepare_backed_original_child_ledger(
   projection : BackedExecutionLiveProjection[P, C, R],
   runtime : R,
+  acquire_window? : ((Int64, Int64) -> Result[Unit, LedgerIssue])? = None,
 ) -> Result[ImportedChildLedger, ImportedChildLedgerIssue] {
   let access = match backed_live_projection_original(projection, runtime) {
     Err(_) => return Err(ForeignOriginal)
@@ -27,6 +30,10 @@ pub fn[P, C, R] prepare_backed_original_child_ledger(
   }
   if projection.child_ledger_issued {
     return Err(AlreadyConsumed)
+  }
+  if acquire_window is Some(_) &&
+    !(access.ticket is Some(ticket) && ticket.current_window is Some(_)) {
+    return Err(InvalidOriginal)
   }
   if !backed_original_child_ready(projection, runtime) {
     return Err(Unavailable)
@@ -85,6 +92,10 @@ pub fn[P, C, R] prepare_backed_original_child_ledger(
   if access.region is Some(region) {
     value.origin.working = region.working
   }
+  if access.ticket is Some(ticket) {
+    value.origin.current_window = ticket.current_window
+  }
+  value.origin.acquire_window = acquire_window
   access.child_origin = Some(value.origin)
   Ok(value)
 }
@@ -106,6 +117,8 @@ fn retire_backed_original_child_origin(
   origin.stop = retired_backed_original_child_status
   origin.ledger = None
   origin.working = None
+  origin.current_window = None
+  origin.acquire_window = None
 }
 
 ///|

@@ -130,6 +130,104 @@ fn common_grant_fields() -> Array[FieldSpec] {
 ///|
 fn contract_spec(name : String) -> ContractSpec? {
   match name {
+    "lookup_accounting" =>
+      Some({
+        name,
+        version: "actql-lookup-accounting-evidence/0.1",
+        identity: "self_cid",
+        fields: [],
+      })
+    "acquisition_attempt_receipt" =>
+      Some({
+        name,
+        version: "actql-lookup-attempt-receipt/0.1",
+        identity: "self_cid",
+        fields: [],
+      })
+    "lookup_evidence" =>
+      Some({
+        name,
+        version: "actql-lookup-evidence/0.1",
+        identity: "evidence_cid",
+        fields: [],
+      })
+    "native_file_lookup_request" =>
+      Some({
+        name,
+        version: "actql-lookup-semantic-request/0.1",
+        identity: "self_cid",
+        fields: [],
+      })
+    "native_file_lookup_call_slot" =>
+      Some({
+        name,
+        version: "actql-lookup-call-slot/0.1",
+        identity: "self_cid",
+        fields: [],
+      })
+    "native_file_lookup_activation" =>
+      Some({
+        name,
+        version: "actql-lookup-attempt-activation/0.1",
+        identity: "self_cid",
+        fields: [],
+      })
+    "native_file_lookup_attempt_event" =>
+      Some({
+        name,
+        version: "actql-lookup-attempt-event/0.1",
+        identity: "self_cid",
+        fields: [],
+      })
+    "native_file_lookup_adoption" =>
+      Some({
+        name,
+        version: "actql-lookup-page-adoption/0.1",
+        identity: "self_cid",
+        fields: [],
+      })
+    "native_file_lookup_raw_response" =>
+      Some({
+        name,
+        version: "actql-lookup-raw-response/0.1",
+        identity: "self_cid",
+        fields: [],
+      })
+    "native_file_lookup_batch_plan" =>
+      Some({
+        name,
+        version: "actql-lookup-batch-plan/0.1",
+        identity: "self_cid",
+        fields: [],
+      })
+    "lookup_barrier" =>
+      Some({
+        name,
+        version: "actql-lookup-barrier/0.1",
+        identity: "barrier_cid",
+        fields: [],
+      })
+    "native_file_lookup_transport" =>
+      Some({
+        name,
+        version: "actql-lookup-transport-plan/0.1",
+        identity: "self_cid",
+        fields: [],
+      })
+    "native_file_content_read" =>
+      Some({
+        name,
+        version: "actql-native-file-content-read/0.1",
+        identity: "transport_cid",
+        fields: [],
+      })
+    "request_key_set" =>
+      Some({
+        name,
+        version: "actql-lookup-key-set/0.1",
+        identity: "self_cid",
+        fields: [],
+      })
     "compiled_plan" =>
       Some({
         name,
@@ -1069,9 +1167,28 @@ fn validate_bounded_contract(
         max_nodes,
         max_depth,
       ) {
+      if spec.name == "request_key_set" &&
+        !lookup_key_set_order_valid(value, max_wire_bytes, max_nodes, max_depth) {
+        return Err(InvalidField("typed_key_order"))
+      }
+      if spec.name == "native_file_lookup_batch_plan" &&
+        !native_file_lookup_batch_order_valid(value) {
+        return Err(InvalidField("canonical_single_key_batches"))
+      }
       if spec.name == "effect_apply_receipt" &&
         !effect_apply_receipt_consistent(value) {
         return Err(ConditionalField("status"))
+      }
+      if spec.name == "acquisition_attempt_receipt" &&
+        !lookup_lifecycle_order_valid(value) {
+        return Err(InvalidField("lifecycle_evidence"))
+      }
+      if spec.name == "lookup_evidence" &&
+        (
+          !lookup_cid_set_order_valid(value, "input_content_ref_cids") ||
+          !lookup_cid_set_order_valid(value, "request_input_data_policy_cids")
+        ) {
+        return Err(InvalidField("lookup_cid_sets"))
       }
       return Ok(())
     }
@@ -1159,6 +1276,9 @@ pub fn seal_publication_contract(
       max_nodes - 1,
       max_depth,
       data_keys=name == "captured_run" ||
+        name == "native_file_lookup_request" ||
+        name == "lookup_barrier" ||
+        name == "native_file_lookup_transport" ||
         name == "effect_row_outcome_receipt" ||
         name == "effect_local_operation_receipt",
     ) {
@@ -1254,6 +1374,9 @@ pub fn admit_publication_contract(
       max_nodes,
       max_depth,
       data_keys=name == "captured_run" ||
+        name == "native_file_lookup_request" ||
+        name == "lookup_barrier" ||
+        name == "native_file_lookup_transport" ||
         name == "effect_row_outcome_receipt" ||
         name == "effect_local_operation_receipt",
     ) {
@@ -1287,7 +1410,12 @@ pub fn admit_publication_contract(
   } catch {
     _ => return Err(Encoding)
   }
-  if (name == "acquisition_relation" || name == "acquisition_scope") &&
+  if [
+      "acquisition_relation", "acquisition_scope", "request_key_set", "native_file_lookup_batch_plan",
+      "native_file_lookup_request", "native_file_lookup_call_slot", "native_file_lookup_activation",
+      "native_file_lookup_raw_response", "native_file_lookup_attempt_event", "native_file_lookup_adoption",
+      "lookup_accounting", "acquisition_attempt_receipt", "lookup_evidence",
+    ].contains(name) &&
     wire != complete_wire {
     return Err(InvalidWire)
   }
@@ -1521,6 +1649,15 @@ pub fn publication_contract_identity(contract : PublicationContract) -> String {
 ///|
 pub fn publication_contract_json(contract : PublicationContract) -> String {
   contract.wire
+}
+
+///|
+/// Immutable DATA from this contract's original final encoder. This projection
+/// performs no admission, traversal, permission or physical-current check.
+pub fn publication_contract_wire_usage(
+  contract : PublicationContract,
+) -> (Int, Int, Int)? {
+  contract.wire_usage
 }
 
 ///|

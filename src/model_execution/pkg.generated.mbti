@@ -87,6 +87,8 @@ pub fn complete_model_output(ModelOutputPreparation) -> Result[@execution_relati
 
 pub fn finish_model_content_bytes(ModelContentByteCheck) -> Result[ModelContentAdmission, ModelContentIssue]
 
+pub fn grow_original_model_publication_capacity(OriginalModelPublicationCapacity, ModelExecution, @run_publication_host.ClientInferCallScope, Int64, Int64) -> Result[Unit, ModelExecutionIssue]
+
 pub fn guard_model_request_preflight_current(ModelRequestPreflight, () -> Bool) -> ModelRequestPreflight
 
 pub fn install_async_model_provider(String) -> Result[ModelProvider, ModelExecutionIssue]
@@ -115,7 +117,11 @@ pub fn model_call_entry_originals(ModelCallEntry) -> (Int, String, String, Strin
 
 pub fn model_call_entry_persistence(ModelCallEntry, ModelPreparedCallSet, () -> ModelEntryPersistenceObservation) -> ModelCallEntryPersistence?
 
+pub fn model_call_entry_persistence_originals(ModelCallEntry, ModelPreparedCallSet, @run_publication_host.ClientInferDispatchAdmission) -> (Int, Int, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.BoundModelInvocationScope)?
+
 pub fn model_call_settlement(ModelExecution) -> ModelCallSettlement?
+
+pub fn model_call_settlement_export_limits(Int, Int) -> ModelCaptureExportLimits
 
 pub fn model_call_settlement_slot(ModelCallSettlement) -> Int?
 

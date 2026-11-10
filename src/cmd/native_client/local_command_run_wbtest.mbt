@@ -115,17 +115,18 @@ test "Selected public Run chooses its operational preparation before any physica
 }
 
 ///|
-test "Selected public Run refuses an unsupplied explicit legacy configuration before acquisition" {
+test "Selected public Run refuses unmeasured original command input before acquisition" {
   let local_command = command().parse(argv=[
     "--mode", "local", "--config-file", "operator.json", "run", "program.aql",
   ])
+  assert_true(command_preargument_retained_context() is Err(CommandUnavailable))
   let issue = try {
     prepare_native_command_invocation(local_command)
     "unexpected success"
   } catch {
     ClientStop(message) => message
   }
-  assert_eq(issue, "ExplicitLocalConfigurationRequiresOriginalSupplier")
+  assert_eq(issue, "LocalCommandPreparationUnavailable")
   assert_true(command_preparation_invocation.val is None)
 }
 
@@ -205,17 +206,18 @@ test "Public Result selects original preparation only with its business Store su
 }
 
 ///|
-test "Public Result refuses explicit unsupplied configuration before original acquisition" {
+test "Public Result refuses unmeasured original command input before acquisition" {
   let parsed = command().parse(argv=[
     "--mode", "local", "--config-file", "operator.json", "result", "original-run",
   ])
+  assert_true(command_preargument_retained_context() is Err(CommandUnavailable))
   let issue = try {
     prepare_native_command_invocation(parsed)
     "unexpected success"
   } catch {
     ClientStop(message) => message
   }
-  assert_eq(issue, "ExplicitLocalConfigurationRequiresOriginalSupplier")
+  assert_eq(issue, "LocalCommandPreparationUnavailable")
   assert_true(command_preparation_invocation.val is None)
 }
 

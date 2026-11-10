@@ -72,6 +72,7 @@ test('same managed service reader demand supplies original whole page bounds wit
   const f=serviceFixture();
   try{
     assert.equal(Object.isFrozen(f.scope.readerDemand),true);
+    assert.equal(f.scope.readerDemand.transferUnitBytes,256n);
     assert.deepEqual({maxNodes:f.scope.readerDemand.maxNodes,maxDepth:f.scope.readerDemand.maxDepth},{maxNodes:64,maxDepth:6});
     const selected=pageSelection(f.reader,f.scope.readerDemand);
     assert.equal(selected.pageLimits,undefined);

@@ -313,6 +313,10 @@ fn execute_native_local_packaged_with_parent(
       runtime.assets,
       runtime.manifest,
     ).unwrap_or_else(() => stop("LocalProductDefaultsNotAdmitted"))
+    let originals = local_product_model_policy_originals(
+      originals,
+      Some(@local_values.client_local_resource_policy()),
+    )
     local_host_result(
       @local_host.begin_native_local_product_configuration(
         location.parent_path,

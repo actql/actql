@@ -52,7 +52,7 @@ fn sequence_test_evaluate(
     100,
     { remaining: 100000, max_frames: 100, },
     value_budget(run_limits().output_values).unwrap(),
-    { limit: 10000, live: 0, peak: 0, },
+    row_workspace(10000),
   )
 }
 
@@ -229,7 +229,7 @@ test "sequence does not evaluate an undemanded later predicate" {
     10,
     { remaining: 100000, max_frames: 100, },
     value_budget(run_limits().output_values).unwrap(),
-    { limit: 10000, live: 0, peak: 0, },
+    row_workspace(10000),
   ).unwrap()
   assert_eq(result.rows.length(), 1)
 }

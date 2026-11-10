@@ -145,30 +145,69 @@ async function initialEffectFixture(t, {refuseReservation = false, suspended = f
   await fs.writeFile(profilePath, profileWire);await fs.writeFile(runtimePath, runtimeWire);await fs.writeFile(metadataPath, metadataWire);
   const initial = {}, input = {}, unit = {}, capacity = {}, events = [], live = new Set();
   const ok = value => ({$tag: 1, _0: value});
-  let transferred = 0n, loaded = 0, entered, release;
+  let transferred = 0n, loaded = 0, entered, release, taken = false, continued = false, retired = false;
   const enteredLoad = new Promise(done => {entered = done;}), hold = new Promise(done => {release = done;});
   const refusal = new Error('original initial reservation refusal'), installerFailure = new Error('original installer failure');
+  const quantities = new Set();
+  const quantity = (kind, values) => {
+    assert.equal(continued, true);assert.equal(retired, false);
+    const value = Object.freeze({input, capacity, kind, values: Object.freeze(values)});
+    quantities.add(value);return value;
+  };
+  const sameQuantity = value => {
+    assert(quantities.has(value));assert.equal(value.input, input);assert.equal(value.capacity, capacity);
+    assert.equal(continued, true);assert.equal(retired, false);
+  };
+  const geometry = values => assert(values.every(value => typeof value === 'bigint' && value >= 0n));
   const moon = {
     clientProgramRowSourceRestoreRelationDeclaration() {assert.fail('No native declaration in this prefix unit');},
     clientProgramRowSourceDeclarationJson() {assert.fail('No declaration output in this prefix unit');},
     clientProgramTakeHostInitializationSourceCapacity(value) {
-      assert.equal(value, initial);events.push('take');return ok({_0: input, _1: unit});
+      assert.equal(value, initial);assert.equal(taken, false);taken = true;
+      events.push('take');return ok({_0: input, _1: unit});
     },
     clientProgramContinueInstalledSourceMaterial(value, original) {
-      assert.equal(value, unit);assert.equal(original, input);events.push('continue');return ok(capacity);
+      assert.equal(value, unit);assert.equal(original, input);assert.equal(taken, true);
+      assert.equal(continued, false);continued = true;events.push('continue');return ok(capacity);
     },
-    clientProgramInstalledSourceConstructionCapacity(...values) {return ok(Object.freeze({values}));},
-    clientProgramReserveInstalledSourceConstruction(value, original) {
+    clientProgramInstalledSourceConstructionCapacity(...values) {
+      assert.strictEqual(this, moon);assert.equal(values.length, 6);geometry(values);
+      return ok(quantity('material', values));
+    },
+    clientProgramComposeInstalledSourceConstructionCapacity(base, providers) {
+      assert.strictEqual(this, moon);sameQuantity(base);assert.equal(base.kind, 'material');
+      assert(providers.length > 0);providers.forEach(sameQuantity);
+      return ok(quantity('composed', [base, Object.freeze([...providers])]));
+    },
+    clientProgramInstalledSourceJsonConstructionCapacity(...values) {
+      assert.strictEqual(this, moon);assert.equal(values.length, 5);geometry(values);
+      assert.equal(live.size, 1, 'the same original profile/metadata FD remains open before parse');
+      return ok(quantity('json', values));
+    },
+    clientProgramInstalledProfileConstructionCapacities(...values) {
+      assert.strictEqual(this, moon);assert.equal(values.length, 2);geometry(values);assert.equal(live.size, 0);
+      return ok([quantity('profile-parse', values), quantity('profile-construct', values)]);
+    },
+    clientProgramInstalledSourceRetainedConstructionCapacity(original) {
+      assert.strictEqual(this, moon);sameQuantity(original);
+      assert(['json', 'profile-construct'].includes(original.kind));assert.equal(live.size, 0);
+      return ok(quantity('retained', [original]));
+    },
+    clientProgramReserveInstalledSourceConstruction(value, original, quote) {
       assert.equal(value, capacity);assert.equal(original, input);events.push('reserve');
+      sameQuantity(quote);
       if (refuseReservation) throw refusal;return ok();
     },
-    clientProgramReconcileInstalledSourceConstruction: () => ok(),
+    clientProgramReconcileInstalledSourceConstruction(value, original, quote) {
+      assert.equal(value, capacity);assert.equal(original, input);sameQuantity(quote);return ok();
+    },
     clientProgramCompleteInstalledSourceMaterial() {assert.fail('No completed installation in this prefix unit');},
     clientProgramBorrowInstalledSourceMaterial() {assert.fail('No Request borrow in this prefix unit');},
     clientProgramBorrowedInstalledSourceEnvironment() {assert.fail('No Request environment in this prefix unit');},
     clientProgramReturnInstalledSourceMaterial() {assert.fail('No Request return in this prefix unit');},
     clientProgramRetireInstalledSourceMaterial(value, original) {
-      assert.equal(value, capacity);assert.equal(original, input);assert.equal(live.size, 0);events.push('retire');return ok(true);
+      assert.equal(value, capacity);assert.equal(original, input);assert.equal(live.size, 0);
+      assert.equal(retired, false);retired = true;events.push('retire');return ok(true);
     },
     clientProgramAbortUncontinuedSourceMaterial() {assert.fail('The same material continued');},
     clientProgramBeginInstalledSourceIo(value, original, bytes) {
@@ -201,7 +240,11 @@ async function initialEffectFixture(t, {refuseReservation = false, suspended = f
     }}]);
   const options = {root, principalId: 'fixture', moon, runtimeUrl: pathToFileURL(runtimePath),
     baseEnvironmentWire: '{}', connectorTable, installationServices: services};
-  return {profilePath, options, services, events, live, refusal, installerFailure, enteredLoad, release,
+  const waitForEntry = observed => Promise.race([enteredLoad, observed.then(result => {
+    if (!result.ok) throw result.error;
+    assert.fail('The original load completed without entering its installer');
+  })]);
+  return {profilePath, options, services, events, live, refusal, installerFailure, waitForEntry, release,
     counts: () => ({loaded, transferred}), expectedBytes: BigInt(Buffer.byteLength(profileWire + runtimeWire + metadataWire))};
 }
 
@@ -219,7 +262,9 @@ test('Effect initial material owns profile runtime and installer metadata reads 
 
 test('Effect initial material reservation refusal precedes profile I/O and preserves the original failure', async t => {
   const f = await initialEffectFixture(t, {refuseReservation: true});
-  await assert.rejects(loader.loadInstalledEffect(join(f.options.root, 'never-created-profile.json'), f.options), error => {
+  const observed = loader.loadInstalledEffect(join(f.options.root, 'never-created-profile.json'), f.options)
+    .then(value => ({ok: true, value}), error => ({ok: false, error}));
+  await assert.rejects(f.waitForEntry(observed), error => {
     assert.equal(error.code, 'InvalidInstalledEffectProfile');assert.equal(error.cause, f.refusal);return true;
   });
   assert.deepEqual(f.events, ['take', 'continue', 'reserve']);assert.equal(f.counts().loaded, 0);assert.equal(f.live.size, 0);
@@ -229,7 +274,7 @@ test('Effect initial material reservation refusal precedes profile I/O and prese
 test('Effect initial material remains live through installer await and thrown undefined without a second load', async t => {
   const f = await initialEffectFixture(t, {suspended: true, undefinedFailure: true});
   const observed = loader.loadInstalledEffect(f.profilePath, f.options).then(value => ({ok: true, value}), error => ({ok: false, error}));
-  await f.enteredLoad;
+  await f.waitForEntry(observed);
   try {
     assert.equal(retireInstalledSourceInitialization(f.services), false, 'same original load remains pending after its FD reads finish');
     assert.equal(f.events.includes('retire'), false);
@@ -314,14 +359,25 @@ async function constructionFixture(t, {refuseMapping = false, beforeAdapter, ope
   const profilePath = join(root, 'profile.json'), runtimePath = join(root, 'runtime.mjs');
   await fs.writeFile(profilePath, JSON.stringify({version, connectorId: 'construction'}));
   await fs.writeFile(runtimePath, 'export const identityOnly = true;\n');
-  const initial = {}, input = {}, unit = {}, capacity = {}, declaration = {}, events = [];
+  const initial = {}, input = {}, unit = {}, capacity = {}, declaration = {}, events = [], live = new Set();
   const ok = value => ({$tag: 1, _0: value}), cid = 'sha256:' + 'a'.repeat(64);
   const declared = {evidence_schemas: [], evidence_capabilities: [], view_bodies: [],
     contracts: [], catalog: '{}', manifest_entry: '{}'};
   const environmentWire = JSON.stringify({version: 'actql-check-environment/0.1',
     connector_catalogs: [], schema_snapshots: [], connector_capabilities: [], mapping_contracts: []});
   const refusal = new Error('original Mapping backing refusal'), pendingClose = new Error('original Site cleanup pending');
-  let mappingPhase = false, retained, prepared, installedOptions, closePending = true, nativeRetire = 0;
+  let mappingPhase = false, retained, prepared, installedOptions, closePending = true, nativeRetire = 0, working = false;
+  const quantities = new Set();
+  const quantity = (kind, values) => {
+    assert.equal(working, true);assert.equal(nativeRetire, 0);
+    const value = Object.freeze({input, capacity, kind, values: Object.freeze(values)});
+    quantities.add(value);return value;
+  };
+  const sameQuantity = value => {
+    assert(quantities.has(value));assert.equal(value.input, input);assert.equal(value.capacity, capacity);
+    assert.equal(working, true);assert.equal(nativeRetire, 0);
+  };
+  const geometry = values => assert(values.every(value => typeof value === 'bigint' && value >= 0n));
   const moon = Object.fromEntries(['ReconcileInstalledSourceConstruction', 'CompleteInstalledSourceMaterial',
     'BorrowInstalledSourceMaterial', 'BorrowedInstalledSourceEnvironment', 'ReturnInstalledSourceMaterial',
     'AbortUncontinuedSourceMaterial', 'ChargeInstalledSourceIo', 'MarkInstalledSourceIoTransferUncertain',
@@ -329,15 +385,42 @@ async function constructionFixture(t, {refuseMapping = false, beforeAdapter, ope
   Object.assign(moon, {
     strategyRemoteManagedOutputEvidenceKind: () => 'explicit-unused-kind',
     clientProgramTakeHostInitializationSourceCapacity(value) {assert.equal(value, initial);return ok({_0: input, _1: unit});},
-    clientProgramContinueInstalledSourceMaterial(value, original) {assert.equal(value, unit);assert.equal(original, input);return ok(capacity);},
-    clientProgramInstalledSourceConstructionCapacity: (...values) => ok({values}),
-    clientProgramReserveInstalledSourceConstruction(value, original) {
-      assert.equal(value, capacity);assert.equal(original, input);events.push('reserve');
+    clientProgramContinueInstalledSourceMaterial(value, original) {
+      assert.equal(value, unit);assert.equal(original, input);assert.equal(working, false);working = true;return ok(capacity);
+    },
+    clientProgramInstalledSourceConstructionCapacity(...values) {
+      assert.strictEqual(this, moon);assert.equal(values.length, 6);geometry(values);return ok(quantity('material', values));
+    },
+    clientProgramComposeInstalledSourceConstructionCapacity(base, providers) {
+      assert.strictEqual(this, moon);sameQuantity(base);assert.equal(base.kind, 'material');
+      assert(providers.length > 0);providers.forEach(sameQuantity);
+      return ok(quantity('composed', [base, Object.freeze([...providers])]));
+    },
+    clientProgramInstalledSourceJsonConstructionCapacity(...values) {
+      assert.strictEqual(this, moon);assert.equal(values.length, 5);geometry(values);assert.equal(live.size, 1);
+      return ok(quantity('json', values));
+    },
+    clientProgramInstalledProfileConstructionCapacities(...values) {
+      assert.strictEqual(this, moon);assert.equal(values.length, 2);geometry(values);assert.equal(live.size, 0);
+      return ok([quantity('profile-parse', values), quantity('profile-construct', values)]);
+    },
+    clientProgramInstalledSourceRetainedConstructionCapacity(original) {
+      assert.strictEqual(this, moon);sameQuantity(original);
+      assert(['json', 'profile-construct'].includes(original.kind));assert.equal(live.size, 0);
+      return ok(quantity('retained', [original]));
+    },
+    clientProgramReserveInstalledSourceConstruction(value, original, quote) {
+      assert.equal(value, capacity);assert.equal(original, input);sameQuantity(quote);events.push('reserve');
       if (mappingPhase && refuseMapping) throw refusal;return ok();
     },
-    clientProgramBeginInstalledSourceIo: () => ok({}),
+    clientProgramBeginInstalledSourceIo(value, original, bytes) {
+      assert.equal(value, capacity);assert.equal(original, input);assert.equal(typeof bytes, 'bigint');
+      const operation = {};live.add(operation);return ok(operation);
+    },
+    clientProgramFinishInstalledSourceIoAfterCleanup(operation) {assert(live.delete(operation));return ok();},
     clientProgramRetireInstalledSourceMaterial(value, original) {
-      assert.equal(value, capacity);assert.equal(original, input);nativeRetire++;return ok(true);
+      assert.equal(value, capacity);assert.equal(original, input);assert.equal(live.size, 0);
+      assert.equal(nativeRetire, 0);nativeRetire++;return ok(true);
     },
     clientProgramRowSourceRestoreRelationDeclaration() {assert.equal(events.at(-1), 'reserve');events.push('declaration');return ok(declaration);},
     clientProgramRowSourceDeclarationJson(value) {assert.equal(value, declaration);return JSON.stringify(declared);},

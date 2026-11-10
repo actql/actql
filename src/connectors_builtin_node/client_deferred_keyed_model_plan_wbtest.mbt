@@ -190,3 +190,19 @@ test "README deferred keyed producer completes a Model plan without claiming liv
     is Err(Compilation(ForeignInferOwner)),
   )
 }
+
+///|
+// Inspect the original exported Array representation without a conversion.
+#warnings("-deprecated")
+extern "js" fn direct_source_coordinates_js_arrays(
+  coordinates : Array[Array[Int]],
+) -> Bool =
+  #|(coordinates) => Array.isArray(coordinates) && coordinates.length === 2 && coordinates.every((row, slot) => Array.isArray(row) && row.length === 4 && row[2] === slot && row.every(Number.isSafeInteger))
+
+///|
+test "Effect Direct source coordinate bridge emits real JavaScript arrays" {
+  let (prepared, _, _) = deferred_keyed_model_fixture()
+  let coordinates = client_program_effect_direct_source_coordinates(prepared).unwrap()
+  assert_true(direct_source_coordinates_js_arrays(coordinates))
+  assert_eq(coordinates, [[0, 0, 0, 0], [1, 0, 1, 1]])
+}

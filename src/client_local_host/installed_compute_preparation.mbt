@@ -37,8 +37,13 @@ fn prepare_installed_compute_preparation(
     @local.ManagedProvider,
   ],
   runtime_admission? : Bool = false,
+  physical_graph? : @strategy.CheckedDAG? = None,
+  whole_sources? : Array[
+    (@row_source_host.RowDeclaration, ClientInstalledWholeSourceCapacity)?,
+  ] = [],
+  whole_capacities? : Array[ClientInstalledWholeSourceCapacity] = [],
 ) -> Result[ClientInstalledComputePreparation, ClientInstalledManagedRunIssue] {
-  let graph = installed_managed_owner_graph(owner)
+  let graph = physical_graph.unwrap_or(installed_managed_owner_graph(owner))
   let (compute_sequences, capacity_plan, local_capacity) = match source_free {
     Some(original) =>
       (
@@ -57,11 +62,29 @@ fn prepare_installed_compute_preparation(
       for task in first..<sequences.length() {
         tail.push(sequences[task])
       }
-      let max_rows = match owner {
+      let mut max_rows = match owner {
         Pure(prepared) =>
           @publication_host.prepared_client_values_max_rows(prepared)
         Effect(_) =>
           @publication_host.client_standard_values_sequence_limits().max_rows
+      }
+      // The same Source policy also bounds its receiving Compute. Preserve
+      // that original input envelope before quoting and configuring this Plan.
+      for source in whole_capacities {
+        max_rows = Int::max(
+          max_rows,
+          @row_source_host.row_input_acquisition_max_rows(source.acquisition),
+        )
+      }
+      for source in whole_sources {
+        if source is Some((_, original)) {
+          max_rows = Int::max(
+            max_rows,
+            @row_source_host.row_input_acquisition_max_rows(
+              original.acquisition,
+            ),
+          )
+        }
       }
       let configuration = client_local_capacity_plan(
         tail,
@@ -128,16 +151,35 @@ fn prepare_installed_compute_preparation(
       actual_local_capacity.limits
     }
     None => {
-      if @strategy.graph_captured_prefix(graph) == 0 {
+      if !whole_sources.is_empty() && !whole_capacities.is_empty() {
+        return Err(ForeignOriginal)
+      }
+      let complete_inputs = if whole_sources.any(value => value is Some(_)) {
+        whole_sources.filter_map(value => value.map(pair => pair.1))
+      } else {
+        whole_capacities
+      }
+      if @strategy.graph_captured_prefix(graph) == 0 &&
+        complete_inputs.is_empty() {
         return Err(Unsupported)
       }
       guard multi_captured_capacity_limits_selected(
           graph,
-          captures.map(value => (value.retained_bytes, value.execution_bytes)),
+          if !complete_inputs.is_empty() {
+            complete_inputs.map(value => {
+              (
+                @execution.execution_capacity_retained_bytes(value.complete),
+                @execution.execution_capacity_execution_bytes(value.complete),
+              )
+            })
+          } else {
+            captures.map(value => (value.retained_bytes, value.execution_bytes))
+          },
           transport_bytes,
           transport_execution_bytes,
           sequences,
           local_capacity=Some(actual_local_capacity),
+          source_inputs=!complete_inputs.is_empty(),
         )
         is Some(limits) else {
         return Err(Unsupported)

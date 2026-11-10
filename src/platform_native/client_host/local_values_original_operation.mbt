@@ -2,6 +2,16 @@
 // Fixed Native Work routing, never a public callback/Allow factory. Its result
 // records retain their actual Read-domain aliases until Work/caller retirement;
 // a scope exchange does not free those aliases or acknowledge their domains.
+priv enum NativeLocalWorkSourceOriginal {
+  SourceFree
+  RelationFile(
+    @rows.RowDeclaration,
+    @planning.QueryRequirement,
+    @rows.RowAcquisition
+  )
+}
+
+///|
 priv struct NativeLocalValuesOriginalAccess {
   operation : NativeLocalStoreOperation
   host : NativeLocalHostConnection
@@ -54,6 +64,7 @@ fn[T] NativeLocalValuesOriginalAccess::in_original_read(
     T,
     NativeClientValuesWorkIssue,
   ],
+  source? : NativeLocalWorkSourceOriginal = SourceFree,
 ) -> Result[T, NativeClientValuesWorkIssue] {
   guard self.operation.receiver.domain is StoreBusinessDomain(execution) else {
     return Err(self.retain(OriginalOperation(None, StoreOperationUnavailable)))
@@ -111,44 +122,89 @@ fn[T] NativeLocalValuesOriginalAccess::in_original_read(
   // can fail. A committed claim remains one-shot even if that return is lost.
   let output : Ref[Result[T, NativeClientValuesWorkIssue]?] = Ref(None)
   let captured = self.operation.receiver.capture
-  let current = captured.with_current_adoption_material_in_original_read((
-    host,
-    material,
-    operations,
-  ) => {
-    if !physical_equal(host, self.host) {
-      return Err(CustodyLost)
-    }
-    let scope = @host.client_request_authority_scope_cid(self.request)
-    let direct_current = () => {
-      captured.original_submit_allowed(
+  let current = match source {
+    SourceFree =>
+      captured.with_current_adoption_material_in_original_read((
         host,
         material,
-        self.principal,
-        self.connection,
-        scope,
-      )
-      is Ok(true)
-    }
-    // Every closed caller below invokes this actual current port before its
-    // first Journal read or write. Start/claim retain their later checks after
-    // durable boundaries. Do not add an entry check immediately before that
-    // same observation, or retain an Allow between calls or SQL operations.
-    let result : Result[T, NativeClientValuesWorkIssue] = match
-      call(operations, direct_current) {
-      Err(Journal(AuthorizationDenied) | Start(AuthorizationDenied)) =>
-        Err(AuthorizationDenied)
-      result => result
-    }
-    output.val = Some(result)
-    // Preserve the existing combined Read/COMMIT-Unknown return rule, rather
-    // than hiding a committed/lost reply inside an otherwise successful value.
-    match result {
-      Err(Journal(TransactionUnknown) | Start(Journal(TransactionUnknown))) =>
-        Err(Journal(TransactionUnknown))
-      _ => Ok(())
-    }
-  })
+        operations,
+      ) => {
+        if !physical_equal(host, self.host) {
+          return Err(CustodyLost)
+        }
+        let scope = @host.client_request_authority_scope_cid(self.request)
+        let direct_current = () => {
+          captured.original_submit_allowed(
+            host,
+            material,
+            self.principal,
+            self.connection,
+            scope,
+          )
+          is Ok(true)
+        }
+
+        // Every closed caller below invokes this actual current port before its
+        // first Journal read or write. Start/claim retain their later checks after
+        // durable boundaries. Do not add an entry check immediately before that
+        // same observation, or retain an Allow between calls or SQL operations.
+        let result : Result[T, NativeClientValuesWorkIssue] = match
+          call(operations, direct_current) {
+          Err(Journal(AuthorizationDenied) | Start(AuthorizationDenied)) =>
+            Err(AuthorizationDenied)
+          result => result
+        }
+        output.val = Some(result)
+        // Preserve the existing combined Read/COMMIT-Unknown return rule, rather
+        // than hiding a committed/lost reply inside an otherwise successful value.
+        match result {
+          Err(Journal(TransactionUnknown) | Start(Journal(TransactionUnknown))) =>
+            Err(Journal(TransactionUnknown))
+          _ => Ok(())
+        }
+      })
+    RelationFile(_, _, _) =>
+      captured.with_current_adoption_material_in_original_read((
+        host,
+        material,
+        operations,
+      ) => {
+        if !physical_equal(host, self.host) {
+          return Err(CustodyLost)
+        }
+        let scope = @host.client_request_authority_scope_cid(self.request)
+        let direct_current = () => {
+          captured.original_submit_allowed(
+            host,
+            material,
+            self.principal,
+            self.connection,
+            scope,
+          )
+          is Ok(true) &&
+          self.source_allowed_in_original_read(source, captured, host, material)
+        }
+
+        // Every closed caller below invokes this actual current port before its
+        // first Journal read or write. Start/claim retain their later checks after
+        // durable boundaries. Do not add an entry check immediately before that
+        // same observation, or retain an Allow between calls or SQL operations.
+        let result : Result[T, NativeClientValuesWorkIssue] = match
+          call(operations, direct_current) {
+          Err(Journal(AuthorizationDenied) | Start(AuthorizationDenied)) =>
+            Err(AuthorizationDenied)
+          result => result
+        }
+        output.val = Some(result)
+        // Preserve the existing combined Read/COMMIT-Unknown return rule, rather
+        // than hiding a committed/lost reply inside an otherwise successful value.
+        match result {
+          Err(Journal(TransactionUnknown) | Start(Journal(TransactionUnknown))) =>
+            Err(Journal(TransactionUnknown))
+          _ => Ok(())
+        }
+      })
+  }
   let body : Result[T, NativeClientValuesWorkIssue] = match
     (current, output.val) {
     (Err(issue), value) =>
@@ -367,6 +423,7 @@ pub fn NativeLocalHostConnection::open_original_values_work(
   finalization_quantum : Int,
   max_finalization_rounds : Int,
   requirements? : @local.ClientLocalRequirements? = None,
+  managed? : @local.ClientInstalledManagedRun? = None,
 ) -> Result[NativeClientValuesWork, NativeClientValuesWorkFailure] {
   let receiver = operation.receiver
   guard receiver.domain is StoreBusinessDomain(execution) else {
@@ -431,6 +488,7 @@ pub fn NativeLocalHostConnection::open_original_values_work(
     ledger=Some(ledger),
     original_access=Some(access),
     requirements~,
+    managed~,
   )
   match result {
     Ok(work) => Ok(work)
@@ -491,4 +549,39 @@ fn values_unstarted_failure(
     original_access=access,
     requires_execution_scope=true,
   )
+}
+
+///|
+// The variant is closed and private. SourceFree keeps the original Values
+// decision unchanged. RelationFile derives the actual Source tuple anew from
+// retained checking originals, never from caller selection strings or Allow.
+fn NativeLocalValuesOriginalAccess::source_allowed_in_original_read(
+  self : NativeLocalValuesOriginalAccess,
+  source : NativeLocalWorkSourceOriginal,
+  captured : NativeLocalJournalCapture,
+  host : NativeLocalHostConnection,
+  material : @host.ClientLocalAdoptedHostMaterial[
+    @sqlite.Database,
+    NativeLocalAdoptionIssue,
+  ],
+) -> Bool {
+  match source {
+    SourceFree => true
+    RelationFile(declaration, requirement, acquisition) => {
+      guard @rows.check_row_acquisition_original(
+          acquisition, declaration, requirement,
+        )
+        is Ok(_) &&
+        @rows.row_source_target(declaration, requirement) is Ok((resource, _)) else {
+        return false
+      }
+      captured.operation_account(host, material, {
+        principal: self.principal,
+        connection: declaration.connector_id,
+        resource,
+        operation: "read",
+      })
+      is Ok(@authorization.Allow(_))
+    }
+  }
 }

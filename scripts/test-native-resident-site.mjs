@@ -34,7 +34,7 @@ import {openSqliteCoordinatorDispatchJournal} from
 import {createRemoteSiteCoordinator} from
   '../adapters/host-node/remote-site-coordinator.mjs';
 import {allowAllAuthorization} from '../adapters/host-node/authorization-fixture.mjs';
-import {observationAckLossProxy} from './fixtures/observation-ack-loss-proxy.mjs';
+import {cancellationAckMatches, observationAckLossProxy} from './fixtures/observation-ack-loss-proxy.mjs';
 import {prepareMaintenanceTestExecutable} from './fixtures/native-maintenance-executable.mjs';
 import {signRemoteRuntimeBundle} from
   '../adapters/site-node/remote-bundle-signature.mjs';
@@ -45,6 +45,19 @@ import {startHttpsDirectTransferReceiver} from
 import {openSqliteTransferJournal} from
   '../adapters/site-node/sqlite-transfer-journal.mjs';
 import {createLocalRetainedStore} from '../adapters/store-local/files.mjs';
+
+// Attribute existing preparation work separately from fixture and execution time.
+// These closed phase labels contain no paths, case values or private failure data.
+function timedResidentPreparation(phase, prepare) {
+  const started = performance.now(); let succeeded = false;
+  try { const original = prepare(); succeeded = true; return original; }
+  finally {
+    try {
+      console.error('ACTQL_NATIVE_CI_PHASE ' + JSON.stringify({scope: 'resident-preparation',
+        phase, milliseconds: Math.round(performance.now() - started), succeeded}));
+    } catch { /* Timing output cannot replace the original return or failure. */ }
+  }
+}
 
 // This harness's post-install watchdog owns only its fresh test process group.
 // Phase DATA is not a child stop, Store release, Site capacity or Host ACK.
@@ -95,6 +108,40 @@ function residentConsumerFailureSummary(lines) {
     else selected.set(key, {...value, count: 1});
   }
   return [...selected.values()];
+}
+
+// First exact scalar line from the existing scoped Read failure emitter only.
+// Decimal strings preserve uint64 values; this is no allocation or cleanup ACK.
+function residentAllocationFailureSummary(stderr) {
+  const names = ['requested', 'known', 'depth', 'active', 'current', 'occupied',
+    'peak', 'control', 'pages', 'page_bytes', 'status', 'extent_domain',
+    'managed_prepared', 'managed_preparing', 'managed_remaining', 'managed_maximum'];
+  const pattern = new RegExp('^actql-scoped-allocation-failed' + names.map(name =>
+    ' ' + name + '=' + (name === 'status' ? '(-?(?:0|[1-9][0-9]{0,9}))'
+      : '((?:0|[1-9][0-9]{0,19}))')).join('') + '\\r?$', 'gm');
+  for (const match of stderr.matchAll(pattern)) {
+    const values = match.slice(1);
+    if (values.some((value, index) => index === 10
+      ? BigInt(value) < -2147483648n || BigInt(value) > 2147483647n
+      : BigInt(value) > 18446744073709551615n)) continue;
+    return Object.fromEntries(names.map((name, index) => [name, values[index]]));
+  }
+  return null;
+}
+
+// Publish only the same closed observer DATA already printed by this original
+// failure. Raw scratch and errors remain private; publication cannot replace it.
+async function retainResidentConsumerFailureSummary(directory, lines, stderr = '') {
+  const observations = residentConsumerFailureSummary(lines);
+  console.error('ACTQL_NATIVE_RESIDENT_CONSUMER_FAILURE ' + JSON.stringify(observations));
+  try {
+    await writeFile(join(directory, 'resident-consumer-summary.json'),
+      JSON.stringify({version: 1, diagnosticOnly: true, observations,
+        allocationFailure: residentAllocationFailureSummary(stderr)}) + '\n',
+      {flag: 'wx', mode: 0o600});
+  } catch {
+    console.error('NativeResidentFailureSummaryUnavailable');
+  }
 }
 
 async function runResidentPhaseWatchdog(script, {
@@ -325,18 +372,18 @@ let acceptanceFailed = false;
 async function runAcceptance() {
 try {
   // Build the resident Site and the portable owners the test drives.
-  const httpLibrary = prepareNativeResidentHttpLibrary();
-  const executable = prepareNativeResidentSite(repository,
-    join(root, 'resident-producer'));
-  execFileSync(moon, ['build', '--target', 'js', '--release',
-    'src/connectors_builtin_node'], {cwd: repository, stdio: 'inherit'});
-  execFileSync(process.execPath, ['scripts/build-runtime-packages.mjs',
+  const httpLibrary = timedResidentPreparation('http-component', () => prepareNativeResidentHttpLibrary());
+  const executable = timedResidentPreparation('resident-command', () => prepareNativeResidentSite(repository,
+    join(root, 'resident-producer')));
+  timedResidentPreparation('portable-core-build', () => execFileSync(moon, ['build', '--target', 'js', '--release',
+    'src/connectors_builtin_node'], {cwd: repository, stdio: 'inherit'}));
+  timedResidentPreparation('portable-owner-build', () => execFileSync(process.execPath, ['scripts/build-runtime-packages.mjs',
     'coordinator-core', 'run-host-core', ...(retainedConsumerMode ? ['transfer-core'] : [])],
-  {cwd: repository, stdio: 'inherit'});
-  const bundleTool = prepareNativeRuntimeBundle(repository,
-    join(root, 'runtime-bundle-producer'));
-  const bundleLibraries = prepareNativeRuntimeBundleLibraries(repository,
-    join(root, 'runtime-bundle-components'));
+  {cwd: repository, stdio: 'inherit'}));
+  const bundleTool = timedResidentPreparation('bundle-command', () => prepareNativeRuntimeBundle(repository,
+    join(root, 'runtime-bundle-producer')));
+  const bundleLibraries = timedResidentPreparation('bundle-components', () => prepareNativeRuntimeBundleLibraries(repository,
+    join(root, 'runtime-bundle-components')));
   const moonModule = await import(pathToFileURL(join(repository,
     '_build/js/release/build/connectors_builtin_node/' +
     'connectors_builtin_node.js')).href);
@@ -1133,12 +1180,11 @@ try {
           key: await readFile(join(root, 'server.key')),
           cert: await readFile(join(root, 'server.crt')),
           ca: await readFile(join(root, 'ca.crt')),
-          loseAck: body => {
-            const value = JSON.parse(body);
-            return !lostReply && value.dispatch_request_cid === siteControl.identity(dispatch) &&
-              value.version === 'actql-remote-dispatch-status/0.1' &&
-              value.state[0] === (mode === 'running-lost-reply' ? 2 : 5);
-          }, allowDispatch: () => true, onAckLost: () => { lostReply = true; },
+          loseAck: body => cancellationAckMatches(body, {
+            dispatchRequestCid: siteControl.identity(dispatch),
+            executionState: mode === 'running-lost-reply' ? 2 : 5,
+            cancelOffers, lostReply,
+          }), allowDispatch: () => true, onAckLost: () => { lostReply = true; },
           transformReply: (_body, upstream) => {
             if (upstream.status === 200) {
               const envelope = upstream.body.toString('utf8');
@@ -1192,7 +1238,8 @@ try {
       }
       if (mode === 'lost-reply' || mode === 'running-lost-reply') {
         await waitFor(() => lostReply, 'cancellation observation ACK lost');
-        await waitFor(() => site.lines.some(line => line.kind === 'cancel-unreported'),
+        await waitFor(() => site.lines.some(line => line.kind === 'cancel-unreported' &&
+          line.request_cid === siteControl.identity(dispatch)),
           'Site reports unconfirmed cancellation reply');
       }
       if (mode === 'unseen-restart' || mode === 'lost-reply') {
@@ -3664,16 +3711,16 @@ try {
     console.error('Coordinator observation failures:', observationFailures);
   }
   if (currentSite !== undefined) {
+    const stderr = currentSite.stderr();
     if (retainedConsumerMode) {
       await writeFile(join(root, 'resident-failure-lines.json'), JSON.stringify(currentSite.lines),
         {mode: 0o600});
-      console.error('ACTQL_NATIVE_RESIDENT_CONSUMER_FAILURE ' +
-        JSON.stringify(residentConsumerFailureSummary(currentSite.lines)));
+      await retainResidentConsumerFailureSummary(root, currentSite.lines, stderr);
     }
     console.error('resident Site output:', JSON.stringify(retainedConsumerMode
       ? currentSite.lines.filter(line => line.kind !== 'accepted').slice(-30)
       : currentSite.lines));
-    console.error('resident Site stderr:', currentSite.stderr());
+    console.error('resident Site stderr:', stderr);
   }
   throw error;
 } finally {

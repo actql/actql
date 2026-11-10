@@ -480,10 +480,10 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
               assert.ok(route.capturePolls > 1);
               scheduled = true;
               if (route.cancelCapturePhase === 'root-check') cancellation.abort();
-              else if (route.cancelCapturePhase === 'rows-check') {
-                // Cancel while the original row checker is still pending;
+              else if (['context-check', 'rows-check'].includes(route.cancelCapturePhase)) {
+                // Cancel while the selected original checker is still pending;
                 // a timer can otherwise arrive after retained completion.
-                assert.equal(phase, 'rows-check');
+                assert.equal(phase, route.cancelCapturePhase);
                 cancellation.abort();
               }
               else setTimeout(() => cancellation.abort(), 0);

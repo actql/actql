@@ -276,9 +276,17 @@ pub fn start_client_composed_infer_input(
       @publication_host.client_infer_occurrence_preparation(occurrence),
       @execution.generated_sequence_owner(sequence),
     ) ||
-    @execution.generated_sequence_step_count(sequence) != step {
+    (
+      @execution.generated_sequence_step_count(sequence) != step &&
+      !(keyed is Some(_) &&
+      inputs.is_empty() &&
+      @execution.generated_sequence_step_count(sequence) > step)
+    ) {
     return Err(UnsupportedProgram)
   }
+  // The installed keyed root can borrow the retained full sequence. Only its
+  // checked JOIN-to-Model range is selected below, once; later occurrences
+  // never enter this executor. Other entries still require an exact prefix.
   for index in 0..<step {
     if @execution.generated_sequence_step_index_at(sequence, index) !=
       Some(index) {
@@ -307,6 +315,12 @@ pub fn start_client_composed_infer_input(
     )
     let originals_match = match composed {
       None => inputs.is_empty()
+      // The installed keyed root supplies no duplicate producer vector: this
+      // original lookup already retains both admitted inputs and the complete
+      // composed Source association. The same checked join-input handoff below
+      // verifies its live originals before execution. Explicit supplied vectors
+      // still need every original binding check; empty DATA alone grants none.
+      Some(_) if inputs.is_empty() => true
       Some(sources) => {
         guard inputs.length() == sources.length() + 1 &&
           @publication_host.client_composed_keyed_lookup_input_slot(

@@ -92,6 +92,50 @@ composer index. Neither a copied service nor a successful Promise is this ACK.
 
 ## Resources
 
+The configuration JSON entrance reserves buffer and decoded String overlap
+before concatenation and UTF8 decoding. The same decoded String then supplies
+the existing JSON wire geometry before its single native parse. Structural
+nodes and UTF16 units fund the existing parsed/checked/identity envelope;
+received bytes do not stand for that many value nodes. This observation is
+not a JSON validator and preserves native malformed-input refusal. Only the
+original successful file close permits removing its buffer workspace and
+reconciling retained output; failed or pending close keeps the original duty.
+
+That same wire scan also records a conservative single returned-tree extent:
+only structural punctuation outside Strings contributes nodes, while raw UTF8
+String payload bytes bound the decoded keys and values. Escapes contract and
+surrogate units are conservatively counted without normalization. The full
+preparse envelope remains unchanged. After the native parse and original FD
+close, the existing parent reserves that full overlap and observes currentness
+before selecting the returned extent. The shared MoonBit JSON recipe owns the
+parsed/checked/identity quantities and reuses the existing native provider fold;
+JS does not implement a separate failure-debt calculation. The original
+PreparationCapacity current fence also precedes numerical reconciliation in
+Core. This adds no serialization, parse, tree walk or frozen snapshot.
+Both JSON entrances retain the same original value and dependencies. Failed
+completion keeps the old full peak as debt on that material until retirement;
+it neither revives the failed parent nor invents an unclosed physical child.
+
+Source and Effect profile parsing, checked snapshots and Table inspection
+consume the shared MoonBit profile recipe on the same PreparationCapacity.
+The parse quote owns its decoded Strings; split/checked projections retain
+containers but borrow those original immutable leaves, with no duplicate text
+debit. The complete temporary parse/check envelope remains unchanged.
+Source retains its existing text-read-before-parse order. Effect retains native
+JSON parse before the original file close, including malformed-input and
+pending-close failure order. The original wire scan supplies quantities once;
+its bound constructor views reuse those facts for later native checks without
+reparsing or remeasuring the tree for accounting. Every invocation still crosses
+the original current fence and funds its full next peak before running.
+
+Table's existing descriptor/stack/Set inspection is explicitly funded as its
+own native workspace; it no longer borrows the completed JSON reader's old
+four-view debit. Its fixed scalar output supplies the unchanged Table
+snapshot/writer/frame inventory, now calculated in MoonBit. Failed inspections
+keep their original peak and cleanup duty; only actual synchronous completion
+selects the existing retained-only projection. No new Ledger, owner, FD
+registry, permission cache or cleanup acknowledgement is introduced.
+
 Parse geometry bounds retained parsed nodes/text and parse/freeze workspace
 before JSON parsing, including malformed prefixes. Document geometry includes
 canonical comparison, body spread, hashing, native-original index and temporary
@@ -105,6 +149,15 @@ DATA, rejects proxies/accessors/cycles/sparse arrays, and caps depth. These
 quantities describe JavaScript inventory only; native wire/model recipes consume
 the retained census and native wire original respectively. No physical backing
 or actual Resource budget acceptance is established by a numeric quote alone.
+
+The composer's selector, deduplication, member-CID, body-CID and final-wire
+canonical constructors are synchronous and sequential. The quantity keeps all
+their returned encodings and digest holders, including conservative copies
+that are consumed or discarded, plus the componentwise largest single private
+canonical/hash workspace. It does not sum ended sorting, recursive-text or hash
+buffers across these calls. Shallow merge containers and complete borrowed
+originals remain separately accounted. Every original validator, current fence,
+failure prefix and Resource refusal still runs before the corresponding work.
 
 ## Extension
 

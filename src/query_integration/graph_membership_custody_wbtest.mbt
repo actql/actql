@@ -192,3 +192,91 @@ test "current TRAIL rejects oversized identity arrays before allocation and admi
   assert_true(@local_bridge.cleanup_rows_to_graph(construction).unwrap())
   assert_true(@graphs.discard_completed(graph))
 }
+
+///|
+test "explicit traversal text budget charges repeated complete identities before projection" {
+  let nodes = keyed_node_source()
+  let edges = keyed_edge_source(
+    rows="[{\"key\":10,\"tenant\":\"a\",\"src\":1,\"dst\":1},{\"key\":11,\"tenant\":\"a\",\"src\":1,\"dst\":1},{\"key\":12,\"tenant\":\"a\",\"src\":1,\"dst\":1},{\"key\":13,\"tenant\":\"a\",\"src\":1,\"dst\":1}]",
+  )
+  let graph_owner = keyed_bridge_owner(nodes, edges)
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    prepared_sequence(graph_owner),
+    0,
+    keyed_bridge_inputs(graph_owner, nodes, edges),
+    carrier_graph_storage_limits(),
+    8192L,
+    1000,
+    () => true,
+  ).unwrap()
+  guard keyed_bridge_terminal(construction) is @local_bridge.Complete(graph, ..) else {
+    fail("original keyed Graph must complete")
+  }
+  let (owner, _) = keyed_path_owner(graph_owner, "walk")
+  let input = @graphs.prepare_producer_read(owner, 0, graph_owner, graph).unwrap()
+  // Four keyed self-loops yield sixteen two-hop paths. Each complete row
+  // contains seven identity occurrences, regardless of shared backing. The
+  // existing UTF-8 value measure must charge every occurrence before output.
+  for viewed in [false, true] {
+    for text_bytes in [10000, 500000] {
+      let limits : @execution.ValueLimits = {
+        max_work: 100000,
+        max_nodes: 10000,
+        max_text_bytes: text_bytes,
+        max_depth: 50,
+      }
+      let active = if viewed {
+        @local_sga.start_traverse_view(
+          @bounded.control(),
+          task_test_completion(owner),
+          prepared_sequence(owner),
+          0,
+          @graphs.producer_read_view(input).unwrap(),
+          20,
+          limits,
+          20000,
+          10000,
+          10000,
+          [],
+        ).unwrap()
+      } else {
+        @local_sga.start_traverse(
+          @bounded.control(),
+          task_test_completion(owner),
+          prepared_sequence(owner),
+          0,
+          input,
+          20,
+          limits,
+          20000,
+          10000,
+          10000,
+          [],
+        ).unwrap()
+      }
+      match finish_traverse(active) {
+        Ok(output) => {
+          assert_eq(text_bytes, 500000)
+          assert_eq(@execution.completed_row_count(output), 16)
+          assert_true(@local_sga.cleanup_traverse(active).unwrap())
+          assert_eq(@execution.completed_row_count(output), 16)
+        }
+        Err(issue) => {
+          assert_eq(text_bytes, 10000)
+          assert_eq(
+            issue,
+            @local_sga.TraversePathIssue(
+              @local_sga.TraversePathsOutput(@execution.CaptureLimit),
+            ),
+          )
+          assert_true(@local_sga.cleanup_traverse(active).unwrap())
+        }
+      }
+      assert_false(@local_sga.traverse_cleanup_pending(active))
+      assert_true(@graphs.producer_read_available(input))
+    }
+  }
+  assert_true(@local_bridge.cleanup_rows_to_graph(construction).unwrap())
+  assert_true(@graphs.discard_completed(graph))
+}

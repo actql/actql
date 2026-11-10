@@ -1,9 +1,15 @@
 ///|
+priv enum ClientInferSourceOriginal {
+  Query(@planning.QueryRequirement)
+  Whole(@acquisition.SourceAcquisition)
+}
+
+///|
 struct ClientInferSourceInput {
   name : String
   source : @query.CapturedInputSource
   identity : @query.CapturedSourceRelationIdentity
-  requirement : @planning.QueryRequirement
+  original : ClientInferSourceOriginal
   logical : @publication.RunEvidenceValue
   observation : @publication.ModelSourceObservation
 }
@@ -36,9 +42,71 @@ pub fn admit_client_infer_composed_sources(
   completed_at : String,
   keyed? : ClientKeyedLookupObservation? = None,
 ) -> Result[ClientInferComposedSources, ClientInferCallScopeIssue] {
+  admit_client_infer_composed_sources_owned(
+    occurrence,
+    captures,
+    identities,
+    requirements.map(requirement => {
+      ClientInferSourceOriginal::Query(requirement)
+    }),
+    logicals,
+    evidence,
+    authority_scope_cid,
+    started_at,
+    completed_at,
+    keyed~,
+  )
+}
+
+///|
+pub fn admit_client_infer_composed_whole_sources(
+  occurrence : ClientInferOccurrence,
+  captures : Array[@query.CapturedInputSource],
+  identities : Array[@query.CapturedSourceRelationIdentity],
+  originals : Array[@acquisition.SourceAcquisition],
+  logicals : Array[@publication.RunEvidenceValue],
+  evidence : Array[@publication.RunEvidenceValue],
+  authority_scope_cid : String,
+  started_at : String,
+  completed_at : String,
+  keyed? : ClientKeyedLookupObservation? = None,
+) -> Result[ClientInferComposedSources, ClientInferCallScopeIssue] {
+  admit_client_infer_composed_sources_owned(
+    occurrence,
+    captures,
+    identities,
+    originals.map(original => ClientInferSourceOriginal::Whole(original)),
+    logicals,
+    evidence,
+    authority_scope_cid,
+    started_at,
+    completed_at,
+    keyed~,
+  )
+}
+
+///|
+fn admit_client_infer_composed_sources_owned(
+  occurrence : ClientInferOccurrence,
+  captures : Array[@query.CapturedInputSource],
+  identities : Array[@query.CapturedSourceRelationIdentity],
+  originals : Array[ClientInferSourceOriginal],
+  logicals : Array[@publication.RunEvidenceValue],
+  evidence : Array[@publication.RunEvidenceValue],
+  authority_scope_cid : String,
+  started_at : String,
+  completed_at : String,
+  keyed? : ClientKeyedLookupObservation? = None,
+) -> Result[ClientInferComposedSources, ClientInferCallScopeIssue] {
   let owner = occurrence.owner
   let graph = owner.graph
-  let count = @strategy.graph_captured_prefix(graph)
+  let whole = originals.any(original => original is Whole(_))
+  let direct = select_client_direct_acquisition_occurrences(owner, 1000000).to_option()
+  let count = if whole {
+    direct.map(client_direct_acquisition_occurrence_count).unwrap_or(0)
+  } else {
+    @strategy.graph_captured_prefix(graph)
+  }
   // A single keyed Unit retains the acquired prefix and its Model suffix in
   // one checked owner. The lookup proves both Source selections; it is not an
   // imported Stage edge or permission to reuse an unrelated capture.
@@ -52,16 +120,25 @@ pub fn admit_client_infer_composed_sources(
   let direct_unit = count == 1 &&
     occurrence.task == 0 &&
     @strategy.graph_task_count(graph) == 1 &&
+    !whole &&
     client_infer_prefix_owner_for_input(owner, 0, occurrence.step, true)
     is Some(_)
-  let same_unit = keyed_unit || direct_unit
+  let whole_unit = whole &&
+    direct is Some(direct) &&
+    Array::makei(count, slot => slot).all(slot => {
+      client_direct_acquisition_occurrence_at(direct, slot).map(coordinate => {
+        coordinate.2 == occurrence.task
+      }) ==
+      Some(true)
+    })
+  let same_unit = keyed_unit || direct_unit || whole_unit
   if !client_infer_occurrence_matches(occurrence, owner) ||
     count < 1 ||
     count > 2 ||
     (!same_unit && occurrence.task < count) ||
     captures.length() != count ||
     identities.length() != count ||
-    requirements.length() != count ||
+    originals.length() != count ||
     logicals.length() != count ||
     evidence.length() != count {
     return Err(ForeignInput)
@@ -86,35 +163,87 @@ pub fn admit_client_infer_composed_sources(
   let inputs : Array[ClientInferSourceInput] = []
   let names : Array[String] = []
   for task in 0..<count {
-    let ports = incoming.filter(edge => edge.0 == task)
-    let name = if same_unit {
-      @planning.query_requirement_site(requirements[task]).1
-    } else {
-      guard ports.length() == 1 &&
-        @pipeline.input_at(pipeline, ports[0].1) is Some((name, _)) else {
-        return Err(ForeignInput)
+    let source_task = match originals[task] {
+      Query(_) => task
+      Whole(_) => {
+        guard direct is Some(direct) &&
+          client_direct_acquisition_occurrence_at(direct, task)
+          is Some((_, _, producer)) else {
+          return Err(ForeignInput)
+        }
+        producer
       }
-      name
+    }
+    let ports = incoming.filter(edge => edge.0 == source_task)
+    let (name, facts) = match originals[task] {
+      Query(requirement) => {
+        let name = if same_unit {
+          @planning.query_requirement_site(requirement).1
+        } else {
+          guard ports.length() == 1 &&
+            @pipeline.input_at(pipeline, ports[0].1) is Some((name, _)) else {
+            return Err(ForeignInput)
+          }
+          name
+        }
+        guard @planning.query_requirement_source_evidence_facts(requirement)
+          is Some(facts) else {
+          return Err(ForeignInput)
+        }
+        (name, facts)
+      }
+      Whole(original) => {
+        guard direct is Some(direct) &&
+          client_direct_acquisition_occurrence_at(direct, task)
+          is Some((stage, input, _)) &&
+          client_source_acquisition_matches_program(
+            owner, stage, input, original,
+          ) &&
+          @planning.source_acquisition_evidence_facts(original) is Some(facts) else {
+          return Err(ForeignInput)
+        }
+        let name = if whole_unit {
+          @acquisition.declaration(
+            @acquisition.mode_input(
+              @acquisition.source_acquisition_mode(original),
+            ),
+          ).input_name
+        } else {
+          guard source_task != occurrence.task &&
+            ports.length() == 1 &&
+            @pipeline.input_at(pipeline, ports[0].1) is Some((name, _)) else {
+            return Err(ForeignInput)
+          }
+          // An ordinary checked Stage edge names this exact producer. A keyed
+          // prefix adds its existing completed lookup proof to the same edge;
+          // the direct path retains its separate no-keyed-obligation check.
+          if keyed is Some(observed) &&
+            !client_composed_keyed_lookup_has_source_producer(
+              observed.lookup,
+              occurrence,
+              captures,
+              task,
+            ) {
+            return Err(ForeignInput)
+          }
+          name
+        }
+        (name, facts)
+      }
     }
     if names.contains(name) ||
-      !client_captured_task_tuple_matches(
+      !client_infer_source_tuple_matches(
         owner,
         captures[task],
         identities[task],
-        requirements[task],
+        originals[task],
         task,
       ) {
       return Err(ForeignInput)
     }
     names.push(name)
-    let requirement = requirements[task]
-    guard @planning.query_requirement_source_evidence_facts(requirement)
-      is Some(facts) else {
-      return Err(ForeignInput)
-    }
-    let (source_ref, source_contract) = @planning.query_requirement_source(
-      requirement,
-    )
+    let source_ref = facts.source_ref
+    let source_contract = facts.source_contract_cid
     if @publication.admit_completed_source_input_logical(
         logicals[task],
         @query.captured_source_relation_logical_cid(identities[task]),
@@ -146,7 +275,7 @@ pub fn admit_client_infer_composed_sources(
       name,
       source: captures[task],
       identity: identities[task],
-      requirement,
+      original: originals[task],
       logical: logicals[task],
       observation,
     })
@@ -185,11 +314,13 @@ pub fn admit_client_infer_composed_sources(
         join < occurrence.step &&
         (
           composed ||
-          client_keyed_observation_covers_sources(
-            owner,
-            acquisition,
-            inputs[0].requirement,
-          )
+          (match inputs[0].original {
+            Query(requirement) =>
+              client_keyed_observation_covers_sources(
+                owner, acquisition, requirement,
+              )
+            Whole(_) => false
+          })
         ) &&
         client_keyed_lookup_observation_wires(value) is Some(_) &&
         @planning.keyed_source_evidence_facts(acquisition.facts) is Some(facts) else {
@@ -243,7 +374,10 @@ fn client_infer_composed_source_origin(
     return None
   }
   let candidates = originals.filter(original => {
-    original.task < occurrence.task &&
+    (
+      original.task < occurrence.task ||
+      (original.task == occurrence.task && original.step < occurrence.step)
+    ) &&
     client_infer_composed_source_boundary(original) &&
     client_infer_composed_source_precedes(original, occurrence)
   })
@@ -258,6 +392,31 @@ fn client_infer_composed_source_boundary(
   occurrence : ClientInferOccurrence,
 ) -> Bool {
   let graph = occurrence.owner.graph
+  if select_client_direct_acquisition_occurrences(occurrence.owner, 1000000)
+    is Ok(direct) {
+    let count = client_direct_acquisition_occurrence_count(direct)
+    let same_task = count > 0 &&
+      Array::makei(count, slot => slot).all(slot => {
+        client_direct_acquisition_occurrence_at(direct, slot).map(coordinate => {
+          coordinate.2 == occurrence.task
+        }) ==
+        Some(true)
+      })
+    if same_task {
+      guard prepared_client_composed_infer_occurrences(occurrence.owner)
+        is Some(models) else {
+        return false
+      }
+      return !models.any(previous => {
+        previous.task == occurrence.task &&
+        previous.step < occurrence.step &&
+        client_infer_composed_source_precedes(previous, occurrence)
+      })
+    }
+    if count != @strategy.graph_captured_prefix(graph) {
+      return false
+    }
+  }
   let count = @strategy.graph_captured_prefix(graph)
   if count < 1 || count > 2 || occurrence.task < count {
     return false
@@ -329,18 +488,25 @@ pub fn client_infer_composed_sources_matches(
       Some(true)
     ) ||
     value.inputs.length() !=
-    @strategy.graph_captured_prefix(occurrence.owner.graph) ||
+    (if value.inputs.any(input => input.original is Whole(_)) {
+      select_client_direct_acquisition_occurrences(occurrence.owner, 1000000)
+      .to_option()
+      .map(client_direct_acquisition_occurrence_count)
+      .unwrap_or(0)
+    } else {
+      @strategy.graph_captured_prefix(occurrence.owner.graph)
+    }) ||
     value.inputs.is_empty() ||
     value.inputs.length() > 2 {
     return false
   }
   for task in 0..<value.inputs.length() {
     let input = value.inputs[task]
-    if !client_captured_task_tuple_matches(
+    if !client_infer_source_tuple_matches(
         occurrence.owner,
         input.source,
         input.identity,
-        input.requirement,
+        input.original,
         task,
       ) {
       return false
@@ -441,4 +607,39 @@ fn client_infer_composed_named_source_observations(
     inputs.push((name, observation))
   }
   inputs
+}
+
+///|
+fn client_infer_source_tuple_matches(
+  owner : PreparedClientProgram,
+  source : @query.CapturedInputSource,
+  identity : @query.CapturedSourceRelationIdentity,
+  original : ClientInferSourceOriginal,
+  slot : Int,
+) -> Bool {
+  match original {
+    Query(requirement) =>
+      client_captured_task_tuple_matches(
+        owner, source, identity, requirement, slot,
+      )
+    Whole(acquisition) => {
+      guard select_client_direct_acquisition_occurrences(owner, 1000000)
+        is Ok(direct) &&
+        client_direct_acquisition_occurrence_at(direct, slot)
+        is Some((stage, input, task)) &&
+        client_source_acquisition_matches_program(
+          owner, stage, input, acquisition,
+        ) &&
+        @strategy.graph_task_owner(owner.graph, task) is Some(preparation) else {
+        return false
+      }
+      @query.captured_source_matches(
+        source,
+        @checked.source_identity(@strategy.graph_program(owner.graph)),
+        preparation,
+      ) &&
+      @query.captured_source_matches_input_acquisition(source, acquisition) &&
+      @query.captured_source_relation_identity_matches_source(identity, source)
+    }
+  }
 }

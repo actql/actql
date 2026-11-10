@@ -7,10 +7,20 @@ import {httpsCredentialResponseWindowBytes, httpsCredentialResponseHeaderByteLim
   from '../site-node/https-credential-resource.mjs';
 import {effectLedgerImplementationBounds} from './effect-ledger-implementation-bounds.mjs';
 import {credentialInvocationBindingKeys} from '../host-common/credential-scope-fields.generated.mjs';
+import {ownResponseHeaderNames} from '../host-common/http-exchange.mjs';
 const NativePromise = Promise;
 const nativePromiseThen = Promise.prototype.then;
 const fail = code => {throw Object.assign(new Error(code), {code});};
 const text = value => typeof value === 'string' && value.length > 0;
+
+// Allocation bounds for the SAME already-owned Preview. A larger Catalog or
+// request-recovery wire does not enlarge this independent parser input. The
+// original decoder still receives its complete configured limits unchanged.
+export function effectRecoveryPreviewBounds(bytes, limits) {
+  const extent = Math.max(1, bytes);
+  return Object.freeze([Math.min(extent, limits.maxWireBytes),
+    Math.min(extent, limits.maxNodes), Math.min(extent, limits.maxDepth)]);
+}
 
 // Fixed installed implementation metadata, not caller tuning or a Resource
 // allowance. Capture the native method/receiver once; no fallback numeric table
@@ -227,10 +237,8 @@ export function prepareInstalledPhysicalWritePlanRecipe({moon, operation, inputL
     // Every JSON node/nesting level occupies an original UTF-8 byte. The
     // saved decoder's existing node/depth limits remain additional bounds;
     // no second parse or serialization is needed to quantify this constructor.
-    const bytes = Math.max(previewBytes, recoveryBytes);
     return checked(moon.clientProgramInstalledEffectCaptureRecipeExtentPrepare(captureOperation,
-      quote(controlEntryBytes, previewBytes, Math.min(bytes, inputLimits.preview.maxNodes),
-        Math.min(bytes, inputLimits.preview.maxDepth), recoveryBytes)));
+      quote(controlEntryBytes, ...effectRecoveryPreviewBounds(previewBytes, inputLimits.preview), recoveryBytes)));
   };
 
   const extent = (name, capacity, transfer, physical) => checked(
@@ -287,6 +295,7 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
     ...(Object.hasOwn(recipe, 'requestFinalization') ? ['requestFinalization'] : []),
     ...(Object.hasOwn(recipe, 'captureConstruction') ? ['captureConstruction'] : []),
     ...(Object.hasOwn(recipe, 'recoveryConstruction') ? ['recoveryConstruction'] : []),
+    ...(Object.hasOwn(recipe, 'footprintConstruction') ? ['footprintConstruction'] : []),
     ...(Object.hasOwn(recipe, 'credentialOperations') ? ['credentialOperations'] : []),
     ...(Object.hasOwn(recipe, 'ownedReadOperations') ? ['ownedReadOperations'] : []),
     ...(Object.hasOwn(recipe, 'physicalWrite') ? ['physicalWrite'] : [])]);
@@ -355,35 +364,57 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
   };
   const captureConstruction = memberConstruction('captureConstruction');
   const recoveryConstruction = memberConstruction('recoveryConstruction');
+  const footprintConstruction = memberConstruction('footprintConstruction');
+  if (footprintConstruction !== undefined && (footprintConstruction.inputExtent !== undefined ||
+      footprintConstruction.operationIndex === captureConstruction?.operationIndex ||
+      footprintConstruction.operationIndex === recoveryConstruction?.operationIndex ||
+      !memberOperations[footprintConstruction.operationIndex].operation.endsWith('.footprint'))) fail('InvalidInstalledEffectPlanRecipe');
   if (recoveryConstruction !== undefined && (captureConstruction === undefined ||
       recoveryConstruction.operationIndex === captureConstruction.operationIndex)) fail('InvalidInstalledEffectPlanRecipe');
   let credentialOperations;
   if (fields.credentialOperations !== undefined) {
     const values = fields.credentialOperations.value;
-    // Five existing row phases plus three Describe/three target phases.
-    if (!Array.isArray(values) || values.length < 1 || values.length > 11) fail('InvalidInstalledEffectPlanRecipe');
+    // Several independently authorized physical reads can belong to one
+    // existing phase. Every named slot still selects a DISTINCT original
+    // member/row operation below; the existing total-operation bound remains.
+    if (!Array.isArray(values) || values.length < 1 || values.length > maxOperations ||
+        values.length > memberOperations.length + rowOperations.length) fail('InvalidInstalledEffectPlanRecipe');
     const entries = own(values, ['length', ...Array.from({length: values.length}, (_, index) => String(index))]);
-    const phases = new Set(), indexes = new Set([
+    const phases = new Map(), slots = new Set(), indexes = new Set([
       ...(requestConstruction === undefined ? [] : [`row:${requestConstruction.operationIndex}`]),
       ...(requestFinalization === undefined ? [] : [`row:${requestFinalization.operationIndex}`]),
       ...(captureConstruction === undefined ? [] : [`member:${captureConstruction.operationIndex}`]),
       ...(recoveryConstruction === undefined ? [] : [`member:${recoveryConstruction.operationIndex}`]),
+      ...(footprintConstruction === undefined ? [] : [`member:${footprintConstruction.operationIndex}`]),
     ]);
     credentialOperations = Object.freeze(Array.from({length: values.length}, (_, index) => {
       const original = entries[String(index)].value;
       if (original === null || typeof original !== 'object' || nodeTypes.isProxy(original)) fail('InvalidInstalledEffectPlanRecipe');
       const entry = own(original, ['phase', 'operationIndex', 'maxRequestBytes', 'maxResponseBytes',
         ...(Object.hasOwn(original, 'perRow') ? ['perRow'] : []),
-        ...(Object.hasOwn(original, 'responseExtent') ? ['responseExtent'] : [])]);
+        ...(Object.hasOwn(original, 'slot') ? ['slot'] : []),
+        ...(Object.hasOwn(original, 'resource') ? ['resource'] : []),
+        ...(Object.hasOwn(original, 'responseExtent') ? ['responseExtent'] : []),
+        ...(Object.hasOwn(original, 'discardResponseProjection') ? ['discardResponseProjection'] : [])]);
       const phase = entry.phase.value, operationIndex = entry.operationIndex.value,
         perRow = entry.perRow === undefined ? true : entry.perRow.value,
         maxRequestBytes = entry.maxRequestBytes.value, maxResponseBytes = entry.maxResponseBytes.value;
+      if (typeof phase !== 'string') fail('InvalidInstalledEffectPlanRecipe');
       const describe = ['capture-describe', 'apply-describe', 'resume-describe'].includes(phase);
+      const target = ['capture-target', 'apply-target', 'resume-target'].includes(phase);
+      const slot = entry.slot?.value, resource = entry.resource?.value;
+      const named = slot !== undefined;
+      if (named && (!describe && !target || !text(slot) || !slot.isWellFormed() ||
+          /[\u0000-\u001f\u007f]/u.test(slot)) ||
+          resource !== undefined && (!named || !text(resource) || !resource.isWellFormed() ||
+            /[\u0000-\u001f\u007f]/u.test(resource))) fail('InvalidInstalledEffectPlanRecipe');
       const row = ['capture-check', 'apply-check', 'resume-check', 'write-check', 'write', 'apply-confirm', 'resume-confirm',
         'capture-target', 'apply-target', 'resume-target'].includes(phase);
       const selected = perRow ? rowOperations : memberOperations;
       const key = `${perRow ? 'row' : 'member'}:${operationIndex}`;
-      if (typeof perRow !== 'boolean' || (!describe && !row) || describe === perRow || phases.has(phase) ||
+      const phaseSlot = phase + '\0' + (slot ?? '');
+      if (typeof perRow !== 'boolean' || (!describe && !row) || describe === perRow ||
+          phases.has(phase) && (!named || phases.get(phase) !== 'named') || slots.has(phaseSlot) ||
           !Number.isSafeInteger(operationIndex) || operationIndex < 0 || operationIndex >= selected.length ||
           indexes.has(key) || ![maxRequestBytes,maxResponseBytes].every(value =>
             Number.isSafeInteger(value) && value > 0)) {
@@ -392,10 +423,16 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
       const responseExtent = entry.responseExtent?.value;
       if (responseExtent !== undefined && (typeof responseExtent !== 'function' || nodeTypes.isProxy(responseExtent) ||
           nodeTypes.isAsyncFunction(responseExtent))) fail('InvalidInstalledEffectPlanRecipe');
-      phases.add(phase); indexes.add(key);
+      const discardResponseProjection = entry.discardResponseProjection?.value;
+      if (discardResponseProjection !== undefined &&
+          (discardResponseProjection !== true || responseExtent === undefined)) fail('InvalidInstalledEffectPlanRecipe');
+      phases.set(phase, named ? 'named' : 'single'); slots.add(phaseSlot); indexes.add(key);
       return Object.freeze({phase, operationIndex, maxRequestBytes, maxResponseBytes,
         ...(entry.perRow === undefined ? {} : {perRow}),
-        ...(responseExtent === undefined ? {} : {responseExtent})});
+        ...(slot === undefined ? {} : {slot}),
+        ...(resource === undefined ? {} : {resource}),
+        ...(responseExtent === undefined ? {} : {responseExtent}),
+        ...(discardResponseProjection === undefined ? {} : {discardResponseProjection})});
     }));
     if (!phases.has('write')) fail('InvalidInstalledEffectPlanRecipe');
   }
@@ -434,8 +471,15 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
     ...(requestFinalization === undefined ? {} : {requestFinalization}),
     ...(captureConstruction === undefined ? {} : {captureConstruction}),
     ...(recoveryConstruction === undefined ? {} : {recoveryConstruction}),
+    ...(footprintConstruction === undefined ? {} : {footprintConstruction}),
     ...(credentialOperations === undefined ? {} : {credentialOperations}),
     ...(physicalWrite === undefined ? {} : {physicalWrite})});
+}
+
+// Select immutable recipe DATA only. A slot cannot issue a grant, make an
+// observation current, share another slot's token or enlarge its bounds.
+export function selectInstalledEffectCredentialOperation(recipe, phase, slot) {
+  return recipe?.credentialOperations?.find(entry => entry.phase === phase && entry.slot === slot);
 }
 
 export function prepareInstalledEffectManagedPlan({moon, facts, inputs, unit, members, recipeFor}) {
@@ -639,6 +683,7 @@ function prepareInstalledEffectConstructorChild({run, memberIndex, rowIndex,
   const complete = runtime?.clientProgramInstalledEffectOperationConstructionComplete;
   const completeOutput = runtime?.clientProgramInstalledEffectOperationConstructionCompleteOutput;
   const beginInput = runtime?.clientProgramInstalledEffectOperationInputBegin;
+  const growInput = runtime?.clientProgramInstalledEffectOperationInputGrow;
   if (originalInputExtent !== undefined && (typeof originalInputExtent !== 'function' || typeof beginInput !== 'function')) {
     fail('InstalledEffectOperationRuntimeUnavailable');
   }
@@ -690,7 +735,20 @@ function prepareInstalledEffectConstructorChild({run, memberIndex, rowIndex,
           checked(Reflect.apply(beginInput, runtime, [token, extent]));
         }
         originalRecord();
-        const value = construct();
+        // The constructor may observe its actual nested input under this
+        // first funded prelude. Only its SAME synchronous flight may grow the
+        // original selected token before entering the complete nested codec.
+        let constructing = true;
+        const grow = extent => {
+          if (!constructing || !preparing || state !== 'preparing' || typeof growInput !== 'function') {
+            fail('InstalledEffectOperationRuntimeUnavailable');
+          }
+          originalRecord();
+          checked(Reflect.apply(growInput, runtime, [token, extent]));
+          originalRecord();
+        };
+        let value;
+        try {value = construct(grow);} finally {constructing = false;}
         if (nodeTypes.isPromise(value)) {
           pendingConstructor = value;
           if (ownedChild) {
@@ -775,7 +833,8 @@ function prepareInstalledEffectConstructorChild({run, memberIndex, rowIndex,
 export function prepareInstalledEffectCredentialChild({run, memberIndex, rowIndex,
   operationIndex, operation, perRow = true, originalSite, originalAuthorization, useId, resource,
   purpose, runInvocationCid, dispatchRequestCid, maxRequestBytes, maxResponseBytes,
-  assertCurrent, observeCurrent, requestsRetired, invoke: originalInvoke, responseExtent: originalResponseExtent}) {
+  assertCurrent, observeCurrent, requestsRetired, invoke: originalInvoke, responseExtent: originalResponseExtent, responsePreparation: originalResponsePreparation,
+  discardResponseProjection = false}) {
   if (run === undefined || typeof perRow !== 'boolean' || ![originalInvoke, assertCurrent, observeCurrent, requestsRetired]
       .every(value => typeof value === 'function') || !text(useId) || !text(resource) ||
       !['read', 'target-read', 'effect'].includes(purpose) || !text(runInvocationCid) || !text(dispatchRequestCid) ||
@@ -789,10 +848,17 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
     return field.value;
   };
   const method = (value,name) => {const fn=own(value,name);if(typeof fn!=='function')fail('InstalledEffectCredentialOperationUnavailable');return fn;};
-  let site=originalSite,authorization=originalAuthorization,invoke=originalInvoke,responseExtent=originalResponseExtent;
+  let site=originalSite,authorization=originalAuthorization,invoke=originalInvoke,responseExtent=originalResponseExtent,
+    responsePreparation=originalResponsePreparation;
+  let prepareResponse,retireResponse;
+  if(responsePreparation!==undefined){
+    if(typeof responseExtent!=='function')fail('InvalidInstalledEffectResponsePreparation');
+    prepareResponse=method(responsePreparation,'prepare');retireResponse=method(responsePreparation,'retire');
+    if([prepareResponse,retireResponse].some(fn=>nodeTypes.isProxy(fn)||nodeTypes.isAsyncFunction(fn)))fail('InvalidInstalledEffectResponsePreparation');
+  }
   let bind=method(site,'bindRunAcquisition'),readPurpose=method(site,'authorizationPurpose'),
     referenceCurrent=method(site,'referenceCurrent'),physical=method(site,'callResource');
-  originalSite=originalAuthorization=originalInvoke=originalResponseExtent=undefined;
+  originalSite=originalAuthorization=originalInvoke=originalResponseExtent=originalResponsePreparation=undefined;
   const {runtime,value:parent,prepared,request,operationPlan:plan,readPlan}=run;
   const select=runtime?.clientProgramInstalledEffectManagedPlanOperation,
     isPhysical=runtime?.clientProgramInstalledEffectOperationExtentPhysical,
@@ -802,12 +868,20 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
     start=runtime?.clientProgramInstalledEffectOperationStart,
     beginInput=runtime?.clientProgramInstalledEffectOperationInputBegin,
     responseComplete=runtime?.clientProgramInstalledEffectOperationResponseProjectionComplete,
+    discardedResponseComplete=runtime?.clientProgramInstalledEffectOperationDiscardedResponseProjectionComplete,
+    responseHeadersRequire=runtime?.clientProgramInstalledEffectOperationResponseHeadersRequire,
     charge=runtime?.clientProgramInstalledEffectOperationCharge,
     retire=runtime?.clientProgramInstalledEffectOperationRetire;
   if (![readPlan,select,isPhysical,transfer,responseBackingFits,borrow,start,charge,retire].every(value=>typeof value==='function')) {
     fail('InstalledEffectOperationRuntimeUnavailable');
   }
   if(responseExtent!==undefined&&(typeof responseExtent!=='function'||typeof beginInput!=='function'||typeof responseComplete!=='function')){
+    fail('InstalledEffectOperationRuntimeUnavailable');
+  }
+  if (discardResponseProjection && (typeof discardedResponseComplete !== 'function' || responsePreparation === undefined)) {
+    fail('InstalledEffectOperationRuntimeUnavailable');
+  }
+  if (responseHeadersRequire !== undefined && typeof responseHeadersRequire !== 'function') {
     fail('InstalledEffectOperationRuntimeUnavailable');
   }
   const originalRecord=()=>{
@@ -892,11 +966,20 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
     if(body!==undefined&&typeof body!=='string')fail('UnsupportedInstalledEffectHttpRepresentation');
     const bytes=body===undefined?0:Buffer.byteLength(body);
     if(bytes>maxRequestBytes)fail('InstalledEffectRequestByteLimit');
+    // Freeze the same declared names through the existing exchange owner;
+    // Common checks only its original empty-selection constraint, no pricing.
+    const names=responseHeadersRequire===undefined?undefined:
+      ownResponseHeaderNames(fields.responseHeaders?.value);
+    if(names!==undefined) {
+      checked(Reflect.apply(responseHeadersRequire,runtime,[token,names,httpsCredentialResponseHeaderByteLimit]));
+      originalRecord();
+    }
     callStarted=true;
     chargeBytes(BigInt(bytes));
     // Preserve exact original method/path/headers/body/CID semantics. The
     // existing Resource still performs its own current/transport validation.
-    const result=Reflect.apply(physical,site,[{...options,operations:new Map([[operation,selected]]),
+    const result=Reflect.apply(physical,site,[{...options,operations:new Map([[operation,
+      names===undefined?selected:Object.freeze({...selected,responseHeaders:names})]]),
       observeResponseBytes:bytes=>{chargeBytes(BigInt(bytes));}}]);
     // Join the SAME call even if a provider omits its await or throws after
     // starting it. The envelope keeps rejection handled without discarding it;
@@ -907,7 +990,16 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
     const response = responseExtent === undefined ? result : Promise.resolve(result).then(value=>{
       originalRecord();
       if(!Buffer.isBuffer(value?.body)&&!(value?.body instanceof Uint8Array))fail('InvalidInstalledEffectResponseBody');
-      const extent=responseExtent(value.body.byteLength, value.body);
+      // This same physical child prepaid the fixed Source preflight before
+      // receiving bytes. The provider keeps its opaque cursor; only sizing
+      // scalars cross into the independently installed Common constructor.
+      const geometry=responsePreparation===undefined?undefined:
+        Reflect.apply(prepareResponse,responsePreparation,[value.body]);
+      if(geometry!==undefined&&(!Array.isArray(geometry)||nodeTypes.isProxy(geometry))){
+        retainFence(geometry);fail('InvalidInstalledEffectResponsePreparation');
+      }
+      originalRecord();
+      const extent=responseExtent(value.body.byteLength, value.body, geometry);
       originalRecord();
       checked(Reflect.apply(beginInput,runtime,[token,extent]));
       originalRecord();return value;
@@ -938,6 +1030,11 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
       }
     }
     if(preparing||accountingFailed||(acquisition!==undefined&&!bindingClosed)||requestsRetired()!==true)return false;
+    if(retireResponse!==undefined){
+      const returned=Reflect.apply(retireResponse,responsePreparation,[]);
+      if(returned!==undefined){retainFence(returned);fail('InvalidInstalledEffectResponsePreparation');}
+    }
+    responsePreparation=prepareResponse=retireResponse=undefined;
     invoke=responseExtent=authorization=acquisition=boundCredential=closeBinding=bind=readPurpose=referenceCurrent=physical=site=physicalFlight=undefined;
     if(checked(Reflect.apply(retire,runtime,[token,true]))!==true)return false;
     token=undefined;state='retired';return true;
@@ -965,6 +1062,7 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
         checked(Reflect.apply(start,runtime,[token]));
         const result=await invoke({authorization:Object.freeze({...authorization,useId}),credential:boundCredential,callResource});
         if(!callStarted)fail('InstalledEffectPhysicalOperationUnavailable');
+        if(discardResponseProjection && result!==undefined)fail('InvalidInstalledEffectDiscardedProjection');
         check();state='prepared';return result;
       }catch(error){primaryFailed=true;state='failed';throw error;}
       finally{
@@ -977,7 +1075,17 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
               // The SAME request flight and provider projection both settled.
               // Keep all body/output retention and physical cleanup pending;
               // this typed original cut returns only private parser workspace.
-              check();checked(Reflect.apply(responseComplete,runtime,[token]));check();
+              check();
+              if(discardResponseProjection){
+                // The actual Unit projector and request flight returned. Retire
+                // its SAME staged Reader then sever every projection callback
+                // before Core releases only the original Plan-bound material.
+                const returned=Reflect.apply(retireResponse,responsePreparation,[]);
+                if(returned!==undefined){retainFence(returned);fail('InvalidInstalledEffectResponsePreparation');}
+                responsePreparation=prepareResponse=retireResponse=undefined;
+                invoke=responseExtent=undefined;
+                check();checked(Reflect.apply(discardedResponseComplete,runtime,[token]));check();
+              }else {checked(Reflect.apply(responseComplete,runtime,[token]));check();}
             }catch(error){state='failed';throw error;}
           }
         }finally{preparing=false;}
@@ -993,12 +1101,19 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
 export function prepareInstalledEffectControlConstruction(run) {
   const {runtime, value: parent, prepared, request, operationPlan: plan, readPlan} = run ?? {};
   const begin = runtime?.clientProgramInstalledEffectOperationControlConstructionBegin;
+  const nativeBegin = runtime?.clientProgramInstalledEffectOperationNativeConstructionBegin;
   const complete = runtime?.clientProgramInstalledEffectOperationControlConstructionComplete;
+  const grantBegin = runtime?.clientProgramInstalledEffectOperationGrantConstructionBegin;
+  const requestProjectionBegin = runtime?.clientProgramInstalledEffectOperationRequestProjectionBegin;
+  const footprintBegin = runtime?.clientProgramInstalledEffectOperationFootprintConstructionBegin;
+  const ledgerOpenBegin = runtime?.clientProgramInstalledEffectOperationLedgerOpenBegin;
+  const ledgerFamilyBegin = runtime?.clientProgramInstalledEffectOperationLedgerFamilyBegin;
   const beginInput = runtime?.clientProgramInstalledEffectOperationControlInputBegin;
   const codecBegin = runtime?.clientProgramInstalledEffectOperationLedgerCodecBegin;
   const codecComplete = runtime?.clientProgramInstalledEffectOperationLedgerCodecComplete;
   const hasHostInput = runtime?.clientProgramInstalledEffectManagedPlanHasHostInput;
   const retainInventory = runtime?.clientProgramInstalledEffectCapturedInputInventoryRetain;
+  const shape = runtime?.clientProgramInstalledEffectManagedPlanShape;
   const parseJson = JSON.parse;
   const jsonReceiver = JSON;
   if (![begin, complete, readPlan].every(method => typeof method === 'function') || parent === undefined || plan === undefined) {
@@ -1029,11 +1144,27 @@ export function prepareInstalledEffectControlConstruction(run) {
     Reflect.apply(nativePromiseThen, joined, [settled, settled]);
     fail('InvalidInstalledEffectControlConstruction');
   };
-  const invoke = (receiver, method, args, inputWire) => {
+  const invoke = (receiver, method, args, inputWire, grant = false, requestProjection, footprintProjection, ledgerRoot, ledgerFamily, nativeConstruction) => {
     if (retired) fail('InstalledEffectControlConstructionRetired');
     if (failed) throw primary;
     if (working || run.selecting) fail('InstalledEffectControlConstructionPending');
     if (typeof method !== 'function' || !Array.isArray(args)) fail('InvalidInstalledEffectControlConstruction');
+    if (nativeConstruction !== undefined && (nativeConstruction === null || typeof nativeConstruction !== 'object' || nodeTypes.isProxy(nativeConstruction))) {
+      fail('InvalidInstalledEffectControlConstruction');
+    }
+    if (nativeConstruction !== undefined && typeof nativeBegin !== 'function') fail('InstalledEffectControlRuntimeUnavailable');
+    // Only the captured Core getter and its exact immutable Plan are metadata.
+    // Inspect DATA descriptors without executing argument getters or Proxy traps.
+    const metadata = nativeConstruction === undefined && ledgerFamily === undefined && ledgerRoot === undefined && !grant && requestProjection === undefined && footprintProjection === undefined && inputWire === undefined && receiver === runtime && method === shape &&
+      !nodeTypes.isProxy(method) && !nodeTypes.isProxy(args) &&
+      Object.getOwnPropertyDescriptor(args, 'length')?.value === 1 &&
+      Object.getOwnPropertyDescriptor(args, '0')?.value === plan;
+    const observePlan = () => {
+      const current = Reflect.apply(readPlan, runtime, [parent, prepared, request]);
+      retainInvalid(current);
+      if (checked(current) !== plan) fail('ForeignInstalledEffectManagedRun');
+      originalRecord();
+    };
     working = true;
     let invoking = false;
     // The existing parent retirement already refuses this latch. Retain it
@@ -1041,16 +1172,29 @@ export function prepareInstalledEffectControlConstruction(run) {
     run.selecting = true;
     try {
       originalRecord();
-      checked(Reflect.apply(inputWire === undefined ? begin : beginInput, runtime,
-        [parent, prepared, request, plan, ...(inputWire === undefined ? [] : [inputWire])]));
+      if (metadata) observePlan();
+      else checked(Reflect.apply(nativeConstruction !== undefined ? nativeBegin :
+        ledgerFamily !== undefined && ledgerFamilyBegin !== undefined ? ledgerFamilyBegin :
+        ledgerRoot !== undefined && ledgerOpenBegin !== undefined ? ledgerOpenBegin :
+        footprintProjection !== undefined && footprintBegin !== undefined ? footprintBegin :
+        requestProjection !== undefined && requestProjectionBegin !== undefined ? requestProjectionBegin :
+        grant && grantBegin !== undefined ? grantBegin :
+        inputWire === undefined ? begin : beginInput, runtime,
+        [parent, prepared, request, plan, ...(ledgerFamily !== undefined && ledgerFamilyBegin !== undefined
+          ? ledgerFamily : ledgerRoot !== undefined && ledgerOpenBegin !== undefined
+          ? [ledgerRoot] : footprintProjection !== undefined && footprintBegin !== undefined
+          ? footprintProjection : requestProjection !== undefined && requestProjectionBegin !== undefined
+            ? requestProjection : inputWire === undefined ? [] : [inputWire]),
+          ...(nativeConstruction === undefined ? [] : [nativeConstruction])]));
       originalRecord();
       invoking = true;
-      const value = Reflect.apply(method, receiver, args);
+      const value = Reflect.apply(method, receiver, metadata ? [plan] : args);
       invoking = false;
       if (failed) throw primary;
       retainInvalid(value);
       originalRecord();
-      checked(Reflect.apply(complete, runtime, [parent, prepared, request, plan]));
+      if (metadata) observePlan();
+      else checked(Reflect.apply(complete, runtime, [parent, prepared, request, plan]));
       originalRecord();
       return value;
     } catch (cause) {
@@ -1063,7 +1207,8 @@ export function prepareInstalledEffectControlConstruction(run) {
         // this frame. It grants neither a terminal Run nor physical cleanup.
         try {
           originalRecord();
-          checked(Reflect.apply(complete, runtime, [parent, prepared, request, plan]));
+          if (metadata) observePlan();
+          else checked(Reflect.apply(complete, runtime, [parent, prepared, request, plan]));
           originalRecord();
         } catch (completionFailure) {
           // Scratch retirement is a separate result. Preserve even a thrown
@@ -1086,10 +1231,50 @@ export function prepareInstalledEffectControlConstruction(run) {
       if (pending === undefined) run.selecting = false;
     }
   };
-  work = (receiver, method, args) => invoke(receiver, method, args);
+  // The installing constructor owns this optional opaque Common quote. No
+  // Host scalar pricing or provider-runtime opaque value crosses the seam.
+  work = (receiver, method, args, nativeConstruction) =>
+    invoke(receiver, method, args, undefined, false, undefined, undefined, undefined, undefined, nativeConstruction);
+  // Installing Site issuers alone use this fixed Core constructor family.
+  // Legacy runtimes keep the complete generic frame; JS quotes no quantities.
+  const grant = (receiver, method, args) => invoke(receiver, method, args, undefined, true);
+  // Core resolves these SAME Plan coordinates to its completed original
+  // request child. JavaScript selects no quantity or replacement capability.
+  // A legacy runtime still reserves the complete generic control frame.
+  const requestProjection = (member, operation, row, receiver, method, args) => {
+    if (![member, operation, row].every(value => Number.isSafeInteger(value) && value >= 0)) {
+      fail('InvalidInstalledEffectControlConstruction');
+    }
+    return invoke(receiver, method, args, undefined, false, [member, operation, row]);
+  };
+  // Fixed declared member footprint only; Core reads its original scratch.
+  const footprint = (member, operation, receiver, method, args) => {
+    if (![member, operation].every(value => Number.isSafeInteger(value) && value >= 0)) fail('InvalidInstalledEffectControlConstruction');
+    return invoke(receiver, method, args, undefined, false, undefined, [member, operation]);
+  };
+  // Exact original openEffectLedger caller; Common owns all quantity math.
+  const ledgerOpen = (root, receiver, method, args) => {
+    if (typeof root !== 'string' || !Array.isArray(args) || nodeTypes.isProxy(args) ||
+        Object.getOwnPropertyDescriptor(args, 'length')?.value !== 1) {
+      fail('InvalidInstalledEffectControlConstruction');
+    }
+    const options = Object.getOwnPropertyDescriptor(args, '0')?.value;
+    if (options === null || typeof options !== 'object' || nodeTypes.isProxy(options) ||
+        Object.getOwnPropertyDescriptor(options, 'root')?.value !== root) {
+      fail('InvalidInstalledEffectControlConstruction');
+    }
+    return invoke(receiver, method, args, undefined, false, undefined, undefined, root);
+  };
+  // Called only by the closed standard Ledger wrapper below. The frozen
+  // lengths/policy scalars are geometry, not permission or completed checks.
+  // All byte pricing, policy-family selection and coheld lifetimes are Core.
+  const ledgerFamily = (receiver, method, args, counts, entries, bytes, nodes, depth) =>
+    invoke(receiver, method, args, undefined, false, undefined, undefined,
+      undefined, [counts, entries, bytes, nodes, depth]);
   // Only the original Ledger invokes this nested synchronous seam. The outer
-  // control frame keeps its full Receipt/Grant/projector allowance and output
-  // holders; no Preview one-use identity or physical occurrence is reused.
+  // control frame retains every output. The selected Ledger family adds its
+  // coheld snapshot/array demand; generic frames retain the full family floor.
+  // No Preview one-use identity or physical occurrence is reused.
   const ledgerCodec = (receiver, method, args, wire, nodes = 512, depth = 16) => {
     if (retired) fail('InstalledEffectControlConstructionRetired');
     if (failed) throw primary;
@@ -1226,7 +1411,7 @@ export function prepareInstalledEffectControlConstruction(run) {
     retired = true;
     return true;
   };
-  return Object.freeze(Object.assign(work, {retire, parsePreview, ledgerCodec,
+  return Object.freeze(Object.assign(work, {retire, parsePreview, ledgerCodec, grant, requestProjection, footprint, ledgerOpen, ledgerFamily,
     retainInputs, retainRecoveredInputs}));
 }
 

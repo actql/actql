@@ -31,3 +31,24 @@ test('normal packed corpus retains union cases and narrow selection shares its d
   const end = driver.slice(driver.indexOf('if (plannerSelectionOnly || twoSourceExampleOnly ||'));
   assert.match(end, /process\.argv\.includes\('--graph-union-only'\).*?return;/su);
 });
+
+
+test('union shape refusals retain the typed invalid-input boundary', () => {
+  for (const [index, call] of [
+    [1, 'union_graphs(with: [])'],
+    [5, 'union_graphs(with: g, extra: true)'],
+  ]) {
+    const name = 'graph-union-refuse-' + index;
+    const matches = graphUnionSourceRefusals.filter(value => value.name === name);
+    assert.equal(matches.length, 1, name);
+    assert.ok(matches[0].text.includes(call), name);
+    assert.equal(matches[0].expectedCode, 'ClientProgramInvalidInput', name);
+  }
+  // Name/syntax and common compatibility controls keep their existing owner.
+  for (const index of [0, 2, 3, 4, 8]) {
+    assert.equal(graphUnionSourceRefusals.find(value =>
+      value.name === 'graph-union-refuse-' + index).expectedCode, undefined);
+  }
+  assert.equal(graphUnionSourceRefusals.find(value =>
+    value.name === 'graph-union-refuse-7').expectedCode, 'ClientProgramInvalidInput');
+});

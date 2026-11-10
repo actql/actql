@@ -404,3 +404,65 @@ test "shared Model startup retains the actual aggregate quantity configuration a
   assert_true(cleanup_model_execution(active).unwrap())
   assert_eq(@resources.quantity_usage(startup.ledger), usage)
 }
+
+///|
+// A component ceiling is not a request to enlarge its shared parent. Actual
+// operations must satisfy BOTH their original component and parent limits.
+test "shared Model startup preserves component ceilings while the parent bounds actual work" {
+  let rows = prepared_capacity_test_rows()
+  let limits = prepared_capacity_test_limits(10000L)
+  let parent_limits = {
+    ..limits,
+    ledger: { ..limits.ledger, attempts: 1, holdings: 1, },
+  }
+  let original = original_startup_test_grant(rows, parent_limits, None)
+  let sends = Ref(0)
+  let provider = install_model_provider("models/fixture", _ => {
+    sends.val += 1
+    Err(ProviderError)
+  }).unwrap()
+  let startup = {
+    ..original,
+    shared_mock: Some({
+      provider,
+      limits,
+      publication_retained: 0L,
+      publication_execution: 0L,
+      publication_planning: 0,
+    }),
+  }
+  let before = @resources.ledger_usage(startup.ledger)
+  let active = start_model_owned(
+    rows,
+    Provider(provider),
+    "sha256:" + "a".repeat(64),
+    limits,
+    None,
+    original_startup=Some(startup),
+  ).unwrap()
+  assert_true(physical_equal(active.state.ledger, startup.ledger))
+  assert_true(physical_equal(active.state.limits, limits))
+  assert_eq(@resources.ledger_limits(active.state.ledger), parent_limits.ledger)
+  assert_eq(@resources.ledger_usage(active.state.ledger), before)
+  let mut done = false
+  for _ in 0..<8 {
+    match advance_model_execution(active, 1).unwrap() {
+      Failed(Ledger(@resources.AttemptLimit), _, _) => {
+        done = true
+        break
+      }
+      Continue(_, _) => ()
+      _ => abort("expected original parent attempt refusal before provider")
+    }
+  }
+  assert_true(done)
+  assert_eq(sends.val, 0)
+  // Refusal happened while reserving, before any actual provider attempt.
+  // The original reserved slot stays charged until its owning cleanup.
+  assert_eq(@resources.ledger_usage(startup.ledger).attempts, 0)
+  assert_eq(@resources.ledger_usage(startup.ledger).reserved_attempts, 1)
+  assert_true(@resources.capacity_reservation_open(startup.capacity))
+  assert_true(cleanup_model_execution(active).unwrap())
+  assert_eq(@resources.ledger_usage(startup.ledger).attempts, 0)
+  assert_eq(@resources.ledger_usage(startup.ledger).reserved_attempts, 0)
+}

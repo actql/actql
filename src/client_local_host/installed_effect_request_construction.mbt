@@ -120,7 +120,7 @@ pub fn installed_json_effect_response_construction_capacity(
 // Cursor consumers and must keep its original larger retained inventory.
 // Only this closed contract caller can move the remaining parser/index/key
 // families to workspace. The complete old execution/refusal peak is unchanged.
-fn installed_effect_contract_response_construction_capacity(
+pub fn installed_effect_contract_response_construction_capacity(
   bytes : Int,
   nodes : Int,
   depth : Int,

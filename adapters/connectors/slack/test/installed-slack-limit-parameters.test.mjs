@@ -5,8 +5,8 @@ import {checked} from '../../../host-common/runtime-result.mjs';
 
 const parameterDeclarations='{"count":{"type":"int64"},"skip":{"type":"int64","nullable":true}}';
 const text=format=>format==='sql'
-  ?'SELECT id, name FROM slack.channels ORDER BY member_count DESC LIMIT @count OFFSET @skip'
-  :'FROM slack.channels |> ORDER BY member_count DESC |> LIMIT @count OFFSET @skip |> SELECT id, name';
+  ?'SELECT id, name FROM slack.channels WHERE TRUE ORDER BY member_count DESC LIMIT @count OFFSET @skip'
+  :'FROM slack.channels |> WHERE TRUE |> ORDER BY member_count DESC |> LIMIT @count OFFSET @skip |> SELECT id, name';
 
 test('public Slack SQL and Pipe retain int64 LIMIT and OFFSET Parameters through original Source acquisition',async t=>{
   for(const format of ['sql','aql']){

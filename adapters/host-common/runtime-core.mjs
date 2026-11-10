@@ -3316,20 +3316,26 @@ function publicationControl(moon) {
         const kind = checked(moon.clientProgramInstalledManagedPublicationSourceKind(
           publicationPreparation, preparedProgram));
         if (kind === 'whole-input') {
-          if (sources.length !== 1 || source.keyedObservation !== undefined) {
-            throw new TypeError('Invalid original publication invocation profile');
-          }
-          const {captured, sourceEvidence} = sources[0], capture = captured.capture;
-          const original = Object.getOwnPropertyDescriptor(capture, 'originalWholeInput');
-          if (original === undefined || !Object.hasOwn(original, 'value') || typeof original.value !== 'function') {
-            throw new TypeError('Invalid original whole Source capture');
-          }
-          const issued = compiledRunResult(moon.clientProgramIssueWholeSourcePublicationInvocation(
-            publicationPreparation, preparedProgram, value, token(definition),
-            Reflect.apply(original.value, capture, []), captured.identity,
-            evidenceToken(sourceEvidence), captured.logicalInput,
+          if (source.keyedObservation !== undefined) throw new TypeError('Invalid original publication invocation profile');
+          const originals = sources.map(({captured}) => {
+            if (captured.inputKind !== 'whole-input') throw new TypeError('Invalid original whole Source capture');
+            const capture = captured.capture;
+            const original = Object.getOwnPropertyDescriptor(capture, 'originalWholeInput');
+            if (original === undefined || !Object.hasOwn(original, 'value') || typeof original.value !== 'function') {
+              throw new TypeError('Invalid original whole Source capture');
+            }
+            return Reflect.apply(original.value, capture, []);
+          });
+          const originalArguments = sources.length === 1
+            ? [originals[0], sources[0].captured.identity, evidenceToken(sources[0].sourceEvidence), sources[0].captured.logicalInput]
+            : [originals, sources.map(({captured}) => captured.identity), sources.map(({sourceEvidence}) => evidenceToken(sourceEvidence)),
+              sources.map(({captured}) => captured.logicalInput)];
+          const issue = moon[sources.length === 1 ? 'clientProgramIssueWholeSourcePublicationInvocation'
+            : 'clientProgramIssueWholeSourcesPublicationInvocation'];
+          const issued = compiledRunResult(Reflect.apply(issue, moon, [
+            publicationPreparation, preparedProgram, value, token(definition), ...originalArguments,
             source.authorityScopeCid, dataPolicyCid, source.captureStartedAt, source.captureCompletedAt,
-            limits.maxWireBytes, limits.maxNodes, limits.maxDepth), 'RunHostTaskInvocationRejected');
+            limits.maxWireBytes, limits.maxNodes, limits.maxDepth]), 'RunHostTaskInvocationRejected');
           return Object.freeze({observation: inspectEvidence(runtimeField(issued, 0)),
             invocation: inspect(runtimeField(issued, 1), limits), owner: runtimeField(issued, 1)});
         }
@@ -3373,6 +3379,15 @@ function publicationControl(moon) {
     },
     admitComposedInferSources(occurrence, captures, sourceEvidence, authorityScopeCid,
       startedAt, completedAt, keyed) {
+      if (captures.some(value => value.inputKind === 'whole-input')) {
+        if (captures.some(value => value.inputKind !== 'whole-input' || value.wholeCapacity === undefined)) {
+          throw new TypeError('Unsupported mixed original Model Source inputs');
+        }
+        return checked(moon.clientProgramAdmitComposedInferWholeSources(occurrence,
+          captures.map(value => value.capture.source()), captures.map(value => value.identity),
+          captures.map(value => value.wholeCapacity), captures.map(value => value.logicalInput),
+          sourceEvidence.map(evidenceToken), authorityScopeCid, startedAt, completedAt, keyed));
+      }
       return checked(moon.clientProgramAdmitComposedInferSources(occurrence,
         captures.map(value => value.capture.source()), captures.map(value => value.identity),
         captures.map(value => value.requirement), captures.map(value => value.logicalInput),
@@ -3394,6 +3409,15 @@ function publicationControl(moon) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || compiled.kind !== 'infer') {
         throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      if (captures.some(value => value.inputKind === 'whole-input')) {
+        if (captures.some(value => value.inputKind !== 'whole-input' ||
+            typeof value.capture.originalCapturedInput !== 'function')) {
+          throw new TypeError('Unsupported mixed original keyed Source inputs');
+        }
+        return checked(moon.clientProgramStartInstalledOriginalComposedKeyedInputPrefix(managedRun,
+          scope, value, token(definition), graph, keyed,
+          captures.map(value => value.capture.originalCapturedInput())));
       }
       return checked(moon.clientProgramStartInstalledOriginalComposedKeyedPrefix(managedRun,
         scope, value, token(definition), graph, keyed,
@@ -3673,6 +3697,19 @@ function publicationControl(moon) {
       }
       return checked(Reflect.apply(prepare, moon, [parent, input, request, value, token(definition), compilation,
         declarations, query, evidence, transport, scratch, contracts, retainedOutput, queryTime, construct]));
+    },
+    prepareCheckedClientRequestModelWholeInputsComponentCaptureModule(parent, input, request, compiled, definition, compilation,
+      wholeSources, query, evidence, transport, scratch, contracts, retainedOutput, queryTime, construct) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      const prepare = moon.clientProgramPrepareRequestModelWholeInputsComponentCaptureModule;
+      if (typeof prepare !== 'function' || typeof construct !== 'function') {
+        throw new TypeError('Request Model component constructor unavailable');
+      }
+      return checked(Reflect.apply(prepare, moon, [parent, input, request, value, token(definition), compilation,
+        wholeSources, query, evidence, transport, scratch, contracts, retainedOutput, queryTime, construct]));
     },
     prepareCheckedClientRequestModelProviderCaptureModule(parent, input, request, compiled, definition, compilation,
       declaration, provider, query, evidence, transport, scratch, contracts, retainedOutput, queryTime) {

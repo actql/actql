@@ -110,6 +110,12 @@ typedef struct {
   char *close_error;
 } actql_native_filesystem_writer;
 
+/* The file-target adapter uses the existing Writer layout as a conservative
+ * upper for its simultaneously held lock. Keep that relation checked at the
+ * actual compiled Owner rather than inventing a native payload byte count. */
+_Static_assert(sizeof(actql_native_filesystem_lock) <=
+  sizeof(actql_native_filesystem_writer), "file target lock layout upper");
+
 typedef struct {
   ACTQL_FILESYSTEM_READ_CONTEXT_FIELDS
   actql_native_filesystem_root *root;
@@ -271,14 +277,6 @@ static char *actql_copy_text(moonbit_bytes_t bytes, int32_t length) {
   if (length > 0) memcpy(text, bytes, (size_t)length);
   text[length] = '\0';
   return text;
-}
-
-static moonbit_bytes_t actql_copy_bytes(const char *text) {
-  size_t length = text == NULL ? 0 : strlen(text);
-  if (length > INT32_MAX) length = INT32_MAX;
-  moonbit_bytes_t bytes = moonbit_make_bytes_raw((int32_t)length);
-  if (length > 0) memcpy(bytes, text, length);
-  return bytes;
 }
 
 static moonbit_bytes_t actql_copy_diagnostic(const char *text, int32_t ceiling) {
@@ -541,7 +539,8 @@ static int actql_close_writer_file(actql_native_filesystem_writer *writer) {
     writer->close_result = 1;
     return 0;
   }
-  actql_replace_errno_error(&writer->close_error, "close writer", errno);
+  actql_replace_bounded_errno_error(&writer->close_error,
+    writer->root == NULL ? 0 : writer->root->diagnostic_ceiling, "close writer", errno);
   return -1;
 }
 
@@ -562,7 +561,8 @@ static int actql_remove_owned_name(
       *present = false;
       return 0;
     }
-    actql_replace_errno_error(&writer->error, "inspect owned file", errno);
+    actql_replace_bounded_errno_error(&writer->error,
+      writer->root == NULL ? 0 : writer->root->diagnostic_ceiling, "inspect owned file", errno);
     return -1;
   }
   if (!S_ISREG(status.st_mode) || !actql_exact_generation(
@@ -571,11 +571,13 @@ static int actql_remove_owned_name(
         writer->inode,
         writer->written
       )) {
-    actql_replace_error(&writer->error, "owned file generation changed");
+    actql_replace_bounded_error(&writer->error,
+      writer->root == NULL ? 0 : writer->root->diagnostic_ceiling, "owned file generation changed");
     return 2;
   }
   if (unlinkat(writer->root->fd, name, 0) != 0) {
-    actql_replace_errno_error(&writer->error, "remove owned file", errno);
+    actql_replace_bounded_errno_error(&writer->error,
+      writer->root == NULL ? 0 : writer->root->diagnostic_ceiling, "remove owned file", errno);
     return -1;
   }
   *present = false;
@@ -1774,19 +1776,23 @@ void *actql_native_filesystem_create_writer(
   writer->max_bytes = max_bytes;
   writer->staging_name = actql_copy_text(name, length);
   if (root == NULL || root->fd < 0) {
-    actql_replace_error(&writer->error, "Store root is unavailable");
+    actql_replace_bounded_error(&writer->error,
+      writer->root == NULL ? 0 : writer->root->diagnostic_ceiling, "Store root is unavailable");
     return writer;
   }
   if (writer->staging_name == NULL) {
-    actql_replace_error(&writer->error, "staging name allocation failed");
+    actql_replace_bounded_error(&writer->error,
+      writer->root == NULL ? 0 : writer->root->diagnostic_ceiling, "staging name allocation failed");
     return writer;
   }
   if (!actql_valid_name(writer->staging_name, (size_t)length)) {
-    actql_replace_error(&writer->error, "invalid staging name");
+    actql_replace_bounded_error(&writer->error,
+      writer->root == NULL ? 0 : writer->root->diagnostic_ceiling, "invalid staging name");
     return writer;
   }
   if (max_bytes < 0) {
-    actql_replace_error(&writer->error, "negative writer limit");
+    actql_replace_bounded_error(&writer->error,
+      writer->root == NULL ? 0 : writer->root->diagnostic_ceiling, "negative writer limit");
     return writer;
   }
   writer->fd = openat(
@@ -1798,9 +1804,8 @@ void *actql_native_filesystem_create_writer(
   if (writer->fd < 0) {
     int create_error = errno;
     writer->create_conflict = create_error == EEXIST;
-    actql_replace_errno_error(
-      &writer->error,
-      "create staging file",
+    actql_replace_bounded_errno_error(&writer->error,
+      writer->root == NULL ? 0 : writer->root->diagnostic_ceiling, "create staging file",
       create_error
     );
     return writer;
@@ -1811,12 +1816,14 @@ void *actql_native_filesystem_create_writer(
     // Retain the actual rejected constructor and descriptor. Its caller must
     // acknowledge that original close; unknown metadata cannot authorize unlink.
     writer->preserve_names = true;
-    actql_replace_errno_error(&writer->error, "inspect staging file", stat_error);
+    actql_replace_bounded_errno_error(&writer->error,
+      writer->root == NULL ? 0 : writer->root->diagnostic_ceiling, "inspect staging file", stat_error);
     return writer;
   }
   if (!S_ISREG(status.st_mode) || status.st_size != 0) {
     writer->preserve_names = true;
-    actql_replace_error(&writer->error, "staging file is not empty and regular");
+    actql_replace_bounded_error(&writer->error,
+      writer->root == NULL ? 0 : writer->root->diagnostic_ceiling, "staging file is not empty and regular");
     return writer;
   }
   writer->device = (uint64_t)status.st_dev;
@@ -1842,8 +1849,9 @@ int32_t actql_native_filesystem_writer_conflict(
 moonbit_bytes_t actql_native_filesystem_writer_error(
   actql_native_filesystem_writer *writer
 ) {
-  return actql_copy_bytes(writer == NULL ? "invalid writer" :
-    writer->close_result < 0 ? writer->close_error : writer->error);
+  return actql_copy_diagnostic(writer == NULL ? "invalid writer" :
+    writer->close_result < 0 ? writer->close_error : writer->error,
+    writer == NULL || writer->root == NULL ? 0 : writer->root->diagnostic_ceiling);
 }
 
 int32_t actql_native_filesystem_writer_append(
@@ -1860,7 +1868,8 @@ int32_t actql_native_filesystem_writer_append(
       (int64_t)length > writer->max_bytes - writer->written) {
     return 1;
   }
-  actql_replace_error(&writer->error, NULL);
+  actql_replace_bounded_error(&writer->error,
+    writer->root == NULL ? 0 : writer->root->diagnostic_ceiling, NULL);
   int32_t offset = 0;
   while (offset < length) {
     ssize_t count = write(
@@ -1873,7 +1882,8 @@ int32_t actql_native_filesystem_writer_append(
       int write_error = count == 0 ? EIO : errno;
       writer->written += offset;
       writer->cleanup_requested = true;
-      actql_replace_errno_error(&writer->error, "write staging file", write_error);
+      actql_replace_bounded_errno_error(&writer->error,
+        writer->root == NULL ? 0 : writer->root->diagnostic_ceiling, "write staging file", write_error);
       return -1;
     }
     offset += (int32_t)count;
@@ -1894,12 +1904,14 @@ int32_t actql_native_filesystem_writer_seal(
   }
   char *final_name = actql_copy_text(name, length);
   if (final_name == NULL) {
-    actql_replace_error(&writer->error, "final name allocation failed");
+    actql_replace_bounded_error(&writer->error,
+      writer->root == NULL ? 0 : writer->root->diagnostic_ceiling, "final name allocation failed");
     return -1;
   }
   if (!actql_valid_file_component(final_name, (size_t)length)) {
     free(final_name);
-    actql_replace_error(&writer->error, "invalid final name");
+    actql_replace_bounded_error(&writer->error,
+      writer->root == NULL ? 0 : writer->root->diagnostic_ceiling, "invalid final name");
     return -1;
   }
   if (writer->final_name == NULL) {
@@ -1909,24 +1921,28 @@ int32_t actql_native_filesystem_writer_seal(
     free(final_name);
     if (!matches) return 3;
   }
-  actql_replace_error(&writer->error, NULL);
+  actql_replace_bounded_error(&writer->error,
+    writer->root == NULL ? 0 : writer->root->diagnostic_ceiling, NULL);
   if (writer->sealed) return 0;
 
   if (writer->fd >= 0) {
     if (fsync(writer->fd) != 0) {
-      actql_replace_errno_error(&writer->error, "sync staging file", errno);
+      actql_replace_bounded_errno_error(&writer->error,
+        writer->root == NULL ? 0 : writer->root->diagnostic_ceiling, "sync staging file", errno);
       return -1;
     }
     struct stat status;
     if (fstat(writer->fd, &status) != 0) {
-      actql_replace_errno_error(&writer->error, "inspect staging writer", errno);
+      actql_replace_bounded_errno_error(&writer->error,
+        writer->root == NULL ? 0 : writer->root->diagnostic_ceiling, "inspect staging writer", errno);
       return -1;
     }
     if (!S_ISREG(status.st_mode) || status.st_size < 0 ||
         (uint64_t)status.st_dev != writer->device ||
         (uint64_t)status.st_ino != writer->inode ||
         (int64_t)status.st_size != writer->written) {
-      actql_replace_error(&writer->error, "staging writer generation changed");
+      actql_replace_bounded_error(&writer->error,
+        writer->root == NULL ? 0 : writer->root->diagnostic_ceiling, "staging writer generation changed");
       return 2;
     }
     if (actql_close_writer_file(writer) != 0) return -1;
@@ -1934,7 +1950,8 @@ int32_t actql_native_filesystem_writer_seal(
 
   if (!writer->final_present) {
     if (!writer->staging_present) {
-      actql_replace_error(&writer->error, "staging file is unavailable");
+      actql_replace_bounded_error(&writer->error,
+        writer->root == NULL ? 0 : writer->root->diagnostic_ceiling, "staging file is unavailable");
       return 2;
     }
     if (linkat(
@@ -1945,7 +1962,8 @@ int32_t actql_native_filesystem_writer_seal(
           0
         ) != 0) {
       if (errno == EEXIST) return 1;
-      actql_replace_errno_error(&writer->error, "link committed file", errno);
+      actql_replace_bounded_errno_error(&writer->error,
+        writer->root == NULL ? 0 : writer->root->diagnostic_ceiling, "link committed file", errno);
       return -1;
     }
     writer->final_present = true;
@@ -1958,7 +1976,8 @@ int32_t actql_native_filesystem_writer_seal(
         &final_status,
         AT_SYMLINK_NOFOLLOW
       ) != 0) {
-    actql_replace_errno_error(&writer->error, "inspect committed file", errno);
+    actql_replace_bounded_errno_error(&writer->error,
+      writer->root == NULL ? 0 : writer->root->diagnostic_ceiling, "inspect committed file", errno);
     return -1;
   }
   if (!S_ISREG(final_status.st_mode) || !actql_exact_generation(
@@ -1967,7 +1986,8 @@ int32_t actql_native_filesystem_writer_seal(
         writer->inode,
         writer->written
       )) {
-    actql_replace_error(&writer->error, "committed file generation changed");
+    actql_replace_bounded_error(&writer->error,
+      writer->root == NULL ? 0 : writer->root->diagnostic_ceiling, "committed file generation changed");
     return 2;
   }
 
@@ -1978,7 +1998,8 @@ int32_t actql_native_filesystem_writer_seal(
   );
   if (remove_result != 0) return remove_result;
   if (actql_sync_root(writer->root) != 0) {
-    actql_replace_errno_error(&writer->error, "sync Store root", errno);
+    actql_replace_bounded_errno_error(&writer->error,
+      writer->root == NULL ? 0 : writer->root->diagnostic_ceiling, "sync Store root", errno);
     return -1;
   }
   if (fstatat(
@@ -1987,7 +2008,8 @@ int32_t actql_native_filesystem_writer_seal(
         &final_status,
         AT_SYMLINK_NOFOLLOW
       ) != 0) {
-    actql_replace_errno_error(&writer->error, "recheck committed file", errno);
+    actql_replace_bounded_errno_error(&writer->error,
+      writer->root == NULL ? 0 : writer->root->diagnostic_ceiling, "recheck committed file", errno);
     return -1;
   }
   if (!S_ISREG(final_status.st_mode) || !actql_exact_generation(
@@ -1996,9 +2018,121 @@ int32_t actql_native_filesystem_writer_seal(
         writer->inode,
         writer->written
       )) {
-    actql_replace_error(&writer->error, "committed generation was not retained");
+    actql_replace_bounded_error(&writer->error,
+      writer->root == NULL ? 0 : writer->root->diagnostic_ceiling, "committed generation was not retained");
     return 2;
   }
+  writer->sealed = true;
+  return 0;
+}
+
+static bool actql_observed_replacement_lock_matches(
+  actql_native_filesystem_root *root, const char *target,
+  actql_native_filesystem_lock *lock
+) {
+  if (lock == NULL || lock->root != root || !lock->ready ||
+      lock->fd < 0 || lock->close_result != 0) return false;
+  static const char suffix[] = ".actql-write.lock";
+  size_t length = strlen(target);
+  char *name = malloc(length + sizeof(suffix));
+  if (name == NULL) return false;
+  memcpy(name, target, length);
+  memcpy(name + length, suffix, sizeof(suffix));
+  struct stat held, named;
+  bool matches = fstat(lock->fd, &held) == 0 && S_ISREG(held.st_mode) &&
+    held.st_nlink == 1 && held.st_uid == geteuid() &&
+    (held.st_mode & 07777) == 0600 &&
+    actql_stat_regular_at(root, name, &named) &&
+    actql_observed_file_matches(&held, &named);
+  free(name);
+  return matches;
+}
+
+/* Physical replacement for the existing Mock file target. The same original
+ * observation and same-Root lock are required; neither is business authority.
+ * The caller owns the durable dispatch claim. There is no retry/rollback of a
+ * rename, and cleanup must never unlink a target after it has been replaced. */
+int32_t actql_native_filesystem_replace_observed_file(
+  actql_native_filesystem_writer *writer,
+  actql_native_filesystem_root *root,
+  moonbit_bytes_t name,
+  int32_t length,
+  actql_native_observed_file_stat *original,
+  actql_native_filesystem_lock *lock
+) {
+  if (writer == NULL || !writer->ready || writer->fd < 0 ||
+      writer->close_result < 0 || writer->cleanup_requested || writer->cancelled ||
+      writer->sealed || writer->final_name != NULL || !writer->staging_present)
+    return 3;
+  if (writer->root != root || lock == NULL || lock->root != root ||
+      !lock->ready || lock->fd < 0 || lock->close_result != 0 ||
+      !actql_observed_file_root_matches(root, original)) return 2;
+  char *text = actql_copy_text(name, length);
+  if (text == NULL || !actql_valid_file_component(text, (size_t)length) ||
+      strcmp(text, writer->staging_name) == 0) {
+    free(text);
+    return 2;
+  }
+  struct stat target, staging, named_staging;
+  if (!actql_stat_regular_at(root, text, &target) ||
+      !actql_observed_file_matches(&original->original, &target) ||
+      target.st_nlink != 1 || target.st_uid != geteuid() ||
+      (target.st_mode & S_IWUSR) == 0 ||
+      !actql_observed_replacement_lock_matches(root, text, lock) ||
+      fstat(writer->fd, &staging) != 0 || !S_ISREG(staging.st_mode) ||
+      staging.st_nlink != 1 || !actql_exact_generation(
+        &staging, writer->device, writer->inode, writer->written) ||
+      !actql_stat_regular_at(root, writer->staging_name, &named_staging) ||
+      !actql_exact_generation(
+        &named_staging, writer->device, writer->inode, writer->written)) {
+    free(text);
+    return 2;
+  }
+  /* Latch before the first mutation of the original writer. A failure from
+   * this point is retained by this writer, never retried as another write. */
+  writer->cleanup_requested = true;
+  if (fchmod(writer->fd, target.st_mode & 0777) != 0 || fsync(writer->fd) != 0) {
+    actql_replace_bounded_errno_error(&writer->error, root->diagnostic_ceiling,
+      "prepare observed file replacement", errno);
+    free(text);
+    return -1;
+  }
+  if (actql_close_writer_file(writer) != 0) {
+    free(text);
+    return -1;
+  }
+  /* The lock excludes cooperating writers. Recheck the full named target
+   * immediately before rename, including timestamps and ordinary mode. */
+  if (!actql_stat_regular_at(root, text, &target) ||
+      !actql_observed_file_matches(&original->original, &target) ||
+      !actql_observed_replacement_lock_matches(root, text, lock) ||
+      !actql_stat_regular_at(root, writer->staging_name, &named_staging) ||
+      !actql_exact_generation(
+        &named_staging, writer->device, writer->inode, writer->written)) {
+    free(text);
+    return 2;
+  }
+  actql_native_acceptance_mutation(6); /* actual syscall attempt, not an ACK */
+  if (renameat(root->fd, writer->staging_name, root->fd, text) != 0) {
+    actql_replace_bounded_errno_error(&writer->error, root->diagnostic_ceiling,
+      "replace observed file", errno);
+    free(text);
+    return -1;
+  }
+  actql_native_acceptance_mutation(7); /* rename succeeded; fsync can still fail */
+  /* The public target is now business state, not removable staging custody.
+   * Even a failed directory sync must leave these facts recorded first. */
+  writer->staging_present = false;
+  if (actql_sync_root(root) != 0) {
+    actql_replace_bounded_errno_error(&writer->error, root->diagnostic_ceiling,
+      "sync observed file replacement", errno);
+    free(text);
+    return -1;
+  }
+  bool matches = actql_stat_regular_at(root, text, &target) &&
+    actql_exact_generation(&target, writer->device, writer->inode, writer->written);
+  free(text);
+  if (!matches) return 2;
   writer->sealed = true;
   return 0;
 }
@@ -2022,16 +2156,19 @@ int32_t actql_native_filesystem_writer_adopt_name(
   }
   char *adopted = actql_copy_text(name, length);
   if (adopted == NULL) {
-    actql_replace_error(&writer->error, "adopted name allocation failed");
+    actql_replace_bounded_error(&writer->error,
+      writer->root == NULL ? 0 : writer->root->diagnostic_ceiling, "adopted name allocation failed");
     return -1;
   }
   if (!actql_valid_name(adopted, (size_t)length) ||
       (target == writer->root && strcmp(adopted, writer->staging_name) == 0)) {
     free(adopted);
-    actql_replace_error(&writer->error, "invalid adopted name");
+    actql_replace_bounded_error(&writer->error,
+      writer->root == NULL ? 0 : writer->root->diagnostic_ceiling, "invalid adopted name");
     return -1;
   }
-  actql_replace_error(&writer->error, NULL);
+  actql_replace_bounded_error(&writer->error,
+    writer->root == NULL ? 0 : writer->root->diagnostic_ceiling, NULL);
   if (linkat(
         writer->root->fd,
         writer->staging_name,
@@ -2042,7 +2179,8 @@ int32_t actql_native_filesystem_writer_adopt_name(
     int link_error = errno;
     free(adopted);
     if (link_error == EEXIST) return 1;
-    actql_replace_errno_error(&writer->error, "link adopted name", link_error);
+    actql_replace_bounded_errno_error(&writer->error,
+      writer->root == NULL ? 0 : writer->root->diagnostic_ceiling, "link adopted name", link_error);
     return -1;
   }
   struct stat status;
@@ -2050,7 +2188,8 @@ int32_t actql_native_filesystem_writer_adopt_name(
     int stat_error = errno;
     unlinkat(target->fd, adopted, 0);
     free(adopted);
-    actql_replace_errno_error(&writer->error, "inspect adopted name", stat_error);
+    actql_replace_bounded_errno_error(&writer->error,
+      writer->root == NULL ? 0 : writer->root->diagnostic_ceiling, "inspect adopted name", stat_error);
     return -1;
   }
   if (!S_ISREG(status.st_mode) || !actql_exact_generation(
@@ -2061,7 +2200,8 @@ int32_t actql_native_filesystem_writer_adopt_name(
       )) {
     unlinkat(target->fd, adopted, 0);
     free(adopted);
-    actql_replace_error(&writer->error, "adopted name generation changed");
+    actql_replace_bounded_error(&writer->error,
+      writer->root == NULL ? 0 : writer->root->diagnostic_ceiling, "adopted name generation changed");
     return 2;
   }
   // The private name goes from its own root; from here the writer's names
@@ -2087,14 +2227,16 @@ int32_t actql_native_filesystem_writer_adopt_name(
     moonbit_incref(target);
     writer->root = target;
     if (actql_sync_root(origin) != 0) {
-      actql_replace_errno_error(&writer->error, "sync allocation root", errno);
+      actql_replace_bounded_errno_error(&writer->error,
+        writer->root == NULL ? 0 : writer->root->diagnostic_ceiling, "sync allocation root", errno);
       moonbit_decref(origin);
       return -1;
     }
     moonbit_decref(origin);
   }
   if (actql_sync_root(writer->root) != 0) {
-    actql_replace_errno_error(&writer->error, "sync Store root", errno);
+    actql_replace_bounded_errno_error(&writer->error,
+      writer->root == NULL ? 0 : writer->root->diagnostic_ceiling, "sync Store root", errno);
     return -1;
   }
   return 0;
@@ -2111,11 +2253,13 @@ int32_t actql_native_filesystem_writer_close_retaining_files(
   if (actql_close_writer_file(writer) != 0) return -1;
   if (writer->close_result != 0 &&
       (writer->root == NULL || writer->root->fd < 0)) {
-    actql_replace_error(&writer->error, "retained partial Store root is unavailable");
+    actql_replace_bounded_error(&writer->error,
+      writer->root == NULL ? 0 : writer->root->diagnostic_ceiling, "retained partial Store root is unavailable");
     return -1;
   }
   if (writer->close_result != 0 && actql_sync_root(writer->root) != 0) {
-    actql_replace_errno_error(&writer->error, "sync retained partial files", errno);
+    actql_replace_bounded_errno_error(&writer->error,
+      writer->root == NULL ? 0 : writer->root->diagnostic_ceiling, "sync retained partial files", errno);
     return -1;
   }
   return 0;
@@ -2130,7 +2274,8 @@ int32_t actql_native_filesystem_writer_cancel(
   if (writer->cancelled) return 0;
   writer->cleanup_requested = true;
   writer->sealed = false;
-  actql_replace_error(&writer->error, NULL);
+  actql_replace_bounded_error(&writer->error,
+    writer->root == NULL ? 0 : writer->root->diagnostic_ceiling, NULL);
   if (actql_close_writer_file(writer) != 0) return -1;
 
   if (writer->final_name != NULL) {
@@ -2148,7 +2293,8 @@ int32_t actql_native_filesystem_writer_cancel(
   );
   if (result != 0) return result;
   if (actql_sync_root(writer->root) != 0) {
-    actql_replace_errno_error(&writer->error, "sync Store root", errno);
+    actql_replace_bounded_errno_error(&writer->error,
+      writer->root == NULL ? 0 : writer->root->diagnostic_ceiling, "sync Store root", errno);
     return -1;
   }
   writer->cancelled = true;
@@ -2864,4 +3010,22 @@ int64_t actql_native_filesystem_read_layout_field(int32_t field) {
     case 4: return (int64_t)sizeof(actql_filesystem_scoped_acquisition);
     default: return -1;
   }
+}
+
+// The Writer shares the existing Root and keeps its own original descriptor,
+// names and failed-close custody. Publish only its compiled payload/header;
+// referenced names, diagnostics and Source/Store buffers remain separate.
+int64_t actql_native_filesystem_write_layout_field(int32_t field) {
+  switch (field) {
+    case 0: return (int64_t)sizeof(actql_native_filesystem_writer);
+    case 1: return (int64_t)(sizeof(struct moonbit_object) +
+      sizeof(void (*)(void *)));
+    default: return -1;
+  }
+}
+
+int32_t actql_native_filesystem_root_diagnostic_ceiling(
+  actql_native_filesystem_root *root
+) {
+  return root == NULL ? 0 : root->diagnostic_ceiling;
 }

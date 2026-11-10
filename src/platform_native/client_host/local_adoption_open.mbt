@@ -13,6 +13,8 @@ fn begin_native_local_host_adoption_original(
   existing_only? : Bool = false,
   custody? : NativeLocalAdoptionOpenFailure? = None,
   root_opening? : NativeLocalAdoptionRootOpening = LegacyPrivateRoots,
+  product_original? : NativeLocalProductConfigurationSession? = None,
+  operator_host? : NativeLocalOperatorHostOriginal? = None,
 ) -> Result[NativeLocalAdoptionSession, NativeLocalAdoptionIssue] {
   if !local_adoption_name(state_name) ||
     !local_adoption_name(source_name) ||
@@ -46,10 +48,19 @@ fn begin_native_local_host_adoption_original(
   if configuration.account_id() != account_id {
     return Err(ForeignAccount)
   }
-  // This first assembly profile uses explicit account entries, not a profile
-  // generator. A named bootstrap needs its installed original in a later slice.
-  if configuration.bootstrap_profile() is Some(_) {
-    return Err(UninstalledBootstrapProfile)
+  // Only the actual installer may join the selected finite Mock original.
+  // Ordinary/manual adoption still refuses a named but uninstalled profile.
+  if configuration.bootstrap_profile() is Some(profile) {
+    guard product_original is Some(product) else {
+      return Err(UninstalledBootstrapProfile)
+    }
+    match
+      product.require_mock_bootstrap_original(
+        source_ownership, source_name, source_body, profile,
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
   }
   let settings = match
     select_native_local_configuration(
@@ -60,6 +71,7 @@ fn begin_native_local_host_adoption_original(
       crypto,
       custody~,
       root_opening~,
+      operator_host~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)

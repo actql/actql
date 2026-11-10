@@ -9,6 +9,77 @@ pub(all) struct ObservationIssuanceLimits {
 }
 
 ///|
+// The unchanged metadata component shared by its issuer and original Native
+// caller. This is not a whole-platform constructor/Store envelope or a grant.
+fn observation_issuance_metadata_bytes(
+  wire_bytes : Int,
+  slots : Int,
+  owners : Int,
+  generations : Int,
+) -> Int64 {
+  wire_bytes.to_int64() * 16L +
+  slots.to_int64() * 128L +
+  (owners - 1).to_int64() * 256L +
+  generations.to_int64() * 256L
+}
+
+///|
+/// Prepared single-Model metadata envelope from the same issuer formula.
+/// This is DATA for its enclosing Plan before execution, not a grant or a
+/// complete physical publication recipe. Actual issuance still counts rows.
+pub fn prepared_observation_issuance_metadata_bytes(
+  limits : ObservationIssuanceLimits,
+) -> Int64? {
+  if limits.max_slots < 0 ||
+    limits.max_wire_bytes < 1 ||
+    limits.max_wire_bytes > 16384 ||
+    limits.max_work < 1 {
+    None
+  } else {
+    Some(
+      observation_issuance_metadata_bytes(
+        limits.max_wire_bytes,
+        limits.max_slots,
+        1,
+        0,
+      ),
+    )
+  }
+}
+
+///|
+/// Quote only this same terminal original's flat metadata component. Read the
+/// already prepared row inventory without acquiring output/capture, invoking
+/// current or traversing values. The original reservation and issuer still
+/// validate their nominal Run/Scope and complete constructor backing.
+pub fn original_observation_issuance_metadata_bytes(
+  active : Execution,
+  limits : ObservationIssuanceLimits,
+) -> Int64? {
+  guard limits.max_slots >= 0 &&
+    limits.max_wire_bytes >= 1 &&
+    limits.max_wire_bytes <= 16384 &&
+    limits.max_work >= 1 &&
+    !active.advancing &&
+    !active.reclaimed &&
+    !active.cancelled &&
+    active.phase is Terminal &&
+    active.completed is Some(_) &&
+    active.model is Some(_) &&
+    active.call_scope is Some(_) &&
+    active.original_preparation is Some(_) &&
+    active.run_binding is Some(_) &&
+    active.rows is Some(rows) else {
+    return None
+  }
+  let count = @relation.prepared_infer_rows_count(rows)
+  if count > limits.max_slots {
+    return None
+  }
+  Some(observation_issuance_metadata_bytes(limits.max_wire_bytes, count, 1, 0))
+}
+
+///|
 priv enum ObservationIssuancePhase {
   Begin
   Slot
@@ -346,10 +417,12 @@ fn start_observation_issuance_owned(
     is Some(policy_cid) else {
     return Err(Model(@model.OutputIdentity))
   }
-  let workspace = limits.max_wire_bytes.to_int64() * 16L +
-    count.to_int64() * 128L +
-    (owners.length() - 1).to_int64() * 256L +
-    generations.length().to_int64() * 256L
+  let workspace = observation_issuance_metadata_bytes(
+    limits.max_wire_bytes,
+    count,
+    owners.length(),
+    generations.length(),
+  )
   // This is the unchanged metadata component allowance, not a normal backend
   // whole-phase bound. Original funding must cover it AND all additional
   // simultaneous publication holdings supplied by the actual installation.
@@ -748,6 +821,42 @@ pub fn observation_issuance_value(
   } else {
     None
   }
+}
+
+///|
+/// Immutable classification of the original already verified slot binding.
+/// Callers first borrow the completed observation at its current boundary;
+/// inspecting each slot adds no callback, capture issuance or output use.
+pub fn observation_issuance_slot_outcome(
+  active : ObservationIssuance,
+  index : Int,
+) -> String? {
+  if !active.accepted ||
+    active.reclaimed ||
+    index < 0 ||
+    active.state.bindings.length() != active.state.count {
+    return None
+  }
+  active.state.bindings
+  .get(index)
+  .bind(binding => @publication.bound_model_slot_capture_outcome(binding))
+}
+
+///|
+/// Original Source evidence inventory already selected by this flat issuer.
+/// Pure projection after the completed-value borrow; no per-Source callback,
+/// independent deduplication or fresh Source observation is performed.
+pub fn observation_issuance_source_originals(
+  active : ObservationIssuance,
+) -> Array[@publication.RunEvidenceValue]? {
+  if !active.accepted || active.reclaimed {
+    return None
+  }
+  Some(
+    active.state.sources.map(source => {
+      @publication.model_source_observation_originals(source).0
+    }),
+  )
 }
 
 ///|

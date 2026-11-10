@@ -100,7 +100,12 @@ source mirror, not another schema, parser, compiler or authority issuer.
   self Option references. Clearing them permits ordinary reference-counted
   reclamation only after remaining aliases disappear; it does not prove it.
 - Extension: this pair covers separately constructed raw and target documents.
-  It does not retire RelationTargetRow marks or the hidden backing produced by
+  The separate `discard_relation_target_row_original` severs one observation's
+  self mark after its consumer returns, including after parent invalidation.
+  It refuses copies and repeated discard, without retiring a sibling or changing
+  already returned immutable DATA. It acknowledges neither read nor physical
+  cleanup. Hosts still own those lifetimes and every escaped alias.
+  These entries do not retire the hidden backing produced by
   `admit_relation_target_document`, including that convenience entry's failed
   projection path. Those existing caller boundaries remain separate; this is
   not complete retirement of the relation-document family or Effect handles.
@@ -108,3 +113,26 @@ source mirror, not another schema, parser, compiler or authority issuer.
   copied-carrier refusal, immutable retained DATA, sibling isolation and child
   discard after parent invalidation. Source callers must still demonstrate real
   original retained-execution closure; these references do not establish it.
+
+Whole-Source response admission uses the same original document/ticket path as
+Query-backed rows. `accept_charged_relation_input_document` matches the original
+`RowInputAcquisition` after consuming the response ticket, preserves its declared
+schema/view and page limits, and uses the existing whole-input value funding
+before append. It does not turn a Query requirement into a whole Source, issue a
+read grant, refund physical attempts/bytes or acknowledge transport cleanup.
+
+The installing caller may retain a `RelationDocumentPreparedContract` constructed
+by `prepare_relation_document_contract` from the original declaration. It keeps
+the same checked schema, field order and primary identity; it issues no Source,
+Reference, capacity or read permission. A later projection accepts it only with
+the original declaration, selected resource/identity and the same metadata
+bounds. Copied declaration DATA cannot substitute for that original. The
+compatibility entrance still constructs its mapping when no prepared metadata
+is supplied.
+
+Prepared metadata removes schema parsing/hashing and schema construction from
+response projection. Every actual path, explicit key, closed row, duplicate
+identity, typed value and cumulative document-work limit remains checked.
+Mapping work is charged only on the branch which actually reconstructs it.
+The original caller funds metadata before construction and retains it through
+all borrowers; response admission and physical cleanup remain separate duties.

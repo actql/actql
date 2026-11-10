@@ -39,7 +39,7 @@ test "generated serial capacity custody diagnostic" {
     limits.guards,
     limits.candidate_work,
   ).unwrap()
-  @local_driver.configure_local_retained_inputs(
+  configure_local_managed_test_inputs(
     installed,
     {
       max_rows: 100,
@@ -48,8 +48,9 @@ test "generated serial capacity custody diagnostic" {
       row: { max_bytes: 100, max_nodes: 20, max_depth: 4, max_text_bytes: 100, },
       max_batch_bytes: 64,
     },
-    None,
-  ).unwrap()
+    limits,
+  )
+  configure_local_managed_test_output(installed, limits)
   let setup = @local_driver.prepare_local_managed_dispatch(
       installed,
       [],

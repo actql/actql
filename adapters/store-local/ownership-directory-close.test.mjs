@@ -27,6 +27,7 @@ async function fixture(t, mode, failSync = false) {
   let store;
   try { store = await openLocalPublicationStore(configuration, control); }
   finally { Buffer.from = from; }
+  const qualified = JSON.parse(await fs.readFile(join(directory, 'owner', 'owner.json'))).leaseAnchor !== undefined;
   const open = fs.open;
   const closeFailure = Object.freeze(new Error('OriginalRetirementDirectoryCloseFailure'));
   const syncFailure = Object.freeze(new Error('OriginalRetirementDirectorySyncFailure'));
@@ -69,7 +70,7 @@ async function fixture(t, mode, failSync = false) {
     if (!store.status().closed) await store.close();
     scratch.passed();
   });
-  return {scratch, directory, store, ownedKey, closeFailure, syncFailure,
+  return {scratch, directory, store, qualified, ownedKey, closeFailure, syncFailure,
     original: () => original, counts: () => ({opens, syncs, closes}),
     allowClose: () => { allowClose = true; },
     relocate: async replacement => {
@@ -129,6 +130,11 @@ for (const mode of ['false', 'reject']) {
 test('pending old retirement directory close cannot remove a healthy successor', async t => {
   const f = await fixture(t, 'reject');
   await assert.rejects(f.store.close(), error => error === f.closeFailure);
+  if (f.qualified) {
+    await assert.rejects(f.successor(), {code: 'PublicationStoreBusy'});
+    f.allowClose();
+    assert.equal(await f.store.close(), true, 'original native lease closes only after the pending directory FD');
+  }
   const successor = await f.successor();
   const path = join(f.directory, 'owner', 'owner.json');
   const bytes = await fs.readFile(path), before = await fs.lstat(path);

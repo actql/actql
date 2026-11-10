@@ -34,7 +34,7 @@ fn bind_script_input(
   reserved : Array[String],
   predicate? : @builder.Node? = None,
   capture? : Bool = true,
-  capture_originals? : Array[(Int, String, @builder.Node, @builder.Node)]? = None,
+  capture_originals? : Array[(Int, String, @builder.Node, @builder.Node?)]? = None,
 ) -> Input raise Abort {
   let fields = columns(input)
   match input.source {
@@ -87,9 +87,7 @@ fn bind_script_input(
           if stage_id == context.stage_id {
             raise Abort(InvalidContext)
           }
-          let original_predicate = predicate.unwrap_or_else(() => {
-            construction.object([("literal", construction.add(Bool(true)))])
-          })
+          let original_predicate = predicate
           if capture_originals is Some(originals) {
             // Same emission originals, not a second Source or capture owner.
             originals.push(

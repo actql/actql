@@ -216,6 +216,8 @@ pub fn client_program_admit_allowed_effect_run(@run_publication_host.ClientEffec
 
 pub fn client_program_admit_compiled_run_definition(@run_publication_host.ClientCompiledRun, String) -> Result[@run_publication.PublicationContract, @run_publication_host.ClientCompiledRunIssue]
 
+pub fn client_program_admit_composed_infer_whole_sources(@run_publication_host.ClientInferOccurrence, Array[@execution_query.CapturedInputSource], Array[@execution_query.CapturedSourceRelationIdentity], Array[@client_local_host.ClientInstalledWholeSourceCapacity], Array[@run_publication.RunEvidenceValue], Array[@run_publication.RunEvidenceValue], String, String, String, @run_publication_host.ClientKeyedLookupObservation?) -> Result[@run_publication_host.ClientInferComposedSources, @run_publication_host.ClientInferCallScopeIssue]
+
 pub fn client_program_admit_direct_values_result_root(@run_publication_host.PreparedClientProgram, Int, String) -> Result[@run_publication_host.ClientDirectResultRoot, @run_publication_host.ClientDirectResultRootAdmissionIssue]
 
 pub fn client_program_admit_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[@run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyIssue]
@@ -295,6 +297,8 @@ pub fn client_program_begin_effect_command_key_workspace(ClientEffectCommandWork
 pub fn client_program_begin_effect_local_command_key_workspace(ClientEffectCommandWorkspace, @physical_strategy_host.CapturedEffectInputs, Int, Int, @run_publication_host.PublicationOutputExportLimits, @execution_relation.ManagedCompletedOutput[Int], @execution_relation.ManagedRetainedOutput[Int]) -> Result[ClientEffectManagedInputImport, ClientEffectCommandWorkspaceIssue]
 
 pub fn client_program_begin_host_initialization_preparation(@physical_resources.NodePreparationAdmission[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientLocalResourcePolicy) -> Result[@client_local_host.ClientHostInitializationPreparation[ClientLocalPreparationInputOriginal], @client_local_host.ClientHostInitializationIssue]
+
+pub fn client_program_begin_installed_effect_capture_recovery(@client_local_host.ClientInstalledEffectCaptureRecovery) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_begin_request_preparation(@physical_resources.NodePreparationAdmission[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientLocalResourcePolicy) -> Result[@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], @client_local_host.ClientRequestPreparationIssue]
 
@@ -532,6 +536,8 @@ pub fn client_program_definition_cid(@run_publication_host.PreparedClientProgram
 
 pub fn client_program_definition_json(@run_publication_host.PreparedClientProgram) -> Result[String, @run_publication_host.ClientIdentityMaterialIssue]
 
+pub fn client_program_direct_source_coordinates(@run_publication_host.PreparedClientProgram) -> Result[Array[Array[Int]], @run_publication_host.ClientDirectAcquisitionOccurrenceIssue]
+
 pub fn client_program_direct_values_result_root_plan_cid(@run_publication_host.ClientDirectResultRoot) -> String
 
 pub fn client_program_direct_values_result_root_row_contract_cid(@run_publication_host.ClientDirectResultRoot) -> String
@@ -551,6 +557,18 @@ pub fn client_program_duckdb_selection_broad(@client_local_host.ClientDuckDBAcqu
 pub fn client_program_duckdb_selection_document(@client_local_host.ClientDuckDBAcquisitionSelection) -> String
 
 pub fn client_program_duckdb_selection_native(@client_local_host.ClientDuckDBAcquisitionSelection) -> @actql/actql/connectors/duckdb/host.NativeHostConfiguration?
+
+pub fn client_program_duckdb_whole_source_accept_page(@client_row_source_host.RowRun, @client_row_source_host.RowInputAcquisition, @client_row_source_host.RowPageCharge, String, String, Int) -> Result[Int, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_duckdb_whole_source_begin_transport(@client_row_source_host.RowRunResponseBorrow) -> Result[Unit, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_duckdb_whole_source_charge_response(@client_row_source_host.RowRun, Int64) -> Result[@client_row_source_host.RowPageCharge, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_duckdb_whole_source_connector(@client_local_host.ClientInstalledWholeSourceCapacity) -> String
+
+pub fn client_program_duckdb_whole_source_page_depth() -> Int
+
+pub fn client_program_duckdb_whole_source_sql(@client_local_host.ClientInstalledWholeSourceCapacity, String, String, Int) -> Result[String, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_effect_acquisition_count(@run_publication_host.PreparedClientEffectComputation) -> Int
 
@@ -629,6 +647,8 @@ pub fn client_program_effect_create_row_inventory(Array[String], Int, Int, Int, 
 pub fn client_program_effect_definition_cid(@run_publication_host.PreparedClientEffectComputation) -> String
 
 pub fn client_program_effect_dependency_body_cid(@run_publication.CapturedEffectDependencyBody) -> String
+
+pub fn client_program_effect_direct_source_coordinates(@run_publication_host.PreparedClientEffectComputation) -> Result[Array[Array[Int]], @run_publication_host.ClientDirectAcquisitionOccurrenceIssue]
 
 pub fn client_program_effect_environment_cid(@run_publication_host.PreparedClientEffectComputation) -> String
 
@@ -886,6 +906,8 @@ pub fn client_program_effect_table_source_artifact_preview_binding(@run_publicat
 
 pub fn client_program_effect_table_write_binding(@run_publication_host.PreparedClientEffectComputation, Int, String, Int) -> Result[(String, String, String?, String?, String, String)?, @run_publication_host.ClientEffectMemberDescriptorIssue]
 
+pub fn client_program_effect_target_installations_data_equal(Array[String], Array[String]) -> Bool
+
 pub fn client_program_effect_target_installations_shape(String) -> Bool
 
 pub fn client_program_effect_target_original_codec_limits() -> Array[Int]
@@ -902,6 +924,8 @@ pub fn client_program_effect_target_selection_cid(@run_publication_host.ClientEf
 
 pub fn client_program_effect_target_selection_current(@run_publication_host.ClientEffectUpdateTargetSelections, @run_publication_host.PreparedClientEffectComputation, String) -> Bool
 
+pub fn client_program_effect_target_selection_current_data(@run_publication_host.ClientEffectUpdateTargetSelections, @run_publication_host.PreparedClientEffectComputation, Array[@run_publication_host.ClientEffectTargetInstallationData], String) -> Bool
+
 pub fn client_program_effect_target_selection_data_cid(String) -> Result[String, @run_publication_host.ClientEffectUpdateTargetIssue]
 
 pub fn client_program_effect_target_selection_matches_prepared(@run_publication_host.ClientEffectUpdateTargetSelections, @run_publication_host.PreparedClientEffectComputation) -> Bool
@@ -916,13 +940,19 @@ pub fn client_program_effect_target_selection_wire(@run_publication_host.ClientE
 
 pub fn client_program_effect_target_selections(@run_publication_host.PreparedClientEffectComputation) -> String?
 
+pub fn client_program_effect_whole_source_input_identity(@run_publication_host.PreparedClientEffectComputation, @sourceview_resolution.SourceAcquisition) -> Array[String]?
+
 pub fn client_program_effectful_static_plan_view(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientEffectCompilation, Int, Int, Int) -> Result[String, @run_publication_host.ClientEffectfulStaticPlanIssue]
 
 pub fn client_program_encode_plan_fact_manifest_identity(String) -> Result[@run_publication_host.PlanFactManifestIdentity, @run_publication_host.PlanFactManifestIdentityIssue]
 
+pub fn client_program_export_query_source_original_read(@execution_relation.SuppliedRelationRead, @query_planning.QueryRequirement) -> Result[(String, String, Array[String]), @client_row_source_host.RowOriginalCaptureIssue]
+
 pub fn client_program_export_source_capture(@execution_query.CapturedInputSource, @query_planning.QueryRequirement, String) -> Result[@client_local_host.ClientSourceCaptureExport, @client_local_host.ClientSourceCaptureIssue]
 
 pub fn client_program_export_source_original_read(@execution_relation.SuppliedRelationRead) -> Result[(String, String, Array[String]), @client_row_source_host.RowOriginalCaptureIssue]
+
+pub fn client_program_export_whole_source_capture(@execution_query.CapturedInputSource, @client_local_host.ClientInstalledWholeSourceCapacity, String) -> Result[(Array[String], String, String, Array[String]), @client_local_host.ClientSourceCaptureIssue]
 
 pub fn client_program_finish_captured_source_identity_scan(@execution_query.CapturedSourceIdentityScan) -> Result[@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedSourceIdentityScanIssue]
 
@@ -942,11 +972,33 @@ pub fn client_program_gcs_upload_catalog_construction_capacity(String, Int, Int,
 
 pub fn client_program_hubspot_account_construction_capacity(Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
+pub fn client_program_hubspot_effect_constructor_capacity(Int, Array[Int], Array[Int], Array[Int]) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_hubspot_effect_recipe_capacities(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)], @execution_relation.ExecutionCapacity?, Array[Int], Int64, Int, Int, Int) -> Result[Array[@execution_relation.ExecutionCapacity], @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_hubspot_mapping_construction_capacity(Int, Int, Int64, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_program_hubspot_object_construction_capacity(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_hubspot_source_reader_capacity(Array[Int], Int, Int, Array[Int], Int, Array[Int]) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_hubspot_source_reader_observed_capacity(Array[Int], Int, Int, Array[Int], Int, Array[Int], Array[Int]) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_identify_captured_effect_source_relation(@execution_query.CapturedInputSource) -> Result[@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedSourceIssue]
 
 pub fn client_program_identify_captured_source_relation(@execution_query.CapturedInputSource) -> Result[@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedSourceIssue]
+
+pub fn client_program_identify_query_captured_effect_source_relation(@execution_query.CapturedInputSource, @query_planning.QueryRequirement) -> Result[@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedSourceIssue]
+
+pub fn client_program_identify_query_captured_source_relation(@execution_query.CapturedInputSource, @query_planning.QueryRequirement) -> Result[@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedSourceIssue]
+
+pub fn client_program_identify_row_capture_effect_source_relation(@execution_query.CapturedInputSource, @client_row_source_host.RowSourceCapture) -> Result[@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedSourceIssue]
+
+pub fn client_program_identify_row_capture_source_relation(@execution_query.CapturedInputSource, @client_row_source_host.RowSourceCapture) -> Result[@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedSourceIssue]
+
+pub fn client_program_identify_whole_captured_effect_source_relation(@execution_query.CapturedInputSource, @client_local_host.ClientInstalledWholeSourceCapacity) -> Result[@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedSourceIssue]
+
+pub fn client_program_identify_whole_captured_source_relation(@execution_query.CapturedInputSource, @client_local_host.ClientInstalledWholeSourceCapacity) -> Result[@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedSourceIssue]
 
 pub fn client_program_imported_effect_invocation(@run_publication_host.ClientEffectImportedEvidence) -> @run_publication_host.ClientEffectLocalInvocation
 
@@ -968,11 +1020,21 @@ pub fn client_program_installed_duckdb_capture_capacity(@actql/actql/connectors/
 
 pub fn client_program_installed_duckdb_capture_capacity_accepts(@client_local_host.ClientInstalledCaptureCapacity, @actql/actql/connectors/duckdb/host.CaptureConfiguration) -> Bool
 
+pub fn client_program_installed_effect_managed_plan_whole_source(@client_local_host.ClientInstalledEffectManagedPlan, Int) -> Result[(@sourceview_resolution.SourceAcquisition, @client_row_source_host.RowInputAcquisition, @client_local_host.ClientInstalledWholeSourceCapacity), @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_installed_effect_managed_source_input_kind(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, Int) -> Result[String, @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_installed_effect_managed_sources_ledger(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity) -> Result[@physical_resources.Ledger, @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_installed_effect_managed_whole_source_read(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @client_row_source_host.RowDeclaration, Int) -> Result[(@client_local_host.ClientInstalledSourceRead, @sourceview_resolution.SourceAcquisition, @client_row_source_host.RowInputAcquisition, @client_local_host.ClientInstalledWholeSourceCapacity), @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_installed_effect_models_demand_prepare(Array[@client_local_host.ClientInstalledEffectModelDemand]) -> Result[@client_local_host.ClientInstalledEffectModelDemand, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_listing_row_capture_capacity(@client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity?) -> @client_local_host.ClientInstalledCaptureCapacity?
 
 pub fn client_program_installed_managed_capture_plan_prepare(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, Array[@client_local_host.ClientInstalledCaptureCapacity], Array[Int64], Array[Int64], @client_local_host.ClientInstalledSequenceContracts, String, String?, String?, Bool, @run_publication_host.ClientQueryTimePreparation?) -> Result[@client_local_host.ClientInstalledManagedCapturePlan, @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_installed_managed_duckdb_whole_source_read(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledWholeSourceCapacity) -> Result[(@client_local_host.ClientInstalledSourceRead, @sourceview_resolution.SourceAcquisition, @client_row_source_host.RowInputAcquisition, @client_local_host.ClientInstalledWholeSourceCapacity), @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_managed_keyed_content_prepare(@run_publication_host.PreparedClientProgram, @client_local_host.ClientInstalledCaptureCapacity, @run_publication_host.ClientKeyedAcquisition, @client_row_source_host.RowDeclaration, Int, Int, Int, Array[Int64], Array[Int64], Int, Int, @client_local_host.ClientInstalledSequenceContracts, String, String?, String?, Int, Int, Int64, Int64) -> Result[@client_local_host.ClientInstalledManagedKeyedPreparation, @client_local_host.ClientInstalledManagedRunIssue]
 
@@ -996,6 +1058,10 @@ pub fn client_program_installed_managed_whole_source_ledger(@client_local_host.C
 
 pub fn client_program_installed_managed_whole_source_read(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @client_row_source_host.RowDeclaration) -> Result[(@client_local_host.ClientInstalledSourceRead, @sourceview_resolution.SourceAcquisition, @client_row_source_host.RowInputAcquisition, @client_local_host.ClientInstalledWholeSourceCapacity), @client_local_host.ClientInstalledManagedRunIssue]
 
+pub fn client_program_installed_managed_whole_source_read_at(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @client_row_source_host.RowDeclaration, Int) -> Result[(@client_local_host.ClientInstalledSourceRead, @sourceview_resolution.SourceAcquisition, @client_row_source_host.RowInputAcquisition, @client_local_host.ClientInstalledWholeSourceCapacity), @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_installed_managed_whole_sources_ledger(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, Array[@client_local_host.ClientInstalledWholeSourceCapacity], Array[Int64], Array[Int64]) -> Result[@physical_resources.Ledger, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_installed_mock_model_capture_plan_prepare(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientTaskCompilation, Array[@client_local_host.ClientInstalledCaptureCapacity], Array[Int64], Array[Int64], @client_local_host.ClientInstalledSequenceContracts, String, String?, String?, Bool, @run_publication_host.ClientQueryTimePreparation?) -> Result[@client_local_host.ClientInstalledManagedCapturePlan, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_model_defaults_binding(@run_publication_host.ClientModelProviderDefaults) -> @run_publication.RunEvidenceValue
@@ -1011,6 +1077,8 @@ pub fn client_program_installed_provider_row_capture_capacity(@client_row_source
 pub fn client_program_installed_provider_row_capture_capacity_matches(@client_local_host.ClientInstalledCaptureCapacity, @client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity) -> Bool
 
 pub fn client_program_installed_row_capture_capacity(@client_row_source_host.RowAcquisition) -> @client_local_host.ClientInstalledCaptureCapacity?
+
+pub fn client_program_installed_row_input_policy(Int, Int, Int, Int, Int) -> @client_row_source_host.RowInputLimits
 
 pub fn client_program_installed_table_source_body_capacity(@execution_relation.ExecutionCapacity, Int, Int) -> Result[@execution_relation.ExecutionCapacity, @physical_resources.PreparationCapacityIssue]
 
@@ -1076,7 +1144,11 @@ pub fn client_program_issue_effect_table_source_artifact(@physical_strategy_host
 
 pub fn client_program_issue_effect_target_installation(String) -> Result[(String, String), @run_publication_host.ClientEffectUpdateTargetIssue]
 
+pub fn client_program_issue_effect_target_installation_data(Array[String]) -> Result[(String, String, @run_publication_host.ClientEffectTargetInstallationData), @run_publication_host.ClientEffectUpdateTargetIssue]
+
 pub fn client_program_issue_effect_values_fragment(@run_publication_host.PreparedClientEffectComputation, Int) -> Result[@run_publication_host.ClientValuesFragmentNode, @run_publication_host.ClientValuesFragmentIssue]
+
+pub fn client_program_issue_effect_whole_source_input_logical(@run_publication_host.PreparedClientEffectComputation, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @client_local_host.ClientInstalledWholeSourceCapacity) -> Result[@run_publication.RunEvidenceValue, @run_publication_host.ClientCapturedSourceLogicalIssue]
 
 pub fn client_program_issue_empty_invocation_bindings(@run_publication_host.PreparedClientProgram) -> Result[@run_publication.RunEvidenceValue, @run_publication_host.ClientEmptyInvocationBindingsIssue]
 
@@ -1145,6 +1217,8 @@ pub fn client_program_issue_values_compiled_run(@run_publication_host.PreparedCl
 pub fn client_program_issue_whole_source_input_logical(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @client_local_host.ClientInstalledWholeSourceCapacity) -> Result[@run_publication.RunEvidenceValue, @run_publication_host.ClientCapturedSourceLogicalIssue]
 
 pub fn client_program_issue_whole_source_publication_invocation(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @client_row_source_host.RowSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @client_local_host.ClientClosedValuesPreparationIssue]
+
+pub fn client_program_issue_whole_sources_publication_invocation(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, Array[@client_row_source_host.RowSourceCapture], Array[@execution_query.CapturedSourceRelationIdentity], Array[@run_publication.RunEvidenceValue], Array[@run_publication.RunEvidenceValue], String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @client_local_host.ClientClosedValuesPreparationIssue]
 
 pub fn client_program_keyed_acquisition_coordinates(@run_publication_host.ClientKeyedAcquisition) -> Array[Int]
 
@@ -1270,6 +1344,8 @@ pub fn client_program_kintone_delete_response(@actql/actql/connectors/kintone/ca
 
 pub fn client_program_kintone_delete_response_request(@actql/actql/connectors/kintone/catalog.RecordDeleteAcknowledgement) -> @actql/actql/connectors/kintone/catalog.RecordDeleteRequest
 
+pub fn client_program_kintone_finalize_update_request(@actql/actql/connectors/kintone/host.RecordUpdateProposal, @actql/actql/connectors/kintone/host.RecordUpdatePreview, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordUpdateRequest, @actql/actql/connectors/kintone/host.RecordUpdateExecutionIssue]
+
 pub fn client_program_kintone_form_limits(Int, Int, Int, Int, Int) -> @actql/actql/connectors/kintone/catalog.FormFieldLimits
 
 pub fn client_program_kintone_form_request_body(@actql/actql/connectors/kintone/host.PreparedRecordRead, Int) -> Result[String, @actql/actql/connectors/kintone/host.RecordReadIssue]
@@ -1372,6 +1448,12 @@ pub fn client_program_kintone_prepare_delete_preview(@actql/actql/connectors/kin
 
 pub fn client_program_kintone_prepare_read(@actql/actql/connectors/kintone/host.RecordDeclaration, @query_planning.QueryRequirement, String, String) -> Result[@actql/actql/connectors/kintone/host.PreparedRecordRead, @actql/actql/connectors/kintone/host.RecordReadIssue]
 
+pub fn client_program_kintone_prepare_update_mapping(@actql/actql/connectors/kintone/host.RecordDeclaration, String, Array[@client_row_source_host.RowMappingSource], String, @client_row_source_host.RowDeclarationLimits) -> Result[@actql/actql/connectors/kintone/host.RecordUpdateMapping, @client_row_source_host.RowMappingIssue]
+
+pub fn client_program_kintone_prepare_update_preview(@actql/actql/connectors/kintone/host.RecordUpdateProposal, Bytes, @actql/actql/connectors/kintone/catalog.RecordPageLimits, @actql/actql/connectors/kintone/catalog.RecordValueLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/host.RecordUpdatePreview, @actql/actql/connectors/kintone/host.RecordUpdateExecutionIssue]
+
+pub fn client_program_kintone_prepare_update_proposal(@actql/actql/connectors/kintone/host.RecordUpdateMapping, String, Bytes, Int, @actql/actql/connectors/kintone/catalog.RecordWriteLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/host.RecordUpdateProposal, @actql/actql/connectors/kintone/host.RecordUpdateExecutionIssue]
+
 pub fn client_program_kintone_project_form(Bytes, String, @actql/actql/connectors/kintone/catalog.FormFieldLimits) -> Result[@actql/actql/connectors/kintone/catalog.FormFieldCatalog, @actql/actql/connectors/kintone/catalog.FormFieldIssue]
 
 pub fn client_program_kintone_project_record_page(Bytes, @actql/actql/connectors/kintone/catalog.FormFieldCatalog, Array[String], @actql/actql/connectors/kintone/catalog.RecordPageLimits) -> Result[@actql/actql/connectors/kintone/catalog.OriginalRecordPage, @actql/actql/connectors/kintone/catalog.RecordPageIssue]
@@ -1392,7 +1474,11 @@ pub fn client_program_kintone_record_declaration(@actql/actql/connectors/kintone
 
 pub fn client_program_kintone_restore_create_execution_proposal(@actql/actql/connectors/kintone/host.RecordCreateMapping, Bytes, String, Int, @actql/actql/connectors/kintone/catalog.RecordWriteLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordCreateRequest, @actql/actql/connectors/kintone/host.RecordCreateExecutionIssue]
 
+pub fn client_program_kintone_restore_update_execution(@actql/actql/connectors/kintone/host.RecordUpdateMapping, String, Bytes, Bytes, String, Int, @actql/actql/connectors/kintone/catalog.RecordPageLimits, @actql/actql/connectors/kintone/catalog.RecordValueLimits, @actql/actql/connectors/kintone/catalog.RecordWriteLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[(@actql/actql/connectors/kintone/host.RecordUpdateProposal, @actql/actql/connectors/kintone/host.RecordUpdatePreview, @actql/actql/connectors/kintone/catalog.RecordUpdateRequest), @actql/actql/connectors/kintone/host.RecordUpdateExecutionIssue]
+
 pub fn client_program_kintone_retire_read(@actql/actql/connectors/kintone/host.RecordRead) -> Result[Unit, @actql/actql/connectors/kintone/host.RecordReadIssue]
+
+pub fn client_program_kintone_update_add_construction_capacity(@execution_relation.ExecutionCapacity, @execution_relation.ExecutionCapacity) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_kintone_update_app_id(@actql/actql/connectors/kintone/catalog.RecordUpdateRequest) -> String
 
@@ -1400,15 +1486,69 @@ pub fn client_program_kintone_update_body(@actql/actql/connectors/kintone/catalo
 
 pub fn client_program_kintone_update_count(@actql/actql/connectors/kintone/catalog.RecordUpdateRequest) -> Int
 
+pub fn client_program_kintone_update_effect_outcome(@actql/actql/connectors/kintone/catalog.RecordUpdateRequest, @actql/actql/connectors/kintone/catalog.RecordUpdateAcknowledgement, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordUpdateEffectOutcome, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
+
+pub fn client_program_kintone_update_effect_outcome_matches_request(@actql/actql/connectors/kintone/catalog.RecordUpdateEffectOutcome, @actql/actql/connectors/kintone/catalog.RecordUpdateRequest) -> Bool
+
+pub fn client_program_kintone_update_effect_outcome_response_sha256(@actql/actql/connectors/kintone/catalog.RecordUpdateEffectOutcome) -> String
+
+pub fn client_program_kintone_update_effect_outcome_wire(@actql/actql/connectors/kintone/catalog.RecordUpdateEffectOutcome) -> String
+
+pub fn client_program_kintone_update_execution_matches(@actql/actql/connectors/kintone/host.RecordUpdateProposal, @actql/actql/connectors/kintone/host.RecordUpdatePreview, @actql/actql/connectors/kintone/catalog.RecordUpdateRequest) -> Bool
+
+pub fn client_program_kintone_update_finalization_construction_capacity(@actql/actql/connectors/kintone/host.RecordUpdateMapping, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_kintone_update_form_construction_capacity(@actql/actql/connectors/kintone/host.RecordUpdateMapping, Int, @actql/actql/connectors/kintone/catalog.FormFieldLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_kintone_update_installation_construction_capacity(Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_kintone_update_mapping_body(@actql/actql/connectors/kintone/host.RecordUpdateMapping) -> Result[String, @client_row_source_host.RowMappingIssue]
+
+pub fn client_program_kintone_update_mapping_cid(@actql/actql/connectors/kintone/host.RecordUpdateMapping) -> Result[String, @client_row_source_host.RowMappingIssue]
+
+pub fn client_program_kintone_update_mapping_construction_capacity(@actql/actql/connectors/kintone/host.RecordDeclaration, Int, Int64, @client_row_source_host.RowDeclarationLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_kintone_update_mapping_matches_declaration(@actql/actql/connectors/kintone/host.RecordUpdateMapping, @actql/actql/connectors/kintone/host.RecordDeclaration) -> Bool
+
+pub fn client_program_kintone_update_mapping_matches_request(@actql/actql/connectors/kintone/host.RecordUpdateMapping, @actql/actql/connectors/kintone/catalog.RecordUpdateRequest) -> Bool
+
+pub fn client_program_kintone_update_mapping_recheck_form(@actql/actql/connectors/kintone/host.RecordUpdateMapping, Bytes, @actql/actql/connectors/kintone/catalog.FormFieldLimits) -> Result[Unit, @actql/actql/connectors/kintone/host.RecordUpdateExecutionIssue]
+
+pub fn client_program_kintone_update_mapping_ref(@actql/actql/connectors/kintone/host.RecordUpdateMapping) -> Result[String, @client_row_source_host.RowMappingIssue]
+
 pub fn client_program_kintone_update_observation(@actql/actql/connectors/kintone/catalog.RecordUpdateRequest, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordDeleteRequest, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
+
+pub fn client_program_kintone_update_preview_before_wire(@actql/actql/connectors/kintone/host.RecordUpdatePreview) -> String
+
+pub fn client_program_kintone_update_preview_identity(@actql/actql/connectors/kintone/host.RecordUpdatePreview) -> String
+
+pub fn client_program_kintone_update_preview_revision(@actql/actql/connectors/kintone/host.RecordUpdatePreview) -> String
+
+pub fn client_program_kintone_update_preview_version_cid(@actql/actql/connectors/kintone/host.RecordUpdatePreview) -> String
+
+pub fn client_program_kintone_update_proposal_app(@actql/actql/connectors/kintone/host.RecordUpdateProposal) -> String
+
+pub fn client_program_kintone_update_proposal_construction_capacity(@actql/actql/connectors/kintone/host.RecordUpdateMapping, Int, @actql/actql/connectors/kintone/catalog.RecordWriteLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_kintone_update_proposal_identity(@actql/actql/connectors/kintone/host.RecordUpdateProposal) -> String
+
+pub fn client_program_kintone_update_proposal_value_wire(@actql/actql/connectors/kintone/host.RecordUpdateProposal) -> String
+
+pub fn client_program_kintone_update_recipe_capacities(Array[@execution_relation.ExecutionCapacity], Array[Int], @execution_relation.ExecutionCapacity?, Array[Int], Int64, Int, Int, Int) -> Result[Array[@execution_relation.ExecutionCapacity], @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_kintone_update_request(Array[(@actql/actql/connectors/kintone/catalog.OriginalRecordTarget, @actql/actql/connectors/kintone/catalog.RecordWriteValues)], @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordUpdateRequest, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
 
 pub fn client_program_kintone_update_response(@actql/actql/connectors/kintone/catalog.RecordUpdateRequest, Int, Bytes, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordUpdateAcknowledgement, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
 
+pub fn client_program_kintone_update_response_construction_capacity(@actql/actql/connectors/kintone/host.RecordUpdateMapping, Int, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_program_kintone_update_response_records(@actql/actql/connectors/kintone/catalog.RecordUpdateAcknowledgement) -> Array[(String, String)]
 
 pub fn client_program_kintone_update_response_request(@actql/actql/connectors/kintone/catalog.RecordUpdateAcknowledgement) -> @actql/actql/connectors/kintone/catalog.RecordUpdateRequest
+
+pub fn client_program_kintone_update_target_construction_capacity(@actql/actql/connectors/kintone/host.RecordUpdateMapping, Int, @actql/actql/connectors/kintone/catalog.RecordPageLimits, @actql/actql/connectors/kintone/catalog.RecordValueLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_kintone_update_target_read_body(@actql/actql/connectors/kintone/host.RecordUpdateProposal, Int, Int, Int, Int) -> Result[String, @actql/actql/connectors/kintone/host.RecordUpdateExecutionIssue]
 
 pub fn client_program_kintone_value_limits(Int, Int, Int, Int, Int) -> @actql/actql/connectors/kintone/catalog.RecordValueLimits
 
@@ -1590,6 +1730,8 @@ pub fn client_program_prepare_duckdb_capture_capacity(@query_planning.QueryRequi
 
 pub fn client_program_prepare_duckdb_source_evidence_context(@query_planning.QueryRequirement) -> Result[@actql/actql/connectors/duckdb/host.NativeSourceEvidenceContext, @actql/actql/connectors/duckdb/host.NativeSourceEvidenceIssue]
 
+pub fn client_program_prepare_duckdb_whole_source_capacity(@run_publication_host.PreparedClientProgram, @sourceview_resolution.SourceAcquisitionRoute, @client_local_host.ClientInstalledSequenceContracts, Int, Int, Int, Int, Int) -> Result[@client_local_host.ClientInstalledWholeSourceCapacity, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_prepare_effect_computation_in_public_environment(String, String, @program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment, String?, Array[@pipeline_check_context.StageCapacityInput]) -> ClientEffectProgramBridgeOutcome
 
 pub fn client_program_prepare_effect_computation_with_parameters(String, String, @program_check.CheckEnvironment, String?, Array[@pipeline_check_context.StageCapacityInput]) -> ClientEffectProgramBridgeOutcome
@@ -1607,6 +1749,10 @@ pub fn client_program_prepare_installed_managed_source_free_with_contracts(@run_
 pub fn client_program_prepare_installed_managed_whole_source_plan(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledWholeSourceCapacity, Int64, Int64, @client_local_host.ClientInstalledSequenceContracts, String, String?, String?, Bool) -> Result[@client_local_host.ClientInstalledManagedCapturePlan, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_prepare_installed_managed_whole_source_plan_at_query_time(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledWholeSourceCapacity, Int64, Int64, @client_local_host.ClientInstalledSequenceContracts, String, String?, String?, Bool, (@run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract)?) -> Result[@client_local_host.ClientInstalledManagedCapturePlan, @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_prepare_installed_managed_whole_sources_plan(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, Array[@client_local_host.ClientInstalledWholeSourceCapacity], Array[Int64], Array[Int64], @client_local_host.ClientInstalledSequenceContracts, String, String?, String?, Bool) -> Result[@client_local_host.ClientInstalledManagedCapturePlan, @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_prepare_installed_managed_whole_sources_plan_at_query_time(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, Array[@client_local_host.ClientInstalledWholeSourceCapacity], Array[Int64], Array[Int64], @client_local_host.ClientInstalledSequenceContracts, String, String?, String?, Bool, (@run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract)?) -> Result[@client_local_host.ClientInstalledManagedCapturePlan, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_prepare_installed_mock_model_source_free_with_contracts(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientTaskCompilation, @client_local_host.ClientInstalledSequenceContracts, String, String?, String?, Bool, (@run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientRequestIdentity)?) -> Result[@client_local_host.ClientInstalledManagedSourceFreePreparation, @client_local_host.ClientInstalledManagedRunIssue]
 
@@ -1703,6 +1849,8 @@ pub fn client_program_prepare_request_model_recovery_read_scopes_with_quantities
 pub fn client_program_prepare_request_model_serialization_graph(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientInferOccurrence, Int, Int, String, String, Int, Int, Bool, @client_local_host.ClientInstalledSequenceContracts) -> Result[@run_publication_host.ClientSerializationPlanGraph, ClientRequestProgramModuleBridgeIssue]
 
 pub fn client_program_prepare_request_model_source_free_module(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientTaskCompilation, @client_local_host.ClientInstalledSequenceContracts, Bool, @run_publication_host.ClientQueryTimePreparation?) -> Result[@client_local_host.ClientInstalledManagedSourceFreePreparation, ClientRequestProgramModuleBridgeIssue]
+
+pub fn client_program_prepare_request_model_whole_inputs_component_capture_module(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientTaskCompilation, Array[@client_local_host.ClientInstalledWholeSourceCapacity], String, String, Array[Int64], Array[Int64], @client_local_host.ClientInstalledSequenceContracts, Bool, @run_publication_host.ClientQueryTimePreparation?, (@execution_relation.ExecutionCapacity, @execution_relation.GeneratedSequence, (@client_infer_host.Execution) -> Result[Unit, @client_infer_host.Issue]) -> @local.ManagedProvider) -> Result[@client_local_host.ClientInstalledManagedCapturePlan, @client_local_host.ClientRequestProgramPlanIssue]
 
 pub fn client_program_prepare_request_models_compilation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Array[@run_publication_host.ClientInferPlanGraph], @client_local_host.ClientInstalledSequenceContracts) -> Result[@run_publication_host.ClientTaskCompilation, ClientRequestProgramModuleBridgeIssue]
 
@@ -1866,6 +2014,8 @@ pub fn client_program_recovered_table_preview_subject_cid(@run_publication_host.
 
 pub fn client_program_relation_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RelationTargetDocument, Int) -> Result[Int, @client_row_source_host.RowHostIssue]
 
+pub fn client_program_relation_accept_charged_input_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowInputAcquisition, @client_row_source_host.RelationTargetDocument, Int) -> Result[Int, @client_row_source_host.RowHostIssue]
+
 pub fn client_program_relation_admit_document(Bytes, Int, Int, Int, Int, Int) -> Result[@client_row_source_host.RelationDocument, @client_row_source_host.RowSourceIssue]
 
 pub fn client_program_relation_admit_target_document(@client_row_source_host.RowDeclaration, String, Array[String], Array[String], String, Array[String], Bytes, Int, Int, Int, Int, Int) -> Result[@client_row_source_host.RelationTargetDocument, @client_row_source_host.RowSourceIssue]
@@ -1938,9 +2088,13 @@ pub fn client_program_requires_query_time(@run_publication_host.PreparedClientPr
 
 pub fn client_program_requires_task_compilation(@run_publication_host.PreparedClientProgram) -> Bool
 
+pub fn client_program_reserve_installed_effect_capture_decoded(@client_local_host.ClientInstalledEffectCaptureRecovery, String) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_reserve_installed_effect_capture_recovery(@client_local_host.ClientInstalledEffectCaptureRecovery, Int) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_reserve_request_effect_capture_recovery(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, Int, Int, Int, Int) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
+
+pub fn client_program_reserve_request_effect_original_material(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.PreparedClientEffectComputation, Int, (Int) -> String) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
 
 pub fn client_program_reserve_request_model_recovery_materials(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, Int, (Int) -> String, Int) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
 
@@ -1961,6 +2115,10 @@ pub fn client_program_restore_query_time_preparation(@run_publication_host.Prepa
 pub fn client_program_restore_requested_effect_stop(@run_publication_host.ClientSubmittedIntent, String, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientEffectRunMaterials, @run_publication.PublicationContract, @run_publication.EffectPreviewIdentity, ClientEffectPreviewInputLimits) -> Result[@run_publication_host.ClientRequestedEffectStop?, @run_publication_host.ClientRequestedEffectStopIssue]
 
 pub fn client_program_restore_source_capture(@query_planning.QueryRequirement, String, String, String, String, Array[String], @physical_resources.Ledger?, @client_local_host.ClientInstalledCaptureCapacity, () -> Bool, @value_admission.ReferenceIssuer?, (String, String, Array[String])?) -> Result[@client_local_host.ClientAccountedSourceCapture, @client_local_host.ClientSourceCaptureIssue]
+
+pub fn client_program_restore_whole_source_capture(@client_local_host.ClientInstalledWholeSourceCapacity, String, String, Array[String], String, String, Array[String], @physical_resources.Ledger, () -> Bool, @value_admission.ReferenceIssuer?) -> Result[@client_local_host.ClientAccountedSourceCapture, @client_local_host.ClientSourceCaptureIssue]
+
+pub fn client_program_restored_whole_source_capture_input(@client_local_host.ClientAccountedSourceCapture) -> Result[@client_row_source_host.RowCapturedInput, @client_local_host.ClientSourceCaptureIssue]
 
 pub fn client_program_result_count(@run_publication_host.PreparedClientProgram) -> Int
 
@@ -2035,6 +2193,8 @@ pub fn client_program_row_source_columns(@client_row_source_host.RowAcquisition)
 pub fn client_program_row_source_consume_observation_charge(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge) -> Result[Unit, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_declaration_json(@client_row_source_host.RowDeclaration) -> String
+
+pub fn client_program_row_source_ensure_response_transfer_capacity(@client_row_source_host.RowRunResponseBorrow, Int64) -> Result[Unit, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_finish(@client_row_source_host.RowRun) -> Result[Bool, @client_row_source_host.RowHostIssue]
 
@@ -2240,6 +2400,8 @@ pub fn client_program_source_capture_export_rows(@client_local_host.ClientSource
 
 pub fn client_program_source_capture_original_read(@client_local_host.ClientAccountedSourceCapture) -> @execution_relation.SuppliedRelationRead?
 
+pub fn client_program_source_capture_retain_input(@client_local_host.ClientAccountedSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, @client_local_host.ClientSourceCaptureIssue]
+
 pub fn client_program_source_capture_retain_task(@client_local_host.ClientAccountedSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, @client_local_host.ClientSourceCaptureIssue]
 
 pub fn client_program_source_capture_source(@client_local_host.ClientAccountedSourceCapture) -> @execution_query.CapturedInputSource?
@@ -2257,6 +2419,8 @@ pub fn client_program_source_publication_valid(@program_check.CheckEnvironment, 
 pub fn client_program_stage_semantics_json(@run_publication_host.PreparedClientProgram, Int) -> Result[String, @run_publication_host.ClientIdentityMaterialIssue]
 
 pub fn client_program_start_effect_command_key_workspace(ClientEffectCommandWorkspace) -> Result[@physical_strategy_host.CapturedEffectCommandKeyValidation, ClientEffectCommandWorkspaceIssue]
+
+pub fn client_program_start_installed_original_composed_keyed_input_prefix(@client_local_host.ClientInstalledManagedRun, @run_publication_host.ClientModelReadScope, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientKeyedAcquisition, Array[@client_row_source_host.RowCapturedInput]) -> Result[@client_local_host.ClientOriginalComposedKeyedPrefix, @client_local_host.ClientSerializationPrefixIssue]
 
 pub fn client_program_table_input_matches_source(@run_publication_host.ClientTableInput, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication_host.ClientEffectLocalIdentity) -> Bool
 
@@ -2312,11 +2476,15 @@ pub fn client_program_whole_source_capacity_acquisition(@client_local_host.Clien
 
 pub fn client_program_whole_source_capacity_matches(@client_local_host.ClientInstalledWholeSourceCapacity, @client_row_source_host.RowInputAcquisition, @execution_relation.ExecutionCapacity) -> Bool
 
+pub fn client_program_whole_source_capture_input(@client_row_source_host.RowSourceCapture) -> Result[@client_row_source_host.RowCapturedInput, @client_row_source_host.RowHostIssue]
+
 pub fn client_program_whole_source_check_compute_binding(@client_row_source_host.RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_whole_source_facts(@client_row_source_host.RowInputAcquisition) -> Array[String]
 
 pub fn client_program_whole_source_input_identity(@run_publication_host.PreparedClientProgram, @sourceview_resolution.SourceAcquisition) -> Array[String]?
+
+pub fn client_program_whole_source_is_listing(@client_row_source_host.RowInputAcquisition) -> Bool
 
 pub fn client_program_whole_source_issue_source_evidence(@client_row_source_host.RowInputAcquisition, @client_row_source_host.RowSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[@run_publication.RunEvidenceValue, @client_row_source_host.RowHostIssue]
 

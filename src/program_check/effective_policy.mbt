@@ -2,6 +2,7 @@
 pub enum SourcePolicyOccurrence {
   DirectPolicy(DirectSourcePolicy)
   KeyedResponsePolicy(SourceExecution)
+  KeyedStaticRequestPolicy(SourceExecution)
 }
 
 ///|
@@ -29,8 +30,36 @@ fn prepare_effective_policy(
   let mut unknown_provenance = unknown
   for policy in owned {
     identity_charge(budget, 2)
+    // Static Request values keep their exact original Host subject. They do
+    // not contribute the future response policy to a pre-dispatch request.
+    if policy is KeyedStaticRequestPolicy(check) {
+      guard check.kind is KeyedRequest(binding) &&
+        check.subject.request is @sourceviews.Keyed(_, request) &&
+        physical_equal(request, @sourceviews.keyed_join_request(binding.join)) else {
+        raise ForeignOwner
+      }
+      if check.subject.request_value_policy is Some(selected) {
+        sources.push(
+          (
+            @environment.contract_identity(
+              @environment.data_policy_envelope(selected),
+            ).2,
+            (),
+          ),
+        )
+        classification = combine_classification(
+          classification,
+          @environment.data_classification(selected),
+        )
+      } else if @sourceviews.parameterized_keyed_request_field_count(request) >
+        0 {
+        unknown_provenance = true
+      }
+      continue
+    }
     let (response, response_cid, contribution, missing, request_policy) = match
       policy {
+      KeyedStaticRequestPolicy(_) => raise ForeignOwner
       DirectPolicy(policy) =>
         (
           policy.response,
@@ -197,4 +226,19 @@ fn emit_effective_policy_parts(
   @encode.key(writer, "version")
   @encode.string_value(writer, "actql-effective-data-policy/0.1")
   @encode.end_object(writer)
+}
+
+///|
+/// Borrow the exact deduplicated policy references without a wire parse or copy.
+/// Occurrence correspondence remains in this same original effective policy.
+pub fn effective_policy_source_count(value : EffectivePolicy) -> Int {
+  value.sources.length()
+}
+
+///|
+pub fn effective_policy_source_at(
+  value : EffectivePolicy,
+  index : Int,
+) -> String? {
+  value.sources.get(index)
 }

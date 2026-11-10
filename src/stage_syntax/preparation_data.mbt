@@ -10,6 +10,7 @@ pub(all) struct ProgramPreparationData {
   possible_growth : Int
   projected_fields : Int
   max_label_utf16 : Int
+  may_contain_expression_syntax : Bool
 } derive(Eq, Debug)
 
 ///|
@@ -22,6 +23,7 @@ priv struct ProgramPreparationState {
   mut possible_growth : Int
   mut projected_fields : Int
   mut max_label_utf16 : Int
+  mut may_contain_expression_syntax : Bool
 }
 
 ///|
@@ -72,6 +74,10 @@ fn preparation_step(
       preparation_schema(value, state)
       continue
     }
+    // Literal Values and their annotations cannot introduce expression parser
+    // nodes. Keep every other operand conservative, including unknown syntax;
+    // this cached construction fact does not admit or validate an operation.
+    state.may_contain_expression_syntax = true
     if @wire.object_length(value) is Some(_) {
       state.possible_growth += @wire.observe_subtree_size(value).0
       if key == "rename" {

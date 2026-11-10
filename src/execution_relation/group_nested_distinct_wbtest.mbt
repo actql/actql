@@ -125,7 +125,7 @@ test "runtime identity uses configured depth node work and frame ceilings" {
     max_work: 13,
   }
   let exact_control = { remaining: 13, max_frames: 100, }
-  let exact_workspace = { limit: 6, live: 0, peak: 0, }
+  let exact_workspace = row_workspace(6)
   assert_true(
     runtime_value_identity(value, exact_control, exact_workspace, generous)
     is Ok(_),
@@ -137,7 +137,7 @@ test "runtime identity uses configured depth node work and frame ceilings" {
     runtime_value_identity(
       value,
       { remaining: 12, max_frames: 100, },
-      { limit: 6, live: 0, peak: 0, },
+      row_workspace(6),
       generous,
     )
     is Err(RowLimit),
@@ -149,7 +149,7 @@ test "runtime identity uses configured depth node work and frame ceilings" {
       { ..generous, max_work: 12, },
     ] {
     let control = { remaining: 13, max_frames: 100, }
-    let workspace = { limit: 6, live: 0, peak: 0, }
+    let workspace = row_workspace(6)
     assert_true(
       runtime_value_identity(value, control, workspace, short) is Err(RowLimit),
     )
@@ -159,7 +159,7 @@ test "runtime identity uses configured depth node work and frame ceilings" {
     runtime_value_identity(
       value,
       { remaining: 13, max_frames: 100, },
-      { limit: 5, live: 0, peak: 0, },
+      row_workspace(5),
       generous,
     )
     is Err(RowLimit),

@@ -2,7 +2,7 @@
 test "aggregate group ranges advance canonical text boundaries" {
   let table = order_table([Text("𠮷a"), Text("𠮷a"), Text("𠮷b")])
   let control : ControlBudget = { remaining: 1000, max_frames: 0, }
-  let workspace = { limit: 2, live: 0, peak: 0, }
+  let workspace = row_workspace(2)
   let state = start_aggregate_group_ranges(
     table,
     [0, 1, 2],
@@ -34,7 +34,7 @@ test "aggregate group ranges advance canonical text boundaries" {
 test "aggregate range failure releases only its own partial groups" {
   let table = order_table([Number(1), Number(2)])
   let control : ControlBudget = { remaining: 100, max_frames: 0, }
-  let workspace = { limit: 4, live: 3, peak: 3, }
+  let workspace = { ..row_workspace(4), live: 3, peak: 3, }
   let state = start_aggregate_group_ranges(
     table,
     [0, 1],
@@ -69,7 +69,7 @@ test "aggregate range cancellation and empty global group keep exact limits" {
       [],
       1,
       { remaining: work, max_frames: 0, },
-      { limit: space, live: 0, peak: 0, },
+      { ..row_workspace(space), live: 0, peak: 0, },
     )
     let result = advance_aggregate_group_ranges(state)
     if succeeds {
@@ -79,7 +79,7 @@ test "aggregate range cancellation and empty global group keep exact limits" {
     }
   }
   let control : ControlBudget = { remaining: 1000, max_frames: 0, }
-  let workspace = { limit: 4, live: 1, peak: 1, }
+  let workspace = { ..row_workspace(4), live: 1, peak: 1, }
   let state = start_aggregate_group_ranges(
     order_table([Text("𠮷"), Text("𠮷")]),
     [0, 1],

@@ -103,3 +103,99 @@ test "rollback retires prepared correspondence and lost commit cannot revive it"
   journal.invalidate_operation_record()
   database.close_checked().unwrap()
 }
+
+///|
+// Legacy original correspondence regression only; not Source permission,
+// installed capacity or actual relation Work execution.
+test "relation entry cache guard refuses absent foreign and invalidated original binding" {
+  let (database, journal, _, _) = submitted_test_setup("relation-entry-binding")
+  let (request, prepared, compiled, definition) = journal_test_run(
+    "relation-entry-request", "relation-entry-run",
+  )
+  assert_false(
+    relation_file_prepared_binding_current(
+      journal, request, prepared, compiled, definition,
+    ),
+  )
+  journal.operation_active = true
+  assert_false(
+    relation_file_prepared_binding_current(
+      journal, request, prepared, compiled, definition,
+    ),
+  )
+  journal
+  .validate_prepared_run_binding(request, prepared, compiled, definition)
+  .unwrap()
+  assert_true(
+    relation_file_prepared_binding_current(
+      journal, request, prepared, compiled, definition,
+    ),
+  )
+  journal.bind_run(request, prepared, compiled, definition, true).unwrap()
+  |> ignore
+  assert_true(
+    relation_file_prepared_binding_current(
+      journal, request, prepared, compiled, definition,
+    ),
+  )
+  assert_true(journal.lookup(request, true) is Ok(Retained(_)))
+  assert_true(
+    relation_file_prepared_binding_current(
+      journal, request, prepared, compiled, definition,
+    ),
+  )
+  journal.reserve_dispatch(request, true).unwrap() |> ignore
+  assert_true(
+    relation_file_prepared_binding_current(
+      journal, request, prepared, compiled, definition,
+    ),
+  )
+  let start = claim_native_client_retained_work_first_start(journal, request, () => {
+    relation_file_prepared_binding_current(
+      journal, request, prepared, compiled, definition,
+    )
+  }).unwrap()
+  assert_true(
+    relation_file_prepared_binding_current(
+      journal, request, prepared, compiled, definition,
+    ),
+  )
+  start
+  .require_current(journal, request, () => {
+    relation_file_prepared_binding_current(
+      journal, request, prepared, compiled, definition,
+    )
+  })
+  .unwrap()
+  assert_true(
+    relation_file_prepared_binding_current(
+      journal, request, prepared, compiled, definition,
+    ),
+  )
+  let (_, foreign, _, _) = journal_test_run(
+    "relation-entry-foreign", "relation-entry-foreign-run",
+  )
+  assert_false(
+    relation_file_prepared_binding_current(
+      journal, request, foreign, compiled, definition,
+    ),
+  )
+  assert_true(
+    relation_file_prepared_binding_current(
+      journal, request, prepared, compiled, definition,
+    ),
+  )
+  let refused : Result[Unit, NativeClientRunJournalIssue] = journal.transaction(() => {
+      Err(CustodyLost)
+    },
+  )
+  assert_true(refused is Err(CustodyLost))
+  assert_false(
+    relation_file_prepared_binding_current(
+      journal, request, prepared, compiled, definition,
+    ),
+  )
+  journal.operation_active = false
+  journal.invalidate_operation_record()
+  database.close_checked().unwrap()
+}

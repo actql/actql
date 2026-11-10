@@ -3,8 +3,14 @@
 // allowances. These are not installed Node profiles, Store ACKs or public E2E.
 fn original_observation_test_start(
   producer? : Ref[@resources.Reservation?]? = None,
+  source? : String = infer_fixture_program,
+  provider? : @model.ModelProvider = original_funded_start_provider(Ref(0)),
+  run_id? : String = "run",
+  spare_publication_slot? : Bool = false,
+  input_body? : Bool = false,
+  input_read_ceiling? : Int64? = None,
 ) -> (Execution, @resources.Ledger, @publication_host.ClientModelReadConsumer) {
-  let prepared = fixture_prepared()
+  let prepared = fixture_prepared(source~)
   let plan = call_identity_plan(prepared)
   let limits = standard_limits()
   let (compiled, _) = original_input_capacity_run(prepared, plan)
@@ -20,10 +26,13 @@ fn original_observation_test_start(
     20,
   ).unwrap()
   let definition = @publication_host.issue_client_compiled_run_definition(
-    compiled, "original-observation", "run", "2026-10-12T00:00:00.000Z", "2099-01-01T00:00:00.000Z",
+    compiled, "original-observation", run_id, "2026-10-12T00:00:00.000Z", "2099-01-01T00:00:00.000Z",
   ).unwrap()
   let ledger = @resources.create_ledger({
     ..limits.model.ledger,
+    retained_bytes: input_read_ceiling.unwrap_or(
+      limits.model.ledger.retained_bytes,
+    ),
     attempts: Int::min(limits.model.ledger.attempts, 4),
     transfer_bytes: Int64::min(limits.model.ledger.transfer_bytes, 133072L),
   }).unwrap()
@@ -34,11 +43,8 @@ fn original_observation_test_start(
     plan,
     ledger,
     bootstrap,
-    if producer is Some(_) {
-      5
-    } else {
-      4
-    },
+    (if producer is Some(_) { 5 } else { 4 }) +
+    (if spare_publication_slot { 1 } else { 0 }),
     if producer is Some(_) {
       3
     } else {
@@ -53,22 +59,42 @@ fn original_observation_test_start(
   let consumer = @publication_host.claim_client_model_read_preparation(
     read, compiled, definition, plan, 7L, 5L,
   ).unwrap()
-  let active = start_original_model_preparation(
-    prepared,
-    2,
-    infer_fixture_installed_contracts(),
-    infer_fixture_values,
-    original_funded_start_provider(Ref(0)),
-    limits,
-    compiled,
-    definition,
-    plan,
-    consumer,
-    7L,
-    5L,
-    100L,
-    5L,
-  ).unwrap()
+  let active = if input_body {
+    let (occurrence, prefix) = original_composed_test_input(prepared)
+    start_original_composed(
+      occurrence,
+      plan,
+      prefix,
+      [],
+      provider,
+      limits,
+      compiled,
+      definition,
+      consumer,
+      7L,
+      5L,
+      100L,
+      5L,
+      input_body_read=Some(read),
+    ).unwrap()
+  } else {
+    start_original_model_preparation(
+      prepared,
+      2,
+      infer_fixture_installed_contracts(),
+      infer_fixture_values,
+      provider,
+      limits,
+      compiled,
+      definition,
+      plan,
+      consumer,
+      7L,
+      5L,
+      100L,
+      5L,
+    ).unwrap()
+  }
   let configuration = evidence_account(@authorization.Allow)
   let permit = @publication_host.issue_client_infer_dispatch_admission(
     compiled,
@@ -470,12 +496,26 @@ test "complete original observation keeps compiler order when the second Model o
   }
   assert_eq(calls[0].val + calls[1].val, 2)
   let ordered = [owners[0].unwrap(), owners[1].unwrap()]
-  // Independent declared metadata window: 16*4096 +2*128 +1*256 =66048.
+  // Actual flat metadata still needs 16*4096 +2*128 +1*256 =66048.
+  // Start with fixed bytes, then exercise the same parent growth below.
   let publication = reserve_original_infer_publication_capacity(
     ordered[1],
-    66048L,
+    1L,
     7L,
   ).unwrap()
+  // Publication is a sibling byte-only lifetime on the actual shared parent,
+  // not new Model work. Its next constructor may exceed one Model component's
+  // work ceiling while the same parent admits it. Neither ceiling is raised.
+  let child = ordered[1].limits.model.ledger
+  let parent = @resources.ledger_limits(ledger)
+  grow_original_infer_publication_capacity(
+    ordered[1],
+    publication,
+    child.retained_bytes + 1L,
+    child.execution_bytes + 1L,
+  ).unwrap()
+  assert_eq(ordered[1].limits.model.ledger, child)
+  assert_eq(@resources.ledger_limits(ledger), parent)
   let before = @resources.ledger_usage(ledger)
   let issued = start_complete_original_observation_issuance(
     ordered,
@@ -512,4 +552,35 @@ test "complete original observation keeps compiler order when the second Model o
   )
   assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
   assert_eq(@resources.ledger_usage(ledger).attempts, 2)
+}
+
+///|
+test "original observation metadata quote reads the same completed row inventory without debit" {
+  let (active, ledger, _) = original_observation_test_start()
+  assert_true(
+    original_observation_issuance_metadata_bytes(active, issuance_limits())
+    is None,
+  )
+  assert_true(fixture_finish(active) is Complete(_, ..))
+  let before = @resources.ledger_usage(ledger)
+  let uses = active.output_uses
+  assert_eq(
+    original_observation_issuance_metadata_bytes(active, issuance_limits()),
+    Some(65664L),
+  )
+  assert_true(
+    original_observation_issuance_metadata_bytes(active, {
+      ..issuance_limits(),
+      max_slots: 0,
+    })
+    is None,
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
+  assert_eq(active.output_uses, uses)
+  cancel(active) |> ignore
+  assert_true(cleanup(active).unwrap())
+  assert_true(
+    original_observation_issuance_metadata_bytes(active, issuance_limits())
+    is None,
+  )
 }

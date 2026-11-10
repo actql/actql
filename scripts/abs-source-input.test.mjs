@@ -23,10 +23,16 @@ test('absolute-value fixtures distinguish NULL, lazy demand, type refusal and ch
   assert.deepEqual(cases.get('abs-lazy-operand').expected, [{value: 9}]);
   assert.deepEqual(cases.get('abs-lazy-failure').expected, [{value: 7}]);
   assert.deepEqual(cases.get('abs-empty-failure').expected, []);
-  assert.equal(absSuccesses.length, 13);
-  assert.equal(absRefusals.length, 9);
-  assert.equal(absRefusals.find(item => item.name === 'abs-authored-negative-zero').text,
-    'SELECT ABS(-0.0) AS value');
+  assert.equal(absSuccesses.length, 14);
+  assert.equal(absRefusals.length, 8);
+  const zero = cases.get('abs-authored-negative-zero');
+  assert.equal(zero.text, 'SELECT ABS(-0.0) AS value');
+  assert.deepEqual(zero.expected, [{value: 0}]);
+  assert.equal(Object.is(zero.expected[0].value, -0), false);
+  assert.deepEqual(zero.columns, [{name: 'value', contract: {type: 'number', nullable: false}}]);
+  assert.equal(zero.sourceReadCount, 0);
+  assert.equal(zero.sourceReadSessionCount, 0);
+  assert(!absRefusals.some(item => item.name === zero.name));
   assert.ok(absRefusals.every(item => item.expectedCode === 'ClientProgramInvalidInput'));
   assert.equal(absExecutionFailures.length, 2);
   assert.deepEqual(absExecutionFailures.find(item => item.name === 'abs-failure-after-valid-row').sourceRows,

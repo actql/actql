@@ -105,7 +105,7 @@ fn ext_consume_sorted(
     15,
     { remaining: 100000, max_frames: 100, },
     row_output(),
-    { limit: 100000, live: 0, peak: 0, },
+    row_workspace(100000),
     fn(row, _source, _names, _projection) { append_layout_row(builder, row) },
     ordered_budget=Some(logical),
   )
@@ -177,11 +177,12 @@ test "typed inlet through completed chunk sort feeds checked column consumer" {
       at += n
     }
     release_layout_columns(input.storage)
-    ext_sort_end(s, { remaining: 100000, max_frames: 100, }, row_output(), {
-      limit: 100000,
-      live: 0,
-      peak: 0,
-    }).unwrap()
+    ext_sort_end(
+      s,
+      { remaining: 100000, max_frames: 100, },
+      row_output(),
+      row_workspace(100000),
+    ).unwrap()
     let before = (ledger.slots.live, ledger.bytes.live)
     for (work, live) in [(0L, 10000L), (134L, 10000L), (135L, 206L)] {
       let fail_budget = ext_consumer_budget(work, live~)

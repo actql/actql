@@ -336,7 +336,13 @@ test "query phase retains metadata families while the unentered metadata phase k
     @execution.execution_capacity_execution_bytes(current) < 536870912L,
   )
   assert_true(
-    @execution.execution_capacity_execution_bytes(before) >= 536870912L,
+    @execution.execution_capacity_execution_bytes(before) <= 536870912L,
+  )
+  // Even the full inactive workspace now fits with shared active-map bounds;
+  // the current Query still omits the already-completed Describe workspace.
+  assert_true(
+    @execution.execution_capacity_execution_bytes(current) <
+    @execution.execution_capacity_execution_bytes(before),
   )
   assert_false(@salesforce_catalog.query_read_complete(read))
 }

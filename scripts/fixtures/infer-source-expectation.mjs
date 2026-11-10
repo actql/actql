@@ -29,6 +29,15 @@ const keptColumns = [
   {name: 'note', contract: {type: 'string', nullable: false, max_utf8_bytes: 6}},
   ...expectedColumns,
 ];
+// TRUE strict equality on assessment.value.risk proves that same receiver
+// non-null; unrelated nullable members keep their original contracts.
+const filteredColumns = [keptColumns[0], keptColumns[1], {
+  ...expectedColumns[0], contract: {
+    ...expectedColumns[0].contract,
+    fields: {...expectedColumns[0].contract.fields,
+      value: {...expectedColumns[0].contract.fields.value, nullable: false}},
+  },
+}];
 const keptRows = [{id: 'ticket-1', note: 'urgent', assessment: {
   input_key: {id: 'ticket-1'}, outcome: 'ok',
   value: {reason: null, risk: 'high'},
@@ -141,11 +150,11 @@ export const sourceCases = {
   'keep-filter': {
     source: `${prefix} ${infer} KEEP (id, text AS note) AS assessment ` +
       "|> WHERE assessment.outcome = 'ok' AND assessment.value.risk = 'high'",
-    rows: keptRows, columns: keptColumns, calls: 1, inputWire: '"urgent"'},
+    rows: keptRows, columns: filteredColumns, calls: 1, inputWire: '"urgent"'},
   'folded-filter': {
     source: `${prefix} ${infer} KEEP (id, text AS note) AS assessment ` +
       "|> WHERE assessment.OUTCOME = 'ok' AND assessment.VaLuE.RiSk = 'high'",
-    rows: keptRows, columns: keptColumns, calls: 1, inputWire: '"urgent"'},
+    rows: keptRows, columns: filteredColumns, calls: 1, inputWire: '"urgent"'},
   'folded-projection': {
     source: `${source} |> SELECT assessment.VALUE.RISK AS risk, assessment.value.REASON AS reason`,
     rows: [{risk: 'high', reason: null}],

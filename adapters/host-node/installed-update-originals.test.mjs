@@ -6,9 +6,13 @@ import test from 'node:test';
 import {canonicalJson as valueJson} from '../../packages/sdk/host-port.mjs';
 import {createInstalledRowEffect, installedRowEffectOwnerBinding} from './installed-row-effect.mjs';
 import {installUpdateTargetOriginals} from './installed-update-originals.mjs';
+import {checked} from '../host-common/runtime-result.mjs';
 import {updateTargetPreparedOriginalShape as preparedShape,
   updateTargetRunOriginalShape as runShape, updateTargetSelectionsCid as selectionsCid} from './update-target-original-shape.mjs';
-import * as dataOwner from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+import {pathToFileURL} from 'node:url';
+const dataOwner = await import(process.env.ACTQL_TEST_UPDATE_ORIGINAL_RUNTIME === undefined
+  ? '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js'
+  : pathToFileURL(process.env.ACTQL_TEST_UPDATE_ORIGINAL_RUNTIME).href);
 
 import {recoverAdmittedEffectRun} from './effect-run-recovery.mjs';
 import {installNodeClientEffectRun} from './client-effect-run.mjs';
@@ -24,6 +28,7 @@ const updateTargetSelectionsCid = value => selectionsCid(value, dataOwner);
 // nominal ports below remain composition doubles, not execution evidence.
 const dataPorts = Object.fromEntries([
   'clientProgramIssueEffectTargetInstallation', 'clientProgramEffectTargetInstallationsShape',
+  'clientProgramEffectTargetInstallationsDataEqual',
   'clientProgramEffectTargetPreparedOriginalShape', 'clientProgramEffectTargetRunOriginalShape',
   'clientProgramEffectTargetOriginalDataEqual', 'clientProgramEffectTargetSelectionDataCid',
   'clientProgramEffectTargetRunSelectionCid',
@@ -170,6 +175,12 @@ async function fixture(t) {
       assert.equal(wire, materialsWire); assert.equal(expected, cid('2'));
       assert.equal(features.at(-1), 'request'); return ok({prepared, compilation, allowed, definition});
     },
+    clientProgramAdmitEffectRunMaterialsWithCompilation(wire, expected, originalCompilation, request) {
+      calls.push('bind-exact-run');
+      assert.equal(wire, materialsWire); assert.equal(expected, cid('2'));
+      assert.strictEqual(originalCompilation, compilation); assert.equal(request, 'request');
+      return ok({prepared, compilation, allowed, definition});
+    },
     clientProgramEffectRunMaterialsPrepared: value => value.prepared,
     clientProgramEffectRunMaterialsCompilation: value => value.compilation,
     clientProgramEffectRunMaterialsAllowed: value => value.allowed,
@@ -205,6 +216,26 @@ async function fixture(t) {
     selectionWire, selections: originals.selectionsOf(prepared), installedEffect, moon, control, runDefinition};
 }
 
+test('prepared and Run original projections fund their actual material before DATA conversion', async t => {
+  const f = await fixture(t), projected = [];
+  const reserve = (prepared, material, installations) => {
+    assert.strictEqual(prepared, f.prepared);
+    assert.equal(installations.length, 1);
+    assert.equal(installations[0].cid, expectedOwnerCid);
+    projected.push(material);
+  };
+  const original = f.originals.capturePrepared(f.prepared, f.compilation, reserve);
+  assert.deepEqual(projected, [original.preparedWire]);
+  f.originals.captureRun({...f, identity: 'request'}, reserve);
+  assert.deepEqual(projected, [original.preparedWire, f.materialsWire]);
+  const refused = new Error('SameRequestCapacityRefused');
+  assert.throws(() => f.originals.capturePrepared(f.prepared, f.compilation,
+    () => {throw refused;}), error => error === refused);
+  assert.throws(() => f.originals.captureRun({...f, identity: 'request'},
+    () => {throw refused;}), error => error === refused);
+  assert.equal(f.originals.restorePrepared(original).prepared, f.prepared);
+});
+
 test('held originals restore concrete selection without invoking a source resolver', async t => {
   const f = await fixture(t);
   const original = f.originals.capturePrepared(f.prepared, f.compilation);
@@ -214,6 +245,94 @@ test('held originals restore concrete selection without invoking a source resolv
   assert.equal(f.originals.compilationFor(restored.prepared), f.compilation);
   restored.assertUpdateSelectionCurrent();
   assert.deepEqual(f.calls, ['restore-prepared']);
+});
+
+test('one current observation issues actual same-owner installation DATA once without caching live facts', async t => {
+  const f = await fixture(t);
+  const original = f.originals.capturePrepared(f.prepared, f.compilation);
+  const restored = f.originals.restorePrepared(original);
+  const issue = f.moon.clientProgramIssueEffectTargetInstallation;
+  const current = f.moon.clientProgramEffectTargetSelectionCurrent;
+  let completedCoreIssuances = 0, completedCurrentObservations = 0;
+  f.moon.clientProgramIssueEffectTargetInstallation = (...args) => {
+    const result = issue(...args); checked(result); completedCoreIssuances++; return result;
+  };
+  f.moon.clientProgramEffectTargetSelectionCurrent = (...args) => {
+    const result = current.apply(f.moon, args);
+    if (result) completedCurrentObservations++;
+    return result;
+  };
+  for (let index = 0; index < 3; index++) restored.assertUpdateSelectionCurrent();
+  console.log('ACTQL_OWNER_PROJECTION_WORK ' + JSON.stringify({completedCoreIssuances,
+    completedCurrentObservations}));
+  assert.equal(completedCoreIssuances, 3);
+  assert.equal(completedCurrentObservations, 3);
+  // A changed physical observation must still issue through real Core and fail.
+  f.moon.clientProgramIssueEffectTargetInstallation = wire => {
+    const facts = JSON.parse(wire); facts.continuation_binding = cid('f');
+    const result = issue(JSON.stringify(facts)); checked(result); return result;
+  };
+  assert.throws(() => restored.assertUpdateSelectionCurrent(),
+    {code:'InstalledEffectOriginalSelectionChanged'});
+  f.moon.clientProgramIssueEffectTargetInstallation = issue;
+  f.moon.clientProgramEffectTargetSelectionCurrent = () => false;
+  assert.throws(() => restored.assertUpdateSelectionCurrent(),
+    {name:'TypeError',message:'InvalidEffectTargetSelections'});
+  f.moon.clientProgramEffectTargetSelectionCurrent = current;
+  const fabricated = [{...f.installedEffect}];
+  fabricated.flatMap = () => assert.fail('Caller methods cannot issue private owner observations');
+  for (const installedEffect of [{...f.installedEffect}, {effects:fabricated},
+    {effects:[f.installedEffect,f.installedEffect]}]) {
+    const foreign = installUpdateTargetOriginals({...f, installedEffect});
+    assert.throws(() => foreign.restorePrepared(original),
+      {code:'InstalledEffectOriginalSelectionChanged'});
+  }
+});
+
+test('held caller reuses its complete original only after existing nominal current and full-byte validation', async t => {
+  const f = await fixture(t), base = runInstallationFixture();
+  const original = f.originals.capturePrepared(f.prepared, f.compilation);
+  const restored = f.originals.restorePrepared(original);
+  let reservations = 0, observations = 0, compilations = 0;
+  const observe = f.moon.clientProgramEffectTargetSelectionCurrent;
+  f.moon.clientProgramEffectTargetSelectionCurrent = function(...args) {
+    observations++; return Reflect.apply(observe, this, args);
+  };
+  const moon = {...base.moon, ...f.moon,
+    clientProgramCompileLocalEffects() {compilations++; assert.fail('Do not recompile restored material');}};
+  const run = installNodeClientEffectRun({...base.options, moon,
+    publicationControl: f.control, updateTargetOriginals: f.originals,
+    reserveOriginal() {reservations++; assert.fail('Do not demand a new construction parent for held original');}});
+  assert.strictEqual(run.capturePreparedOriginal(restored.prepared, original), original);
+  assert.equal(observations, 1, 'full original recapture still observes current installation');
+  for (const changed of [{...original, preparedWire: original.preparedWire + ' '},
+    {...original, compiledPlanCid: cid('9')},
+    {...original, installations: [{...original.installations[0], cid: cid('9')}]}]) {
+    assert.throws(() => run.capturePreparedOriginal(restored.prepared, changed),
+      {code: 'InstalledEffectOriginalSelectionChanged'});
+  }
+  f.moon.clientProgramEffectTargetSelectionCurrent = () => false;
+  assert.throws(() => run.capturePreparedOriginal(restored.prepared, original));
+  assert.equal(reservations, 0); assert.equal(compilations, 0);
+});
+
+test('fresh caller still reserves its new original and cannot label it as restored DATA', async t => {
+  const f = await fixture(t), base = runInstallationFixture();
+  let reservations = 0;
+  const moon = {...base.moon, ...f.moon,
+    clientProgramEffectCompilationIssueCode: () => undefined,
+    clientProgramCompileLocalEffects: value => {assert.equal(value, f.prepared); return ok(f.compilation);}};
+  const run = installNodeClientEffectRun({...base.options, moon,
+    publicationControl: f.control, updateTargetOriginals: f.originals,
+    reserveOriginal(prepared, wire, installations) {
+      assert.equal(prepared, f.prepared); assert.equal(typeof wire, 'string');
+      assert.equal(installations.length, 1); reservations++;
+    }});
+  const original = run.capturePreparedOriginal(f.prepared);
+  assert.equal(reservations, 1);
+  assert.throws(() => run.capturePreparedOriginal(f.prepared, original),
+    {code: 'InstalledEffectOriginalSelectionChanged'});
+  assert.equal(reservations, 1);
 });
 
 test('accepted original binds the independently selected Run before exposing selection', async t => {

@@ -5,6 +5,34 @@
 // capacity, declaration, account or observation crosses this bridge.
 
 ///|
+#export_name("clientProgramHubSpotMappingConstructionCapacity")
+pub fn client_program_hubspot_mapping_construction_capacity(
+  fields : Int,
+  sources : Int,
+  input_units : Int64,
+  max_properties : Int,
+  max_fields : Int,
+  max_name_bytes : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @execution.ExecutionCapacity? {
+  @hubspot_catalog.execution_mapping_construction_capacity(
+    fields,
+    sources,
+    input_units,
+    {
+      max_properties,
+      max_fields,
+      max_name_bytes,
+      max_bytes,
+      max_nodes,
+      max_depth,
+    },
+  )
+}
+
+///|
 #export_name("clientProgramHubSpotAccountConstructionCapacity")
 pub fn client_program_hubspot_account_construction_capacity(
   body_bytes : Int,
@@ -46,5 +74,66 @@ pub fn client_program_hubspot_object_construction_capacity(
     max_schema_bytes,
     max_schema_nodes,
     max_schema_depth,
+  )
+}
+
+///|
+/// Same Common capacity issuer; provider Catalogs remain in their own runtime.
+#export_name("clientProgramHubSpotSourceReaderCapacity")
+pub fn client_program_hubspot_source_reader_capacity(
+  reader : Array[Int],
+  columns : Int,
+  secret_bytes : Int,
+  protocol : Array[Int],
+  target_units : Int,
+  received : Array[Int],
+) -> @execution.ExecutionCapacity? {
+  let native = @hubspot_catalog.source_read_construction_capacity(
+    protocol, target_units, received,
+  )
+  hubspot_reader_common_capacity(
+    reader, columns, secret_bytes, native, received, target_units,
+  )
+}
+
+///|
+#export_name("clientProgramHubSpotSourceReaderObservedCapacity")
+pub fn client_program_hubspot_source_reader_observed_capacity(
+  reader : Array[Int],
+  columns : Int,
+  secret_bytes : Int,
+  protocol : Array[Int],
+  target_units : Int,
+  received : Array[Int],
+  property_geometry : Array[Int],
+) -> @execution.ExecutionCapacity? {
+  let native = @hubspot_catalog.source_read_observed_construction_capacity(
+    protocol, target_units, received, property_geometry,
+  )
+  hubspot_reader_common_capacity(
+    reader, columns, secret_bytes, native, received, target_units,
+  )
+}
+
+///|
+fn hubspot_reader_common_capacity(
+  reader : Array[Int],
+  columns : Int,
+  secret_bytes : Int,
+  native : @execution.ExecutionCapacity?,
+  received : Array[Int],
+  target_units : Int,
+) -> @execution.ExecutionCapacity? {
+  let mut total = 0L
+  for bytes in received {
+    total = total + bytes.to_int64()
+  }
+  @client_local_host.installed_native_source_reader_capacity(
+    reader,
+    columns,
+    secret_bytes,
+    native,
+    received=Some((total, received.length())),
+    max_query_bytes=target_units,
   )
 }

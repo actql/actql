@@ -92,3 +92,54 @@ test "Native read selection without an expiry alternative cannot issue unbounded
     is Err(InvalidOriginal),
   )
 }
+
+///|
+test "accepted Run Policy selection is explicit finite exclusive and closed" {
+  let literal = "\"data_policy_cids\":[\"sha256:" + "a".repeat(64) + "\"]"
+  let finite = local_read_original_wire.replace(
+    old="\"expires_at\":\"2026-10-12T00:00:00.000Z\"",
+    new="\"run_policy_profile_cid\":\"sha256:" +
+      "b".repeat(64) +
+      "\",\"run_file\":\"run.json\",\"retention_file\":\"retention.json\",\"store_file\":\"store.json\"",
+  )
+  let accepted = finite.replace(old=literal, new="\"accepted_run_policy\":true")
+  assert_true(
+    admit_native_local_read_selection(accepted).unwrap().policy
+    is AcceptedRunPolicy,
+  )
+  assert_true(
+    admit_native_local_read_selection(finite).unwrap().policy
+    is ExplicitPolicyCids(_),
+  )
+  assert_true(
+    admit_native_local_read_selection(local_read_original_wire).unwrap().policy
+    is ExplicitPolicyCids(_),
+  )
+  for
+    replacement in [
+      "\"accepted_run_policy\":false",
+      "\"accepted_run_policy\":null",
+      "\"accepted_run_policy\":1",
+      "\"accepted_run_policy\":\"true\"",
+      "\"accepted_run_policy\":true," + literal,
+      "\"data_policy_cids\":[]",
+      "\"unknown_policy\":true",
+      "\"accepted_run_policy\":true,\"accepted_run_policy\":true",
+    ] {
+    assert_true(
+      admit_native_local_read_selection(
+        finite.replace(old=literal, new=replacement),
+      )
+      is Err(_),
+    )
+  }
+  assert_true(
+    admit_native_local_read_selection(
+      local_read_original_wire.replace(
+        old=literal,
+        new="\"accepted_run_policy\":true",
+      ),
+    )
+    is Err(InvalidOriginal),
+  )
+}

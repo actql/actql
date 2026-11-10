@@ -58,6 +58,7 @@ struct NativeBackedExecutionLoan[T, C] {
   child : C
   accounting : @resources.BackedExecutionDelegation[NativeHostBootstrap[T], C]
   physical : PhysicalRegionLoan
+  initial_window : Int64?
   mut physical_returned : Bool
   mut settled : Bool
   mut view : NativeBackedExecutionView[T, C]?
@@ -145,10 +146,20 @@ pub fn[T, C] NativeHostBootstrap::lend_backed_region_in_process(
   limits : @resources.LedgerLimits,
   overhead_retained : Int64,
   overhead_execution : Int64,
+  initial_window? : Int64? = None,
 ) -> Result[NativeBackedExecutionAcquisition[T, C], NativeBackedExecutionIssue] {
   self.lend_region_original(
-    original, region, scope, child, extent, access, limits, overhead_retained, overhead_execution,
+    original,
+    region,
+    scope,
+    child,
+    extent,
+    access,
+    limits,
+    overhead_retained,
+    overhead_execution,
     true,
+    initial_window~,
   )
 }
 
@@ -165,6 +176,7 @@ fn[T, C] NativeHostBootstrap::lend_region_original(
   overhead_retained : Int64,
   overhead_execution : Int64,
   in_process : Bool,
+  initial_window? : Int64? = None,
 ) -> Result[NativeBackedExecutionAcquisition[T, C], NativeBackedExecutionIssue] {
   match self.require_borrow_current(original, scope) {
     Err(issue) => return Err(Bootstrap(issue))
@@ -187,6 +199,7 @@ fn[T, C] NativeHostBootstrap::lend_region_original(
       limits,
       overhead_retained,
       overhead_execution,
+      initial_window~,
     ) {
     Err(issue) => return Err(Accounting(issue))
     Ok(value) => value
@@ -208,6 +221,7 @@ fn[T, C] NativeHostBootstrap::lend_region_original(
     child,
     accounting,
     physical,
+    initial_window,
     physical_returned: false,
     settled: false,
     view: None,

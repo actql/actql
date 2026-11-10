@@ -6081,7 +6081,7 @@
             "native"
           ],
           "path": "src/query_integration/local_managed_unary_wbtest.mbt",
-          "fixture": "ordinary keyed count chain admits exact workspace and one-short limit"
+          "fixture": "ordinary keyed count chain grows prepaid workspace and preserves one-short physical limits"
         },
         {
           "role": "keyed_count_same_stage_overlap_capacity",

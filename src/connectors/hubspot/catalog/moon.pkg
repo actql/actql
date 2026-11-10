@@ -13,3 +13,7 @@ import {
   "moonbitlang/core/string",
   "moonbitlang/core/encoding/utf8",
 }
+
+import {
+  "actql/actql/physical_resources" @resources,
+} for "wbtest"

@@ -25,6 +25,80 @@ pub fn admit_client_effect_review_checkpoint_preview(
   @publication.EffectPreviewIdentity,
   ClientEffectCheckpointReconciliationIssue,
 ] {
+  let authoring_cid = match
+    client_effect_review_checkpoint_authoring(
+      original, allowed, definition, stored_wire, limits,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let preview = match
+    @publication.admit_effect_preview_identity(
+      preview_wire,
+      @publication.publication_contract_identity(definition),
+      authoring_cid,
+      limits.max_wire_bytes,
+      limits.max_nodes,
+      limits.max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Preview(issue))
+  }
+  if @publication.effect_preview_semantic_identity(preview) !=
+    original.checkpoint.required_artifact_cid {
+    return Err(ForeignPreview)
+  }
+  Ok(preview)
+}
+
+///|
+/// Same checkpoint admission, retaining its original canonical body for the
+/// Native saved caller rather than reparsing it for each application row.
+pub fn admit_client_effect_review_checkpoint_preview_with_original(
+  original : @checkpoint.SealedCheckpoint,
+  allowed : ClientEffectAllowedRun,
+  definition : @publication.PublicationContract,
+  stored_wire : String,
+  preview_wire : String,
+  limits : @checkpoint.WireLimits,
+) -> Result[
+  (@publication.EffectPreviewIdentity, @canonical.CanonicalValue),
+  ClientEffectCheckpointReconciliationIssue,
+] {
+  let authoring_cid = match
+    client_effect_review_checkpoint_authoring(
+      original, allowed, definition, stored_wire, limits,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let preview = match
+    @publication.admit_effect_preview_identity_with_original(
+      preview_wire,
+      @publication.publication_contract_identity(definition),
+      authoring_cid,
+      limits.max_wire_bytes,
+      limits.max_nodes,
+      limits.max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Preview(issue))
+  }
+  if @publication.effect_preview_semantic_identity(preview.0) !=
+    original.checkpoint.required_artifact_cid {
+    return Err(ForeignPreview)
+  }
+  Ok(preview)
+}
+
+///|
+fn client_effect_review_checkpoint_authoring(
+  original : @checkpoint.SealedCheckpoint,
+  allowed : ClientEffectAllowedRun,
+  definition : @publication.PublicationContract,
+  stored_wire : String,
+  limits : @checkpoint.WireLimits,
+) -> Result[String, ClientEffectCheckpointReconciliationIssue] {
   match @checkpoint.confirm_checkpoint_persisted(original, stored_wire) {
     Ok(_) => ()
     Err(issue) => return Err(Checkpoint(issue))
@@ -55,23 +129,7 @@ pub fn admit_client_effect_review_checkpoint_preview(
     Ok(value) => value
     Err(issue) => return Err(Authoring(issue))
   }
-  let preview = match
-    @publication.admit_effect_preview_identity(
-      preview_wire,
-      @publication.publication_contract_identity(definition),
-      @publication.run_evidence_value_identity(authoring),
-      limits.max_wire_bytes,
-      limits.max_nodes,
-      limits.max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Preview(issue))
-  }
-  if @publication.effect_preview_semantic_identity(preview) !=
-    original.checkpoint.required_artifact_cid {
-    return Err(ForeignPreview)
-  }
-  Ok(preview)
+  Ok(@publication.run_evidence_value_identity(authoring))
 }
 
 ///|

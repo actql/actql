@@ -55,7 +55,10 @@ pub fn borrow_row_run_responses(
     run.configuration is DirectConfiguration(configuration) else {
     return Err(InvalidState)
   }
-  if !physical_equal(configuration, acquisition.configuration) {
+  if !row_response_configuration_matches(
+      configuration,
+      acquisition.configuration,
+    ) {
     return Err(ForeignDeclaration)
   }
   run.response_borrowed = true
@@ -91,7 +94,7 @@ pub fn check_row_run_response_borrow_current(
   let run = value.run
   let selected = match (run.configuration, value.selection) {
     (DirectConfiguration(original), QueryResponse(acquisition)) =>
-      physical_equal(original, acquisition.configuration)
+      row_response_configuration_matches(original, acquisition.configuration)
     (InputConfiguration(original), InputResponse(acquisition)) =>
       physical_equal(original, acquisition)
     _ => false
@@ -213,12 +216,21 @@ fn grow_row_run_response_capacity_at_phase(
   let (retained, execution) = match value.selection {
     QueryResponse(acquisition) =>
       match
-        row_provider_capacity_sum(
-          row_acquisition_retained_capacity(acquisition),
-          row_acquisition_execution_capacity(acquisition),
-          physical.execution_scratch,
-          Some(capacity),
-        ) {
+        (if row_acquisition_is_listing(acquisition) {
+          row_listing_capacity_sum(
+            row_acquisition_retained_capacity(acquisition),
+            row_acquisition_execution_capacity(acquisition),
+            physical.execution_scratch,
+            Some(capacity),
+          )
+        } else {
+          row_provider_capacity_sum(
+            row_acquisition_retained_capacity(acquisition),
+            row_acquisition_execution_capacity(acquisition),
+            physical.execution_scratch,
+            Some(capacity),
+          )
+        }) {
         Err(issue) => return Err(issue)
         Ok(value) => value
       }
@@ -260,24 +272,43 @@ fn grow_row_run_response_capacity_at_phase(
 }
 
 ///|
-// This direct provider capture keeps its Source, evidence and original cleanup
-// observer. Whole-input, keyed and listing lifetimes do not use this cut.
+// Completed nonlisting captures keep their Source, evidence and original
+// cleanup observer. Keyed and listing lifetimes do not use this cut.
 fn row_response_workspace_capture_current(value : RowRunResponseBorrow) -> Bool {
   let run = value.run
-  !run.closed &&
-  run.response_borrowed &&
-  run.attempt.state is Captured(_) &&
-  value.selection is QueryResponse(acquisition) &&
-  run.configuration is DirectConfiguration(configuration) &&
-  physical_equal(configuration, acquisition.configuration) &&
-  !row_acquisition_is_listing(acquisition)
+  if run.closed || !run.response_borrowed {
+    return false
+  }
+  match (value.selection, run.configuration, run.attempt.state) {
+    (QueryResponse(acquisition), DirectConfiguration(configuration), Captured(_)
+    ) =>
+      row_response_configuration_matches(
+        configuration,
+        acquisition.configuration,
+      ) &&
+      !row_acquisition_is_listing(acquisition)
+    (InputResponse(acquisition), InputConfiguration(original), InputCaptured(_)) =>
+      physical_equal(original, acquisition) &&
+      acquisition.preparation.file_listing is None &&
+      acquisition.preparation.listing_rows is None &&
+      run.page_charge is None &&
+      run.physical is Some(physical) &&
+      physical.holding is Some(_) &&
+      run.input_progress is Some(progress) &&
+      progress.preflight is None &&
+      progress.parser is None
+    _ => false
+  }
 }
 
 ///|
-/// Return only the selected provider's transient execution workspace, after
-/// the SAME bound reader confirms its actual retirement. Retain its declared
-/// live frame, Source backing, original observer and all other reservation
-/// obligations for final Row cleanup. A logical stop is insufficient.
+/// Return the selected provider's retired construction workspace after the
+/// SAME bound reader confirms retirement. Whole-input pages have transferred
+/// their immutable checked values to the separately charged input holding;
+/// return only provider R/E and page E, keeping receiver R/E, that holding,
+/// the original observer and all consumed history. Provider holder metadata
+/// remains its caller's separate obligation. Query captures retain their old
+/// frame remainder. A logical stop or a completed page alone is insufficient.
 pub fn retire_row_run_response_workspace(
   value : RowRunResponseBorrow,
 ) -> Result[Unit, RowHostIssue] {
@@ -288,36 +319,87 @@ pub fn retire_row_run_response_workspace(
     return Ok(())
   }
   guard value.cleanup_state is Bound &&
-    value.selection is QueryResponse(acquisition) &&
     value.run.physical is Some(physical) &&
     physical.provider_capacity is Some(provider) &&
     physical.cleanup_confirmed is Some(confirm) else {
     return Err(InvalidState)
   }
-  // Compute the absolute remainder from immutable original declarations, not
-  // from a previously reduced amount. Keep all acquisition/evidence workspace
-  // and the complete provider R; only the retired provider E-R is returned.
-  let provider_retained = @execution.execution_capacity_retained_bytes(provider)
-  let base = row_acquisition_execution_capacity(acquisition)
-  if provider_retained > 9223372036854775807L - base ||
-    physical.execution_scratch > 9223372036854775807L - base - provider_retained {
-    return Err(Physical(InvalidLimits))
+  let (remaining_retention, remaining) = match value.selection {
+    QueryResponse(acquisition) => {
+      // Preserve the direct capture's original retained-frame remainder.
+      let provider_retained = @execution.execution_capacity_retained_bytes(
+        provider,
+      )
+      let base = row_acquisition_execution_capacity(acquisition)
+      if provider_retained > 9223372036854775807L - base ||
+        physical.execution_scratch >
+        9223372036854775807L - base - provider_retained {
+        return Err(Physical(InvalidLimits))
+      }
+      (None, base + provider_retained + physical.execution_scratch)
+    }
+    InputResponse(_) => {
+      // The SAME token funded provider construction beside the receiver.
+      // Its immutable transferred values now have their own input holding;
+      // no provider document/cursor is stored in the receiver's Value graph.
+      // Keep every receiver remainder, rather than settling the whole token.
+      let (retention, execution) = match
+        @resources.reservation_capacity_amounts(
+          physical.ledger,
+          physical.reservation,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Physical(issue))
+      }
+      let provider_retained = @execution.execution_capacity_retained_bytes(
+        provider,
+      )
+      let provider_execution = @execution.execution_capacity_execution_bytes(
+        provider,
+      )
+      if retention < provider_retained ||
+        execution < provider_execution ||
+        execution - provider_execution < physical.execution_scratch {
+        return Err(Physical(InvalidLimits))
+      }
+      (
+        Some(retention - provider_retained),
+        execution - provider_execution - physical.execution_scratch,
+      )
+    }
   }
-  let remaining = base + provider_retained + physical.execution_scratch
   // Synchronous external observers may reenter. A throwing observer leaves
   // this cut fenced, while the unchanged final Row cleanup remains usable.
   value.cleanup_state = RetiringWorkspace
+  if value.selection is InputResponse(_) &&
+    (
+      !input_row_capture_live(value.run) ||
+      !row_response_workspace_capture_current(value)
+    ) {
+    value.cleanup_state = Bound
+    return Err(Evidence(UnverifiedTransport))
+  }
   let retired = confirm()
   if !row_response_workspace_capture_current(value) || !retired {
     value.cleanup_state = Bound
     return Err(Evidence(UnverifiedTransport))
   }
-  match
-    @resources.reduce_execution_reservation(
-      physical.ledger,
-      physical.reservation,
-      remaining,
-    ) {
+  let returned = match remaining_retention {
+    None =>
+      @resources.reduce_execution_reservation(
+        physical.ledger,
+        physical.reservation,
+        remaining,
+      )
+    Some(retention) =>
+      @resources.reduce_execution_reservation_capacity(
+        physical.ledger,
+        physical.reservation,
+        retention,
+        remaining,
+      )
+  }
+  match returned {
     Err(issue) => {
       value.cleanup_state = Bound
       Err(Physical(issue))
@@ -334,4 +416,19 @@ pub fn retire_row_run_response_workspace(
       }
     }
   }
+}
+
+///|
+// Only the actual reserved listing constructor retains this original. A
+// foreign/equal configuration, report wire or cursor cannot substitute it.
+fn row_response_configuration_matches(
+  actual : RowHostConfiguration,
+  original : RowHostConfiguration,
+) -> Bool {
+  physical_equal(actual, original) ||
+  (
+    actual.listing_rows is Some(ReportListingRows(_, reports)) &&
+    reports.original_configuration is Some(retained) &&
+    physical_equal(retained, original)
+  )
 }

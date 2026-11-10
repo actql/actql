@@ -47,8 +47,10 @@ export async function writeSyntheticHistoricalHeldTypedValues({directory, docume
   const namespaceId = 'local', siteKey = 'actql-remote-host', realizationKey = 'source-free-values';
   assert.equal(authorization.siteKey ?? siteKey, siteKey);
   const account = JSON.parse(authorization.accountConfiguration);
-  assert.equal(account.entries.length, 1);
-  assert.equal(account.entries[0].outcome, 'delegate');
+  const delegates = account.entries.filter(entry => entry.entry_id === 'acceptance');
+  assert.equal(delegates.length, 1);
+  assert.equal(delegates[0].outcome, 'delegate');
+  assert.deepEqual(delegates[0].operation, {any_of: ['write']});
   const configurationCid = cid(account);
   const contextCid = cid({host: 'actql-local-host', principal: principalId, account_id: account.account_id});
   // This existing Host identity uses its original ordered JSON preimage, not
@@ -150,7 +152,16 @@ export async function writeSyntheticHistoricalHeldTypedValues({directory, docume
   // returned acceptance result; the original binding is independently hashed.
   environmentBody.host_policy_profile.capacity = {max_graph_construction_edges: 1000,
     max_graph_construction_input_rows: 1000, max_graph_construction_nodes: 1000,
-    ...environmentBody.host_policy_profile.capacity};
+    ...environmentBody.host_policy_profile.capacity,
+    // Same declared Local materialization windows as the ordinary Values
+    // historical fixture, independently authored before current acceptance.
+    max_relation_output_rows: 536870912 / 256,
+    max_artifact_rows: 536870912 / 256,
+    // The current Local factory selects this optional ceiling from the same
+    // nominal row policy. It does not turn this synthetic historical-format
+    // input into evidence that an earlier Host selected that Environment.
+    max_file_listing_items: 536870912 / 256,
+    max_model_request_bytes_per_item: 65536};
   const binding = {authorization_context_cid: cid({principal: principalId,
     account_id: account.account_id, configuration_cid: configurationCid, source_configuration_cid: null}),
   environment_binding_cid: cid({version: 'actql-remote-run-acceptance-environment/0.1', site_key: siteKey,
@@ -167,7 +178,7 @@ export async function writeSyntheticHistoricalHeldTypedValues({directory, docume
     {enableForeignKeyConstraints: true});
   try {
     assert.equal(database.prepare("SELECT value FROM journal_metadata WHERE key = 'schema_version'").get().value,
-      'actql-checkpoint-journal/0.1;model-call-provenance=1;effect-settlement=1;model-current-cut-link=1');
+      'actql-checkpoint-journal/0.1;model-call-provenance=1;effect-settlement=1;model-current-cut-link=1;model-current-cut-invalidation=1');
     for (const table of ['runs', 'resolutions', 'resume_intents', 'resume_admissions',
       'preparations', 'checkpoints']) {
       assert.equal(database.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get().n, 0);

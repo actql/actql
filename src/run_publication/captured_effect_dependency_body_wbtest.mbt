@@ -92,6 +92,89 @@ fn dependency_test_local_wire(preimage : String) -> String raise {
 }
 
 ///|
+test "local Model dependency admission derives all typed edges and refuses audit or missing bodies" {
+  let preimage = "{\"input_logical_relation_cid\":\"" +
+    relation_fixture_cid("b") +
+    "\",\"input_relation_schema_cid\":\"" +
+    relation_fixture_cid("c") +
+    "\",\"outcome_logical_relation_cid\":\"" +
+    relation_fixture_cid("d") +
+    "\",\"outcome_relation_schema_cid\":\"" +
+    relation_fixture_cid("e") +
+    "\",\"source_ordinal\":2,\"unit_definition_cid\":\"" +
+    relation_fixture_cid("a") +
+    "\",\"version\":\"actql-local-model-observation/0.1\"}"
+  let body = admit_local_effect_dependency_body(
+    "local_model_observation",
+    dependency_test_local_wire(preimage),
+    10000,
+    1000,
+    32,
+  ).unwrap()
+  assert_eq(
+    body.node.identity,
+    "sha256:578782ff069b8920c4695df67bbf3b7fe2d3f2d2a39faa02bddc781964e985c5",
+  )
+  assert_eq(
+    admit_captured_effect_dependency_body(
+      "local_model_observation",
+      Some(body.node.identity),
+      body.wire,
+      10000,
+      1000,
+      32,
+    ).unwrap().node.identity,
+    body.node.identity,
+  )
+  assert_eq(body.node.references.map(value => (value.kind, value.identity)), [
+    ("local_dependencies", relation_fixture_cid("a")),
+    ("relation_value", relation_fixture_cid("b")),
+    ("relation_schema", relation_fixture_cid("c")),
+    ("relation_value", relation_fixture_cid("d")),
+    ("relation_schema", relation_fixture_cid("e")),
+  ])
+  assert_eq(
+    validate_captured_effect_dependency_bodies([body], [body], 0, {
+      max_entries: 10,
+      max_total_bytes: 10000,
+      max_depth: 8,
+      max_references: 20,
+    }),
+    Err(MissingDependency),
+  )
+  for
+    invalid in [
+      preimage.replace(old="\"source_ordinal\":2", new="\"source_ordinal\":-1"),
+      preimage.replace(old="\"source_ordinal\":2", new="\"source_ordinal\":1.5"),
+      preimage.replace(
+        old="\"source_ordinal\":2",
+        new="\"source_ordinal\":2147483647",
+      ),
+      preimage.replace(
+        old="\"source_ordinal\":2",
+        new="\"source_ordinal\":\"2\"",
+      ),
+      preimage.replace(
+        old="\"source_ordinal\":2",
+        new="\"source_ordinal\":2,\"observation_set_cid\":\"" +
+          relation_fixture_cid("f") +
+          "\"",
+      ),
+    ] {
+    assert_true(
+      admit_local_effect_dependency_body(
+        "local_model_observation",
+        dependency_test_local_wire(invalid),
+        10000,
+        1000,
+        32,
+      )
+      is Err(InvalidBody),
+    )
+  }
+}
+
+///|
 test "static dependency reader rejects rehashed invalid namespace and availability" {
   let prefix = "{\"version\":\"actql-result-import-interface/0.1\",\"input_name\":\"rows\",\"producer_namespace\":{\"program_id\":\"p\",\"node_id\":\"source\"},\"producer_unit_definition_cid\":\"" +
     relation_fixture_cid("a") +

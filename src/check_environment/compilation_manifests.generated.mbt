@@ -12,12 +12,12 @@ pub fn compiler_grammar_manifest_wire() -> String {
 
 ///|
 pub fn compiler_barrier_contract_manifest_cid() -> String {
-  "sha256:21248968495ca7184f2d33eb938c97269021ee1714766f286ee5f04b93be06fc"
+  "sha256:de018d42bdf09dcbb31d058ed5def7cdfc4c3f865d9b7b56124a953cd93df0a6"
 }
 
 ///|
 pub fn compiler_barrier_contract_manifest_wire() -> String {
-  "{\"barrier_contract_manifest_cid\":\"sha256:21248968495ca7184f2d33eb938c97269021ee1714766f286ee5f04b93be06fc\",\"contracts\":[{\"contract_cid\":\"sha256:4b7fea87dfbed0e1f11e9421cd077793cd3bccfc3e981617fa2a1547960acee5\",\"name\":\"content_barrier\"},{\"contract_cid\":\"sha256:34f1a37cbaea973964f4cf84ca3806b2492df545b718042ad8057604c95cb6dd\",\"name\":\"inference_barrier\"},{\"contract_cid\":\"sha256:587bfea69fbab0d23d200ac65ffc20c373142c4843820d37db6e0c617f10206a\",\"name\":\"lookup_barrier\"},{\"contract_cid\":\"sha256:cab960023ffd6486161c4757a86bde76c93798504d92a47631c73d747f881cdf\",\"name\":\"text_time_evaluation_barrier\"}],\"production_profile_registry_cid\":\"sha256:1967ffe06ffa38bd34f7ed433d4598ed73ce8ec1511e49792efb50154d9ec4b2\",\"version\":\"actql-barrier-contract-manifest/0.1\"}"
+  "{\"barrier_contract_manifest_cid\":\"sha256:de018d42bdf09dcbb31d058ed5def7cdfc4c3f865d9b7b56124a953cd93df0a6\",\"contracts\":[{\"contract_cid\":\"sha256:4b7fea87dfbed0e1f11e9421cd077793cd3bccfc3e981617fa2a1547960acee5\",\"name\":\"content_barrier\"},{\"contract_cid\":\"sha256:34f1a37cbaea973964f4cf84ca3806b2492df545b718042ad8057604c95cb6dd\",\"name\":\"inference_barrier\"},{\"contract_cid\":\"sha256:866b8e34f31933d310c208b8423e7a0e9a467e078b0b73114046865873a310c9\",\"name\":\"lookup_barrier\"},{\"contract_cid\":\"sha256:cab960023ffd6486161c4757a86bde76c93798504d92a47631c73d747f881cdf\",\"name\":\"text_time_evaluation_barrier\"}],\"production_profile_registry_cid\":\"sha256:64450eda874e2254fe48db963fa32dda3ad4400f13273b0bf301f90bd2b518ee\",\"version\":\"actql-barrier-contract-manifest/0.1\"}"
 }
 
 ///|
@@ -38,6 +38,11 @@ pub fn compiler_aoa_ir_version_token() -> String {
 ///|
 pub fn compiler_inference_barrier_contract_cid() -> String {
   "sha256:34f1a37cbaea973964f4cf84ca3806b2492df545b718042ad8057604c95cb6dd"
+}
+
+///|
+pub fn compiler_lookup_barrier_contract_cid() -> String {
+  "sha256:866b8e34f31933d310c208b8423e7a0e9a467e078b0b73114046865873a310c9"
 }
 
 ///|

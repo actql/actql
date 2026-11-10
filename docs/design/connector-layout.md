@@ -150,6 +150,15 @@ private request-journal installation uses the same runtime's bounded DATA
 reader, and owner-only recovery returns the original saved admission evidence;
 neither path grants disclosure, write, dispatch or retry authority.
 
+Installed UPDATE/DELETE/STORE reobservation retains the fully admitted, closed
+installation records. Their canonical `cid` and `wire` strings may be borrowed
+for ordered DATA comparison in Common without rebuilding a JSON envelope on
+each observation. This comparison does not admit a record or prove permission:
+initial binding and cold restoration retain the complete installation validator,
+and every reobservation still checks the original selection's live purpose and
+Mapping observations. Complete Prepared/Run equality, cancellation, continuation
+retirement and current fences keep their existing paths.
+
 The generated private DATA codec snapshots values once and transports JSON. Its
 byte/node/depth ceilings come from that same Owner; it has no semantic field list,
 normalization, CID or opaque constructor. Public DATA named `$tag`, `_0` or `_1`
@@ -164,6 +173,56 @@ memory, physical retirement ACKs, capacity reservations or a numerical profile.
 Releasing references or completing a synchronous comparison makes none of those
 claims. The original Run, Store, Checkpoint, Unknown and cleanup responsibilities
 stay with their existing Owners.
+
+Selection and installation metadata retains its 64 KiB bound. A complete
+prepared/Run original is a separate envelope around the existing bounded Run
+material string: JSON escaping can enlarge that outer wire without enlarging
+the material's own codec or any metadata field. Its conversion ceiling derives
+from the existing material limit plus the independent metadata bound. The
+normal Host reserves the actual material/installation projection on the same
+checked Effect Request before converting that envelope. Common measures the
+borrowed strings, retains each actual output and reuses sequential workspace;
+it preserves current/reentry, refusal and cleanup fences. Cold restoration
+still performs the complete original-material, compiler, Run and installation
+checks; the larger outer conversion is neither successful admission nor a
+permission or resource grant.
+
+One physical current observation issues each genuine installed owner's DATA
+once and shares that result for matching and validation in that call only.
+The same prepared original retains its copied, sorted typed selections; later
+current checks borrow those immutable records instead of decoding their saved
+wire again. The existing compilation demand backs the bounded checked-occurrence
+records, array and holder before construction, borrowing the original Strings.
+Each call still reads the actual installed owner and Mapping and derives the
+purpose from the checked Header. Cold admission, changed owners and full wire
+identity validation keep their existing complete paths; neither representation
+reuse carries a currentness or permission verdict into a later call.
+
+The same physical observation can pass its actual installation scalar slots to
+the existing Core owner without a JSON round trip. Core preserves the raw input
+bound, NFC normalization, canonical field order and digest, then issues a
+temporary typed DATA view in that runtime. The current checker consumes that
+same view beside freshly observed purpose and Mapping DATA. It does not issue
+the installation again, reparse its canonical body, or transport that immutable
+body inside another JSON envelope. Core measures the omitted field's original
+encoded size and retains the complete 64 KiB enclosing limit. Raw, untrusted and
+cold installation paths still perform their complete closed-shape admission.
+
+The typed view exists only within one synchronous physical current call; only
+the existing cid/wire pair enters retained original materials. It adds no
+retained request DATA or installation registry, and stores no permission,
+currentness, cancellation or cleanup verdict. Actual private owner lookup,
+ambiguity refusal before Mapping reads, checked Header purpose and live Mapping
+checks remain at their original boundaries. Missing typed support in an older
+component uses its existing full raw path; a refusing or incomplete typed
+current bridge cannot become a successful fallback.
+
+A held-submission caller supplies its complete saved prepared original to the
+existing nominal compiler/current/full-byte validation before forwarding that
+same DATA. It does not demand a new ordinary construction parent merely to
+reproduce a retained capture. Fresh captures still reserve their actual new
+projection. Equal DATA without the existing restored compiler association, a
+changed original or a failed current observation cannot select this reuse.
 
 ## Original Content preparation projection
 

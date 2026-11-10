@@ -4,7 +4,7 @@
 /// responsibility; this owner neither publishes nor grants Result access.
 pub struct LocalValuesResultExport {
   stream : @publication_host.PublicationOutputExport
-  bridge : @execution.ManagedPublicationBridge[Int]
+  bridge : @execution.ManagedPublicationBridge[Int]?
   mut closed : Bool
 }
 
@@ -14,6 +14,7 @@ pub(all) enum LocalValuesResultExportIssue {
   UnknownResult
   Bridge(@execution.ManagedProducerBridgeIssue)
   Export(@publication_host.PublicationOutputExportIssue)
+  Transformation(@publication_host.CapturedClientResultTransformationIssue)
 }
 
 ///|
@@ -27,9 +28,14 @@ pub fn LocalValuesExecution::prepare_result_export(
   bridge_max_entries : Int,
   bridge_max_name_bytes : Int,
   limits : @publication_host.PublicationOutputExportLimits,
+  publication? : ClientProgramPublication? = None,
 ) -> Result[LocalValuesResultExport, LocalValuesResultExportIssue] {
   if !self.available.val {
     return Err(MissingOutput)
+  }
+  if publication is Some(original) &&
+    !publication_export_original_matches(original, self.run) {
+    return Err(Transformation(@publication_host.ForeignSelection))
   }
   let graph = @strategy.captured_dag_graph(self.run)
   guard @strategy.graph_result_task(graph, result_index) is Some(task) &&
@@ -37,36 +43,167 @@ pub fn LocalValuesExecution::prepare_result_export(
     @strategy.graph_result_name(graph, result_index) is Some(result_name) else {
     return Err(UnknownResult)
   }
+  guard self.publication_original_for_task(task) is Some((operations, managed)) else {
+    return Err(MissingOutput)
+  }
   let (bridge, output) = match
-    self.prepare_publication_bridge_for_task(
-      task, row_limits, bridge_max_entries, bridge_max_name_bytes, limits,
+    self.prepare_publication_bridge_for_original(
+      operations, managed, row_limits, bridge_max_entries, bridge_max_name_bytes,
+      limits,
     ) {
     Ok(value) => value
     Err(MissingOutput) => return Err(MissingOutput)
     Err(Bridge(issue)) => return Err(Bridge(issue))
   }
-  let definition = match
-    @publication.prepare_result_definition(
-      @strategy.graph_program_definition_cid(graph),
-      result_name,
-    ) {
-    Ok(value) => @publication.result_definition_contract(value)
-    Err(_) => {
-      @execution.close_managed_publication_bridge(bridge)
-      return Err(UnknownResult)
+  let stream = match publication {
+    None => {
+      let definition = match
+        @publication.prepare_result_definition(
+          @strategy.graph_program_definition_cid(graph),
+          result_name,
+        ) {
+        Ok(value) => @publication.result_definition_contract(value)
+        Err(_) => {
+          @execution.close_managed_publication_bridge(bridge)
+          return Err(UnknownResult)
+        }
+      }
+      let stream = match
+        @publication_host.prepare_result_publication_export(
+          output, occurrence, definition, limits,
+        ) {
+        Ok(value) => value
+        Err(issue) => {
+          @execution.close_managed_publication_bridge(bridge)
+          return Err(Export(issue))
+        }
+      }
+      stream
+    }
+    Some(original) => {
+      // Only the same adopted publication continuation asks for an original
+      // captured pin. Ordinary DATA exports keep their existing standalone
+      // route, including completed Local rows in an unfinished Effect Run.
+      if !publication_export_original_matches(original, self.run) {
+        @execution.close_managed_publication_bridge(bridge)
+        return Err(Transformation(@publication_host.ForeignSelection))
+      }
+      // Retain the original Run occurrence through the existing checked managed
+      // bridge. A standalone equal-content export cannot fund a captured snapshot.
+      let transformation = match
+        @publication_host.start_captured_managed_result_publication_export(
+          self.run,
+          result_index,
+          managed,
+          bridge,
+          output,
+          limits,
+        ) {
+        Ok(value) => value
+        Err(issue) => {
+          @execution.close_managed_publication_bridge(bridge)
+          return Err(local_values_transformation_issue(issue))
+        }
+      }
+      let mut done = false
+      while !done {
+        match transformation.advance(256) {
+          Ok((ready, _)) => done = ready
+          Err(issue) => {
+            transformation.cancel()
+            @execution.close_managed_publication_bridge(bridge)
+            return Err(local_values_transformation_issue(issue))
+          }
+        }
+      }
+      let stream = match transformation.finish() {
+        Ok(value) => value
+        Err(issue) => {
+          transformation.cancel()
+          @execution.close_managed_publication_bridge(bridge)
+          return Err(local_values_transformation_issue(issue))
+        }
+      }
+      stream
     }
   }
-  let stream = match
-    @publication_host.prepare_result_publication_export(
-      output, occurrence, definition, limits,
+  Ok({ stream, bridge: Some(bridge), closed: false, })
+}
+
+///|
+/// Keep the exact captured Named Result pin through export and replay. Managed
+/// tasks use this execution's original completion; Source/cell tasks retain
+/// their existing exporter. Neither path creates another Result or execution.
+pub fn LocalValuesExecution::prepare_captured_result_export(
+  self : LocalValuesExecution,
+  captured : @strategy.CapturedDAG,
+  result_index : Int,
+  row_limits : @execution.RetainedRowDecodeLimits,
+  bridge_max_entries : Int,
+  bridge_max_name_bytes : Int,
+  limits : @publication_host.PublicationOutputExportLimits,
+  before_row? : ((String) -> Bool)? = None,
+) -> Result[LocalValuesResultExport, LocalValuesResultExportIssue] {
+  if !self.available.val || !physical_equal(captured, self.run) {
+    return Err(MissingOutput)
+  }
+  guard @strategy.graph_result_task(
+      @strategy.captured_dag_graph(captured),
+      result_index,
+    )
+    is Some(task) else {
+    return Err(UnknownResult)
+  }
+  guard self.publication_original_for_task(task) is Some((operations, managed)) else {
+    return @publication_host.prepare_captured_result_publication_export(
+        captured, result_index, limits,
+      )
+      .map_err(issue => LocalValuesResultExportIssue::Export(issue))
+      .map(stream => { stream, bridge: None, closed: false, })
+  }
+  let (bridge, output) = match
+    self.prepare_publication_bridge_for_original(
+      operations,
+      managed,
+      row_limits,
+      bridge_max_entries,
+      bridge_max_name_bytes,
+      limits,
+      before_row~,
+    ) {
+    Ok(value) => value
+    Err(MissingOutput) => return Err(MissingOutput)
+    Err(Bridge(issue)) => return Err(Bridge(issue))
+  }
+  let transformation = match
+    @publication_host.start_captured_managed_result_publication_export(
+      captured, result_index, managed, bridge, output, limits,
     ) {
     Ok(value) => value
     Err(issue) => {
       @execution.close_managed_publication_bridge(bridge)
-      return Err(Export(issue))
+      return Err(local_values_transformation_issue(issue))
     }
   }
-  Ok({ stream, bridge, closed: false, })
+  let mut done = false
+  while !done {
+    match transformation.advance(256) {
+      Ok((ready, _)) => done = ready
+      Err(issue) => {
+        transformation.cancel()
+        @execution.close_managed_publication_bridge(bridge)
+        return Err(local_values_transformation_issue(issue))
+      }
+    }
+  }
+  match transformation.finish() {
+    Ok(stream) => Ok({ stream, bridge: Some(bridge), closed: false, })
+    Err(issue) => {
+      transformation.cancel()
+      @execution.close_managed_publication_bridge(bridge)
+      Err(local_values_transformation_issue(issue))
+    }
+  }
 }
 
 ///|
@@ -83,7 +220,9 @@ pub fn LocalValuesResultExport::close(self : LocalValuesResultExport) -> Unit {
   if !self.closed {
     self.closed = true
     self.stream.cancel()
-    @execution.close_managed_publication_bridge(self.bridge)
+    if self.bridge is Some(bridge) {
+      @execution.close_managed_publication_bridge(bridge)
+    }
   }
 }
 
@@ -94,56 +233,47 @@ priv enum LocalValuesPublicationBridgeIssue {
 }
 
 ///|
-// The same managed generation and physical rows serve ordinary publication
-// and private Effect Result evidence. Neither path obtains new execution or
-// permission, and both retain the original bridge cleanup on every failure.
-fn LocalValuesExecution::prepare_publication_bridge(
+// Select once from this execution's actual generation inventory. The public
+// Result task and the primary completion do not select another local Result.
+fn LocalValuesExecution::publication_original_for_task(
   self : LocalValuesExecution,
-  row_limits : @execution.RetainedRowDecodeLimits,
-  bridge_max_entries : Int,
-  bridge_max_name_bytes : Int,
-  limits : @publication_host.PublicationOutputExportLimits,
-) -> Result[
-  (@execution.ManagedPublicationBridge[Int], @execution.CompletedOutput),
-  LocalValuesPublicationBridgeIssue,
-] {
-  self.prepare_publication_bridge_for_task(
-    @strategy.graph_result_task(@strategy.captured_dag_graph(self.run), 0).unwrap_or(
-      0,
-    ),
-    row_limits,
-    bridge_max_entries,
-    bridge_max_name_bytes,
-    limits,
-  )
+  task : Int,
+) -> (
+  @local_driver.LocalManagedDispatchOperations[Int],
+  @execution.ManagedCompletedOutput[Int],
+)? {
+  if !self.available.val {
+    return None
+  }
+  if self.tasks is Some((lookup, _)) {
+    lookup(task)
+  } else {
+    if task != 0 {
+      return None
+    }
+    Some((self.operations, self.completed))
+  }
 }
 
 ///|
-// Select the exact checked Named Result's original physical task. The retained
-// graph may have independent roots and intermediate tasks; task zero or the
-// last executed task is not a replacement result identity.
-fn LocalValuesExecution::prepare_publication_bridge_for_task(
+// Conversion keeps the selected operations and SAME managed completion
+// together across material/row callbacks. No second task lookup can replace
+// that generation. An optional Host funding boundary precedes row decoding.
+fn LocalValuesExecution::prepare_publication_bridge_for_original(
   self : LocalValuesExecution,
-  task : Int,
+  operations : @local_driver.LocalManagedDispatchOperations[Int],
+  completed : @execution.ManagedCompletedOutput[Int],
   row_limits : @execution.RetainedRowDecodeLimits,
   bridge_max_entries : Int,
   bridge_max_name_bytes : Int,
   limits : @publication_host.PublicationOutputExportLimits,
+  before_row? : ((String) -> Bool)? = None,
 ) -> Result[
   (@execution.ManagedPublicationBridge[Int], @execution.CompletedOutput),
   LocalValuesPublicationBridgeIssue,
 ] {
   if !self.available.val {
     return Err(MissingOutput)
-  }
-  let (operations, completed) = if self.tasks is Some((lookup, _)) {
-    guard lookup(task) is Some(output) else { return Err(MissingOutput) }
-    output
-  } else {
-    if task != 0 {
-      return Err(MissingOutput)
-    }
-    (self.operations, self.completed)
   }
   guard (operations.material)() is Some(material) else {
     return Err(MissingOutput)
@@ -168,6 +298,16 @@ fn LocalValuesExecution::prepare_publication_bridge_for_task(
         return Err(MissingOutput)
       }
     }
+    if before_row is Some(prepare) && !prepare(row) {
+      @execution.close_managed_publication_bridge(bridge)
+      return Err(MissingOutput)
+    }
+    // The Host's storage callback can reenter retirement. Keep this cheap
+    // execution fence in addition to the bridge's original material checks.
+    if !self.available.val {
+      @execution.close_managed_publication_bridge(bridge)
+      return Err(MissingOutput)
+    }
     match
       @execution.append_managed_publication_bridge_wire(bridge, row, row_limits) {
       Ok(_) => ()
@@ -185,4 +325,25 @@ fn LocalValuesExecution::prepare_publication_bridge_for_task(
     }
   }
   Ok((bridge, output))
+}
+
+///|
+fn local_values_transformation_issue(
+  issue : @publication_host.CapturedClientResultTransformationIssue,
+) -> LocalValuesResultExportIssue {
+  match issue {
+    Transform(Output(original)) => Export(@publication_host.Output(original))
+    Retain(original) => Export(@publication_host.Retain(original))
+    _ => Transformation(issue)
+  }
+}
+
+///|
+fn publication_export_original_matches(
+  value : ClientProgramPublication,
+  run : @strategy.CapturedDAG,
+) -> Bool {
+  publication_original_body(value) is Some(_) &&
+  value.run is Some(original) &&
+  physical_equal(original, run)
 }

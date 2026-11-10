@@ -7,7 +7,7 @@ import {parse} from 'acorn';
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
 import {prepareInstalledRowCaptureChild, retainInstalledRowCaptureChild, releaseInstalledRowCapture} from './installed-row-capture-cleanup.mjs';
 import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
-import {prepareInstalledEffectOwnedRequestChild, prepareInstalledEffectRequestChild, prepareInstalledEffectCredentialChild, captureInstalledEffectPlanRecipe, prepareInstalledEffectControlConstruction} from './installed-effect-plan.mjs';
+import {prepareInstalledEffectOwnedRequestChild, prepareInstalledEffectRequestChild, prepareInstalledEffectCredentialChild, captureInstalledEffectPlanRecipe, selectInstalledEffectCredentialOperation, prepareInstalledEffectControlConstruction} from './installed-effect-plan.mjs';
 
 // Actual enclosing row-stage loop/callees. Core inventory, checked Preview,
 // driver request/claim, Resource and physical ports are explicit here.
@@ -29,13 +29,13 @@ const recipePort = ownerOf => expression('recipeOf', {ownerOf,
   controlRecipes: {get: original => original}});
 const readPorts = (ownerOf, resourceFields = () => ({})) => {
   const recipeOf = recipePort(ownerOf);
-  const managedReadChild = expression('managedReadChild', {ownerOf, recipeOf, fail});
+  const managedReadChild = expression('managedReadChild', {ownerOf, recipeOf, fail, selectInstalledEffectCredentialOperation});
   const describeMember = expression('describeMember', {ownerOf, managedReadChild, resourceFields});
   return {recipeOf, managedReadChild, describeMember};
 };
 const expression=(name,ports)=>{
   if(name==='recoveredEntries'&&ports.validateRecoveredEntries===undefined) ports={...ports,validateRecoveredEntries:expression('validateRecoveredEntries',ports)};
-  if (['checkRows', 'prepareCredentialOperation', 'physicalRoute', 'decideTargetRead'].includes(name) &&
+  if (['footprintOf', 'checkRows', 'prepareCredentialOperation', 'physicalRoute', 'decideTargetRead'].includes(name) &&
       ports.recipeOf === undefined) ports = {...ports, recipeOf: recipePort(ports.ownerOf)};
   if (name === 'physicalRoute' && ports.describeMember === undefined) {
     ports = {...readPorts(ports.ownerOf, ports.resourceFields), ...ports};
@@ -111,8 +111,8 @@ test('actual capture failure input callback retires only its pins after the shar
   let releaseInputs, finishCapture, observations = 0;
   const moon = {clientProgramPinEffectSources: () => ({ok: input}),
     clientProgramReleaseEffectInputs(original) {assert.strictEqual(original, input); events.push('pins');}};
-  const actual = Function('moon', 'checked', 'limits', 'fail', 'releaseInstalledRowCapture',
-    `return (${source.slice(capture.start, capture.end)});`)(moon, checked, {maxPinnedResults: 1}, fail,
+  const actual = Function('moon', 'checked', 'runLimits', 'fail', 'releaseInstalledRowCapture',
+    `return (${source.slice(capture.start, capture.end)});`)(moon, checked, () => ({maxPinnedResults: 1}), fail,
     releaseInstalledRowCapture);
   await assert.rejects(actual({members:[],ownChildren(original) {
     original.push({prepared: {status() {observations++; return {pending: false};},
@@ -135,7 +135,7 @@ test('actual capture failure input callback retires only its pins after the shar
 const member=Object.freeze({kind:'create',effectId:'create',memberIndex:0});
 const input=[{label:'b'},{label:'a'},{label:'a'}];
 const issued=[{content_cid:cid('a'),occurrence:0},{content_cid:cid('a'),occurrence:1},{content_cid:cid('b'),occurrence:0}];
-function fixture({child=false,inventoryError,managed=false,constructorFailureAt,controlFrame=false}={}){
+function fixture({child=false,inventoryError,managed=false,constructorFailureAt,controlFrame=false,requestProjection=false}={}){
   const events=[],contexts=[],requests=[],requestChildren=[],workspaceEvents=[],runOriginal=Object.freeze({}),description=Object.freeze({original:true});
   let activeConstructor;
   let projecting = false, projections = 0;
@@ -194,7 +194,7 @@ function fixture({child=false,inventoryError,managed=false,constructorFailureAt,
   const managedEffect={controlConstruction:(receiver,method,args)=>Reflect.apply(method,receiver,args),runtime:moon,value:parent,prepared,request:identity,operationPlan:nativePlan,
     readPlan:runtime.clientProgramInstalledEffectManagedOperationPlan};
   const ownerOf=value=>{assert.strictEqual(value,member);return {owned,managedPlanRecipe:managedRecipe};};
-  const limits={preview:{maxWireBytes:10000,maxNodes:100,maxDepth:10},maxRows:3};
+  const limits={preview:{maxWireBytes:10000,maxNodes:100,maxDepth:10},maxRows:3,maxRowsPerMember:3};
   const createRows=nodes.find(({node})=>node.type==='FunctionDeclaration'&&node.id.name==='prepareInstalledCreateRows').node;
   const prepareInstalledCreateRows=Function('checked','runtimeField','fail','parseExactJson',
     `return (${source.slice(createRows.start,createRows.end)});`)(checked,runtimeField,fail,
@@ -216,6 +216,13 @@ function fixture({child=false,inventoryError,managed=false,constructorFailureAt,
     contentBorrowers:[],targeted:()=>false,guarded:()=>false,contentOwner:undefined,
     requestChildren,prepareInstalledRowCaptureChild,commandContentRow,requestEntry,requestsOf,prepareInstalledCreateRows,fail,
     managedEffect,prepareInstalledEffectRequestChild,prepareInstalledEffectOwnedRequestChild,retireRequestAliases(){aliasesRetired=true;ports.rowsOf.length=0;ports.currents.length=0;return true;}};
+  if (requestProjection) ports.controlConstruction.requestProjection = (actualMember, operation, row, receiver, method, args) => {
+    assert.deepEqual([actualMember, operation, row], [0, 1, projections]);
+    assert.equal(activeConstructor, undefined);
+    assert.strictEqual(args[0], member);assert.strictEqual(args[2].request, requests[row]);
+    workspaceEvents.push(['project', row]);
+    return ports.controlConstruction(receiver, method, args);
+  };
   const run=()=>Function(...Object.keys(ports),`return (async()=>{${source.slice(loop.start,loop.end)};return {rowsOf,observations,currents};})();`)(...Object.values(ports));
   return {run,contexts,events,requestChildren,workspaceEvents,activeConstructor:()=>activeConstructor,projections:()=>projections,inventoryCalls:()=>inventoryCalls,entryOf,ownerOf,owned,runOriginal,debits,settlements,managedEffect};
 }
@@ -418,6 +425,7 @@ test('actual capture operation retains the original bound child before invoking 
   const recipe={rowOperations:[{},{},{},{operation:'form-read'}],credentialOperations:[
     {phase:'capture-check',operationIndex:3,maxRequestBytes:64,maxResponseBytes:64}]};
   const actual=expression('prepareCredentialOperation',{moon,ownerOf:()=>({managedPlanRecipe:recipe}),fail,
+    selectInstalledEffectCredentialOperation,
     installedRowCredentialOperationSite:original=>{assert.equal(original,credential);return originalSite;},
     prepareInstalledRowCaptureChild,prepareInstalledEffectCredentialChild});
   const input={member:selected,rowIndex:0,phase:'capture-check',operation:'form-read',site:{credential},originalAuthorization:raw,
@@ -590,7 +598,8 @@ function prefixFixture({failBorrowAt, exportFailure}={}) {
       return index>=count?'finished':!checked?'inspect':pending&&available&&!attempted?'retry':'advance';
     }};
   const ports={...readPorts(()=>owned),moon,prepared,identity,managedEffect,members,checkedHost:{},checked,fail,
-    limits:{maxPinnedResults:2,maxRows:2,maxWork:100,maxFields:4,body:{maxBytes:100,maxNodes:20,maxDepth:5}},
+    runLimits:()=>ports.limits,
+    limits:{maxPinnedResults:2,maxRows:2,maxRowsPerMember:2,maxWork:100,maxFields:4,body:{maxBytes:100,maxNodes:20,maxDepth:5}},
     ownerOf:()=>owned,assertCurrent(){},own(){},ownChildren(value){assert.equal(children.length,0);children.push(value);},
     ownInputs(release,complete){releaseInputs=release;finish=complete;},control,
     prepareInstalledRowCaptureChild,retainInstalledRowCaptureChild,prepareInstalledEffectRequestChild,releaseInstalledRowCapture,
@@ -901,7 +910,7 @@ test('managed Salesforce read handoff retains exact issuer originals across memb
         return current;
       }});
   };
-  const managedReadChild = expression('managedReadChild', {recipeOf, ownerOf, fail});
+  const managedReadChild = expression('managedReadChild', {recipeOf, ownerOf, fail, selectInstalledEffectCredentialOperation});
   const describe = expression('describeMember', {ownerOf, managedReadChild, resourceFields: () => ({})});
   assert.strictEqual(await describe({member, runInvocationCid: 'run', dispatchRequestCid: 'dispatch',
     physicalOperations, operationPhase: 'capture', label: 'original', assertCurrent() {}}), current);
@@ -1096,4 +1105,125 @@ test('cold reconstruction selects each actual saved member input before that sam
   for (const child of f.children) await child.prepared.release();
   assert.equal(f.finalRetire(), true);
   assert.deepEqual(f.events.slice(-2), ['retire-0', 'retire-1']);
+});
+
+
+test('managed request projection forwards the same completed original row and constructor coordinates', async () => {
+  const f = fixture({managed: true, controlFrame: true, requestProjection: true});
+  const result = await f.run();
+  assert.equal(f.projections(), 3);assert.equal(f.debits.length, 3);
+  assert.deepEqual(f.workspaceEvents, [
+    ['begin', 0], ['complete', 0], ['project', 0],
+    ['begin', 1], ['complete', 1], ['project', 1],
+    ['begin', 2], ['complete', 2], ['project', 2],
+  ]);
+  result.rowsOf[0].forEach((row, index) => assert.strictEqual(row.entry.value, f.contexts[index].value));
+  for (const retained of f.requestChildren) await retained.prepared.release();
+  assert.deepEqual(f.settlements, f.debits);
+});
+
+// Actual claimsOf plus the enclosing captureStage final construction/return
+// and actual Ledger open/binding/prepareCapturedSetIntents bodies. Semantic
+// issuers and physical Store are explicit ports: this is owned DATA/caller
+// correspondence, not Common capacity, durable intent or installed acceptance.
+async function ownedClaimsStageFixture() {
+  const ledgerSource=await readFile(new URL('./effect-ledger.mjs',import.meta.url),'utf8');
+  const ledgerTree=parse(ledgerSource,{ecmaVersion:'latest',sourceType:'module'}),ledgerNodes=[];
+  const collect=node=>{if(!node||typeof node!=='object')return;ledgerNodes.push(node);
+    for(const value of Object.values(node))if(Array.isArray(value))value.forEach(collect);else if(value&&typeof value==='object')collect(value);};
+  collect(ledgerTree);
+  const binding=ledgerNodes.filter(n=>n.type==='FunctionDeclaration'&&n.id?.name==='bindEffectLedgerConstruction');
+  const capturedMethod=ledgerNodes.filter(n=>n.type==='Property'&&n.key?.name==='prepareCapturedSetIntents');
+  assert.equal(binding.length,1);assert.equal(capturedMethod.length,1);
+  const bind=Function('nodeTypes',ledgerSource.slice(binding[0].start,binding[0].end)+';return bindEffectLedgerConstruction;')(nodeTypes);
+  const body={run_identity_cid:cid('1'),effects:[{effect_id:'owned-effect',effect_member_preview_cid:cid('2'),
+    row_order:[cid('4'),cid('3')],changes:[{row_preview_cid:cid('3'),target_row_identity:{id:1}},
+      {row_preview_cid:cid('4'),target_row_identity:{id:2}}]}]};
+  const identity={},requestScope={},previewInputs={},admittedPreview={},applyPreview={},result={};
+  const keys=[[{},{}]],entries=[[{request:{id:1},requestCid:cid('5')},{request:{id:2},requestCid:cid('6')}]],members=[{}];
+  const opaque=[],events=[];let family=0,generic=0,constructors=0,refusal,frame;
+  const effect={
+    logicalItemLocator(scope,program,stage,id,wire){assert.equal(scope,requestScope);assert.equal(program,'program');assert.equal(stage,'stage');assert.equal(id,'owned-effect');return {wire};},
+    dispatchKeyCid(key){assert(keys[0].includes(key));return 'dispatch-key';},
+    ledgerBasis(scope,locator,key,unit,member,row,request){assert.equal(scope,requestScope);assert(keys[0].includes(key));assert.equal(unit,cid('7'));const value={locator,key,row,request};opaque.push(value);return value;},
+    admitPreviewIdentity(){return applyPreview;},
+  };
+  const owner={profile:{unit:'owned-unit'},owned:{assertRequestFinalized(request,dispatch){assert(entries[0].some(x=>x.request===request));assert.equal(dispatch,'dispatch-key');}}};
+  const orderedSourceIndexes=expression('orderedSourceIndexes',{fail});
+  const claimsOf=expression('claimsOf',{effect,orderedSourceIndexes,
+    recoveryCid:expression('recoveryCid',{ownerOf:()=>owner,cid:()=>cid('e')}),
+    canonicalValueJson:JSON.stringify,limits:{locator:{maxBytes:256},key:{maxBytes:256,maxNodes:64,maxDepth:4}},ownerOf:()=>owner});
+  const original={
+    prepareSetIntents(preview,selected,maxWork){assert.equal(this,original);assert.equal(preview,admittedPreview);assert.equal(maxWork,100);
+      assert(['family','generic'].includes(frame));constructors++;events.push('constructor');return result;},
+    close(){events.push('close');},
+  };
+  const moon={clientRequestAuthorityScopeCid:value=>{assert.equal(value,identity);return cid('8');},
+    clientRequestCallerId:value=>{assert.equal(value,identity);return 'owned-request';},
+    clientProgramEffectApplySubjectCid:value=>{assert.equal(value,previewInputs);return cid('d');},
+    clientProgramEffectPreviewLedgerIdentity:value=>{assert.equal(value,previewInputs);return admittedPreview;}};
+  const method=capturedMethod[0].value;
+  original.prepareCapturedSetIntents=Function('moon','ledger','fail',
+    `return function(${method.params.map(x=>x.name).join(',')})${ledgerSource.slice(method.body.start,method.body.end)};`)(moon,original,fail);
+  Object.freeze(original);
+  const work=(receiver,method,args)=>{assert.equal(receiver,original);generic++;events.push('generic');frame='generic';
+    try{return Reflect.apply(method,receiver,args);}finally{frame=undefined;}};
+  work.ledgerFamily=(receiver,method,args,counts,...policy)=>{
+    assert.equal(receiver,original);assert.equal(method,original.prepareCapturedSetIntents);
+    assert.deepEqual(counts,[2]);assert(Object.isFrozen(counts));assert.deepEqual(policy,[100000,4096,64,4]);
+    family++;events.push('family-before-constructor');if(refusal!==undefined)throw refusal;frame='family';
+    try{return Reflect.apply(method,receiver,args);}finally{frame=undefined;}
+  };
+  work.ledgerOpen=(root,receiver,method,args)=>{
+    assert.equal(root,'/owned/ledger');assert.equal(receiver,undefined);assert.equal(args[0].controlConstruction,work);
+    events.push('open');return Reflect.apply(method,receiver,args);
+  };
+  const openLedger=expression('openLedger',{ledgerRoot:'/owned/ledger',moon,controlEntryBytes:4096,
+    openEffectLedger(options){assert.equal(options.controlConstruction,work);return bind(original,options.controlConstruction,
+      Object.freeze({maxEntries:100000,maxEntryBytes:options.maxEntryBytes,maxNodes:64,maxDepth:4}));}});
+  const start=capture.body.body.filter(n=>n.type==='VariableDeclaration'&&n.declarations.some(d=>d.id.name==='ledger'));
+  assert.equal(start.length,1);
+  const tail=source.slice(start[0].start,capture.body.end-1);
+  const ports={openLedger,identity,controlConstruction:work,applyPreview:undefined,effect,orderedSourceIndexes,
+    preview:{wire:'original-preview',authoringCid:cid('9'),keys},body,requestScope,
+    limits:{preview:{maxWireBytes:4096,maxNodes:64,maxDepth:4},maxFrontierWork:100},claimsOf,entries,
+    unit:{programId:'program',stageId:'stage'},dispatches:['original-dispatch'],members,ownerOf:()=>owner,
+    cid:()=>cid('7'),plan:{runDefinition:{identity:cid('a')},effectInputRetention:{identity:cid('b')},contractLimits:{}},
+    physicalRoute:()=>({current(){},bindDispatch(){}}),plans:[{proof:{}}],basePreflight:()=>({}),
+    computation:{},storedResults:{},admittedPreview,previewInputs,moon,route:undefined,
+    runInvocationCid:cid('c'),targetReads:undefined,assertCurrent(){},physicalOperations(){assert.fail('no physical operation in final DATA tail');},
+    scopes:()=>[],singular:undefined,releaseInputs:async()=>{},continuationOf:()=> 'original-continuation',
+    updateTargetSelections:undefined,execution:{},store:{},control:{}};
+  const stage=Function(...Object.keys(ports),tail)(...Object.values(ports));
+  return {stage,body,entries,members,opaque,events,result,original,work,
+    counts:()=>({family,generic,constructors}),refuse:primary=>{refusal=primary;}};
+}
+
+test('owned claims actual captureStage output selects original Ledger family before intent constructor',async()=>{
+  const f=await ownedClaimsStageFixture(),members=f.stage.apply.members;
+  assert(Object.isFrozen(members));assert(Object.isFrozen(members[0]));assert(Object.isFrozen(members[0].claims));
+  assert.deepEqual(members[0].claims.map(c=>c.intentFingerprintCid),[cid('4'),cid('3')]);
+  assert.equal(members[0].claims[0].canonicalRequestCid,f.entries[0][1].requestCid);
+  assert.equal(members[0].claims[0].basis,f.opaque[0]);
+  assert.equal(f.stage.receipt.members[0].rowOwners[0].claim,members[0].claims[0]);
+  assert.equal(Object.isFrozen(f.opaque[0]),false,'opaque original remains borrowed');
+  for(const input of [f.body,f.body.effects,f.body.effects[0],f.body.effects[0].changes,f.entries,f.members])
+    assert.equal(Object.isFrozen(input),false,'do not freeze caller-owned input');
+  assert.equal(f.stage.apply.ledger.prepareCapturedSetIntents(f.stage.apply.capturedInputs,members,100),f.result);
+  assert.deepEqual(f.counts(),{family:1,generic:0,constructors:1});
+  assert.deepEqual(f.events,['open','family-before-constructor','constructor']);
+});
+
+test('owned claims family refusal and genuinely mutable foreign callers keep original fallback and cause',async()=>{
+  const f=await ownedClaimsStageFixture(),owned=f.stage.apply.members,primary=new Error('original family reservation refused');
+  f.refuse(primary);
+  assert.throws(()=>f.stage.apply.ledger.prepareCapturedSetIntents(f.stage.apply.capturedInputs,owned,100),error=>error===primary);
+  assert.deepEqual(f.counts(),{family:1,generic:0,constructors:0});
+  const mutable=[...owned],foreign=Object.freeze([{claims:owned[0].claims}]);
+  for(const selected of [mutable,foreign]){
+    assert.equal(f.stage.apply.ledger.prepareCapturedSetIntents(f.stage.apply.capturedInputs,selected,100),f.result);
+    assert.equal(Object.isFrozen(selected[0]),selected===mutable);
+  }
+  assert.equal(Object.isFrozen(mutable),false);
+  assert.deepEqual(f.counts(),{family:1,generic:2,constructors:2});
 });

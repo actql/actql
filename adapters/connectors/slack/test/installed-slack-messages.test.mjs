@@ -12,15 +12,14 @@ import {checked} from '../../../host-common/runtime-result.mjs';
 test('installed Slack messages uses original messages Account decisions and one charged RowRun for channels history and replies',async t=>{
   for(const format of ['sql','aql']){
     const f=await fixture(t),source=await f.load();
-    const p=await f.prepare(source,{format,selection:'id, channel, ts, text, reply_count'});
+    const p=await f.prepare(source,{format,selection:'id, channel, ts, text, reply_count, posted_at'});
     const opened=await source.openCapture(p);await f.retain(opened,p.ledger);
     const exported=checked(f.common.clientProgramExportSourceCapture(opened.capture.source(),opened.requirement,'slack-messages'));
     const rows=f.common.clientProgramSourceCaptureExportRows(exported).map(JSON.parse);
-    assert.deepEqual(rows.map(r=>[r.id,r.channel,r.ts,r.text,r.reply_count]),[
-      ['C1:1.000001','C1','1.000001','parent','1'],
-      ['C1:2.000001','C1','2.000001','child',null],
-      ['D1:3.000000001','D1','3.000000001','direct','0']]);
-    assert.equal(rows[2].posted_at,'1970-01-01T00:00:03.000000001Z');
+    assert.deepEqual(rows,[
+      {id:'C1:1.000001',channel:'C1',ts:'1.000001',text:'parent',reply_count:'1',posted_at:'1970-01-01T00:00:01.000001Z'},
+      {id:'C1:2.000001',channel:'C1',ts:'2.000001',text:'child',reply_count:null,posted_at:'1970-01-01T00:00:02.000001Z'},
+      {id:'D1:3.000000001',channel:'D1',ts:'3.000000001',text:'direct',reply_count:'0',posted_at:'1970-01-01T00:00:03.000000001Z'}]);
     assert.deepEqual(JSON.parse(f.profile.accountConfigurationWire).entries[0].resource.any_of,['messages']);
     assert.equal(f.state.requests.length,8);
     assert.deepEqual(f.state.requests.map(r=>new URL(r.path,f.scope.resourceOrigin).pathname),[

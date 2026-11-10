@@ -67,7 +67,7 @@ test "admitted projection retains nonnumeric values aliases and empty schema met
         count,
         { remaining: 10000, max_frames: 100, },
         value_budget(limits).unwrap(),
-        { limit: capacity, live: 0, peak: 0, },
+        { ..row_workspace(capacity), live: 0, peak: 0, },
         None,
       )
       if capacity == workspace.peak {

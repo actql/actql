@@ -190,13 +190,13 @@ export async function runFiniteCase({rows = [{id: 1}, {id: 2}], nullable = false
   const original = moon.workersFiniteFixtureOriginal(preparation.program, preparation.compilation);
   let owner = {admission: moon.workersFiniteFixtureAdmission(original),
     definition: moon.workersFiniteFixtureDefinition(original), ledger: host.createLedger()};
-  let materialsChecks;
+  let materialsChecks, duplicateMaterials;
   if (restoreMaterials) {
     const wire = moon.workersFiniteFixtureMaterials(preparation.program, preparation.compilation,
       owner.admission, owner.definition, environmentWire, environmentCid, finiteDocument(rows, nullable));
     const expected = moon.strategyPublicationContractIdentity(owner.definition);
     const restored = host.admitMaterials(wire, expected);
-    const duplicate = host.admitMaterials(wire, expected);
+    duplicateMaterials = host.admitMaterials(wire, expected);
     materialsChecks = {originalIdentity: expected, restoredIdentity:
       moon.strategyPublicationContractIdentity(restored.definition),
       malformed: refusal(() => host.admitMaterials(
@@ -206,7 +206,8 @@ export async function runFiniteCase({rows = [{id: 1}, {id: 2}], nullable = false
         {...restored, ledger: owner.ledger}, authorization))};
     preparation = restored.preparation;
     owner = {...restored, ledger: owner.ledger};
-    materialsChecks.duplicate = duplicate;
+    // Retain this original locally even when open fails. Public diagnostics
+    // contain observations only, never an opaque preparation/Run graph.
   }
   const usage = () => moon.workersFiniteFixtureUsage(owner.ledger);
   const initialUsage = usage();
@@ -218,10 +219,10 @@ export async function runFiniteCase({rows = [{id: 1}, {id: 2}], nullable = false
     const openedUsage = usage();
     duplicateOpen = refusal(() => host.open(preparation, owner, authorization));
     if (materialsChecks) {
-      const duplicate = materialsChecks.duplicate;
+      const duplicate = duplicateMaterials;
       materialsChecks.duplicateAdmission = refusal(() => host.open(duplicate.preparation,
         {...duplicate, ledger: owner.ledger}, authorization));
-      delete materialsChecks.duplicate;
+      duplicateMaterials = undefined;
     }
     const duplicateOpenUsage = usage();
     phase = 'execution';

@@ -604,7 +604,7 @@ fn prepare_client_local_configuration(
   let capacity : @connector.FixedComputeCapacity = {
     contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
     max_rows,
-    max_value_bytes: 10000,
+    max_value_bytes: capacity_plan.max_value_bytes,
     common_fragment: None,
   }
   let providers = match
@@ -659,6 +659,9 @@ fn prepare_client_local_configuration(
       managed_providers=local_configuration.managed_providers,
       inputs=Some((capacity_plan.imports, Some(0L))),
       metadata=Some(capacity_plan.metadata),
+      // The explicit retained-output selection keeps the original row-file
+      // exporter and its full simultaneous backing. Default managed consumers
+      // do not select that separate exporter.
       output=if retained_output {
         Some((capacity_plan.exports, Some(0L)))
       } else {
@@ -669,6 +672,34 @@ fn prepare_client_local_configuration(
     Err(_) => return None
   }
   Some({ graph, capacity_plan, registry, dispatch, capacity, retained_output, })
+}
+
+///|
+// Preserve the existing Local implementation's original typed failure. This
+// private carrier is diagnostic data, never a new execution or cleanup owner.
+priv suberror ClientLocalImplementationFailure {
+  Dispatch(@local_driver.LocalDispatchIssue)
+  Estimate(@local_driver.LocalEstimateIssue)
+}
+
+///|
+fn client_local_dispatch_run_issue(
+  issue : @local_driver.LocalDispatchIssue,
+) -> @strategy.RunIssue {
+  match issue {
+    Execution(original) => original
+    _ => Implementation(ClientLocalImplementationFailure::Dispatch(issue))
+  }
+}
+
+///|
+fn client_local_estimate_run_issue(
+  issue : @local_driver.LocalEstimateIssue,
+) -> @strategy.RunIssue {
+  match issue {
+    Dispatch(original) => client_local_dispatch_run_issue(original)
+    _ => Implementation(ClientLocalImplementationFailure::Estimate(issue))
+  }
 }
 
 ///|
@@ -718,9 +749,7 @@ fn bind_client_local_configuration(
       _ => @strategy.RunIssue::ForeignCandidate,
       with_local=Some(
         (
-          installed,
-          _ => @strategy.RunIssue::ForeignCandidate,
-          _ => @strategy.RunIssue::ForeignCandidate,
+          installed, client_local_dispatch_run_issue, client_local_estimate_run_issue,
         ),
       ),
     ) {

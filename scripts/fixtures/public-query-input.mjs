@@ -921,24 +921,25 @@ export async function exercisePublicQueryInput(connect, options,
       console.log(`Public query execution failure passed: ${requestPrefix}/${name}`);
     }
     for (const {name, text, expectedCode, ...input} of refusals) {
+      const refusalContext = `${requestPrefix}/${name}`;
       await prepareCase?.();
       const requestId = requestPrefix + '-reject-' + name;
       const submissionRef = client.newSubmission({nonce: requestId});
       const before = await counters();
       let outcome;
       await assert.rejects(client.startSource(text, {...input, submissionRef}), error => {
-        assert.equal(error.code, 'SubmissionNotAccepted');
+        assert.equal(error.code, 'SubmissionNotAccepted', refusalContext);
         outcome = error.outcome;
         assert.equal(outcome.kind, 'not_accepted');
         assert.deepEqual(outcome.submissionRef, submissionRef);
         if (expectedCode === undefined) {
           assert.ok(inputCodes.has(outcome.problem.code), JSON.stringify({name, code: outcome.problem.code}));
         } else {
-          assert.equal(outcome.problem.code, expectedCode);
+          assert.equal(outcome.problem.code, expectedCode, refusalContext);
         }
         assert.ok(!String(error.message).includes('secret-value'));
         return true;
-      });
+      }, `${requestPrefix}/${name}`);
       const afterRefusal = await counters();
       assert.deepEqual(afterRefusal, before,
         'rejected source must not accept a Run or perform source I/O');

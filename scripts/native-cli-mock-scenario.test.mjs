@@ -1,3 +1,4 @@
+import {runInNewContext} from 'node:vm';
 // These are acceptance-harness unit tests with explicit doubles. A green result
 // here does not establish that the Native mock workflow is implemented.
 import assert from 'node:assert/strict';
@@ -8,11 +9,54 @@ import {join} from 'node:path';
 import {scaffoldProject} from '../packages/native-cli/lib/project-scaffold.mjs';
 import {mockTemplates, runNativeCliMockScenario} from './native-cli-mock-scenario.mjs';
 
+test('installed Mock acceptance requires both complete same-cohort public templates without skips', async () => {
+  assert.deepEqual(mockTemplates, ['deal-review-mock', 'churn-risk-mock']);
+  const installed = await readFile(new URL('./test-native-cli-mock-install.mjs', import.meta.url), 'utf8');
+  for (const requirement of ['await verifyNativeCliRelease(directory)',
+    "assert.equal(source.revision, manifest.sourceSha",
+    'assert(expectedArtifact?.localRuntime',
+    'for (const template of mockTemplates) scenarios.push(await runNativeCliMockScenario',
+    "assert.equal(scenarios.length, 2, 'Both README and Quickstart must finish without skips')",
+    "run(process.execPath, [launcher, ...args], cwd)",
+    "records.push(record)", "await writeFile(join(root, 'commands.json')"]) {
+    assert(installed.includes(requirement), requirement);
+  }
+  assert.equal(installed.indexOf('await registry.close()') < installed.indexOf('await writeFile(receiptFile'), true);
+});
+
+function observation(pid, events = []) {
+  return 'ACTQL_NATIVE_TIMINGS ' + JSON.stringify({pid, origin:'first_hook',elapsed_ns:1,clock_current:true,nested_inclusive:true,
+    child_process_counters:false,phase_slots:32,counter_slots:64,initializing_drops:0,invalid_tags:0,invalid_amounts:0,clock_failures:0,overflow:false,stack_overflows:0,parallel_observed:false}) + '\n' +
+    Array.from({length:32},(_,tag)=>'ACTQL_NATIVE_PHASE '+JSON.stringify({tag,name:['startup','config_auth','preparation','execution','save','close','saved_result','journal'][tag] ?? 'private_phase',begins:0,ends:0,inclusive_ns:0,exclusive_ns:0,active:0,overlap:0,unmatched_end:0})+'\n').join('') +
+    Array.from({length:64},(_,tag)=>'ACTQL_NATIVE_COUNTER '+JSON.stringify({tag,name:({0:'sqlite_open_calls',1:'sqlite_prepare_calls',2:'sqlite_step_calls',3:'sqlite_exec_calls',16:'member_hash_calls',17:'parse_check_calls',18:'current_calls',19:'account_auth_calls',20:'run_record_save_calls',22:'host_authorize_calls',23:'captured_read_authorize_calls',24:'publisher_authorize_calls',25:'run_record_read_calls',26:'adoption_digest_calls',46:'backing_allocated_bytes',47:'backing_explicit_zeroed_bytes'})[tag] ?? 'private_counter',count:0})+'\n').join('') +
+    'ACTQL_NATIVE_ACCEPTANCE_BEGIN ' + JSON.stringify({pid, count: events.length, limit: 32, complete: true}) + '\n' +
+    events.map((event, seq) => 'ACTQL_NATIVE_ACCEPTANCE_EVENT ' + JSON.stringify({pid, seq, ...event}) + '\n').join('') +
+    'ACTQL_NATIVE_ACCEPTANCE_END ' + JSON.stringify({pid, count: events.length}) + '\n';
+}
+const observedCid = digit => 'sha256:' + digit.repeat(64);
+function commandObservations(command, pid) {
+  const events = [];
+  for (let ordinal = 0; ordinal < 2; ordinal++) {
+    if (command === 'run') for (const tag of [0, 1, 2]) events.push({tag, ordinal, identity: observedCid(String(ordinal + 1))});
+    if (command === 'approve') for (const tag of [5, 6, 7, 8, 9, 10, 11]) events.push({tag,
+      ordinal: tag === 6 || tag === 7 ? -1 : ordinal,
+      identity: tag === 6 || tag === 7 ? '' : observedCid(String(ordinal + (tag === 9 ? 5 : tag === 10 ? 7 : tag === 11 ? 9 : 3)).replace('10', 'a'))});
+  }
+  return observation(pid, events) + (command === 'init' ? observation(pid + 1) : '');
+}
+
 async function fixture(t, template, mutate = () => {}) {
   const root = await mkdtemp(join(tmpdir(), 'actql-mock-scenario-unit-'));
   t.after(() => rm(root, {recursive: true, force: true}));
   const file = join(root, template, 'mock/data.json');
   let approved = false, reads = 0;
+  const updates = template === 'deal-review-mock' ? [
+    {id: '006Acme', StageName: 'Negotiation', NextStep: 'Send revised pricing by Friday'},
+    {id: '006Globex', StageName: 'Closed Lost', NextStep: 'Revisit next fiscal year'},
+  ] : [
+    {id: '001Acme', Churn_Risk__c: 'high', Risk_Reason__c: 'falling usage and a competitor evaluation'},
+    {id: '001Globex', Churn_Risk__c: 'high', Risk_Reason__c: 'support tickets about pricing'},
+  ];
   const calls = [];
   const run = async (args, cwd) => {
     calls.push({args: [...args], cwd});
@@ -40,7 +84,22 @@ async function fixture(t, template, mutate = () => {}) {
       await writeFile(file, JSON.stringify(data));
       value = {resolved: true};
     }
-    const record = {code: 0, signal: null, stderr: '', stdout: value ? JSON.stringify(value) : ''};
+    const record = {code: 0, signal: null, stderr: commandObservations(args[0], 100 + calls.length * 2), stdout: value ? JSON.stringify(value) : ''};
+    if (args[0] === 'status' && !args.includes('--json')) {
+      assert.equal(approved, false);
+      const resource = template === 'deal-review-mock' ? 'Opportunity' : 'Account';
+      const originals = JSON.parse(await readFile(file, 'utf8')).salesforce[resource].rows;
+      record.stdout = ['Run: "unit-original-run"', 'State: "waiting_checkpoint"',
+        'Checkpoint: "unit-original-checkpoint"', `  Original CID: "sha256:${'a'.repeat(64)}"`,
+        'Stored Effect Preview (read-only; not approval):',
+        `  Effect: "update"  Target: "connector://salesforce/${resource}"`, '  Items: 2',
+        '  Preview strength: "full_diff"', '  Changes:', ...updates.flatMap(update => [
+          '    Row: ' + JSON.stringify(update.id),
+          '      Before: ' + JSON.stringify({state: 'present', value: originals.find(row => row.id === update.id)}),
+          '      After: ' + JSON.stringify({state: 'present', value:
+            Object.fromEntries(Object.entries(update).filter(([name]) => name !== 'id'))}),
+        ])].join('\n') + '\n';
+    }
     if (args[0] === 'result') {
       reads++;
       const ids = template === 'deal-review-mock' ? ['006Acme', '006Globex'] : ['001Acme', '001Globex'];
@@ -67,8 +126,13 @@ for (const template of mockTemplates) test(`harness requires the public ${templa
   assert.equal(receipt.runId, 'unit-original-run');
   assert.equal(receipt.resultRows, 2);
   assert.deepEqual(options.calls.map(({args}) => args[0]),
-    ['init', 'run', 'status', 'approve', 'status', 'result', 'status', 'result']);
+    ['init', 'run', 'status', 'status', 'approve', 'status', 'result', 'status', 'result']);
   assert.equal(options.calls.filter(({args}) => args[0] === 'run').length, 1);
+  assert.equal(options.calls.filter(({args}) => args[0] === 'approve').length, 1);
+  assert.deepEqual(receipt.humanWaiting, {runId: 'unit-original-run', checkpointId: 'unit-original-checkpoint',
+    checkpointCid: `sha256:${'a'.repeat(64)}`, rows: 2});
+  assert.deepEqual(options.calls.filter(({args}) => args[0] === 'status' && !args.includes('--json'))
+    .map(({args}) => args), [['status', 'unit-original-run']]);
 });
 
 for (const [name, mutate, pattern] of [
@@ -130,7 +194,7 @@ test('harness refuses deferring the approved Effect until status', async t => {
 
 test('harness refuses same-byte Effect replay during completed status', async t => {
   const options = await fixture(t, 'deal-review-mock', async ({args, record, file}) => {
-    if (args[0] === 'status' && JSON.parse(record.stdout).status === 'succeeded') {
+    if (args[0] === 'status' && args.includes('--json') && JSON.parse(record.stdout).status === 'succeeded') {
       await writeFile(file, await readFile(file));
     }
   });
@@ -148,3 +212,156 @@ for (const operation of ['approve', 'result']) {
     await assert.rejects(runNativeCliMockScenario(options), {code: 'ENOENT'});
   });
 }
+
+
+for (const [name, mutate, pattern] of [
+  ['State-only output without the stored Preview', ({record}) => {
+    record.stdout = record.stdout.split('Stored Effect Preview')[0];
+  }, /Human waiting Preview/u],
+  ['a replacement Run in human output', ({record}) => {
+    record.stdout = record.stdout.replace('unit-original-run', 'replacement-run');
+  }, /Human waiting Preview/u],
+  ['a replacement Checkpoint in human output', ({record}) => {
+    record.stdout = record.stdout.replace('a'.repeat(64), 'b'.repeat(64));
+  }, /Human waiting Preview/u],
+  ['a Program alias instead of the original target URI', ({record}) => {
+    record.stdout = record.stdout.replace('connector://salesforce/Opportunity', 'salesforce.Opportunity');
+  }, /Human waiting Preview/u],
+  ['a different connector target resource', ({record}) => {
+    record.stdout = record.stdout.replace('connector://salesforce/Opportunity', 'connector://salesforce/Account');
+  }, /Human waiting Preview/u],
+  ['incorrect displayed before evidence', ({record}) => {
+    record.stdout = record.stdout.replace('"StageName":"Proposal"', '"StageName":"Other"');
+  }, /original before StageName/u],
+  ['incorrect displayed intended changes', ({record}) => {
+    record.stdout = record.stdout.replace('"StageName":"Negotiation"', '"StageName":"Other"');
+  }, /intended after fields/u],
+]) test(`harness refuses ${name}`, async t => {
+  const options = await fixture(t, 'deal-review-mock', context => {
+    if (context.args[0] === 'status' && !context.args.includes('--json')) mutate(context);
+  });
+  await assert.rejects(runNativeCliMockScenario(options), pattern);
+});
+
+test('harness rejects restricted Preview contents added to canonical JSON state', async t => {
+  const options = await fixture(t, 'deal-review-mock', ({args, record}) => {
+    if (args[0] === 'run') record.stdout = JSON.stringify({...JSON.parse(record.stdout),
+      effect_preview: {before: 'restricted original'}});
+  });
+  await assert.rejects(runNativeCliMockScenario(options), /JSON Run state must not embed restricted Preview/u);
+});
+
+for (const [name, mutate, pattern] of [
+  ['missing diagnostics', record => { record.stderr = ''; }, /Missing complete Native observations/u],
+  ['truncated diagnostics', record => { record.stderr = record.stderr.replace(/ACTQL_NATIVE_ACCEPTANCE_END[^\n]*\n/gu, ''); }, /Missing complete Native observations/u],
+  ['overflow or failed recording', record => { record.stderr = record.stderr.replace('"complete":true', '"complete":false'); }, /Incomplete Native observations/u],
+  ['foreign process', record => { record.stderr = record.stderr.replace('"pid":104,"seq":0', '"pid":999,"seq":0'); }, /Foreign or extra Native event/u],
+  ['wrong attempt identity', record => { record.stderr = record.stderr.replace('"tag":1,"ordinal":0,"identity":"sha256:' + '1'.repeat(64), '"tag":1,"ordinal":0,"identity":"sha256:' + '2'.repeat(64)); }, /Changed original Model attempt/u],
+  ['same-byte Effect replay', record => { record.stderr = commandObservations('approve', 900); }, /replayed Model or Effect work/u],
+]) test(`Native acceptance refuses ${name} instead of claiming zero replay`, async t => {
+  const options = await fixture(t, 'deal-review-mock', ({args, record}) => {
+    if (args[0] === (name === 'same-byte Effect replay' ? 'status' : 'run')) mutate(record);
+  });
+  await assert.rejects(runNativeCliMockScenario(options), pattern);
+});
+
+for (const [name, edit, pattern] of [
+  ['foreign dispatch ACK', text => text.replace('"tag":8,"ordinal":0,"identity":"sha256:'+'3'.repeat(64), '"tag":8,"ordinal":0,"identity":"sha256:'+'4'.repeat(64)), /Changed original Effect dispatch key/u],
+  ['rename attempt confused with success', text => text.replace('"seq":2,"tag":7', '"seq":2,"tag":6'), /retain attempt, rename, final ACK/u],
+  ['repeated original operation', text => text.replaceAll('sha256:'+'4'.repeat(64), 'sha256:'+'3'.repeat(64)), /Repeated Effect operation/u],
+  ['repeated file receipt', text => text.replaceAll('sha256:'+'8'.repeat(64), 'sha256:'+'7'.repeat(64)), /Repeated Effect operation/u],
+]) test(`Native acceptance refuses ${name}`, async t => {
+  const options = await fixture(t, 'deal-review-mock', ({args, record}) => {
+    if (args[0] === 'approve') record.stderr = edit(record.stderr);
+  });
+  await assert.rejects(runNativeCliMockScenario(options), pattern);
+});
+
+test('fresh command observation groups do not treat an OS PID as an operation identity', async t => {
+  const options = await fixture(t, 'deal-review-mock', ({args, record}) => {
+    if (args[0] !== 'init') record.stderr = record.stderr.replace(/"pid":\d+/gu,'"pid":999');
+  });
+  const receipt = await runNativeCliMockScenario(options);
+  assert.equal(receipt.resultRows,2);
+});
+
+test('unrelated timing precision does not replace acceptance event completeness', async t => {
+  const options = await fixture(t, 'deal-review-mock', ({record}) => {
+    record.stderr = record.stderr.replaceAll('"clock_current":true','"clock_current":false')
+      .replaceAll('"clock_failures":0','"clock_failures":1')
+      .replaceAll('"overflow":false','"overflow":true')
+      .replaceAll('"stack_overflows":0','"stack_overflows":1')
+      .replaceAll('"parallel_observed":false','"parallel_observed":true');
+  });
+  assert.equal((await runNativeCliMockScenario(options)).resultRows,2);
+});
+
+test('different attempts cannot replace the original two Model slots', async t => {
+  const options = await fixture(t, 'deal-review-mock', ({args,record}) => {
+    if (args[0] === 'run') record.stderr = record.stderr.replaceAll('"ordinal":1','"ordinal":0');
+  });
+  await assert.rejects(runNativeCliMockScenario(options),/Changed original Model slots/u);
+});
+
+const launcherTimingTrailer = value => 'ACTQL_NATIVE_LAUNCHER_TIMINGS ' + JSON.stringify({units:'nanoseconds',preparation:12,child:30,total:42,...value}) + '\n';
+
+test('Node launcher acceptance unwraps its canonical final trailer without changing Native observations or raw stderr', async t => {
+  const raw = [];
+  const options = await fixture(t, 'deal-review-mock', ({record}) => {
+    record.stderr += launcherTimingTrailer(); raw.push(record.stderr);
+  });
+  options.launcherTimings = 'required';
+  const receipt = await runNativeCliMockScenario(options);
+  assert.equal(receipt.resultRows,2);
+  assert.deepEqual(receipt.commands.map(command=>command.stderr),raw);
+  assert(receipt.commands.every(command=>command.launcherTiming.units==='nanoseconds' && command.launcherTiming.total===42));
+  assert.equal(receipt.commands.find(command=>command.args[0]==='run').acceptance.modelAttempts.length,2);
+  assert.equal(receipt.commands.find(command=>command.args[0]==='approve').acceptance.writes.length,2);
+});
+
+test('the actual Node launcher timing statement remains compatible with the required harness envelope', async t => {
+  const source = await readFile(new URL('../packages/native-cli/bin/actql.mjs',import.meta.url),'utf8');
+  const start = source.indexOf("      writeSync(2, 'ACTQL_NATIVE_LAUNCHER_TIMINGS '");
+  const end = source.indexOf('\n    } catch {}',start);
+  assert(start>=0 && end>start);
+  let trailer;
+  runInNewContext(source.slice(start,end),{childStart:30n,timingStart:12n,finish:42n,
+    writeSync(fd,value){assert.equal(fd,2);trailer=value;}});
+  const options = await fixture(t,'deal-review-mock',({record})=>{record.stderr+=trailer;});
+  options.launcherTimings='required';
+  const receipt = await runNativeCliMockScenario(options);
+  assert(receipt.commands.every(command=>command.launcherTiming.total===30));
+});
+
+test('the required Node caller cannot silently become a direct Native caller', async t => {
+  const options = await fixture(t,'deal-review-mock'); options.launcherTimings='required';
+  await assert.rejects(runNativeCliMockScenario(options),/Required Node launcher timing trailer missing/u);
+  const installed = await readFile(new URL('./test-native-cli-mock-install.mjs',import.meta.url),'utf8');
+  assert(installed.includes("runNativeCliMockScenario({root, template, launcherTimings: 'required'"));
+});
+
+for (const [name, envelope] of [
+  ['duplicate trailer', text=>text+launcherTimingTrailer()+launcherTimingTrailer()],
+  ['out of order trailer', text=>launcherTimingTrailer()+text],
+  ['truncated trailer', text=>text+launcherTimingTrailer().slice(0,-1)],
+  ['unknown trailing record', text=>text+launcherTimingTrailer()+'ACTQL_NATIVE_UNKNOWN {}\n'],
+  ['ordinary error before trailer', text=>text+'PRIVATE error\n'+launcherTimingTrailer()],
+  ['ordinary error after trailer', text=>text+launcherTimingTrailer()+'PRIVATE error\n'],
+  ['PID field', text=>text+launcherTimingTrailer({pid:123})],
+  ['unknown field', text=>text+launcherTimingTrailer({error:'PRIVATE'})],
+  ['wrong units', text=>text+launcherTimingTrailer({units:'milliseconds'})],
+  ['negative amount', text=>text+launcherTimingTrailer({preparation:-1,total:29})],
+  ['fractional amount', text=>text+launcherTimingTrailer({child:0.5,total:12.5})],
+  ['unsafe amount', text=>text+launcherTimingTrailer({preparation:9007199254740992,child:0,total:9007199254740992})],
+  ['unsafe sum', text=>text+launcherTimingTrailer({preparation:Number.MAX_SAFE_INTEGER,child:1,total:Number.MAX_SAFE_INTEGER})],
+  ['incorrect sum', text=>text+launcherTimingTrailer({total:41})],
+  ['negative zero spelling', text=>text+launcherTimingTrailer().replace('"preparation":12','"preparation":-0')],
+  ['duplicate field', text=>text+launcherTimingTrailer().replace('"child":30','"child":30,"child":30')],
+  ['alternate field order', text=>text+'ACTQL_NATIVE_LAUNCHER_TIMINGS {"preparation":12,"units":"nanoseconds","child":30,"total":42}\n'],
+  ['noncanonical whitespace', text=>text+launcherTimingTrailer().replace('{','{ ')],
+  ['unknown launcher prefix', text=>text+launcherTimingTrailer().replace('LAUNCHER_TIMINGS','LAUNCHER_ERROR')],
+]) test(`launcher observations refuse ${name} without laundering Native errors`, async t => {
+  const options=await fixture(t,'deal-review-mock',({record})=>{record.stderr=envelope(record.stderr);});
+  options.launcherTimings='required';
+  await assert.rejects(runNativeCliMockScenario(options));
+});

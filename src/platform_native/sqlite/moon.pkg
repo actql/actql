@@ -13,6 +13,8 @@ options(
   "native-stub": [ "sqlite_stub.c" ],
   targets: {
     "sqlite_native.mbt": [ "native" ],
+    "owned_body_extent_native.mbt": [ "native" ],
+    "owned_body_extent_unsupported.mbt": [ "not", "native" ],
     "store_operation_native.mbt": [ "native" ],
     "store_operation_native_wbtest.mbt": [ "native" ],
     "store_operation_unsupported.mbt": [ "not", "native" ],

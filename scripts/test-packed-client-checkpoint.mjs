@@ -206,7 +206,8 @@ const configuration = outcome === 'missing' ? undefined : canonical({
       connection: {any_of: ['actql-remote-host']},
       operation: {any_of: ['read']}, outcome: 'allow',
       principal: {any_of: [userInfo().username]},
-      resource: {any_of: ['result/answer', 'run']}},
+      resource: {any_of: process.env.ACQUIRED === '1'
+        ? ['result/b', 'result/c', 'run'] : ['result/answer', 'run']}},
     {entry_id: 'run-acceptance', exclusions: [],
       connection: {any_of: ['actql-remote-host']},
       operation: {any_of: ['write']}, outcome, principal: {all: true},
@@ -282,6 +283,7 @@ if (process.env.HISTORICAL_REQUESTS !== undefined) {
     const document = JSON.stringify(parsed);
     const options = {directory: process.env.STATE, document, requestId,
       authorization: installation.authorization,
+      hostCapacityPolicy: installation.hostCapacityPolicy,
       expressionContractUrl: new URL('actql-expressions.json', import.meta.url),
       runtimeRootUrl: new URL('.', import.meta.resolve('@actql/local-node')), mode: 'remote'};
     const original = acquired
@@ -578,13 +580,14 @@ const steps = {
     assert.equal((await execution.status()).status, 'cancelled');
   },
   // A historical original remains observable/attachable after restart and
-  // can start only under its resumed authorization. Bare ingress stays refused.
+  // can start only under its resumed authorization. Risk restart without a
+  // current submitted reference stays refused; a public name is not that ref.
   async recoveredAgain() {
     const owner = await as('owner-token');
     const lookup = await owner.lookupRequest(requestId);
     assert.equal(lookup.kind, 'found');
     const execution = await owner.attach(lookup.ref);
-    await assert.rejects(owner.startSource(text, {format: 'json', requestId}),
+    await assert.rejects(owner.startSource(text, {format: 'json', requestId, unresolvedHistory: lookup}),
       {code: 'SubmissionReferenceRequired'});
     let state;
     for (let attempt = 0; attempt < 400; attempt++) {

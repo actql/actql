@@ -1,4 +1,16 @@
 ///|
+const LOGICAL_SCOPE_CALLER_BYTES : Int = 256
+
+///|
+const LOGICAL_SCOPE_WIRE_BYTES : Int = 1792
+
+///|
+const LOGICAL_SCOPE_NODES : Int = 4
+
+///|
+const LOGICAL_SCOPE_DEPTH : Int = 1
+
+///|
 /// One canonical logical request key shared by Client ingress and Effect
 /// dispatch. Intent and physical attempts have separate identities.
 struct LogicalRequestScope {
@@ -72,7 +84,7 @@ pub fn prepare_logical_request_scope(
   caller_request_id : String,
   max_caller_bytes : Int,
 ) -> Result[LogicalRequestScope, LogicalRequestScopeIssue] {
-  if max_caller_bytes < 1 || max_caller_bytes > 256 {
+  if max_caller_bytes < 1 || max_caller_bytes > LOGICAL_SCOPE_CALLER_BYTES {
     return Err(InvalidLimits)
   }
   if !valid_scope_cid(authority_scope_cid) {
@@ -81,7 +93,11 @@ pub fn prepare_logical_request_scope(
   if !valid_caller_id(caller_request_id, max_caller_bytes) {
     return Err(InvalidCallerRequest)
   }
-  let writer = @encode.hashing_writer(1792, 4, 1) catch {
+  let writer = @encode.hashing_writer(
+    LOGICAL_SCOPE_WIRE_BYTES,
+    LOGICAL_SCOPE_NODES,
+    LOGICAL_SCOPE_DEPTH,
+  ) catch {
     _ => return Err(Encoding)
   }
   try {
@@ -116,5 +132,28 @@ pub fn prepare_scope_cid(
     ) {
     Ok(scope) => Ok(logical_request_scope_cid(scope))
     Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// The same fixed scope constructor's owned writer, caller validation and CID
+/// result. Inputs and module constants stay borrowed. No full Ledger entry,
+/// history parser, SQLite native allocation or resource grant is represented.
+pub fn logical_request_scope_construction_inventory() -> @encode.HashWriterConstructionInventory {
+  let writer = @encode.hash_writer_construction_inventory(
+    LOGICAL_SCOPE_NODES,
+    LOGICAL_SCOPE_DEPTH,
+  ).unwrap()
+  {
+    ..writer,
+    record_headers: writer.record_headers + 1L,
+    reference_slots: writer.reference_slots + 3L,
+    // Validation encodes the bounded caller and checks its normalized text;
+    // original request strings remain borrowed by the returned scope.
+    owned_utf16_units: writer.owned_utf16_units +
+    4L * LOGICAL_SCOPE_CALLER_BYTES.to_int64() +
+    71L,
+    owned_wire_bytes: writer.owned_wire_bytes +
+    4L * LOGICAL_SCOPE_CALLER_BYTES.to_int64(),
   }
 }

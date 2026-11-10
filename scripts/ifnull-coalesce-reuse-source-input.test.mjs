@@ -29,8 +29,15 @@ test('output alias and qualified input have independent reverse order expectatio
   assert.ok(alias.text.includes('IFNULL(amount, 0) AS original, -amount AS amount'));
   assert.ok(input.text.includes('ORDER BY COALESCE(records.amount, 0)'));
   assert.equal(refusals.length, 9);
-  assert.ok(refusals.filter(item => item.name.includes('order-refusal')).every(item =>
-    item.expectedCode === 'ClientProgramImplementationLimit'));
+  // These are the seven semantic scope/arity/namespace refusals in the
+  // existing Core coalesce-reuse test, not unsupported implementation paths.
+  assert.deepEqual(refusals.filter(item => item.name.includes('order-refusal')), [
+    'COALESCE(amount, 1)', 'COALESCE(0, amount)', 'COALESCE(id, 0)',
+    'COALESCE(amount)', 'COALESCE(amount, 0, 1)', 'NULLIF(amount, 0)',
+    'ACTQL.COALESCE(amount, 0)',
+  ].map((ordered, index) => ({name: 'ifnull-coalesce-reuse-order-refusal-' + index, format: 'sql',
+    text: 'SELECT DISTINCT IFNULL(amount, 0) AS value FROM records ORDER BY ' + ordered,
+    expectedCode: 'ClientProgramInvalidInput'})));
 });
 
 test('normal packed corpus and narrow selection both include coalesce reuse', async () => {

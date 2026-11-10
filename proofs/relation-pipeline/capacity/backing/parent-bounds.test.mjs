@@ -6,6 +6,8 @@ import {fileURLToPath} from 'node:url';
 import {retainedParentCoreBound,checkParentCensus} from '../parent-control/bounds.mjs';
 import {inspectCurrentChain} from '../parent-control/current-inspect.mjs';
 import {currentChainSyntheticFixture} from '../parent-control/current-chain.synthetic.fixture.mjs';
+import {reviewedFunction} from '../parent-control/provider-construction-source-review.mjs';
+import {hash} from '../../inventory.mjs';
 const root=fileURLToPath(new URL('../../../../',import.meta.url));
 const read=p=>readFileSync(join(root,p));
 // Current-source inputs are explicitly synthetic. The archived Native capture
@@ -21,10 +23,54 @@ test('current census binds state, metadata preparation and all provider construc
   const census=checkParentCensus(read);
   assert.deepEqual(census.chainReferences,['used','cancelled','terminal','reclaimed','cleanup_index']);
   assert.equal(census.providerConstructors.length,11);
+  assert.deepEqual(census.sourceFields.find(state=>state.struct==='GeneratedSequence')
+    .fields.find(field=>field.name==='working'),{name:'working',type:'WorkspaceGrowth?'});
   const p='src/connectors/local/selected_relation_provider.mbt',source=read(p).toString();
+  // Fixed preimages from the reviewed 6c46216736 Source: the singleton Set
+  // retirement and bounded Join quote change neither candidate construction
+  // nor the parent state/callback owner, and add no constructor allocation.
+  assert.equal(hash(reviewedFunction(source,'selected_relation_provider')),
+    'f100dd3ac842dd087b494382c42be9dfb613184a35f26164f2788ba8ed6544b5');
+  assert.equal(hash(reviewedFunction(source,'bounded_relation_chain_execution_state')),
+    '509b289d59148096c04e8676a739df325281648d03f58fdabdac6ecb25d95695');
   assert.throws(()=>checkParentCensus(path=>path===p?source.replace('Array::make(count, None)','Array::make(count - 1, None)'):read(path)));
+  const joined='Some(@lower.JoinStep(_)) | Some(@lower.CrossJoinStep(_)) => ()';
+  assert.equal(source.split(joined).length,2,'Reach the reviewed CrossJoin scratch branch');
+  assert.throws(()=>checkParentCensus(path=>path===p?
+    source.replace(joined,'Some(@lower.JoinStep(_)) => ()'):read(path)),
+    /Changed reviewed reclaimed-prefix source body or arity/);
+  const window='Some(@lower.WindowStep(_)) => ()';
+  assert.equal(source.split(window).length,2,'Reach the reviewed Window scratch branch');
+  assert.throws(()=>checkParentCensus(path=>path===p?
+    source.replace(window,'Some(@lower.WindowStep(_)) => return index'):read(path)),
+    /Changed reviewed reclaimed-prefix source body or arity/);
+  const singletonSet='Some(@lower.SetStep(_)) if @execution.generated_sequence_step_count(\n          sequence,\n        ) ==\n        1 => ()';
+  assert.equal(source.split(singletonSet).length,2,'Reach the reviewed singleton Set guard');
+  assert.throws(()=>checkParentCensus(path=>path===p?
+    source.replace(singletonSet,singletonSet.replace('1 => ()','2 => ()')):read(path)),
+    /Changed reviewed reclaimed-prefix source body or arity/);
+  const singletonPivot='!(@execution.generated_sequence_step_count(sequence) == 1 &&\n          @lower.kernel_pivot(kernel) is Some(_))';
+  assert.equal(source.split(singletonPivot).length,2,'Reach the reviewed singleton PIVOT guard');
+  for(const changed of [singletonPivot.replace('== 1','== 2'),
+    '!(@lower.kernel_pivot(kernel) is Some(_))']) {
+    assert.throws(()=>checkParentCensus(path=>path===p?
+      source.replace(singletonPivot,changed):read(path)),
+      /Changed reviewed reclaimed-prefix source body or arity/);
+  }
   const generated='src/execution_relation/generated_sequence.mbt';
   assert.throws(()=>checkParentCensus(path=>path===generated?read(path).toString().replace('traversal_ceilings : Array[(Int, Int64, Int64)]','traversal_ceilings : Array[(Int, String, Int64)]'):read(path)));
+});
+for(const [name,replacement] of [
+  ['missing borrowed workspace growth',''],
+  ['retyped borrowed workspace growth','  working : Array[WorkspaceGrowth]\n'],
+  ['additional workspace owner','  working : WorkspaceGrowth?\n  extra_working : WorkspaceGrowth?\n'],
+]) test('current census rejects '+name,()=>{
+  const path='src/execution_relation/generated_sequence.mbt';
+  const original=read(path).toString(),declaration='  working : WorkspaceGrowth?\n';
+  assert.equal(original.split(declaration).length,2,'Mutation must reach the unique borrowed field');
+  const changed=original.replace(declaration,replacement);
+  assert.throws(()=>checkParentCensus(file=>file===path?changed:read(file)),
+    /Unreviewed parent\/edge field or type GeneratedSequence/);
 });
 test('synthetic current source/ABI inputs bind capture roles and every lifecycle phase',()=>{
   assert.match(currentChainSyntheticFixture().role,/^synthetic-current-source-abi;/);

@@ -38,6 +38,8 @@ struct InstalledArenaOriginalRead {
   // The same read Owner retains its one issued consumer through physical ACK.
   // This is not another cleanup controller or a reissued available read pair.
   mut consumer : InstalledArenaOriginalReadConsumer?
+  mut funded_retained_bytes : Int64
+  mut funded_execution_bytes : Int64
   // Only the exact original C-context retirement observation sets this cell.
   // Escaped retired WorkspaceLoans capture this cell, not the parent graph.
   physical_retired : Ref[Bool]
@@ -100,6 +102,8 @@ pub fn InstalledArenaHost::prepare_domain_original_read(
     claim: None,
     pair: None,
     consumer: None,
+    funded_retained_bytes: 0L,
+    funded_execution_bytes: 0L,
     physical_retired: Ref(false),
     owns_read: false,
     child_started: false,
@@ -209,6 +213,8 @@ fn InstalledArenaOriginalRead::prepare_original(
     Ok(value) => value
   }
   self.claim = Some(claim)
+  self.funded_retained_bytes = budget.read_retained
+  self.funded_execution_bytes = budget.read_execution
   let pair = match
     @buffers.issue_workspace_original_read(claim, self, workspace) {
     Err(issue) => return Err(Read(issue))
@@ -385,6 +391,16 @@ pub fn InstalledArenaHost::close_domain_original_read(
       match @resources.relocate_imported_child_cleanup_usage(frame) {
         Err(issue) => return Err(Child(issue))
         Ok(_) => ()
+      }
+    }
+    if record.consumer is Some(view) && view.working_snapshot_pending {
+      match
+        @resources.relocate_funded_read_consumer_cleanup_state(
+          view.consumer,
+          record,
+        ) {
+        Err(issue) => return Err(Read(issue))
+        Ok(_) => view.working_snapshot_pending = false
       }
     }
     let context_close = domain.backing.close_backed_read_context(

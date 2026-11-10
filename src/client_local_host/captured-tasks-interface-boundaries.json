@@ -1,0 +1,367 @@
+{
+  "qualification": "Original Common owner correspondence only; not Native backing, Account/Journal admission or CLI acceptance",
+  "declarations": [
+    {
+      "module": "src/client_local_host/execute.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "3157758d7671ccc7cf074a3cf3f64193ea5eb0caf5354e005db3435d4c089922",
+      "role": "common-semantics",
+      "owner": "Existing checked Local task, original captured Source, physical Resource and retained-output owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "execute_source_free_values",
+          "declaration": "execute_source_free_values ( setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , finalization_quantum : Int , max_finalization_rounds : Int , ) - > Result [ LocalValuesExecution , LocalValuesExecutionFailure ]"
+        },
+        {
+          "name": "execute_source_free_values_guarded",
+          "declaration": "execute_source_free_values_guarded ( setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , finalization_quantum : Int , max_finalization_rounds : Int , require_current : ( ) - > Bool , ) - > Result [ LocalValuesExecution , LocalValuesExecutionFailure ]"
+        },
+        {
+          "name": "failed_local_values_execution",
+          "declaration": "failed_local_values_execution ( issue : LocalValuesExecutionIssue , ) - > LocalValuesExecutionFailure"
+        },
+        {
+          "name": "local_values_execution_failure_cleanup_pending",
+          "declaration": "local_values_execution_failure_cleanup_pending ( failure : LocalValuesExecutionFailure , ) - > Bool"
+        },
+        {
+          "name": "local_values_execution_failure_issue",
+          "declaration": "local_values_execution_failure_issue ( failure : LocalValuesExecutionFailure , ) - > LocalValuesExecutionIssue"
+        },
+        {
+          "name": "LocalValuesExecution::close",
+          "declaration": "LocalValuesExecution : : close ( self : LocalValuesExecution ) - > Bool"
+        },
+        {
+          "name": "LocalValuesExecution::completed_output",
+          "declaration": "LocalValuesExecution : : completed_output ( self : LocalValuesExecution , ) - > @ execution . ManagedCompletedOutput [ Int ]"
+        },
+        {
+          "name": "LocalValuesExecution::material",
+          "declaration": "LocalValuesExecution : : material ( self : LocalValuesExecution , ) - > @ execution . ManagedRetainedOutput [ Int ] ?"
+        },
+        {
+          "name": "LocalValuesExecution::rows",
+          "declaration": "LocalValuesExecution : : rows ( self : LocalValuesExecution , ) - > Result [ Array [ String ] , LocalValuesExecutionIssue ]"
+        },
+        {
+          "name": "reject_local_values_operations",
+          "declaration": "reject_local_values_operations ( run : @ strategy . CapturedDAG , operations : @ local_driver . LocalManagedDispatchOperations [ Int ] , issue : LocalValuesExecutionIssue , ) - > LocalValuesExecutionFailure"
+        },
+        {
+          "name": "retry_local_values_execution_failure_cleanup",
+          "declaration": "retry_local_values_execution_failure_cleanup ( failure : LocalValuesExecutionFailure , ) - > Bool"
+        },
+        {
+          "name": "stop_local_values_run",
+          "declaration": "stop_local_values_run ( run : @ strategy . CapturedDAG ) - > Unit"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "execute_source_free_values",
+            "execute_source_free_values_guarded",
+            "failed_local_values_execution",
+            "local_values_execution_failure_cleanup_pending",
+            "local_values_execution_failure_issue",
+            "LocalValuesExecution::close",
+            "LocalValuesExecution::completed_output",
+            "LocalValuesExecution::material",
+            "LocalValuesExecution::rows",
+            "reject_local_values_operations",
+            "retry_local_values_execution_failure_cleanup",
+            "stop_local_values_run"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/execute_source_free_tasks.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "d0f4ff57cd3b2b3d8c129259c81b2a33bf33142be0cf3e09d336c48e37451750",
+      "role": "common-semantics",
+      "owner": "Existing checked Local task, original captured Source, physical Resource and retained-output owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "captured_local_tasks_current",
+          "declaration": "captured_local_tasks_current ( run : @ strategy . CapturedDAG , capture : @ row_source_host . RowSourceCapture , requirements : ClientLocalRequirements , ) - > Bool"
+        },
+        {
+          "name": "close_local_values_tasks",
+          "declaration": "close_local_values_tasks ( run : @ strategy . CapturedDAG , tasks : Array [ LocalValuesTaskExecution ? ] , ) - > Bool"
+        },
+        {
+          "name": "execute_captured_local_tasks_guarded",
+          "declaration": "execute_captured_local_tasks_guarded ( setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , capture : @ row_source_host . RowSourceCapture , requirements : ClientLocalRequirements , finalization_quantum : Int , max_finalization_rounds : Int , require_current : ( ) - > Bool , require_live ? : ( ( ) - > Bool ) ?"
+        },
+        {
+          "name": "execute_local_tasks_guarded",
+          "declaration": "execute_local_tasks_guarded ( setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , finalization_quantum : Int , max_finalization_rounds : Int , require_current : ( ) - > Bool , require_live ~ : ( ( ) - > Bool ) ? , first ~ : Int , ) - > Result [ LocalValuesExecution , LocalValuesExecutionFailure ]"
+        },
+        {
+          "name": "execute_source_free_local_tasks_guarded",
+          "declaration": "execute_source_free_local_tasks_guarded ( setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , finalization_quantum : Int , max_finalization_rounds : Int , require_current : ( ) - > Bool , require_live ? : ( ( ) - > Bool ) ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "captured_local_tasks_current",
+            "close_local_values_tasks",
+            "execute_captured_local_tasks_guarded",
+            "execute_local_tasks_guarded",
+            "execute_source_free_local_tasks_guarded"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/captured_tasks_control_inventory.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "4e94ec644fcbcb552b68d9170acad6f2cd3cfbdbb08899d0356ace0b73400ce8",
+      "role": "common-semantics",
+      "owner": "Existing checked Local task, original captured Source, physical Resource and retained-output owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "captured_local_tasks_control_capacity",
+          "declaration": "captured_local_tasks_control_capacity ( ) - > @ execution . ExecutionCapacity ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "captured_local_tasks_control_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "- Responsibility:"
+              },
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "## Captured entry control constructors"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "- Ownership:"
+              },
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "## Captured entry control constructors"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "- Synchronization:"
+              },
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "## Captured entry control constructors"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "- Failure:"
+              },
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "## Captured entry control constructors"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "- Cancellation:"
+              },
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "## Captured entry control constructors"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "- Resources:"
+              },
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "## Captured entry control constructors"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "- Extension:"
+              },
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "## Captured entry control constructors"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "- Verification:"
+              },
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "## Captured entry control constructors"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

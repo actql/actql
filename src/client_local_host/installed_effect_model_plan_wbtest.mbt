@@ -17,6 +17,7 @@ fn effect_model_plan_source(
   declaration? : @row_source_host.RowDeclaration? = None,
   lookup_policy? : Json? = None,
   plural? : Bool = false,
+  source_implementation? : (String, String)? = None,
 ) -> (@checked.CheckEnvironment, String) raise {
   let task =
     #|{"authored_model_selector":"fixture-risk-model","connector_id":"models/fixture","contract_cid":"sha256:cfb4c49389dd5ecbcd97d4b60276549dcf6fd2ce62584707b5c661d94dce4560","data_handling":{"accepted_classifications":["public","internal"],"allowed_regions":["fixture-region"],"contract_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","retention":"none","training_use":"forbidden"},"generation_config":{"max_output_tokens":32,"seed_requested":-7,"temperature":0,"top_p":1},"input_contract":{"additional_properties":false,"fields":{"text":{"nullable":true,"type":"string"}},"nullable":false,"type":"object"},"input_schema_cid":"sha256:57887e29c270383ae1e005ba3476a81c8b0012a8b566db860c75abba9c786dd7","max_items":2,"output_contract":{"additional_properties":false,"fields":{"reason":{"nullable":true,"type":"string"},"risk":{"nullable":false,"type":"string"}},"nullable":false,"type":"object"},"output_schema_cid":"sha256:d67003c78c0eb8b7ab0499bbed57bc8d5895c43ed0b3ce27755b656a65fd49f3","prompt_template_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","retrieval_policy":"none","schema":"actql.model_task/0.1","streaming":false,"task_id":"model-task:risk-score.v1","task_kind":"structured_generate","tool_policy":"none","version":"1"}
@@ -60,6 +61,33 @@ fn effect_model_plan_source(
     manifest["connectors"] = effect_plan_fixture_members(
       manifest["connectors"],
       [original.manifest_entry],
+    )
+  }
+  if source_implementation is Some((source_ref, cid)) {
+    guard fields["connector_capabilities"] is Array(capabilities) else {
+      fail("original Source capabilities")
+    }
+    let mut found = false
+    for capability in capabilities {
+      if capability is Object(selected) &&
+        selected.get("source_ref") == Some(Json::string(source_ref)) {
+        guard selected["capability_contract_cids"] is Array(contracts) else {
+          fail("original Source implementation contracts")
+        }
+        contracts.push(Json::string(cid))
+        contracts.sort_by((a, b) => {
+          match (a, b) {
+            (String(a), String(b)) => a.compare(b)
+            _ => 0
+          }
+        })
+        found = true
+      }
+    }
+    assert_true(found)
+    fields["connector_capabilities"] = effect_plan_fixture_members(
+      fields["connector_capabilities"],
+      [],
     )
   }
   let unsigned = @identity.stringify_value(
@@ -226,6 +254,93 @@ test "Effect Model read window projects its original selected demand without ano
   assert_eq(window, [500L, 700L])
   window[0] = 0L
   assert_eq(installed_effect_model_read_window(model), [500L, 700L])
+}
+
+///|
+test "Effect Model publication adds same-parent byte demand without changing Model quantities or original read" {
+  let (prepared, request, contracts, original) = effect_model_plan_inputs()
+  let capacity = @execution.execution_capacity(300L, 400L).unwrap()
+  let selected = prepare_installed_effect_model_demand(
+    prepared,
+    original.compiled,
+    original._compilation,
+    original.definition,
+    original._occurrence,
+    original.graph,
+    original.model_limits,
+    original.read_retained_bytes,
+    original.read_execution_bytes,
+    original.max_reservations,
+    original.max_holdings,
+    original.max_delegations,
+    publication=Some(capacity),
+  ).unwrap()
+  assert_eq(selected.model_limits, original.model_limits)
+  assert_true(physical_equal(selected.graph, original.graph))
+  assert_eq(
+    installed_effect_model_read_window(selected),
+    installed_effect_model_read_window(original),
+  )
+  assert_eq(selected.limits, {
+    ..original.limits,
+    retained_bytes: original.limits.retained_bytes + 300L,
+    execution_bytes: original.limits.execution_bytes + 400L,
+  })
+  let calls = Ref(0)
+  let before = effect_model_plan_fixture(
+    prepared, request, contracts, original, calls,
+  )
+  let after = effect_model_plan_fixture(
+    prepared, request, contracts, selected, calls,
+  )
+  assert_eq(after.limits, {
+    ..before.limits,
+    retained_bytes: before.limits.retained_bytes + 300L,
+    execution_bytes: before.limits.execution_bytes + 400L,
+  })
+  assert_eq(calls.val, 2)
+}
+
+///|
+test "plural Effect Model demand preserves each original publication byte window" {
+  let (environment, document) = effect_model_plan_source(plural=true)
+  let prepared = @publication_host.prepare_client_effect_computation(
+    document,
+    Json,
+    environment,
+    None,
+    [],
+    @publication_host.client_standard_effect_computation_limits(),
+  ).unwrap()
+  let (_, _, original, members) = effect_models_plan_for_prepared(prepared)
+  let first = members[0]
+  let selected = prepare_installed_effect_model_demand(
+    prepared,
+    first.compiled,
+    first._compilation,
+    first.definition,
+    first._occurrence,
+    first.graph,
+    first.model_limits,
+    first.read_retained_bytes,
+    first.read_execution_bytes,
+    first.max_reservations,
+    first.max_holdings,
+    first.max_delegations,
+    publication=Some(@execution.execution_capacity(300L, 400L).unwrap()),
+  ).unwrap()
+  let combined = prepare_installed_effect_models_demand([selected, members[1]]).unwrap()
+  assert_eq(combined.model_limits, original.model_limits)
+  assert_eq(combined.limits, {
+    ..original.limits,
+    retained_bytes: original.limits.retained_bytes + 300L,
+    execution_bytes: original.limits.execution_bytes + 400L,
+  })
+  assert_eq(
+    installed_effect_model_read_window(combined),
+    installed_effect_model_read_window(original),
+  )
+  assert_true(installed_effect_model_demand_complete(combined))
 }
 
 ///|

@@ -8,6 +8,8 @@ struct LocalComputeModule {
   managed_providers : Array[ManagedProvider]
   selected_providers : Array[ManagedProvider?]
   selected_capacities : Array[@execution.ExecutionCapacity?]
+  // Original constructor selection only, not permission or runtime liveness.
+  selected_default : Array[Bool]
   managed_capacity : @connector.FixedComputeCapacity
   execution : @execution.SequenceExecutionLimits
   measurement : @execution.FixedInputGuardMeasureLimits
@@ -18,12 +20,12 @@ struct LocalComputeModule {
 /// Owned sequence/provider snapshot arrays and original-slot selection arrays.
 /// The provider objects and sequence bodies are borrowed, not copied. Each
 /// exact-length array owns one header/backing pair and its module link. This
-/// inventories all four containers, not provider/kernel construction backing.
+/// inventories all five containers, not provider/kernel construction backing.
 pub fn local_module_container_inventory(
   slots : Int,
   installed_providers : Int,
 ) -> @execution.PreparationRepresentationUnits? {
-  guard @execution.checked_preparation_add_product(8L, slots.to_int64(), 3L)
+  guard @execution.checked_preparation_add_product(10L, slots.to_int64(), 3L)
     is Some(references) &&
     @execution.checked_preparation_add_product(
       references,
@@ -34,9 +36,9 @@ pub fn local_module_container_inventory(
     return None
   }
   Some({
-    record_headers: 8L,
+    record_headers: 10L,
     reference_slots: references,
-    scalar_words: 8L,
+    scalar_words: 8L + slots.to_int64(),
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   })
@@ -86,6 +88,7 @@ pub fn prepare_local_compute_module(
     original_sequences.length(),
     None,
   )
+  let selected_default = Array::make(original_sequences.length(), false)
   for slot, sequence in original_sequences {
     let mut selected : ManagedProvider? = None
     for provider in original_providers {
@@ -98,10 +101,12 @@ pub fn prepare_local_compute_module(
     }
     let selected = match selected {
       Some(_) => selected
-      None =>
+      None => {
+        selected_default[slot] = true
         local_default_managed_provider(
           original_providers, execution, measurement, sequence,
         )
+      }
     }
     let capacity = match selected {
       Some(provider) => managed_provider_capacity(provider, sequence)
@@ -121,6 +126,7 @@ pub fn prepare_local_compute_module(
     managed_providers: original_providers,
     selected_providers,
     selected_capacities,
+    selected_default,
     managed_capacity: managed_capacity.unwrap_or({
       contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
       max_rows: execution.rows.max_rows,
@@ -285,6 +291,577 @@ pub fn local_module_capacity_for_sequence(
     return None
   }
   Some(required)
+}
+
+///|
+/// Startup DATA for exact built-in rows/Append, primitive Set/Join and checked
+/// row/CROSS JOIN/immediate JOIN chains. The unchanged
+/// full capacity remains the fallback and semantic bound. Persistent output
+/// DATA is charged by the same task before each buffer commit; all fixed
+/// child metadata, input/measurement/traversal and one live child scratch
+/// remain prepaid. An injected provider selected for this slot cannot use this constructor proof.
+pub fn local_module_metered_output_start_capacity(
+  installed : LocalComputeModule,
+  slot : Int,
+  sequence : @execution.GeneratedSequence,
+) -> @execution.ExecutionCapacity? {
+  let count = @execution.generated_sequence_step_count(sequence)
+  guard installed.selected_default.get(slot) == Some(true) &&
+    count > 0 &&
+    // Only the existing bounded row, Append and primitive Set/Join singletons attach their
+    // output budget to this same sequence's before-commit growth owner.
+    // Other single-step families keep their original full envelope.
+    (
+      count > 1 ||
+      @execution.generated_sequence_step_at(sequence, 0)
+      is Some(
+        @lower.RowStep(_)
+        | @lower.AppendStep(_)
+        | @lower.SetStep(_)
+        | @lower.JoinStep(_)
+        | @lower.CrossJoinStep(_)
+      )
+    ) &&
+    relation_chain_reclaimed_prefix(sequence) == count &&
+    local_module_capacity_for_sequence(installed, slot, sequence) is Some(full) else {
+    return None
+  }
+  if count == 1 &&
+    @execution.generated_sequence_step_at(sequence, 0)
+    is Some(@lower.CrossJoinStep(_)) {
+    let prepared = @lower.bound_preparation(
+      @execution.generated_sequence_owner(sequence),
+    )
+    guard @execution.generated_sequence_step_index_at(sequence, 0) is Some(step) &&
+      @lower.node_at(prepared, step) is Some(node) &&
+      @lower.node_input_count(node) == 2 else {
+      return None
+    }
+    for index in -1..<2 {
+      let target = if index < 0 {
+        Some(@pipeline.Step(step))
+      } else {
+        @lower.node_input_target(node, index)
+      }
+      guard target.bind(target => @lower.preparation_schema_at(prepared, target))
+        is Some(schema) &&
+        @schema.all_fields_required(schema) else {
+        return None
+      }
+    }
+  }
+  let borrowed_join = count == 1 &&
+    (match @execution.generated_sequence_step_at(sequence, 0) {
+      Some(@lower.JoinStep(kernel)) =>
+        selected_join_borrows_carried_values(kernel)
+      _ => false
+    })
+  if count == 1 &&
+    !borrowed_join &&
+    @execution.generated_sequence_step_at(sequence, 0)
+    is Some(@lower.SetStep(_) | @lower.JoinStep(_)) {
+    let prepared = @lower.bound_preparation(
+      @execution.generated_sequence_owner(sequence),
+    )
+    guard @execution.generated_sequence_step_index_at(sequence, 0) is Some(step) &&
+      @lower.node_at(prepared, step) is Some(node) &&
+      @lower.node_input_count(node) == 2 else {
+      return None
+    }
+    // Only borrowed immediate cells can defer output DATA here. Recursive,
+    // text and absent-field shapes keep the existing full prepaid path.
+    for index in -1..<2 {
+      let target = if index < 0 {
+        Some(@pipeline.Step(step))
+      } else {
+        @lower.node_input_target(node, index)
+      }
+      guard target.bind(target => @lower.preparation_schema_at(prepared, target))
+        is Some(schema) &&
+        @schema.all_fields_required(schema) else {
+        return None
+      }
+      for field in 0..<@schema.field_count(schema) {
+        match @schema.field_at(schema, field).unwrap().contract.shape {
+          @contract.Number | @contract.Boolean => ()
+          _ => return None
+        }
+      }
+    }
+  }
+  // These selected singleton constructors use their bounded operation
+  // workspace, not the generic sequence's retained table and metadata arrays.
+  // Keep their exact input, measurement, output and frame allowances in the original
+  // bounded recipe before deferring only output DATA to the same growth owner.
+  let base = if count == 1 {
+    @execution.generated_sequence_step_index_at(sequence, 0)
+    .bind(step => @execution.select_generated_sequence_step(sequence, step))
+    .bind(selected => {
+      @execution.generated_bounded_sequence_capacity(
+        selected,
+        installed.execution,
+        installed.measurement,
+      )
+    })
+  } else {
+    @execution.generated_sequence_capacity(
+      sequence,
+      installed.execution,
+      installed.measurement,
+    )
+  }
+  guard base is Some(base) else { return None }
+  // Only this built-in row chain gets a constructor-local startup baseline.
+  // Each child borrows immutable input backing, attaches output to the same
+  // task growth owner, and confirms scratch cleanup before its successor.
+  // Unrelated chains and constructed binding outputs keep the generic floor.
+  let mut unnest_chain = count > 1
+  let mut has_unnest = false
+  for index in 0..<count {
+    match @execution.generated_sequence_step_at(sequence, index) {
+      Some(@lower.RowStep(kernel)) =>
+        if @lower.kernel_unnest(kernel) is Some(_) {
+          has_unnest = true
+        } else if !selected_binding_rows_supported(kernel) {
+          unnest_chain = false
+        }
+      _ => unnest_chain = false
+    }
+  }
+  unnest_chain = unnest_chain && has_unnest
+  // This built-in window chain constructs no legacy sequence table. Keep
+  // complete child input, measurement and aggregate scratch, plus every
+  // retained completion, while the existing chain confirms cleanup before
+  // its next child. Text/nullable DATA retains its original full envelope.
+  let mut window_chain = count > 1
+  let mut has_window = false
+  for index in 0..<count {
+    match @execution.generated_sequence_step_at(sequence, index) {
+      Some(@lower.WindowStep(_)) => has_window = true
+      Some(@lower.RowStep(kernel)) =>
+        if !selected_binding_rows_supported(kernel) &&
+          !(@lower.kernel_body(kernel) is @lower.Groups(_)) {
+          window_chain = false
+        }
+      _ => window_chain = false
+    }
+  }
+  window_chain = window_chain && has_window
+  // The same bounded INNER JOIN chain can merge its original branch outputs
+  // with Append. Every child detaches accepted output and confirms scratch
+  // cleanup before its successor; no legacy sequence table is constructed.
+  let mut join_chain = count > 1
+  let mut has_join = false
+  for index in 0..<count {
+    if @execution.generated_sequence_step_at(sequence, index)
+      is Some(@lower.JoinStep(kernel)) {
+      has_join = true
+      if !selected_join_borrows_carried_values(kernel) {
+        join_chain = false
+      }
+    }
+  }
+  join_chain = join_chain && has_join
+  let mut metered_retention = true
+  for index in 0..<count {
+    match @execution.generated_sequence_step_at(sequence, index) {
+      Some(@lower.WindowStep(_)) if window_chain => metered_retention = false
+      Some(@lower.RowStep(kernel)) if window_chain &&
+        @lower.kernel_body(kernel) is @lower.Groups(_) =>
+        metered_retention = false
+      Some(@lower.CrossJoinStep(_)) => ()
+      Some(@lower.AppendStep(_)) if count == 1 || join_chain =>
+        if count > 1 {
+          let prepared = @lower.bound_preparation(
+            @execution.generated_sequence_owner(sequence),
+          )
+          guard @execution.generated_sequence_step_index_at(sequence, index)
+            is Some(step) &&
+            @lower.node_at(prepared, step) is Some(node) &&
+            @lower.node_input_count(node) == 2 else {
+            return None
+          }
+          // Append's existing row-charge owner funds the SAME checked row
+          // before push. Preserve both exact original input occurrences;
+          // recursive/text/presence shapes retain their prior full recipe.
+          for port in -1..<2 {
+            let target = if port < 0 {
+              Some(@pipeline.Step(step))
+            } else {
+              @lower.node_input_target(node, port)
+            }
+            guard target.bind(target => {
+                @lower.preparation_schema_at(prepared, target)
+              })
+              is Some(schema) &&
+              @schema.all_fields_required(schema) else {
+              return None
+            }
+            for field in 0..<@schema.field_count(schema) {
+              match @schema.field_at(schema, field).unwrap().contract.shape {
+                @contract.Number | @contract.Boolean => ()
+                _ => return None
+              }
+            }
+          }
+        }
+      Some(@lower.SetStep(_)) if count == 1 => ()
+      Some(@lower.JoinStep(kernel)) =>
+        // The same bounded JOIN child funds every complete output row before
+        // commit, including inside a reclaimed Relation chain. Admit only
+        // required immediate input/output cells here; other joined DATA keeps
+        // its full prepaid lifecycle. This changes no comparison or row bound.
+        if count > 1 {
+          let prepared = @lower.bound_preparation(
+            @lower.join_kernel_owner(kernel),
+          )
+          let step = @lower.join_kernel_step(kernel)
+          guard @lower.node_at(prepared, step) is Some(node) &&
+            @lower.node_input_count(node) == 2 else {
+            return None
+          }
+          for port in -1..<2 {
+            let target = if port < 0 {
+              Some(@pipeline.Step(step))
+            } else {
+              @lower.node_input_target(node, port)
+            }
+            guard target.bind(target => {
+                @lower.preparation_schema_at(prepared, target)
+              })
+              is Some(schema) &&
+              @schema.all_fields_required(schema) else {
+              return None
+            }
+            for field in 0..<@schema.field_count(schema) {
+              match @schema.field_at(schema, field).unwrap().contract.shape {
+                @contract.Number | @contract.Boolean => ()
+                _ => return None
+              }
+            }
+          }
+        }
+      Some(@lower.RowStep(kernel)) if count == 1 &&
+        @lower.kernel_pivot(kernel) is Some(_) => {
+        // The existing bounded group/PIVOT child reads original scalar
+        // cells, retaining the text axis and aggregate workspace. Preserve
+        // FULL output backing before any aggregate row is constructed.
+        let input = @lower.kernel_input_schema(kernel)
+        let output = @lower.kernel_output_schema(kernel)
+        if !@schema.all_fields_required(input) ||
+          !@schema.all_fields_required(output) {
+          return None
+        }
+        for field in 0..<@schema.field_count(input) {
+          match @schema.field_at(input, field).unwrap().contract.shape {
+            @contract.Number | @contract.Boolean | @contract.Text(_) => ()
+            _ => return None
+          }
+        }
+        for field in 0..<@schema.field_count(output) {
+          match @schema.field_at(output, field).unwrap().contract.shape {
+            @contract.Number | @contract.Boolean => ()
+            _ => return None
+          }
+        }
+        metered_retention = false
+      }
+      Some(@lower.RowStep(kernel)) if count == 1 &&
+        @lower.kernel_unpivot_outputs(kernel) is Some(_) => {
+        // This bounded constructor borrows original admitted cells, including
+        // Text/Array/Object backing, and prepared column labels. Its stepped
+        // contract recheck returns the SAME immutable value, not a copied
+        // forest. Preserve all input/decode/traversal scratch and the FULL
+        // retained output, while the existing row-charge owner funds transfer.
+        if !@schema.all_fields_required(@lower.kernel_input_schema(kernel)) ||
+          !@schema.all_fields_required(@lower.kernel_output_schema(kernel)) {
+          return None
+        }
+        metered_retention = false
+      }
+      Some(@lower.RowStep(kernel)) if count == 1 &&
+        @lower.kernel_analytic(kernel) is Some(analytic) => {
+        // The existing bounded analytic child funds its accepted buffer row
+        // before transfer. Keep all ordering/input/evaluation scratch prepaid;
+        // only immediate ROW_NUMBER DATA uses this original growth owner.
+        if @lower.analytic_call_count(analytic) < 1 {
+          return None
+        }
+        for index in 0..<@lower.analytic_call_count(analytic) {
+          let call = @lower.analytic_call_at(analytic, index).unwrap()
+          if !(@lower.analytic_call_function(call) is @lower.PreparedRowNumber) {
+            return None
+          }
+        }
+        for
+          schema in [
+            @lower.kernel_input_schema(kernel),
+            @lower.kernel_output_schema(kernel),
+          ] {
+          if !@schema.all_fields_required(schema) {
+            return None
+          }
+          for field in 0..<@schema.field_count(schema) {
+            match @schema.field_at(schema, field).unwrap().contract.shape {
+              @contract.Number | @contract.Boolean => ()
+              _ => return None
+            }
+          }
+        }
+      }
+      Some(@lower.RowStep(kernel)) if @lower.kernel_count_group(kernel)
+        is Some(group) => {
+        // Bounded COUNT now shares this task's before-commit output funding.
+        // Keep text, recursive and absent-field inputs on their full recipe;
+        // scalar input/output cells retain all original count/null semantics.
+        if @lower.count_group_aggregate_count(group) < 1 {
+          return None
+        }
+        for
+          schema in [
+            @lower.kernel_input_schema(kernel),
+            @lower.kernel_output_schema(kernel),
+          ] {
+          if !@schema.all_fields_required(schema) {
+            return None
+          }
+          for field in 0..<@schema.field_count(schema) {
+            match @schema.field_at(schema, field).unwrap().contract.shape {
+              @contract.Number | @contract.Boolean => ()
+              _ => return None
+            }
+          }
+        }
+      }
+      Some(@lower.RowStep(kernel)) if @lower.kernel_unnest(kernel) is Some(_) =>
+        if !@schema.all_fields_required(@lower.kernel_input_schema(kernel)) ||
+          !@schema.all_fields_required(@lower.kernel_output_schema(kernel)) {
+          return None
+        }
+      Some(@lower.RowStep(kernel)) if selected_binding_rows_supported(kernel) =>
+        match @lower.kernel_body(kernel) {
+          @lower.Filter(_)
+          | @lower.Select(_)
+          | @lower.StableSort(_)
+          | @lower.Limit(_, _, _)
+          | @lower.AssertAll(_)
+          | @lower.AssertUnique(_) => ()
+          @lower.DistinctRows => {
+            // The bounded comparator keeps original immediate cells and row
+            // indices. CommitOutputRow funds each accepted output on this
+            // same attachment; recursive/text/presence shapes keep the full
+            // retained envelope and their original constructor recipe.
+            let input = @lower.kernel_input_schema(kernel)
+            let output = @lower.kernel_output_schema(kernel)
+            let mut immediate = @schema.all_fields_required(input) &&
+              @schema.all_fields_required(output)
+            for field in 0..<@schema.field_count(input) {
+              match @schema.field_at(input, field).unwrap().contract.shape {
+                @contract.Number | @contract.Boolean => ()
+                _ => immediate = false
+              }
+            }
+            if !immediate {
+              metered_retention = false
+            }
+          }
+          _ => {
+            // Ordered bindings may convert a snapshot cell before output
+            // retention is funded. Only Number/Boolean outputs are immediate
+            // cells with no copied text/container forest. Their row arrays
+            // and logical roots use the already attached workspace owner,
+            // and CommitOutputRow funds the complete output before transfer.
+            // Other outputs need their own complete constructor funding below.
+            let schema = @execution.generated_sequence_step_index_at(
+              sequence, index,
+            ).bind(step => {
+              @lower.preparation_schema_at(
+                @lower.bound_preparation(
+                  @execution.generated_sequence_owner(sequence),
+                ),
+                @pipeline.Step(step),
+              )
+            })
+            let primitive = @lower.kernel_bindings(kernel) is Some(_) &&
+              schema
+              .map(schema => {
+                let mut immediate = true
+                for field in 0..<@schema.field_count(schema) {
+                  match
+                    @schema.field_at(schema, field).unwrap().contract.shape {
+                    @contract.Number | @contract.Boolean => ()
+                    _ => immediate = false
+                  }
+                }
+                immediate
+              })
+              .unwrap_or(false)
+            let input = @lower.kernel_input_schema(kernel)
+            let mut funded_snapshot = count == 1 &&
+              @lower.kernel_body(kernel) is @lower.SnapshotMap(_) &&
+              @lower.kernel_bindings(kernel) is Some(_) &&
+              @schema.all_fields_required(input)
+            for field in 0..<@schema.field_count(input) {
+              match @schema.field_at(input, field).unwrap().contract.shape {
+                @contract.Number | @contract.Boolean => ()
+                _ => funded_snapshot = false
+              }
+            }
+            // This constructor borrows immediate input cells. Its original
+            // logical roots fund Object/Array builders before mutation, with
+            // the complete fragment-live/traversal scratch still prepaid.
+            // CommitOutputRow then funds recursive persistent DATA on the
+            // same attachment before releasing those temporary roots.
+            // Alias/literal leaves also borrow text/container backing from
+            // the still-live input or admitted preparation. This is not a
+            // general constructed-output recipe: retain the full scratch and
+            // use the same before-commit persistent-output growth owner.
+            let borrowed_bindings = (count == 1 || unnest_chain) &&
+              @schema.all_fields_required(input) &&
+              selected_binding_outputs_borrowed(kernel)
+            if !primitive && !funded_snapshot && !borrowed_bindings {
+              metered_retention = false
+            }
+          }
+        }
+      _ => return None
+    }
+    let schema = @execution.generated_sequence_step_index_at(sequence, index).bind(step => {
+        @lower.preparation_schema_at(
+          @lower.bound_preparation(
+            @execution.generated_sequence_owner(sequence),
+          ),
+          @pipeline.Step(step),
+        )
+      },
+    )
+    if schema.map(@schema.all_fields_required) != Some(true) {
+      metered_retention = false
+    }
+  }
+  let output = installed.execution.rows.output_values
+  guard @execution.execution_capacity_inventory_bytes([
+      {
+        unit: @execution.ValueNodeSlots,
+        count: output.max_nodes.to_int64(),
+        copies: 1,
+      },
+      {
+        unit: @execution.DecodedTextBytes,
+        count: output.max_text_bytes.to_int64(),
+        copies: 1,
+      },
+    ])
+    is Some(data) &&
+    base.execution_bytes >= data else {
+    return None
+  }
+  // These default singleton constructors retain the SAME admitted output row,
+  // not an input forest, measurement wire body or second output forest. Its
+  // complete original retained envelope pays that row even before transfer.
+  // Keep the bounded constructor's real maps/row arrays/cursors/frames/depth
+  // and every fragment allowance alongside it. The generic provider bound
+  // remains unchanged; an injected provider never enters this recipe.
+  if count == 1 &&
+    @execution.generated_sequence_step_at(sequence, 0)
+    is Some(@lower.RowStep(kernel)) &&
+    (
+      @lower.kernel_unpivot_outputs(kernel) is Some(_) ||
+      @lower.kernel_pivot(kernel) is Some(_)
+    ) {
+    // These are separate retained/workspace dimensions. The existing driver
+    // adds retained backing alongside workspace exactly once; do not subtract
+    // retention from the workspace quote. Preserve the common capacity
+    // owner's existing execution >= retention floor as well.
+    guard base.execution_bytes >= data &&
+      full.retained_bytes >= base.retained_bytes &&
+      @execution.execution_capacity_inventory_add(
+        base.execution_bytes - data,
+        @execution.CursorRootSlots,
+        2L * count.to_int64() + 2L,
+        1,
+      )
+      is Some(scratch) &&
+      Int64::max(full.retained_bytes, scratch) <= full.execution_bytes else {
+      return None
+    }
+    return @execution.execution_capacity(
+      full.retained_bytes,
+      Int64::max(full.retained_bytes, scratch),
+    )
+  }
+  let mut fixed = 0L
+  let constructor_chain = ((unnest_chain || join_chain) && metered_retention) ||
+    window_chain
+  let mut scratch = if constructor_chain {
+    0L
+  } else {
+    base.execution_bytes - data
+  }
+  for index in 0..<count {
+    guard @execution.generated_sequence_step_index_at(sequence, index)
+      is Some(step) &&
+      @execution.select_generated_sequence_step(sequence, step)
+      is Some(selected) &&
+      bounded_relation_step_provider(
+        selected,
+        installed.execution,
+        installed.measurement,
+        family=[],
+      )
+      is Some(provider) &&
+      managed_provider_capacity(provider, selected) is Some(child) &&
+      child.retained_bytes >= data &&
+      child.execution_bytes >= data &&
+      @execution.checked_preparation_add_product(
+        fixed,
+        child.retained_bytes - data,
+        1L,
+      )
+      is Some(next) else {
+      return None
+    }
+    fixed = next
+    scratch = Int64::max(scratch, child.execution_bytes - data)
+  }
+  if constructor_chain {
+    // The legacy sequence table is never constructed by this path. Retain
+    // every child's fixed completion metadata, the largest complete live
+    // child scratch, and the original chain handles/input-selection cursors.
+    // Every logical output is funded BEFORE commit on the shared growth link;
+    // reclaiming scratch never releases an earlier accepted output.
+    guard @execution.checked_preparation_add_product(
+        512L,
+        count.to_int64(),
+        256L,
+      )
+      is Some(handles) &&
+      @execution.checked_preparation_add_product(fixed, handles, 1L)
+      is Some(next) else {
+      return None
+    }
+    fixed = next
+  }
+  // Original chain handles/cursors plus one bounded control envelope per
+  // output budget for the existing growth link and funded-usage counter.
+  guard @execution.checked_preparation_add_product(fixed, scratch, 1L)
+    is Some(total) &&
+    @execution.execution_capacity_inventory_add(
+      total,
+      @execution.CursorRootSlots,
+      2L * count.to_int64() + 2L,
+      1,
+    )
+    is Some(total) &&
+    total <= full.execution_bytes else {
+    return None
+  }
+  let retained = if metered_retention && full.retained_bytes >= data {
+    full.retained_bytes - data
+  } else {
+    full.retained_bytes
+  }
+  @execution.execution_capacity(retained, Int64::max(retained, total))
 }
 
 ///|
@@ -568,7 +1145,10 @@ fn local_bounded_binary_relation_step(
   required_step : Int,
   operation : LocalBinaryRelationOperation,
 ) -> Bool {
-  guard installed.sequences.get(slot) is Some(sequence) else { return false }
+  guard local_module_relation_obligation_segment(installed, slot, required_step)
+    is Some((sequence, execution, measurement, family)) else {
+    return false
+  }
   let count = @execution.generated_sequence_step_count(sequence)
   let mut position = -1
   for index in 0..<count {
@@ -597,26 +1177,22 @@ fn local_bounded_binary_relation_step(
   }
   // Family registrations precede the built-in Relation providers. Do not
   // discharge a Relation check with a different provider's acceptance.
-  for provider in installed.managed_providers {
+  for provider in family {
     if managed_provider_accepts(provider, sequence) {
       return false
     }
   }
   if count > 1 &&
     !managed_provider_accepts(
-      selected_relation_provider(
-        installed.execution,
-        installed.measurement,
-        family=installed.managed_providers,
-      ),
+      selected_relation_provider(execution, measurement, family~),
       sequence,
     ) {
     return false
   }
   let provider = match operation {
-    Append => append_provider(installed.execution, installed.measurement)
-    Set => set_provider(installed.execution, installed.measurement)
-    CrossJoin => cross_join_provider(installed.execution, installed.measurement)
+    Append => append_provider(execution, measurement)
+    Set => set_provider(execution, measurement)
+    CrossJoin => cross_join_provider(execution, measurement)
   }
   managed_provider_accepts(provider, selected)
 }

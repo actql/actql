@@ -805,3 +805,67 @@ test "funded policy subject original-current throw keeps returned work and clean
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
+
+///|
+test "funded policy subjects preserve zero static fields on the same checked Request" {
+  let environment = request_policy_supplement_environment()
+  let document =
+    #|{"version":"actql/0.1","id":"no-static-request-fields","stages":[{"id":"source","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1}]},"as":"seed"}],"results":{"rows":{"from":"seed","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"source","result":"rows"}}}}
+  let (parent, input) = request_policy_supplement_fixture(
+    environment,
+    document=Some(document),
+  )
+  let program = parent.held_program.unwrap()
+  let child = parent.program_check.unwrap()
+  let checked = request_policy_checked_program(parent)
+  assert_eq(@checked.source_execution_count(checked), 0)
+  assert_eq(
+    funded_policy_subjects_prepare(parent, input, environment).unwrap(),
+    0,
+  )
+  assert_true(physical_equal(parent.held_program.unwrap(), program))
+  assert_true(physical_equal(parent.program_check.unwrap(), child))
+  finish_request_computation_policy_subjects(parent, input, environment).unwrap()
+  finish_request_computation_preparation(parent, input).unwrap()
+  assert_true(parent.compiled_program is Some(_))
+  assert_true(parent.program_capacity is Some(_))
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "funded policy subjects admit original scan Sources with zero static request fields" {
+  let environment = @publication_host.admit_client_check_environment(
+    source_query_original_environment,
+    "sha256:05ee9059ef5f173069a3f3f1896e16ee62d34d0c842d81e9b0f8421db62e67a8",
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  let (parent, input) = request_policy_supplement_fixture(
+    environment,
+    document=Some(source_query_original_document),
+  )
+  let child = parent.program_check.unwrap()
+  let program = parent.held_program.unwrap()
+  let checked = request_policy_checked_program(parent)
+  let mut requests = 0
+  for index in 0..<@checked.source_execution_count(checked) {
+    let source = @checked.source_execution_at(checked, index).unwrap()
+    if @checked.source_execution_kind(source) is @checked.RequestEgress {
+      requests += 1
+      assert_eq(@checked.source_egress_field_count(source), 0)
+    }
+  }
+  assert_true(requests > 0)
+  assert_eq(
+    funded_policy_subjects_prepare(parent, input, environment).unwrap(),
+    0,
+  )
+  assert_true(physical_equal(parent.held_program.unwrap(), program))
+  assert_true(physical_equal(parent.program_check.unwrap(), child))
+  finish_request_computation_policy_subjects(parent, input, environment).unwrap()
+  finish_request_computation_preparation(parent, input).unwrap()
+  assert_true(parent.compiled_program is Some(_))
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}

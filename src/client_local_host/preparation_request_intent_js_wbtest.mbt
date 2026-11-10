@@ -681,6 +681,19 @@ extern "js" fn request_numeric_environment_cid(wire : String) -> String =
 
 ///|
 test "original numeric 100000 intent uses its observed profile under the unchanged Request budget" {
+  request_numeric_100000_profile_fixture(false)
+}
+
+///|
+test "same original 100000 Plan leaves its selected task execution allowance available" {
+  request_numeric_100000_profile_fixture(true)
+}
+
+///|
+fn request_numeric_100000_profile_fixture(check_execution : Bool) -> Unit raise {
+  // Match the ordinary installation default: retained-file output is an
+  // explicit separate consumer, not required to retain all completed rows.
+  let retained_file_output = false
   let program = request_native_numeric_public_program(100000)
   let document = "{\"kind\":\"program\",\"input\":" +
     program +
@@ -840,6 +853,278 @@ test "original numeric 100000 intent uses its observed profile under the unchang
     Err(Publication(_)) => fail("Original100000 Publication")
     Err(QuerySyntax(_)) => fail("Original100000 QuerySyntax")
     Err(QueryLowering(_)) => fail("Original100000 QueryLowering")
+  }
+  let module_base = @resources.ledger_usage(parent.ledger).reserved_execution_bytes
+  let module_contracts = request_program_module_contracts()
+  let module_manifests = request_program_module_manifests()
+  let module_limits = request_program_compilation_limits(parent, input).unwrap()
+  let factory : (@execution.ExecutionCapacity) -> Array[@local.ManagedProvider] = _ => {
+    []
+  }
+  let artifact_peak : Ref[(Int64, Int64, Int64)?] = Ref(None)
+  if check_execution {
+    prepare_request_program_compilation(
+      parent,
+      input,
+      module_contracts,
+      manifests=module_manifests,
+      compilation_limits=module_limits,
+      retained_output=retained_file_output,
+      provider_factory=factory,
+    ).unwrap()
+    |> ignore
+    artifact_peak.val = parent.program_artifact_quote
+  }
+  match
+    prepare_request_program_module_body(
+      parent,
+      input,
+      module_contracts,
+      manifests=module_manifests,
+      compilation_limits=module_limits,
+      retained_output=retained_file_output,
+      provider_factory=factory,
+    ) {
+    Ok(_) => ()
+    Err(CapacityExceeded(issue)) =>
+      fail("Original100000 module: " + @debug.to_string(issue))
+    Err(Preparation(Capacity(issue))) => {
+      let artifact = parent.program_artifact_geometry
+      let geometry = match artifact {
+        Some(value) =>
+          " graph=" +
+          @debug.to_string(value.graph) +
+          " material=" +
+          @debug.to_string(value.material) +
+          " plan=" +
+          @debug.to_string(value.executable_plan) +
+          " fragment=" +
+          @debug.to_string(value.fragments.map(x => x.fragment)) +
+          " artifactExtents=" +
+          @debug.to_string(program_artifact_construction_extents(value))
+        None => " artifactGeometry=None"
+      }
+      fail(
+        "Original100000 module capacity: " +
+        @debug.to_string(issue) +
+        "; measurement=" +
+        @debug.to_string(parent.program_measurement_quote) +
+        "; artifactQuote=" +
+        @debug.to_string(parent.program_artifact_quote) +
+        geometry,
+      )
+    }
+    Err(Preparation(_)) => fail("Original100000 module Preparation")
+    Err(Installed(_)) => fail("Original100000 module Installed")
+    Err(Construction(issue)) => {
+      let detail = match issue {
+        @publication_host.InvalidLimits => "InvalidLimits"
+        @publication_host.Encoding => "Encoding"
+        @publication_host.Graph(@publication_host.InvalidLimits) =>
+          "Graph.InvalidLimits"
+        @publication_host.Graph(@publication_host.UnsupportedGraph) =>
+          "Graph.UnsupportedGraph"
+        @publication_host.Graph(
+          @publication_host.Fragment(@publication_host.InvalidLimits)
+        ) => "Graph.Fragment.InvalidLimits"
+        @publication_host.Graph(
+          @publication_host.Fragment(@publication_host.AoA(inner))
+        ) => {
+          let reason = match inner {
+            @publication_host.Pipeline(@publication_host.MissingTask) =>
+              "Pipeline.MissingTask"
+            @publication_host.Pipeline(@publication_host.Sequence(_)) =>
+              "Pipeline.Sequence"
+            @publication_host.Pipeline(@publication_host.NotSingleValues) =>
+              "Pipeline.NotSingleValues"
+            @publication_host.Pipeline(@publication_host.Encoding) =>
+              "Pipeline.Encoding"
+            @publication_host.NoncanonicalPipeline => "NoncanonicalPipeline"
+            @publication_host.Encoding => "Encoding"
+          }
+          "Graph.Fragment.AoA." + reason
+        }
+        @publication_host.Graph(
+          @publication_host.Fragment(@publication_host.MissingCheckedOutput)
+        ) => "Graph.Fragment.MissingCheckedOutput"
+        @publication_host.Graph(
+          @publication_host.Fragment(@publication_host.OutputMismatch)
+        ) => "Graph.Fragment.OutputMismatch"
+        @publication_host.Graph(
+          @publication_host.Fragment(@publication_host.UnrepresentableOutput)
+        ) => "Graph.Fragment.UnrepresentableOutput"
+        @publication_host.Graph(
+          @publication_host.Fragment(@publication_host.Encoding)
+        ) => "Graph.Fragment.Encoding"
+        @publication_host.Graph(@publication_host.Root(_)) => "Graph.Root"
+        @publication_host.Graph(@publication_host.Encoding) => "Graph.Encoding"
+        @publication_host.TaskGraph(_) => "TaskGraph"
+        @publication_host.Material(_) => "Material"
+        @publication_host.Facts(_) => "Facts"
+        @publication_host.Witnesses(_) => "Witnesses"
+        @publication_host.FactManifest(_) => "FactManifest"
+      }
+      let prepared = parent.compiled_program.unwrap()
+      let codec = selected.checking.compilation.artifacts
+      let geometry = match
+        @publication_host.measure_prepared_client_values_pipeline(
+          prepared,
+          0,
+          @publication_host.prepared_client_values_sequence_limits(prepared),
+          codec.bytes,
+          codec.nodes,
+          codec.depth,
+        ) {
+        Ok(value) => @debug.to_string(value)
+        Err(_) => "Unavailable under original checked artifact profile"
+      }
+      fail(
+        "Original100000 module Construction " +
+        detail +
+        "; same-original checked-profile pipeline geometry=" +
+        geometry,
+      )
+    }
+    Err(ValuesCompilation(_)) => fail("Original100000 module ValuesCompilation")
+    Err(TaskCompilation(_)) => fail("Original100000 module TaskCompilation")
+    Err(QueryTime(_)) => fail("Original100000 module QueryTime")
+    Err(SerializationGraph(_)) =>
+      fail("Original100000 module SerializationGraph")
+    Err(ModelGraph(_)) => fail("Original100000 module ModelGraph")
+    Err(ModelBinding(_)) => fail("Original100000 module ModelBinding")
+    Err(ModelQuery(_)) => fail("Original100000 module ModelQuery")
+    Err(ModelSource(_)) => fail("Original100000 module ModelSource")
+    Err(ContentQuery(_)) => fail("Original100000 module ContentQuery")
+    Err(ContentSource(_)) => fail("Original100000 module ContentSource")
+  }
+  if check_execution {
+    let original_plan = parent.program_source_free.unwrap()
+    let plan = original_plan.capacity_plan
+    let original = plan.sequences[0]
+    let graph = plan.graph.unwrap()
+    let selected = match @strategy.graph_task_selected_step(graph, 0) {
+      Some(step) =>
+        @execution.select_generated_sequence_step(original, step).unwrap()
+      None => original
+    }
+    let provider = @local.local_bounded_relation_provider(
+      plan.execution,
+      plan.measurement,
+      selected,
+    ).unwrap()
+    let child = @local.managed_provider_capacity(provider, selected).unwrap()
+    let original_configuration = original_plan.configuration.unwrap()
+    let selected_capacity = @local_driver.local_dispatch_preparation_task_capacity(
+      original_configuration.dispatch,
+      0,
+    ).unwrap()
+    // Assert the SAME configured envelope later used by Host selection,
+    // including metadata and independent output, not just a provider subset.
+    let required = selected_capacity.execution_bytes
+    let reserved = @resources.ledger_usage(parent.ledger).reserved_execution_bytes
+    let available = original_limits.execution_bytes - reserved
+    assert_true(
+      required <= available,
+      msg="Same original first task execution=" +
+        required.to_string() +
+        "; remaining=" +
+        available.to_string() +
+        "; preparation=" +
+        reserved.to_string() +
+        "; providerE=" +
+        @execution.execution_capacity_execution_bytes(child).to_string() +
+        "; providerR=" +
+        @execution.execution_capacity_retained_bytes(child).to_string() +
+        "; moduleBase=" +
+        module_base.to_string() +
+        "; artifactPeak=" +
+        @debug.to_string(artifact_peak.val),
+    )
+    let prepared = parent.compiled_program.unwrap()
+    let request = @publication_host.prepare_source_free_client_request_identity(
+      prepared,
+      "sha256:" + "a".repeat(64),
+      "same-original-numeric-first-task",
+    ).unwrap()
+    let run = begin_request_program_managed_run(parent, request).unwrap()
+    let setup = open_installed_managed_source_free_host(
+      run,
+      prepared,
+      request,
+      original_plan.installed_contracts,
+      original_plan.values_body,
+      original_plan.fragment_body,
+      original_plan.ordered_body,
+      retained_file_output,
+    ).unwrap()
+    let setup = match setup {
+      Some(value) => value
+      None => {
+        let diagnostics = []
+        if run.source_free_captured is Some(dag) {
+          for index in 0..<@strategy.strategy_report_count(dag) {
+            let report = @strategy.strategy_report_at(dag, index).unwrap()
+            diagnostics.push(
+              "rejection=" +
+              @debug.to_string(report.rejection) +
+              "; R=" +
+              report.retained_bytes.to_string() +
+              "; E=" +
+              report.execution_bytes.to_string(),
+            )
+          }
+        }
+        fail(
+          "Same original100000 Host selection: required=" +
+          required.to_string() +
+          "; beforeOpen=" +
+          available.to_string() +
+          "; afterOpen=" +
+          (original_limits.execution_bytes -
+          @resources.ledger_usage(parent.ledger).reserved_execution_bytes).to_string() +
+          "; " +
+          diagnostics.join(" | "),
+        )
+      }
+    }
+    let dag = @host_driver.dispatch_driver_run(
+      @builtin.configured_host_driver(setup),
+    )
+    assert_true(
+      physical_equal(@strategy.captured_dag_ledger(dag), parent.ledger),
+    )
+    assert_true(
+      @strategy.configure_captured_managed_identity_policy(
+        dag, true, false, false, false,
+      ),
+    )
+    let execution = match
+      execute_source_free_local_tasks_guarded(setup, 64, 1000000, () => true) {
+      Ok(value) => value
+      Err(failure) => {
+        let issue = local_values_execution_failure_issue(failure)
+        retry_local_values_execution_failure_cleanup(failure) |> ignore
+        retire_installed_managed_run(run) |> ignore
+        let reason = match issue {
+          Driver(Execution(Physical(original))) => @debug.to_string(original)
+          _ => "OtherLocalValuesExecutionIssue"
+        }
+        fail("Same original100000 actual task: " + reason)
+      }
+    }
+    let rows = execution.rows().unwrap()
+    assert_eq(rows.length(), 100000)
+    for index in 0..<rows.length() {
+      assert_eq(rows[index], "{\"v0\":" + index.to_string() + "}")
+    }
+    let attempts = @resources.ledger_usage(parent.ledger).attempts
+    assert_true(attempts > 0)
+    assert_true(execution.close())
+    retire_installed_managed_run(run).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).attempts, attempts)
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+    assert_eq(@resources.ledger_limits(parent.ledger), original_limits)
+    return
   }
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)

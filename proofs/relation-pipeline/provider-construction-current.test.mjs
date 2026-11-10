@@ -22,6 +22,86 @@ test('retained constructor fixtures bind every provider to its original source i
   }
 });
 test('current five-field candidate component derives 2432 without promoting historical observations', () => {
+  // The reviewed Set change replaces only the capacity callback's query.
+  // Its constructor arguments, binding, captures and lifecycle callbacks keep
+  // the complete preimage from before 06f0975a12, independently of its quote.
+  const set = read('src/connectors/local/set_provider.mbt').toString();
+  const bounded = '      @execution.generated_bounded_sequence_capacity(\n        sequence, limits, measurement,\n      )';
+  assert.equal(set.split(bounded).length, 2, 'Reach the one reviewed Set capacity query');
+  assert.equal(hash(set.replace(bounded,
+    '      @execution.generated_sequence_capacity(sequence, limits, measurement)')),
+    '8fbb2829e812b1d7e09a2bcf9d3d05958acbb72ee8fd25c8fa2d445c90002d7d');
+  // The reviewed scalar COUNT change selects the bounded quote in the same
+  // capacity callback. It changes no constructor field, capture or lifecycle
+  // callback; reversing only that query recovers the complete prior Source.
+  // Callback execution remains outside the eleven-candidate construction bound.
+  const countPath = 'src/connectors/local/global_count_provider.mbt';
+  const count = read(countPath).toString();
+  assert.equal(count.split(bounded).length, 2, 'Reach the one reviewed COUNT capacity query');
+  const priorCount = count.replace(bounded,
+    '      @execution.generated_sequence_capacity(sequence, limits, measurement)');
+  assert.equal(hash(priorCount),
+    '77ab701f6dbd8974eab545bca95b7453e2f494f96450b855b911a87649e5deef');
+  assert.throws(() => providerConstructionBound(path => path === countPath ? priorCount : read(path)),
+    /Unreviewed current constructor source/);
+  // UNNEST changes the same quote callback without changing its constructor
+  // fields, captures or lifecycle. Its output execution is a separate bound.
+  const unnestPath = 'src/connectors/local/unnest_provider.mbt';
+  const unnest = read(unnestPath).toString();
+  assert.equal(unnest.split(bounded).length, 2, 'Reach the one reviewed UNNEST capacity query');
+  const priorUnnest = unnest.replace(bounded,
+    '      @execution.generated_sequence_capacity(sequence, limits, measurement)');
+  assert.equal(hash(priorUnnest),
+    '73ef7e256f5fc062cad8c00a3e39341a0e138493cbb01a7b9c6a45a05a2e986b');
+  assert.throws(() => providerConstructionBound(path => path === unnestPath ? priorUnnest : read(path)),
+    /Unreviewed current constructor source/);
+  // Property borrowing changes only an execution predicate before the
+  // selected factory. Its entire constructor/callback tail remains exact.
+  const selectedBytes = read('src/connectors/local/selected_relation_provider.mbt');
+  // The reviewed singleton PIVOT guard changes only the private prefix query.
+  // It cannot affect a multi-child prefix or allocate another constructor.
+  // Reverse that exact delta before the independent prior-Source checks.
+  const pivot = `          !(@execution.generated_sequence_step_count(sequence) == 1 &&
+          @lower.kernel_pivot(kernel) is Some(_)) &&
+`;
+  assert.equal(selectedBytes.toString().split(pivot).length, 2,
+    'Reach the one reviewed singleton PIVOT scratch-eligibility guard');
+  const beforePivot = Buffer.from(selectedBytes.toString().replace(pivot, ''));
+  assert.equal(hash(beforePivot),
+    '18df1ab5731e9208f1ab95856799286ab779b48fe7e99d97d322d34a52b1fcad',
+    'Singleton PIVOT eligibility must preserve the complete prior Source');
+  // F0bf adds only this private scratch-eligibility arm. Reverse it before
+  // checking the complete old Source and its original fixed prefix/tail;
+  // candidate construction and the numeric/NULL unary pilot do not change.
+  const window = `      // The bounded window child detaches its accepted output. Cleanup drops
+      // its maps, membership array and recheck cursors before the next child.
+      Some(@lower.WindowStep(_)) => ()
+`;
+  assert.equal(beforePivot.toString().split(window).length, 2,
+    'Reach the one reviewed Window scratch-eligibility arm');
+  const beforeWindow = Buffer.from(beforePivot.toString().replace(window, ''));
+  assert.equal(hash(beforeWindow),
+    '4167c79f880f1734c25bac7eb53323a8a005b1bc9ba28725e591a14c939370c2',
+    'Window eligibility must preserve the complete prior Source');
+  const selectedPrefix = beforeWindow.subarray(0, 38533);
+  assert.equal(hash(selectedPrefix),
+    '9c38a2c47f93832736444f5826d176ba7e749e75683778df74765814e5fa924a',
+    'only the reviewed private carried-key classifier extends the complete prior Source');
+  assert.match(beforeWindow.subarray(38533).toString(), /fn selected_join_borrows_carried_values\(/u);
+  const selected = selectedPrefix.toString();
+  assert.equal(hash(selected.slice(selected.indexOf('fn selected_relation_provider('))),
+    'f100dd3ac842dd087b494382c42be9dfb613184a35f26164f2788ba8ed6544b5');
+  // CROSS JOIN changes only the quote callback. Candidate layout/captures and
+  // the actual constructor/lifecycle remain outside callback execution.
+  const crossPath = 'src/connectors/local/cross_join_provider.mbt';
+  const cross = read(crossPath).toString();
+  assert.equal(cross.split(bounded).length, 2, 'Reach the one reviewed CROSS JOIN capacity query');
+  const priorCross = cross.replace(bounded,
+    '      @execution.generated_sequence_capacity(sequence, limits, measurement)');
+  assert.equal(hash(priorCross),
+    '74bd36805e65a2340a49d7c554cfea4b807a45676867560a3dd654a14ae89218');
+  assert.throws(() => providerConstructionBound(path => path === crossPath ? priorCross : read(path)),
+    /Unreviewed current constructor source/);
   const current = providerConstructionBound(read);
   assert.equal(current.recordBytes, 48);
   assert.equal(current.bytes, 11 * (48 + 4 * 40) + 120 + 24);
@@ -52,6 +132,10 @@ for (const [name, path, from, to] of [
   ['unreviewed constructor allocation', 'src/connectors/local/selected_relation_provider.mbt', 'fn selected_relation_provider(', 'fn selected_relation_provider(\n  extra : String,'],
   ['changed same-original refinement', 'src/execution_relation/generated_sequence.mbt',
     '!physical_equal(original.contracts, candidate.contracts)', 'false'],
+  ['prebound workspace growth at preparation', 'src/execution_relation/generated_sequence.mbt',
+    'working: None,', 'working: Some(foreign),'],
+  ['rebound workspace growth in refinement', 'src/execution_relation/generated_sequence.mbt',
+    '!physical_equal(original.working, candidate.working)', 'false'],
 ]) test(`current source correspondence rejects ${name}`, () => {
   const source = read(path).toString();
   assert(source.includes(from));

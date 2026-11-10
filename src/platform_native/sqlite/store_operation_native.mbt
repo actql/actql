@@ -65,6 +65,24 @@ pub fn NativeStoreOperationOriginal::enter_store(
 }
 
 ///|
+#borrow(original)
+extern "C" fn store_operation_delivery_window_ffi(
+  original : NativeStoreOperationOriginal,
+  target : Int,
+) -> Int = "actql_native_sqlite_store_operation_prepare_delivery_window"
+
+///|
+/// Fund the bounded delivery accumulator/copy on this SAME active Read before
+/// allocation. Missing constructor custody refuses; this neither starts a
+/// Store flight nor issues a Ledger, permission or cleanup acknowledgement.
+pub fn NativeStoreOperationOriginal::prepare_delivery_window(
+  self : NativeStoreOperationOriginal,
+  target : Int,
+) -> Result[Unit, NativeSqliteIssue] {
+  store_operation_result(store_operation_delivery_window_ffi(self, target))
+}
+
+///|
 /// Existing cleanup only. This cannot clear the original routing failure or
 /// restore normal dispatch; its coordinator never resumes business on leave.
 pub fn NativeStoreOperationOriginal::enter_cleanup(
@@ -377,4 +395,21 @@ pub fn Database::insert_original_store_cleanup(
   self.with_original_store_sql(true, fn() {
     self.insert_in_scope(scope, key, body)
   })
+}
+
+///|
+#borrow(database, original)
+extern "C" fn bind_database_store_operation_ffi(
+  database : Database,
+  original : NativeStoreOperationOriginal,
+) -> Int = "actql_native_sqlite_bind_database_store_operation"
+
+///|
+/// Bind the already-open Database once to the same activated original Read
+/// operation. This performs no SQL, callback, open, grant or physical ACK.
+pub fn Database::bind_original_store_operation(
+  self : Database,
+  original : NativeStoreOperationOriginal,
+) -> Result[Unit, NativeSqliteIssue] {
+  store_operation_result(bind_database_store_operation_ffi(self, original))
 }

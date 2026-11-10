@@ -21,7 +21,19 @@ fn keyed_lookup_observation(
   if left.lookup_issue is Some(issue) {
     return Err(issue)
   }
-  if !client_keyed_request_matches_acquisition(request, left.acquisition) {
+  if !keyed_lookup_request_dispatch_available(request) {
+    return Err(Assembly("request_plan_not_ready"))
+  }
+  let original = client_keyed_request_matches_acquisition(
+    request,
+    left.acquisition,
+  )
+  // The actual current callback can stop the plan or retain its first cause.
+  // Preserve that cause before checking the post-callback local phase.
+  if left.lookup_issue is Some(issue) {
+    return Err(issue)
+  }
+  if !original || !keyed_lookup_request_dispatch_available(request) {
     return Err(ForeignLeft)
   }
   if request.io_complete || now_ms < 0L || now_ms < left.observed_ms {
@@ -75,6 +87,14 @@ pub fn observe_client_keyed_request_attempt(
   request.attempts += 1L
   left.attempts += 1L
   left.request_bytes += bytes
+  if native_keyed_observed_activation(request) is Some(original) {
+    let usage = original.usage
+    if usage.started_ms < 0L {
+      usage.started_ms = now_ms
+    }
+    usage.observed_ms = now_ms
+    usage.request_bytes += bytes
+  }
   // Optional whole-Run estimates do not authorize a physical attempt. The
   // original RowRun admits its finite cumulative Ledger attempt before send;
   // this owner retains actual byte/time totals and the per-request contract.
@@ -128,6 +148,11 @@ pub fn observe_client_keyed_response(
   }
   left.response_bytes += wire_bytes
   left.decoded_bytes += decoded_bytes
+  if native_keyed_observed_activation(request) is Some(original) {
+    original.usage.response_wire_bytes += wire_bytes
+    original.usage.response_decoded_bytes += decoded_bytes
+    original.usage.observed_ms = now_ms
+  }
   if left.response_bytes >
     @environment.lookup_execution_ceiling(
       policy,
@@ -160,6 +185,10 @@ pub fn finish_client_keyed_request_io(
     return keyed_lookup_fail(request.left, InvalidObservation)
   }
   request.io_complete = true
+  if native_keyed_observed_activation(request) is Some(original) {
+    original.usage.observed_ms = now_ms
+    original.usage.usage_final = true
+  }
   Ok(())
 }
 

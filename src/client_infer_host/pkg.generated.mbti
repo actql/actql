@@ -11,6 +11,7 @@ import {
   "actql/actql/execution_relation",
   "actql/actql/model_execution",
   "actql/actql/physical_resources",
+  "actql/actql/physical_strategy_host",
   "actql/actql/run_publication",
   "actql/actql/run_publication_host",
   "actql/actql/source_value",
@@ -26,6 +27,8 @@ pub fn acquire_outcomes(Execution) -> @model_execution.ModelOutcomeRead?
 pub fn acquire_output(Execution) -> OutputUse?
 
 pub fn advance(Execution, Int) -> Result[Poll, Issue]
+
+pub fn advance_cancelled(Execution, Int) -> Result[Poll, Issue]
 
 pub fn advance_observation_issuance(ObservationIssuance, Int) -> Result[(Bool, Int64), Issue]
 
@@ -77,6 +80,10 @@ pub fn bind_quantity_capacity(Execution, @model_execution.ModelQuantityCapacity)
 
 pub fn bind_run(Execution, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract) -> Result[Unit, InvocationBindingIssue]
 
+pub fn borrow_original_live_host_output(OutputUse, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph) -> (@execution_relation.CompletedOutput, @model_execution.ModelExecution)?
+
+pub fn borrow_original_live_model_relations(OutputUse, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph) -> (@execution_relation.CompletedOutput, @execution_relation.CompletedOutput)?
+
 pub fn borrow_original_restored_host_output(OutputUse, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph) -> (@execution_relation.CompletedOutput, @model_execution.ModelExecution)?
 
 pub fn call_scope(Execution) -> @run_publication_host.ClientInferCallScope?
@@ -121,6 +128,8 @@ pub fn finish_original_model_current_state_writer(Execution, @run_publication_ho
 
 pub fn finish_result_publication(ResultPublication) -> Result[@run_publication_host.PublicationOutputExport, ResultPublicationIssue]
 
+pub fn grow_original_infer_publication_capacity(Execution, @model_execution.OriginalModelPublicationCapacity, Int64, Int64) -> Result[Unit, Issue]
+
 pub fn handoff_pending(Execution) -> Bool
 
 pub fn identity_pending(Execution) -> Bool
@@ -132,6 +141,18 @@ pub fn invocation_binding_observation(InvocationBinding) -> @run_publication.Run
 pub fn invocation_binding_output(InvocationBinding) -> @execution_relation.CompletedOutput?
 
 pub fn invocation_evidence(Execution, Int) -> @run_publication.RunEvidenceValue?
+
+pub fn issue_original_local_model_acquired_evidence(LocalModelObservation, @run_publication.PublicationContract, Int, Int, Int, imports? : @run_publication_host.ClientEffectImportedEvidence?) -> Result[@run_publication_host.ClientEffectModelAcquiredEvidence, @run_publication_host.ClientEffectAcquiredEvidenceIssue]
+
+pub fn issue_original_local_model_direct_source_evidence(LocalModelObservation, @run_publication.PublicationContract, Int, Int, Int) -> Result[(@run_publication_host.ClientEffectLocalInvocation, Array[@run_publication_host.ClientEffectAcquiredEvidence]), @run_publication_host.ClientEffectAcquiredEvidenceIssue]
+
+pub fn issue_original_local_model_effect_artifact(LocalModelObservation, @run_publication_host.ClientEffectRunMaterials, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectLocalResultExport, @run_publication_host.ClientEffectModelAcquiredEvidence, @run_publication_host.ClientEffectLocalResultDefinition, @execution_relation.CompletedRelationExportReceipt, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultArtifact, @run_publication_host.ClientEffectLocalResultArtifactIssue]
+
+pub fn issue_original_local_model_effect_invocation(LocalModelObservation, Int, Int, Int) -> @run_publication_host.ClientEffectLocalInvocation?
+
+pub fn issue_original_local_model_observation(OutputUse, ObservationIssuance, @execution_relation.CompletedRelationExportReceipt, @execution_relation.CompletedRelationExportReceipt, Int, Int, Int) -> LocalModelObservation?
+
+pub fn issue_original_local_model_observation_from_scope(OutputUse, ObservationIssuance, @execution_relation.CompletedRelationExportReceipt, Int, Int, Int) -> LocalModelObservation?
 
 pub fn issued_attachment_admission(Execution, Int) -> Result[@run_publication.RunEvidenceValue?, @model_execution.ModelExecutionIssue]
 
@@ -145,7 +166,17 @@ pub fn matches(Execution, @run_publication_host.PreparedClientProgram) -> Bool
 
 pub fn model_cleanup_progress(Execution) -> Int
 
+pub fn observation_issuance_slot_outcome(ObservationIssuance, Int) -> String?
+
+pub fn observation_issuance_source_originals(ObservationIssuance) -> Array[@run_publication.RunEvidenceValue]?
+
 pub fn observation_issuance_value(ObservationIssuance) -> (@run_publication.RunEvidenceValue, @run_publication.PublicationContract)?
+
+pub fn original_local_model_observation_body(LocalModelObservation) -> @run_publication.CapturedEffectDependencyBody?
+
+pub fn original_local_model_observation_input_bodies(LocalModelObservation) -> Array[(String, String)]?
+
+pub fn original_local_model_observation_input_dependency_bodies(LocalModelObservation) -> Array[(String, String, String)]?
 
 pub fn original_model_current_state_match_current(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalCurrentStateMatch[@run_publication_host.ClientModelReadOrigin]) -> @physical_resources.OriginalCurrentStateMatch[@run_publication_host.ClientModelReadOrigin]?
 
@@ -158,6 +189,8 @@ pub fn original_model_resource_invalidation_current(Execution, @run_publication_
 pub fn original_model_resource_park_current(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin]) -> @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin]?
 
 pub fn original_model_unparked_read_capacity_available(Execution, @run_publication_host.ClientModelReadScope, Int64, Int64) -> Bool
+
+pub fn original_observation_issuance_metadata_bytes(Execution, ObservationIssuanceLimits) -> Int64?
 
 pub fn output(OutputUse) -> @execution_relation.CompletedOutput?
 
@@ -175,11 +208,15 @@ pub fn prepared_call_set(Execution) -> @model_execution.ModelPreparedCallSet?
 
 pub fn prepared_composed_bounds(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph) -> Result[Limits, Issue]
 
+pub fn prepared_composed_bounds_construction() -> @execution_relation.PreparationRepresentationUnits
+
 pub fn prepared_input_export_matches(Execution, @model_execution.ModelPreparedCallSet, @client_local_host.ClientInferRetainedInputExport) -> Bool
 
 pub fn prepared_input_scope_snapshot(Execution, @model_execution.ModelPreparedCallSet) -> Result[String, @run_publication_host.ClientInferCallScopeIssue]
 
 pub fn prepared_input_unit_id(Execution, @model_execution.ModelPreparedCallSet) -> String?
+
+pub fn prepared_observation_issuance_metadata_bytes(ObservationIssuanceLimits) -> Int64?
 
 pub fn read_saved_input_scope(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, () -> Bool) -> Result[@run_publication_host.ClientInferSavedCallScope, @run_publication_host.ClientInferCallScopeIssue]
 
@@ -213,7 +250,7 @@ pub fn start_complete_observation_issuance(Array[Execution], @physical_resources
 
 pub fn start_complete_original_observation_issuance(Array[Execution], @model_execution.OriginalModelPublicationCapacity, ObservationIssuanceLimits, generations? : Array[@run_publication_host.ClientSerializationGeneration]) -> Result[ObservationIssuance, Issue]
 
-pub fn start_composed(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @execution_relation.GeneratedSequence, Array[@local.ManagedProviderInput], @model_execution.ModelProvider, Limits, sources? : @run_publication_host.ClientInferComposedSources?, root? : (@execution_relation.GeneratedSequence?, @physical_resources.Ledger)?) -> Result[Execution, Issue]
+pub fn start_composed(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @execution_relation.GeneratedSequence, Array[@local.ManagedProviderInput], @model_execution.ModelProvider, Limits, sources? : @run_publication_host.ClientInferComposedSources?, root? : (@execution_relation.GeneratedSequence?, @physical_resources.Ledger)?, prior_input_work? : Int64) -> Result[Execution, Issue]
 
 pub fn start_generated(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientInferPlanGraph, @model_execution.ModelProvider, Limits) -> Result[Execution, Issue]
 
@@ -223,7 +260,7 @@ pub fn start_keyed(@run_publication_host.ClientInferOccurrence, @run_publication
 
 pub fn start_observation_issuance(Execution, @physical_resources.Ledger, ObservationIssuanceLimits, generations? : Array[@run_publication_host.ClientSerializationGeneration]) -> Result[ObservationIssuance, Issue]
 
-pub fn start_original_composed(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @execution_relation.GeneratedSequence, Array[@local.ManagedProviderInput], @model_execution.ModelProvider, Limits, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientModelReadConsumer, Int64, Int64, Int64, Int64, sources? : @run_publication_host.ClientInferComposedSources?) -> Result[Execution, Issue]
+pub fn start_original_composed(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @execution_relation.GeneratedSequence, Array[@local.ManagedProviderInput], @model_execution.ModelProvider, Limits, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientModelReadConsumer, Int64, Int64, Int64, Int64, sources? : @run_publication_host.ClientInferComposedSources?, input_body_read? : @run_publication_host.ClientModelReadPreparation?, prior_input_work? : Int64) -> Result[Execution, Issue]
 
 pub fn start_original_generated(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientInferPlanGraph, @model_execution.ModelProvider, Limits, @run_publication.PublicationContract, @run_publication_host.ClientModelReadConsumer, Int64, Int64, Int64, Int64) -> Result[Execution, Issue]
 
@@ -279,6 +316,7 @@ pub struct Execution {
   limits : Limits
   mut rows : @execution_relation.PreparedInferRows?
   mut identity : @execution_relation.CompletedRelationIdentityScan?
+  mut identity_body : OriginalInferIdentityBody?
   mut call_scope : @run_publication_host.ClientInferCallScope?
   mut saved_call_scope : @run_publication_host.ClientInferSavedCallScope?
   mut model : @model_execution.ModelExecution?
@@ -358,6 +396,12 @@ pub(all) struct Limits {
   identity : IdentityLimits
 }
 
+pub struct LocalModelObservation {
+  held : OutputUse
+  issued : ObservationIssuance
+  body : @run_publication.CapturedEffectDependencyBody
+}
+
 pub struct ObservationIssuance {
   state : ObservationIssuanceState
   session : @bounded_execution.Session[ObservationIssuanceState, Unit, Issue]
@@ -375,6 +419,8 @@ pub(all) struct ObservationIssuanceLimits {
 }
 
 type ObservationIssuanceState
+
+type OriginalInferIdentityBody
 
 type OriginalModelCurrentStateDecode
 

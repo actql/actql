@@ -176,6 +176,7 @@ pub fn PublicationCommitPreparation::release_view(
   // back-reference only after both nominal checks and successful cleanup.
   view.owner = None
   preparation.inputs = None
+  preparation.retained_effectful = None
   preparation.live = 0
   preparation.closed = true
   Ok(())

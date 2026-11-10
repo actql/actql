@@ -5,7 +5,8 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
 import {nativeCoreScopedCArguments, nativeCoreScopedInputs,
-  prepareNativeCoreScopedProfile} from './native-core-scoped-profile.mjs';
+  prepareNativeCoreScopedProfile, nativeCoreComponentProviderOwner,
+  parseNativeCoreComponentProviderExports} from './native-core-scoped-profile.mjs';
 
 function fixture(t) {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-scoped-profile-test-')));
@@ -18,13 +19,14 @@ function plan(root, moon, target, driver = '/original/cc') {
   return ['backtrace', 'env', 'runtime', 'sync_io', 'utf'].map(name =>
     `${driver} -o ${target}/${name}.o -c -O2 -DMOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_MIMALLOC '${moon}/lib/runtime/${name}.c'`).concat([
     `${driver} -o ${target}/bootstrap.o -c -D_GNU_SOURCE ${root}/src/platform_native/host_bootstrap/bootstrap_stub.c`,
-    `${driver} -o ${target}/original.exe -O2 ${target}/native/release/test/pkg/pkg.whitebox_test.c original.a -lm`,
+    `${driver} -o ${target}/native/release/test/pkg/pkg.whitebox_test.exe -O2 ${target}/native/release/test/pkg/pkg.whitebox_test.c original.a -lm`,
   ]).join('\n');
 }
 function config() {
   const repository = '/original', moonHome = '/pinned/moon', sourceDirectory = '/owned/read';
   const target = '/original/_build/scoped-owned';
   return {repository, moonHome, sourceDirectory, profile: 'runtime-values', target: 'aarch64-apple-darwin',
+    componentProviderOwner: nativeCoreComponentProviderOwner(),
     inputs: nativeCoreScopedInputs(repository, plan(repository, moonHome, target), moonHome)};
 }
 
@@ -33,10 +35,11 @@ test('closed selected C profile preserves original FFI/link flags and changes on
   const args = ['-x', 'c++', '-x', 'none', '-o', input.output, '-O2',
     '-fwrapv', '-DMOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_MIMALLOC',
     '-x', 'c', input.source, '-x', 'none', '-Wl,--start-group', 'original.a',
-    '-Wl,--end-group', '-lm'];
+    '-Wl,--end-group', '-lm', c.inputs.find(value => value.source.endsWith('/bootstrap_stub.c')).output];
   assert.deepEqual(nativeCoreScopedCArguments(c, args), [
     '-I/owned/read', '-DACTQL_SCOPED_READ_ALLOCATOR', '-DACTQL_RUNTIME_MANAGED_VALUES=1',
     ...args.map(value => value === '-O2' ? '-O0' : value),
+    ...c.componentProviderOwner.symbols.map(symbol => '-Wl,-exported_symbol,_' + symbol),
   ]);
   const provider = c.inputs.find(value => value.source.endsWith('/bootstrap_stub.c'));
   const original = ['-o', provider.output, '-c', '-O2', '-D_GNU_SOURCE', provider.source];
@@ -56,7 +59,8 @@ test('closed selected C profile preserves original FFI/link flags and changes on
 test('explicit scoped review changes only the copied-value allocation selector for every original C input', () => {
   const c = config();
   for (const input of c.inputs) {
-    const args = ['-o', input.output, '-O2', '-fwrapv', input.source, 'original.a', '-lm'];
+    const args = ['-o', input.output, ...(input.mode === 'compile' ? ['-c'] : []),
+      '-O2', '-fwrapv', input.source, 'original.a', '-lm'];
     const runtime = nativeCoreScopedCArguments(c, args);
     const scoped = nativeCoreScopedCArguments({...c, profile:'scoped-review-values'}, args);
     assert(runtime.includes('-DACTQL_RUNTIME_MANAGED_VALUES=1'));
@@ -206,11 +210,15 @@ for (const [arch, target] of [['x64', 'x86_64-unknown-linux-gnu'],
   assert.equal(c.stockFileControl.stockFileControlBytes, arch === 'x64' ? 64 * 24 + 8 : undefined);
   assert(!calls.some(value => value.args.includes('--build-only')));
   for (const input of c.inputs) {
-    const original = ['-o',input.output,'-O2',input.source];
+    const original = ['-o',input.output,...(input.mode === 'compile' ? ['-c'] : []),'-O2',input.source,
+      ...(input.mode === 'link' ? [c.inputs.find(value => value.source.endsWith('/bootstrap_stub.c')).output] : [])];
     const selected = nativeCoreScopedCArguments(c, original);
     for (const define of definitions) assert(selected.includes('-D' + define));
     assert(!selected.includes('-DACTQL_RUNTIME_MANAGED_VALUES=1'));
     assert.equal(selected[selected.indexOf('-include') + 1], c.stockFileControl.header.path);
+    assert.deepEqual(selected.filter(value => value.startsWith('-Wl,--export-dynamic-symbol=')),
+      input.mode === 'link' ? c.componentProviderOwner.symbols.map(symbol => '-Wl,--export-dynamic-symbol=' + symbol) : []);
+    assert(!selected.some(value => value.includes('-exported_symbol')));
     assert(!selected.some(value => /stock_file_control\.linux-x64|local-stock-file-control/u.test(value)));
     for (const flag of ['-DACTQL_NATIVE_LINUX_STOCK_FILE_SLOTS=999',
       '-DACTQL_BUNDLE_STOCK_FILE_CONTROL_BYTES=4096', '-UACTQL_BUNDLE_STOCK_FILE_CONTROL_BYTES',
@@ -218,7 +226,7 @@ for (const [arch, target] of [['x64', 'x86_64-unknown-linux-gnu'],
       assert.throws(() => nativeCoreScopedCArguments(c, [...original, flag]), /preselected provider/u);
     }
   }
-  const input = c.inputs[0], args = ['-o',input.output,input.source];
+  const input = c.inputs[0], args = ['-o',input.output,'-c',input.source];
   for (const target of [undefined, 'foreign']) assert.throws(() =>
     nativeCoreScopedCArguments({...c, target}, args), /Unknown original scoped target/u);
   for (const member of [c.stockFileControl.recipe, c.stockFileControl.header]) {
@@ -246,4 +254,71 @@ test('the x64 diagnostic extent remains checked against actual provider C layout
   const source = readFileSync(new URL('../src/platform_native/host_bootstrap/bootstrap_stub.c', import.meta.url), 'utf8');
   assert.match(source, /_Static_assert\(sizeof\(struct stock_file_record\) == 24 && sizeof\(stock_file_entry\) == 8,/u);
   assert.match(source, /_Static_assert\(sizeof\(stock_files\) \+ sizeof\(stock_file_entry\) <= ACTQL_BUNDLE_STOCK_FILE_CONTROL_BYTES,/u);
+});
+
+test('component exports come only from the existing pinned literal producer owner', () => {
+  const owner = nativeCoreComponentProviderOwner();
+  assert.deepEqual(owner.symbols, [
+    'actql_native_owned_current', 'actql_native_owned_allocate', 'actql_native_owned_retire',
+    'actql_read_context_retain', 'actql_read_context_release_after_owner_ack',
+    'actql_bootstrap_current_read_context', 'actql_native_file_scoped_allocate',
+    'actql_native_file_scoped_free', 'actql_native_private_scoped_allocate',
+    'actql_native_private_scoped_free', 'actql_native_private_scoped_contains_allocation',
+  ]);
+  const body = readFileSync(owner.path, 'utf8');
+  assert.equal(Buffer.byteLength(body), owner.bytes);
+  assert.match(owner.sha256, /^[0-9a-f]{64}$/u);
+  assert.deepEqual(parseNativeCoreComponentProviderExports(body), owner.symbols);
+  for (const changed of [
+    body.replace("    'actql_native_owned_current',", "    'actql_native_owned_current',\n    'actql_native_owned_current',"),
+    body.replace("    'actql_native_owned_current',", "    'actql_native_owned_current*',"),
+    body.replace("    'actql_native_owned_current',", "    lookup('actql_native_owned_current'),"),
+    body.replace('LOCAL_COMPONENT_PROVIDER_EXPORTS = (', 'LOCAL_COMPONENT_PROVIDER_EXPORTS = tuple(('),
+    body + '\nLOCAL_COMPONENT_PROVIDER_EXPORTS = ()\n',
+  ]) assert.throws(() => parseNativeCoreComponentProviderExports(changed));
+  const c = config(), input = c.inputs.at(-1), args = ['-o', input.output, input.source];
+  for (const edit of [value => {value.bytes++;}, value => {value.sha256 = '0'.repeat(64);},
+    value => {value.path = '/foreign/owner.py';}, value => {value.symbols.pop();},
+    value => {value.symbols.push('foreign_port');}, value => {value.symbols.push(value.symbols[0]);}]) {
+    const changed = structuredClone(c); edit(changed.componentProviderOwner);
+    assert.throws(() => nativeCoreScopedCArguments(changed, args), /export owner changed/u);
+  }
+});
+
+test('only exact planned final test links receive original provider exports', () => {
+  const c = config();
+  for (const input of c.inputs) {
+    const compile = input.mode === 'compile';
+    const args = ['-o', input.output, ...(compile ? ['-c'] : []), '-O2', input.source,
+      ...(compile ? [] : [c.inputs.find(value => value.source.endsWith('/bootstrap_stub.c')).output])];
+    const selected = nativeCoreScopedCArguments(c, args);
+    const exports = selected.filter(value => value.includes('-exported_symbol'));
+    assert.deepEqual(exports, compile ? [] : c.componentProviderOwner.symbols.map(symbol => '-Wl,-exported_symbol,_' + symbol));
+    assert.throws(() => nativeCoreScopedCArguments(c, compile
+      ? args.filter(value => value !== '-c') : [...args, '-c']), /compile\/link mode changed/u);
+  }
+  const input = c.inputs.at(-1), args = ['-o', input.output, input.source];
+  for (const flags of [['-rdynamic'], ['-Wl,--export-dynamic'], ['-Wl,-E'], ['-Xlinker', '-export-dynamic'],
+    ['-Wl,--export-dynamic-symbol=foreign'], ['-Wl,--export-dynamic-symbol=*'],
+    ['-Wl,-exported_symbol,_foreign'], ['-Wl,--dynamic-list=/foreign'],
+    ['-Wl,-exported_symbols_list,/foreign'], ['-Wl,-exported_symbol,_' + c.componentProviderOwner.symbols[0]]])
+    assert.throws(() => nativeCoreScopedCArguments(c, [...args, ...flags]), /original component-provider exports/u);
+  const original = plan(c.repository, c.moonHome, '/original/_build/scoped-owned');
+  assert.throws(() => nativeCoreScopedInputs(c.repository,
+    original.replace(' -c -D_GNU_SOURCE ', ' -D_GNU_SOURCE '), c.moonHome), /generated test executable/u);
+  assert.throws(() => nativeCoreScopedInputs(c.repository,
+    original.replaceAll('pkg.whitebox_test', 'foreign'), c.moonHome), /generated test executable/u);
+});
+
+
+test('empty generated harnesses do not export an unlinked component provider', () => {
+  const c = config(), input = c.inputs.at(-1);
+  const args = ['-o', input.output, input.source, 'original.a', '-lm'];
+  const selected = nativeCoreScopedCArguments(c, args);
+  assert(!selected.some(value => value.includes('exported_symbol')));
+  assert(selected.includes('-DACTQL_RUNTIME_MANAGED_VALUES=1'));
+  const provider = c.inputs.find(value => value.source.endsWith('/bootstrap_stub.c'));
+  assert.deepEqual(nativeCoreScopedCArguments(c, [...args, provider.output])
+    .filter(value => value.includes('exported_symbol')),
+    c.componentProviderOwner.symbols.map(symbol => '-Wl,-exported_symbol,_' + symbol));
 });

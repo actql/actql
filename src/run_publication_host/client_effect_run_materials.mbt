@@ -195,6 +195,14 @@ pub fn admit_client_effect_run_materials(
   original_source? : ClientSourcePreparation? = None,
   numeric_profile_cid? : String? = None,
   original_compilation? : ClientEffectCompilation? = None,
+  request_value_policies? : ((@checked.EffectComputationCandidate) -> Result[
+    Array[@checked.HostRequestValuePolicyEvidence],
+    ClientEffectComputationIssue,
+  ])? = None,
+  before_compilation? : ((ClientEffectCompilationConstructionInput) -> Result[
+    Unit,
+    ClientEffectRunMaterialsIssue,
+  ])? = None,
 ) -> Result[ClientEffectRunMaterials, ClientEffectRunMaterialsIssue] {
   let body = match
     read_client_run_materials_body(
@@ -231,6 +239,7 @@ pub fn admit_client_effect_run_materials(
           body.parameters,
           [],
           effect_limits,
+          request_value_policies~,
         ) {
         Ok(value) => value
         Err(Candidate(@checked.MissingEffects)) if body.infer_inputs_wire
@@ -282,7 +291,12 @@ pub fn admit_client_effect_run_materials(
     Some(_) => None
     None =>
       match
-        restore_client_effect_original_infer(prepared, body.infer_input, limits) {
+        restore_client_effect_original_infer(
+          prepared,
+          body.infer_input,
+          limits,
+          native_read_profile=body.infer_native_read_profile,
+        ) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
@@ -320,10 +334,22 @@ pub fn admit_client_effect_run_materials(
     body.normalization_wire {
     None => (None, None, None)
     Some(wire) => {
-      let inventory = match
-        checked_client_effect_normalization_inventory(prepared) {
-        Ok(value) => value
-        Err(issue) => return Err(Normalization(issue))
+      let retained_inventory = match original_compilation {
+        Some(original) => original.normalization_profile
+        None => None
+      }
+      let inventory = match retained_inventory {
+        Some(original) => {
+          if !client_effect_normalization_inventory_matches(original, prepared) {
+            return Err(Normalization(ForeignPreparation))
+          }
+          original
+        }
+        None =>
+          match checked_client_effect_normalization_inventory(prepared) {
+            Ok(value) => value
+            Err(issue) => return Err(Normalization(issue))
+          }
       }
       if original_materials is Some(issued) {
         match issued.normalization_profile {
@@ -354,6 +380,25 @@ pub fn admit_client_effect_run_materials(
       } else {
         (Some(inventory), Some(inventory), Some(journal))
       }
+    }
+  }
+  // The original parser/checker/Model preparation has already completed.
+  // A caller may grow its SAME current construction holding here, before
+  // the single artifact compiler. Failure retains that caller's responsibility.
+  // Existing wire-only/default and already-compiled entrances stay unchanged.
+  if original_compilation is None && before_compilation is Some(prepare) {
+    let components = match infer {
+      Some(component) => [component]
+      None => infers
+    }
+    match
+      prepare({
+        owner: prepared,
+        components,
+        normalization: normalization_profile,
+      }) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
     }
   }
   let compilation = match original_compilation {

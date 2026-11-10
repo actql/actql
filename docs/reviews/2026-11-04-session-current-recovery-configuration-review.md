@@ -54,3 +54,27 @@ fixture bytes or modes fail restoration against Git. Updating the descriptor
 changes scientific action inputs; it cannot promote an old receipt or the
 historical finite experiment to current evidence. Current dependency
 restoration bytes still differ from that experiment and require fresh work.
+
+## Native Model evidence selector successor
+
+At the genuine composed source `f86f409e62d39511380497cb0fe5639d5259f191`,
+`publication_store/moon.pkg` adds only the `model_evidence_custody_native.mbt`,
+`model_evidence_custody_native_wbtest.mbt` and paired
+`model_evidence_custody_unsupported.mbt` target selectors. Its SHA256 is
+`14135602cf019169768a0ebcf33e59a1795c1553b672d6347d34c10fc2ff9618`.
+Removing those three exact clauses reconstructs the reviewed descriptor at
+`f7dfa3c3b3e61b71e63986342636039d20eaece2`, including every import and option.
+
+At the same source, `signature/moon.pkg` adds only the Native selector for
+`model_private_evidence_native_wbtest.mbt`. Its SHA256 is
+`0d1a2b5edbd15f8f19232819cdf6e7947ce3d5c53491b25397e61c51ba25f872`.
+Removing that clause reconstructs the descriptor at
+`523ada3259bf9e8147f746727fbfd56065036fd5`. These are complete composed
+preimages; an earlier side-branch descriptor cannot substitute for them.
+
+Both exact reviews retain the existing JS/toolchain scope and include every
+selected or excluded package member as a bound source input. They grant no
+Native execution, ABI, capacity, cleanup or reuse acceptance. Unknown changes
+still require full-source fallback and unresolved reuse; prior digests and
+altered target clauses remain unreviewed. The independent proof, original
+source/hash and restoration obligations are unchanged.

@@ -33,7 +33,7 @@ pub fn issue_acquired_client_effect_unit_result_artifact(
         source.identity,
       ) &&
       !(client_effect_computed_result_matches_acquired_unit(
-        owner, source, result,
+        owner, source, exported,
       ) &&
       @strategy.captured_effect_local_unit_acquired_source_matches(
         inputs,

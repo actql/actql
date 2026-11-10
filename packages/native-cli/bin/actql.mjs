@@ -66,7 +66,7 @@ export function launch(args) {
   const timingStart = process.env.ACTQL_NATIVE_TIMINGS === '1' ? process.hrtime.bigint() : null;
   const initialization = projectInitArguments(args);
   if (initialization?.help) {
-    console.log('Usage: actql init [--template churn-risk-mock|deal-review-mock] [<directory>]');
+    console.log('Usage: actql init [--template churn-risk-mock|deal-review-mock] [--host-config <file>] [<directory>]');
     return 0;
   }
   const glibc = process.platform === 'linux' ? process.report.getReport().header.glibcVersionRuntime : undefined;
@@ -110,7 +110,7 @@ export function launch(args) {
     // Owner. Failure leaves partial files and original cleanup responsibilities.
     requireProjectInitSupport(executable, selectedEnvironment, initialization.template);
     const project = scaffoldProject(initialization.directory, initialization.template);
-    selectedArguments = projectInitialAdoptionArguments(project);
+    selectedArguments = projectInitialAdoptionArguments(project, initialization.hostConfiguration);
   }
   const childStart = timingStart === null ? null : process.hrtime.bigint();
   const child = spawnSync(executable, selectedArguments, {stdio: 'inherit', env: selectedEnvironment});

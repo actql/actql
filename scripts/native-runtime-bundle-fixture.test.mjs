@@ -271,7 +271,7 @@ test('the explicit Resident cold-build budget leaves the other preparation windo
       if(name!=='http')assert.equal(configuration.moonHome,moonHome);
       else {
         assert.equal(configuration.tlsJobs,selectedOptions.httpJobs);
-        assert.equal(configuration.tlsArchive,join(destination,'components/crypto-source/openssl-original.tar.gz'));
+        assert.equal(configuration.tlsArchive,join(destination,'components/openssl-original.tar.gz'));
       }
       calls.push({name,path,seconds:configuration.seconds});
     };
@@ -338,11 +338,51 @@ test('shared OpenSSL acquisition keeps target/profile boundaries and explicit or
   const select=(target,env)=>runInNewContext(source.slice(start,end)+'sharedOpenSSL;',{
     target,process:{env},components:'/owned/components',join,
   });
-  assert.equal(select('darwin-arm64',{}),'/owned/components/crypto-source/openssl-original.tar.gz');
+  assert.equal(select('darwin-arm64',{}),'/owned/components/openssl-original.tar.gz');
   assert.equal(select('linux-x64',{}),undefined);
   assert.equal(select('darwin-arm64',{ACTQL_TEST_NATIVE_CRYPTO_PROFILE:'homebrew26'}),undefined);
   for(const target of ['linux-x64','darwin-arm64'])
     assert.equal(select(target,{ACTQL_TEST_NATIVE_OPENSSL_SOURCE_ARCHIVE:'/original/archive'}),'/original/archive');
+});
+
+test('Resident HTTP receives the same retained bundle archive without a copied Crypto-local path',t=>{
+  const f=fixture(t,'darwin'),components=join(f.root,'components');
+  mkdirSync(components);
+  const archive=join(components,'openssl-original.tar.gz');
+  const bytes=Buffer.from('explicit Source-only original archive; never compiled');
+  writeFileSync(archive,bytes,{mode:0o600});
+  const [curlArchive,curlSignature,releaseKey]=['curl-original','curl-signature','release-key'].map(name=>{
+    const path=join(f.root,name);writeFileSync(path,'explicit Source-only input');return path;
+  });
+  const original=lstatSync(archive,{bigint:true});
+  const source=readFileSync(new URL('./prepare-native-runtime-bundle-fixture.mjs',import.meta.url),'utf8');
+  const start=source.indexOf('const sharedOpenSSL='),end=source.indexOf('const httpReceipt=',start);
+  assert(start>=0 && end>start);
+  const selected=runInNewContext(source.slice(start,end)+'sharedOpenSSL;',{
+    target:'darwin-arm64',process:{env:{}},components,join,
+  });
+  const primary=new Error('original HTTP producer boundary'),destination=join(f.root,'http');
+  let entries=0;
+  const execute=(command,args)=>{
+    if(command!=='python3')return f.execute(command,args);
+    entries++;
+    assert.equal(args[0],join(f.root,'scripts/prepare-native-resident-http-component.py'));
+    assert.equal(args[args.indexOf('--tls-archive')+1],archive);
+    assert.equal(existsSync(join(components,'crypto-source','openssl-original.tar.gz')),false);
+    assert.deepEqual(readFileSync(archive),bytes);
+    throw primary;
+  };
+  const prepare=()=>selectedEntries.prepareNativeResidentHttpComponent(f.root,destination,
+    {execute,platform:'darwin',arch:'arm64',tlsArchive:selected,
+      curlArchive,curlSignature,releaseKey});
+  assert.throws(prepare,error=>error===primary);
+  assert.equal(entries,1);
+  const after=lstatSync(archive,{bigint:true});
+  for(const key of ['dev','ino','size','mode','mtimeNs','ctimeNs'])assert.equal(after[key],original[key]);
+  assert.equal(existsSync(join(destination,'preparation.json')),false);
+  rmSync(archive);
+  assert.throws(prepare,{code:'ENOENT'});
+  assert.equal(entries,1,'Missing original must not enter a producer or select another archive');
 });
 
 test('the Resident build allowance retains its caller deadline and original timeout refusal',t=>{

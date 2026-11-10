@@ -624,8 +624,8 @@ fn start_bounded_unnest_input(
     Err(_) => return Err(InputLimit)
   }
   let output = match
-    prepare_bounded_admitted_output(
-      owner,
+    prepare_bounded_sequence_admitted_output(
+      generated,
       @pipeline.Step(step),
       max_rows,
       output_values,

@@ -23,6 +23,117 @@ static observation and unmeasured quantities remain explicit. This metadata
 does not assert unrecorded runtime engine choices, measurements or execution
 history, and the human renderer distinguishes it from a new static EXPLAIN.
 
+## Same Request Effect preparation lifetime
+
+The Native submitted-Request entrance retains the checker's original Pure or
+Effect preparation and its corresponding typed constructor borrow. Common
+finishes compilation and continues the same capacity once; Native does not
+check, compile or continue it again to project that result. Effect first-sequence
+preparation uses that same retained Request while the original Journal Read is
+suspended. A Pure operation is activated only for the actual Pure requirements.
+This handoff is preparation, not approval, Account authority or a durable Effect
+Run supplier; unsupported execution remains unavailable.
+
+Finite Policy lifetime preparation binds the original checked Effect identity
+to the same submitted intent and Request before selecting execution support.
+It does not require the legacy one-task Values execution profile. A pending
+Retention neither admits a Run nor starts Source, Model or Effect work. The
+actual material constructors and first acceptance retain their own shape,
+current-authority and custody checks, including the legacy Values guard.
+An already accepted Request instead reads its saved original Policy without
+resampling it; changed identity or lost current authority still refuses.
+
+The Native Model Effect caller activates its already retained Store operation
+after accepting the same Effect originals and before borrowing that operation's
+SQLite original. Activation checks the original current Journal Read and
+unentered backed execution; borrowing an inactive operation is still refused.
+This route does not construct another operation or confer Effect approval.
+Activation or Store failure stays on the same command's cleanup owner.
+
+The fixed Request's existing 4KiB internal control group covers the Native
+completed-body carrier (one header, original-borrow reference and variant word)
+after its resize has returned. Variable Program, compiler and provider bodies
+remain separately reserved on the same parent before construction.
+
+Cleanup returns the original constructor borrow before retiring its capacity.
+Live borrowers or a failed logical settlement keep that exact capacity and
+original prepared Effect. After successful logical retirement, the Request
+severs the Effect's cached normalization/material backedges and drops completed
+continuation/quote aliases before the physical Read waits for its last alias.
+The normalization cache is not a physical owner; severing it cannot free an
+escaped original, acknowledge cleanup or authorize reissuance. Physical-only
+retry retains the same initial owner and never settles the transferred Unit
+capacity again. Unknown stop outcomes stay Unknown; only actual Native Read,
+domain and arena retirement supplies their respective acknowledgements.
+
+## Native Project Mock declaration intake
+
+The Native Project reader selects the same original configuration/profile and
+reads its explicit connectors, Model registry, Catalog and answer declarations
+through the existing bounded UTF-8 Reader. The Source data locator is retained
+without opening its payload; the same Request's admitted Source must read it
+under its own checked payload bounds and current custody. The declaration
+Reader's 64 KiB limit is not a Source payload or Run limit. Task paths are relative to
+the original registry file; Catalog, data and answer paths are relative to the
+Project. Common admits the original connection/Catalog/registry documents and
+public Task contracts. A Task's registered name and original provider selection
+must correspond to that same registry and declaration. Equal separately decoded
+registries cannot replace those originals. Missing or physically unclosed
+files retain their original Reader failure; no empty-document fallback exists.
+
+Successful intake remains in the existing command's Project record. The
+profile's nominal cycle retires on both refusal and ordinary command exit,
+before the enclosing Read can acknowledge cleanup. Partial intake retires that
+profile while preserving any original Reader failure. This is declaration DATA,
+not Source installation, a Model provider, Account permission, Reviewer or a
+Run grant. Declaration intake does not select Native execution availability.
+Only the actual same-Request Source/Model/Effect assembly, installed Host and
+approval supplier can admit execution. Intake cannot select the packaged
+source-free Host as a substitute.
+
+
+The same command retains its Project before constructing Mock Model originals.
+Each original answer, normalization and installation is retained before the
+next fallible constructor. Construction invokes no Model callback or clock.
+Its first failure remains sticky, so the caller cannot reinstall or silently
+replace an incomplete original. Retirement visits those same installations
+before answer/profile originals. An installation with live users keeps its
+same entry and retirement position pending; it does not acknowledge the
+command's physical Read. Only the existing Read/domain/arena owners report
+physical closure after all command-held aliases retire.
+
+Fresh check/business callers extend the exact selected installation Environment
+with those same normalized Task originals through the common Task projector.
+The ordinary Native Environment admission still checks the complete result;
+no Host-side Task or contract table is reconstructed. One command retains the
+original base and projected Environment once. Configuration-file currentness
+continues to compare its original captured bytes, while the Request/check
+reference consumes the projected semantic identity. Saved routes do not rebuild
+current Project Tasks or replace a retained Run's Environment.
+
+The same Project retains its Catalog's Source declarations before Model
+construction. The Native adapter translates only public document fields into
+the existing Relation restore input; Common remains the schema, acquisition,
+correlation and contract owner. Private restore-field spellings cannot be
+injected through public view fields, and unfamiliar fields are not dropped.
+Original connection/Catalog correspondence and partial declaration prefixes
+stay on the same command holder. These are initial declaration contracts;
+File physical capability facts, published query aliases, Source/Content
+capture and Effect installation still require their real same-Request owners.
+No Source payload is read by this metadata construction.
+
+Source Environment assembly retains the exact base and the complete generated
+Catalog, contract, view and evidence members. It sorts their canonical member
+identities and coalesces only byte-identical bodies; the ordinary Common
+admission retains conflicting-selector refusal. Task projection consumes that
+same Source Environment. A publication retains its exact final Environment,
+restored view handles and requests once, and the original Request caller uses
+that prepared publication rather than reconstructing an empty namespace.
+These contracts and aliases remain trusted declaration DATA. Metadata alone
+never grants alias disclosure, acquisition, Model execution or Effect authority;
+the normal installation still requires its original current/account/service
+connections before opening those operations.
+
 ## Ordinary literal query caller
 
 Trusted public `sql` and literal `aql` select the ordinary Local Host when no
@@ -1302,6 +1413,28 @@ The explicit finite read alternative selects `run_policy_profile_cid`, `run_file
 `retention_file` and `store_file` together. These literal names follow the existing
 selected-file admission and identify actual adopted originals; they grant no
 permission. Initial binding compares them with the opaque profile binding.
+Within this finite alternative, exactly one Policy selector is required:
+`data_policy_cids` retains its nonempty literal CID list, or
+`accepted_run_policy: true` explicitly selects the actual committed Result's
+effective Policy root from the same Run's authenticated first-admission packet.
+The latter is a generic selected-file role, not a Mock authorization exception.
+Fresh finite Mock installation selects it explicitly because Source response
+identities can depend on the actual installed Project. Absolute and legacy read
+originals retain their literal lists. Mixed, empty, false, missing or unknown
+alternatives are refused; no old selected file is rewritten.
+
+The existing Result resolver joins the actual Store custody, original Request,
+Run, named Result, public index, manifest, Artifact, definition and material
+generation before retaining that one root in the existing read binding. Mere
+membership in a Policy closure does not select an ancestor. Read admission and
+the data-ceiling preimage consume the same root without another Store read or
+Policy calculation. Material construction receives that exact root list; file
+output uses the same selection. Archive reconstruction consumes only the exact
+authenticated saved admission and accepted Run packet, and issues no permission.
+Independent current Account, classification/privacy, egress, sink, format,
+byte/use limits and physical delivery checks remain at their existing boundaries.
+Missing or changed originals are refusals, never later backfill or a new Allow.
+
 Read-evidence restoration uses each saved row's independent read-original CID
 and that original's roles, then rechecks current Host authority, selected file
 generations and the original accepted Run packet. Different read selections in
@@ -2861,3 +2994,586 @@ miss preserves the original generic collision; unrelated constraints are not
 silently relabeled. This query neither owns a transaction nor acknowledges a
 commit, retry or cleanup. Input and returned key use the existing 512-byte
 physical name bound; the original CID and Run Owners retain semantic admission.
+
+
+### Original keyed publication order
+
+The Native Model-to-Effect path seals its keyed response input only after the
+original checked request tuples have supplied canonical typed order. The
+key-set issuer can return the same issuance with a permutation of original
+request occurrences. It computes the typed ordering once; the logical input
+seal borrows the original row containers in that order, and later publication
+reads the already retained key set, static request identity and acquisition
+scope. Ordinary lookup callers that do not select this publication purpose keep
+their existing entry and layout.
+
+The explicit publication constructor grows the same lookup reservation before
+its bounded protocol metadata and actual tuple/index/row-control overlap. It
+uses the existing finite protocol metadata envelope, not a Source file-size
+maximum at startup. A denied grow precedes input sealing and identity issuance.
+Repeated reads of the retained metadata do not create another reservation,
+key-set issuance, request, Model invocation or hash. Cleanup cuts that retained
+association before returning the lookup allocation. During synchronous key
+projection, reentrant cleanup retains the original holders until the borrow
+returns; cancellation still prevents publication.
+
+A tuple permutation retains every original occurrence, even equal keys; only
+the key-set body deduplicates. The permutation is DATA, not evidence of response
+identity, cardinality, completeness, authority or physical cleanup. Those
+obligations remain with the original checked Source/RowRun barrier. The input
+seal validates the complete permutation before replacing an unpublished outer
+row array; Values, conditional presence, schema, original owner and consumed
+work are unchanged. It cannot reorder an already exposed capture.
+
+
+### Source identity bodies on the original preparation
+
+The Native Model-to-Effect caller retains Whole Source logical/schema preimages
+from the same incremental identity pass that issues their identities. The cell
+scanner uses the original completed Source input and its exact supplied read;
+without that nominal read the ordinary completed-output target gate remains in
+force. The existing retained-storage identity scanner keeps its separate frame
+verification purpose. No Source is acquired again to recover a discarded body.
+
+One claimed Model Read grows while still Preparing, before the original Model
+Execution enters. The Resource grow preserves the same origin, reservation,
+snapshots and phase; it creates no slot, attempt, transfer or authority. The
+existing Started grow remains restricted to Started. Both paths fence the one
+original-current callback and preserve a reentrant owning stop. Model startup
+then enters the same consumer once. Its separate original allowance stays
+unchanged; retained Source preimages are not added to Model startup a second
+time.
+
+Before each actual identity constructor/transition, the caller backs its quoted
+scan/control/body peak on that Read. Earlier Source peaks remain held alongside
+later Source bodies and the Model input body until the original Read retires.
+Covered transitions neither resize nor call current again. The body limit is a
+serialization refusal bound, not an upfront file-size reservation or proof of
+Native allocator geometry. Logical extents alone remain insufficient evidence
+of installed physical backing.
+
+A cell-scan handle can be cancelled reentrantly without severing its in-flight
+borrow. On return, cancellation prevents identity publication and cuts scan
+aliases. Finished handles remove both original Source/scan references. The
+returned identity retains the actual raw logical/schema strings; the command
+keeps it before later fallible evidence constructors. After Work/Store consumers
+have retired, command cleanup cuts those body aliases before returning the same
+Read. These alias operations never acknowledge physical Source or Model cleanup.
+
+
+### Keyed output bodies before the Model Read snapshot
+
+The Native publication purpose also retains the keyed response Relation's raw
+logical/schema preimages. Its existing ordered-input constructor selects this
+purpose before claiming the Model Read. The original generated prefix supplies
+its registered contracts and prepared sequence directly to the existing trusted
+supplied-input capture. No replacement registry, Source, task completion or
+second provider request is constructed.
+
+The same lookup reservation backs the capture controls and each actual
+incremental identity-scan peak before the corresponding constructor/advance.
+The original rows/schema/Values remain borrowed. One scan supplies the payload
+CID, logical CID, schema CID, byte measurements and retained preimages; the
+later Source observation projects that exact receipt instead of rehashing its
+rows/schema. Repeated observation reads open no new scan, reservation or
+attempt. Other lookup purposes retain their original path; an already exposed
+ordinary read cannot be upgraded by rescanning it for publication bodies.
+
+The lookup's existing allocation retains the completed body/receipt until its
+actual dependency consumer retires. Before returning that allocation, cleanup
+cuts the scan, receipt, body and output aliases. The identity work counter is
+monotone across cancellation and retirement. During a reference's synchronous
+callback, a separate identity latch refuses nested finalization and defers
+cleanup's backing release. Owning stop still invalidates the read immediately;
+the in-flight borrow must return before its actual rows can be reclaimed.
+
+These retained strings are dependency DATA, not a transport plan or lookup
+attempt receipt. The keyset, original response barrier, complete actual
+transport/capture history and admitted provenance closure remain separate
+obligations. A raw body or matching CID does not establish those obligations,
+physical cleanup, Artifact admission, Model execution or publication success.
+
+
+### Original Model contributing Source Relations
+
+The Native Model-to-Effect capture projects its contributing Direct/Whole
+Source Relations from the same accepted Model observation and the composed
+Source originals retained by that Model. The generated request document comes
+from the existing typed Request writer, with its original measured byte count;
+it is not reparsed or admitted as a Query. Query-backed contributing inputs
+retain their existing original request document instead.
+
+All member captures reuse one semantic Model Invocation. The already-admitted
+Scope's exact original observation/Plan association is carried forward without
+repeating composed Source admission/current checks. Each contributing
+Source binds its own original observation, logical/schema identity, static
+request and resolved Source policy. Its retention envelope preserves every
+original publication custody/timestamp field and substitutes only that already
+resolved Source policy; this is semantic dependency DATA, not a policy grant,
+extension or new retention owner. Equal-policy requests reuse the admitted
+original envelope. The Source and publication policies remain distinct.
+
+An explicit body-borrow accessor returns the raw Relation/schema preimages
+retained by that exact Source identity scan. Its Source-current check stays
+separate from the immutable metadata dependency getter; missing or retired
+bodies are not reacquired, re-exported or rebuilt.
+
+The actual Native capture operation is retained before this bounded metadata
+construction. The returned Invocation and Source evidence aliases are retained
+before later export/target constructors, then cut before the capture operation
+returns its backing. The existing Model OutputUse/complete issuer owns the
+pre/post current boundaries, including reentrant Ref emission; no second
+Model use, acquisition or execution-success issuer is created.
+
+A private contribution-purpose marker prevents a single returned component
+from entering the older single-Source whole-Unit Artifact issuer. It is routing
+DATA, not a completion/current/authority proof. The combined Model Artifact
+must still close every original input and its required provenance.
+
+This direct-input projection excludes the keyed output Relation. A complete
+keyed Artifact still needs its real admitted transport/batch/attempt history,
+the canonical keyset/static-request scope and captured Source provenance.
+Contributing Direct Relations are not a substitute for that proof or for the
+final Artifact, Store custody, Preview, approval or physical update.
+
+
+### Retained original keyed response history
+
+The lookup's existing per-distinct-response slot retains its original
+ClientKeyedRequest and the original RowKeyedSourceCapture supplied by the
+trusted bridge, alongside the same supplied read. The keyset projects typed
+values from that exact Request. It no longer retains a separate row-request
+alias as an alternative history table. Cached repeated left occurrences keep
+using the same one right response, without adding a physical attempt.
+
+The same lookup reservation pays the additional retained execution/history
+controls and optional capture wrapper before creating its row continuation.
+Variable request fields/Values remain charged once at their existing owners.
+Pending history is retained before fallible cursor construction and moves into
+the same cache slot on completion. Cleanup severs these aliases before
+returning lookup capacity, while each physical RowRun retains its own pending
+cleanup duties and consumed attempts. No original counter is copied, reset or
+refunded by this retention.
+
+These retained originals are not an admitted lookup attempt/transport receipt.
+The later protocol issuer must bind their real execution, raw capture,
+accounting and durable lifecycle history under the actual checked read profile.
+Legacy read-only callers may omit the capture; absence remains absence and
+cannot be substituted with an invented transport or successful receipt.
+
+
+### Original Native keyed transport before dispatch
+
+Lookup protocol construction reserves its codec workspace beside the original
+lookup basis. After a successful constructor returns, the same reservation
+retains the actual admitted protocol trees, strings, wrapper controls and all
+previous backing. Only the unused codec workspace is returned. Policy codec
+ceilings remain intake limits, rather than permanent retained payload amounts.
+Original canonical representation facts supply the retained tree inventory;
+the shared representation tariff prices it without re-admission or re-encoding.
+
+Failed construction keeps its original peak until that same lookup retires.
+The byte reduction preserves the original reservation, live holdings, spent
+attempts, transfers, quantities and pending cleanup. It cannot reduce a fixed
+imported allocation or the preparation bootstrap. Returning logical unused
+workspace does not return a physical mapping or acknowledge Source/Store close.
+
+The selected file reader's original `native_file_content_read` profile is retained
+by the same checked Source declaration and its live provider binding. Predispatch
+planning requires that exact profile CID in the selected Source capability and
+checks its SourceView, request and response schema CIDs. A separately valid profile
+with equal schema identities does not become the selected implementation.
+
+The existing static-request writer returns its original measured document. The
+same lookup retains it after the original current fence and embeds it in the
+`actql-lookup-transport-plan/0.1` body without reading reference fields again.
+Business DATA keys retain their original Unicode spelling. The Native descriptor
+specializes the existing transport schema to the actual single-key reader: one
+key, one page, no pagination token, one network attempt and no retryable codes.
+The generic transport schema and HTTP profile remain unchanged.
+
+The same lookup reservation grows before construction using the existing bounded
+protocol-metadata recipe, the actual static subtree nodes, sixteen envelope values,
+sixteen field names and the final CID pair. The retained document/optional holder
+also counts in this original reservation. No second ledger or authority is issued.
+Only a completed predispatch plan exposes its original transport contract; cleanup
+severs all three profile/document/transport aliases before returning that capacity.
+This DATA is not a completed batch, attempt receipt, response, access decision or
+physical-cleanup acknowledgement.
+
+### Checked lookup in the first Native Model Plan
+
+The Native reader implementation is selected from the original checked Source
+identity and installed file binding before the first Model Graph is issued. The
+same Request reserves the acquisition/Fragment metadata, two genuine prefix
+lowerings, the original Model-input mapping, and the existing Source provenance
+walk/fold construction. The measured graph then reserves the actual co-held
+Fragment, barrier document, lookup node, edges and Model/Result construction
+before their writers run. A codec ceiling does not provide this reservation.
+
+The component contains the actual left-prefix Fragment, a checked runtime lookup
+barrier, and the actual JOIN/post-lookup Fragment. The left Fragment exposes only
+its genuine external Source ports; the future keyed response cannot become an
+unused input of its own producer. Data edges bind the left Carrier contract to
+the barrier's local input and the checked right Carrier contract to the JOIN.
+The Model barrier consumes the resulting joined Fragment, while the enclosing
+compiler binds external task inputs to the left Fragment. Both sizing and actual
+construction use these same lowerings and emitters.
+
+Lookup request provenance combines the original left-target policy with only
+Host-attested static Request values. It does not substitute response provenance
+for correlated input provenance. The original response policy, authoritative
+Source data policy and joined-output policy remain separate identities. Missing
+provenance remains `unknown`; this metadata does not permit Model egress.
+
+The component retains the original acquisition and Native implementation profile.
+Later readers borrow those originals instead of constructing another acquisition
+or selecting/validating the immutable implementation again. Current SourceRead,
+physical transport, durable lookup Artifact publication, Model egress and Effect
+approval/claim remain with their existing owners and still require their actual
+observations. Constructing this Plan supplies none of those outcomes.
+
+The declared-file installation binds its Native implementation descriptor only
+to the final admitted SourceView identity after adding physical lookup facts.
+Rebinding preserves the same physical provider, field selection and limits;
+the initial declaration's descriptor cannot stand in for that final view.
+
+Automatic keyed Content capture retains the fully received original raw Bytes
+before replacing its response buffer with the derived ContentRef page. Its
+existing reservation covers the actual raw byte length and cached digest after
+parser/page construction retires. A current completed capture can borrow only
+that digest and size, without copying or hashing the snapshot again. Original
+Content custody cleanup precedes severing both raw aliases; failed cleanup keeps
+them on the same owner. This physical identity is separate from logical rows
+and Content identity, and supplies neither durable lookup Artifact publication
+nor an attempt receipt or physical-cleanup acknowledgement.
+
+The same lookup freezes the Native singleton batch Plan from its original
+canonical key set, transport and compiled barrier before selecting a physical
+child. Its schedule holds original left-occurrence indices in canonical key
+order. Equal-key occurrences retain their original Requests and reuse the same
+response; the left input and its multiplicity remain unchanged. Parent checks
+read that same schedule rather than equating processed count with original row
+number. Responses already admitted in canonical dispatch order are sealed
+without applying the original-slot permutation again. The existing unplanned
+and non-Native publication paths retain their original ordering. Neither this
+immutable Plan nor its schedule supplies durable activation or attempt evidence.
+
+The selected first Native attempt retains its semantic Request, call slot and
+activation on that same lookup. The semantic body embeds the already encoded
+typed Request unchanged, including original Ref values. Its reservation uses
+the actual SourceView response ceiling and the remaining original Host budget;
+it does not lower the physical read limit to fit a smaller allowance. The
+activation starts the acquisition clock and binds the original authority scope,
+Native issuer and deadline. Constructing it grants neither dispatch permission
+nor a durable acknowledgement.
+
+The final publication checks the same history's empty activation slot after
+all growth/current callbacks have returned. A synchronous reentrant caller may
+already have received its original; the outer preparation then refuses without
+replacing that token, poisoning the lookup or repeating external currentness.
+
+Before advancing the physical child, the existing Native Model Work records
+those originals through its captured Read and Journal transaction. The accepted
+Run, original definition, batch order and unique slot remain mandatory. A
+previous or ambiguous write cannot authorize a resend. A known COMMIT is retained
+before a fallible outer Read return; its observation then severs the whole
+lookup/Request alias. An uncertain transaction retains its original and keeps
+cleanup pending. Actual Source authorization is observed again after persistence
+and before physical advance. This entry does not replace raw-response custody,
+attempt events, adoption, cumulative accounting or the five lookup Artifacts.
+
+Raw lookup byte custody uses the existing captured-payload Store file, quota,
+generation, verification and retirement owner. Its closed metadata purpose is
+distinct from Content: no raw envelope creates a ContentRef, and Content
+correspondence cannot accept that alternative. Both purposes retain their exact
+original metadata object, byte digest and size. The shared constructor and
+retained inventory include the one closed-purpose carrier. Verification reads
+the sealed original generation; restore reattaches its existing reservation
+without another write or holding. Failed writes retain their acquired original
+Writer duties. Successful I/O retirement keeps the durable bytes for their
+original holding. The Source still owes its actual pre-page capture, policy,
+retention, activation and adoption correspondence; Store byte custody alone
+grants none of these and cannot authorize another Source call.
+
+A completed Native Source binds its confirmed raw Store metadata to its exact
+admitted RowRun page before that page enters lookup assembly. The existing
+lookup reservation backs the supplied-input identity export and its partial
+read, capture, output, scanner and receipt. One bounded scan supplies the logical
+Relation preimage and schema; the ordered-row wire hash is not substituted for
+the registered logical Relation hash. The immutable page metadata contains no
+lookup or physical Source backpointer. Its capture event and terminal adoption
+bind the same activation, raw response, response contract and actual page value;
+constructing those bodies is not a durable adoption acknowledgement.
+
+The physical Source privately retains that exact page original. The Native
+Model Work uses a callback-free correspondence check on it while holding the
+same captured Journal Read, not another execution-domain entry. Its transaction
+requires the original accepted Run and exact activation body and observed
+revision, an empty adoption slot, canonical batch order and the fixed live
+deadline. It records the event, raw metadata and actual page/schema preimages
+with the adoption in one existing Journal transaction. This does not serialize
+Source rows again or infer Source authority from an operation label.
+
+The existing Work entry retains the original page before fallible persistence.
+An attempted but unobserved adoption keeps that same entry and cleanup pending.
+A known COMMIT is retained before a later Read return may fail, then drops the
+page and activation-body aliases held by that persistence observation. Source
+and Store cleanup remain separate duties. Neither a captured event nor its
+adoption alone constitutes the cumulative accounting/attempt receipt or the
+validated whole lookup Relation required for final lookup evidence.
+
+The completed Native lookup closes its accounting, attempt receipt, validated
+right Relation and LookupEvidence before converting its original reservation
+to a holding and before claiming the Model Read. It consumes the original
+activation/page associations and measured attempt counters, preserves repeated
+left occurrences separately from distinct physical requests, and borrows
+Content identities from the original export inventory without reissuing Refs.
+The right producer is the checked barrier's output contract; its derivation
+retains the original left Relation and barrier. Requested-key completion does
+not upgrade an upstream LIMIT/TopK or unknown candidate extent. UTC observations
+and monotonic elapsed time retain their separate original clocks, including an
+empty request set. These immutable protocol bodies grant no permission and do
+not replace the Native Journal's independent activation/adoption COMMIT duties.
+
+The original shared Model startup retains the exact selected provider and
+component Limits alongside its original row/Scope/capacity seal. A component
+ceiling may exceed a smaller aggregate parent ceiling: it is not an allocation
+of every maximum. Component admission still bounds its actual work, attempts,
+bytes and quantities, while each real reservation on the same parent enforces
+the aggregate limits and all consumed or uncertain history. Startup must not
+reject that supported intersection merely by comparing the two maxima. The
+dedicated Model startup keeps its exact Ledger configuration correspondence.
+
+Fresh default Native Product construction selects the same nominal Local
+Resource policy and existing standard Model request window as the Node Local
+installation. It projects this policy into the initial Environment and updates
+its canonical evidence CID and configuration reference before the existing
+initialization Owner signs or stages the tuple. Raw packaged assets are not
+mutated. Explicit configuration and retained initialization Intent restore
+their original policy and bytes; they never acquire a larger ceiling from a
+current default. The ordinary configuration consumer admits the projected
+Environment once. This selection grants no Model access or physical capacity;
+the same checked Plan, per-request writer and original parent still admit the
+complete actual work and concurrent holdings.
+
+The fresh finite Native Product Store profile selects the ordinary Local
+100,000-object allowance before initialization signs or stages `run.json`.
+Its total-byte and per-record ceilings remain 1 MiB, and the Result ceiling
+remains 64 KiB. Object count is independent of byte occupancy: a Model call
+retains its original proof, response and attachment cells separately, alongside
+captured Content and later review evidence. This count is neither an allocation
+of every maximum nor a multiplication of objects by record size for RAM.
+Actual Store transactions enforce both quotas, while their constructors and
+live workspace remain funded on the same original parent. The legacy absolute
+profile retains eight objects; explicit lower settings and retained Intent
+bytes are restored unchanged, without applying the current default.
+
+
+### Completed Model evidence at Native Preview
+
+Each finite Model invocation keeps one cumulative Journal byte/object
+reservation for its Entry and settlement rows. The existing exact reservation
+API is idempotent for one amount; it is not an additive counter. Before adding
+a row, the original transaction checks the retained count, replaces only the
+exact previous reservation with the cumulative amount, and inserts the row.
+The same captured Read/Database routing performs both reservation operations.
+Namespace-wide bounds still include other invocations. Any refusal rolls back
+the entire transaction; a lost COMMIT or rollback acknowledgement remains on
+the original fenced Journal. Replacing this metadata row releases no physical
+holding, consumed Model attempt, work or evidence, and cannot issue a Model
+persistence acknowledgement.
+
+The pre-INFER input may execute a selected range of an original sequence that
+also retains later checked operations. Completion checks the selected range's
+last logical step against the original pre-INFER producer, rather than
+requiring the complete retained sequence to end there. The same checked owner,
+actual mapped rows, available completed input, output binding and retirement
+checks remain required. An equal foreign owner, wrong endpoint or reclaimed
+input cannot supply that completion.
+
+The Native caller retains the completed Model observation, its original Run
+Invocation and actual successful invocation evidence at the Preview boundary.
+Opening its configured retained-Model Host keeps that boundary available but
+does not execute the remaining checked computation. The caller consumes that
+same Host's managed Local dispatcher before pinning the Effect Result sources.
+The shared driving loop skips only tasks already completed on that original
+DAG. Original Source and Model outputs bind through the common receiver ports;
+new downstream outputs retain their real managed transfer/finalization owners.
+The Plan includes the loop's control inventory before construction. Both the
+successful execution and any failed partial execution remain on the command
+until their original cleanup confirms, before the Model output use is returned.
+The original finite task inventory bounds dispatch; completed Source and Model
+boundaries are not re-executed. Host preparation/dispatch failures remain typed
+on the original command, and a missing next task supplies no completion or
+retirement acknowledgement. Existing Result pins still require actual output.
+The driving loop selects its primary output from the original checked Effect
+source ports. The ordinary Result-root inventory also contains the Model's
+retained output and does not select an Effect publication source by position.
+Local Result Artifacts keep their original derived retention; the installation
+base retention cannot substitute for that policy. The selected Run policy
+binding projects its three actual retention dependency bodies under the same
+captured Read, without discovering filenames or issuing another Policy.
+
+Preview authoring consumes the original captured Result snapshots, retained
+full target requests and original checked Mapping/Plan. The common semantic,
+dispatch-key and row-plan Owners still author and verify their identities.
+The dependency inventory joins original lookup, contributing Source, Model and
+Result bodies under the existing strict graph validator and exact local source
+roots. Missing or unused evidence is not repaired by the caller.
+
+An imported Model Unit keeps each producer's complete local Result Manifest
+and its actual captured Result import observation. Contributing Source metadata
+alone cannot replace these imports or become a whole producer Artifact. The
+Native whole-Source entrance uses the original lookup's retained capture and
+protocol metadata to issue that producer's separate local Invocation; the
+original Result export still supplies its Artifact. The Model joins these
+typed imports with its original observation and completed lookup, checking the
+same captured Run and source identity at each checked input position. The
+source-free Model entrance continues to reject imported Units without those
+originals. No Source, Model or compiler is executed again for this projection.
+
+Producer exports, partial snapshots and dependency aliases remain on the
+existing proposal record before later constructors can fail. Their additional
+constructor inventory belongs to the first member's original capture extent;
+other members reuse that same immutable closure. Cleanup severs the shared
+metadata and closes its export continuations before retiring that backing.
+Result pins, physical sources and the Model output keep their independent
+original cleanup obligations.
+
+That capture uses the existing staged operation extent. Its first phase funds
+the largest single metadata issuer and the complete bounded static-wire
+inventory, rather than eagerly reserving every Result's maximum parser tree.
+The original recipe and its later Preview/row recipe stay on the same command.
+Each returned metadata wire is retained before the next issuer; an export's
+original measured extent precedes snapshot allocation. Dependency parsing
+uses a non-allocating scalar byte count before growing that same operation,
+then checks the original Result again across the actual Host callback. The
+parser's original limits and key-normalization path remain unchanged.
+Retained bodies sum; sequential private workspace keeps its high-water mark.
+Before leaving import preparation, the same operation must grow to the full
+original capture recipe alongside those retained originals. Failure preserves
+the typed primary and its partial holders. The immutable maximum is only a
+refusal bound: it supplies no reservation, row, physical attempt or authority.
+
+Preview metadata borrows the proposals' original pins. Its verifier children
+and body aliases retire before proposals return those pins; Preview cleanup
+must not release the same input owner a second time. These semantic checks do
+not establish encrypted Store custody, a waiting transition, approval, a
+mutation claim, successful publication or physical cleanup.
+
+
+The public Named Result capture uses the existing captured Effect Run's
+underlying DAG. The ordinary publication exporter selects every checked
+Program Result and retains its own borrow before traversal. It does not use a
+Unit-local Definition, Invocation, Artifact or Manifest as a public Run result.
+The complete original Model/acquisition context projects the public provenance
+references, while the original Artifact supplies its already derived retention.
+The common Result, Manifest, computation Receipt and Captured Run Owners issue
+those separate contracts from the retained originals and actual export receipt.
+
+A completed Model observation retains failed slots as well as successful ones.
+Its immutable verified slot classification can be inspected without issuing
+another slot capture or invoking current/provider callbacks per slot. Only
+successful slots contribute successful invocation/response evidence to Preview;
+a failed slot is neither a missing observation nor a fabricated response.
+
+Public export and Captured Run preparation children retire before Preview and
+its original proposals pins. Preparing these contracts does not install public
+payloads or commit a waiting transition; encrypted evidence, Checkpoint custody,
+Journal state and physical Store cleanup remain distinct operations.
+
+### Native Mock review custody
+
+The multi-Source Native Mock route retains review custody on its original
+ModelWork and accepted Request. Its private continuation contains the original
+computation contracts, complete Captured Run and Preview, with exact Result
+inventories. A measuring writer and the actual emitter share one closed codec;
+measurement does not check the Program, compile or execute it again.
+
+The original captured Read funds UTF8, AEAD, ciphertext, readback parsing and
+all co-held custody children before Store entry. Per-child retained material
+accumulates while sequential constructor workspace takes its maximum. Disk
+quota remains separate. The original epoch secret derives a purpose-separated
+review encryption key bound to the actual adopted Host and Store location;
+neither raw keys nor an ambient library path enter the caller interface.
+
+Capture, Preview and paired Checkpoint confirmations precede the independent
+revision-bound Journal transition. Known COMMIT is retained before returning
+the Read. Unknown COMMIT retains all original custody; a known pre-COMMIT or
+rolled-back refusal permits only actual child cleanup. After known waiting,
+dropping process-local aliases does not delete durable evidence or acknowledge
+its Store quota release. Waiting is neither approval, mutation, Result delivery
+nor physical cleanup; their existing Owners remain separate.
+
+The cold command retains a read-only review receiver before restoring that
+pair. Its current captured Read authenticates the same Submission, Request,
+Checkpoint revision and physical Store binding. SQLite first observes the
+encrypted continuation's scalar revision and extent; the same Read backs the
+existing custody constructor layout before the exact bounded copy, AEAD and
+plaintext construction. Metadata is neither permission nor memory backing.
+The Journal is rejoined after Store and crypto callbacks, so retirement,
+cancellation or a changed Checkpoint cannot leave a current saved observation.
+Retiring this command's aliases never invokes historical evidence cleanup or
+releases its Store quota. This observation does not issue approval, a signing
+use, a resume claim, a write or a fresh computation.
+
+Human `run` and public Run-ID `status` presentation may display the original
+waiting Effect Preview as Local-owner read DATA. Fresh submission uses its
+already persisted ModelWork Preview and Checkpoint children; cold status uses
+the same restored Store/checkpoint aliases. Both require current Run-read
+permission, the original request/Run/checkpoint binding and unchanged Journal
+revision before disclosure. Display does not reconstruct approval, sign,
+resolve, resume, replay Model work or establish physical cleanup.
+
+Only Effect kind/target/count/strength and original row identity/before/after
+are rendered, with bounded canonical literals that preserve admitted numeric
+values, distinct DATA-key spellings and escaped terminal controls. Unavailable and absent evidence remain explicit.
+The same admitted canonical Preview root reaches the renderer; display does
+not parse or canonicalize that wire again. The funded saved cursor uses the
+same exact-wire, complete shape and nested identity checks as wire admission.
+Construction demand uses original packet/Preview geometry and coheld returned
+DATA; a finished decrypt/parser execution peak is not accumulated as a live
+frame for the next phase. The private continuation, guards, permissions and
+authoring evidence are not printed. This Local presentation does not issue the distinct redaction-bound
+`actql-review-projection/0.1` artifact or become approval evidence. JSON state
+and checkpoint-metadata responses retain their existing private-free shape
+and do not read the Preview for presentation.
+
+An acknowledged original Approved Resolution can retain its existing resume
+view across signer closure. Row dispatch uses that same view and Journal lease,
+checks the original Run, approved Preview, Unit and Common single-row binding,
+and commits the existing prepared/dispatching chain with its custody witness.
+A repeated row observes its durable original rather than issuing another send.
+Settlement-only or retired views cannot dispatch. This custody connection does
+not authorize a target, replace the installed request, establish physical IO or
+supply a response/outcome receipt. The actual write caller must preserve those
+independent current, backing and cleanup obligations.
+
+
+## Saved Native file Effect completion
+
+A saved approval restores the original checked computation and canonical
+Preview under the authenticated review custody. The computation receipt is
+still the existing `run_receipt` contract; its private metadata field name
+`computation_receipt_wire` does not introduce another contract kind. The
+original public Result derivation, ordering, retention, schema and codec are
+retained while the first export is alive and stored with that same review.
+Legacy metadata remains inspectable; missing publication originals cannot
+execute approval, and are never inferred from Preview or replacement rows.
+
+Plain approval and waiting approval select the same backed saved application.
+The original Source and Model are not executed again. Each ordered file write
+retains its actual generation/fsync acknowledgment before recording the same
+Journal response and terminal row receipt. Member and Set completion consume
+those actual row partitions. The original computation's checked Result
+snapshots are serialized through the existing Store and final publication
+owners, with independent current publication and RunRead authority.
+
+New publication controls and serializer overlap are backed on the same Read
+before file writes, separately from the file-execution allowance. Uncertain
+response, commit or physical-close outcomes retain their original children.
+Cleanup settles publication children before retiring their saved review aliases,
+then closes file children and Store/Roots/routing before the original entry
+acknowledges its C context, settles its token and closes the execution. Neither
+an exited process nor an empty pending flag substitutes for those acknowledgments.

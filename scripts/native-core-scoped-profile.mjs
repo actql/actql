@@ -6,6 +6,7 @@ import {execFileSync, spawnSync} from 'node:child_process';
 import {accessSync, constants, mkdirSync, readFileSync, realpathSync,
   symlinkSync, writeFileSync} from 'node:fs';
 import {basename, delimiter, dirname, join, relative, resolve} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {nativeCoreCArguments} from './native-core-c-compiler.mjs';
 import {parseCommands} from './verification-actions.mjs';
 
@@ -20,6 +21,37 @@ const linuxDefinitions = target => ['_GNU_SOURCE', 'ACTQL_NATIVE_OWNED_LINUX_PRO
 const identity = bytes => ({bytes: bytes.length,
   sha256: createHash('sha256').update(bytes).digest('hex')});
 const canonicalSource = (root, value) => resolve(root, value);
+const providerOwner = new URL('./produce-native-remote-scoped-runtime.py', import.meta.url);
+
+// The existing producer owns this closed import surface. Read only its literal
+// tuple, never evaluate Python or maintain a second driftable list of ports.
+export function parseNativeCoreComponentProviderExports(source) {
+  assert.equal([...source.matchAll(/^LOCAL_COMPONENT_PROVIDER_EXPORTS\b/gmu)].length, 1,
+    'One literal component-provider export owner required');
+  const tuple = /^LOCAL_COMPONENT_PROVIDER_EXPORTS = \(\n((?:    '[A-Za-z_][A-Za-z0-9_]*',\n)+)\)$/mu.exec(source);
+  assert(tuple, 'Component-provider exports must be an identifier-only literal tuple');
+  const symbols = [...tuple[1].matchAll(/'([A-Za-z_][A-Za-z0-9_]*)'/gu)].map(match => match[1]);
+  assert.equal(new Set(symbols).size, symbols.length, 'Duplicate component-provider export');
+  return symbols;
+}
+
+export function nativeCoreComponentProviderOwner() {
+  const bytes = readFileSync(providerOwner);
+  return {path: fileURLToPath(providerOwner), ...identity(bytes),
+    symbols: parseNativeCoreComponentProviderExports(bytes.toString('utf8'))};
+}
+
+function componentProviderLinkArguments(target, symbols) {
+  const prefix = target === 'aarch64-apple-darwin'
+    ? '-Wl,-exported_symbol,_' : '-Wl,--export-dynamic-symbol=';
+  return symbols.map(symbol => prefix + symbol);
+}
+
+function generatedTestLink(root, source, output) {
+  const path = relative(root, source).split('\\').join('/');
+  return /^_build\/(?:[^/]+\/)*native\/(?:debug|release)\/test\/.+\.(?:internal|whitebox|blackbox)_test\.c$/u.test(path) &&
+    output === source.slice(0, -2) + '.exe';
+}
 
 export function nativeCoreScopedInputs(root, plan, moonHome) {
   const inputs = [];
@@ -39,7 +71,12 @@ export function nativeCoreScopedInputs(root, plan, moonHome) {
       assert.equal(args.filter(value => value === '-o').length, 1, 'One scoped output');
       const output = args[args.indexOf('-o') + 1];
       assert(output, 'Missing scoped C output');
-      inputs.push({source: canonicalSource(root, sources[0]), output: resolve(root, output)});
+      assert(args.filter(value => value === '-c').length <= 1, 'One original compile-only selection');
+      const mode = args.includes('-c') ? 'compile' : 'link';
+      const input = {source: canonicalSource(root, sources[0]), output: resolve(root, output), mode};
+      assert(mode !== 'link' || generatedTestLink(root, input.source, input.output),
+        'Only original generated test executable links may select component exports');
+      inputs.push(input);
     }
   }
   assert(inputs.length > 0, 'No scoped C inputs');
@@ -63,8 +100,20 @@ export function nativeCoreScopedCArguments(config, args) {
   assert.equal(args.filter(value => value === '-o').length, 1, 'One scoped C output');
   const source = canonicalSource(config.repository, sources[0]);
   const output = resolve(config.repository, args[args.indexOf('-o') + 1]);
-  assert(config.inputs.some(value => value.source === source && value.output === output),
-    'C input/output is outside the original scoped Moon plan');
+  const input = config.inputs.find(value => value.source === source && value.output === output);
+  assert(input, 'C input/output is outside the original scoped Moon plan');
+  assert(args.filter(value => value === '-c').length <= 1, 'Duplicate compile-only selection');
+  assert.equal(input.mode, args.includes('-c') ? 'compile' : 'link',
+    'Original scoped compile/link mode changed');
+  assert.deepEqual(config.componentProviderOwner, nativeCoreComponentProviderOwner(),
+    'Original component-provider export owner changed');
+  // These are selected only by this same closed owner, never from a caller's
+  // broad, duplicate, replacement or target-incompatible export option.
+  assert(!args.some(value => /(?:rdynamic|export[-_]dynamic|exported[-_]symbols?|dynamic[-_]list)/u.test(value) ||
+    /(?:^|,)(?:-E|--export-all-symbols)(?:,|$)/u.test(value)),
+    'Do not replace original component-provider exports');
+  if (input.mode === 'link') assert(generatedTestLink(config.repository, source, output),
+    'Only original generated test executable links may select component exports');
   assert(args.filter(value => value.startsWith('-DMOONBIT_ALLOCATOR=')).every(value => value === allocator),
     'Scoped tests retain the original mimalloc selection');
   assert(!args.some(value => /^-[DU]ACTQL_(?:SCOPED_READ_|RUNTIME_MANAGED_VALUES|BOOTSTRAP_IMPORT_PROVIDER|NATIVE_LINUX_|NATIVE_OWNED_LINUX_|BUNDLE_STOCK_FILE_CONTROL_BYTES)/u.test(value)),
@@ -89,7 +138,15 @@ export function nativeCoreScopedCArguments(config, args) {
   if (source === join(config.repository, 'src/platform_native/host_bootstrap/bootstrap_stub.c')) {
     prefix.push('-DACTQL_SCOPED_READ_PROVIDER=' + JSON.stringify(join(config.sourceDirectory, 'owned_capacity.c')));
   }
-  return [...prefix, ...selected];
+  // Empty internal/blackbox harnesses may not link the provider at all.
+  // Export only the original provider that this exact executable consumes;
+  // Darwin otherwise treats each absent export as an undefined symbol.
+  const provider = config.inputs.find(value => value.source === join(config.repository,
+    'src/platform_native/host_bootstrap/bootstrap_stub.c'));
+  const linksProvider = input.mode === 'link' && provider &&
+    args.some(value => resolve(config.repository, value) === provider.output);
+  return [...prefix, ...selected, ...(linksProvider
+    ? componentProviderLinkArguments(config.target, config.componentProviderOwner.symbols) : [])];
 }
 
 // Only compiler-information queries may bypass the closed source/output plan.
@@ -183,8 +240,9 @@ export function prepareNativeCoreScopedProfile(repository, scratch, args, {
     encoding: 'utf8', timeout: 60000, maxBuffer: 16 * 1024 ** 2});
   const inputs = nativeCoreScopedInputs(repository, plan, moonHome);
   const configPath = join(directory, 'compiler-inputs.json');
+  const componentProviderOwner = nativeCoreComponentProviderOwner();
   const config = {repository, moonHome, sourceDirectory, targetDirectory, inputs,
-    compilers, profile, target, ...(stockFileControl ? {stockFileControl} : {})};
+    compilers, profile, target, componentProviderOwner, ...(stockFileControl ? {stockFileControl} : {})};
   writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n', {flag: 'wx'});
   const bin = join(directory, 'bin'); mkdirSync(bin);
   for (const kind of Object.keys(compilers)) writeFileSync(join(bin, kind),
@@ -197,7 +255,7 @@ export function prepareNativeCoreScopedProfile(repository, scratch, args, {
     CXX: join(bin, env.CXX === undefined ? 'c++' : 'package-c++')};
   return {environment, targetDirectory, compilerInputs: {
     qualification: 'selected-provider compiler inputs only; no test execution or artifact authority',
-    configPath, sourceDirectory, inputs, profile, recipeSha256: record.recipe_sha256,
+    configPath, sourceDirectory, inputs, profile, componentProviderOwner, recipeSha256: record.recipe_sha256,
     patchSha256: record.patch_sha256, target: record.target,
     ...(stockFileControl ? {stockFileControl} : {}),
   }};

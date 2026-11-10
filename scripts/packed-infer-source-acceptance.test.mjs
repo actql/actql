@@ -5,6 +5,9 @@ import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
+import {parse} from 'acorn';
+import {configuration} from './fixtures/installed-infer-fixture.mjs';
+import {sourceCases, sourceRuntimeRefusals} from './fixtures/infer-source-expectation.mjs';
 import {exercisePackedInferSource} from './packed-infer-source-acceptance.mjs';
 
 // Independent literal inventories, never read from the selected fixture map.
@@ -138,3 +141,120 @@ for (const failAt of [
     });
   });
 }
+
+
+test('Source INFER Hosts retain the same authored Environment capacity as their Model original', async () => {
+  const source = await readFile(new URL('./fixtures/packed-infer-source.mjs', import.meta.url), 'utf8');
+  const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  const calls = [];
+  function visit(node) {
+    if (node === null || typeof node !== 'object') return;
+    if (node.type === 'CallExpression' && node.callee.type === 'Identifier' &&
+        ['connect', 'openInstalledRemoteHttpHost'].includes(node.callee.name)) calls.push(node);
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value !== null && typeof value === 'object') visit(value);
+    }
+  }
+  visit(tree);
+  const baseEnvironment = JSON.parse(await readFile(new URL('../spec/local-check-environment.json', import.meta.url), 'utf8'));
+  const {installation} = configuration(baseEnvironment);
+  const authorization = Object.freeze({fixture: 'same-authorization'});
+  const registerModelProviders = () => {throw new Error('NoProviderExecutionInSourceControl');};
+  const entrances = calls.filter(call => call.callee.name === 'openInstalledRemoteHttpHost' ||
+    call.arguments[0]?.properties?.some(property => property.key.name === 'installation'));
+  assert.equal(entrances.length, 2, 'exercise the actual Local and HTTPS Host option expressions');
+  for (const call of entrances) {
+    const argument = call.arguments[0];
+    const options = new Function('root', 'authorization', 'installation',
+      'registerModelProviders', 'baseEnvironment', 'userInfo',
+      `return (${source.slice(argument.start, argument.end)});`)(
+      'fixture-root', authorization, installation, registerModelProviders,
+      baseEnvironment, () => ({username: 'fixture-owner'}));
+    const selected = call.callee.name === 'connect' ? options.installation : options;
+    assert.equal(selected.hostCapacityPolicy, baseEnvironment.host_policy_profile.capacity,
+      'the Host must select the same original policy that configuration encoded');
+    assert.equal(selected.modelInstallation, installation);
+    assert.equal(selected.authorization, authorization);
+    assert.equal(selected.registerModelProviders, registerModelProviders);
+    assert.deepEqual(JSON.parse(selected.modelInstallation.environmentWire).host_policy_profile.capacity,
+      selected.hostCapacityPolicy, 'no replacement policy or derived capacity');
+  }
+});
+
+
+test('Source INFER retains the public implicit main Result for success and refused reads', async () => {
+  // These authored read-only programs have no explicit RESULT. The public
+  // Source contract selects main; the old structured/historical answer recipe
+  // is separate (source_frontend/public_primary_test.mbt and the Result
+  // resource contract in docs/spec/execution.md).
+  for (const value of [...Object.values(sourceCases).map(value => value.source),
+    ...Object.values(sourceRuntimeRefusals)]) assert.doesNotMatch(value, /\bRESULT\b/iu);
+  const source = await readFile(new URL('./fixtures/packed-infer-source.mjs', import.meta.url), 'utf8');
+  const nodes = [];
+  function visit(node) {
+    if (node === null || typeof node !== 'object') return;
+    if (typeof node.type === 'string') nodes.push(node);
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value !== null && typeof value === 'object') visit(value);
+    }
+  }
+  visit(parse(source, {ecmaVersion: 'latest', sourceType: 'module'}));
+  const selected = nodes.find(node => node.type === 'VariableDeclarator' && node.id.name === 'resultName');
+  assert.equal(selected?.init?.value, 'main', 'pin the authored public contract, not observed Run output');
+  const reads = nodes.filter(node => node.type === 'CallExpression' &&
+    node.callee.type === 'MemberExpression' && node.callee.property.name === 'result');
+  // Initial + two attached + resend selectors; failed initial/attached each
+  // retain both all/describe. Stream and same-Run assertions use those readers.
+  assert.equal(reads.length, 8);
+  for (const call of reads) assert.equal(call.arguments[0]?.name, 'resultName');
+  const unavailable = nodes.filter(node => node.type === 'MemberExpression' &&
+    node.object.type === 'MemberExpression' && node.object.property.name === 'result_availability');
+  assert.equal(unavailable.length, 2);
+  for (const field of unavailable) {
+    assert.equal(field.computed, true);
+    assert.equal(field.property.name, 'resultName');
+  }
+  const description = nodes.find(node => node.type === 'CallExpression' &&
+    node.callee.type === 'MemberExpression' && node.callee.object.name === 'assert' &&
+    node.callee.property.name === 'equal' && node.arguments[0]?.type === 'MemberExpression' &&
+    node.arguments[0].object.name === 'description' && node.arguments[0].property.name === 'resultName');
+  assert.equal(description?.arguments[1]?.name, 'resultName');
+});
+
+test('Source INFER strict property filters refine only the compared original receiver', () => {
+  // A TRUE equality on value.risk excludes a NULL value receiver; it proves
+  // nothing about the unrelated nullable reason member. This is the same
+  // Object-path rule exercised by relation_typing/property_filter_refinement_test.
+  const filteredColumns = [
+    {name: 'id', contract: {type: 'string', nullable: false, max_utf8_bytes: 8}},
+    {name: 'note', contract: {type: 'string', nullable: false, max_utf8_bytes: 6}},
+    {name: 'assessment', contract: {
+      type: 'object', nullable: false, additional_properties: false, fields: {
+        input_key: {type: 'object', nullable: false,
+          additional_properties: false, fields: {
+            id: {type: 'string', nullable: false, max_utf8_bytes: 8},
+          }},
+        outcome: {type: 'string', nullable: false},
+        value: {type: 'object', nullable: false, additional_properties: false,
+          fields: {reason: {type: 'string', nullable: true},
+            risk: {type: 'string', nullable: false}}},
+      },
+    }},
+  ];
+  for (const name of ['keep-filter', 'folded-filter']) {
+    assert.match(sourceCases[name].source,
+      /WHERE assessment\.outcome = 'ok' AND assessment\.value\.risk = 'high'$/iu);
+    assert.deepEqual(sourceCases[name].columns, filteredColumns);
+    assert.deepEqual(sourceCases[name].rows, sourceCases.keep.rows);
+    assert.equal(sourceCases[name].calls, 1);
+  }
+  // The proof belongs to those predicates, not the ModelTask's output type.
+  for (const name of ['keep', 'default-keep', 'nullable-keep', 'empty']) {
+    const value = sourceCases[name].columns.find(column => column.name === 'assessment')
+      .contract.fields.value;
+    assert.equal(value.nullable, true);
+    assert.equal(value.fields.reason.nullable, true);
+  }
+});

@@ -96,7 +96,9 @@ pub fn prepared_client_values_sequence_limits(
   value : PreparedClientProgram,
 ) -> @lower.SequenceLimits {
   {
-    ..client_standard_values_sequence_limits(),
+    ..client_sequence_limits_with_projection_demand(
+      value.sequence_preparation_demand,
+    ),
     max_rows: value.local_values_max_rows,
     max_cells: Int::max(
       client_standard_values_sequence_limits().max_cells,
@@ -800,11 +802,17 @@ fn measure_client_task_pipeline_input(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  source_selection? : Array[Int]? = None,
 ) -> Result[(Int, Int, Int), ClientTaskPipelineIssue] {
   try {
     let writer = @encode.measuring_writer(max_wire_bytes, max_nodes, max_depth)
     emit_client_task_pipeline_input_body(
-      input, max_wire_bytes, max_nodes, max_depth, writer,
+      input,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      writer,
+      source_selection~,
     )
     Ok(@encode.finish_measurement_usage(writer))
   } catch {
@@ -843,10 +851,15 @@ fn measure_client_task_pipeline_construction(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  source_selection? : Array[Int]? = None,
 ) -> Result[((Int, Int, Int), (Int, Int, Int)), ClientTaskPipelineIssue] {
   let initial = match
     measure_client_task_pipeline_input(
-      input, max_wire_bytes, max_nodes, max_depth,
+      input,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      source_selection~,
     ) {
     Ok(geometry) => geometry
     Err(issue) => return Err(issue)
@@ -912,7 +925,12 @@ fn measure_client_task_pipeline_construction(
     )
     match
       emit_client_task_pipeline_body(
-        input, true, empty_steps, emit_client_task_pipeline_measurement, header_writer,
+        input,
+        true,
+        empty_steps,
+        emit_client_task_pipeline_measurement,
+        header_writer,
+        source_selection~,
       ) {
       Ok(_) => ()
       Err(issue) => return Err(issue)
@@ -932,7 +950,12 @@ fn measure_client_task_pipeline_construction(
     let writer = @encode.measuring_writer(max_wire_bytes, max_nodes, max_depth)
     match
       emit_client_task_pipeline_body(
-        input, true, steps_upper, emit_client_task_pipeline_measurement, writer,
+        input,
+        true,
+        steps_upper,
+        emit_client_task_pipeline_measurement,
+        writer,
+        source_selection~,
       ) {
       Ok(_) => Ok((initial, @encode.finish_measurement_usage(writer)))
       Err(issue) => Err(issue)
@@ -1171,6 +1194,7 @@ fn[T] emit_client_task_pipeline_body(
   steps : T,
   emit_steps : (T, @encode.Writer) -> Unit raise @encode.EncodeFailure,
   writer : @encode.Writer,
+  source_selection? : Array[Int]? = None,
 ) -> Result[Unit, ClientTaskPipelineIssue] raise @encode.EncodeFailure {
   let prepared = @lower.bound_preparation(input.owner)
   let pipeline = @lower.pipeline(prepared)
@@ -1194,6 +1218,9 @@ fn[T] emit_client_task_pipeline_body(
     }
   } else {
     for index in 0..<@pipeline.input_count(pipeline) {
+      if source_selection is Some(indices) && !indices.contains(index) {
+        continue
+      }
       guard @pipeline.input_at(pipeline, index) is Some((name, carrier)) else {
         return Err(if projected { UnsupportedCarrier } else { Encoding })
       }
@@ -1231,6 +1258,7 @@ fn emit_client_task_pipeline_input_body(
   max_nodes : Int,
   max_depth : Int,
   writer : @encode.Writer,
+  source_selection? : Array[Int]? = None,
 ) -> Unit raise @encode.EncodeFailure {
   match
     emit_client_task_pipeline_body(
@@ -1239,6 +1267,7 @@ fn emit_client_task_pipeline_input_body(
       (input, max_wire_bytes, max_nodes, max_depth),
       emit_client_task_pipeline_initial_steps,
       writer,
+      source_selection~,
     ) {
     Ok(_) => ()
     Err(_) => raise @encode.InvalidStructure
@@ -1322,6 +1351,7 @@ fn construct_client_task_pipeline(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  source_selection? : Array[Int]? = None,
 ) -> Result[ClientTaskPipelineConstruction, ClientTaskPipelineIssue] {
   let { owner, sequence, end_step, selected, prefix_end, .. } = input
   let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
@@ -1329,7 +1359,12 @@ fn construct_client_task_pipeline(
   }
   try {
     emit_client_task_pipeline_input_body(
-      input, max_wire_bytes, max_nodes, max_depth, writer,
+      input,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      writer,
+      source_selection~,
     )
     let raw = @encode.finish(writer)
     guard parse_plan_identity_value(raw, max_wire_bytes, max_nodes, max_depth)
@@ -1388,6 +1423,7 @@ fn construct_client_task_pipeline(
         { selected, included, remap, step_values, },
         emit_client_task_pipeline_projected_steps,
         task_writer,
+        source_selection~,
       ) {
       Ok(_) => ()
       Err(issue) => return Err(issue)
@@ -1604,6 +1640,41 @@ fn measure_client_values_pipeline_graph(
     Ok(_) => ()
   }
   Ok(@encode.finish_measurement_usage(writer)) catch {
+    _ => Err(Encoding)
+  }
+}
+
+///|
+// Same original pipeline emitter, retaining construction DATA during its
+// existing visits. No second pipeline traversal or wire is constructed.
+fn measure_prepared_client_values_pipeline_construction(
+  value : PreparedClientProgram,
+  task : Int,
+  limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@encode.EncodingConstructionGeometry, ClientValuesPipelineIssue] {
+  let writer = @encode.construction_measuring_writer(
+    max_wire_bytes, max_nodes, max_depth,
+  ) catch {
+    _ => return Err(Encoding)
+  }
+  match
+    emit_client_values_pipeline_into(
+      value.graph,
+      task,
+      limits,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      writer,
+      preparation=Some(value),
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  Ok(@encode.finish_construction_measurement(writer)) catch {
     _ => Err(Encoding)
   }
 }

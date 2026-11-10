@@ -29,7 +29,7 @@ fn run_ordered_rows(
     100,
     { remaining: 100000, max_frames: 100, },
     row_output(),
-    { limit: 100000, live: 0, peak: 0, },
+    row_workspace(100000),
     ordered_budget=Some(b),
   )
 }

@@ -193,7 +193,12 @@ test "captured set CTE preserves differing filters after one source capture" {
     // Independent obligations: broad capture, both retained branch filters,
     // and exactly one external declaration; no predicate from the first arm
     // may remove rows needed by the other arm before capture.
-    assert_true(wire.contains("\"filter\":{\"literal\":true}"))
+    assert_false(wire.contains("\"filter\":{\"literal\":true}"))
+    assert_true(
+      wire.contains(
+        "\"from\":\"orders\",\"select\":[\"id\",\"customer_id\",\"status\",\"amount\"]",
+      ),
+    )
     assert_true(
       wire.contains("\"gt\":[{\"field\":\"amount\"},{\"literal\":10}]"),
     )
@@ -233,7 +238,7 @@ test "set composition does not leak source scopes or accept forward dependencies
 test "captured set CTE matches an independently authored Program" {
   let expected = @program.parse(
     (
-      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"capture","inputs":{"orders":{"carrier":"relation","schema":{"id":{"type":"string","nullable":false},"customer_id":{"type":"string","nullable":false},"status":{"type":"string","nullable":false},"amount":{"type":"number","nullable":false}},"primary_key":["id"]}},"steps":[{"from":"orders","filter":{"literal":true}},{"select":["id","customer_id","status","amount"],"as":"aql_capture_0"}],"results":{"source":{"from":"aql_capture_0","fields":["id","customer_id","status","amount"]}}},{"id":"main","inputs":{"orders":{"result":{"stage":"capture","result":"source"}}},"steps":[{"from":"orders","filter":{"gt":[{"field":"amount"},{"literal":10}]}},{"select":["id"],"as":"aql_data_set_term_2"},{"from":"orders","filter":{"lt":[{"field":"amount"},{"literal":5}]}},{"select":["id"],"as":"aql_data_set_term_3"},{"from":"aql_data_set_term_2","append":{"with":"aql_data_set_term_3"},"as":"aql_script_cte_1"},{"from":"aql_script_cte_1","select":["id"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"capture","inputs":{"orders":{"carrier":"relation","schema":{"id":{"type":"string","nullable":false},"customer_id":{"type":"string","nullable":false},"status":{"type":"string","nullable":false},"amount":{"type":"number","nullable":false}},"primary_key":["id"]}},"steps":[{"from":"orders","select":["id","customer_id","status","amount"],"as":"aql_capture_0"}],"results":{"source":{"from":"aql_capture_0","fields":["id","customer_id","status","amount"]}}},{"id":"main","inputs":{"orders":{"result":{"stage":"capture","result":"source"}}},"steps":[{"from":"orders","filter":{"gt":[{"field":"amount"},{"literal":10}]}},{"select":["id"],"as":"aql_data_set_term_2"},{"from":"orders","filter":{"lt":[{"field":"amount"},{"literal":5}]}},{"select":["id"],"as":"aql_data_set_term_3"},{"from":"aql_data_set_term_2","append":{"with":"aql_data_set_term_3"},"as":"aql_script_cte_1"},{"from":"aql_script_cte_1","select":["id"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
     ),
     construction_limits().program,
     format=Json,

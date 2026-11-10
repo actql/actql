@@ -16,6 +16,55 @@ SPEC.loader.exec_module(P)
 
 
 class SignedInputs(unittest.TestCase):
+    @staticmethod
+    def response(raw, url='https://source.example.invalid/original'):
+        class Response:
+            def __enter__(self):return self
+            def __exit__(self,*_):return False
+            def geturl(self):return url
+            def read(self,limit):return raw[:limit]
+        return Response()
+
+    def test_gateway_outage_uses_spaced_retries_of_the_same_pinned_input(self):
+        raw=b'pinned immutable Source'
+        expected={'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest()}
+        now=[0.0];calls=[]
+        def sleep(seconds):now[0]+=seconds
+        def download(request,*,timeout):
+            self.assertEqual(request.full_url,'https://source.example.invalid/original')
+            calls.append((now[0],timeout))
+            if now[0]<45:
+                raise urllib.error.HTTPError(request.full_url,504,'Gateway timeout',None,None)
+            return self.response(raw)
+        with tempfile.TemporaryDirectory() as directory:
+            destination=Path(directory)/'original'
+            with patch.object(P.time,'monotonic',side_effect=lambda:now[0]),\
+                    patch.object(P.time,'sleep',side_effect=sleep),\
+                    patch.object(P.urllib.request,'urlopen',side_effect=download):
+                self.assertEqual(P.acquire('https://source.example.invalid/original',expected,destination,None,120),destination)
+            self.assertEqual(destination.read_bytes(),raw)
+        self.assertEqual([time for time,_ in calls],[0,20,40,60])
+        self.assertTrue(all(timeout<=60 for _,timeout in calls))
+
+    def test_transient_retries_do_not_reset_the_original_download_deadline(self):
+        now=[0.0];calls=[];failures=[]
+        def sleep(seconds):now[0]+=seconds
+        def download(request,*,timeout):
+            calls.append((now[0],timeout))
+            failure=urllib.error.HTTPError(request.full_url,504,'Gateway timeout',None,None)
+            failures.append(failure)
+            raise failure
+        with tempfile.TemporaryDirectory() as directory:
+            destination=Path(directory)/'original'
+            with patch.object(P.time,'monotonic',side_effect=lambda:now[0]),\
+                    patch.object(P.time,'sleep',side_effect=sleep),\
+                    patch.object(P.urllib.request,'urlopen',side_effect=download):
+                with self.assertRaises(urllib.error.HTTPError) as raised:
+                    P.acquire('https://source.example.invalid/original',{'bytes':1,'sha256':'0'*64},destination,None,45)
+                self.assertIs(raised.exception,failures[-1])
+            self.assertFalse(destination.exists())
+        self.assertEqual(calls,[(0,45),(20,25),(40,5)])
+
     def test_release_key_uses_exact_source_or_original_without_network(self):
         key=json.loads((P.ROOT/'scripts/native-http-component-source.json').read_text())['upstream']['releaseKey']
         source=P.ROOT/key['sourcePath']
@@ -290,6 +339,228 @@ class OwnedTlsReceipt(unittest.TestCase):
                     P.HTTP.TLS.build('a'*40,None,None,None,None,None,None,30,jobs=jobs)
                 with self.assertRaisesRegex(ValueError,'TLS build jobs'):
                     P.prepare('a'*40,'linux-x64',None,None,None,None,None,None,None,30,tls_jobs=jobs)
+
+
+class BoundedPinnedDownloads(unittest.TestCase):
+    """Transport-only fixtures; no network, compiler or component execution."""
+
+    @staticmethod
+    def response(raw=b'pinned', *, url='https://source.invalid/original'):
+        import io
+        value=io.BytesIO(raw)
+        value.geturl=lambda:url
+        return value
+
+    @staticmethod
+    def expected(raw=b'pinned'):
+        return {'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest()}
+
+    def test_dns_failure_retries_same_pinned_original(self):
+        import socket
+        error=urllib.error.URLError(socket.gaierror(8,'fixture DNS failure'))
+        now=[0.0]; sleeps=[]
+        def sleep(seconds):sleeps.append(seconds);now[0]+=seconds
+        with tempfile.TemporaryDirectory() as raw:
+            destination=Path(raw)/'original'
+            with patch.object(P.urllib.request,'urlopen',side_effect=[error,self.response()]) as opened, \
+                    patch.object(P.time,'monotonic',side_effect=lambda:now[0]),patch.object(P.time,'sleep',side_effect=sleep):
+                self.assertEqual(P.acquire('https://source.invalid/original',self.expected(),destination,None,30),destination)
+            self.assertEqual(destination.read_bytes(),b'pinned')
+            self.assertEqual([call.args[0].full_url for call in opened.call_args_list],
+                             ['https://source.invalid/original']*2)
+            self.assertEqual([call.kwargs['timeout'] for call in opened.call_args_list],[30,10])
+            self.assertEqual(sleeps,[20])
+
+    def test_transient_http_and_interrupted_read_restart_same_bounded_get(self):
+        error=urllib.error.HTTPError('https://source.invalid/original',503,'unavailable',{},None)
+        interrupted=self.response();interrupted.read=unittest.mock.Mock(side_effect=TimeoutError('fixture interrupted body'))
+        with tempfile.TemporaryDirectory() as raw:
+            destination=Path(raw)/'original'
+            with patch.object(P.urllib.request,'urlopen',side_effect=[error,interrupted,self.response()]) as opened, \
+                    patch.object(P.time,'monotonic',return_value=0),patch.object(P.time,'sleep') as sleep, \
+                    patch.object(error,'close',wraps=error.close) as close:
+                P.acquire('https://source.invalid/original',self.expected(),destination,None,120)
+                close.assert_called_once()
+            self.assertEqual(destination.read_bytes(),b'pinned')
+            self.assertEqual([call.args[0].full_url for call in opened.call_args_list],['https://source.invalid/original']*3)
+            self.assertEqual([call.kwargs['timeout'] for call in opened.call_args_list],[60]*3)
+            self.assertEqual(sleep.call_args_list,[unittest.mock.call(20),unittest.mock.call(20)])
+            self.assertTrue(interrupted.closed)
+
+    def test_repeated_network_failure_returns_last_original_after_eight_attempts(self):
+        import socket
+        errors=[urllib.error.URLError(socket.gaierror(8,'fixture DNS failure')) for _ in range(8)]
+        with tempfile.TemporaryDirectory() as raw:
+            destination=Path(raw)/'original'
+            with patch.object(P.urllib.request,'urlopen',side_effect=errors) as opened, \
+                    patch.object(P.time,'monotonic',return_value=0),patch.object(P.time,'sleep') as sleep:
+                with self.assertRaises(urllib.error.URLError) as observed:
+                    P.acquire('https://source.invalid/original',self.expected(),destination,None,240)
+            self.assertIs(observed.exception,errors[-1])
+            self.assertEqual(opened.call_count,8)
+            self.assertEqual(sleep.call_args_list,[unittest.mock.call(20)]*7)
+            self.assertFalse(destination.exists())
+
+    def test_expired_original_budget_does_not_retry_or_sleep(self):
+        import socket
+        error=urllib.error.URLError(socket.gaierror(8,'fixture DNS failure'));now=[0]
+        def fail(*args,**kwargs):now[0]=30;raise error
+        with tempfile.TemporaryDirectory() as raw:
+            destination=Path(raw)/'original'
+            with patch.object(P.urllib.request,'urlopen',side_effect=fail) as opened, \
+                    patch.object(P.time,'monotonic',side_effect=lambda:now[0]),patch.object(P.time,'sleep') as sleep:
+                with self.assertRaises(urllib.error.URLError) as observed:
+                    P.acquire('https://source.invalid/original',self.expected(),destination,None,30)
+            self.assertIs(observed.exception,error);self.assertEqual(opened.call_count,1)
+            sleep.assert_not_called();self.assertFalse(destination.exists())
+
+    def test_retry_scheduling_delay_preserves_original_failure(self):
+        import socket
+        error=urllib.error.URLError(socket.gaierror(8,'fixture DNS failure'));now=[0]
+        def delayed_sleep(seconds):now[0]=30
+        with tempfile.TemporaryDirectory() as raw:
+            destination=Path(raw)/'original'
+            with patch.object(P.urllib.request,'urlopen',side_effect=error) as opened, \
+                    patch.object(P.time,'monotonic',side_effect=lambda:now[0]),patch.object(P.time,'sleep',side_effect=delayed_sleep):
+                with self.assertRaises(urllib.error.URLError) as observed:
+                    P.acquire('https://source.invalid/original',self.expected(),destination,None,30)
+            self.assertIs(observed.exception,error);self.assertEqual(opened.call_count,1)
+            self.assertFalse(destination.exists())
+
+    def test_permanent_or_unverified_inputs_never_retry_or_publish(self):
+        import ssl
+        failures=[urllib.error.HTTPError('https://source.invalid/original',404,'missing',{},None),
+                  urllib.error.URLError(ssl.SSLCertVerificationError('fixture untrusted certificate'))]
+        for error in failures:
+            with self.subTest(error=type(error).__name__),tempfile.TemporaryDirectory() as raw:
+                destination=Path(raw)/'original'
+                with patch.object(P.urllib.request,'urlopen',side_effect=error) as opened,patch.object(P.time,'sleep') as sleep:
+                    with self.assertRaises(type(error)) as observed:
+                        P.acquire('https://source.invalid/original',self.expected(),destination,None,30)
+                self.assertIs(observed.exception,error);self.assertEqual(opened.call_count,1)
+                sleep.assert_not_called();self.assertFalse(destination.exists())
+        for response in [self.response(b'other!'),self.response(b'too long'),self.response(url='http://source.invalid/original')]:
+            with self.subTest(response=response),tempfile.TemporaryDirectory() as raw:
+                destination=Path(raw)/'original'
+                with patch.object(P.urllib.request,'urlopen',return_value=response) as opened,patch.object(P.time,'sleep') as sleep:
+                    with self.assertRaises(ValueError):
+                        P.acquire('https://source.invalid/original',self.expected(),destination,None,30)
+                self.assertEqual(opened.call_count,1);sleep.assert_not_called();self.assertFalse(destination.exists())
+
+    def test_bundle_sqlite_uses_verified_acquisition_before_original_compiler(self):
+        import socket
+        # Execute the original preparation body with explicit compiler ports;
+        # importing the real producer would also require the Python SDK stack.
+        import ast
+        import types
+        source=P.ROOT/'scripts/prepare-native-runtime-bundle-components.py'
+        body=next(node for node in ast.parse(source.read_text()).body
+                  if isinstance(node,ast.FunctionDef) and node.name=='prepare')
+        selected=types.SimpleNamespace(SOURCE=None,build_process_import=None)
+        fields={'ROOT':P.ROOT,'Path':Path,'subprocess':subprocess,'time':P.time,
+                'json':json,'hashlib':hashlib,'urllib':P.urllib,'SQLITE':selected,'INPUTS':P}
+        exec(compile(ast.Module(body=[body],type_ignores=[]),str(source),'exec'),fields)
+        bundle=types.SimpleNamespace(**fields)
+        class CompilerReached(Exception):pass
+        error=urllib.error.URLError(socket.gaierror(8,'fixture DNS failure'))
+        with tempfile.TemporaryDirectory() as raw:
+            root=Path(raw);recipe=root/'source.json'
+            recipe.write_text(json.dumps({'upstream':{'url':'https://source.invalid/original',**self.expected()}}))
+            destination=root/'components'
+            with patch.object(bundle.SQLITE,'SOURCE',root), \
+                    patch.object(bundle.subprocess,'check_output',side_effect=['a'*40,'']), \
+                    patch.object(P.urllib.request,'urlopen',side_effect=[error,self.response()]) as opened, \
+                    patch.object(P.time,'sleep'),patch.object(P.time,'monotonic',return_value=0), \
+                    patch.object(bundle.SQLITE,'build_process_import',side_effect=CompilerReached) as compiler:
+                with self.assertRaises(CompilerReached):
+                    bundle.prepare('a'*40,'darwin-arm64',root/'clang',root/'sdk',None,destination,30)
+            archive=destination/'sqlite-original.zip'
+            self.assertEqual(archive.read_bytes(),b'pinned');self.assertEqual(opened.call_count,2)
+            compiler.assert_called_once_with('a'*40,archive,root/'clang',root/'sdk',destination/'sqlite',30)
+
+    def test_bundle_crypto_uses_pinned_acquisition_same_deadline_and_explicit_original(self):
+        import ast
+        import types
+        # Execute only the actual orchestration body. The real input verifier
+        # runs; explicit compiler ports stop at Crypto entry without any build.
+        source=P.ROOT/'scripts/prepare-native-runtime-bundle-components.py'
+        body=next(node for node in ast.parse(source.read_text()).body
+                  if isinstance(node,ast.FunctionDef) and node.name=='prepare')
+        for mode in ('download','bad-pin','expired','explicit'):
+            with self.subTest(mode=mode),tempfile.TemporaryDirectory() as raw:
+                root=Path(raw);sqlite_root=root/'sqlite-source';crypto_root=root/'crypto-source'
+                sqlite_root.mkdir();crypto_root.mkdir()
+                sqlite_bytes=b'original SQLite Source';crypto_bytes=b'original OpenSSL Source'
+                for directory,url,data in ((sqlite_root,'https://sqlite.invalid/source',sqlite_bytes),
+                                           (crypto_root,'https://crypto.invalid/source',crypto_bytes)):
+                    (directory/'source.json').write_text(json.dumps({'upstream':{
+                        'url':url,'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest()}}))
+                sqlite=types.SimpleNamespace(SOURCE=sqlite_root,build_process_import=None)
+                crypto=types.SimpleNamespace(SOURCE=crypto_root,produce_darwin_source=None)
+                fields={'ROOT':P.ROOT,'Path':Path,'subprocess':subprocess,'time':P.time,
+                        'json':json,'SQLITE':sqlite,'CRYPTO':crypto,'INPUTS':P}
+                exec(compile(ast.Module(body=[body],type_ignores=[]),str(source),'exec'),fields)
+                bundle=types.SimpleNamespace(**fields)
+                now=[0];events=[];destination=root/'components'
+                explicit=root/'explicit-openssl.tar.gz'
+                explicit.write_bytes(crypto_bytes)
+                if mode=='explicit':(crypto_root/'source.json').unlink()
+                refusal=ValueError('original Crypto archive refusal')
+                class CryptoReached(Exception):pass
+                def download(request,*,timeout):
+                    events.append(('download',request.full_url,timeout))
+                    if request.full_url=='https://sqlite.invalid/source':
+                        now[0]+=3
+                        return self.response(sqlite_bytes,url=request.full_url)
+                    self.assertEqual(request.full_url,'https://crypto.invalid/source')
+                    self.assertNotEqual(mode,'explicit','Explicit archive must not fall back to a download')
+                    self.assertEqual(timeout,50)
+                    now[0]=60 if mode=='expired' else 17
+                    return self.response(b'changed OpenSSL Source' if mode=='bad-pin' else crypto_bytes,
+                                         url=request.full_url)
+                def sqlite_compiler(*args):
+                    events.append(('sqlite',args[-1]))
+                    self.assertEqual(args,('a'*40,destination/'sqlite-original.zip',root/'clang',
+                                           root/'sdk',destination/'sqlite',57))
+                    self.assertEqual(args[1].read_bytes(),sqlite_bytes)
+                    now[0]+=7
+                    return {}
+                def crypto_compiler(*args,**kwargs):
+                    events.append(('crypto',args[-1]))
+                    selected=explicit if mode=='explicit' else destination/'openssl-original.tar.gz'
+                    self.assertEqual(args,(destination/'crypto-source',root/'clang',root/'sdk',
+                                           50 if mode=='explicit' else 43))
+                    self.assertEqual(kwargs,{'source_archive':selected,'component_output':destination/'crypto'})
+                    self.assertEqual(selected.read_bytes(),crypto_bytes)
+                    if mode=='explicit':raise refusal
+                    raise CryptoReached
+                with patch.object(bundle.subprocess,'check_output',
+                                  side_effect=['a'*40,'']),\
+                        patch.object(P.time,'monotonic',side_effect=lambda:now[0]),\
+                        patch.object(P.time,'sleep',side_effect=AssertionError('no transport retry expected')),\
+                        patch.object(P.urllib.request,'urlopen',side_effect=download) as opened,\
+                        patch.object(sqlite,'build_process_import',side_effect=sqlite_compiler) as sqlite_entry,\
+                        patch.object(crypto,'produce_darwin_source',side_effect=crypto_compiler) as crypto_entry:
+                    invoke=lambda:bundle.prepare('a'*40,'darwin-arm64',root/'clang',root/'sdk',None,
+                        destination,60,openssl_source_archive=explicit if mode=='explicit' else None)
+                    if mode=='bad-pin':
+                        with self.assertRaisesRegex(ValueError,'Pinned original HTTP preparation download differs'):invoke()
+                    elif mode=='expired':
+                        with self.assertRaisesRegex(ValueError,'Bundle component preparation budget exhausted'):invoke()
+                    elif mode=='explicit':
+                        with self.assertRaises(ValueError) as observed:invoke()
+                        self.assertIs(observed.exception,refusal)
+                    else:
+                        with self.assertRaises(CryptoReached):invoke()
+                    sqlite_entry.assert_called_once()
+                    if mode in ('bad-pin','expired'):crypto_entry.assert_not_called()
+                    else:crypto_entry.assert_called_once()
+                    self.assertEqual(opened.call_count,1 if mode=='explicit' else 2)
+                self.assertEqual([event[0] for event in events],
+                    ['download','sqlite']+([] if mode=='explicit' else ['download'])+
+                    ([] if mode in ('bad-pin','expired') else ['crypto']))
+                self.assertEqual((destination/'openssl-original.tar.gz').exists(),mode in ('download','expired'))
+                self.assertFalse((destination/'bundle-components.json').exists())
 
 
 if __name__=='__main__':unittest.main()

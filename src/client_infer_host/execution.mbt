@@ -80,6 +80,7 @@ pub struct Execution {
   limits : Limits
   mut rows : @relation.PreparedInferRows?
   mut identity : @relation.CompletedRelationIdentityScan?
+  mut identity_body : OriginalInferIdentityBody?
   mut call_scope : @publication_host.ClientInferCallScope?
   mut saved_call_scope : @publication_host.ClientInferSavedCallScope?
   mut model : @model.ModelExecution?
@@ -664,6 +665,7 @@ fn start_occurrence(
     @relation.GeneratedSequence?,
     @resources.Ledger,
   )? = None,
+  prior_input_work? : Int64 = 0L,
 ) -> Result[Execution, Issue] {
   // A caller-supplied Ledger/root tuple is not the original read/consumer.
   // The checked generated branch enters that same Owner before construction.
@@ -719,6 +721,10 @@ fn start_occurrence(
       )
     })
     .unwrap_or(0L)
+  if prior_input_work < 0L ||
+    prior_input_work > limits.input.max_work.to_int64() - entry_work {
+    return Err(InvalidAdvance)
+  }
   let input = match start_input(limits) {
     Ok(value) => value
     Err(issue) => return Err(Input(issue))
@@ -738,6 +744,7 @@ fn start_occurrence(
     limits,
     rows: None,
     identity: None,
+    identity_body: None,
     call_scope: None,
     saved_call_scope: None,
     model: None,
@@ -750,8 +757,8 @@ fn start_occurrence(
     cancelled: false,
     advancing: false,
     reclaimed: false,
-    entry_work,
-    work: entry_work,
+    entry_work: entry_work + prior_input_work,
+    work: entry_work + prior_input_work,
     child_work: entry_work,
     output_uses: 0,
     run_binding: None,
@@ -792,6 +799,7 @@ pub fn start_composed(
   limits : Limits,
   sources? : @publication_host.ClientInferComposedSources? = None,
   root? : (@relation.GeneratedSequence?, @resources.Ledger)? = None,
+  prior_input_work? : Int64 = 0L,
 ) -> Result[Execution, Issue] {
   if sources is Some(value) &&
     !@publication_host.client_infer_composed_sources_matches(value, occurrence) {
@@ -813,7 +821,14 @@ pub fn start_composed(
         occurrence,
         prefix,
         inputs,
-        limits.input,
+        if prior_input_work == 0L {
+          limits.input
+        } else {
+          {
+            ..limits.input,
+            max_work: limits.input.max_work - prior_input_work.to_int(),
+          }
+        },
         limits.measurement,
         limits.mapping,
         keyed=sources.bind(value => {
@@ -829,6 +844,7 @@ pub fn start_composed(
       )
     },
     composed_sources=sources,
+    prior_input_work~,
     root=root.map(value => (prefix, value.0, value.1)),
   )
 }
@@ -878,7 +894,10 @@ pub fn advance_root(active : Execution, quantum : Int) -> Result[Poll, Issue] {
 fn execution_input_unadvanced(active : Execution) -> Bool {
   active.phase is Input &&
   active.work == active.entry_work &&
-  active.child_work == active.entry_work
+  // entry_work includes already consumed original producer work; the live
+  // child's own cumulative report starts at its original input entry. Any
+  // new child work increments active.work and fails the equality above.
+  active.child_work <= active.entry_work
 }
 
 ///|
@@ -1133,6 +1152,16 @@ fn advance_child(active : Execution, quantum : Int) -> Poll {
               return fail(active, InvalidAdvance)
             }
             let limits = active.limits.identity
+            if active.identity_body is Some(_) {
+              guard @relation.completed_relation_identity_body_start_construction_capacity()
+                is Some(start) else {
+                return fail(active, InvalidAdvance)
+              }
+              match grow_original_infer_identity_body_capacity(active, start) {
+                Err(issue) => return fail(active, issue)
+                Ok(_) => ()
+              }
+            }
             active.identity = match
               @relation.start_completed_relation_identity_scan(
                 completed,
@@ -1143,6 +1172,8 @@ fn advance_child(active : Execution, quantum : Int) -> Poll {
                 limits.schema,
                 limits.work,
                 limits.workspace,
+                incremental_metadata=active.identity_body is Some(_),
+                retain_body=active.identity_body is Some(_),
               ) {
               Ok(value) => Some(value)
               Err(issue) => return fail(active, IdentityExport(issue))
@@ -1169,8 +1200,34 @@ fn advance_child(active : Execution, quantum : Int) -> Poll {
       guard active.identity is Some(identity) else {
         return fail(active, InvalidAdvance)
       }
+      let construction = if active.identity_body is Some(_) {
+        guard @relation.completed_relation_identity_scan_next_construction_capacity(
+            identity,
+          )
+          is Some(next) else {
+          return fail(active, InvalidAdvance)
+        }
+        guard @relation.completed_relation_identity_scan_body_next_construction_capacity(
+            identity,
+          )
+          is Some(body_demand) else {
+          return fail(active, InvalidAdvance)
+        }
+        match grow_original_infer_identity_body_capacity(active, body_demand) {
+          // The original Read still funds its legacy scan envelope. The new
+          // extension above covers only body retention beside that envelope.
+          Ok(_) => Some(next)
+          Err(issue) => return fail(active, issue)
+        }
+      } else {
+        None
+      }
       let (done, _) = match
-        @relation.advance_completed_relation_identity_scan(identity, quantum) {
+        @relation.advance_completed_relation_identity_scan(
+          identity,
+          quantum,
+          construction_capacity=construction,
+        ) {
         Ok(value) => value
         Err(issue) => {
           if !account(
@@ -1478,6 +1535,19 @@ pub fn cancel(active : Execution) -> Bool {
     Handoff | Terminal => ()
   }
   true
+}
+
+///|
+/// Progress only this original child's confirmed cancellation. A refused stop
+/// leaves the latch unset, so cleanup cannot accidentally advance live work.
+pub fn advance_cancelled(
+  active : Execution,
+  quantum : Int,
+) -> Result[Poll, Issue] {
+  if !active.cancelled {
+    return Err(InvalidAdvance)
+  }
+  advance(active, quantum)
 }
 
 ///|
@@ -1792,6 +1862,7 @@ pub fn cleanup(active : Execution) -> Result[Bool, Issue] {
     @relation.cancel_completed_relation_identity_scan(identity) |> ignore
     active.identity = None
   }
+  active.identity_body = None
   match @input.cleanup_client_infer_input(active.input) {
     Ok(true) => {
       if active.original_preparation is Some(original) &&

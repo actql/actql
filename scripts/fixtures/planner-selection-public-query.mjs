@@ -23,11 +23,11 @@ export const plannerSelectionRows = [
 const acquisitionRows = [{id: 3}, {id: 2}, {id: 3}];
 const expectedRows = [{id: 2}, {id: 3}, {id: 3}];
 const expectedColumns = [{name: 'id', contract: {type: 'number', nullable: false}}];
-// Obtained once by offline common preparation of the authored Program against
-// the pinned left.environment.json; never derived from an executed Result.
+// Independently reconstructed from the complete authored identity preimages,
+// then checked against the pure owner; never derived from an executed Result.
 export const plannerSelectionRequirementCids = Object.freeze({
-  normal: 'sha256:1eaca4154c1d97c24db2bbff2fd875ee9ebdcc929d7e103ad818129ebc050d48',
-  unsupportedPredicate: 'sha256:84feddd46622948d1375d8f3f0ac80e511aa83fa6f29914ca1878f95740b3fa9',
+  normal: 'sha256:9578333c35278f89a5a06e26448b541bd41ac092b6acf2afb2ee334ebd11264e',
+  unsupportedPredicate: 'sha256:2d30267ef42eaade1facc845e8533ed68fe75ec79af17285542cb6f6f1de6473',
 });
 const requirementCidFor = item => item.filter === undefined
   ? plannerSelectionRequirementCids.normal : plannerSelectionRequirementCids.unsupportedPredicate;
@@ -105,8 +105,12 @@ const accountConfiguration = (outcome, operation, accountId) => canonical({
 
 function hostAuthorization(observe) {
   const keys = generateKeyPairSync('ed25519');
+  const account = JSON.parse(accountConfiguration('allow', 'write', 'planner-selection-host'));
+  account.entries.push({entry_id: 'read-original', outcome: 'allow',
+    principal: {any_of: [userInfo().username]}, connection: {any_of: ['actql-remote-host']},
+    resource: {any_of: ['result/selected', 'run']}, operation: {any_of: ['read']}, exclusions: []});
   return {
-    accountConfiguration: accountConfiguration('allow', 'write', 'planner-selection-host'),
+    accountConfiguration: canonical(account),
     reviewers: [{keyId: 'fixture-reviewer-key', reviewerId: 'fixture-reviewer',
       principalId: 'fixture-reviewer', publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
     hostKey: {keyId: 'fixture-host-key', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})},
@@ -155,18 +159,18 @@ export async function installPlannerSelectionFixture({root, duckdb, environment,
   nativeCheaper.candidates.nativeQuery.estimates[0].milliseconds = 30;
   assert.deepEqual(nativeCheaper, planning['broad-cheaper'],
     'changing only one Native estimate is sufficient to reverse the choice');
-  return {database, profiles, source};
+  return {database, profiles, source, hostCapacityPolicy: environment.host_policy_profile.capacity};
 }
 
 async function openSingleSourcePublicHost({connect, openInstalledRemoteHttpHost,
-  mode, directory, sourceProfilePath, tls, authorization,
+  mode, directory, sourceProfilePath, tls, authorization, hostCapacityPolicy,
   retainedRelationOutput = false}) {
   let host, server;
   let options = {mode: 'local', owner: 'local', durability: 'durable',
-    installation: {directory, sourceProfilePath, authorization,
+    installation: {directory, sourceProfilePath, authorization, hostCapacityPolicy,
       retainedRelationOutput}};
   if (mode === 'https') {
-    host = await openInstalledRemoteHttpHost({directory, sourceProfilePath, authorization,
+    host = await openInstalledRemoteHttpHost({directory, sourceProfilePath, authorization, hostCapacityPolicy,
       retainedRelationOutput,
       authenticate: header => header === 'Bearer fixture-token' ? userInfo().username : undefined});
     server = createServer(tls, host.handler);
@@ -197,15 +201,16 @@ export async function exerciseRetainedPlannerPublicQuery({connect, root,
   });
   const running = await openSingleSourcePublicHost({connect,
     mode: 'local', directory, sourceProfilePath: installation.profiles[item.name],
-    authorization, retainedRelationOutput: true});
+    authorization, hostCapacityPolicy: installation.hostCapacityPolicy, retainedRelationOutput: true});
   let client;
   try {
     client = await running.connect().catch(error => {
       assert.fail(`retained Host initialization: ${error.primaryFailure?.stack ?? error.stack}`);
     });
     const requestId = 'retained-public-planner';
+    const submissionRef = client.newSubmission({nonce: requestId});
     const program = plannerSelectionProgram();
-    const execution = await client.startSource(program, {format: 'json', requestId});
+    const execution = await client.startSource(program, {format: 'json', submissionRef});
     const state = await execution.wait({signal: AbortSignal.timeout(30_000)});
     assert.equal(state.status, 'succeeded', JSON.stringify({state,
       events: events.map(event => ({name: event.name,
@@ -218,9 +223,9 @@ export async function exerciseRetainedPlannerPublicQuery({connect, root,
     'the public Host must select a real retained-file output');
     const attached = await client.attach(execution.ref);
     assert.deepEqual(await attached.result('selected').all(), expectedRows);
-    const resent = await client.startSource(program, {format: 'json', requestId});
+    const resent = await client.startSource(program, {format: 'json', submissionRef});
     assert.deepEqual(resent.ref, execution.ref);
-  } finally { client?.close(); await running.close(); }
+  } finally { await client?.close(); await running.close(); }
 }
 
 function assertSelection(selection, item, source) {
@@ -367,16 +372,22 @@ export async function exercisePlannerSelectionPublicQuery({connect, openInstalle
       const before = provider.snapshot();
       const running = await openSingleSourcePublicHost({connect, openInstalledRemoteHttpHost,
         mode, directory, sourceProfilePath: installation.profiles[item.name], tls,
+        hostCapacityPolicy: installation.hostCapacityPolicy,
         authorization: hostAuthorization((name, detail) => events.push({name, detail}))});
       let client;
       const requestId = `planner-${mode}-${item.name}`;
       const text = item.filter === undefined ? program : plannerSelectionProgram(item.filter);
       try {
         client = await running.connect();
+        const submissionRef = client.newSubmission({nonce: requestId});
         if (item.denyRead || item.deferred) {
-          let refusalCode;
-          await assert.rejects(client.startSource(text, {format: 'json', requestId}), error => {
-            refusalCode = error.code;
+          let refusalCode, refusalOutcome;
+          await assert.rejects(client.startSource(text, {format: 'json', submissionRef}), error => {
+            assert.equal(error.code, 'SubmissionPreparationFailed');
+            refusalOutcome = error.outcome;
+            assert.equal(refusalOutcome.kind, 'preparation_failed');
+            assert.deepEqual(refusalOutcome.submissionRef, submissionRef);
+            refusalCode = refusalOutcome.problem.code;
             if (item.denyRead) assert.equal(refusalCode, 'ACTQL_E_ACCOUNT_DENIED');
             else assert.equal(refusalCode, 'ClientProgramRejected',
               'cost ignorance is a rejected preparation, not an unsupported Program claim');
@@ -384,7 +395,8 @@ export async function exercisePlannerSelectionPublicQuery({connect, openInstalle
           });
           await new Promise(resolve => setImmediate(resolve));
           assert.deepEqual(provider.snapshot(), before, 'refusal performs zero provider opens and zero SQL');
-          assert.deepEqual(await client.lookupRequest(requestId), {kind: 'not_found'});
+          assert.deepEqual(await client.lookupSubmission(submissionRef), refusalOutcome,
+            'the same original submission retains its exact preparation refusal');
           assert.equal(readTwoSourceJournal(directory).length, 0, 'refusal accepts no Run');
           assert.equal(events.filter(event => event.name === 'acquisition_started').length, 0);
           assert.equal(events.filter(event => event.name === 'acquisition_completed').length, 0);
@@ -396,7 +408,7 @@ export async function exercisePlannerSelectionPublicQuery({connect, openInstalle
             provider: {sourceIo: 0, sourceReads: 0, sourceProviderOpens: []}});
           continue;
         }
-        const execution = await client.startSource(text, {format: 'json', requestId});
+        const execution = await client.startSource(text, {format: 'json', submissionRef});
         const state = await execution.wait({signal: AbortSignal.timeout(30_000)});
         assert.equal(state.status, 'succeeded', JSON.stringify({mode, name: item.name, state}));
         const result = execution.result('selected');
@@ -417,15 +429,18 @@ export async function exercisePlannerSelectionPublicQuery({connect, openInstalle
         const commands = assertSourceCommands(before, after, installation.database, item);
         const attached = await client.attach(execution.ref);
         assert.deepEqual(await attached.result('selected').all(), expectedRows);
-        const resent = await client.startSource(text, {format: 'json', requestId});
+        const resent = await client.startSource(text, {format: 'json', submissionRef});
         assert.deepEqual(resent.ref, execution.ref);
-        assert.deepEqual((await client.lookupRequest(requestId)).ref, execution.ref);
+        const lookup = await client.lookupSubmission(submissionRef);
+        assert.equal(lookup.kind, 'ready');
+        assert.deepEqual(lookup.submissionRef, submissionRef);
+        assert.deepEqual(lookup.admission.ref, execution.ref);
         assert.deepEqual(provider.snapshot(), after, 'retained reads and duplicate submission do not reacquire');
         assert.equal(readTwoSourceJournal(directory).length, 1);
         observations.push({mode, name: item.name, ref: execution.ref,
           selection, acquisition, sourceReadCommands: commands, rows, columns});
         console.log(`Public planner selection passed: ${mode}/${item.name}`);
-      } finally { client?.close(); await running.close(); }
+      } finally { await client?.close(); await running.close(); }
     }
     // Profile-only latency changes preserve the same checked requirement and
     // output contract, while the actual receipt-owner shape changes.

@@ -102,7 +102,7 @@ test "take rejects missing order during preparation even for empty runtime input
 test "take physical budgets apply to full input and permit exact selected output" {
   let table = order_table([Number(2), Number(1), Number(0)])
   let control = { remaining: 10000, max_frames: 0, }
-  let workspace = { limit: 1000, live: 0, peak: 0, }
+  let workspace = row_workspace(1000)
   let result = evaluate_take_rows(
     table,
     "limited",
@@ -130,7 +130,7 @@ test "take physical budgets apply to full input and permit exact selected output
       3,
       { remaining: work, max_frames: 0, },
       row_output(),
-      { limit: space, live: 0, peak: 0, },
+      { ..row_workspace(space), live: 0, peak: 0, },
     )
     if expected {
       assert_true(result is Ok(_))
@@ -147,7 +147,7 @@ test "take physical budgets apply to full input and permit exact selected output
       2,
       { remaining: 1000, max_frames: 0, },
       row_output(),
-      { limit: 1000, live: 0, peak: 0, },
+      row_workspace(1000),
     )
     is Err(RowLimit),
   )
@@ -253,7 +253,7 @@ test "take preserves every relation value domain and NULL" {
       2,
       { remaining: 10000, max_frames: 0, },
       row_output(),
-      { limit: 1000, live: 0, peak: 0, },
+      row_workspace(1000),
     ).unwrap()
     assert_true(append_value_equal(result.rows[0][0], capture(value)))
     assert_true(result.rows[1][0] is Null)

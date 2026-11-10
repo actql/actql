@@ -72,13 +72,15 @@ ifnullCoalesceReuseSuccesses.push(
   success('qualified-input', aliasSelect + 'COALESCE(records.amount, 0), id',
     [aliasRows[4], aliasRows[3], aliasRows[1], aliasRows[2], aliasRows[0]], aliasColumns),
 );
+// DISTINCT cannot recover an unselected input expression. These operand,
+// arity and namespace violations match the existing Core InvalidQuery cases.
 export const ifnullCoalesceReuseRefusals = [
   'COALESCE(amount, 1)', 'COALESCE(0, amount)', 'COALESCE(id, 0)',
   'COALESCE(amount)', 'COALESCE(amount, 0, 1)', 'NULLIF(amount, 0)',
   'ACTQL.COALESCE(amount, 0)',
 ].map((ordered, index) => ({name: 'ifnull-coalesce-reuse-order-refusal-' + index, format: 'sql',
   text: 'SELECT DISTINCT IFNULL(amount, 0) AS value FROM records ORDER BY ' + ordered,
-  expectedCode: 'ClientProgramImplementationLimit'})).concat([
+  expectedCode: 'ClientProgramInvalidInput'})).concat([
   {name: 'ifnull-coalesce-reuse-invalid-types', format: 'sql',
     text: "SELECT IFNULL(amount, 'bad') AS value, COUNT(*) AS n FROM records GROUP BY COALESCE(amount, 'bad')",
     expectedCode: 'ClientProgramInvalidInput'},

@@ -118,19 +118,19 @@ export async function installedKintoneSourceIdentityParts(profile, providerProfi
       caSha256: createHash('sha256').update(ca).digest('hex')})}];
 }
 
-export async function loadInstalledKintoneSource(profile, {moon, runtimeBundleCid, resolveSecret, installation, construction}) {
+// The same initialization owner prepares original Form/declaration DATA for
+// Source and Effect. No Site, credential resolution or physical read is opened.
+export async function prepareInstalledKintoneMaterials(profile, {moon, construction, runtimePorts = []}) {
   if (construction === undefined || typeof construction.prepareNativeDeclaration !== 'function' ||
-      typeof construction.openRowSite !== 'function' || typeof construction.createRowSource !== 'function' ||
-      typeof construction.sourceReaderImplementation !== 'function' || typeof construction.createSourceReader !== 'function' ||
-      construction.configurationReader === undefined) fail('KintoneSourceConstructionUnavailable');
+      construction.configurationReader === undefined || !Array.isArray(runtimePorts) ||
+      runtimePorts.some(name => typeof name !== 'string')) fail('KintoneSourceConstructionUnavailable');
   const readers = construction.configurationReader;
   const {installed, site: siteProfile, metadata} = await inputs(profile, readers);
   const {limits} = installed;
   // A runtime with no genuine typed bridge refuses before Site/key/I/O entry.
-  for (const name of ['ReadDeclarationConstructionCapacity', 'MetadataIdentityCapacity', 'FormLimits', 'PageLimits', 'ValueLimits', 'DeclarationLimits',
-    'ProjectForm', 'DeclareRecords', 'RecordDeclaration', 'ManagedSourceReaderCapacity', 'ManagedResponseCapacity',
-    'AdoptManagedBorrow', 'ManagedColumns', 'ManagedFormRequest', 'ManagedPageRequest',
-    'ManagedRecheckForm', 'ManagedProjectPage', 'ManagedComplete', 'ManagedRetire']) {
+  for (const name of ['ReadDeclarationConstructionCapacity', 'MetadataIdentityCapacity',
+    'FormLimits', 'PageLimits', 'ValueLimits', 'DeclarationLimits', 'ProjectForm', 'DeclareRecords',
+    'RecordDeclaration', ...runtimePorts]) {
     if (typeof moon?.[`clientProgramKintone${name}`] !== 'function') fail('KintoneOriginalReadUnavailable');
   }
   const formLimits = moon.clientProgramKintoneFormLimits(limits.maxResponseBytes, limits.maxNodes,
@@ -163,6 +163,26 @@ export async function loadInstalledKintoneSource(profile, {moon, runtimeBundleCi
         declaration: moon.clientProgramKintoneRecordDeclaration(original)});
     },
   }));
+  return Object.freeze({installed, siteProfile, metadata, original, declared, metadataCid,
+    formLimits, valueLimits, pageLimits, declarationLimits});
+}
+
+export function installedKintoneSiteBinding({contextCid, runtimeBundleCid, metadataCid, site}) {
+  return cid({version: 'actql-installed-kintone-binding/0.1', contextCid, runtimeBundleCid, metadataCid, site});
+}
+
+export async function loadInstalledKintoneSource(profile, {moon, runtimeBundleCid, resolveSecret, installation, construction}) {
+  if (construction === undefined || typeof construction.prepareNativeDeclaration !== 'function' ||
+      typeof construction.openRowSite !== 'function' || typeof construction.createRowSource !== 'function' ||
+      typeof construction.sourceReaderImplementation !== 'function' || typeof construction.createSourceReader !== 'function' ||
+      construction.configurationReader === undefined) fail('KintoneSourceConstructionUnavailable');
+  const {installed, siteProfile, metadata, original, declared, metadataCid,
+    formLimits, valueLimits, pageLimits} = await prepareInstalledKintoneMaterials(profile, {moon, construction,
+      runtimePorts: ['ManagedSourceReaderCapacity', 'ManagedResponseCapacity', 'AdoptManagedBorrow',
+        'ManagedColumns', 'ManagedFormRequest', 'ManagedPageRequest', 'ManagedRecheckForm',
+        'ManagedProjectPage', 'ManagedComplete', 'ManagedRetire']});
+  const {limits} = installed;
+  const readers = construction.configurationReader;
   const connection = `kintone:${installed.connectorId}`;
   const target = (resource, fields) => Object.freeze({version: 'actql-installed-kintone-target/0.1',
     apiOrigin: siteProfile.apiOrigin, appId: installed.appId,
@@ -264,7 +284,7 @@ export async function loadInstalledKintoneSource(profile, {moon, runtimeBundleCi
   if (providerReader.capacity !== implementation.capacity) fail('KintoneManagedImplementationMismatch');
   return await construction.createRowSource({readOperation: KINTONE_RECORD_READ_OPERATION,
     physicalTarget: target, providerReader,
-    bindingCid: cid({version: 'actql-installed-kintone-binding/0.1', contextCid: authorization.context.contextCid,
+    bindingCid: installedKintoneSiteBinding({contextCid: authorization.context.contextCid,
       runtimeBundleCid, metadataCid, site: siteProfile}),
     limits: {maxPages: limits.maxRequests, maxPageBytes: limits.maxResponseBytes,
       maxPageRows: limits.perPage, maxCaptureRows: limits.maxRows}});

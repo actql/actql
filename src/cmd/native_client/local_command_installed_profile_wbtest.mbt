@@ -121,7 +121,8 @@ test "static profile uses its selected layout or refuses before backing" {
     assert_eq(storage.read_facility_ceiling, Some(96L * mib))
     assert_eq(storage.sqlite_domain_facility_ceiling, Some(48L * mib))
     assert_eq(storage.snapshot_bytes, 8L * mib)
-    assert_eq(storage.records, 32)
+    // Count is the later configured Journal policy, not a preallocated facility.
+    assert_true(storage.covers_journal(profile.source, 1025, 8L * mib))
   } else {
     local_command_test_unselected_profile_refusal()
   }

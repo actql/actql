@@ -5,10 +5,11 @@
 struct NativeRunStateCandidate {
   definition : @publication.PublicationContract
   validation : @publication.PublicationCommitPreparation
+  preparation : @local.ClientProgramValidation?
   view : @publication.PublicationCommitReadView
   observed_at : String
   mut released : Bool
-  pending : NativePreparedCapturedRunPublication
+  pending : NativeRunStateCandidateOriginal
   request : @publication.PublicationContract
   attempt : @publication.PublicationContract
   index : @publication.PublicationContract
@@ -30,7 +31,7 @@ pub(all) enum NativeRunStateCandidateIssue {
 pub fn NativeRunStateCandidate::original_metadata(
   self : NativeRunStateCandidate,
 ) -> (@publication.PublicationContract, @publication.PublicationContract) {
-  (self.definition, self.pending.evidence.manifest)
+  (self.definition, self.pending.manifest())
 }
 
 ///|
@@ -49,7 +50,8 @@ pub fn NativeRunStateCandidate::projection_materials(
   ),
   NativeRunStateCandidateIssue,
 ] {
-  if self.released {
+  if self.released ||
+    !native_state_validation_loan_current(self.validation, self.preparation) {
     return Err(Unavailable)
   }
   Ok(
@@ -57,9 +59,9 @@ pub fn NativeRunStateCandidate::projection_materials(
       self.validation,
       self.view,
       self.observed_at,
-      self.pending.service.max_wire_bytes,
-      self.pending.service.max_nodes,
-      self.pending.service.max_depth,
+      self.pending.service().max_wire_bytes,
+      self.pending.service().max_nodes,
+      self.pending.service().max_depth,
     ),
   )
 }
@@ -75,7 +77,7 @@ pub fn NativeRunStateCandidate::release(
   self.released = true
   let child = self.validation.release_observed_commit(self.view)
   let view = self.validation.release_view(self.view)
-  self.validation.cancel()
+  cancel_native_state_validation(self.validation, self.preparation)
   match child {
     Ok(_) => ()
     Err(issue) => return Err(Publication(Commit(issue)))
@@ -90,7 +92,7 @@ pub fn NativeRunStateCandidate::release(
 pub fn NativeRunStateCandidate::original_client_request(
   self : NativeRunStateCandidate,
 ) -> @publication_host.ClientRequestIdentity? {
-  self.pending.service.client_request
+  self.pending.service().client_request
 }
 
 ///|
@@ -106,11 +108,11 @@ pub fn NativeRunStateCandidate::matches_original_publisher(
   target_cid : String,
 ) -> Bool {
   let pending = self.pending
-  physical_equal(pending.service.store, store) &&
-  pending.intent.namespace_id == namespace_id &&
-  pending.intent.authority_scope_cid == scope &&
-  pending.intent.publication_policy_cid == policy_cid &&
-  pending.intent.publication_target_cid == target_cid &&
+  physical_equal(pending.service().store, store) &&
+  pending.intent().namespace_id == namespace_id &&
+  pending.intent().authority_scope_cid == scope &&
+  pending.intent().publication_policy_cid == policy_cid &&
+  pending.intent().publication_target_cid == target_cid &&
   @publication.publication_contract_identity(self.definition) == definition_cid
 }
 
@@ -121,29 +123,31 @@ pub fn NativeRunStateCandidate::require_original_store_current(
   self : NativeRunStateCandidate,
 ) -> Result[Unit, NativeRunStateCandidateIssue] {
   let pending = self.pending
-  if self.released || pending.cancelled {
+  if self.released ||
+    pending.cancelled() ||
+    !native_state_validation_loan_current(self.validation, self.preparation) {
     return Err(Unavailable)
   }
   match
-    pending.service.store.observe_publication_payload_facts(
-      pending.evidence.bindings,
-      pending.evidence.binding_schema_wires,
-      pending.service.max_wire_bytes,
-      pending.service.max_nodes,
-      pending.service.max_depth,
+    pending.service().store.observe_publication_payload_facts(
+      pending.bindings(),
+      pending.binding_schema_wires(),
+      pending.service().max_wire_bytes,
+      pending.service().max_nodes,
+      pending.service().max_depth,
     ) {
     Ok(_) => ()
     Err(issue) => return Err(Publication(Store(issue)))
   }
-  let store = pending.service.store
+  let store = pending.service().store
   match
     store.inspect_committed_publication(
-      pending.intent.namespace_id,
-      pending.intent.authority_scope_cid,
+      pending.intent().namespace_id,
+      pending.intent().authority_scope_cid,
       @publication.publication_contract_identity(self.definition),
-      pending.service.max_wire_bytes,
-      pending.service.max_nodes,
-      pending.service.max_depth,
+      pending.service().max_wire_bytes,
+      pending.service().max_nodes,
+      pending.service().max_depth,
     ) {
     Ok(Some(current)) if @publication.publication_contract_identity(current) ==
       @publication.publication_contract_identity(self.index) => ()
@@ -162,12 +166,12 @@ pub fn NativeRunStateCandidate::require_original_store_current(
   // Borrow the original evidence arrays, without another view-array copy.
   for
     originals in [
-      pending.evidence.definitions,
-      pending.evidence.artifacts,
-      pending.evidence.derivations,
-      pending.evidence.orderings,
-      pending.evidence.retentions,
-      pending.evidence.bindings,
+      pending.definitions(),
+      pending.artifacts(),
+      pending.derivations(),
+      pending.orderings(),
+      pending.retentions(),
+      pending.bindings(),
     ] {
     for original in originals {
       match check(original) {
@@ -179,10 +183,10 @@ pub fn NativeRunStateCandidate::require_original_store_current(
   for
     original in [
       self.definition,
-      pending.evidence.invocation,
-      pending.evidence.manifest,
-      pending.evidence.receipt,
-      pending.evidence.captured_run,
+      pending.invocation(),
+      pending.manifest(),
+      pending.receipt(),
+      pending.captured_run(),
       self.request,
       self.attempt,
       self.index,
@@ -200,12 +204,25 @@ fn advance_native_state_validation(
   preparation : @publication.PublicationCommitPreparation,
   quantum : Int,
   max_rounds : Int,
+  owner? : @local.ClientProgramValidation? = None,
 ) -> Result[Unit, NativeRunStateCandidateIssue] {
   for _ in 0..<max_rounds {
-    match preparation.advance(quantum) {
+    let progress = match owner {
+      Some(original) =>
+        @local.advance_program_validation(original, quantum).map_err(issue => {
+          NativeRunStateCandidateIssue::Publication(Preparation(issue))
+        })
+      None =>
+        preparation
+        .advance(quantum)
+        .map_err(issue => {
+          NativeRunStateCandidateIssue::Publication(Commit(issue))
+        })
+    }
+    match progress {
       Ok((true, _)) => return Ok(())
       Ok((false, _)) => ()
-      Err(issue) => return Err(Publication(Commit(issue)))
+      Err(issue) => return Err(issue)
     }
   }
   Err(ValidationLimit)
@@ -217,8 +234,12 @@ fn advance_native_observed_state_validation(
   view : @publication.PublicationCommitReadView,
   quantum : Int,
   max_rounds : Int,
+  owner? : @local.ClientProgramValidation? = None,
 ) -> Result[Unit, NativeRunStateCandidateIssue] {
   for _ in 0..<max_rounds {
+    if !native_state_validation_loan_current(preparation, owner) {
+      return Err(Unavailable)
+    }
     match preparation.advance_observed_commit(view, quantum) {
       Ok((true, _)) => return Ok(())
       Ok((false, _)) => ()
@@ -302,37 +323,86 @@ pub fn NativePreparedCapturedRunPublication::prepare_run_state_candidate(
     @publication.publication_contract_identity(self.preparation.request) {
     return Err(Publication(CommitConflict))
   }
-  let validation = @publication.start_effect_free_publication_commit_check(
-    evidence.run_definition,
-    evidence.invocation,
-    evidence.definitions,
-    evidence.artifacts,
-    evidence.derivations,
-    evidence.orderings,
-    evidence.retentions,
-    evidence.bindings,
-    evidence.manifest,
-    evidence.receipt,
-    evidence.captured_run,
-    stored_request,
-    stored_attempt,
-    index,
-    service.max_wire_bytes,
-    service.max_nodes,
-    service.max_depth,
-    max_workspace,
-  )
-  match advance_native_state_validation(validation, quantum, max_rounds) {
+  let owner = match self.capture {
+    None => None
+    Some(capture) => {
+      let value = match
+        @local.prepare_program_commit_validation(
+          capture,
+          evidence.run_definition,
+          evidence.invocation,
+          evidence.definitions,
+          evidence.artifacts,
+          evidence.derivations,
+          evidence.orderings,
+          evidence.retentions,
+          evidence.bindings,
+          evidence.manifest,
+          evidence.receipt,
+          evidence.captured_run,
+          stored_request,
+          stored_attempt,
+          index,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Publication(Preparation(issue)))
+      }
+      match
+        @local.start_program_validation(
+          value,
+          max_workspace=Some(max_workspace),
+        ) {
+        Ok(_) => Some(value)
+        Err(issue) => {
+          @local.cancel_program_validation(value)
+          return Err(Publication(Preparation(issue)))
+        }
+      }
+    }
+  }
+  let validation = match owner {
+    Some(value) =>
+      match @local.borrow_program_commit_validation(value) {
+        Some(checker) => checker
+        None => {
+          @local.cancel_program_validation(value)
+          return Err(Unavailable)
+        }
+      }
+    None =>
+      @publication.start_effect_free_publication_commit_check(
+        evidence.run_definition,
+        evidence.invocation,
+        evidence.definitions,
+        evidence.artifacts,
+        evidence.derivations,
+        evidence.orderings,
+        evidence.retentions,
+        evidence.bindings,
+        evidence.manifest,
+        evidence.receipt,
+        evidence.captured_run,
+        stored_request,
+        stored_attempt,
+        index,
+        service.max_wire_bytes,
+        service.max_nodes,
+        service.max_depth,
+        max_workspace,
+      )
+  }
+  match
+    advance_native_state_validation(validation, quantum, max_rounds, owner~) {
     Ok(_) => ()
     Err(issue) => {
-      validation.cancel()
+      cancel_native_state_validation(validation, owner)
       return Err(issue)
     }
   }
   let view = match validation.finish_view() {
     Ok(value) => value
     Err(issue) => {
-      validation.cancel()
+      cancel_native_state_validation(validation, owner)
       return Err(Publication(Commit(issue)))
     }
   }
@@ -343,18 +413,28 @@ pub fn NativePreparedCapturedRunPublication::prepare_run_state_candidate(
     Ok(_) => ()
     Err(issue) => {
       validation.release_view(view) |> ignore
-      validation.cancel()
+      cancel_native_state_validation(validation, owner)
       return Err(Publication(Commit(issue)))
     }
   }
   let outcome = match
     advance_native_observed_state_validation(
-      validation, view, quantum, max_rounds,
+      validation,
+      view,
+      quantum,
+      max_rounds,
+      owner~,
     ) {
     Err(issue) => Err(issue)
     Ok(_) =>
       self.finish_observed_run_state(
-        validation, view, stored_request, stored_attempt, index, observed_at,
+        validation,
+        view,
+        stored_request,
+        stored_attempt,
+        index,
+        observed_at,
+        owner~,
       )
   }
   // On success transfer only the same bounded Core loan to the candidate;
@@ -365,7 +445,7 @@ pub fn NativePreparedCapturedRunPublication::prepare_run_state_candidate(
     Err(issue) => {
       let child_release = validation.release_observed_commit(view)
       let view_release = validation.release_view(view)
-      validation.cancel()
+      cancel_native_state_validation(validation, owner)
       match child_release {
         Ok(_) => ()
         Err(issue) => return Err(Publication(Commit(issue)))
@@ -388,6 +468,7 @@ fn NativePreparedCapturedRunPublication::finish_observed_run_state(
   stored_attempt : @publication.PublicationContract,
   index : @publication.PublicationContract,
   observed_at : String,
+  owner? : @local.ClientProgramValidation? = None,
 ) -> Result[NativeRunStateCandidate, NativeRunStateCandidateIssue] {
   match validation.finish_observed_commit(view) {
     Ok(_) => ()
@@ -405,7 +486,7 @@ fn NativePreparedCapturedRunPublication::finish_observed_run_state(
     Ok(_) => ()
     Err(issue) => return Err(Publication(issue))
   }
-  if self.cancelled {
+  if self.cancelled || !native_state_validation_loan_current(validation, owner) {
     return Err(Publication(AccessDenied))
   }
   // After all user callbacks, use the actual non-callback Store generation/
@@ -459,12 +540,183 @@ fn NativePreparedCapturedRunPublication::finish_observed_run_state(
   Ok({
     definition: self.evidence.run_definition,
     validation,
+    preparation: owner,
     view,
     observed_at,
     released: false,
-    pending: self,
+    pending: EffectFree(self),
     request: stored_request,
     attempt: stored_attempt,
     index,
   })
+}
+
+///|
+fn native_state_validation_loan_current(
+  checker : @publication.PublicationCommitPreparation,
+  owner : @local.ClientProgramValidation?,
+) -> Bool {
+  match owner {
+    None => true
+    Some(value) =>
+      @local.borrow_program_commit_validation(value) is Some(original) &&
+      physical_equal(original, checker)
+  }
+}
+
+///|
+fn cancel_native_state_validation(
+  checker : @publication.PublicationCommitPreparation,
+  owner : @local.ClientProgramValidation?,
+) -> Unit {
+  match owner {
+    None => checker.cancel()
+    Some(value) => @local.cancel_program_validation(value)
+  }
+}
+
+///|
+priv enum NativeRunStateCandidateOriginal {
+  EffectFree(NativePreparedCapturedRunPublication)
+  Effectful(NativePreparedEffectfulRunPublication)
+}
+
+///|
+fn NativeRunStateCandidateOriginal::service(
+  self : NativeRunStateCandidateOriginal,
+) -> NativeRunPublicationService {
+  match self {
+    EffectFree(value) => value.service
+    Effectful(value) => value.service
+  }
+}
+
+///|
+fn NativeRunStateCandidateOriginal::intent(
+  self : NativeRunStateCandidateOriginal,
+) -> NativeRunPublicationIntent {
+  match self {
+    EffectFree(value) => value.intent
+    Effectful(value) => value.intent
+  }
+}
+
+///|
+fn NativeRunStateCandidateOriginal::cancelled(
+  self : NativeRunStateCandidateOriginal,
+) -> Bool {
+  match self {
+    EffectFree(value) => value.cancelled
+    Effectful(value) => value.cancelled || value.closing
+  }
+}
+
+///|
+fn NativeRunStateCandidateOriginal::manifest(
+  self : NativeRunStateCandidateOriginal,
+) -> @publication.PublicationContract {
+  match self {
+    EffectFree(value) => value.evidence.manifest
+    Effectful(value) => value.evidence.manifest
+  }
+}
+
+///|
+fn NativeRunStateCandidateOriginal::definitions(
+  self : NativeRunStateCandidateOriginal,
+) -> Array[@publication.PublicationContract] {
+  match self {
+    EffectFree(value) => value.evidence.definitions
+    Effectful(value) => value.evidence.definitions
+  }
+}
+
+///|
+fn NativeRunStateCandidateOriginal::artifacts(
+  self : NativeRunStateCandidateOriginal,
+) -> Array[@publication.PublicationContract] {
+  match self {
+    EffectFree(value) => value.evidence.artifacts
+    Effectful(value) => value.evidence.artifacts
+  }
+}
+
+///|
+fn NativeRunStateCandidateOriginal::derivations(
+  self : NativeRunStateCandidateOriginal,
+) -> Array[@publication.PublicationContract] {
+  match self {
+    EffectFree(value) => value.evidence.derivations
+    Effectful(value) => value.evidence.derivations
+  }
+}
+
+///|
+fn NativeRunStateCandidateOriginal::orderings(
+  self : NativeRunStateCandidateOriginal,
+) -> Array[@publication.PublicationContract] {
+  match self {
+    EffectFree(value) => value.evidence.orderings
+    Effectful(value) => value.evidence.orderings
+  }
+}
+
+///|
+fn NativeRunStateCandidateOriginal::retentions(
+  self : NativeRunStateCandidateOriginal,
+) -> Array[@publication.PublicationContract] {
+  match self {
+    EffectFree(value) => value.evidence.retentions
+    Effectful(value) => value.evidence.retentions
+  }
+}
+
+///|
+fn NativeRunStateCandidateOriginal::bindings(
+  self : NativeRunStateCandidateOriginal,
+) -> Array[@publication.PublicationContract] {
+  match self {
+    EffectFree(value) => value.evidence.bindings
+    Effectful(value) => value.evidence.bindings
+  }
+}
+
+///|
+fn NativeRunStateCandidateOriginal::binding_schema_wires(
+  self : NativeRunStateCandidateOriginal,
+) -> Array[String] {
+  match self {
+    EffectFree(value) => value.evidence.binding_schema_wires
+    Effectful(value) => value.evidence.binding_schema_wires
+  }
+}
+
+///|
+fn NativeRunStateCandidateOriginal::invocation(
+  self : NativeRunStateCandidateOriginal,
+) -> @publication.PublicationContract {
+  match self {
+    EffectFree(value) => value.evidence.invocation
+    Effectful(value) => value.evidence.invocation
+  }
+}
+
+///|
+fn NativeRunStateCandidateOriginal::receipt(
+  self : NativeRunStateCandidateOriginal,
+) -> @publication.PublicationContract {
+  match self {
+    EffectFree(value) => value.evidence.receipt
+    Effectful(value) => value.evidence.receipt
+  }
+}
+
+///|
+fn NativeRunStateCandidateOriginal::captured_run(
+  self : NativeRunStateCandidateOriginal,
+) -> @publication.PublicationContract {
+  match self {
+    EffectFree(value) => value.evidence.captured_run
+    Effectful(value) => value.evidence.captured_run
+  }
 }

@@ -3,7 +3,7 @@
 // material, nested Program/Environment, typed contracts and compiler output
 // coexist; source text and retained wire are distinct from active parse work.
 // These are existing managed execution units, not an RSS/GC guarantee.
-fn request_model_recovery_capacity(
+pub fn request_model_recovery_capacity(
   units : Int64,
   containers : Int,
 ) -> @execution.ExecutionCapacity? {
@@ -407,4 +407,106 @@ pub fn[I] request_model_recovery_direct_occurrences(
     Ok(_) => ()
   }
   installed_direct_occurrences_owned(Pure(prepared))
+}
+
+///|
+/// Original Effect compiler construction DATA after its checker/Model graph
+/// preparation and before artifact emission. This borrows the same geometry;
+/// it never issues a Request, compiler, ledger, currentness or physical grant.
+/// Native backing must project the wire/container facts separately, rather
+/// than treating logical R/E bytes as raw allocation bytes.
+pub fn request_model_recovery_effect_compiler_capacity(
+  value : @publication_host.ClientEffectCompilationConstruction,
+) -> @execution.ExecutionCapacity? {
+  guard program_artifact_construction_extents(
+      @publication_host.client_effect_compilation_construction_geometry(value),
+    )
+    is Some((retained, scratch)) else {
+    return None
+  }
+  @execution.execution_capacity_inventory(
+    [{ unit: QuotedBytes, count: retained, copies: 1, }],
+    [{ unit: QuotedBytes, count: scratch, copies: 1, }],
+    RetainedAlongsideExecution,
+  )
+}
+
+///|
+/// Geometry of an already admitted original material, not of compiled IR.
+/// The caller retains the exact wire/index pair and supplies the SAME funded
+/// decode.observe_subtree_construction_geometry result and admission depth.
+/// Its work field remains with the existing caller's observation/work owner.
+/// Unmeasured Program/SQL/AQL lowering still uses the existing conservative
+/// recovery recipe; a JSON Text node never stands for a compiled syntax tree.
+pub fn request_model_recovery_material_capacity(
+  wire : String,
+  geometry : @decode.SubtreeConstructionGeometry,
+  depth : Int,
+  containers : Int,
+) -> @execution.ExecutionCapacity? {
+  if depth < 0 ||
+    geometry.nodes < 1 ||
+    geometry.arrays < 0 ||
+    geometry.objects < 0 ||
+    geometry.fields < 0 ||
+    geometry.texts < 0 ||
+    geometry.total_utf16 < 0L ||
+    geometry.arrays > geometry.nodes ||
+    geometry.objects > geometry.nodes - geometry.arrays ||
+    geometry.fields >= geometry.nodes ||
+    geometry.texts > geometry.nodes ||
+    containers < 0 {
+    return None
+  }
+  // Keep the old simultaneous roles/multiplicities, substituting actual
+  // admitted nodes only for Value slots, actual text only for decoded text.
+  @execution.execution_capacity_inventory(
+    [
+      { unit: ValueNodeSlots, count: geometry.nodes.to_int64(), copies: 6, },
+      { unit: DecodedTextBytes, count: geometry.total_utf16 * 3L, copies: 6, },
+      {
+        unit: CanonicalWireBytes,
+        count: wire.length().to_int64() * 3L,
+        copies: 4,
+      },
+      { unit: ValueNodeSlots, count: containers.to_int64(), copies: 8, },
+    ],
+    [
+      { unit: ValueNodeSlots, count: geometry.nodes.to_int64(), copies: 2, },
+      {
+        unit: CanonicalWireBytes,
+        count: wire.length().to_int64() * 3L,
+        copies: 4,
+      },
+      { unit: CursorRootSlots, count: depth.to_int64(), copies: 2, },
+    ],
+    RetainedAlongsideExecution,
+  )
+}
+
+///|
+/// The structured Program decoder's existing original inventory, before its
+/// typed constructor. SQL/AQL text without that inventory remains unmeasured;
+/// no JSON envelope count is substituted for syntax/lowering nodes here.
+/// Index ownership, observation work and later compiler roles remain separate.
+pub fn request_model_recovery_program_capacity(
+  inventory : @syntax.ProgramConstructorInventory,
+  source_depth : Int,
+) -> @execution.ExecutionCapacity? {
+  guard program_structure_generic_inventories(inventory, source_depth)
+    is Some(value) &&
+    @execution.compose_preparation_representation([
+      value.containers_peak,
+      value.carriers_peak,
+      value.failure_peak,
+    ])
+    is Some(peak) &&
+    @execution.preparation_representation_cost(value.retained) is Some(retained) &&
+    @execution.preparation_representation_cost(peak) is Some(execution) else {
+    return None
+  }
+  // These same three roles coexist in the original structured decoder. Keep
+  // their sum, exactly as program_structure_construction_quote does; only
+  // its separately owned Source index/base/controller are excluded here.
+  @execution.execution_capacity(retained, Int64::max(retained, execution))
 }

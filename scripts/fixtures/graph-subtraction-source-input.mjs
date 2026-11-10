@@ -87,12 +87,12 @@ export const graphSubtractionSourceSuccesses = [
 
 export const graphSubtractionSourceRefusals = [
   ['string-peer', "subtract_graphs(with: 'g')", 'ClientProgramInvalidInput'],
-  ['list-peer', 'subtract_graphs(with: [g])', 'ClientProgramImplementationLimit'],
-  ['empty-peer-list', 'subtract_graphs(with: [])', 'ClientProgramImplementationLimit'],
-  ['missing-peer', 'subtract_graphs()', 'ClientProgramImplementationLimit'],
+  ['list-peer', 'subtract_graphs(with: [g])', 'ClientProgramInvalidInput'],
+  ['empty-peer-list', 'subtract_graphs(with: [])', 'ClientProgramInvalidInput'],
+  ['missing-peer', 'subtract_graphs()', 'ClientProgramInvalidInput'],
   ['unknown-peer', 'subtract_graphs(with: missing)', 'ClientProgramRejected'],
   ['relation-peer', 'subtract_graphs(with: n)', 'ClientProgramRejected'],
-  ['extra-argument', 'subtract_graphs(with: g, extra: true)', 'ClientProgramImplementationLimit'],
+  ['extra-argument', 'subtract_graphs(with: g, extra: true)', 'ClientProgramInvalidInput'],
   ['lost-graph-scope', 'node_rows() |> subtract_graphs(with: g)', 'ClientProgramInvalidInput'],
 ].map(([name, call, expectedCode]) => ({name: 'graph-subtraction-' + name, format: 'aql-text',
   text: prefix + 'FROM g |> ' + call + output('nodes'), expectedCode})).concat([

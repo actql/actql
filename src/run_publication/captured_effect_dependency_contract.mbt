@@ -9,7 +9,10 @@ pub fn admit_catalog_effect_dependency_body(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue] {
-  if !["source_contract", "source_view_contract", "data_policy"].contains(kind) {
+  if ![
+      "source_contract", "source_view_contract", "data_policy", "request_schema",
+      "carrier_schema",
+    ].contains(kind) {
     return Err(WrongDependencyKind)
   }
   let value = match parse_contract_wire(wire, max_bytes, max_nodes, max_depth) {
@@ -25,7 +28,10 @@ pub fn admit_catalog_effect_dependency_body(
       value, wire, max_bytes, max_nodes, max_depth,
     )
   }
-  let (schema, self_field) = if kind == "data_policy" {
+  let registry = ["data_policy", "request_schema", "carrier_schema"].contains(
+    kind,
+  )
+  let (schema, self_field) = if registry {
     ("actql.contract/0.1", "cid")
   } else {
     ("actql.source_view/0.1", "contract_cid")
@@ -35,8 +41,7 @@ pub fn admit_catalog_effect_dependency_body(
     !evidence_identity_valid(value, self_field, max_bytes, max_nodes, max_depth) {
     return Err(InvalidBody)
   }
-  if kind == "data_policy" &&
-    evidence_string(value, "kind") != Some("data_policy") {
+  if registry && evidence_string(value, "kind") != Some(kind) {
     return Err(WrongDependencyKind)
   }
   guard evidence_string(value, self_field) is Some(identity) else {
@@ -53,6 +58,7 @@ pub fn admit_catalog_effect_dependency_body(
     },
     wire,
     value,
+    wire_usage: None,
   })
 }
 
@@ -153,5 +159,6 @@ fn admit_checked_policy_effect_dependency(
     },
     wire,
     value,
+    wire_usage: None,
   })
 }

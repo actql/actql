@@ -24,6 +24,7 @@ test "Store operation original refuses a legacy Library before invoking its rece
   assert_eq(original.primary_code(), -3)
   assert_eq(callbacks.val, 0)
   assert_true(original.enter_store() is Err(_))
+  assert_true(original.prepare_delivery_window(64) is Err(_))
   assert_true(original.enter_cleanup() is Err(_))
   assert_eq(callbacks.val, 0)
   // Only this unused routing metadata is detached. No Library ACK is issued.

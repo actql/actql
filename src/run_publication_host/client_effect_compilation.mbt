@@ -195,20 +195,51 @@ fn issue_client_effect_compilation_internal(
   let prefix = @strategy.graph_captured_prefix(graph)
   // Acquired roots may feed further checked Local Units. Their actual graph
   // edges, not the number of consumers, bind every input occurrence.
-  let mut acquired = (prefix == 1 && units >= 2) || (prefix == 2 && units > 2)
+  let mut acquired = (prefix == 1 && units >= 1) || (prefix == 2 && units > 2)
   if acquired {
-    for stage in 0..<prefix {
-      if prepare_client_query_acquisition_shape(
-          client_effect_program_view(owner),
-          stage,
-          0,
-        )
-        is Err(_) {
-        acquired = false
-        break
-      }
-    }
+    // Acquisition coordinates come from the checked Direct originals. A
+    // complete Input can precede authored joins without becoming a Query Step.
+    acquired = select_client_effect_direct_acquisition_occurrences(
+        owner, 1000000,
+      )
+      .map(value => {
+        let count = client_direct_acquisition_occurrence_count(value)
+        if count == 0 {
+          return false
+        }
+        for index in 0..<count {
+          let (stage, input, _) = client_direct_acquisition_occurrence_at(
+            value, index,
+          ).unwrap()
+          guard @context.program_identity_stage_requests(
+              @checked.source_identity(@strategy.graph_program(graph)),
+              stage,
+            )
+            is Some(requests) else {
+            return false
+          }
+          match
+            @acquisition.select_source_acquisition_route(
+              requests, input, 1000000,
+            ) {
+            Ok(@acquisition.WholeInputRoute(_)) => ()
+            Ok(@acquisition.QueryRoute(_)) =>
+              if prepare_client_query_acquisition_shape(
+                  client_effect_program_view(owner),
+                  stage,
+                  input,
+                )
+                is Err(_) {
+                return false
+              }
+            Err(_) => return false
+          }
+        }
+        true
+      })
+      .unwrap_or(false)
   }
+
   if !source_free && !acquired {
     return Err(UnsupportedProgram)
   }
@@ -882,4 +913,150 @@ pub fn bind_client_effect_model_read_scopes(
     retained_bytes,
     execution_bytes,
   )
+}
+
+///|
+// Reuse the original typed Model owner. The private Effect view never escapes
+// as an effect-free checked Program, and equal CIDs cannot replace originals.
+fn client_effect_compilation_original_view(
+  owner : PreparedClientEffectComputation,
+  infer : ClientInferPlanGraph?,
+  infers : Array[ClientInferPlanGraph],
+) -> Result[PreparedClientProgram, ClientEffectCompilationIssue] {
+  let graph = @strategy.checked_effect_computation_graph(owner.graph)
+  let value = match infer {
+    None if !infers.is_empty() => {
+      let first = infers[0]
+      guard prepared_client_composed_infer_occurrences(first.owner)
+        is Some(expected) &&
+        expected.length() == infers.length() &&
+        infers.length() > 1 else {
+        return Err(ForeignInferOwner)
+      }
+      for index, component in infers {
+        if !physical_equal(component.owner, first.owner) ||
+          !physical_equal(component.owner.graph, graph) ||
+          !physical_equal(component.owner.source, owner.source) ||
+          component.owner.check_environment_cid != owner.check_environment_cid ||
+          !client_infer_occurrence_matches_plan(expected[index], component) {
+          return Err(ForeignInferOwner)
+        }
+      }
+      first.owner
+    }
+    None => client_effect_program_view(owner)
+    Some(infer) => {
+      guard prepared_client_composed_infer_occurrences(infer.owner)
+        is Some(expected) &&
+        expected.length() == 1 &&
+        client_infer_occurrence_matches_plan(expected[0], infer) else {
+        return Err(ForeignInferOwner)
+      }
+      if !physical_equal(infer.owner.graph, graph) ||
+        !physical_equal(infer.owner.source, owner.source) ||
+        infer.owner.check_environment_cid != owner.check_environment_cid {
+        return Err(ForeignInferOwner)
+      }
+      infer.owner
+    }
+  }
+  Ok(value)
+}
+
+///|
+fn client_effect_compilation_original_roots(
+  owner : PreparedClientEffectComputation,
+  max_nodes : Int,
+) -> Result[
+  (Array[(String, Int)], Array[(String, @stage_results.EffectPlanTerminal)]),
+  ClientEffectCompilationIssue,
+] {
+  let graph = @strategy.checked_effect_computation_graph(owner.graph)
+  let units = @checked.unit_count(@strategy.graph_program(graph))
+  let headers = @checked.effect_program_static_headers(owner.candidate)
+  let count = @syntax.effect_header_count(headers)
+  let roots : Array[(String, Int)] = []
+  let terminals : Array[(String, @stage_results.EffectPlanTerminal)] = []
+  let names : Array[String] = []
+  let rules = @stage_results.effect_static_candidate_mapping_rules(
+    @checked.effect_program_static_effects(owner.candidate),
+  )
+  for index in 0..<count {
+    guard @syntax.effect_header_at(headers, index) is Some(header) &&
+      @syntax.effect_header_stage(header) == units - 1 else {
+      return Err(UnsupportedProgram)
+    }
+    let name = @syntax.effect_header_id(header)
+    if names.contains(name) {
+      return Err(UnsupportedProgram)
+    }
+    names.push(name)
+    let mut source_task = -1
+    for source_index in 0..<@strategy.checked_effect_source_count(owner.graph) {
+      guard @strategy.checked_effect_source_at(owner.graph, source_index)
+        is Some(source) else {
+        continue
+      }
+      if @strategy.checked_effect_source_member(source) == index &&
+        @strategy.checked_effect_source_stage(source) == units - 1 {
+        if source_task >= 0 {
+          return Err(UnsupportedProgram)
+        }
+        source_task = @strategy.checked_effect_source_task(source)
+      }
+    }
+    // The same checked inventory owns both namespaces. A private Table input
+    // supplies an Effect root, never an ordinary Result or a send permission.
+    match @strategy.checked_effect_table_input_at(owner.graph, index) {
+      Some(source) => {
+        guard @syntax.effect_header_kind(header) == "store" &&
+          @syntax.effect_header_source_result(header) is None &&
+          @syntax.effect_header_source_table_input(header) is Some(_) &&
+          @strategy.checked_effect_table_input_member(source) == index &&
+          @strategy.checked_effect_table_input_stage(source) == units - 1 &&
+          source_task < 0 else {
+          return Err(UnsupportedProgram)
+        }
+        source_task = @strategy.checked_effect_table_input_task(source)
+      }
+      None =>
+        if @syntax.effect_header_source_result(header) is None ||
+          @syntax.effect_header_source_table_input(header) is Some(_) {
+          return Err(UnsupportedProgram)
+        }
+    }
+    if source_task < 0 {
+      return Err(UnsupportedProgram)
+    }
+    roots.push((name, source_task))
+    let command = match
+      @stage_results.effect_command_input_for_member(
+        @stage_results.effect_static_candidate_command_inputs(
+          @checked.effect_program_static_effects(owner.candidate),
+        ),
+        index,
+        max_nodes,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(EffectPlan(issue))
+    }
+    let terminal = if command is Some(_) {
+      None
+    } else {
+      match
+        @stage_results.effect_plan_terminal_for_member(
+          rules, index, max_nodes, max_nodes,
+        ) {
+        Ok(terminal) => terminal
+        Err(issue) => return Err(EffectPlan(issue))
+      }
+    }
+    // Create and Command have no AoA EffectPlan terminal in 0.1. Their
+    // admitted Mapping or Command bindings remain in the complete checked
+    // Program and Environment; this does not authorize physical apply.
+    if terminal is Some(terminal) {
+      terminals.push((name, terminal))
+    }
+  }
+  Ok((roots, terminals))
 }

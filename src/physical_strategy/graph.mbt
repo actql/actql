@@ -92,51 +92,80 @@ pub fn prepare_checked_effect_computation_dag(
   if max_work < 0 {
     return Err(InvalidLimits)
   }
-  if member_count > max_work / 2 {
+  if member_count > max_work / 4 {
     return Err(WorkLimit)
   }
-  match
-    prepare_checked_dag_owned(
+  let (logical, work) = match
+    prepare_checked_logical_dag_owned(
       @checked.effect_program_static_checked_computation(candidate),
       owners,
       max_tasks,
-      max_work - 2 * member_count,
+      max_work - 4 * member_count,
       source_free_root~,
       captured_prefix~,
     ) {
-    Ok(graph) => {
-      let sources = match
-        bind_checked_effect_source_ports(bindings, graph, owners) {
-        Ok(value) => value
-        Err(issue) => return Err(issue)
-      }
-      let table_sources = match
-        bind_checked_effect_table_inputs(bindings, graph, owners) {
-        Ok(value) => value
-        Err(issue) => return Err(issue)
-      }
-      Ok({ candidate, graph, sources, table_sources, })
-    }
-    Err(issue) => Err(issue)
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
+  let occurrences = match
+    bind_checked_effect_source_occurrences(
+      bindings,
+      logical.program,
+      logical.owners,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let exported = logical.results.length()
+  if exported > work {
+    return Err(WorkLimit)
+  }
+  // These checked private ports are planning roots, not public exports. The
+  // existing splitter must retain their exact completion just as it retains
+  // a named public Result; never substitute the Stage's terminal output.
+  for occurrence in occurrences {
+    if occurrence is Some(original) {
+      logical.results.push(original)
+    }
+  }
+  let expanded = match
+    expand_internal_carrier_tasks(logical, max_tasks, work - exported) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let sources = match
+    bind_checked_effect_source_ports(occurrences, expanded, logical.owners) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let table_sources = match
+    bind_checked_effect_table_inputs(bindings, expanded, logical.owners) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  // Keep the original exported prefix and its original occurrences. Private
+  // Effect inputs remain only in `sources`, never in publication inventory.
+  let graph = {
+    ..expanded,
+    results: Array::makei(exported, index => expanded.results[index]),
+  }
+  Ok({ candidate, graph, sources, table_sources, })
 }
 
 ///|
 /// Consume the checked Stage wiring rather than resolving a Result by name
 /// against a caller-supplied or root-only inventory. One unit of graph work
 /// was reserved for each member before this bounded pass.
-fn bind_checked_effect_source_ports(
+fn bind_checked_effect_source_occurrences(
   bindings : @results.EffectResultBindings,
-  graph : CheckedDAG,
+  program : @checked.CheckedProgram,
   owners : Array[@lower.BoundPrepared],
-) -> Result[Array[CheckedEffectSourcePort?], GraphIssue] {
+) -> Result[Array[CheckedResultOccurrence?], GraphIssue] {
   let incoming = @context.incoming_links_requirements(
-    @context.program_incoming_gates_owner(
-      @checked.incoming_gates(graph.program),
-    ),
+    @context.program_incoming_gates_owner(@checked.incoming_gates(program)),
   )
   let wiring = @context.program_incoming_wiring(incoming)
-  let sources : Array[CheckedEffectSourcePort?] = []
+  let sources : Array[CheckedResultOccurrence?] = []
   for index in 0..<@results.effect_result_binding_count(bindings) {
     let binding = @results.effect_result_binding_at(bindings, index).unwrap()
     let header = @results.effect_result_binding_header(binding)
@@ -165,11 +194,54 @@ fn bind_checked_effect_source_ports(
           Ok(value) => value
           Err(_) => return Err(ForeignEffectSource(index))
         }
-        let target = @ports.port_target(port)
-        guard graph_stage_target_task(graph, stage, target) is Some(task) else {
-          return Err(UnsupportedEffectSource(index))
+        sources.push(Some({ task: stage, occurrence, }))
+      }
+    }
+  }
+  Ok(sources)
+}
+
+///|
+fn bind_checked_effect_source_ports(
+  occurrences : Array[CheckedResultOccurrence?],
+  graph : CheckedDAG,
+  owners : Array[@lower.BoundPrepared],
+) -> Result[Array[CheckedEffectSourcePort?], GraphIssue] {
+  let sources : Array[CheckedEffectSourcePort?] = []
+  for index in 0..<occurrences.length() {
+    match occurrences[index] {
+      None => sources.push(None)
+      Some(original) => {
+        let stage = original.task
+        let occurrence = original.occurrence
+        let target = @ports.port_target(
+          @execution.managed_result_occurrence_port(occurrence),
+        )
+        let task = match graph_stage_target_task(graph, stage, target) {
+          Some(task) => task
+          None => {
+            // An unsplit captured root has no completed Result target yet.
+            // Retain this exact authored private Step on its original task;
+            // Whole input planning and the eventual Result read still prove
+            // execution and target correspondence before Effect consumption.
+            guard target is @pipeline.Step(step) &&
+              graph_stage_operation_task(graph, stage, step) is Some(task) &&
+              task < graph.captured_prefix &&
+              graph.stage_tasks[stage] == [task] &&
+              graph.targets[task] is None &&
+              graph.selected_steps[task] is None &&
+              graph.prefix_ends[task] is None &&
+              @lower.preparation_output_target(
+                @lower.bound_preparation(graph.owners[task]),
+              ) ==
+              Some(target) else {
+              return Err(UnsupportedEffectSource(index))
+            }
+            task
+          }
         }
         guard graph.owners.get(task) is Some(task_owner) &&
+          owners.get(stage) is Some(owner) &&
           physical_equal(task_owner, owner) else {
           return Err(ForeignEffectSource(index))
         }
@@ -369,6 +441,32 @@ fn prepare_checked_dag_owned(
   source_free_root? : Bool = false,
   captured_prefix? : Int = 1,
 ) -> Result[CheckedDAG, GraphIssue] {
+  let (logical, work) = match
+    prepare_checked_logical_dag_owned(
+      program,
+      owners,
+      max_tasks,
+      max_work,
+      source_free_root~,
+      captured_prefix~,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  expand_internal_carrier_tasks(logical, max_tasks, work)
+}
+
+///|
+// Validate the original Stage/Parameter/port inventory before task splitting.
+// Effect preparation also supplies its checked private completion roots.
+fn prepare_checked_logical_dag_owned(
+  program : @checked.CheckedProgram,
+  owners : Array[@lower.BoundPrepared],
+  max_tasks : Int,
+  max_work : Int,
+  source_free_root? : Bool = false,
+  captured_prefix? : Int = 1,
+) -> Result[(CheckedDAG, Int), GraphIssue] {
   if max_tasks < 0 || max_work < 0 {
     return Err(InvalidLimits)
   }
@@ -816,7 +914,7 @@ fn prepare_checked_dag_owned(
     numeric,
     results,
   }
-  expand_internal_carrier_tasks(logical, max_tasks, work)
+  Ok((logical, work))
 }
 
 ///|

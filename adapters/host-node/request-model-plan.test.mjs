@@ -10,6 +10,7 @@ const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'u
 const runtimeSource = readFileSync(new URL('../host-common/runtime-core.mjs', import.meta.url), 'utf8');
 const modulePorts = Object.freeze({
   prepareCheckedClientRequestModelSourceFreeModule: 'clientProgramPrepareRequestModelSourceFreeModule',
+  prepareCheckedClientRequestModelWholeInputsComponentCaptureModule: 'clientProgramPrepareRequestModelWholeInputsComponentCaptureModule',
   prepareCheckedClientRequestModelDuckDBComponentCaptureModule: 'clientProgramPrepareRequestModelDuckDBComponentCaptureModule',
   prepareCheckedClientRequestModelsDuckDBComponentCaptureModule: 'clientProgramPrepareRequestModelsDuckDBComponentCaptureModule',
   prepareCheckedClientRequestModelCaptureModule: 'clientProgramPrepareRequestModelCaptureModule',
@@ -32,10 +33,12 @@ const budgetNode = parse(source, {ecmaVersion: 'latest', sourceType: 'module'}).
 assert(budgetNode);
 const budgetSource = source.slice(budgetNode.start, budgetNode.end);
 function fixture({count = 0, timed = false, refuseCapture, expire = false, missingModule = false,
-  serialized = false, expirePrefix = false, missingPrefix = false, physical = false, missingPhysical = false, missingProvider = false, expireProvider = false, expireComponent = false, missingComponent = false, facadeBindings = false, missingSelectorPort, absentSourceRef = false, throwSelector = false, selectorCause, native = false, nativeChange, missingNativeModule = false} = {}) {
+  serialized = false, expirePrefix = false, missingPrefix = false, physical = false, missingPhysical = false, missingProvider = false, expireProvider = false, expireComponent = false, missingComponent = false, facadeBindings = false, missingSelectorPort, absentSourceRef = false, throwSelector = false, selectorCause, native = false, nativeChange, missingNativeModule = false, sourceKinds = ['query', 'query']} = {}) {
   const parent = {}, input = {}, prepared = {}, request = {}, compilation = {}, module = {}, plan = {};
   const graph = {}, occurrence = {}, bounds = {}, q = {}, admission = {}, initialControl = {};
   const declarations = [{}, {}], provider = {}, sourceRef = 'fixture/transfers', selectedSource = {};
+  const selectedSources = [selectedSource, {}], coordinates = [[4, 1, 0], [6, 2, 1]];
+  const wholeInventory = declarations.map(() => ({kind:'whole-input', capacity:{}, transferBytes:512n, executionBytes:256n}));
   const sourceProfile = {sources: []};
   const inputPrefix = {}, componentProvider = {}, suffixBinder = () => assert.fail('construction does not execute suffix');
   const rawCompiled = {}, rawDefinition = {};
@@ -135,13 +138,21 @@ function fixture({count = 0, timed = false, refuseCapture, expire = false, missi
       assert.strictEqual(model.component.provider, componentProvider);
       return ok(module);
     },
+    clientProgramRequestModelDirectSourceCoordinates(p, i) {
+      assert.strictEqual(p, parent); assert.strictEqual(i, input); return ok(coordinates);
+    },
     clientProgramSelectInstalledSourceInput(...args) {
-      assert.deepEqual(args, [prepared, request, 0, 0],
+      assert.strictEqual(args[0], prepared); assert.strictEqual(args[1], request);
+      const index = count === 2 ? coordinates.findIndex(value => value[0] === args[2] && value[1] === args[3]) : 0;
+      assert(index >= 0);
+      assert.deepEqual(args, [prepared, request, ...(count === 2 ? coordinates[index].slice(0,2) : [0,0])],
         'Select with the SAME original Request in the actual four-argument ABI');
       if (throwSelector) throw selectorCause;
-      return ok(selectedSource);
+      return ok(selectedSources[index]);
     },
-    clientProgramSelectedSourceInputKind(value) {assert.equal(value, selectedSource); return 'query';},
+    clientProgramSelectedSourceInputKind(value) {
+      const index = selectedSources.indexOf(value); assert(index >= 0); return sourceKinds[index];
+    },
     clientProgramSelectedSourceInputRef(value) {assert.equal(value, selectedSource); return absentSourceRef ? undefined : sourceRef;},
     clientProgramPrepareRequestModelProviderCaptureModule(...args) {
       assert.deepEqual(args, [parent, input, request, rawCompiled, rawDefinition, compilation,
@@ -163,6 +174,14 @@ function fixture({count = 0, timed = false, refuseCapture, expire = false, missi
       assert.equal(model.selectedBounds, bounds); assert.equal(model.budget.readRetainedBytes, physical ? 70n : 13n);
       if (serialized) assert.equal(run.serialization, prefix, 'Retain original prefix before module constructor');
       calls.push('source-free-module'); if (expire) current = false; return ok(module);
+    },
+    clientProgramPrepareRequestModelWholeInputsComponentCaptureModule(...args) {
+      assert.deepEqual(args.slice(0,14), [parent,input,request,rawCompiled,rawDefinition,compilation,
+        wholeInventory.map(value=>value.capacity),'query','evidence',[512n,512n],[256n,256n],admission,true,timed?q:undefined]);
+      assert.equal(args.length,15);
+      calls.push('whole-module');
+      assert.strictEqual(args[14]({},inputPrefix,suffixBinder),componentProvider);
+      return ok(module);
     },
     clientProgramPrepareRequestModelComponentCaptureModule(...args) {
       assert.deepEqual(args.slice(0, 14), [parent, input, request, rawCompiled, rawDefinition, compilation,
@@ -224,7 +243,15 @@ function fixture({count = 0, timed = false, refuseCapture, expire = false, missi
   checked: value => {assert.equal(value.$tag, 1); return value._0;},
   clientOperationError: code => Object.assign(new Error(code), {code}),
   installedSourceFor(profile, ref) {assert.equal(profile, sourceProfile); assert.equal(ref, sourceRef); return adapter;},
-  readInstalledMockPreparation: () => ({sources: declarations.map(declaration => ({declaration}))}),
+  readInstalledMockPreparation: () => {
+    assert(sourceKinds.every(kind => kind === 'query'));
+    return {sources: declarations.map(declaration => ({declaration}))};
+  },
+  retainedManagedCaptureInventory(o, r, c) {
+    assert.strictEqual(o, originals); assert.strictEqual(r, run); assert.strictEqual(c, contracts);
+    assert(sourceKinds.every(kind => kind === 'whole-input'), 'Query must not construct a legacy capacity inventory');
+    calls.push('whole inventory'); return wholeInventory;
+  },
   readInitialControlInstallationAsset(c, o, path) {
     assert.equal(c, initialControl); assert.equal(o, originals);
     return path.endsWith('actql-query-acquisition.json') ? 'query' : 'evidence';
@@ -568,7 +595,7 @@ for (const [method, port, plural] of [
 });
 
 
-function completeModelPlanFixture({expireMember, badOrder = false, captured = false, native = false, nativeChange, missingNativeModule = false} = {}) {
+function completeModelPlanFixture({expireMember, badOrder = false, captured = false, native = false, nativeChange, missingNativeModule = false, sourceKinds = ['query', 'query']} = {}) {
   const parent = {}, input = {}, prepared = {}, request = {}, compilation = {}, module = {}, plan = {},
     compiled = native ? Object.freeze({kind: 'infer'}) : {}, definition = {}, admission = {}, initialControl = {}, calls = [], prefixes = [{}, {}], providers = [{}, {}];
   const selected = Object.freeze([0, 1].map(() => Object.freeze({graph: {}, occurrence: {}, selectedBounds: {}})));
@@ -794,4 +821,21 @@ test('multiple Model request selection reuses its original ordered components af
   original.components.forEach((component, index) => {
     assert.equal(component.occurrence, occurrences[index]); assert.equal(original.graph[index], component.graph);
   });
+});
+
+
+test('Request two-Source Whole keeps only its same checked capacities and original module', () => {
+  const f = fixture({count:2,sourceKinds:['whole-input','whole-input'],facadeBindings:true});
+  assert.equal(f.construct(),f.plan);
+  assert.deepEqual(f.calls,['bounds','whole inventory','whole-module','component provider','bind-captured']);
+  assert.strictEqual(f.run.preparedSequences,f.module);
+});
+
+test('Request two-Source rejects mixed or unknown checked kinds before capacity or Query construction', () => {
+  for (const sourceKinds of [['query','whole-input'],['whole-input','query'],['other','other']]) {
+    const f = fixture({count:2,sourceKinds});
+    assert.throws(f.construct,{code:'InstalledMockModelOperationalAdmissionUnavailable'});
+    assert.deepEqual(f.calls,['bounds']);
+    assert.equal(f.run.preparedSequences,undefined);
+  }
 });

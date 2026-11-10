@@ -2,10 +2,11 @@
 // No scope, declaration, RowSource, registration or cleanup owner is replaced.
 import assert from 'node:assert/strict';
 import {generateKeyPairSync} from 'node:crypto';
-import {existsSync, readdirSync, readlinkSync} from 'node:fs';
+import {existsSync, readdirSync, readlinkSync, realpathSync} from 'node:fs';
 import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {pathToFileURL} from 'node:url';
 import {checked} from '../../host-common/runtime-result.mjs';
 import {runtimeField} from '../../host-common/compiler-binding.generated.mjs';
 import {loadInstalledEffect, publishInstalledEffectProfile} from '../installed-effect.mjs';
@@ -13,8 +14,6 @@ import {withFixtureConnector} from '../../host-common/connector-manifest.fixture
 import {canonicalJson, contentCid, sourceReadAccountConfiguration} from '../local-account-config.mjs';
 import {loadInstalledTableEffect} from '../../connectors/local/host/installed-local-table.mjs';
 import {fixtureCertificates, openHttpsExchangeFixture} from '../../site-node/https-exchange-fixture.mjs';
-import {openHostInitializationPreparation, closeHostInitializationPreparation}
-  from '../../local-node/request-preparation-adapter.mjs';
 import {createInstalledHostServices, retireInstalledSourceInitialization}
   from '../installed-host-services.mjs';
 import {loadInstalledSource, publishInstalledSourceProfile, installedSourcePublicationFacts} from '../installed-source.mjs';
@@ -23,8 +22,16 @@ import {createInstalledConnectorTable, installedConnectorForTable, loadInstalled
   from '../installed-connectors.mjs';
 import {loadInstalledBigQuerySource} from '../../connectors/bigquery/host/installed-bigquery-source.mjs';
 
-const runtimeUrl = new URL('../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
+const runtimeUrl = process.env.ACTQL_TEST_BOUND_CONSTRUCTION_RUNTIME === undefined
+  ? new URL('../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url)
+  : pathToFileURL(process.env.ACTQL_TEST_BOUND_CONSTRUCTION_RUNTIME);
 const originalMoon = await import(runtimeUrl.href);
+// A normal bundled runtime retains its own physical Resource registry. Use
+// its original initialization module, including for an immutable component
+// loan; a source checkout's equal bytes are not the same module instance.
+const {openHostInitializationPreparation, closeHostInitializationPreparation} =
+  await import(new URL('../../../../../adapters/local-node/request-preparation-adapter.mjs',
+    pathToFileURL(realpathSync(runtimeUrl))).href);
 const environment = (await readFile(new URL('../../../spec/local-check-environment.json', import.meta.url), 'utf8')).trimEnd();
 const limits = Object.freeze({maxBytes: 8192, maxNodes: 2000, maxDepth: 24,
   maxFields: 16, maxNameBytes: 512, maxSchemaBytes: 4096, maxRows: 2,
@@ -66,10 +73,13 @@ function tableEffectValue(root, approval = 'required') {
       permissions: ['scope:store'], footprint: {version: 'fixture-only'}}], limits: {}};
 }
 
-export async function boundConstructionActualFixture(t, {capacityEvents, nativeCompletions} = {}) {
+export async function boundConstructionActualFixture(t, {capacityEvents, nativeCompletions, profileInspections} = {}) {
   // Observe only actual typed quotes on the unchanged original parent. The
   // wrapper forwards every call/result/error; it grants no capacity or current.
   const observe = name => function (...args) {
+    if (currentFault?.reserve && name === 'clientProgramReserveInstalledSourceConstruction') {
+      currentFault.ready = true;
+    }
     const quote = args[2];
     const pair = originalMoon.clientProgramSerializationCapacityBytes(quote);
     let returned = false, accepted = false;
@@ -80,8 +90,13 @@ export async function boundConstructionActualFixture(t, {capacityEvents, nativeC
       return value;
     } finally {capacityEvents.push({operation: name, retained: runtimeField(pair, 0), peak: runtimeField(pair, 1), returned, accepted});}
   };
-  const moon = capacityEvents === undefined && nativeCompletions === undefined ? originalMoon
+  const moon = capacityEvents === undefined && nativeCompletions === undefined && profileInspections === undefined ? originalMoon
     : Object.freeze({...originalMoon,
+      ...(profileInspections === undefined ? {} : {
+        clientProgramInstalledSourceInspectionConstructionCapacity(original) {
+          const result = originalMoon.clientProgramInstalledSourceInspectionConstructionCapacity(original);
+          profileInspections.push({original, inspection: checked(result)}); return result;
+        }}),
       ...(capacityEvents === undefined ? {} : {
         clientProgramReserveInstalledSourceConstruction: observe('clientProgramReserveInstalledSourceConstruction'),
         clientProgramReconcileInstalledSourceConstruction: observe('clientProgramReconcileInstalledSourceConstruction')}),
@@ -113,6 +128,10 @@ export async function boundConstructionActualFixture(t, {capacityEvents, nativeC
   };
   const current = () => {
     assert.equal(active, true, 'same initial parent remains current');
+    if (currentFault?.ready && currentFault.calls === 0) {
+      currentFault.calls++;
+      throw currentFault.failure;
+    }
     if (currentFault?.nativeQuantity !== undefined && currentFault.calls === 0 &&
         nativeCompletions?.some(value => value.quantity === currentFault.nativeQuantity)) {
       currentFault.calls++;
@@ -439,6 +458,12 @@ export async function boundConstructionActualFixture(t, {capacityEvents, nativeC
     }
   }
   return {profile, salesforceProfile, gcsProfile, githubProfile, metadataSourceProfile, tableSourceProfile, tableEffectProfile, load, close, sources, services, moon, root, openJournalDescriptors,
+    failCurrentOnNextReserve() {
+      assert.equal(currentFault, undefined); assert.notEqual(capacityEvents, undefined);
+      currentFault = {reserve: true, ready: false, calls: 0,
+        failure: new Error('same original current failed at JSON completion')};
+      return currentFault;
+    },
     failCurrentAfterTableConstruction() {
       assert.equal(currentFault, undefined);
       currentFault = {path: join(root, 'state', 'effects', 'ledger'), calls: 0,

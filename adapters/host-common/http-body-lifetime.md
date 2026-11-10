@@ -89,3 +89,29 @@ response loss, same-use refusal and cleanup during secret resolution. The
 selected compiled Core runtime has its own source/hash qualification; combining
 it with changed adapters is not a normal installed cohort, public STORE,
 live-service, Model funding or whole-product acceptance.
+
+
+## Funded query construction
+
+The default HTTP helper accepts at most 32 query pairs and 4096 encoded query
+bytes. These constructor defaults are separate from request-body limits and
+credential authorization. An installed managed Reader may instead retain a
+finite `maxQueryBytes` with its same original `readSequenceConstruction` quote.
+The installation service captures that original once; provider request DATA and
+reader policy scalars cannot replace it. The existing RowRun reserves the complete
+MoonBit quote before request projection, including failed constructor overlap.
+
+`installed_native_source_reader_capacity` adds the selected query's retained
+exact target and map/encoding/join workspace under that same parent. Other
+readers keep their original default recipe. HubSpot passes its existing finite
+`target_units` to both this Core quantity and the service bound, preserving every
+selected property and the original metadata/account/current checks. The path is
+bounded separately by the same finite extent; it cannot smuggle an unbounded
+locator into this selected constructor.
+
+JavaScript measures physical RFC 3986 encoding demand before allocating encoded
+components, then assembles the original ordered pairs without truncation or
+projection. The pair-count, key/value shape, method/body and reserved-header
+checks remain in force. The credential Resource still validates the whole exact
+target, original authorization, currentness and cancellation before sending.
+A numerical construction quote grants none of those duties or a body allowance.

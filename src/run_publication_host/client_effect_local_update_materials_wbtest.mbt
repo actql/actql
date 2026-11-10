@@ -1,5 +1,7 @@
 ///|
-fn original_local_update_materials_fixture() -> (
+fn original_local_update_materials_fixture(
+  common? : Bool = false,
+) -> (
   PreparedClientEffectComputation,
   ClientEffectAllowedRun,
   @publication.PublicationContract,
@@ -7,15 +9,23 @@ fn original_local_update_materials_fixture() -> (
   ClientEffectIssuedNormalizationMaterials,
 ) {
   let (document, environment, limits) = local_update_normalization_fixture()
-  let prepared = prepare_client_effect_computation(
-    document,
-    Json,
-    environment,
-    None,
-    [],
-    limits,
-  ).unwrap()
-  let proof = issue_prepared_client_effect_local_update_normalization(prepared).unwrap()
+  let prepared = if common {
+    common_update_normalization_fixture()
+  } else {
+    prepare_client_effect_computation(
+      document,
+      Json,
+      environment,
+      None,
+      [],
+      limits,
+    ).unwrap()
+  }
+  let proof = if common {
+    issue_prepared_client_effect_selected_normalization(prepared).unwrap()
+  } else {
+    issue_prepared_client_effect_local_update_normalization(prepared).unwrap()
+  }
   let bounds = run_materials_limits()
   let compilation = issue_prepared_client_effect_compilation(
     prepared,
@@ -333,4 +343,51 @@ test "an update journal cannot bind an unprofiled Template or a foreign original
   )
   assert_true(prepared.normalization_custody is None)
   assert_true(equal_document_owner.normalization_custody is None)
+}
+
+///|
+test "common update material restore retains its original first compilation profile without issuance" {
+  let (_, _, definition, request, issued) = original_local_update_materials_fixture(
+    common=true,
+  )
+  let run = @publication.publication_contract_identity(definition)
+  let wire = client_effect_issued_normalization_materials_wire(issued)
+  for original in [Some(issued), None] {
+    let restored = normalization_materials_admit(
+      wire,
+      run,
+      original~,
+      expected_request=Some(request),
+    )
+    assert_true(restored.prepared.normalization is None)
+    assert_true(
+      restored.compilation.normalization_profile is Some(CommonUpdate(_)),
+    )
+    assert_eq(restored.request, Some(request))
+    let proof = restore_client_effect_run_normalization(restored).unwrap()
+    assert_eq(
+      @publication.run_evidence_value_identity(proof),
+      "sha256:8b5172ca35db5cd4f35b8e6bbde52243d92b9e9027c2fc4568b8d66a5334ffb1",
+    )
+    assert_true(
+      physical_equal(
+        proof,
+        restore_client_effect_run_normalization(restored).unwrap(),
+      ),
+    )
+    assert_true(restored.prepared.normalization is None)
+  }
+  let (_, _, _, _, legacy) = original_local_update_materials_fixture()
+  let replaced = normalization_materials_replace(
+    wire,
+    @publication.run_evidence_value_json(legacy.original.journal),
+  )
+  assert_true(
+    normalization_materials_untrusted_admission(
+      replaced,
+      run,
+      expected_request=Some(request),
+    )
+    is Err(Normalization(SubstitutedJournal)),
+  )
 }

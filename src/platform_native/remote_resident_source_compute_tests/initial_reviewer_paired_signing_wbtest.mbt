@@ -10,12 +10,26 @@ priv struct PairedInitialReviewerFixture {
   mut binding : @client.NativeLocalEffectReviewerBinding?
   mut restored : Bool
   attest_host : Bool
+  probe_approval : Bool
+  probe_resume : Bool
+  probe_dispatch : Bool
+  probe_scope_once : Bool
+  current_reads : Ref[Int]
+  mut deny_clock_at : Int?
+  mut denied_clock : Bool
+  mut on_clock : (() -> Unit)?
+  mut signer_closed_in_callback : Bool
+  mut resume_claimed : Bool
   mut host_applied : Bool
 }
 
 ///|
 fn paired_initial_reviewer_fixture(
   attest_host? : Bool = false,
+  probe_approval? : Bool = false,
+  probe_resume? : Bool = false,
+  probe_dispatch? : Bool = false,
+  probe_scope_once? : Bool = false,
 ) -> PairedInitialReviewerFixture raise {
   let top = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
   let name = "paired-initial-reviewer-" + @env.now().to_string()
@@ -108,6 +122,16 @@ fn paired_initial_reviewer_fixture(
     binding: None,
     restored: false,
     attest_host,
+    probe_approval,
+    probe_resume,
+    probe_dispatch,
+    probe_scope_once,
+    current_reads: Ref(0),
+    deny_clock_at: None,
+    denied_clock: false,
+    on_clock: None,
+    signer_closed_in_callback: false,
+    resume_claimed: false,
     host_applied: false,
   }
 }
@@ -119,6 +143,8 @@ fn paired_initial_reviewer_signing(
   request : @host.ClientRequestIdentity,
   approval_scope : @resident.ResidentOriginalEffectApprovalScope,
   checkpoint : @checkpoint.SealedCheckpoint,
+  preview : @publication.EffectPreviewIdentity,
+  unit_definition_cid : String,
 ) -> Unit raise {
   let host = fixture.host
   let original = host.restore_initial_signing_original().unwrap()
@@ -138,9 +164,32 @@ fn paired_initial_reviewer_signing(
       reference,
       request,
       approval_scope,
-      () => @env.now().to_double(),
+      () => {
+        fixture.current_reads.val += 1
+        let hook = fixture.on_clock
+        fixture.on_clock = None
+        if hook is Some(run) {
+          run()
+        }
+        if fixture.deny_clock_at == Some(fixture.current_reads.val) {
+          fixture.denied_clock = true
+          -1.0
+        } else {
+          @env.now().to_double()
+        }
+      },
     )
     .unwrap()
+  if fixture.probe_approval {
+    paired_initial_approved_proof_probe(
+      fixture, binding, key, installed, request, checkpoint, preview, unit_definition_cid,
+    )
+    // The first real Approved answer is immutable. Do not sign a conflicting
+    // rejection merely to reuse this fixture's older branch.
+    fixture.binding = Some(binding)
+    fixture.restored = true
+    return
+  }
   let unsigned =
     #|{"version":"actql-checkpoint-resolution/0.1","actor":"operator","checkpoint_id":"@CHECKPOINT_ID@","checkpoint_cid":"@CHECKPOINT_CID@","decided_at":"2026-10-10T00:00:00.000Z","decision":"rejected","required_artifact_cid":"@REQUIRED@","review_projection_cid":"@PROJECTION@","resolution_id":"paired-initial-reviewer-resolution","run_id":"@RUN@","run_definition_cid":"@DEFINITION@"}
   let unsigned = unsigned
@@ -175,9 +224,25 @@ fn paired_initial_reviewer_signing(
   let materials = key
     .prepare_reviewer_proof_materials(binding, unsigned, limits)
     .unwrap()
+  let before_scope = fixture.current_reads.val
   let scope = materials
     .prepare_signing_scope("paired-initial-reviewer")
     .unwrap()
+  if fixture.probe_scope_once {
+    // Three material boundaries each perform two original key/Reviewer reads
+    // (two clock calls each) and one final metadata read. The independent
+    // Submission lookup samples once. Pure comparisons do not reopen them.
+    assert_eq(fixture.current_reads.val - before_scope, 16)
+    // The candidate reader has the same three material boundaries. An invalid
+    // clock at its LAST metadata callback must still refuse; a successful
+    // earlier read is not reusable permission. This neither enters a signer
+    // nor changes the original grant/use, key, Request or Checkpoint.
+    fixture.deny_clock_at = Some(fixture.current_reads.val + 16)
+    assert_true(materials.require_original_signing_scope(scope) is Err(_))
+    assert_true(fixture.denied_clock)
+    fixture.deny_clock_at = None
+    assert_true(materials.require_original_signing_scope(scope) is Ok(_))
+  }
   let (invocation, unit) = approval_scope
     .original_signing_subject_for(
       request,
@@ -191,12 +256,34 @@ fn paired_initial_reviewer_signing(
     scope.authority_scope_cid,
     host.authority_scope_cid("operator", "cli", fixture.crypto).unwrap(),
   )
+  let before_prepare = fixture.current_reads.val
   let signing = materials
     .prepare_initial_resolution_signing("paired-initial-reviewer")
     .unwrap()
+  if fixture.probe_scope_once {
+    // Full scope construction16 + fresh initial view21 + post-child material5.
+    assert_eq(fixture.current_reads.val - before_prepare, 42)
+  }
+  let before_sign = fixture.current_reads.val
   let wire = signing.sign_candidate_once().unwrap()
+  if fixture.probe_scope_once {
+    // One complete entry21, then four real phase/material boundaries5 each.
+    // Claim/use/expiry/row checks still run in their original locked scopes.
+    assert_eq(fixture.current_reads.val - before_sign, 41)
+  }
   assert_true(binding.authenticate_resolution(wire, limits) is Ok(_))
+  let before_read = fixture.current_reads.val
   assert_eq(signing.original_candidate().unwrap(), wire)
+  if fixture.probe_scope_once {
+    // A distinct public getter has its own complete entry, then the final
+    // material callback and locked gate. It cannot reuse an earlier Allow.
+    assert_eq(fixture.current_reads.val - before_read, 26)
+    fixture.on_clock = Some(() => {
+      fixture.signer_closed_in_callback = signing.close_checked() is Ok(_)
+    })
+    assert_true(signing.original_candidate() is Err(_))
+    assert_true(fixture.signer_closed_in_callback)
+  }
   assert_true(signing.sign_candidate_once() is Err(_))
   assert_true(
     binding.restore_initial_resolution_candidate("paired-initial-reviewer")
@@ -270,8 +357,12 @@ fn paired_initial_reviewer_signing(
         fail("initial Host embedded Reviewer authentication")
       Err(@client.HostAttestationBody(issue)) =>
         fail("initial Host wrapper body: " + @debug.to_string(issue))
+      Err(@client.HostAttestationAuthorization(issue)) =>
+        fail("initial Host target authorization: " + @debug.to_string(issue))
       Err(@client.HostAttestationUnavailable) =>
         fail("initial Host original signature/current unavailable")
+      Err(@client.HostAttestationOriginal(_)) =>
+        fail("initial Host original Read construction unavailable")
       Err(@client.HostAttestationAccount(_)) =>
         fail("initial Host explicit Account Sign unavailable")
       Err(@client.HostAttestationProof(_)) =>
@@ -310,6 +401,18 @@ test "adopted initial Reviewer signs and restores the same real paired Checkpoin
     msg="paired Reviewer original Source Environment refused",
   )
   let fixture = paired_initial_reviewer_fixture()
+  native_local_effect_capture_acceptance(true, initial_reviewer=Some(fixture))
+  assert_true(fixture.restored)
+}
+
+///|
+test "initial Reviewer scope carries its checked subject without repeating current callbacks" {
+  // The original Host signer supplies this fixture's terminal rejection. An
+  // unrelated remote-HTTP rejection fixture is not part of the scope probe.
+  let fixture = paired_initial_reviewer_fixture(
+    attest_host=true,
+    probe_scope_once=true,
+  )
   native_local_effect_capture_acceptance(true, initial_reviewer=Some(fixture))
   assert_true(fixture.restored)
 }

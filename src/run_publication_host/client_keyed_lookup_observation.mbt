@@ -23,78 +23,64 @@ pub fn issue_client_keyed_lookup_observation(
     @execution.supplied_relation_read_available(read) else {
     return Err(Assembly("observation_unavailable"))
   }
-  let facts = lookup.left.acquisition.facts
-  guard @planning.keyed_source_evidence_facts(facts) is Some(source) else {
-    return Err(Assembly("source_facts"))
-  }
-  let members = match @planning.keyed_source_evidence_members(facts) {
-    Ok(value) => value
-    Err(_) => return Err(Assembly("source_members"))
-  }
-  if !@environment.connector_source_evidence_supports(members, [
-      @planning.query_evidence_contract_identity(),
-    ]) {
-    return Err(Assembly("source_capability"))
-  }
-  let logical = match
-    @execution.identify_captured_relation(rows, {
-      max_bytes: lookup.max_bytes,
-      max_nodes: lookup.max_work,
-      max_columns: lookup.max_work,
-      max_order_work: lookup.max_work,
-      max_depth: 100,
-    }) {
-    Ok(value) => value
-    Err(_) => return Err(Assembly("logical_identity"))
-  }
-  let schema = match
-    @execution.identify_relation_schema(
-      @execution.supplied_relation_read_schema(read),
-      {
-        max_fields: lookup.max_work,
+  let (logical_cid, schema_cid) = if lookup.identity_receipt is Some(receipt) {
+    (
+      @execution.logical_relation_cid(
+        @execution.completed_relation_export_identity(receipt),
+      ),
+      @execution.relation_schema_cid(
+        @execution.completed_relation_export_schema_identity(receipt),
+      ),
+    )
+  } else {
+    let logical = match
+      @execution.identify_captured_relation(rows, {
         max_bytes: lookup.max_bytes,
         max_nodes: lookup.max_work,
+        max_columns: lookup.max_work,
+        max_order_work: lookup.max_work,
         max_depth: 100,
-      },
-    ) {
-    Ok(value) => value
-    Err(_) => return Err(Assembly("schema_identity"))
-  }
-  let input = match
-    seal_client_source_input_logical(
+      }) {
+      Ok(value) => value
+      Err(_) => return Err(Assembly("logical_identity"))
+    }
+    let schema = match
+      @execution.identify_relation_schema(
+        @execution.supplied_relation_read_schema(read),
+        {
+          max_fields: lookup.max_work,
+          max_bytes: lookup.max_bytes,
+          max_nodes: lookup.max_work,
+          max_depth: 100,
+        },
+      ) {
+      Ok(value) => value
+      Err(_) => return Err(Assembly("schema_identity"))
+    }
+    (
       @execution.logical_relation_cid(logical),
       @execution.relation_schema_cid(schema),
-      source.source_contract_cid,
+    )
+  }
+  if lookup.native_completion is Some(completed) {
+    if authority_scope_cid != completed.authority_scope_cid {
+      return Err(Assembly("foreign_native_observation_authority"))
+    }
+    return Ok({
+      lookup,
+      input: completed.input,
+      source: completed.source,
+      logical_relation_cid: logical_cid,
+    })
+  }
+  let (input, source) = match
+    build_keyed_lookup_source_observation(
+      lookup, logical_cid, schema_cid, snapshot, authority_scope_cid, observed_at,
     ) {
     Ok(value) => value
-    Err(_) => return Err(Assembly("logical_evidence"))
+    Err(issue) => return Err(issue)
   }
-  let (schema_cid, capability_cid) = @environment.connector_source_evidence_member_cids(
-    members,
-  )
-  let evidence = match
-    @publication.seal_completed_source_observation({
-      input,
-      source_ref: source.source_ref,
-      source_contract_cid: source.source_contract_cid,
-      schema_evidence_cid: schema_cid,
-      capability_evidence_cid: capability_cid,
-      authority_scope_cid,
-      source_data_policy_cid: source.source_data_policy_cid,
-      data_classification: source.data_classification,
-      source_view_contract_cid: source.source_view_contract_cid,
-      observed_at,
-      snapshot_ref: snapshot,
-    }) {
-    Ok(value) => value
-    Err(_) => return Err(Assembly("source_evidence"))
-  }
-  Ok({
-    lookup,
-    input,
-    source: evidence,
-    logical_relation_cid: @execution.logical_relation_cid(logical),
-  })
+  Ok({ lookup, input, source, logical_relation_cid: logical_cid, })
 }
 
 ///|
@@ -122,4 +108,64 @@ pub fn client_keyed_lookup_observation_originals(
     return None
   }
   Some((value.input, value.source, value.logical_relation_cid))
+}
+
+///|
+// Reuse the existing Source evidence issuer with exact completed identities.
+// Native completion calls this before holding conversion; the ordinary path
+// keeps its established finished-read/current boundary above.
+fn build_keyed_lookup_source_observation(
+  lookup : ClientKeyedLookupInput,
+  logical_cid : String,
+  schema_cid : String,
+  snapshot : String,
+  authority_scope_cid : String,
+  observed_at : String,
+) -> Result[
+  (@publication.RunEvidenceValue, @publication.RunEvidenceValue),
+  ClientKeyedRequestIssue,
+] {
+  let facts = lookup.left.acquisition.facts
+  guard @planning.keyed_source_evidence_facts(facts) is Some(source) else {
+    return Err(Assembly("source_facts"))
+  }
+  let members = match @planning.keyed_source_evidence_members(facts) {
+    Ok(value) => value
+    Err(_) => return Err(Assembly("source_members"))
+  }
+  if !@environment.connector_source_evidence_supports(members, [
+      @planning.query_evidence_contract_identity(),
+    ]) {
+    return Err(Assembly("source_capability"))
+  }
+  let input = match
+    seal_client_source_input_logical(
+      logical_cid,
+      schema_cid,
+      source.source_contract_cid,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(Assembly("logical_evidence"))
+  }
+  let (schema_cid, capability_cid) = @environment.connector_source_evidence_member_cids(
+    members,
+  )
+  let evidence = match
+    @publication.seal_completed_source_observation({
+      input,
+      source_ref: source.source_ref,
+      source_contract_cid: source.source_contract_cid,
+      schema_evidence_cid: schema_cid,
+      capability_evidence_cid: capability_cid,
+      authority_scope_cid,
+      source_data_policy_cid: source.source_data_policy_cid,
+      data_classification: source.data_classification,
+      source_view_contract_cid: source.source_view_contract_cid,
+      observed_at,
+      snapshot_ref: snapshot,
+    }) {
+    Ok(value) => value
+    Err(_) => return Err(Assembly("source_evidence"))
+  }
+  Ok((input, evidence))
 }

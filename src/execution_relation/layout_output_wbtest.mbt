@@ -449,7 +449,7 @@ test "shared evaluator builds typed shadow output without a retained row matrix"
         input,
         control,
         output,
-        { limit: 100000, live: 0, peak: 0, },
+        row_workspace(100000),
         physical,
         Some(ordered_row_budget(10000L, 10000L)),
       ).unwrap()

@@ -101,6 +101,16 @@ fn NativeLocalInitialHostSigningAccount::require_signing_scope(
     Err(_) => return Err(AuthorizationDenied)
     Ok(_) => ()
   }
+  self.require_signing_scope_after_current(scope)
+}
+
+///|
+// Private continuation of this SAME account observation. The caller may share
+// it only across noncallback subject/field comparisons, never a TX or IO cut.
+fn NativeLocalInitialHostSigningAccount::require_signing_scope_after_current(
+  self : NativeLocalInitialHostSigningAccount,
+  scope : @credential.LocalSigningCredentialScope,
+) -> Result[Unit, NativeClientRunJournalIssue] {
   let host = self.original.reviewer.host
   guard scope.purpose == @credential.HostAttestation &&
     scope.checkpoint_kind == @checkpoint.EffectSet &&

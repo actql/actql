@@ -12,6 +12,7 @@ fn bounded_set_fixture(
   max_rows? : Int = 3,
   name_bytes? : Int = 1000,
   output_values? : ValueLimits = run_limits().output_values,
+  reserve? : ((Int64) -> Result[Unit, WorkspaceGrowthIssue])? = None,
 ) -> (
   @bounded.Control,
   Result[BoundedSetExecution, BoundedSetIssue],
@@ -75,6 +76,21 @@ fn bounded_set_fixture(
     10000,
     1000,
   ).unwrap()
+  let generated = match reserve {
+    Some(reserve) =>
+      bind_generated_workspace_growth(
+        generated,
+        {
+          rows: { ..run_limits(), operation_entries: max_entries, },
+          max_work,
+          max_frames: 100,
+        },
+        1048576L,
+        reserve,
+        meter_retained_outputs=true,
+      ).unwrap()
+    None => generated
+  }
   let left = prepare_producer_read(
     receiver,
     bind_completed_input(receiver, 0, left_owner, left_output).unwrap(),
@@ -269,4 +285,117 @@ test "bounded set stops after positive work without publishing" {
   )
   assert_true(cleanup_bounded_set(execution).unwrap())
   assert_true(reads.all(read => producer_read_available(read)))
+}
+
+///|
+test "bounded Set requires exact output funding before commit and preserves accepted rows" {
+  // One retained row root, one Number cell and two UTF-16 field-name units:
+  // 256 + 256 + 16. Both complete-row operators use this same output owner.
+  for operation in ["except", "intersect"] {
+    for duplicates in ["all", "distinct"] {
+      for ceiling in [528L, 527L] {
+        let requests : Array[Int64] = []
+        let (_, started, inputs) = bounded_set_fixture(
+          operation~,
+          duplicates~,
+          left_rows="[{\"id\":1}]",
+          right_rows=if operation == "intersect" {
+            "[{\"id\":1}]"
+          } else {
+            "[]"
+          },
+          max_work=10000,
+          reserve=Some(bytes => {
+            requests.push(bytes)
+            if bytes <= ceiling {
+              Ok(())
+            } else {
+              Err(WorkspaceBudgetUnavailable)
+            }
+          }),
+        )
+        let execution = started.unwrap()
+        match drive_bounded_set(execution) {
+          BoundedSetComplete(output, ..) => {
+            assert_eq(ceiling, 528L)
+            assert_eq(bounded_set_ids(output), ["1"])
+            assert_true(execution.accepted.val)
+            assert_true(cleanup_bounded_set(execution).unwrap())
+            assert_eq(bounded_set_ids(output), ["1"])
+          }
+          BoundedSetFailed(Capture(CaptureLimit), ..) => {
+            assert_eq(ceiling, 527L)
+            let output = execution.state.output.unwrap()
+            assert_true(output.buffer.rows.is_empty())
+            assert_true(output.buffer.presence_rows.is_empty())
+            assert_eq(output.buffer.budget.retention_funded, 0L)
+            assert_true(cleanup_bounded_set(execution).unwrap())
+          }
+          _ =>
+            fail("Set must preserve the actual before-commit funding outcome")
+        }
+        assert_false(requests.is_empty())
+        assert_eq(requests[requests.length() - 1], 528L)
+        assert_true(inputs.all(producer_read_available))
+        assert_false(bounded_set_cleanup_pending(execution))
+      }
+    }
+  }
+}
+
+///|
+test "bounded Set cancellation reclaims funded unpublished output and preserves parents" {
+  for operation in ["except", "intersect"] {
+    let requests : Array[Int64] = []
+    let (control, started, inputs) = bounded_set_fixture(
+      operation~,
+      left_rows="[{\"id\":1},{\"id\":2},{\"id\":3}]",
+      right_rows=if operation == "intersect" {
+        "[{\"id\":1},{\"id\":2},{\"id\":3}]"
+      } else {
+        "[]"
+      },
+      max_work=10000,
+      reserve=Some(bytes => {
+        requests.push(bytes)
+        Ok(())
+      }),
+    )
+    let execution = started.unwrap()
+    finish_binary_port_fixture(Set(execution)) |> ignore
+    let output = execution.state.output.unwrap()
+    let mut funded = false
+    for _ in 0..<10000 {
+      assert_true(
+        advance_bounded_set(execution, 1).unwrap() is BoundedSetContinue(..),
+      )
+      if output.buffer.rows.length() == 1 {
+        funded = true
+        break
+      }
+    }
+    assert_true(funded)
+    // The existing growth owner reserves a 16 KiB page when available;
+    // the row consumes only its independently calculated 528-byte charge.
+    assert_eq(requests[requests.length() - 1], 16384L)
+    assert_eq(output.buffer.budget.retention_funded, 528L)
+    assert_false(execution.accepted.val)
+    assert_true(@bounded.request_cancel(control))
+    assert_true(
+      advance_bounded_set(execution, 1).unwrap() is BoundedSetStopped(_, ..),
+    )
+    for _ in 0..<10000 {
+      cleanup_bounded_set(execution).unwrap() |> ignore
+      if !bounded_set_cleanup_pending(execution) {
+        break
+      }
+    }
+    assert_false(bounded_set_cleanup_pending(execution))
+    assert_true(execution.state.output is None)
+    assert_true(execution.state.rows.val is None)
+    assert_true(output.buffer.rows.is_empty())
+    assert_true(output.buffer.presence_rows.is_empty())
+    assert_eq(execution.state.workspace.live, 0)
+    assert_true(inputs.all(producer_read_available))
+  }
 }

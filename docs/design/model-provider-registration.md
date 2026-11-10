@@ -104,6 +104,35 @@ ordinary installed inverse, and custom dependency graphs refuse before emitting
 an unrestorable bundle. Other compositions retain their distinct original-material
 paths; this is not a language restriction or permission to discard them.
 
+A single keyed Native Effect Model also retains its original selected
+`native_file_content_read` contract in `infer_native_read_profile_json`.
+Restoration admits that exact contract and binds it to the same checked
+Source/acquisition before rebuilding the existing keyed Model Graph. It does
+not select a current installation or fabricate a default read profile. The
+saved Template, compiled Plan, Request, Run and canonical material checks
+remain mandatory; missing, malformed or foreign profile input cannot become
+read or execution authority. Non-keyed material bytes remain unchanged.
+
+When restoring pending Native approval, static Source Request values must keep
+their original policy meaning in the rebuilt Plan. The trusted installed Host
+verifies Core's exact reconstructed subjects before Graph/compiler construction,
+using the same Source/view and literal/parameter-origin verifier as first use.
+Saved policy CIDs do not supply this verification. The existing nominal binder
+and policy-only continuation retain the checked Program and Parameters; neither
+parsing/checking the Program again nor selecting a different Model is required.
+An absent or declined proof stays Unknown and cannot bypass the original Plan,
+Request or Run checks. This preparation grants no Source read or Effect apply.
+
+Subject hashing/origins and measured descriptor/verifier output use the same
+constructor inventory as ordinary Request preparation, backed before allocation
+by the original restoration business entry. The complete existing subject work
+phase covers inspection, measurement/rendering and each binder's logical bound;
+restoration enforces it cumulatively without refilling per subject. Ordinary
+Request callers retain their existing cumulative Resource receipt and the
+policy-only continuation retains its distinct selected work bound. Partial
+subjects retire on failure, while the original review owns outstanding physical
+cleanup and its independent current/custody recheck.
+
 The reconstructed preparation and graph are a new in-process nominal pair
 which must be used together. A caller cannot graft the old graph onto the new
 preparation, use an equal CID as physical custody, or adopt these materials as
@@ -408,6 +437,50 @@ selecting a prefix does not widen an already selected execution view. The
 Model component executes that retained prefix through the same bounded input
 owner, then retains its original Model and output cleanup duties. This private
 composition supplies neither permission nor another Run or resource admission.
+
+The Native command also retains each original admitted Mock provider and
+profile beside its Request-owned Model Graph and the installed Limits selected
+from that graph before the first Effect compilation. The compiler consumes
+those same graphs. The Native caller forwards the retained provider and numeric
+Limits to execution. Existing Core Host/contract intersections remain at their
+owner; the caller does not repeat provider lookup or default-bounds selection. Provider and profile
+admission originals retain their nominal meaning. Limits remain ordinary
+immutable configuration DATA; copying or deriving that configuration does not
+create an identity requirement or supply physical backing. The complete Native
+constructor, Model/read Scope and output/failed-child overlap still require
+admission on the same Request before execution begins.
+
+The bounds owner's construction inventory and the Native caller's holder/Array
+inventory are added to that same Graph preparation reservation before either
+constructor. The existing shared representation tariff prices these declared
+records; the installing caller supplies no new budget or Ledger. Additional
+caller material defaults to absent for existing consumers. An invalid inventory
+refuses before measuring/issuing the Graph and retains the original parent for
+cleanup. This preparation-only addition does not cover later Model/provider,
+Store encryption, output or failed-child constructors by implication.
+
+The same command carrier also retains each Native Mock Model Work before the
+next constructor or execution/Read return can fail. The Effect's Model component
+view is constructed once and shared by the original Work, Plan and read Scope;
+calling its view constructor again would create a different original. Its fixed
+record inventory
+is admitted in that same preparation allowance. Work retains the original
+compiled Run, Definition, Graph, provider, profile and selected Limits; its open
+consumes that selection after the original Model/read consumer is available.
+The command closes these actual Work children in its existing execution cleanup
+frame before retiring its Request/Run parent. A partial or Unknown child keeps
+its original holder and the parent's cleanup duty.
+
+Model Entry persistence runs on the original captured Journal Read between
+bounded Model steps. Core's saved-entry observation remains separate from
+current permission to dispatch. Settlement export retains the original evidence
+and output pin; Store confirmations and the original Journal COMMIT precede the
+same settlement acknowledgement, including a later cleanup-only observation.
+The Host obtains the encryption material from its existing adopted epoch secret
+and actual Store binding through the private
+`actql-native-local-model-evidence-key/0.1` preimage. This adds no key generation,
+caller key, signing permission or replacement Library. Store/Journal ambiguity
+retains the original response and cleanup duties instead of permitting resend.
 
 The original preparation, compiled admission and graph stay together in the same
 Host preparation membership. A private restored-membership index rejects a
@@ -798,6 +871,17 @@ originals before accepting a supported mock installation. An unavailable
 physical profile refuses before Source/Effect installation identity reads,
 credentials, Provider registration or Store opening. Rejecting that missing
 supplier is not implementation or public acceptance of the full mock journey.
+
+The Native initialization query reports implementation availability only. The
+closed Mock Project execution branch additionally requires the same Command's
+retained Project and exact declaration original, completed Source/Model
+preparation without an original failure, and its current original physical
+Read after those constructors. Standalone declaration intake and an equal
+separately read Project cannot supply that association. This branch continues
+through the existing Account, Request, Plan, Journal and physical Owners; the
+availability reply supplies none of their authority or cleanup acknowledgements.
+Source-free installed acceptance records available Mock implementation as
+unmeasured and retains its no-write refusal cases for an unavailable reply.
 
 The Local entry detaches this Host-only choice from the SDK transport options;
 it does not add a profile field to the public connection wire. It captures the

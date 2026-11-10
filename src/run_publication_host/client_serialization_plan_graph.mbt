@@ -287,7 +287,8 @@ fn issue_acquired_client_serialization_plan_graph(
   ) catch {
     @checked.BudgetExceeded =>
       return Err(PolicyClosure(@checked.BudgetExceeded))
-    @checked.Encoding(_) => return Err(PolicyClosure(@checked.Encoding))
+    @checked.Encoding(issue) =>
+      return Err(PolicyClosure(@checked.Encoding(issue)))
     issue => return Err(SourcePolicy(issue))
   }
   guard selected is Some(selected) else {

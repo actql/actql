@@ -25,6 +25,7 @@ function fixture() {
   });
   const moon = {
     clientProgramEffectAcquisitionCount: () => 2,
+    clientProgramEffectDirectSourceCoordinates: () => ({$tag: 1, _0: [[0, 0, 0, 0], [1, 0, 1, 1]]}),
     clientProgramEffectPrepareLocalQueryRequirement: (_, task) => ({$tag: 1, _0: task}),
     clientProgramQueryRequirementSourceRef: task => `source-${task}`,
     clientProgramPrepareMultiCapturedEffectInstalledLedger(...args) {

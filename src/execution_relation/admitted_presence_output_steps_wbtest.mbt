@@ -221,8 +221,19 @@ test "presence row cursor yields inside nested cells and charges immutable shari
       },
     }).unwrap()
     let cursor = start_admitted_presence_output_row(output, 5, read).unwrap()
+    let initial = preparation_representation_cost(
+      admitted_output_row_next_construction(cursor).unwrap(),
+    ).unwrap()
+    let mut peak = initial
     let mut terminal = false
     for _ in 0..<1000 {
+      // Inspect the SAME live cursor before each original step; no value
+      // traversal, logical charge or callback is repeated by this projection.
+      let next = preparation_representation_cost(
+        admitted_output_row_next_construction(cursor).unwrap(),
+      ).unwrap()
+      peak = Int64::max(peak, next)
+
       match advance_admitted_output_row(cursor) {
         Ok(false) => ()
         Ok(true) => {
@@ -246,7 +257,11 @@ test "presence row cursor yields inside nested cells and charges immutable shari
       }
     }
     assert_true(terminal)
+    assert_true(peak > initial)
+
     assert_true(cleanup_admitted_output_row(cursor))
+    assert_true(admitted_output_row_next_construction(cursor) is None)
+
     assert_eq(cursor.workspace.live, 0)
   }
   // Recheck visits a node and a container frame separately (259 polls for

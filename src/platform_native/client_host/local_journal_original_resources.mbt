@@ -26,6 +26,7 @@ pub fn prepare_native_local_journal_capture_with_original_resources(
   ttl_ms : Double,
   max_records : Int,
   max_snapshot_bytes : Int64,
+  max_retained_intent_bytes? : Int64 = 67108864L,
 ) -> NativeLocalJournalCapture {
   {
     session,
@@ -57,6 +58,7 @@ pub fn prepare_native_local_journal_capture_with_original_resources(
     ttl_ms,
     max_records,
     max_snapshot_bytes,
+    max_retained_intent_bytes,
     opening: JournalNotAttempted,
     closing: false,
     cleanup_acknowledged: false,
@@ -78,9 +80,18 @@ pub fn prepare_native_local_initial_journal_capture_with_original_resources(
   ttl_ms : Double,
   max_records : Int,
   max_snapshot_bytes : Int64,
+  max_retained_intent_bytes? : Int64 = 67108864L,
 ) -> NativeLocalJournalCapture {
   let capture = prepare_native_local_journal_capture_with_original_resources(
-    session, host, pair, read, crypto, ttl_ms, max_records, max_snapshot_bytes,
+    session,
+    host,
+    pair,
+    read,
+    crypto,
+    ttl_ms,
+    max_records,
+    max_snapshot_bytes,
+    max_retained_intent_bytes~,
   )
   { ..capture, initial_signing: Some((material, policy)), }
 }
@@ -220,6 +231,7 @@ fn NativeLocalJournalCapture::open_original_journal_stages(
       self.ttl_ms,
       self.max_records,
       self.max_snapshot_bytes,
+      max_retained_intent_bytes=self.max_retained_intent_bytes,
     ) {
     return Err(InvalidInput)
   }
@@ -334,6 +346,7 @@ fn NativeLocalJournalCapture::open_original_journal_stages(
         reads=Some(bootstrap.reads),
         bootstrap=Some(bootstrap),
         opening_ownership=Some(ownership),
+        max_retained_intent_bytes=self.max_retained_intent_bytes,
       )
     }) {
     Err(issue) => return Err(issue)
@@ -494,6 +507,18 @@ fn NativeLocalJournalOriginalResources::close_journal(
   match self.finish_pending_leave() {
     Err(issue) => return Err(issue)
     Ok(_) => ()
+  }
+  if host.reviewer_signing_attempt is Some(_) ||
+    host.host_attestation_signing_attempt is Some(_) {
+    match
+      self.stage(
+        @arena.HostRead,
+        fn() { host.close_original_signing_attempts() },
+        cleanup=true,
+      ) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
   }
   match
     self.stage(

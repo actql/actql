@@ -4,6 +4,7 @@
 fn selected_read_roles_fixture(
   name : String,
   existing? : Bool = false,
+  accepted_policy? : Bool = false,
 ) -> NativeLocalHostConnection raise {
   let root = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
   let names = [
@@ -31,6 +32,14 @@ fn selected_read_roles_fixture(
       .replace_all(old="run.json", new=names[1])
       .replace_all(old="retention.json", new=names[3])
       .replace_all(old="store.json", new=names[4])
+    let read = if accepted_policy {
+      read.replace_all(
+        old="\"data_policy_cids\":[\"sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563\"]",
+        new="\"accepted_run_policy\":true",
+      )
+    } else {
+      read
+    }
     let parent = @filesystem.open_private_root(root).unwrap()
     for
       (file, body) in [
@@ -77,9 +86,11 @@ fn selected_read_roles_fixture(
 }
 
 ///|
-test "Native custom role groups restore each original read independently after reopen" {
-  let name = "local-read-custom-roles"
-  let host = selected_read_roles_fixture(name)
+fn check_selected_read_roles(
+  name : String,
+  accepted_policy : Bool,
+) -> Unit raise {
+  let host = selected_read_roles_fixture(name, accepted_policy~)
   let crypto = epoch_test_crypto()
   let scope = host.authority_scope_cid("local-cli", "local", crypto).unwrap()
   let epoch = host.epoch.issue_epoch(scope, true, 1000.0).unwrap()
@@ -208,6 +219,17 @@ test "Native custom role groups restore each original read independently after r
       observed_at: "2026-10-13T01:00:00.001Z",
     }
     // Private post-resolution custody only; no payload or grant is invented.
+    if accepted_policy {
+      let packet = host.journal.retained(request).unwrap().unwrap().publication_policy_originals.unwrap()
+      let body = read_run_policy_originals(packet)
+        .unwrap()
+        .iter()
+        .find_first(body => {
+          @publication.captured_effect_dependency_body_cid(body) == policy_cid
+        })
+        .unwrap()
+      binding.retain_result_policy_original(request, facts, body).unwrap()
+    }
     let first = binding
       .retain_read_admission(request, facts, policy_cid)
       .unwrap()
@@ -236,6 +258,17 @@ test "Native custom role groups restore each original read independently after r
     let binding = reopened
       .bind_result_read_policy_for_run(policy, reference, request, 1004.0)
       .unwrap()
+    if accepted_policy {
+      let packet = reopened.journal.retained(request).unwrap().unwrap().publication_policy_originals.unwrap()
+      let body = read_run_policy_originals(packet)
+        .unwrap()
+        .iter()
+        .find_first(body => {
+          @publication.captured_effect_dependency_body_cid(body) == policy_cid
+        })
+        .unwrap()
+      binding.retain_result_policy_original(request, facts, body).unwrap()
+    }
     assert_eq(
       binding.retained_read_admission(request, facts, policy_cid).unwrap().egress_admission_cid,
       cid,
@@ -246,4 +279,17 @@ test "Native custom role groups restore each original read independently after r
     b"2",
   )
   reopened.close().unwrap()
+}
+
+///|
+test "Native custom role groups restore each original read independently after reopen" {
+  check_selected_read_roles("local-read-custom-roles", false)
+}
+
+///|
+// This exercises actual accepted packets, selected-file generations, signed
+// Journal evidence and reopening at the private post-resolution boundary. The
+// authored Result metadata supplies no physical Store or delivery acceptance.
+test "accepted Run role groups restore exact archived roots and reject foreign roles" {
+  check_selected_read_roles("local-read-accepted-roles", true)
 }

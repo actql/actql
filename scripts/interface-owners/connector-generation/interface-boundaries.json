@@ -5,7 +5,7 @@
     {
       "module": "adapters/connectors-builtin/installations.generated.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7fc4a59d7ee3c75070d0529f059ba9b8bc40ec2795c7adab45fbbf78229a542e",
+      "sha256": "fb799e96209e9d48ffdccc1d6fbf125bb73dbd32f223a42b4a7729c20c355972",
       "exports": [
         "installedConnectors"
       ],
@@ -73,6 +73,20 @@
         },
         {
           "name": "installedConnectors/installedConnectors/installedConnectors#17",
+          "parameters": [
+            "module"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedConnectors/installedConnectors/installedConnectors#18",
+          "parameters": [
+            "module"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedConnectors/installedConnectors/installedConnectors#19",
           "parameters": [
             "module"
           ],
@@ -175,6 +189,16 @@
           "async": false
         },
         {
+          "name": "installedConnectors/installedConnectors#18",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installedConnectors/installedConnectors#19",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "installedConnectors/installedConnectors#2",
           "parameters": [],
           "async": false
@@ -222,7 +246,9 @@
         "../connectors/github/host/installed-github-effect.mjs",
         "../connectors/github/host/installed-github-source.mjs",
         "../connectors/gmail/host/installed-gmail-source.mjs",
+        "../connectors/hubspot/host/installed-hubspot-effect.mjs",
         "../connectors/hubspot/host/installed-hubspot-source.mjs",
+        "../connectors/kintone/host/installed-kintone-effect.mjs",
         "../connectors/kintone/host/installed-kintone-source.mjs",
         "../connectors/local/host/installed-local-table.mjs",
         "../connectors/notion/host/installed-notion-source.mjs",
@@ -251,6 +277,8 @@
             "installedConnectors/installedConnectors/installedConnectors#15",
             "installedConnectors/installedConnectors/installedConnectors#16",
             "installedConnectors/installedConnectors/installedConnectors#17",
+            "installedConnectors/installedConnectors/installedConnectors#18",
+            "installedConnectors/installedConnectors/installedConnectors#19",
             "installedConnectors/installedConnectors/installedConnectors#2",
             "installedConnectors/installedConnectors/installedConnectors#3",
             "installedConnectors/installedConnectors/installedConnectors#4",
@@ -267,6 +295,8 @@
             "installedConnectors/installedConnectors#15",
             "installedConnectors/installedConnectors#16",
             "installedConnectors/installedConnectors#17",
+            "installedConnectors/installedConnectors#18",
+            "installedConnectors/installedConnectors#19",
             "installedConnectors/installedConnectors#2",
             "installedConnectors/installedConnectors#3",
             "installedConnectors/installedConnectors#4",

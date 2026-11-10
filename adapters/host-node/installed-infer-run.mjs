@@ -181,8 +181,10 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       throw new Error('InstalledInferSelectionMissing');
     }
     let computeSuffix = selected.computeSuffix;
-    if (selected.restoredRun === undefined && selected.components !== undefined &&
-        typeof prepareOriginalModelRun === 'function') {
+    if (selected.restoredRun === undefined && selected.components !== undefined) {
+      if (typeof prepareOriginalModelRun !== 'function') {
+        throw new TypeError('InvalidInstalledRequestModelPreparation');
+      }
       const sourceCount = moon.clientProgramAcquisitionCount(preparedProgram);
       if (originalPreparation !== undefined || replay || sourceCount > 0 &&
           (acquiredInfer?.managedRun === undefined || preparationHolder === undefined) ||
@@ -364,14 +366,6 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       // installation's full preparation envelope must fund this record and
       // its overlap with the caller's input; no late grant is inferred here.
       originalPreparation = Object.freeze({...originalPreparation});
-    }
-    if (selected.components !== undefined) {
-      return runInstalledComposedInfers({moon, control, preparedProgram, plan, selected,
-        store, principalId, signal, retainExecution, acquiredInfer, replay,
-        beginPhysicalWork, submission, existingModel, modelClaim, assertCurrent,
-        modelController, inferEvidence, checkpoints, prepareAcquisition, sourceAccessFor, sourceAdapterFor,
-        namespaceId, authorityScopeCid, storeAuthorityCid, now, faultInjection,
-        registry, values, fragment, ordered, computeConfigurations});
     }
     const keyed = directRequestModel === undefined && !requestComposed && selected.occurrence !== undefined && selected.serializationGraph === undefined &&
       checked(moon.clientProgramSelectSingleKeyedAcquisition(preparedProgram)) !== undefined;
@@ -1031,9 +1025,17 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
     const original = managed.value, request = managed.request;
     model.sourceLedgerAttempted = true;
     try {
-      const ledger = checked(moon.clientProgramInstalledManagedRunPrepareLedger(original,
-        preparedProgram, request, capacities.map(value => value.capacity), capacities.map(value => value.transferBytes),
-        capacities.map(value => value.executionBytes), registry, values, fragment, ordered));
+      const whole = capacities.some(value => value.wholeInput === true);
+      if (whole && (capacities.some(value => value.wholeInput !== true) ||
+          typeof moon.clientProgramInstalledManagedWholeSourcesLedger !== 'function')) {
+        throw new TypeError('InstalledModelSourcePreparationUnavailable');
+      }
+      const ledger = checked(whole
+        ? moon.clientProgramInstalledManagedWholeSourcesLedger(original, preparedProgram, request,
+          capacities.map(value => value.capacity), capacities.map(value => value.transferBytes), capacities.map(value => value.executionBytes))
+        : moon.clientProgramInstalledManagedRunPrepareLedger(original,
+          preparedProgram, request, capacities.map(value => value.capacity), capacities.map(value => value.transferBytes),
+          capacities.map(value => value.executionBytes), registry, values, fragment, ordered));
       // This is the original parent's Ledger getter, with no new child. A
       // callback that retires/replaces its record cannot resurrect that alias.
       if (model.closed || model.scopeFinished || model.managed !== managed || managed.closed ||

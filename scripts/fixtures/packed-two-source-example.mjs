@@ -10,7 +10,7 @@ import {userInfo} from 'node:os';
 import {connect} from '@actql/node';
 import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';
 import * as duckdb from '@duckdb/node-api';
-import {observeTwoSourceProvider, readTwoSourceJournal} from './two-source-public-query.mjs';
+import {canonical, observeTwoSourceProvider, readTwoSourceJournal} from './two-source-public-query.mjs';
 
 const execute = promisify(execFile);
 const example = resolve('two-source-example');
@@ -89,6 +89,16 @@ try {
   try {
     host = await openInstalledRemoteHttpHost({directory,
       sourceProfilePaths: localOptions.installation.sourceProfilePaths,
+      hostCapacityPolicy: localOptions.installation.hostCapacityPolicy,
+      authorization: {accountConfiguration: canonical({
+        version: 'actql-execution-account-config/0.1', account_id: 'packed-query-http',
+        entries: [{entry_id: 'read-original', outcome: 'allow',
+          principal: {any_of: [userInfo().username]}, connection: {any_of: ['actql-remote-host']},
+          resource: {any_of: ['result/joined', 'run']}, operation: {any_of: ['read']}, exclusions: []},
+        {entry_id: 'request-original', outcome: 'allow',
+          principal: {any_of: [userInfo().username]}, connection: {any_of: ['actql-remote-host']},
+          resource: {any_of: ['duckdb-acquired']}, operation: {any_of: ['write']}, exclusions: []}],
+      })},
       authenticate: header => header === 'Bearer example-fixture' ? userInfo().username : undefined});
     server = createServer({key: await readFile('remote.key'), cert: await readFile('remote.crt')}, host.handler);
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));

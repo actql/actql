@@ -15,6 +15,8 @@ pub(all) struct ClientEffectComputationLimits {
 pub(all) enum ClientEffectComputationIssue {
   Syntax(@syntax.SyntaxError)
   Candidate(@checked.EffectComputationIssue)
+  RequestValuePolicies(@checked.UnitBuildFailure)
+  RequestValuePolicyConstruction
   Mapping(@environment.MappingShapeIssue)
   Static(@stage_results.EffectStaticCandidateIssue)
   Stage(ClientStageOwnerIssue)
@@ -40,6 +42,20 @@ struct PreparedClientEffectComputation {
 }
 
 ///|
+/// The fixed preparation Owner calls this only after its original borrowers
+/// and logical capacity have retired. These cached originals point back to
+/// this preparation; sever them before the physical Read waits for aliases.
+/// Escaped originals still retain their own data. This neither frees those
+/// aliases nor acknowledges physical cleanup, grants execution or reissues
+/// normalization/material custody.
+pub fn clear_prepared_client_effect_custody_after_cleanup(
+  owner : PreparedClientEffectComputation,
+) -> Unit {
+  owner.normalization_custody = None
+  owner.normalization = None
+}
+
+///|
 /// Private checked graph view for existing query acquisition and Local task
 /// preparation. It never escapes as an Effect-free public preparation or
 /// rechecks the Program under another owner.
@@ -60,6 +76,17 @@ fn client_effect_program_view(
 }
 
 ///|
+/// Same checked projection demand as the Effect compiler and Local sequence
+/// owner. This grants no rows, bindings, expression work or physical capacity.
+pub fn prepared_client_effect_sequence_limits(
+  value : PreparedClientEffectComputation,
+) -> @lower.SequenceLimits {
+  client_sequence_limits_with_projection_demand(
+    value.sequence_preparation_demand,
+  )
+}
+
+///|
 pub fn prepare_client_effect_computation(
   document : String,
   format : @syntax.Format,
@@ -71,6 +98,10 @@ pub fn prepare_client_effect_computation(
   store_targets? : @update_targets.StoreTargetPublication? = None,
   command_targets? : @update_targets.CommandTargetPublication? = None,
   source_catalog? : @checked.PreparedSourceCatalog? = None,
+  request_value_policies? : ((@checked.EffectComputationCandidate) -> Result[
+    Array[@checked.HostRequestValuePolicyEvidence],
+    ClientEffectComputationIssue,
+  ])? = None,
 ) -> Result[PreparedClientEffectComputation, ClientEffectComputationIssue] {
   let parsed = match
     @syntax.parse(document, limits.program.checking.input, format~) {
@@ -87,6 +118,7 @@ pub fn prepare_client_effect_computation(
     store_targets~,
     command_targets~,
     source_catalog~,
+    request_value_policies~,
   )
 }
 
@@ -104,6 +136,10 @@ pub fn prepare_parsed_client_effect_computation(
   store_targets? : @update_targets.StoreTargetPublication? = None,
   command_targets? : @update_targets.CommandTargetPublication? = None,
   source_catalog? : @checked.PreparedSourceCatalog? = None,
+  request_value_policies? : ((@checked.EffectComputationCandidate) -> Result[
+    Array[@checked.HostRequestValuePolicyEvidence],
+    ClientEffectComputationIssue,
+  ])? = None,
 ) -> Result[PreparedClientEffectComputation, ClientEffectComputationIssue] {
   if command_targets is Some(publication) &&
     !physical_equal(
@@ -125,6 +161,27 @@ pub fn prepare_parsed_client_effect_computation(
     ) {
     Ok(value) => value
     Err(issue) => return Err(Candidate(issue))
+  }
+  // The trusted Host verifies these exact checked static Request subjects
+  // before the first Graph/compiler. Reuse the existing policy-only
+  // continuation; no Program parse/check or saved policy proof is replayed.
+  let computation = match request_value_policies {
+    None => computation
+    Some(verify) => {
+      let evidence = match verify(computation) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      let (selected, _, _) = @checked.observe_supplement_effect_request_value_policies(
+        computation,
+        evidence,
+        limits.program.checking.compilation,
+      )
+      match selected {
+        Ok(value) => value
+        Err(issue) => return Err(Candidate(issue))
+      }
+    }
   }
   prepare_checked_client_effect_computation_owned(
     computation, limits, update_targets, store_targets, command_targets,

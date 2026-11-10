@@ -762,13 +762,15 @@ pub fn charge_task_execution_transfer(
 
 ///|
 /// Grow workspace on the SAME original task before its next constructor.
-/// The absolute extent is idempotent; attempts, transfers and output retention
-/// are unchanged. The ordinary scratch witness retains the grown amount until
+/// Absolute extents are idempotent. An actual-output caller can grow retained
+/// backing in this SAME atomic Resource resize too; attempts/transfers remain
+/// unchanged. The ordinary scratch witness retains the grown amount until
 /// the installed driver actually retires it, including on failure or stop.
 pub fn grow_task_execution_workspace(
   run : CapturedDAG,
   execution : TaskExecution,
   scratch : Int64,
+  retained? : Int64? = None,
 ) -> Result[Unit, @resources.LedgerIssue] {
   if !task_execution_matches(run, execution) {
     return Err(ForeignOwner)
@@ -779,10 +781,14 @@ pub fn grow_task_execution_workspace(
   if scratch < execution.scratch {
     return Err(InvalidCharge)
   }
-  let (retained, capacity) = match
+  let (original_retained, capacity) = match
     @resources.reservation_capacity_amounts(run.ledger, execution.reservation) {
     Ok(value) => value
     Err(issue) => return Err(issue)
+  }
+  let retained = retained.unwrap_or(original_retained)
+  if retained < original_retained {
+    return Err(InvalidCharge)
   }
   let extra = scratch - execution.scratch
   if extra > 9223372036854775807L - capacity {

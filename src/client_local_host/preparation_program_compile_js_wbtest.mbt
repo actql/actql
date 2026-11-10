@@ -1,4 +1,55 @@
 ///|
+test "same Effect compiler backs bounded typed selections before constructor at both capacity boundaries" {
+  assert_eq(program_effect_selection_extent_cost(0), Some(0L))
+  assert_eq(program_effect_selection_extent_cost(-1), None)
+  // One 1H/7R/1W record, one original holder reference, and the existing
+  // collection owner's Array construction envelope; no copied String backing.
+  assert_eq(program_effect_selection_extent_cost(1), Some(280L))
+  for retention in [true, false] {
+    let (parent, owner, input, _) = request_effect_fixture()
+    finish_effect_program_check_preparation(owner).unwrap() |> ignore
+    let before = @resources.preparation_capacity_working_extents(
+      owner.capacity,
+      input,
+    ).unwrap()
+    let data = program_check_data_extent_cost(owner.check_data.unwrap()).unwrap()
+    let limits = @resources.ledger_limits(parent.ledger)
+    let blocker = @resources.reserve_capacity(
+      parent.ledger,
+      if retention {
+        limits.retained_bytes - before.0 - data - 279L
+      } else {
+        0L
+      },
+      if retention {
+        0L
+      } else {
+        limits.execution_bytes - before.1 - data - 279L
+      },
+    ).unwrap()
+    let result = compile_effect_program_check_preparation(owner)
+    assert_true(
+      if retention {
+        result is Err(Capacity(Resource(RetentionLimit)))
+      } else {
+        result is Err(Capacity(Resource(ExecutionLimit)))
+      },
+    )
+    assert_true(
+      owner.compiled_effect is None && owner.compilation_known_work == 0L,
+    )
+    let quote = owner.compilation_quote
+    assert_eq(quote, Some((before.0 + data + 280L, before.1 + data + 280L)))
+    @resources.settle_capacity(parent.ledger, blocker).unwrap()
+    assert_true(compile_effect_program_check_preparation(owner) is Ok(_))
+    assert_eq(owner.compilation_quote, quote)
+    clear_program_check_preparation(owner).unwrap()
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+}
+
+///|
 test "same Request compiles its retained check and declared Results without a second check or current callback per Stage" {
   let calls = Ref(0)
   let action : Ref[(() -> Unit)?] = Ref(None)

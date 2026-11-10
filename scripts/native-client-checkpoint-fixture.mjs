@@ -35,12 +35,15 @@ function originalReference(root, env, referenceFile, strip = false, denyWarn = f
   return references[0];
 }
 
-export function nativeClientCheckpointFixture(root, env = process.env, strip = false, denyWarn = false, release = false) {
+export function nativeClientCheckpointFixture(root, env = process.env, strip = false, denyWarn = false, release = false,
+  fileReceipt = false) {
+  if (typeof fileReceipt !== 'boolean') throw new TypeError('An exact file receipt selection is required');
   const signers = {reviewer: generateKeyPairSync('ed25519'), host: generateKeyPairSync('ed25519')};
   const result = {};
   for (const [prefix, file] of [
     ['', 'src/platform_native/client_host/run_checkpoint_wbtest.mbt'],
     ['RECEIPT_', 'src/platform_native/client_host/run_effect_receipt_wbtest.mbt'],
+    ...(fileReceipt ? [['FILE_RECEIPT_', 'src/platform_native/client_host/run_effect_file_response_wbtest.mbt']] : []),
   ]) {
     const reference = originalReference(root, env, file, strip, denyWarn, release);
     const fixtures = {
@@ -53,6 +56,12 @@ export function nativeClientCheckpointFixture(root, env = process.env, strip = f
       result[`ACTQL_TEST_CLIENT_${prefix}${mode}_RESOLUTION_WIRE`] = fixture.ACTQL_TEST_EFFECT_RESOLUTION_WIRE;
       result[`ACTQL_TEST_CLIENT_${prefix}${mode}_VERIFIED_WIRE`] = fixture.ACTQL_TEST_EFFECT_VERIFIED_WIRE;
     }
+  }
+  // DATA for the private saved-target binding test, not a production approval.
+  // Use the same independent protocol signer; do not compile another reference.
+  for (const [kind, singleClaim] of [['SINGLE', true], ['PARTIAL', false]]) {
+    result[`ACTQL_TEST_SAVED_EFFECT_APPROVAL_${kind}_WIRE`] =
+      nativeResolutionFixture(undefined, {...signers, singleClaim}).ACTQL_TEST_EFFECT_VERIFIED_WIRE;
   }
   return result;
 }

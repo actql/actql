@@ -176,6 +176,7 @@ fn NativeLocalAdoptionBinding::capture_journal(
   ttl_ms : Double,
   max_records : Int,
   max_snapshot_bytes : Int64,
+  max_retained_intent_bytes? : Int64 = 67108864L,
 ) -> NativeLocalAdoptionBindingReply {
   if self.leave_pending {
     return self.reply(4, Some(ReadScopePending))
@@ -203,6 +204,7 @@ fn NativeLocalAdoptionBinding::capture_journal(
         ttl_ms,
         max_records,
         max_snapshot_bytes,
+        max_retained_intent_bytes~,
       ) {
       Ok(_) => None
       Err(issue) => Some(Capture(issue))

@@ -224,7 +224,8 @@ import {sourceGraphMemberSuccesses, sourceGraphMemberRefusals}
 import {graphDiagnosticSourceSuccesses, graphDiagnosticSourceRefusals, graphDiagnosticSourceExecutionFailures}
   from './graph-diagnostics-source-input.mjs';
 
-import {transportWorker, requireCompleteInventory, sourceFixturePaths} from './packed-query-transport-owner.mjs';
+import {transportWorker, requireCompleteInventory, sourceFixturePaths,
+  observePackedSubmissionCause, createPackedHostFailureDiagnostics} from './packed-query-transport-owner.mjs';
 const transport = process.env.ACTQL_TEST_QUERY_TRANSPORT;
 assert.ok(transport === undefined || ['local', 'remote', 'tail'].includes(transport));
 const worker = transport === 'local' || transport === 'remote' ? transportWorker() : undefined;
@@ -1281,58 +1282,69 @@ async function exerciseExactPhysicalTargets() {
     const firstDirectory = resolve(`exact-${field}-local-0`);
     const firstOptions = {mode: 'local', owner: 'local', durability: 'durable',
       installation: {directory: firstDirectory, sourceProfilePath: path, hostCapacityPolicy}};
-    for (const [index, target] of targets.entries()) {
-      const profile = {...baseProfile, schema: target.schema, table: target.table};
-      await writeFile(path, JSON.stringify(profile));
-      if (index === 1) {
-        const before = observe(firstDirectory)();
-        await assert.rejects(connect(firstOptions),
-          {name: 'TypeError', message: 'InstalledHostConfigurationMismatch'});
-        assert.deepEqual(observe(firstDirectory)(), before,
-          'changing only the physical target must refuse without provider I/O');
-      }
-      const directory = resolve(`exact-${field}-local-${index}`);
-      const options = {...firstOptions, installation: {directory, sourceProfilePath: path, hostCapacityPolicy}};
-      const fixture = {name: `exact-${field}-${index}`, format: 'sql',
-        text: 'SELECT id, amount FROM records ORDER BY id',
-        expected: target.rows, columns: [
-          {name: 'id', contract: {type: 'number', nullable: false}},
-          {name: 'amount', contract: {type: 'number', nullable: true}},
-        ]};
-      await exercisePublicQueryInput(connect, options, {
-        requestPrefix: 'exact-local', observe: observe(directory),
-        successes: [fixture], refusals: []});
-      const before = observe(directory)();
-      await writeFile(path, JSON.stringify(Object.fromEntries(
-        Object.entries(profile).reverse()), null, 2) + '\n');
-      const unchanged = await connect(options);
-      unchanged.close();
-      assert.deepEqual(observe(directory)(), before,
-        'unchanged target with reordered JSON must reuse without provider I/O');
-      const remoteDirectory = resolve(`exact-${field}-remote-${index}`);
-      const remoteHost = await openInstalledRemoteHttpHost({directory: remoteDirectory,
-        sourceProfilePath: path, hostCapacityPolicy, authenticate: header => header === 'Bearer fixture-token'
-          ? userInfo().username : undefined});
-      const remoteServer = createServer({key: await readFile('remote.key'),
-        cert: await readFile('remote.crt')}, remoteHost.handler);
-      try {
-        await new Promise(resolve => remoteServer.listen(0, '127.0.0.1', resolve));
-        await exercisePublicQueryInput(connect, {mode: 'remote',
-          endpoint: `https://127.0.0.1:${remoteServer.address().port}/`,
-          token: 'fixture-token', durability: 'durable'}, {
-          requestPrefix: 'exact-http', observe: observe(remoteDirectory),
+    // Configuration comparison belongs to the same live Host, before final close.
+    let original;
+    try {
+      for (const [index, target] of targets.entries()) {
+        const profile = {...baseProfile, schema: target.schema, table: target.table};
+        await writeFile(path, JSON.stringify(profile));
+        if (index === 1) {
+          const before = observe(firstDirectory)();
+          await assert.rejects(connect(firstOptions),
+            {name: 'TypeError', message: 'InstalledHostConfigurationMismatch'});
+          assert.deepEqual(observe(firstDirectory)(), before,
+            'changing only the physical target must refuse without provider I/O');
+        }
+        const directory = resolve(`exact-${field}-local-${index}`);
+        const options = {...firstOptions, installation: {directory, sourceProfilePath: path, hostCapacityPolicy}};
+        const fixture = {name: `exact-${field}-${index}`, format: 'sql',
+          text: 'SELECT id, amount FROM records ORDER BY id',
+          expected: target.rows, columns: [
+            {name: 'id', contract: {type: 'number', nullable: false}},
+            {name: 'amount', contract: {type: 'number', nullable: true}},
+          ]};
+        await exercisePublicQueryInput(connect, options, {
+          requestPrefix: 'exact-local', observe: observe(directory),
           successes: [fixture], refusals: []});
-      } finally {
-        remoteServer.closeAllConnections();
-        await new Promise(resolve => remoteServer.close(resolve));
-        await remoteHost.close();
+        const before = observe(directory)();
+        await writeFile(path, JSON.stringify(Object.fromEntries(
+          Object.entries(profile).reverse()), null, 2) + '\n');
+        const unchanged = await connect(options);
+        if (index === 0) original = unchanged;
+        else await unchanged.close();
+        assert.deepEqual(observe(directory)(), before,
+          'unchanged target with reordered JSON must reuse without provider I/O');
+        const remoteDirectory = resolve(`exact-${field}-remote-${index}`);
+        const remoteHost = await openInstalledRemoteHttpHost({directory: remoteDirectory,
+          sourceProfilePath: path, hostCapacityPolicy,
+          authorization: createPublicQueryHttpAuthorization({successes: [fixture]}),
+          authenticate: header => header === 'Bearer fixture-token'
+            ? userInfo().username : undefined});
+        const remoteServer = createServer({key: await readFile('remote.key'),
+          cert: await readFile('remote.crt')}, remoteHost.handler);
+        try {
+          await new Promise(resolve => remoteServer.listen(0, '127.0.0.1', resolve));
+          await exercisePublicQueryInput(connect, {mode: 'remote',
+            endpoint: `https://127.0.0.1:${remoteServer.address().port}/`,
+            token: 'fixture-token', durability: 'durable'}, {
+            requestPrefix: 'exact-http', observe: observe(remoteDirectory),
+            successes: [fixture], refusals: []});
+        } finally {
+          remoteServer.closeAllConnections();
+          await new Promise(resolve => remoteServer.close(resolve));
+          await remoteHost.close();
+        }
       }
+    } finally {
+      await original?.close();
     }
   }
 }
 const retainedStrings = {};
-const recordString = mode => item => {
-  if (item.name === 'exact-string-values') retainedStrings[mode] = item;
+const recordString = (mode, authorization) => item => {
+  if (item.name === 'exact-string-values') retainedStrings[mode] = {
+    ...item, ...(authorization === undefined ? {} : {authorization}),
+  };
 };
 const cohortDirectory = (root, index) => index === 0 ? root : `${root}-cohort-${index + 1}`;
 const cohortRunCount = cohort => cohort.successes.length + cohort.executionFailures.length;
@@ -1387,7 +1399,7 @@ const recordCohort = (mode, directory, cohort, authorization) => {
   if (authorization !== undefined) saved.authorization = authorization;
   if (cohort.successes.length > 0) retainedCohorts.push(saved);
   return async item => {
-    recordString(mode)(item);
+    recordString(mode, authorization)(item);
     if (item.name.startsWith('time-series-primary-')) await timeSeriesPrimaryReceipts.record(item, mode);
     if (item.name.startsWith('carrier-continuation-')) await carrierContinuationReceipts.record(item, mode);
     if (item.name.startsWith('temporal-')) await temporalJoinReceipts.record(item, mode);
@@ -1414,20 +1426,26 @@ const recordCohort = (mode, directory, cohort, authorization) => {
 };
 try {
 if (transport === undefined || transport === 'local') {
-let localAcceptedRuns = 0;
+let localAcceptedRuns = 0, submissionCause;
+const hostFailures = createPackedHostFailureDiagnostics();
+try {
+  submissionCause = await observePackedSubmissionCause({boundary: 'local-submission-500', sourceURL: new URL(
+    './adapters/host-node/in-process-client.mjs', import.meta.resolve('@actql/local-node'))});
+} catch { /* A missing diagnostic cannot replace the original test outcome. */ }
+try {
 for (const [index, cohort] of cohorts.entries()) {
   const directory = cohortDirectory(localDirectory, index);
   const authorization = graphRemainingOperationsOnly || inputStageResultOnly || typedSubscriptOnly
     ? createRetainedGraphAuthorization() : undefined;
   const physicalDispatches = [];
   const retainedLeases = [];
+  const observedAuthorization = hostFailures.authorization(authorization === undefined ? undefined :
+    observeInputStageStore(observeRetainedGraphDispatch(authorization, physicalDispatches), retainedLeases));
   await exercisePublicQueryInput(connect, {mode: 'local', owner: 'local',
     durability: 'durable', installation: {directory,
       sourceProfilePath, hostCapacityPolicy,
       ...(inputStageResultOnly ? {retainedRelationOutput:true} : {}),
-      ...(authorization === undefined ? {} : {
-        authorization: observeInputStageStore(
-          observeRetainedGraphDispatch(authorization, physicalDispatches),retainedLeases)})}}, {requestPrefix: 'packed-local',
+      authorization: observedAuthorization}}, {requestPrefix: 'packed-local',
     observe: observe(directory), prepareCase,
     completedCase: recordCohort('local', directory, cohort, authorization), ...cohort});
   if (authorization !== undefined) assert.ok(physicalDispatches.includes('physical_start_reserved'),
@@ -1441,10 +1459,17 @@ for (const [index, cohort] of cohorts.entries()) {
 assert.equal(localAcceptedRuns, expectedQueryRuns);
 assert.ok(sourceIo >= expectedSourceReads);
 console.log(`packed raw SQL/Pipe Embedded Local ${profileName} acceptance passed`);
+} finally {try {await submissionCause?.close();} finally {hostFailures.report();}}
 }
 if (transport === undefined || transport === 'remote') {
 const beforeRemote = sourceIo;
-let remoteAcceptedRuns = 0;
+let remoteAcceptedRuns = 0, submissionCause;
+const hostFailures = createPackedHostFailureDiagnostics();
+try {
+  submissionCause = await observePackedSubmissionCause({boundary: 'http-500', sourceURL: new URL(
+    './adapters/host-node/client-http.mjs', import.meta.resolve('@actql/local-node'))});
+} catch { /* A missing diagnostic cannot replace the original test outcome. */ }
+try {
   for (const [index, cohort] of cohorts.entries()) {
     const directory = cohortDirectory(remoteDirectory, index);
     const authorization = graphRemainingOperationsOnly || inputStageResultOnly || typedSubscriptOnly
@@ -1457,7 +1482,7 @@ let remoteAcceptedRuns = 0;
     const host = await openInstalledRemoteHttpHost({
       directory, sourceProfilePath, hostCapacityPolicy,
       ...(inputStageResultOnly ? {retainedRelationOutput:true} : {}),
-      authorization: httpAuthorization,
+      authorization: hostFailures.authorization(httpAuthorization),
       authenticate: header => header === 'Bearer fixture-token'
         ? userInfo().username : undefined,
     });
@@ -1488,6 +1513,7 @@ let remoteAcceptedRuns = 0;
   assert.equal(remoteAcceptedRuns, expectedQueryRuns);
   assert.ok(sourceIo >= beforeRemote + expectedSourceReads);
   console.log(`packed raw SQL/Pipe HTTP ${profileName} acceptance passed`);
+} finally {try {await submissionCause?.close();} finally {hostFailures.report();}}
 }
   if (!scopeOnly && profileName === 'standard' &&
       (transport === undefined || transport === 'tail')) await exerciseExactPhysicalTargets();

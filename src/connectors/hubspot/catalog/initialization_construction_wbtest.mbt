@@ -37,7 +37,7 @@ test "HubSpot native initialization quote precedes actual account and property o
     "HubSpot property constructor body_bytes=\{body.length()} peak_bytes=\{peak}",
   )
   assert_true(peak < 536870912L)
-  assert_eq(@execution.execution_capacity_retained_bytes(quote), peak)
+  assert_true(@execution.execution_capacity_retained_bytes(quote) < peak)
   let original = project_properties(body, "companies", limits()).unwrap()
   let wire = object_schema_wire(
     original,
@@ -115,5 +115,71 @@ test "HubSpot unchanged tiny input does not charge unused output maximum" {
   assert_eq(
     @execution.execution_capacity_execution_bytes(a),
     @execution.execution_capacity_execution_bytes(b),
+  )
+}
+
+///|
+test "Source property projection retains returned originals without completed constructor forests" {
+  let original = object_initialization_construction_capacity(
+    361489,
+    481988,
+    9,
+    {
+      max_bytes: 524288,
+      max_nodes: 65536,
+      max_depth: 32,
+      max_properties: 256,
+      max_name_units: 6003,
+    },
+    256,
+    6003,
+    65536,
+    8000,
+    32,
+  ).unwrap()
+  let retained = @execution.execution_capacity_retained_bytes(original)
+  let peak = @execution.execution_capacity_execution_bytes(original)
+  println(
+    "HubSpot Source property output retained=\{retained} execution=\{peak}",
+  )
+  assert_true(retained > 361489L + 2L * 65536L)
+  assert_true(retained < peak)
+  assert_true(
+    peak >= 319422677L,
+    msg="the original complete bounded constructor peak is not weakened",
+  )
+}
+
+///|
+test "Source property projection borrows original encoded text without duplicating retained storage" {
+  let first = object_initialization_construction_capacity(
+    200,
+    268,
+    9,
+    limits(),
+    16,
+    1000,
+    200000,
+    20000,
+    20,
+  ).unwrap()
+  let wider = object_initialization_construction_capacity(
+    200,
+    26800,
+    9,
+    limits(),
+    16,
+    1000,
+    200000,
+    20000,
+    20,
+  ).unwrap()
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(first),
+    @execution.execution_capacity_retained_bytes(wider),
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(wider) >
+    @execution.execution_capacity_execution_bytes(first),
   )
 }

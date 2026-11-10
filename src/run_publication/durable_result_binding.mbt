@@ -85,6 +85,7 @@ pub fn issue_durable_result_binding(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  schema_original? : CapturedEffectDependencyBody? = None,
 ) -> Result[PublicationContract, DurableResultBindingIssue] {
   for
     (contract, expected) in [
@@ -157,29 +158,47 @@ pub fn issue_durable_result_binding(
     }
     seen.push(field)
   }
-  let schema = match
-    parse_contract_wire(
-      result_schema_wire, max_wire_bytes, max_nodes, max_depth,
-    ) {
-    Ok(value) => value
-    Err(_) => return Err(DurableBindingInvalidPhysicalIdentity)
+  let schema = match schema_original {
+    Some(original) => {
+      guard original.node.kind == "relation_schema" &&
+        original.node.identity == schema_cid &&
+        original.wire == result_schema_wire &&
+        original.wire_usage is Some((bytes, nodes, depth)) &&
+        bytes <= max_wire_bytes &&
+        nodes <= max_nodes &&
+        depth <= max_depth else {
+        return Err(DurableBindingInvalidPhysicalIdentity)
+      }
+      original.value
+    }
+    None => {
+      let value = match
+        parse_contract_wire(
+          result_schema_wire, max_wire_bytes, max_nodes, max_depth,
+        ) {
+        Ok(value) => value
+        Err(_) => return Err(DurableBindingInvalidPhysicalIdentity)
+      }
+      let canonical = @json.stringify_value(
+        value, max_wire_bytes, max_nodes, max_depth,
+      ) catch {
+        _ => return Err(DurableBindingEncoding)
+      }
+      let identity = @json.cid_value(
+        value, max_wire_bytes, max_nodes, max_depth,
+      ) catch {
+        _ => return Err(DurableBindingEncoding)
+      }
+      if canonical != result_schema_wire || identity != schema_cid {
+        return Err(DurableBindingInvalidPhysicalIdentity)
+      }
+      value
+    }
   }
   guard object_fields(schema) is Ok(schema_fields) else {
     return Err(DurableBindingInvalidPhysicalIdentity)
   }
-  let canonical_schema = @json.stringify_value(
-    schema, max_wire_bytes, max_nodes, max_depth,
-  ) catch {
-    _ => return Err(DurableBindingEncoding)
-  }
-  let schema_identity = @json.cid_value(
-    schema, max_wire_bytes, max_nodes, max_depth,
-  ) catch {
-    _ => return Err(DurableBindingEncoding)
-  }
-  if canonical_schema != result_schema_wire ||
-    schema_identity != schema_cid ||
-    schema_fields.length() != result_fields.length() ||
+  if schema_fields.length() != result_fields.length() ||
     result_fields.any(field => @json.object_field(schema, field) is None) {
     return Err(DurableBindingInvalidPhysicalIdentity)
   }

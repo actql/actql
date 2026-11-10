@@ -3,11 +3,15 @@
 /// Derived references are signing inputs, never expected statuses/results.
 fn receipt_test_preview(
   run_identity? : String,
+  file? : Bool = false,
   wire_sink? : (String) -> Unit = _ => (),
 ) -> (@publication.EffectPreviewIdentity, @effect.EffectDispatchKey) {
   let c = (digit : String) => "sha256:" + digit.repeat(64)
   let a = c("a")
   let authoring = "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a"
+  let (request, _, _, definition) = journal_test_run(
+    "checkpoint-request", "checkpoint-run",
+  )
   let change = "{\"target_row_identity\":\"row-1\",\"target_guard\":{\"state\":\"version\",\"version_cid\":\"" +
     a +
     "\"},\"intended_changes\":{\"state\":\"present\",\"value\":{}},\"before\":{\"state\":\"present\",\"value\":{}},\"after\":{\"state\":\"present\",\"value\":{}},\"row_preview_cid\":\"" +
@@ -59,6 +63,35 @@ fn receipt_test_preview(
     "],\"executed\":false,\"effect_preview_cid\":\"" +
     a +
     "\"}"
+  let raw = if file {
+    // Independently pinned canonical row digest for {id:"row-1",value:1}.
+    // This is authored physical-test input, not a product result oracle.
+    raw
+    .replace_all(
+      old="\"version_cid\":\"" + a + "\"",
+      new="\"version_cid\":\"sha256:7ffebacc55e69ab6c975ab6c3808f478035ef93db564a0f66a80c2e643496773\"",
+    )
+    .replace_all(
+      old="\"authority_scope_cid\":\"" + a + "\"",
+      new="\"authority_scope_cid\":\"" +
+        @host.client_request_authority_scope_cid(request) +
+        "\"",
+    )
+    .replace_all(
+      old="\"intended_changes\":{\"state\":\"present\",\"value\":{}}",
+      new="\"intended_changes\":{\"state\":\"present\",\"value\":{\"value\":9}}",
+    )
+    .replace_all(
+      old="\"before\":{\"state\":\"present\",\"value\":{}}",
+      new="\"before\":{\"state\":\"present\",\"value\":{\"id\":\"row-1\",\"value\":1}}",
+    )
+    .replace_all(
+      old="\"after\":{\"state\":\"present\",\"value\":{}}",
+      new="\"after\":{\"state\":\"present\",\"value\":{\"value\":9}}",
+    )
+  } else {
+    raw
+  }
   let source = @source.parse_json_bytes_preserving(@utf8.encode(raw), {
     max_input_bytes: 8192,
     max_nodes: 256,
@@ -84,9 +117,6 @@ fn receipt_test_preview(
   let (cid, _) = @publication.derive_effect_preview_identities(
     with_member, 8192, 256, 12,
   ).unwrap()
-  let (request, _, _, definition) = journal_test_run(
-    "checkpoint-request", "checkpoint-run",
-  )
   let key = @effect.prepare_effect_dispatch_key(
     @host.client_request_logical_scope(request),
     cid,
@@ -125,9 +155,10 @@ fn receipt_test_preview(
 ///|
 fn receipt_test_checkpoint(
   definition : @publication.PublicationContract,
+  file? : Bool = false,
 ) -> @checkpoint.SealedCheckpoint {
   let original = checkpoint_test_artifact(definition)
-  let (preview, _) = receipt_test_preview()
+  let (preview, _) = receipt_test_preview(file~)
   @checkpoint.seal_checkpoint(
     {
       ..original.checkpoint,
@@ -150,6 +181,8 @@ test "export original Native receipt Checkpoint signing references" {
 ///|
 fn receipt_test_dispatch(
   name : String,
+  file? : Bool = false,
+  original_database? : @sqlite.Database? = None,
   preview_wire_sink? : (String) -> Unit = _ => (),
 ) -> (
   @sqlite.Database,
@@ -160,7 +193,9 @@ fn receipt_test_dispatch(
   @effect.EffectDispatchKey,
   @effect.EffectLedgerBasis,
 ) raise {
-  let database = epoch_test_database(name)
+  let database = original_database.unwrap_or_else(() => {
+    epoch_test_database(name)
+  })
   initialize_native_client_run_journal(database).unwrap()
   let journal = open_native_client_run_journal(database, 8).unwrap()
   let (request, prepared, compiled, definition) = journal_test_run(
@@ -170,7 +205,7 @@ fn receipt_test_dispatch(
   |> ignore
   journal.reserve_dispatch(request, true).unwrap() |> ignore
   assert_true(journal.claim_physical_start(request, true).unwrap())
-  let artifact = receipt_test_checkpoint(definition)
+  let artifact = receipt_test_checkpoint(definition, file~)
   database
   .insert(
     "test_checkpoint_artifacts",
@@ -199,9 +234,17 @@ fn receipt_test_dispatch(
   )
   .unwrap()
   |> ignore
-  checkpoint_test_resolve(journal, request, "RECEIPT_APPROVE", () => true, () => {
-    "2026-10-10T00:02:00.000Z"
-  }).unwrap()
+  checkpoint_test_resolve(
+    journal,
+    request,
+    if file {
+      "FILE_RECEIPT_APPROVE"
+    } else {
+      "RECEIPT_APPROVE"
+    },
+    () => true,
+    () => "2026-10-10T00:02:00.000Z",
+  ).unwrap()
   |> ignore
   guard resume_test_claim(
       journal,
@@ -211,12 +254,16 @@ fn receipt_test_dispatch(
       100L,
       resume_test_binding(),
       () => true,
-      resolution_mode="RECEIPT_APPROVE",
+      resolution_mode=if file {
+        "FILE_RECEIPT_APPROVE"
+      } else {
+        "RECEIPT_APPROVE"
+      },
     )
     is Ok(Claimed(claim)) else {
     fail("receipt resume claim missing")
   }
-  let (preview, key) = receipt_test_preview(wire_sink=preview_wire_sink)
+  let (preview, key) = receipt_test_preview(file~, wire_sink=preview_wire_sink)
   let (locator, _, _) = effect_row_test_binding(
     request,
     preview=@publication.effect_preview_semantic_identity(preview),

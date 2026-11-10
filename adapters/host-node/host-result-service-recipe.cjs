@@ -11,10 +11,14 @@ const unavailable = () => {
 };
 const fields = freeze(['directory', 'storeAuthorityCid', 'capacityBytes',
   'maxObjectBytes', 'maxObjects', 'maxContractNodes', 'maxContractDepth']);
-const storeWireBytes = 10000000;
+// One object cannot exceed this selected Store's total durable byte policy.
+// This is support DATA, not an up-front allocation: the existing Store reserves
+// each writer's admitted maximum alongside actual stored and pending debt.
+const storeCapacityBytes = 512 * 1024 * 1024;
+const storeWireBytes = Math.min(storeCapacityBytes, 2147483647);
 // Structure support follows the already selected bounded object wire, rather
 // than an unrelated 10000-node rejection. This recipe issues no memory grant.
-const store = record({capacityBytes: 512 * 1024 * 1024, maxObjectBytes: storeWireBytes,
+const store = record({capacityBytes: storeCapacityBytes, maxObjectBytes: storeWireBytes,
   maxObjects: 10000, maxContractNodes: storeWireBytes, maxContractDepth: 64});
 const result = record({maxResults: 10, maxCollectedRows: 10000, maxRowWireBytes: 1048576,
   maxReadWireBytes: 10 * 1024 * 1024, maxBatchRows: 1000, maxValueNodes: 1000000,
@@ -49,11 +53,19 @@ function selectHostResultStoreArguments(options, directory) {
     if (property === undefined || !own(property, 'value')) unavailable();
     selected[name] = property.value;
   }
-  // Do not silently lower public configuration or accept a caller quota as
-  // supply. These are the existing Host's exact selected support arguments.
+  // Preserve the actual installed directory/authority binding. Selected
+  // policy quantities remain DATA and never supply physical backing.
   if (selected.directory !== directory || typeof selected.storeAuthorityCid !== 'string' ||
       !/^sha256:[0-9a-f]{64}$/u.test(selected.storeAuthorityCid)) unavailable();
-  for (const name of Object.keys(store)) if (selected[name] !== store[name]) unavailable();
+  // Validate selected policy DATA, not equality with one recipe's defaults.
+  // The exact service/Journal/directory binding above remains the owner; these
+  // numbers cannot issue physical backing or replace Store admission. Contract
+  // decoding crosses Core Int; checked representation bounds remain finite.
+  if (!Number.isSafeInteger(selected.capacityBytes) || selected.capacityBytes < 0 ||
+      ['maxObjectBytes', 'maxObjects', 'maxContractNodes'].some(name =>
+        !Number.isSafeInteger(selected[name]) || selected[name] < 1 || selected[name] > 2147483647) ||
+      !Number.isSafeInteger(selected.maxContractDepth) || selected.maxContractDepth < 1 ||
+      selected.maxContractDepth > store.maxContractDepth) unavailable();
   // Key authority is independent. This ordinary no-key purpose must not copy
   // the legacy create-on-absence fallback or accept an arbitrary key buffer.
   if (selected.privateEvidenceKey !== undefined) unavailable();
@@ -75,9 +87,9 @@ function declareHostResultServiceRecipe(control, journal, sourceCompute, sourceF
     value === null || typeof value !== 'object' || isProxy(value)) || journal.sharedControl !== control) unavailable();
   return record({kind: 'selected-node-local-result-publication-service', sharedControl: control,
     journal, sourceCompute, sourceFreeCompute, store, result, phases,
-    installationAttempts: 1, runAttempts: 1, maxHostOperations: 128, maxStoreOperations: 4096,
-    conditionalWireHistory: record({publication: BigInt(result.maxResults) * BigInt(store.maxObjectBytes),
-      reads: 128n * BigInt(result.maxReadWireBytes), storeCalls: 4096n * BigInt(store.maxObjectBytes)}),
+    // These guard this single installation constructor and checked Run
+    // association. They are not Host-lifetime read/Store-operation quotas.
+    installationAttempts: 1, runAttempts: 1,
     selectStoreArguments: selectHostResultStoreArguments,
     refilledOnClose: false, numericalBackingClaim: false, allocationSuccessGuaranteed: false});
 }
@@ -89,5 +101,6 @@ const facilityFields = record({
   crypto: freeze(['createCipheriv', 'createDecipheriv', 'createHash', 'randomBytes', 'randomUUID']),
   buffer: freeze(['alloc', 'allocUnsafe', 'allocUnsafeSlow', 'byteLength', 'concat', 'from', 'isBuffer']),
 });
-module.exports = {declareHostResultServiceRecipe, facilityFields, validOriginalResultPublicationExtent};
+module.exports = {declareHostResultServiceRecipe, facilityFields, validOriginalResultPublicationExtent,
+  hostResultStorePolicy: store};
 freeze(module.exports);

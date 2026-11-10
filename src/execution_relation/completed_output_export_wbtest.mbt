@@ -1031,3 +1031,134 @@ test "export enforces cumulative value wire and physical frame limits before sea
     assert_true(completed_output_available(source))
   }
 }
+
+///|
+test "converted Result receipt identifies its retained original completion" {
+  let owner = capture_fixture()
+  let live = Ref(true)
+  let (original, _) = retained_fixture(owner, live)
+  assert_true(original.table is None)
+  let conversion = prepare_completed_output_import(
+    original,
+    2,
+    stream_value_limits(),
+    row_wire_limits(),
+    64,
+  ).unwrap()
+  for row in 0..<2 {
+    append_completed_output_import(conversion, output_fixture_row(owner, row)).unwrap()
+  }
+  let converted = finish_completed_output_import(conversion).unwrap()
+  assert_true(completed_output_same_occurrence(original, converted))
+  let (receipt, wire) = export_relation_all(converted)
+  assert_eq(wire, "[{\"n\":1,\"s\":\"é\"},{\"n\":2,\"s\":\"😀\"}]")
+  assert_true(completed_relation_export_matches_output(receipt, original))
+  // Equal content/owner/target from another completion never substitutes for
+  // that original, and expired original liveness still refuses the receipt.
+  let (foreign, _) = retained_fixture(owner, Ref(true))
+  assert_false(completed_relation_export_matches_output(receipt, foreign))
+  live.val = false
+  assert_false(completed_relation_export_matches_output(receipt, original))
+  assert_true(completed_output_available(converted))
+  cancel_completed_relation_export_receipt(receipt)
+}
+
+///|
+test "Result receipt match fences reentrant cancellation after source availability" {
+  let owner = result_export_owner()
+  let raw = export_fixture(owner)
+  let armed = Ref(false)
+  let retained : Ref[CompletedRelationExportReceipt?] = Ref(None)
+  let source = restrict_completed_output(raw, () => {
+    if armed.val && retained.val is Some(receipt) {
+      cancel_completed_relation_export_receipt(receipt)
+    }
+    true
+  })
+  let occurrence = result_export_occurrence(
+    owner, "r", "{\"r\":{\"from\":\"selected\",\"fields\":[\"s\",\"n\"]}}",
+  )
+  let preparation = start_completed_result_relation_export(
+    source,
+    occurrence,
+    result_view_limits(),
+    2,
+    stream_value_limits(),
+    row_wire_limits(),
+    row_wire_limits(),
+    publication_schema_limits(),
+    64,
+  ).unwrap()
+  while !advance_completed_result_relation_export(preparation, 64).unwrap().0 {
+    ()
+  }
+  let stream = finish_completed_result_relation_export_preparation(preparation).unwrap()
+  while next_completed_output_export(stream).unwrap() is Some(_) {
+    ()
+  }
+  let (receipt, _) = finish_completed_relation_export(stream).unwrap()
+  assert_true(
+    completed_result_export_preparation_matches_receipt(preparation, receipt),
+  )
+  retained.val = Some(receipt)
+  armed.val = true
+  assert_false(
+    completed_result_export_preparation_matches_receipt(preparation, receipt),
+  )
+  assert_true(completed_output_available(raw))
+}
+
+///|
+test "Result receipt checks original availability once and skips known foreign metadata" {
+  let raw = export_fixture(capture_fixture())
+  let (receipt, _) = export_relation_all(raw)
+  let calls = Ref(0)
+  let original = restrict_completed_output(raw, () => {
+    calls.val += 1
+    true
+  })
+  assert_true(completed_relation_export_matches_output(receipt, original))
+  assert_eq(calls.val, 1)
+  calls.val = 0
+  let foreign = restrict_completed_output(export_fixture(capture_fixture()), () => {
+    calls.val += 1
+    true
+  })
+  assert_false(completed_relation_export_matches_output(receipt, foreign))
+  assert_eq(calls.val, 0)
+  cancel_completed_relation_export_receipt(receipt)
+  assert_false(completed_relation_export_matches_output(receipt, original))
+  assert_eq(calls.val, 0)
+}
+
+///|
+test "Receipt identity metadata selects a current-aware path without granting availability" {
+  let raw = export_fixture(capture_fixture())
+  let (receipt, _) = export_relation_all(raw)
+  let calls = Ref(0)
+  let live = Ref(true)
+  let cancel = Ref(false)
+  let original = restrict_completed_output(raw, () => {
+    calls.val += 1
+    if cancel.val {
+      cancel_completed_relation_export_receipt(receipt)
+    }
+    live.val
+  })
+  assert_true(completed_relation_export_has_output_identity(receipt, original))
+  assert_eq(calls.val, 0)
+  live.val = false
+  // Identity remains immutable while availability can expire. The selected
+  // direct consumer must still reject; metadata cannot become a live proof.
+  assert_true(completed_relation_export_has_output_identity(receipt, original))
+  assert_eq(calls.val, 0)
+  assert_false(completed_relation_export_matches_output(receipt, original))
+  assert_eq(calls.val, 1)
+  live.val = true
+  cancel.val = true
+  assert_true(completed_relation_export_has_output_identity(receipt, original))
+  assert_eq(calls.val, 1)
+  assert_false(completed_relation_export_matches_output(receipt, original))
+  assert_eq(calls.val, 2)
+  assert_false(completed_relation_export_has_output_identity(receipt, original))
+}

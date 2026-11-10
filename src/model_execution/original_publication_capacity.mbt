@@ -6,8 +6,8 @@
 struct OriginalModelPublicationCapacity {
   mut owner : ModelExecution?
   mut capacity : @resources.CapacityReservation?
-  retained_bytes : Int64
-  execution_bytes : Int64
+  mut retained_bytes : Int64
+  mut execution_bytes : Int64
 }
 
 ///|
@@ -63,15 +63,8 @@ pub fn reserve_original_model_publication_capacity(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  match
-    check_original_mock_capacity(
-      execution.state,
-      retained_bytes,
-      execution_bytes,
-    ) {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
-  }
+  // Publication is a separate byte-only lifetime on the SAME Run Ledger,
+  // not Model call/output work within its immutable component ceiling.
   let shared = execution.state.original_startup is Some(startup) &&
     startup.shared_mock is Some(_)
   if shared {
@@ -130,6 +123,65 @@ pub fn original_model_publication_capacity_current(
     0L,
     0L,
   )
+}
+
+///|
+/// Grow the SAME publication borrow before its next allocation. The amounts
+/// describe simultaneous demand, not configured output maxima. Earlier peaks
+/// remain charged until publication retirement; this issues no slot, attempt,
+/// transfer or quantity and changes no Ledger policy ceiling.
+pub fn grow_original_model_publication_capacity(
+  value : OriginalModelPublicationCapacity,
+  execution : ModelExecution,
+  scope : @publication_host.ClientInferCallScope,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[Unit, ModelExecutionIssue] {
+  if retained_bytes < 0L || execution_bytes < 0L {
+    return Err(InvalidLimits)
+  }
+  guard value.owner is Some(original) &&
+    physical_equal(original, execution) &&
+    value.capacity is Some(capacity) &&
+    original_model_publication_owner_current(execution, scope) &&
+    !execution.state.stop_requested &&
+    @resources.capacity_reservation_matches(
+      execution.state.ledger,
+      capacity,
+      value.retained_bytes,
+      value.execution_bytes,
+    ) else {
+    return Err(OutputIdentity)
+  }
+  let retained = Int64::max(retained_bytes, value.retained_bytes)
+  let workspace = Int64::max(execution_bytes, value.execution_bytes)
+  let retained_delta = retained - value.retained_bytes
+  let execution_delta = workspace - value.execution_bytes
+  // The Resource grow owns its current callback and post-callback fences.
+  // Do not repeat that callback through a separate mutable precheck. Keep the
+  // original Model fenced while that callback can synchronously reenter it.
+  execution.advancing = true
+  defer {
+    execution.advancing = false
+  }
+  match
+    @resources.grow_capacity_reservation(
+      execution.state.ledger,
+      capacity,
+      retained,
+      workspace,
+    ) {
+    Err(issue) => return Err(Ledger(issue))
+    Ok(_) => ()
+  }
+  value.retained_bytes = retained
+  value.execution_bytes = workspace
+  if execution.state.original_startup is Some(startup) &&
+    startup.shared_mock is Some(purpose) {
+    purpose.publication_retained += retained_delta
+    purpose.publication_execution += execution_delta
+  }
+  Ok(())
 }
 
 ///|

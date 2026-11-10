@@ -285,6 +285,30 @@ pub fn client_program_effect_target_selection_current(
 }
 
 ///|
+#export_name("clientProgramEffectTargetSelectionCurrentData")
+pub fn client_program_effect_target_selection_current_data(
+  original : @publication_host.ClientEffectUpdateTargetSelections,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  installations : Array[@publication_host.ClientEffectTargetInstallationData],
+  observations : String,
+) -> Bool {
+  @publication_host.client_effect_target_selection_current_data(
+    original, prepared, installations, observations,
+  )
+}
+
+///|
+#export_name("clientProgramIssueEffectTargetInstallationData")
+pub fn client_program_issue_effect_target_installation_data(
+  facts : Array[String],
+) -> Result[
+  (String, String, @publication_host.ClientEffectTargetInstallationData),
+  @publication_host.ClientEffectUpdateTargetIssue,
+] {
+  @publication_host.issue_client_effect_target_installation_data(facts)
+}
+
+///|
 #export_name("clientProgramIssueEffectTargetInstallation")
 pub fn client_program_issue_effect_target_installation(
   facts : String,
@@ -296,6 +320,15 @@ pub fn client_program_issue_effect_target_installation(
 #export_name("clientProgramEffectTargetInstallationsShape")
 pub fn client_program_effect_target_installations_shape(wire : String) -> Bool {
   @publication_host.client_effect_target_installations_shape(wire)
+}
+
+///|
+#export_name("clientProgramEffectTargetInstallationsDataEqual")
+pub fn client_program_effect_target_installations_data_equal(
+  left : Array[String],
+  right : Array[String],
+) -> Bool {
+  @publication_host.client_effect_target_installations_data_equal(left, right)
 }
 
 ///|

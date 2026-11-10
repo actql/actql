@@ -68,7 +68,7 @@ test "acquired Serialize Plan retains its complete checked policy without source
       fail("original publication policy bodies: MissingUnit")
     Err(@checked.MissingDependency) =>
       fail("original publication policy bodies: MissingDependency")
-    Err(@checked.Encoding) =>
+    Err(@checked.Encoding(_)) =>
       fail("original publication policy bodies: Encoding")
     Err(@checked.ForeignBody) =>
       fail("original publication policy bodies: ForeignBody")

@@ -53,8 +53,8 @@ test('installed Slack actual text Source retains one original reader capture and
     await f.retain(opened,preparation.ledger);
     const exported=checked(f.common.clientProgramExportSourceCapture(opened.capture.source(),opened.requirement,'installed-slack-label-test'));
     assert.deepEqual(f.common.clientProgramSourceCaptureExportRows(exported).map(JSON.parse),[
-      {id:'U1',name:'one',deleted:null,display_name:null,email:null,is_bot:null,real_name:null,tz:null},
-      {id:'U2',name:'two',deleted:null,display_name:null,email:null,is_bot:null,real_name:null,tz:null}]);
+      {id:'U1',name:'one'},
+      {id:'U2',name:'two'}]);
     assert.equal(f.state.requests.length,3);assert.equal(f.state.resolutions,3);
     assert.deepEqual(f.state.requests.map(r=>r.method),['POST','GET','GET']);
     assert.equal(f.state.requests[0].path,'/api/auth.test');

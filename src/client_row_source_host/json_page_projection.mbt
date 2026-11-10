@@ -275,6 +275,30 @@ pub fn accept_charged_row_run_projected_page(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
+  if run.configuration is InputConfiguration(_) &&
+    run.physical is Some(_) &&
+    physical_equal(page.origin, projected_json_page_origin) &&
+    page.rows_bytes <= read.page_limits.max_bytes {
+    // The original provider still owns the immutable parsed tree. An actual
+    // UTF8 JSON span bounds node/field occurrences without parsing it again.
+    let nodes = Int::min(page.rows_bytes, read.page_limits.max_nodes)
+    match
+      fund_row_input_page(
+        run,
+        read,
+        nodes.to_int64(),
+        page.rows_bytes.to_int64(),
+        page.row_count.to_int64(),
+        page.rows_bytes,
+        None,
+      ) {
+      Ok(_) => ()
+      Err(issue) => {
+        abort_row_run(run)
+        return Err(issue)
+      }
+    }
+  }
   match accept_row_source_projected_page(read, page) {
     Ok(count) => Ok(count)
     Err(issue) => {

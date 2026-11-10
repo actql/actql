@@ -610,11 +610,15 @@ test "successful binary receiver retains only its returned body with the complet
       @execution.execution_capacity_execution_bytes(body),
     )
     let headers = installed_effect_response_headers_representation(32).unwrap()
+    let returned_headers = installed_effect_response_headers_retained_representation(
+      32,
+    ).unwrap()
     let full = installed_effect_http_response_construction_capacity(bytes, 32).unwrap()
     let header_bytes = @execution.preparation_representation_cost(headers).unwrap()
     assert_eq(
       @execution.execution_capacity_retained_bytes(full),
-      2L * @execution.execution_capacity_retained_bytes(body) + header_bytes,
+      2L * @execution.execution_capacity_retained_bytes(body) +
+      @execution.preparation_representation_cost(returned_headers).unwrap(),
     )
     assert_eq(
       @execution.execution_capacity_execution_bytes(full),

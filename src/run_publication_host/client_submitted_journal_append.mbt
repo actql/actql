@@ -52,11 +52,9 @@ pub fn client_submitted_journal_usage_body(
   max_records : Int,
 ) -> Result[Bytes, ClientJournalDecodingIssue] {
   if max_records < 1 ||
-    max_records > 1024 ||
     count < 0 ||
     count > max_records ||
     retained_bytes < 0L ||
-    retained_bytes > 67108864L ||
     (count == 0 && retained_bytes != 0L) {
     return Err(CustodyLost)
   }
@@ -71,7 +69,14 @@ pub fn client_submitted_journal_usage(
   count : Int,
   max_records : Int,
 ) -> Result[Int64, ClientJournalDecodingIssue] {
-  if row.key != "retained" || row.revision < 0L || row.body.length() > 14 {
+  // Same count:bytes spelling; the selected Int count and nonnegative Int64
+  // usage bound the text before decoding, independently of fresh admission.
+  if max_records < 1 ||
+    count < 0 ||
+    count > max_records ||
+    row.key != "retained" ||
+    row.revision < 0L ||
+    row.body.length() > max_records.to_string().length() + 1 + 19 {
     return Err(CustodyLost)
   }
   let text = @utf8.decode(row.body) catch { _ => return Err(CustodyLost) }
@@ -82,7 +87,9 @@ pub fn client_submitted_journal_usage(
   let mut bytes = 0L
   for unit in text[prefix.length():].to_owned() {
     let digit = unit.to_int() - 48
-    if digit < 0 || digit > 9 || bytes > 67108864L {
+    if digit < 0 ||
+      digit > 9 ||
+      bytes > (9223372036854775807L - digit.to_int64()) / 10L {
       return Err(CustodyLost)
     }
     bytes = bytes * 10L + digit.to_int64()
@@ -114,7 +121,16 @@ pub fn[E] prepare_client_submitted_journal_append(
     E,
   ],
   custody_lost : E,
+  before_decode_construction? : ((ClientSubmittedJournalConstruction) -> Result[
+    Unit,
+    ClientJournalDecodingIssue,
+  ])? = None,
   usage? : (() -> Result[ClientJournalPhysicalRow?, E])? = None,
+  before_construction? : ((Int, Int, Int) -> Result[
+    Unit,
+    ClientJournalEncodingIssue,
+  ])? = None,
+  max_retained_intent_bytes? : Int64 = 67108864L,
 ) -> Result[
   ClientSubmittedJournalAppendPlan,
   ClientSubmittedJournalAppendIssue[E],
@@ -127,7 +143,13 @@ pub fn[E] prepare_client_submitted_journal_append(
     Err(issue) => return Err(Observation(issue))
   }
   match
-    read_client_saved_submission(reference, read, validate_run, custody_lost) {
+    read_client_saved_submission(
+      reference,
+      read,
+      validate_run,
+      custody_lost,
+      before_construction=before_decode_construction,
+    ) {
     Ok(Some(snapshot)) => {
       if client_submitted_intent_cid(snapshot.record.intent) !=
         client_submitted_intent_cid(intent) {
@@ -168,16 +190,18 @@ pub fn[E] prepare_client_submitted_journal_append(
   if validity != @request_scope.Admissible {
     return Err(EpochRejected(validity))
   }
-  let bytes = @utf8.encode(client_submitted_intent_wire(intent))
-    .length()
-    .to_int64()
-  if count == max_records || bytes > 67108864L - retained_bytes {
+  let bytes = intent.wire_bytes.to_int64()
+  if max_retained_intent_bytes < 0L ||
+    count == max_records ||
+    retained_bytes > max_retained_intent_bytes ||
+    bytes > max_retained_intent_bytes - retained_bytes {
     return Err(CapacityExceeded)
   }
   let body = match
     client_submitted_intent_journal_row_body(
       client_submission_reference_record_wire(reference),
       intent,
+      before_construction~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Encoding(issue))

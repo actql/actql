@@ -304,6 +304,21 @@ fn capture_fixture_prepared(
         Execution(_) => "original execution unavailable"
         Resource(_) => "metadata reservation refused"
         Row(_) => "original Row acquisition refused"
+        ForeignOriginal => "foreign original file selection"
+        InvalidInput => "invalid selected physical input"
+        ManagedRead(@local.Resource(@resources.RetentionLimit)) =>
+          "same managed read retention refused"
+        ManagedRead(@local.Resource(@resources.ExecutionLimit)) =>
+          "same managed read execution refused"
+        ManagedRead(
+          @local.Acquisition(@rows.Physical(@resources.RetentionLimit))
+        ) => "same managed Row provider retention refused"
+        ManagedRead(
+          @local.Acquisition(@rows.Physical(@resources.ExecutionLimit))
+        ) => "same managed Row provider execution refused"
+        ManagedRead(@local.ForeignOriginal) =>
+          "same managed read correspondence refused"
+        ManagedRead(_) => "same managed read original refused"
         _ => "native file preparation refused"
       }
       // This reports only the original component's explicit cleanup result.
@@ -644,6 +659,7 @@ fn capture_fixture_retirement_issue(
   match issue {
     @arena.Domain(issue) => "Domain(" + @debug.to_string(issue) + ")"
     @arena.Child(issue) => "Child(" + @debug.to_string(issue) + ")"
+    @arena.Initialization(_) => "Initialization"
   }
 }
 
@@ -846,3 +862,1209 @@ let capture_fixture_query_contract : String = "{\"version\":\"actql-query-acquis
 
 ///|
 let capture_fixture_evidence_contract : String = "{\"version\":\"actql-query-process-evidence-contract/0.1\",\"dependencies\":{\"query_acquisition\":{\"path\":\"spec/contracts/actql-query-acquisition.json\",\"pointer\":\"\",\"cid\":\"sha256:5a95e60847276d02229eba9550dd9808a8a8c2764decd4dad667954f020db7cc\"}},\"schemas\":{\"record\":{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"version\",\"issuer\",\"attempt\",\"requirement_cid\",\"role\",\"snapshot\",\"scan_scope_cid\",\"actual_access\",\"output\"],\"properties\":{\"version\":{\"const\":\"actql-query-process-evidence/0.1\"},\"issuer\":{\"type\":\"string\",\"minLength\":1},\"attempt\":{\"type\":\"string\",\"minLength\":1},\"requirement_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"role\":{\"enum\":[\"source_validation\",\"filter\",\"select\"]},\"snapshot\":{\"anyOf\":[{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"contract_cid\",\"token_cid\"],\"properties\":{\"contract_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"token_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"}}},{\"type\":\"null\"}]},\"scan_scope_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"actual_access\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"scope_cid\",\"provider_scope_cid\",\"received_rows\",\"received_fields\",\"received_bytes\"],\"properties\":{\"scope_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"provider_scope_cid\":{\"anyOf\":[{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},{\"type\":\"null\"}]},\"received_rows\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991},\"received_fields\":{\"type\":\"array\",\"items\":{\"type\":\"string\",\"minLength\":1},\"uniqueItems\":true},\"received_bytes\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991}}},\"output\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"contract_cid\",\"rows_cid\",\"row_count\"],\"properties\":{\"contract_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"rows_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"row_count\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991}}}}}},\"semantics\":{\"preimage\":\"entire_record_canonical_json_utf8_sha256_no_self_cid\",\"authority\":\"authorized_host_private_issuer_and_live_opaque_success_handle_not_wire_or_cid_alone\",\"issuance\":\"after_complete_scan_validation_filter_select_limits_and_immutable_output_retention\",\"attempt\":\"host_allocated_unique_within_unique_process_issuer_never_reused_or_caller_selected\",\"binding\":\"exact_requirement_attempt_snapshot_scan_scope_actual_access_and_retained_output_for_all_three_roles\",\"native\":\"authorized_source_execution_covers_full_selected_scan_not_only_host_received_rows_or_columns\",\"source_order\":\"null_only_in_this_profile_relative_order_is_not_total_order_evidence\",\"lifetime\":\"same_process_no_deserialization_rehydration_or_durable_capture\",\"host_adapter\":\"host_authorized_execution_with_owned_consistent_read_view_full_scan_validation_and_query_not_driver_location_or_sql_success\",\"read_view\":\"private_task_session_transaction_binding_not_snapshot_token_no_cross_attempt_or_read_view_substitution\",\"access_accounting\":\"engine_internal_scan_host_row_receipt_and_retention_are_distinct_auxiliary_row_receipts_are_not_hidden_or_double_counted\",\"receipt_scope\":\"one_logical_received_sequence_only_independent_validation_and_query_receipts_require_an_additional_admitted_contract\",\"scan_failure\":\"invalid_excluded_rows_still_fail_no_global_diagnostic_order_or_total_order_from_validation_traversal\"}}"
+
+///|
+fn capture_fixture_whole_logical() -> (
+  @rows.RowDeclaration,
+  @rows.RowInputAcquisition,
+) raise {
+  let declaration = capture_fixture_declaration()
+  let (wire, cid) = capture_fixture_environment(declaration)
+  let environment = @publication_host.admit_client_check_environment(
+    wire,
+    cid,
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  let document =
+    #|{"version":"actql/0.1","id":"native-file-capture","stages":[{"id":"acquire","inputs":{"remote":{"connector":"native-file-fixture","resource":"records"}},"steps":[{"select":["id","value"],"as":"captured"}],"results":{"rows":{"from":"captured","fields":["id","value"]}}},{"id":"compute","inputs":{"input":{"result":{"stage":"acquire","result":"rows"}}},"steps":[{"filter":"value > 0"},{"select":["id","value"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id","value"]}}}],"results":{"rows":{"from":{"stage":"compute","result":"rows"}}}}
+  let prepared = @publication_host.prepare_effect_free_client_program(
+    document,
+    Json,
+    environment,
+    None,
+    @publication_host.client_standard_program_preparation_limits(),
+  ).unwrap()
+  let contracts = @local.prepare_installed_sequence_contracts(
+    capture_fixture_registry,
+    capture_fixture_values,
+    Some(capture_fixture_fragment),
+    None,
+  ).unwrap()
+  let request = @publication_host.prepare_source_free_client_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "native-whole-source-file",
+  ).unwrap()
+  let selected = @local.select_installed_source_input(prepared, request, 0, 0).unwrap()
+  guard selected is @sourceviews.WholeInputRoute(original) else {
+    fail("unfiltered Source must retain its whole-input original")
+  }
+  let page = capture_fixture_limits().page
+  let capacity = @local.prepare_installed_whole_source_capacity(
+    prepared,
+    original,
+    declaration,
+    contracts,
+    {
+      max_rows: 2,
+      page,
+      retention: {
+        max_nodes: 512,
+        max_text_bytes: 8192,
+        max_depth: 8,
+        max_work: 1000000,
+      },
+      wire: {
+        max_columns: 2,
+        max_order_work: 10000,
+        max_bytes: 8192,
+        max_nodes: 512,
+        max_depth: 8,
+      },
+    },
+    None,
+  ).unwrap()
+  (declaration, @local.installed_whole_source_acquisition(capacity))
+}
+
+///|
+fn capture_fixture_whole_work(
+  arena : @arena.InstalledArenaHost,
+  execution : @arena.InstalledArenaRetainedExecution,
+  declaration : @rows.RowDeclaration,
+  foreign : @rows.RowDeclaration,
+  acquisition : @rows.RowInputAcquisition,
+  selection : NativeRelationFileSelection,
+) -> Unit raise {
+  arena.enter_domain_retained_execution(execution).unwrap()
+  // Cleanup metadata never becomes an entry point into a currently entered Read.
+  assert_true(
+    arena.observe_domain_retained_execution_cleanup(execution) is Err(_),
+  )
+  let ledger = arena.borrow_domain_retained_execution_ledger(execution).unwrap()
+  let limits = capture_fixture_limits()
+  let before = @resources.ledger_usage(ledger)
+  assert_eq(before.transferred_bytes, 0L)
+  assert_eq(before.reserved_attempts, 0)
+  assert_eq(before.reserved_transfer_bytes, 0L)
+  assert_eq(before.reserved_retention_bytes, 0L)
+  assert_eq(before.reserved_execution_bytes, 0L)
+  // Equal logical declaration bytes never replace the admitted original.
+  assert_eq(foreign.catalog_cid, declaration.catalog_cid)
+  let refused = prepare_native_relation_file_input_capture(
+    arena, execution, foreign, acquisition, "native-file-foreign", selection, limits,
+  )
+  guard refused is Err(failure) else {
+    fail("foreign declaration unexpectedly acquired a native reader")
+  }
+  assert_true(failure.issue() is Row(@rows.ForeignDeclaration))
+  assert_true(failure.retry_cleanup().unwrap())
+  assert_eq(@resources.ledger_usage(ledger), before)
+  let owner = capture_fixture_prepared(
+    prepare_native_relation_file_input_capture(
+      arena, execution, declaration, acquisition, "native-file-original", selection,
+      limits,
+    ),
+    "positive file prepare",
+  )
+  assert_true(owner.capture() is Err(Unavailable))
+  assert_eq(@resources.ledger_usage(ledger).transferred_bytes, 0L)
+  let mut completed = false
+  let mut charged_before_admission = false
+  for _ in 0..<10000 {
+    if owner.advance(32).unwrap() {
+      completed = true
+      break
+    }
+    if owner.phase is Received {
+      assert_eq(@resources.ledger_usage(ledger).transferred_bytes, 62L)
+      charged_before_admission = true
+    }
+  }
+  assert_true(completed)
+  assert_true(charged_before_admission)
+  // This is the exact original document, including its envelope, charged once.
+  assert_eq(@resources.ledger_usage(ledger).transferred_bytes, 62L)
+  let capture = owner.capture().unwrap()
+  assert_true(physical_equal(owner.capture().unwrap(), capture))
+  let captured_usage = @resources.ledger_usage(ledger)
+  arena.leave_domain_retained_execution(execution).unwrap()
+  // A completed capture is not borrowable outside its original entered scope.
+  // Do not advance here: that would intentionally record a sticky failure.
+  assert_true(owner.capture() is Err(Unavailable))
+  arena.enter_domain_retained_execution(execution).unwrap()
+  assert_true(
+    physical_equal(
+      ledger,
+      arena.borrow_domain_retained_execution_ledger(execution).unwrap(),
+    ),
+  )
+  assert_eq(@resources.ledger_usage(ledger), captured_usage)
+  assert_true(owner.advance(32).unwrap())
+  assert_true(physical_equal(owner.capture().unwrap(), capture))
+  let source = @rows.row_capture_source(capture).unwrap()
+  let original = @rows.row_capture_original_read(capture).unwrap()
+  assert_true(@query.captured_source_available(source))
+  assert_eq(@query.captured_source_row_count(source), Some(2))
+  assert_true(@execution.supplied_relation_read_available(original))
+  assert_eq(@execution.supplied_relation_read_row_count(original), 2)
+  assert_true(
+    @execution.supplied_relation_read_cell(original, 0, 0)
+    is Some(@admitted.Text("first")),
+  )
+  assert_true(
+    @execution.supplied_relation_read_cell(original, 1, 0)
+    is Some(@admitted.Text("second")),
+  )
+  assert_true(
+    @execution.supplied_relation_read_cell(original, 0, 1)
+    is Some(@admitted.Number(1)),
+  )
+  assert_true(
+    @execution.supplied_relation_read_cell(original, 1, 1)
+    is Some(@admitted.Number(2)),
+  )
+  let mut closed = false
+  for _ in 0..<10000 {
+    match owner.close() {
+      Ok(true) => {
+        closed = true
+        break
+      }
+      Ok(false) | Err(Row(@rows.InvalidState)) => ()
+      Err(_) => fail("native relation file cleanup failed")
+    }
+  }
+  assert_true(closed)
+  assert_true(owner.close().unwrap())
+  assert_true(owner.capture() is Err(Unavailable))
+  assert_true(@rows.row_capture_source(capture) is Err(_))
+  assert_true(@rows.row_capture_original_read(capture) is None)
+  assert_false(@query.captured_source_available(source))
+  assert_false(@execution.supplied_relation_read_available(original))
+  let retired = @resources.ledger_usage(ledger)
+  assert_eq(retired.transferred_bytes, 62L)
+  assert_eq(retired.held_bytes, 0L)
+  assert_eq(retired.reserved_transfer_bytes, 0L)
+  assert_eq(retired.reserved_retention_bytes, 0L)
+  assert_eq(retired.reserved_execution_bytes, 0L)
+  arena.leave_domain_retained_execution(execution).unwrap()
+  // No owner, capture, original read or child-allocated usage snapshot escapes.
+}
+
+///|
+test "finite Native whole Source file captures original input and retires same physical owner" {
+  let (declaration, acquisition) = capture_fixture_whole_logical()
+  let foreign = capture_fixture_declaration()
+  let directory = @env.get_env_var("ACTQL_TEST_INSTALLED_PROCESS_ROOT").unwrap()
+  // The external scoped-test namespace creates these exclusive fixture files
+  // before this process. This test neither creates nor mutates their contents.
+  let selection : NativeRelationFileSelection = {
+    directory,
+    name: "row-source-input",
+    resource: "records",
+    items_path: ["items"],
+    key_path: None,
+    primary_identity: "id",
+  }
+  let backing_path = @utf8.encode(directory + "/row-source-backing\u{0000}")
+  let parent_bytes = 384L * 1024L * 1024L
+  let fd = capture_fixture_open(backing_path, 2)
+  assert_true(fd >= 0)
+  let arena = @arena.prepare_installed_arena_host(
+    "0123456789012345678901234567890123456789",
+    Bytes::make(32, 17),
+    1L,
+    parent_bytes,
+    {
+      planning_work: 20,
+      attempts: 8,
+      holdings: 4,
+      transfer_bytes: 65536L,
+      retained_bytes: 0L,
+      execution_bytes: parent_bytes,
+    },
+    65536L,
+  ).unwrap()
+  arena.acquire_fd(fd).unwrap()
+  let backing = arena.borrow_backing().unwrap()
+  arena.enter_backing_borrow_scope(backing).unwrap()
+  let domain = match
+    arena
+    .prepare_domain(backing, fd, 256L * 1024L * 1024L, {
+      planning_work: 8,
+      attempts: 4,
+      holdings: 2,
+      transfer_bytes: 16384L,
+      retained_bytes: capture_fixture_retained_bytes,
+      execution_bytes: capture_fixture_execution_bytes,
+    })
+    .unwrap() {
+    @arena.PreparedDomain(domain) => domain
+    @arena.PendingDomain(_, _) => fail("finite native file domain is partial")
+  }
+  arena.transfer_domain(domain).unwrap()
+  arena.leave_backing_borrow_scope(backing).unwrap()
+  arena.return_backing_borrow(backing).unwrap()
+  arena.prepare_domain_read(domain).unwrap()
+  let execution = match
+    arena.prepare_domain_retained_execution(domain).unwrap() {
+    @arena.ReadyRetainedExecution(execution) => execution
+    @arena.PendingRetainedExecution(_, _) =>
+      fail("finite native file retained execution is partial")
+  }
+  capture_fixture_whole_work(
+    arena, execution, declaration, foreign, acquisition, selection,
+  )
+  arena.close_domain_retained_execution(execution).unwrap()
+  arena.close_domain_after_owner_ack(domain).unwrap()
+  arena.try_close().unwrap()
+  assert_eq(capture_fixture_close(fd), 0)
+}
+
+///|
+fn[T, E] Result::managed_capture_stage(
+  self : Result[T, E],
+  stage : String,
+) -> T raise {
+  match self {
+    Ok(value) => value
+    Err(_) => fail(stage)
+  }
+}
+
+///|
+fn[T] Option::managed_capture_stage(self : T?, stage : String) -> T raise {
+  match self {
+    Some(value) => value
+    None => fail(stage)
+  }
+}
+
+///|
+// The finite physical fixture backs the existing Request policy, not a normal
+// Source profile or an Account. Actual input acquisition remains file-bounded.
+fn managed_capture_fixture_facility(
+  input : Array[Int],
+) -> (
+  @arena.InstalledArenaHost,
+  @arena.InstalledArenaDomain,
+  @arena.InstalledArenaRetainedExecution,
+  @resources.BackedPreparationAdmission[Array[Int]],
+) raise {
+  let policy = @local.client_local_preparation_initial_limits(
+    @local.client_local_resource_policy(),
+  ).managed_capture_stage("original stage 14")
+  let policy = {
+    ..policy,
+    attempts: 32,
+    holdings: 32,
+    transfer_bytes: 32000000L,
+  }
+  let payload = policy.retained_bytes + policy.execution_bytes
+  let mut domain_bytes = payload
+  for _ in 0..<16 {
+    let required = @bootstrap.execution_domain_necessary_bytes(
+      domain_bytes, payload,
+    )
+    assert_true(required > 0L)
+    if required <= domain_bytes {
+      break
+    }
+    domain_bytes = required
+  }
+  let bytes = domain_bytes * 2L
+  let arena = @arena.prepare_installed_arena_host(
+    "0123456789012345678901234567890123456789",
+    Bytes::make(32, 17),
+    1L,
+    bytes,
+    {
+      planning_work: 100000,
+      attempts: 100000,
+      holdings: 100000,
+      transfer_bytes: 100000000000L,
+      retained_bytes: 0L,
+      execution_bytes: bytes,
+    },
+    65536L,
+  ).managed_capture_stage("original stage 48")
+  arena.acquire().managed_capture_stage("original stage 49")
+  let backing = arena
+    .borrow_backing()
+    .managed_capture_stage("original stage 50")
+  arena
+  .enter_backing_borrow_scope(backing)
+  .managed_capture_stage("original stage 51")
+  let domain = match
+    arena
+    .prepare_domain_in_process(backing, domain_bytes, policy)
+    .managed_capture_stage("original stage 53") {
+    @arena.PreparedDomain(value) => value
+    @arena.PendingDomain(_, _) => fail("actual Request domain pending")
+  }
+  arena.transfer_domain(domain).managed_capture_stage("original stage 57")
+  arena
+  .leave_backing_borrow_scope(backing)
+  .managed_capture_stage("original stage 58")
+  arena
+  .return_backing_borrow(backing)
+  .managed_capture_stage("original stage 59")
+  arena.prepare_domain_read(domain).managed_capture_stage("original stage 60")
+  let (physical, initial) = match
+    arena
+    .prepare_domain_retained_request_execution(domain, input, {
+      bootstrap_retained: 1048576L,
+      bootstrap_execution: 1048576L,
+    })
+    .managed_capture_stage("original stage 67") {
+    @arena.ReadyRequestExecution(physical, initial) => (physical, initial)
+    @arena.PendingRequestExecution(_, _) =>
+      fail("actual Request initializer pending")
+  }
+  (arena, domain, physical, initial)
+}
+
+///|
+// Test-only retained leaf from the actual failed caller; no new product
+// diagnostic taxonomy, acceptance policy or cause reconstruction.
+fn managed_capture_fixture_check_cause(
+  diagnostic : @checked.CheckDiagnostic,
+) -> String {
+  match @checked.diagnostic_cause(diagnostic) {
+    Source(SourceView(Program(Program(Pipeline(stage, issue))))) =>
+      "Source.SourceView.Program.Program.Pipeline[" +
+      stage.to_string() +
+      "]: " +
+      @debug.to_string(issue.kind)
+    Source(SourceView(Program(Program(Import(stage, issue))))) =>
+      "Source.SourceView.Program.Program.Import[" +
+      stage.to_string() +
+      "]: " +
+      @debug.to_string(issue)
+    other => (other : Error).to_string()
+  }
+}
+
+///|
+// All child-allocated Program/compiler/Plan/Source aliases leave this frame
+// before the physical execution is retired. The existing Run retains cleanup.
+fn managed_capture_fixture_work(
+  arena : @arena.InstalledArenaHost,
+  physical : @arena.InstalledArenaRetainedExecution,
+  initial : @resources.BackedPreparationAdmission[Array[Int]],
+  input : Array[Int],
+  selection : NativeRelationFileSelection,
+  declaration : @rows.RowDeclaration,
+  provider : @execution.ExecutionCapacity,
+  environment : @checked.CheckEnvironment,
+  contracts : @local.ClientInstalledSequenceContracts,
+  manifests : @publication_host.ClientCompilationManifests,
+  file_limits : NativeRelationFileLimits,
+  expected_transfer : Int64,
+  prepared_provider : NativeRelationFilePreparedProvider?,
+  listing? : NativeRelationFileListingProvider? = None,
+  program? : String? = None,
+  clock_refusal? : Int = 0,
+  capture_observer? : ((NativeRelationFileCapture) -> Unit)? = None,
+  query? : Bool = false,
+  aborted_reader_observation? : Ref[Bool]? = None,
+) -> @local.ClientInstalledManagedRun raise {
+  let parent = @local.begin_backed_request_preparation(
+    initial,
+    input,
+    @local.client_local_resource_policy(),
+  ).managed_capture_stage("same initial Request inside its caller frame")
+  let ledger = arena
+    .borrow_domain_retained_execution_ledger(physical)
+    .managed_capture_stage("original stage 85")
+  let original_program =
+    #|{"version":"actql/0.1","id":"native-file-capture","stages":[{"id":"acquire","inputs":{"remote":{"connector":"native-file-fixture","resource":"records"}},"steps":[{"select":["id","value"],"as":"captured"}],"results":{"rows":{"from":"captured","fields":["id","value"]}}},{"id":"compute","inputs":{"input":{"result":{"stage":"acquire","result":"rows"}}},"steps":[{"filter":"value > 0"},{"select":["id","value"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id","value"]}}}],"results":{"rows":{"from":{"stage":"compute","result":"rows"}}}}
+  // Query's existing installed profile is scan/filter/select. Whole-input
+  // keeps its original select-only Program, with no fallback between routes.
+  let document = program.unwrap_or(original_program)
+  let document = if query {
+    document.replace(
+      old="\"steps\":[{\"select\"",
+      new="\"steps\":[{\"filter\":\"true\"},{\"select\"",
+    )
+  } else {
+    document
+  }
+  let limits = @publication_host.client_standard_program_preparation_limits()
+  let source = @local.prepare_request_program_json_preparation(
+    parent,
+    input,
+    document,
+    limits.checking.input,
+  ).managed_capture_stage("original stage 102")
+  let mut ready = false
+  for _ in 0..<(document.length() + 1) {
+    match
+      @local.advance_program_json_preparation(source, 64).managed_capture_stage(
+        "original stage 105",
+      ) {
+      @source.JsonSourceContinue(..) => ()
+      @source.JsonSourceReady(_, ..) => {
+        ready = true
+        break
+      }
+      @source.JsonSourceFailed(_, ..) => fail("original Source refused")
+    }
+  }
+  assert_true(ready)
+  @local.finish_program_json_preparation(source).managed_capture_stage(
+    "original stage 115",
+  )
+  @local.construct_program_json_preparation(source).managed_capture_stage(
+    "original stage 116",
+  )
+  @local.reconcile_program_json_preparation_structure(source).managed_capture_stage(
+    "original stage 117",
+  )
+  let check = @local.prepare_request_program_check_preparation(
+    parent,
+    input,
+    environment,
+    None,
+    [],
+    limits.checking,
+  ).managed_capture_stage("original stage 125")
+  @local.prepare_program_check_input(check).managed_capture_stage(
+    "original stage 126",
+  )
+  @local.prepare_program_check_prelude(check).managed_capture_stage(
+    "original stage 127",
+  )
+  |> ignore
+  @local.prepare_program_check_registry(check).managed_capture_stage(
+    "original stage 128",
+  )
+  |> ignore
+  @local.prepare_program_check_contents(check).managed_capture_stage(
+    "original stage 129",
+  )
+  |> ignore
+  @local.prepare_program_check_references(check).managed_capture_stage(
+    "original stage 130",
+  )
+  |> ignore
+  @local.prepare_program_check_policies(check).managed_capture_stage(
+    "original stage 131",
+  )
+  |> ignore
+  @local.prepare_program_check_values(check).managed_capture_stage(
+    "original stage 132",
+  )
+  |> ignore
+  @local.prepare_program_check_views(check).managed_capture_stage(
+    "original stage 133",
+  )
+  |> ignore
+  @local.prepare_program_check_carriers(check).managed_capture_stage(
+    "original stage 134",
+  )
+  |> ignore
+  @local.prepare_program_check_requests(check).managed_capture_stage(
+    "original stage 135",
+  )
+  |> ignore
+  @local.reconcile_program_check_requests(check).managed_capture_stage(
+    "original stage 136",
+  )
+  match
+    @local.finish_program_check_preparation(check).managed_capture_stage(
+      "original stage 137",
+    ) {
+    @checked.Checked(_) => ()
+    @checked.Rejected(diagnostic) =>
+      fail(
+        "whole Source Request rejected: " +
+        managed_capture_fixture_check_cause(diagnostic),
+      )
+    @checked.NeedsInputs(requests) =>
+      fail(
+        "whole Source Request needs inputs: " +
+        managed_capture_fixture_check_cause(
+          @checked.input_requests_diagnostic(requests),
+        ),
+      )
+  }
+  let prepared = @local.compile_program_check_preparation(check, limits).managed_capture_stage(
+    "original stage 141",
+  )
+  assert_true(
+    physical_equal(
+      @local.continue_request_program_preparation(parent, input).managed_capture_stage(
+        "original stage 144",
+      ),
+      prepared,
+    ),
+  )
+  @local.reserve_request_program_plan(parent, input).managed_capture_stage(
+    "original stage 148",
+  )
+  // Logical Request identity must survive physical payload retirement. Its
+  // immutable CIDs and the later lightweight Run controls belong to the
+  // caller's outer lifetime, not to an allocation inside the Source Read.
+  arena
+  .leave_domain_retained_execution(physical)
+  .managed_capture_stage("leave payload before logical identity")
+  let request = @publication_host.prepare_source_free_client_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "native-managed-whole-source",
+  ).managed_capture_stage("original stage 153")
+  arena
+  .enter_domain_retained_execution(physical)
+  .managed_capture_stage("same payload after original identity")
+  let (plan, selected, query_original) = if query {
+    let requirement = @local.prepare_local_query_requirement(
+      prepared,
+      0,
+      0,
+      contracts,
+      capture_fixture_values,
+      Some(capture_fixture_fragment),
+      None,
+    ).managed_capture_stage("original Query requirement")
+    let acquisition = @rows.prepare_row_acquisition(
+      declaration, requirement, capture_fixture_query_contract, capture_fixture_evidence_contract,
+    ).managed_capture_stage("original Query acquisition")
+    let capacity = if listing is Some(_) {
+      @local.installed_listing_row_capture_capacity(acquisition, Some(provider))
+    } else {
+      @local.installed_provider_row_capture_capacity(
+        acquisition,
+        Some(provider),
+      )
+    }
+    let capacity = capacity.managed_capture_stage(
+      "same selected Query provider",
+    )
+    let plan = @local.prepare_installed_managed_capture_plan(
+      prepared,
+      request,
+      [capacity],
+      [file_limits.page.max_bytes.to_int64()],
+      [file_limits.page.max_bytes.to_int64()],
+      contracts,
+      capture_fixture_values,
+      Some(capture_fixture_fragment),
+      None,
+      retained_output=true,
+      provider_factory=_ => [],
+    ).managed_capture_stage("same Query Plan before original module")
+    (plan, None, Some((requirement, acquisition)))
+  } else {
+    guard @local.select_installed_source_input(prepared, request, 0, 0).managed_capture_stage(
+        "original stage 160",
+      )
+      is @sourceviews.WholeInputRoute(original) else {
+      fail("whole Source original missing")
+    }
+    let selected = @local.prepare_installed_whole_source_capacity(
+      prepared,
+      original,
+      declaration,
+      contracts,
+      {
+        max_rows: 2,
+        page: file_limits.page,
+        retention: {
+          max_nodes: 512,
+          max_text_bytes: 8192,
+          max_depth: 8,
+          max_work: 1000000,
+        },
+        wire: {
+          max_columns: if listing is Some(_) {
+            7
+          } else {
+            2
+          },
+          max_order_work: 10000,
+          max_bytes: 8192,
+          max_nodes: 512,
+          max_depth: 8,
+        },
+      },
+      Some(provider),
+    ).managed_capture_stage("original stage 198")
+    let plan = @local.prepare_installed_managed_whole_source_plan(
+      prepared,
+      request,
+      selected,
+      file_limits.page.max_bytes.to_int64(),
+      file_limits.page.max_bytes.to_int64(),
+      contracts,
+      capture_fixture_values,
+      Some(capture_fixture_fragment),
+      None,
+      retained_output=true,
+      provider_factory=_ => [],
+    ).managed_capture_stage("original stage 211")
+    (plan, Some(selected), None)
+  }
+  @local.prepare_request_capture_module_body(
+    parent,
+    input,
+    plan,
+    manifests~,
+    // This fixture enters the existing explicit Program checker, rather than
+    // the combined computation checker that retains its selected codec getter.
+    // Use that checker's original standard explicit compilation profile.
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+    provider_factory=_ => [],
+  ).managed_capture_stage("original stage 226")
+  // The Run's lightweight retirement controls outlive this payload Read.
+  // Construct them in the original outer control, under the SAME initial
+  // owner/current; then reenter the original payload for actual Source I/O.
+  // Retained Program/Plan data remains on this same unfinished domain.
+  arena
+  .leave_domain_retained_execution(physical)
+  .managed_capture_stage("payload leaves before control adoption")
+  let owner = @local.begin_request_capture_managed_run(parent, request).managed_capture_stage(
+    "original Request adoption in outer control",
+  )
+  arena
+  .enter_domain_retained_execution(physical)
+  .managed_capture_stage("original payload reentry after adoption")
+  // Runtime constructor workspace starts only AFTER original Request
+  // adoption closes its preparation-only inventory. The external fixture
+  // selected the original immutable provider quote before entering this Read.
+  let inventory = native_relation_file_caller_preparation_inventory(
+    selection,
+    file_limits,
+    prepared_provider~,
+  ).managed_capture_stage("Native constructor inventory")
+  let bytes = @execution.preparation_representation_cost(inventory).managed_capture_stage(
+    "Native constructor cost",
+  )
+  let caller = @resources.reserve_capacity(ledger, bytes, bytes).managed_capture_stage(
+    "Native constructor reservation",
+  )
+  let (read, capture_owner, before) = if query_original
+    is Some((requirement, acquisition)) {
+    let (read, original_requirement, original_acquisition, _) = @local.begin_installed_managed_capture_source_read(
+      owner, prepared, request, declaration, 0,
+    ).managed_capture_stage("same original Query read slot")
+    assert_true(physical_equal(original_requirement, requirement))
+    assert_true(physical_equal(original_acquisition, acquisition))
+    assert_true(
+      @local.installed_source_read_provider_matches(read, acquisition, provider),
+    )
+    let unchanged = @resources.ledger_usage(ledger)
+    if listing is None {
+      let foreign = native_relation_file_provider_capacity(
+        declaration, selection, file_limits,
+      ).managed_capture_stage("equal foreign Query provider")
+      assert_false(
+        @local.installed_source_read_provider_matches(
+          read, acquisition, foreign,
+        ),
+      )
+      let refused = prepare_native_managed_relation_file_query_capture(
+        arena, physical, declaration, read, acquisition, foreign, "foreign-query-provider",
+        selection, file_limits,
+      )
+      guard refused is Err(failure) else {
+        fail("foreign Query provider opened a child")
+      }
+      assert_true(failure.issue() is ForeignOriginal)
+      assert_true(
+        failure
+        .retry_cleanup()
+        .managed_capture_stage("foreign Query has no owned child"),
+      )
+      assert_eq(@resources.ledger_usage(ledger), unchanged)
+    }
+    let capture = match listing {
+      Some(original) =>
+        capture_fixture_prepared(
+          prepare_native_managed_relation_file_query_listing_capture(
+            arena, physical, read, acquisition, original, "same-query-listing",
+          ),
+          "same managed Query listing",
+        )
+      None =>
+        capture_fixture_prepared(
+          prepare_native_managed_relation_file_query_capture(
+            arena,
+            physical,
+            declaration,
+            read,
+            acquisition,
+            provider,
+            "same-query-source",
+            selection,
+            file_limits,
+            prepared_provider~,
+          ),
+          "same managed Query Source",
+        )
+    }
+    (read, capture, unchanged.transferred_bytes)
+  } else {
+    let selected = selected.unwrap()
+    let (read, _, acquisition, same_selected) = @local.begin_installed_managed_whole_source_read(
+      owner, prepared, request, declaration,
+    ).managed_capture_stage("original stage 230")
+    assert_true(physical_equal(same_selected, selected))
+    assert_true(
+      @local.installed_whole_source_read_capacity_matches(
+        read, selected, acquisition, provider,
+      ),
+    )
+    let unchanged = @resources.ledger_usage(ledger)
+    if listing is None {
+      let foreign = native_relation_file_provider_capacity(
+        declaration, selection, file_limits,
+      ).managed_capture_stage("original stage 239")
+      assert_false(
+        @local.installed_whole_source_read_capacity_matches(
+          read, selected, acquisition, foreign,
+        ),
+      )
+      let refused = prepare_native_managed_relation_file_input_capture(
+        arena, physical, declaration, read, selected, foreign, "foreign-provider",
+        selection, file_limits,
+      )
+      guard refused is Err(failure) else {
+        fail("copied provider unexpectedly read a file")
+      }
+      assert_true(failure.issue() is ForeignOriginal)
+      assert_true(
+        failure
+        .retry_cleanup()
+        .managed_capture_stage("foreign provider has no child"),
+      )
+      assert_eq(@resources.ledger_usage(ledger), unchanged)
+    }
+    let capture = match listing {
+      Some(original) =>
+        capture_fixture_prepared(
+          prepare_native_managed_relation_file_listing_capture(
+            arena, physical, read, selected, original, "native-managed-listing-original",
+          ),
+          "same Plan listing prepare",
+        )
+      None =>
+        capture_fixture_prepared(
+          prepare_native_managed_relation_file_input_capture(
+            arena,
+            physical,
+            declaration,
+            read,
+            selected,
+            provider,
+            "native-managed-original",
+            selection,
+            file_limits,
+            prepared_provider~,
+          ),
+          "same Plan file prepare",
+        )
+    }
+    (read, capture, unchanged.transferred_bytes)
+  }
+  if capture_observer is Some(observe) {
+    observe(capture_owner)
+  }
+  if aborted_reader_observation is Some(_) {
+    assert_false(
+      capture_owner
+      .advance(32)
+      .managed_capture_stage("first original Reader open"),
+    )
+    assert_true(capture_owner.phase is Reading)
+    assert_true(
+      @local.retire_installed_source_read(read)
+      is Err(@local.Acquisition(@rows.Evidence(@rows.UnverifiedTransport))),
+    )
+    // The same real Reader is closed as a deterministic entry sentinel. If
+    // the next advance reaches Reader.next instead of its RowRun fence, its
+    // exact typed primary is ReaderClosed. This is not an extra-byte claim.
+    capture_owner.reader
+    .unwrap()
+    .close()
+    .managed_capture_stage("original Reader entry sentinel")
+  }
+  if clock_refusal != 0 || aborted_reader_observation is Some(_) {
+    let result = if clock_refusal == 4 {
+      capture_owner.advance_listing(32, 0L)
+    } else {
+      capture_owner.advance(32)
+    }
+    guard result is Err(first) else {
+      fail("clock refusal unexpectedly read a file")
+    }
+    if aborted_reader_observation is Some(observed) {
+      observed.val = first.issue() is Unavailable
+    } else if clock_refusal == 4 {
+      assert_true(first.issue() is InvalidInput)
+    } else {
+      assert_true(first.issue() is Unavailable)
+    }
+    guard capture_owner.advance(32) is Err(repeated) else {
+      fail("failed clock resumed")
+    }
+    assert_true(physical_equal(first, repeated))
+    assert_eq(@resources.ledger_usage(ledger).transferred_bytes, before)
+    let mut closed = false
+    for _ in 0..<10000 {
+      match capture_owner.close() {
+        Ok(true) => {
+          closed = true
+          break
+        }
+        Ok(false) | Err(ManagedRead(@local.Acquisition(@rows.InvalidState))) =>
+          ()
+        Err(_) => fail("clock-failed original Source cleanup failed")
+      }
+    }
+    assert_true(closed)
+    arena
+    .leave_domain_retained_execution(physical)
+    .managed_capture_stage("clock-failed Read leaves")
+    @resources.settle_capacity(ledger, caller).managed_capture_stage(
+      "clock-failed caller retirement",
+    )
+    @local.quiesce_installed_managed_run(owner).managed_capture_stage(
+      "clock-failed original Run quiescent",
+    )
+    assert_true(@local.retire_installed_managed_run(owner) is Err(_))
+    assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+    assert_true(@local.installed_preparation_payload_severed(owner, request))
+    return owner
+  }
+  let mut completed = false
+  // One original transport chunk per advance, then the existing bounded
+  // parser/capture progression. Derive only the transport portion from this
+  // authored fixture's exact byte count and selected chunk size.
+  let transport_steps = (expected_transfer / file_limits.chunk_bytes.to_int64() +
+  1L).to_int()
+  for step in 0..<(transport_steps + 10000) {
+    let advanced = if listing is Some(original) && original.now_ms is None {
+      // Explicit finite protocol elapsed DATA. This fixture does not qualify
+      // a normal Host monotonic-clock binding or real deadline enforcement.
+      capture_owner.advance_listing(32, step.to_int64())
+    } else {
+      capture_owner.advance(32)
+    }
+    if advanced.managed_capture_stage("original stage 255") {
+      completed = true
+      break
+    }
+  }
+  assert_true(completed)
+  @local.check_installed_source_read_ledger(read, ledger).managed_capture_stage(
+    "same Source read after physical I/O",
+  )
+  assert_eq(
+    @resources.ledger_usage(ledger).transferred_bytes - before,
+    expected_transfer,
+  )
+  let capture = capture_owner
+    .capture()
+    .managed_capture_stage("original stage 262")
+  let captured = @rows.row_capture_source(capture).managed_capture_stage(
+    "original stage 263",
+  )
+  let original_read = @rows.row_capture_original_read(capture).managed_capture_stage(
+    "original stage 264",
+  )
+  assert_eq(@query.captured_source_row_count(captured), Some(2))
+  if listing is Some(_) {
+    // This is the original seven-field scan, before Query projection.
+    assert_true(
+      @execution.supplied_relation_read_cell(original_read, 0, 2)
+      is Some(@admitted.Text("Acme🌱")),
+    )
+    assert_true(
+      @execution.supplied_relation_read_cell(original_read, 1, 2)
+      is Some(@admitted.Text("Globex")),
+    )
+    guard @execution.supplied_relation_read_cell(original_read, 0, 4)
+      is Some(@admitted.Reference(resource)) else {
+      fail("same original listing ResourceRef missing")
+    }
+    assert_true(@admitted.reference_available(resource))
+  } else {
+    assert_true(
+      @execution.supplied_relation_read_cell(original_read, 0, 0)
+      is Some(@admitted.Text("first")),
+    )
+    assert_true(
+      @execution.supplied_relation_read_cell(original_read, 1, 0)
+      is Some(@admitted.Text("second")),
+    )
+    assert_true(
+      @execution.supplied_relation_read_cell(original_read, 0, 1)
+      is Some(@admitted.Number(1)),
+    )
+    assert_true(
+      @execution.supplied_relation_read_cell(original_read, 1, 1)
+      is Some(@admitted.Number(2)),
+    )
+  }
+  let (_, dag, _) = @local.open_installed_managed_capture_host(
+    owner,
+    prepared,
+    request,
+    [captured],
+  ).managed_capture_stage("original stage 287")
+  if query {
+    assert_true(@rows.check_row_capture_compute_binding(capture, dag, 0))
+    assert_true(@strategy.captured_task_completed(dag, 0))
+    assert_eq(@strategy.next_captured_task(dag), Some(1))
+  } else {
+    @rows.check_row_input_compute_binding(capture, dag, 0).managed_capture_stage(
+      "original stage 288",
+    )
+    assert_false(@strategy.captured_task_completed(dag, 0))
+    assert_eq(@strategy.next_captured_task(dag), Some(0))
+  }
+  arena
+  .leave_domain_retained_execution(physical)
+  .managed_capture_stage("original stage 291")
+  assert_true(capture_owner.capture() is Err(Unavailable))
+  arena
+  .enter_domain_retained_execution(physical)
+  .managed_capture_stage("original stage 293")
+  assert_true(
+    physical_equal(
+      ledger,
+      arena
+      .borrow_domain_retained_execution_ledger(physical)
+      .managed_capture_stage("original stage 297"),
+    ),
+  )
+  // This fixture leaves Compute pending, so stop its original DAG before
+  // retiring the Source it borrows. Stop is not a physical cleanup ACK.
+  @strategy.stop_captured_dag(dag)
+  let mut closed = false
+  for _ in 0..<10000 {
+    match capture_owner.close() {
+      Ok(true) => {
+        closed = true
+        break
+      }
+      Ok(false) | Err(ManagedRead(@local.Acquisition(@rows.InvalidState))) => ()
+      Err(_) => fail("same Plan Source cleanup failed")
+    }
+  }
+  assert_true(closed)
+  assert_true(@rows.row_capture_source(capture) is Err(_))
+  assert_false(@execution.supplied_relation_read_available(original_read))
+  // Source-native cleanup completed in its original entered Read. Final
+  // accounting/retirement snapshots belong to the outer cleanup lifetime,
+  // so they cannot keep their own retired payload allocation alive.
+  arena
+  .leave_domain_retained_execution(physical)
+  .managed_capture_stage("actual Source Read leaves before parent cleanup")
+  @resources.settle_capacity(ledger, caller).managed_capture_stage(
+    "original stage 314",
+  )
+  // The original Run owns physical-parent retirement; logical cleanup
+  // cannot claim the Native domain ACK that still belongs to the issuer.
+  @local.quiesce_installed_managed_run(owner).managed_capture_stage(
+    "all original reads quiescent",
+  )
+  assert_true(@local.retire_installed_managed_run(owner) is Err(_))
+  let retired = @resources.ledger_usage(ledger)
+  if retired.live_reservations != 0 {
+    fail(
+      "logical Run cleanup retains resources: " +
+      @debug.to_string(
+        (
+          retired.live_reservations,
+          retired.holdings,
+          retired.reserved_retention_bytes,
+          retired.reserved_execution_bytes,
+        ),
+      ),
+    )
+  }
+  assert_true(@local.installed_preparation_payload_severed(owner, request))
+  owner
+}
+
+///|
+fn managed_capture_fixture_case(
+  file_limits : NativeRelationFileLimits,
+  expected_transfer : Int64,
+  input_name? : String = "row-source-input",
+  query? : Bool = false,
+  aborted_reader? : Bool = false,
+) -> Unit raise {
+  let aborted_reader_observation = if aborted_reader {
+    Some(Ref(false))
+  } else {
+    None
+  }
+  let selection : NativeRelationFileSelection = {
+    directory: @env.get_env_var("ACTQL_TEST_INSTALLED_PROCESS_ROOT").managed_capture_stage(
+      "original stage 333",
+    ),
+    name: input_name,
+    resource: "records",
+    items_path: ["items"],
+    key_path: None,
+    primary_identity: "id",
+  }
+  // Test-owned fixture setup retains declaration/provider DATA outside the
+  // child, like the external directory and input bytes. This is not normal
+  // Host first-entry backing or a runtime permission claim.
+  let declaration = capture_fixture_declaration()
+  let prepared_provider = if expected_transfer > 65536L {
+    Some(
+      prepare_native_relation_file_provider(declaration, selection, file_limits).managed_capture_stage(
+        "original preflight provider once before Run",
+      ),
+    )
+  } else {
+    None
+  }
+  let provider = match prepared_provider {
+    Some(original) => original.capacity()
+    None =>
+      native_relation_file_provider_capacity(
+        declaration, selection, file_limits,
+      ).managed_capture_stage("external fixture original provider")
+  }
+  // Installation contracts and the published environment are retained inputs,
+  // prepared once outside the Run's physical payload, as in the normal caller.
+  let (wire, cid) = capture_fixture_environment(declaration)
+  let environment = @publication_host.admit_client_check_environment(
+    wire,
+    cid,
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).managed_capture_stage("original stage 93")
+  let contracts = @local.prepare_installed_sequence_contracts(
+    capture_fixture_registry,
+    capture_fixture_values,
+    Some(capture_fixture_fragment),
+    None,
+  ).managed_capture_stage("original stage 159")
+  let manifests = @publication_host.admit_client_compilation_manifests(
+    @environment.compiler_grammar_manifest_wire(),
+    @environment.compiler_barrier_contract_manifest_wire(),
+    10000,
+    1000,
+    20,
+  ).managed_capture_stage("original stage 218")
+  let input = [1]
+  let (arena, domain, physical, initial) = managed_capture_fixture_facility(
+    input,
+  )
+  arena
+  .enter_domain_retained_execution(physical)
+  .managed_capture_stage("original stage 340")
+  let owner = managed_capture_fixture_work(
+    arena,
+    physical,
+    initial,
+    input,
+    selection,
+    declaration,
+    provider,
+    environment,
+    contracts,
+    manifests,
+    file_limits,
+    expected_transfer,
+    prepared_provider,
+    query~,
+    aborted_reader_observation~,
+  )
+  match arena.close_domain_retained_execution(physical) {
+    Ok(_) => ()
+    Err(@arena.Domain(issue)) =>
+      fail("Native retirement Domain: " + @debug.to_string(issue))
+    Err(@arena.Child(issue)) =>
+      fail("Native retirement Child: " + @debug.to_string(issue))
+    Err(@arena.Initialization(@bootstrap.Domain(issue))) => {
+      let observation = arena
+        .observe_domain_retained_execution_cleanup(physical)
+        .managed_capture_stage("original Native cleanup observation")
+      fail(
+        "Native retirement InitializationDomain: " +
+        @debug.to_string(issue) +
+        " observation=" +
+        @debug.to_string(
+          (
+            observation.users,
+            observation.active,
+            observation.generic_live_extents,
+            observation.managed_live_blocks,
+            observation.managed_requested_bytes,
+            observation.minimum_managed_request,
+            observation.maximum_managed_request,
+          ),
+        ),
+      )
+    }
+    Err(@arena.Initialization(@bootstrap.Child(issue))) =>
+      fail("Native retirement InitializationChild: " + @debug.to_string(issue))
+    Err(@arena.Initialization(@bootstrap.Inventory(_))) =>
+      fail("Native retirement InitializationInventory")
+    Err(@arena.Initialization(@bootstrap.Quiescence(_))) =>
+      fail("Native retirement InitializationQuiescence")
+  }
+  @local.retire_installed_managed_run(owner).managed_capture_stage(
+    "original stage 346",
+  )
+  arena
+  .close_domain_after_owner_ack(domain)
+  .managed_capture_stage("original stage 347")
+  arena.try_close().managed_capture_stage("original stage 348")
+  if aborted_reader_observation is Some(observed) {
+    assert_true(observed.val)
+  }
+}
+
+///|
+test "Native whole Source reader consumes the same Request Plan and physical Ledger" {
+  managed_capture_fixture_case(capture_fixture_limits(), 62L)
+}
+
+///|
+test "Native managed Source funds the selected Mock byte profile beyond component envelope" {
+  let limits = {
+    ..capture_fixture_limits(),
+    page: { ..capture_fixture_limits().page, max_bytes: 1048576, },
+  }
+  let selection : NativeRelationFileSelection = {
+    directory: @env.get_env_var("ACTQL_TEST_INSTALLED_PROCESS_ROOT").unwrap(),
+    name: "row-source-large-input",
+    resource: "records",
+    items_path: ["items"],
+    key_path: None,
+    primary_identity: "id",
+  }
+  // The independent legacy diagnostic is still bounded by its own envelope.
+  assert_false(native_relation_file_input_valid(selection, limits))
+  managed_capture_fixture_case(
+    limits,
+    70062L,
+    input_name="row-source-large-input",
+  )
+}
+
+///|
+test "Native managed Query Source reads on the same original Request Plan and physical Ledger" {
+  managed_capture_fixture_case(capture_fixture_limits(), 62L, query=true)
+}
+
+///|
+test "Native stopped Source RowRun refuses before entering its retained Reader" {
+  managed_capture_fixture_case(
+    capture_fixture_limits(),
+    62L,
+    query=true,
+    aborted_reader=true,
+  )
+}

@@ -45,9 +45,10 @@ pub(all) struct ClientValuesRunMaterials {
 let client_run_materials_fields : Array[String] = [
   "check_environment", "check_environment_cid", "client_request_identity", "created_at",
   "effect_target_selections_json", "infer_execution_contract_cid", "infer_execution_contract_json",
-  "infer_execution_contracts_json", "normalization_journal_json", "parameters", "prepared_invocation",
-  "program", "program_format", "run_authorization", "run_id", "scope_id", "source_free_result_policy_cid",
-  "source_free_result_policy_json", "valid_until", "version",
+  "infer_execution_contracts_json", "infer_native_read_profile_json", "normalization_journal_json",
+  "parameters", "prepared_invocation", "program", "program_format", "run_authorization",
+  "run_id", "scope_id", "source_free_result_policy_cid", "source_free_result_policy_json",
+  "valid_until", "version",
 ]
 
 ///|
@@ -179,9 +180,11 @@ fn encode_client_run_materials_body(
   target_selections_wire? : String? = None,
   infer_input? : (String, String)? = None,
   infer_inputs_wire? : String? = None,
+  infer_native_read_profile? : String? = None,
   source_free_policy_input? : (String, String)? = None,
 ) -> Result[String, ClientValuesRunMaterialsIssue] {
-  if infer_input is Some(_) && infer_inputs_wire is Some(_) {
+  if (infer_input is Some(_) && infer_inputs_wire is Some(_)) ||
+    (infer_native_read_profile is Some(_) && infer_input is None) {
     return Err(MaterialsMalformed)
   }
   // This is a read-only projection of an already admitted definition. It does
@@ -265,6 +268,10 @@ fn encode_client_run_materials_body(
       }
       if field.0 == "parameters" && infer_inputs_wire is Some(wire) {
         @encode.key(writer, "infer_execution_contracts_json")
+        @encode.string_value(writer, wire)
+      }
+      if field.0 == "parameters" && infer_native_read_profile is Some(wire) {
+        @encode.key(writer, "infer_native_read_profile_json")
         @encode.string_value(writer, wire)
       }
       if field.0 == "parameters" && normalization_wire is Some(wire) {
@@ -446,6 +453,14 @@ fn read_client_run_materials_body(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  let infer_native_read_profile = match
+    read_client_effect_original_native_read_profile(
+      @decode.lookup(object, "infer_native_read_profile_json"),
+      infer_input,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   let infer_inputs_wire = match
     @decode.lookup(object, "infer_execution_contracts_json") {
     None => None
@@ -468,6 +483,7 @@ fn read_client_run_materials_body(
   }
   Ok({
     infer_input,
+    infer_native_read_profile,
     infer_inputs_wire,
     source_free_policy_input,
     target_selections_wire,
@@ -489,6 +505,7 @@ fn read_client_run_materials_body(
 
 ///|
 priv struct ClientRunMaterialsBody {
+  infer_native_read_profile : String?
   infer_input : (String, String)?
   infer_inputs_wire : String?
   source_free_policy_input : (String, String)?
@@ -526,6 +543,9 @@ fn read_client_run_materials_input(
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
+  }
+  if body.infer_native_read_profile is Some(_) {
+    return Err(MaterialsEvidence("infer_native_read_profile"))
   }
   if body.normalization_wire is Some(_) {
     return Err(MaterialsEvidence("normalization_journal"))

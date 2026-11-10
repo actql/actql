@@ -232,6 +232,7 @@ export async function writeSyntheticHistoricalHeldSalesforce({directory, documen
     // binding aligned with that declared policy, without reading a Host CID.
     max_relation_output_rows: 536870912 / 256,
     max_artifact_rows: 536870912 / 256,
+    max_file_listing_items: 536870912 / 256,
     // Match the default Local service's declared standard Model request window.
     max_model_request_bytes_per_item: 65536};
   const binding = {authorization_context_cid: cid({principal: principalId,

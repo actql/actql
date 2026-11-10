@@ -84,7 +84,9 @@ test('Core progress observer and output failures cannot replace the original cal
     let starts = 0, stops = 0;
     const result = await runInNewContext('(async () => {\n' + source.slice(begin, end) +
       '\n return {code, signal}; })()', {
-      child: original, compilerDriver, once, process: {cwd: () => '/original'},
+      child: original, compilerDriver, once, process: {
+        cwd: () => '/original', stdout: process.stdout, stderr: process.stderr,
+      },
       observeCoreChildProgress(child, {root}) {
         assert.equal(child, original); assert.equal(root, '/original'); starts++;
         return () => {stops++;};

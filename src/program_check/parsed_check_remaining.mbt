@@ -70,10 +70,14 @@ pub fn parsed_check_registry_data_estimate(
   let width = Int::max(program.initial_fields, program.projected_fields).to_int64() +
     program.possible_growth.to_int64() +
     program.external_inputs.to_int64() * environment.max_fields
-  let expression_nodes = Int64::min(
-    source.total_utf16,
-    original.limits.artifacts.nodes.to_int64(),
-  )
+  // Borrow the original envelope's cached operand classification. Long literal
+  // Values text remains fully backed below, but cannot become expression nodes.
+  // Any other operand keeps the existing conservative parser envelope.
+  let expression_nodes = if program.may_contain_expression_syntax {
+    Int64::min(source.total_utf16, original.limits.artifacts.nodes.to_int64())
+  } else {
+    0L
+  }
   guard binding_nodes is Some(binding_nodes) &&
     binding_text is Some(binding_text) &&
     @counts.checked_nonnegative_add_product(

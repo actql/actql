@@ -115,7 +115,10 @@ fn chain_lifetime_generated(
   let contexts = []
   for step in 0..<@lower.sequence_count(sequence) {
     if @lower.sequence_step(sequence, step) is Some(@lower.RowStep(kernel)) &&
-      @lower.kernel_body(kernel) is @lower.Filter(_) {
+      (
+        @lower.kernel_body(kernel) is @lower.Filter(_) ||
+        @lower.kernel_bindings(kernel) is Some(_)
+      ) {
       let fragment = @lower.prepare_fragment_pipeline(sequence, step, {
         max_roots: 100,
         max_pointer_bytes: 10000,

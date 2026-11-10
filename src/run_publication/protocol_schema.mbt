@@ -12,6 +12,7 @@ priv enum ProtocolSchemaRule {
   NumberRule
   IntegerRule(Int64?, Int64?)
   ArrayRule(Int, Int, Bool, Int)
+  ContainsRule(Int)
   TupleRule(Array[Int])
   ObjectRule(Array[(String, Int)], Array[String], Int, Int, String?, Int)
   OneOfRule(Array[Int])
@@ -272,6 +273,10 @@ fn protocol_string_pattern(value : String, pattern : Int) -> Bool {
           valid
         }
       }
+    15 =>
+      value.length() <= 20 &&
+      protocol_string_pattern(value, 8) &&
+      (value.length() < 20 || value <= "18446744073709551615")
     _ => false
   }
 }
@@ -391,6 +396,21 @@ pub fn parse_effect_preview_shape(
     Ok(parsed) => parsed
     Err(issue) => return Err(issue)
   }
+  check_effect_preview_shape_original(
+    wire, value, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+// Both the wire parser and a funded original cursor use this SAME complete
+// canonical-wire and generated shape check. Neither path supplies authority.
+fn check_effect_preview_shape_original(
+  wire : String,
+  value : @json.CanonicalValue,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@json.CanonicalValue, PublicationContractIssue] {
   let canonical = @json.stringify_value(
     value, max_wire_bytes, max_nodes, max_depth,
   ) catch {

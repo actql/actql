@@ -54,12 +54,26 @@ fn[T] NativeLocalJournalOriginalResources::query_while_read(
 }
 
 ///|
+#borrow(database, receiver)
+extern "C" fn journal_database_matches_store_receiver_ffi(
+  database : @sqlite.Database,
+  receiver : NativeLocalStoreOperationReceiver,
+) -> Bool = "actql_native_sqlite_database_matches_store_receiver"
+
+///|
 fn[T] NativeLocalJournalReadQueries::query(
   self : NativeLocalJournalReadQueries,
   query : () -> T,
 ) -> Result[T, @sqlite.NativeSqliteIssue] {
   if self.failure is Some(_) {
     return Err(@sqlite.Busy)
+  }
+  if self.original.store_operation is Some(receiver) &&
+    receiver.phase == StoreRouteRead &&
+    journal_database_matches_store_receiver_ffi(self.database, receiver) {
+    // The SAME bound Database brackets every SQL call below. Applying the
+    // unbound manual exchange as well would enter the original pair twice.
+    return Ok(query())
   }
   match self.original.query_while_read(query) {
     Ok(value) => Ok(value)
@@ -78,6 +92,7 @@ fn NativeLocalJournalReadQueries::access(
 ) -> NativeClientJournalReadAccess {
   {
     database: self.database,
+    before_submitted_decode: Some(stage => self.prepare_submitted_decode(stage)),
     read_evidence_schema: () => {
       self
       .query(() => self.database.client_read_evidence_schema())
@@ -101,6 +116,21 @@ fn NativeLocalJournalReadQueries::access(
       self.query(() => self.database.fence_transactions()) |> ignore
     },
     read: (table_name, key) => {
+      if table_name == "client_submitted_intents" {
+        let header = match
+          self.query(() => self.database.observe_body_extent(table_name, key)) {
+          Ok(Ok(value)) => value
+          Ok(Err(issue)) | Err(issue) => return Err(issue)
+        }
+        if self.prepare_submitted_copy(header.body_bytes) is Err(_) {
+          return Err(@sqlite.Busy)
+        }
+        return self
+          .query(() => {
+            self.database.read_exact_body_extent(table_name, key, header)
+          })
+          .unwrap_or(Err(@sqlite.Busy))
+      }
       match self.query(() => self.database.read(table_name, key)) {
         Ok(value) => value
         Err(issue) => Err(issue)
@@ -235,6 +265,9 @@ fn NativeLocalJournalReadQueries::operation_access(
 ) -> NativeClientJournalOperationAccess {
   {
     reads: self.access(),
+    before_construction: Some((bytes, nodes, depth) => {
+      self.prepare_row_construction(bytes, nodes, depth)
+    }),
     install_read_evidence_schema: max_rows => {
       (self.invalidate_snapshot)(Some("client_local_read_evidence"))
       self
@@ -277,9 +310,46 @@ fn NativeLocalJournalReadQueries::operation_access(
         Err(issue) => Err(issue)
       }
     },
+    grow_capacity: (
+      table,
+      key,
+      previous,
+      bytes,
+      objects,
+      max_bytes,
+      max_objects,
+    ) => {
+      (self.invalidate_snapshot)(Some(table))
+      self
+      .query(() => {
+        grow_journal_capacity_in_transaction(
+          self.database,
+          table,
+          key,
+          previous,
+          bytes,
+          objects,
+          max_bytes,
+          max_objects,
+        )
+      })
+      .unwrap_or(Err(@sqlite.Busy))
+    },
     insert: (table, key, body) => {
       (self.invalidate_snapshot)(Some(table))
-      match self.query(() => self.database.insert(table, key, body)) {
+      match
+        self.query(() => {
+          if table == "client_submitted_intents" {
+            self.database.insert_with_body_extent(
+              table,
+              key,
+              body,
+              body.length().to_int64(),
+            )
+          } else {
+            self.database.insert(table, key, body)
+          }
+        }) {
         Ok(value) => value
         Err(issue) => Err(issue)
       }
@@ -296,7 +366,17 @@ fn NativeLocalJournalReadQueries::operation_access(
       (self.invalidate_snapshot)(Some(table))
       match
         self.query(() => {
-          self.database.compare_exchange(table, key, revision, body)
+          if table == "client_submitted_intents" {
+            self.database.compare_exchange_with_body_extent(
+              table,
+              key,
+              revision,
+              body,
+              body.length().to_int64(),
+            )
+          } else {
+            self.database.compare_exchange(table, key, revision, body)
+          }
         }) {
         Ok(value) => value
         Err(issue) => Err(issue)

@@ -77,3 +77,165 @@ pub fn begin_installed_effect_managed_source_read(
   }
   Ok((read, requirement, acquisition, capacity))
 }
+
+///|
+/// Immutable variant and owner correspondence only; opening a physical read
+/// remains the separate current-fenced managed read entrance.
+pub fn installed_effect_managed_source_input_kind(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  occurrence : Int,
+) -> Result[String, ClientInstalledManagedRunIssue] {
+  guard owner.original is Some(original) &&
+    physical_equal(original, owner) &&
+    owner.ledger is Some(_) &&
+    physical_equal(owner.request, request) &&
+    owner.preparation is Some(PlannedEffectManaged(_, plan)) &&
+    physical_equal(plan.prepared, prepared) &&
+    physical_equal(plan.request, request) &&
+    plan.whole_sources.get(occurrence) is Some(selected) else {
+    return Err(ForeignOriginal)
+  }
+  Ok(if selected is Some(_) { "whole-input" } else { "query" })
+}
+
+///|
+pub fn begin_installed_effect_managed_whole_source_read(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  declaration : @row_source_host.RowDeclaration,
+  occurrence : Int,
+) -> Result[
+  (
+    ClientInstalledSourceRead,
+    @sourceviews.SourceAcquisition,
+    @row_source_host.RowInputAcquisition,
+    ClientInstalledWholeSourceCapacity,
+  ),
+  ClientInstalledManagedRunIssue,
+] {
+  let plan = match
+    installed_effect_managed_operation_plan(owner, prepared, request) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  guard plan.whole_sources.get(occurrence) is Some(Some((selected, source))) &&
+    physical_equal(selected, declaration) &&
+    plan.direct_occurrences is Some(coordinates) &&
+    @publication_host.client_direct_acquisition_occurrence_at(
+      coordinates, occurrence,
+    )
+    is Some((stage, input, task)) &&
+    @publication_host.client_source_acquisition_matches_effect_program(
+      prepared,
+      stage,
+      input,
+      source.original,
+    ) &&
+    @row_source_host.check_row_input_acquisition_original(
+      source.acquisition,
+      declaration,
+      source.original,
+    )
+    is Ok(_) else {
+    return Err(ForeignOriginal)
+  }
+  let read = match
+    begin_installed_managed_run_source_read_owned(
+      owner,
+      occurrence,
+      Some((stage, input, task)),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  read.declaration = Some(declaration)
+  read.whole_input = Some(source)
+  let ledger = match
+    require_installed_effect_operation_plan(owner, prepared, request) {
+    Ok((current, ledger)) if physical_equal(current, plan) => ledger
+    Ok(_) => return Err(ForeignOriginal)
+    Err(issue) => return Err(issue)
+  }
+  guard check_installed_source_read_retained_ledger(read, ledger) is Ok(_) &&
+    read.whole_input is Some(actual_source) &&
+    physical_equal(actual_source, source) &&
+    read.declaration is Some(actual_declaration) &&
+    physical_equal(actual_declaration, declaration) else {
+    return Err(ForeignOriginal)
+  }
+  Ok((read, source.original, source.acquisition, source))
+}
+
+///|
+/// Borrow this Plan's one admitted Ledger after every selected Source has
+/// attached its exact original read. No caller capacity number is a proof.
+pub fn installed_effect_managed_sources_ledger(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+) -> Result[@resources.Ledger, ClientInstalledManagedRunIssue] {
+  let (plan, ledger) = match
+    require_installed_effect_operation_plan(owner, prepared, request) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if owner.reads.length() != plan.whole_sources.length() {
+    return Err(ForeignOriginal)
+  }
+  for occurrence, selected in plan.whole_sources {
+    if owner.reads[occurrence] is Some(read) {
+      guard check_installed_source_read_retained_ledger(read, ledger) is Ok(_) &&
+        read.managed_run is Some((original_owner, original_slot)) &&
+        physical_equal(original_owner, owner) &&
+        original_slot == occurrence else {
+        return Err(ForeignOriginal)
+      }
+    }
+    match selected {
+      Some((declaration, source)) => {
+        guard owner.reads[occurrence] is Some(read) &&
+          read.original is Some(original) &&
+          physical_equal(original, read) &&
+          read.ledger is Some(actual_ledger) &&
+          physical_equal(actual_ledger, ledger) &&
+          read.declaration is Some(actual_declaration) &&
+          physical_equal(actual_declaration, declaration) &&
+          read.whole_input is Some(actual_source) &&
+          physical_equal(actual_source, source) &&
+          read.requirement is None &&
+          read.acquisition is None else {
+          return Err(ForeignOriginal)
+        }
+      }
+      None => {
+        guard installed_effect_source_capture_index(plan, occurrence)
+          is Some(index) &&
+          plan.captures.get(index) is Some(capacity) else {
+          return Err(ForeignOriginal)
+        }
+        if capacity.original_input {
+          guard installed_effect_source_row_index(plan, occurrence) is Some(row) &&
+            owner.reads[occurrence] is Some(read) &&
+            read.declaration is Some(declaration) &&
+            physical_equal(declaration, plan.declarations[row]) &&
+            read.requirement is Some(requirement) &&
+            physical_equal(requirement, capacity.requirement) &&
+            read.acquisition is Some(acquisition) &&
+            capacity.acquisition is Some(original) &&
+            physical_equal(acquisition, original) else {
+            return Err(ForeignOriginal)
+          }
+        } else if owner.reads[occurrence] is Some(_) {
+          return Err(ForeignOriginal)
+        }
+      }
+    }
+  }
+  if !installed_effect_managed_limits_fit(owner, plan, ledger) {
+    return Err(InsufficientCapacity)
+  }
+  Ok(ledger)
+}

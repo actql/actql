@@ -8,6 +8,10 @@ pub struct ClientInstalledEffectOperationBorrow {
   priv mut extent : ClientInstalledEffectOperationExtent?
   // One original extent selection: owned input or detached successful output.
   priv mut input_selected : Bool
+  priv mut construction_completed : Bool
+  // A private completed constraint check on this same original operation,
+  // never a transferable permission or header-count assertion from JS.
+  priv mut empty_headers_checked : Bool
   priv mut backing : @resources.NodeManagedRunOperationBacking?
   // The SAME immutable extent's execution upper; never Host-supplied DATA.
   priv mut execution_limit : Int64
@@ -33,15 +37,15 @@ fn installed_effect_operation_control_capacity(
   // The original child vector has ONE entry per actual installed member,
   // independent of rows, future operation count or Host policy ceilings.
   guard @shape.collection_construction_extent({
-      records: 9L,
-      record_references: 34L,
+      records: 11L,
+      record_references: 36L,
       record_words: 5L,
       reference_arrays: 1L,
       reference_items: recovery_members.to_int64(),
       scalar_arrays: 0L,
       scalar_items: 0L,
-      maps: 0L,
-      map_entries: 0L,
+      maps: 1L,
+      map_entries: recovery_members.to_int64(),
     })
     is Some(recovery) else {
     return None
@@ -66,7 +70,12 @@ fn installed_effect_operation_control_capacity(
   // current fence, and pending binding close. Native settlement wrappers use
   // fewer Promise/closure alternatives than the former then/finally chains;
   // retain that existing record upper. One cleanup retirement cursor is a
-  // scalar in the same fixed capture/cleanup frame, not another owner. Each
+  // scalar in the same fixed capture/cleanup frame, not another owner. The
+  // empty-header selection adds its original method reference, one private
+  // checked-state word and actual input-extent policy tuple/Some (2H1R3W).
+  // Two additional bounded Arrays cover its argument vector and still-live
+  // immutable declared empty names; completed header DATA stays on the body.
+  // Each
   // original token also retains its captured Int64 execution upper, one word
   // until retirement even while its constructor workspace is inactive. The
   // corresponding child/payload wrapper's synchronous flight-opening latch
@@ -75,15 +84,18 @@ fn installed_effect_operation_control_capacity(
       // The selected extent Some adds1H2R1W; member/input-selected are2W.
       // Optional owned output retains one wire callback frame and its
       // original method/output references; the wire DATA has its own extent.
-      records: 27L * calls,
+      // Same-token staged input retains one grow method/context pair.
+      records: (27L + 2L + 2L) * calls,
       // One original response-projection completion method is retained by
       // the physical child; its existing preparation latch owns the flight.
-      record_references: (64L + 3L + 2L + 4L + 1L) * calls,
-      record_words: (12L + 2L + 3L) * calls,
+      // Optional same-response preflight object and its two original methods,
+      // plus the installing original field, remain with this physical child.
+      record_references: (64L + 3L + 2L + 4L + 1L + 8L + 4L + 3L) * calls,
+      record_words: (12L + 2L + 3L + 2L + 4L) * calls,
       // Deferred member construction retains one original preparation-method
       // vector. Its length is bounded by these same checked child slots.
-      reference_arrays: 3L * calls + 1L,
-      reference_items: 15L * calls + count,
+      reference_arrays: 5L * calls + 1L,
+      reference_items: 18L * calls + count,
       scalar_arrays: 0L,
       scalar_items: 0L,
       maps: 1L,
@@ -102,18 +114,26 @@ fn installed_effect_operation_control_capacity(
   // Internal original calls keep the original ledger, not nested wrappers.
   // These are fixed existing implementation holders, not another owner or
   // per-method fee. Source tests pin this inventory to the real declaration.
+  // One Grant-only closure/context (2H9R), held Option/Int64 (1H1R1W).
   let retained : @execution.PreparationRepresentationUnits = {
     // Optional Host input tuple/Some and its retained opaque capacity. Wire
     // text remains with the already-funded original Preview producer.
     // One same-Run optional actual-row inventory adds its field and one Some
     // carrier at most, independently of how many operation bodies are live.
-    record_headers: 10L +
+    // The request, footprint, Ledger-open and Ledger-family selectors each add one method/context pair
+    // and a fixed original-coordinate call vector (4H14R3W each). The optional frame retains one
+    // variant/Some and the existing child reference, never another body owner.
+    // The shared four-word Ledger policy adds1H4W; at most32 existing
+    // wrapper contexts retain its borrowed reference (32R).
+    record_headers: 13L +
+    17L +
     shared.record_headers +
     11L * count +
     69L +
     4L +
     recovery.record_headers,
-    reference_slots: 12L +
+    reference_slots: 22L +
+    88L +
     slots +
     shared.reference_slots +
     17L * count +
@@ -121,7 +141,8 @@ fn installed_effect_operation_control_capacity(
     4L +
     recovery.reference_slots,
     // The active codec retains its separately charged original output bound.
-    scalar_words: 26L +
+    scalar_words: 27L +
+    16L +
     shared.scalar_words +
     29L * count +
     4L +
@@ -149,10 +170,12 @@ fn installed_effect_operation_control_capacity(
   // capacity/Option/tuple/collection/call carriers (8H,64R,64W), plus its
   // argument/selection frame (8H,32R,16W). No payload is parsed here. Keep this
   // fixed frame prepaid in idle controls; it is not per occurrence or byte.
+  // One fixed-size metadata coordinate vector has <=1000 scalar slots;
+  // DATA descriptor probes are transient inside this same fixed overhead.
   let workspace : @execution.PreparationRepresentationUnits = {
-    record_headers: 1L + keys.record_headers + 16L * 8L + 8L,
+    record_headers: 2L + keys.record_headers + 16L * 8L + 8L,
     reference_slots: slots + keys.reference_slots + 16L * 64L + 32L,
-    scalar_words: keys.scalar_words + 16L * 64L + 16L,
+    scalar_words: keys.scalar_words + 16L * 64L + 16L + 1000L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
@@ -413,6 +436,8 @@ fn borrow_installed_effect_operation_original(
     member_index,
     extent: Some(extent),
     input_selected: false,
+    construction_completed: false,
+    empty_headers_checked: false,
     backing: Some(backing),
     execution_limit: execution,
     started: !extent.physical_attempt && !defer_construction,
@@ -620,7 +645,14 @@ fn check_installed_effect_operation_original(
   }
   match (control, owner.effect_operation_controls) {
     (None, None) => Ok(())
-    (Some(before), Some(after)) if physical_equal(before, after) => Ok(())
+    (Some(before), Some(after)) if physical_equal(before, after) =>
+      match before.constructor_frame {
+        Some(Fixed(_, Some(child))) =>
+          check_installed_effect_request_projection_original(
+            child, owner, ledger, preparation,
+          )
+        _ => Ok(())
+      }
     _ => Err(Retired)
   }
 }
@@ -657,6 +689,7 @@ fn retain_installed_effect_operation_controls(
         coordinates: Map([]),
         construction_deferred,
         construction_active: false,
+        constructor_frame: None,
         ledger_codec_active: false,
         ledger_codec_workspace: 0L,
         ledger_codec_retained: 0L,
@@ -808,6 +841,26 @@ pub fn begin_installed_effect_operation_input(
   value : ClientInstalledEffectOperationBorrow,
   input : ClientInstalledEffectOperationExtent,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  resize_installed_effect_operation_input(value, input, false)
+}
+
+///|
+/// Continue the SAME synchronous constructor after its funded input preflight.
+/// This can only grow its original selected backing inside its immutable Plan
+/// maximum. It grants no operation, physical attempt, transfer or authority.
+pub fn grow_installed_effect_operation_input(
+  value : ClientInstalledEffectOperationBorrow,
+  input : ClientInstalledEffectOperationExtent,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  resize_installed_effect_operation_input(value, input, true)
+}
+
+///|
+fn resize_installed_effect_operation_input(
+  value : ClientInstalledEffectOperationBorrow,
+  input : ClientInstalledEffectOperationExtent,
+  growing : Bool,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
   guard value.original is Some(original) && physical_equal(original, value) else {
     return Err(ForeignOriginal)
   }
@@ -821,16 +874,31 @@ pub fn begin_installed_effect_operation_input(
   guard extent.maximum is Some(maximum) && input.maximum is None else {
     return Err(Unsupported)
   }
-  if value.input_selected ||
+  if value.input_selected != growing ||
     owner.effect_operation_opening ||
     owner.effect_operation_closing {
     return Err(AlreadyBound)
   }
+  if growing {
+    if value.construction_completed {
+      return Err(AlreadyBound)
+    }
+    guard value.started &&
+      backing is @resources.NodeManagedRunOperationBacking::Construction(_) else {
+      return Err(Unsupported)
+    }
+  }
   if input.operation != extent.operation ||
     input.physical_attempt != extent.physical_attempt ||
     input.transfer_bytes != extent.transfer_bytes ||
+    input.empty_response_headers != extent.empty_response_headers ||
+    (extent.empty_response_headers is Some(_) && !value.empty_headers_checked) ||
+    !same_effect_projection_remainder(
+      input.response_projection_retained,
+      extent.response_projection_retained,
+    ) ||
     (extent.physical_attempt && !value.started) ||
-    (!extent.physical_attempt && value.started) {
+    (!extent.physical_attempt && value.started && !growing) {
     return Err(ForeignOriginal)
   }
   guard owner.preparation is Some(preparation) &&
@@ -852,7 +920,12 @@ pub fn begin_installed_effect_operation_input(
     (match backing {
       @resources.NodeManagedRunOperationBacking::Construction(_) =>
         @execution.execution_capacity_retained_bytes(extent.capacity) <=
-        @execution.execution_capacity_retained_bytes(input.capacity)
+        @execution.execution_capacity_retained_bytes(input.capacity) &&
+        (
+          !growing ||
+          value.execution_limit <=
+          @execution.execution_capacity_execution_bytes(input.capacity)
+        )
       @resources.NodeManagedRunOperationBacking::Physical(_) =>
         installed_effect_capacity_within(extent.capacity, input.capacity)
     }) &&
@@ -948,6 +1021,69 @@ pub fn begin_installed_effect_operation_construction(
 pub fn complete_installed_effect_operation_response_projection(
   value : ClientInstalledEffectOperationBorrow,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  complete_installed_effect_response_projection(value, false)
+}
+
+///|
+/// Check the actual immutable operation's selected names BEFORE its request.
+/// All legacy/unspecified extents keep the complete original header allowance.
+pub fn require_installed_effect_operation_response_headers(
+  value : ClientInstalledEffectOperationBorrow,
+  selected_names : Array[String],
+  max_header_bytes : Int,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  guard value.original is Some(original) &&
+    physical_equal(original, value) &&
+    value.owner is Some(owner) &&
+    value.extent is Some(extent) else {
+    return Err(ForeignOriginal)
+  }
+  if owner.effect_operation_opening || owner.effect_operation_closing {
+    return Err(AlreadyBound)
+  }
+  owner.effect_operation_opening = true
+  defer {
+    owner.effect_operation_opening = false
+  }
+  match require_installed_effect_operation(value) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard value.started &&
+    !value.input_selected &&
+    extent.physical_attempt &&
+    value.extent is Some(current) &&
+    physical_equal(current, extent) else {
+    return Err(ForeignOriginal)
+  }
+  match extent.empty_response_headers {
+    None => Ok(())
+    Some((limit, _)) => {
+      if value.empty_headers_checked ||
+        !selected_names.is_empty() ||
+        limit != max_header_bytes {
+        return Err(ForeignOriginal)
+      }
+      value.empty_headers_checked = true
+      Ok(())
+    }
+  }
+}
+
+///|
+/// Same child only after its installed Unit projector has severed all output
+/// and cursor callbacks. The remainder comes from the admitted Plan, not JS.
+pub fn complete_installed_effect_discarded_response_projection(
+  value : ClientInstalledEffectOperationBorrow,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  complete_installed_effect_response_projection(value, true)
+}
+
+///|
+fn complete_installed_effect_response_projection(
+  value : ClientInstalledEffectOperationBorrow,
+  discarded : Bool,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
   guard value.original is Some(original) && physical_equal(original, value) else {
     return Err(ForeignOriginal)
   }
@@ -973,6 +1109,32 @@ pub fn complete_installed_effect_operation_response_projection(
   defer {
     owner.effect_operation_opening = false
   }
+  let remaining = if discarded {
+    guard value.extent is Some(extent) &&
+      extent.response_projection_retained is Some(capacity) else {
+      return Err(Unsupported)
+    }
+    Some(@execution.execution_capacity_retained_bytes(capacity))
+  } else {
+    None
+  }
+  let remaining = match value.extent {
+    Some(extent) =>
+      match extent.empty_response_headers {
+        None => remaining
+        Some((_, returned)) => {
+          guard value.empty_headers_checked else { return Err(ForeignOriginal) }
+          let retained = remaining.unwrap_or(
+            @execution.execution_capacity_retained_bytes(extent.capacity),
+          )
+          if retained < returned {
+            return Err(InsufficientCapacity)
+          }
+          Some(retained - returned)
+        }
+      }
+    None => return Err(Retired)
+  }
   @resources.complete_prepared_run_operation_response_projection(
     admission,
     plan,
@@ -983,6 +1145,7 @@ pub fn complete_installed_effect_operation_response_projection(
       )
     },
     backing,
+    remaining_retention=remaining,
   ).map_err(installed_effect_operation_reservation_issue)
 }
 
@@ -994,7 +1157,18 @@ pub fn complete_installed_effect_operation_response_projection(
 pub fn complete_installed_effect_operation_construction(
   value : ClientInstalledEffectOperationBorrow,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
-  complete_installed_effect_operation_construction_owned(value, None)
+  complete_installed_effect_operation_construction_owned(value, None, true)
+}
+
+///|
+/// A synchronous phase has returned and dropped its private scratch. Keep all
+/// retained inputs/outputs and the SAME staged constructor/coordinate open.
+/// A later phase must grow this original again BEFORE its callback. This is
+/// not final output completion, a work refund or physical cleanup evidence.
+pub fn yield_installed_effect_operation_construction_workspace(
+  value : ClientInstalledEffectOperationBorrow,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  complete_installed_effect_operation_construction_owned(value, None, false)
 }
 
 ///|
@@ -1007,13 +1181,18 @@ pub fn complete_installed_effect_operation_construction_output(
   value : ClientInstalledEffectOperationBorrow,
   wire : String,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
-  complete_installed_effect_operation_construction_owned(value, Some(wire))
+  complete_installed_effect_operation_construction_owned(
+    value,
+    Some(wire),
+    true,
+  )
 }
 
 ///|
 fn complete_installed_effect_operation_construction_owned(
   value : ClientInstalledEffectOperationBorrow,
   output_wire : String?,
+  finished : Bool,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
   guard value.original is Some(original) && physical_equal(original, value) else {
     return Err(ForeignOriginal)
@@ -1030,6 +1209,14 @@ fn complete_installed_effect_operation_construction_owned(
   if !value.started {
     return Err(Unsupported)
   }
+  if !finished {
+    guard value.extent is Some(extent) &&
+      extent.maximum is Some(_) &&
+      value.input_selected &&
+      !value.construction_completed else {
+      return Err(Unsupported)
+    }
+  }
   guard owner.preparation is Some(preparation) &&
     preparation is PlannedEffectManaged(admission, plan) else {
     return Err(Retired)
@@ -1040,15 +1227,29 @@ fn complete_installed_effect_operation_construction_owned(
   let output_retained = match output_wire {
     None => None
     Some(wire) => {
-      if value.input_selected {
-        return Err(AlreadyBound)
-      }
-      guard value.extent is Some(extent) &&
-        !extent.physical_attempt &&
-        extent.maximum is None else {
+      guard value.extent is Some(extent) && !extent.physical_attempt else {
         return Err(Unsupported)
       }
-      let upper = @execution.execution_capacity_retained_bytes(extent.capacity)
+      // A staged constructor has already selected its SAME original input.
+      // Completion consumes a separate final-output latch, never that input
+      // again. The Resource owner below also checks the live retained backing.
+      let upper = match extent.maximum {
+        Some(maximum) => {
+          if value.construction_completed {
+            return Err(AlreadyBound)
+          }
+          if !value.input_selected {
+            return Err(Unsupported)
+          }
+          @execution.execution_capacity_retained_bytes(maximum.capacity)
+        }
+        None => {
+          if value.input_selected {
+            return Err(AlreadyBound)
+          }
+          @execution.execution_capacity_retained_bytes(extent.capacity)
+        }
+      }
       let bound = Int64::min(upper, 2147483647L).to_int()
       let bytes = match @scalar.admit_utf8_length(wire, bound) {
         Err(_) => return Err(InsufficientCapacity)
@@ -1083,8 +1284,13 @@ fn complete_installed_effect_operation_construction_owned(
   }
   let result = result.map_err(installed_effect_operation_reservation_issue)
   owner.effect_operation_opening = false
-  if result is Ok(_) && output_retained is Some(_) {
-    value.input_selected = true
+  if result is Ok(_) {
+    if finished {
+      value.construction_completed = true
+    }
+    if output_retained is Some(_) {
+      value.input_selected = true
+    }
   }
   result
 }
@@ -1165,9 +1371,182 @@ pub fn begin_installed_effect_operation_control_construction(
   prepared : @publication_host.PreparedClientEffectComputation,
   request : @publication_host.ClientRequestIdentity,
   plan : ClientInstalledEffectManagedPlan,
+  native? : @execution.ExecutionCapacity? = None,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
   resize_installed_effect_operation_control_construction(
-    owner, prepared, request, plan, true,
+    owner,
+    prepared,
+    request,
+    plan,
+    true,
+    native_construction=native,
+  )
+}
+
+///|
+/// The existing Site issuer still validates the original decision and signs
+/// the Grant. Only its constructor scratch is selected here, on the SAME
+/// current Run/control token; no Receipt or provider callback enters this port.
+pub fn begin_installed_effect_operation_grant_construction(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : ClientInstalledEffectManagedPlan,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  resize_installed_effect_operation_control_construction(
+    owner,
+    prepared,
+    request,
+    plan,
+    true,
+    grant_construction=true,
+  )
+}
+
+///|
+/// Project the SAME completed original request into its Host facts. Resolve
+/// its spent coordinate to the original live child; neither callback arguments
+/// nor Host quantities can replace the selected constructor demand. All
+/// retained control outputs remain charged beside that child's native output.
+pub fn begin_installed_effect_operation_request_projection(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : ClientInstalledEffectManagedPlan,
+  member_index : Int,
+  operation_index : Int,
+  row_index : Int,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  resize_installed_effect_operation_control_construction(
+    owner,
+    prepared,
+    request,
+    plan,
+    true,
+    request_projection=Some((member_index, operation_index, row_index)),
+  )
+}
+
+///|
+/// Select only the SAME Plan member's declared scratch-only opaque boundary
+/// footprint constructor. No Host quantity, callback, Grant or new child is
+/// accepted. Full original control retention/current/cleanup stays unchanged.
+pub fn begin_installed_effect_operation_footprint_construction(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : ClientInstalledEffectManagedPlan,
+  member_index : Int,
+  operation_index : Int,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  resize_installed_effect_operation_control_construction(
+    owner,
+    prepared,
+    request,
+    plan,
+    true,
+    footprint_construction=Some((member_index, operation_index)),
+  )
+}
+
+///|
+/// Same original control and fixed scope codec for opening its Effect Ledger.
+/// The actual Store/native owner and policy are unchanged; this is not a
+/// native allocator/page/RSS guarantee or a different Ledger's admission.
+pub fn begin_installed_effect_operation_ledger_open(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : ClientInstalledEffectManagedPlan,
+  root : String,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  resize_installed_effect_operation_control_construction(
+    owner,
+    prepared,
+    request,
+    plan,
+    true,
+    ledger_open=Some(root),
+  )
+}
+
+///|
+/// Original standard Ledger frontier/intents family. Counts are only immutable
+/// collection geometry; original Preview/basis/current/I/O checks still run.
+/// Larger or unknown policies keep the complete generic construction frame.
+pub fn begin_installed_effect_operation_ledger_family(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : ClientInstalledEffectManagedPlan,
+  counts : Array[Int],
+  max_entries : Int,
+  max_entry_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  resize_installed_effect_operation_control_construction(
+    owner,
+    prepared,
+    request,
+    plan,
+    true,
+    ledger_family=Some(
+      (counts, max_entries, max_entry_bytes, max_nodes, max_depth),
+    ),
+  )
+}
+
+///|
+fn installed_effect_ledger_open_workspace(root : String) -> Int64? {
+  let scope = @request_scope.logical_request_scope_construction_inventory()
+  // Ordinary filesystem/SQLite acquisition retains its existing owner. The
+  // fixed method/statement/call controls use the shared Host overhead already
+  // quoted by this constructor family, rather than the whole receipt parser.
+  // Bound the variable path conversions/joins beside the SAME scope writer;
+  // this does not interpret the path, open a file or supply native backing.
+  let path_units = root.length().to_int64()
+  guard @execution.preparation_representation_cost({
+      record_headers: scope.record_headers,
+      reference_slots: scope.reference_slots,
+      scalar_words: scope.scalar_words,
+      owned_utf16_units: scope.owned_utf16_units + 8L * path_units,
+      owned_wire_bytes: scope.owned_wire_bytes + 8L * path_units,
+    })
+    is Some(codec) &&
+    installed_effect_operation_control_capacity(0) is Some(overhead) &&
+    @execution.checked_preparation_add_product(
+      codec,
+      @execution.execution_capacity_execution_bytes(overhead) -
+      @execution.execution_capacity_retained_bytes(overhead),
+      1L,
+    )
+    is Some(workspace) else {
+    return None
+  }
+  Some(workspace)
+}
+
+///|
+// Called after the original Resource current, including on completion and
+// other same-owner observations of a live/failed projection frame.
+fn check_installed_effect_request_projection_original(
+  child : ClientInstalledEffectOperationBorrow,
+  owner : ClientInstalledManagedRun,
+  ledger : @resources.Ledger,
+  preparation : ClientInstalledManagedRunOriginal,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  guard child.original is Some(original) && physical_equal(original, child) else {
+    return Err(ForeignOriginal)
+  }
+  guard !child.retired && child.backing is Some(backing) else {
+    return Err(Retired)
+  }
+  if !child.started || !child.construction_completed {
+    return Err(Unsupported)
+  }
+  check_installed_effect_construction_original(
+    child, owner, ledger, preparation, backing,
   )
 }
 
@@ -1251,7 +1630,13 @@ fn resize_installed_effect_operation_control_construction(
   expected_plan : ClientInstalledEffectManagedPlan,
   active : Bool,
   input_wire? : String? = None,
+  grant_construction? : Bool = false,
+  request_projection? : (Int, Int, Int)? = None,
+  footprint_construction? : (Int, Int)? = None,
+  ledger_open? : String? = None,
+  ledger_family? : (Array[Int], Int, Int, Int, Int)? = None,
   ledger_codec? : (Bool, String?, Int, Int)? = None,
+  native_construction? : @execution.ExecutionCapacity? = None,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
   guard owner.original is Some(original) && physical_equal(original, owner) else {
     return Err(ForeignOriginal)
@@ -1291,7 +1676,8 @@ fn resize_installed_effect_operation_control_construction(
       if !active ||
         !control.construction_active ||
         control.ledger_codec_active == entering ||
-        input_wire is Some(_) {
+        input_wire is Some(_) ||
+        control.constructor_frame is Some(Fixed(_, _)) {
         return Err(AlreadyBound)
       }
   }
@@ -1352,10 +1738,168 @@ fn resize_installed_effect_operation_control_construction(
       }
     }
   }
+  if (ledger_open is Some(_) || ledger_family is Some(_)) &&
+    (
+      !active ||
+      input_wire is Some(_) ||
+      grant_construction ||
+      request_projection is Some(_) ||
+      footprint_construction is Some(_) ||
+      ledger_codec is Some(_) ||
+      (ledger_open is Some(_) && ledger_family is Some(_))
+    ) {
+    return Err(Unsupported)
+  }
+  // Installing code can forward its actual same-Common Unit constructor
+  // quote. It adds only scratch to this original retained/idle control floor;
+  // it cannot issue outputs, enter a nested codec or select another family.
+  if native_construction is Some(native) &&
+    (
+      !active ||
+      @execution.execution_capacity_retained_bytes(native) != 0L ||
+      input_wire is Some(_) ||
+      grant_construction ||
+      request_projection is Some(_) ||
+      footprint_construction is Some(_) ||
+      ledger_open is Some(_) ||
+      ledger_family is Some(_) ||
+      ledger_codec is Some(_)
+    ) {
+    return Err(Unsupported)
+  }
+  let constructor_frame = if native_construction is Some(native) {
+    Some(Fixed(@execution.execution_capacity_execution_bytes(native), None))
+  } else if request_projection is Some((member_index, operation, row)) {
+    if !active ||
+      footprint_construction is Some(_) ||
+      grant_construction ||
+      input_wire is Some(_) ||
+      ledger_codec is Some(_) {
+      return Err(Unsupported)
+    }
+    let coordinate : ClientEffectOperationCoordinate = {
+      member_index,
+      per_row: true,
+      operation_index: operation,
+      row_index: row,
+      lookup_probes: None,
+    }
+    guard control.coordinates.get(coordinate) is Some(slot) &&
+      owner.effect_operations.get(slot) is Some(Some(child)) &&
+      child.extent is Some(extent) &&
+      !extent.physical_attempt &&
+      child.execution_limit >=
+      @execution.execution_capacity_retained_bytes(extent.capacity) else {
+      return refuse_installed_effect_operation_after_current(
+        owner,
+        prepared,
+        request,
+        ForeignOriginal,
+      ).map(_ => ())
+    }
+    match
+      check_installed_effect_request_projection_original(
+        child, owner, ledger, preparation,
+      ) {
+      Err(issue) =>
+        return refuse_installed_effect_operation_after_current(
+          owner, prepared, request, issue,
+        ).map(_ => ())
+      Ok(_) => ()
+    }
+    // This exact constructor already supplies native export, JSON output and
+    // canonical comparison scratch. Its completed native/Host outputs stay
+    // retained separately. Preserve the whole selected private envelope,
+    // including a staged constructor's original retained floor.
+    Some(
+      Fixed(
+        child.execution_limit -
+        @execution.execution_capacity_retained_bytes(extent.capacity),
+        Some(child),
+      ),
+    )
+  } else if footprint_construction is Some((member_index, operation_index)) {
+    if !active ||
+      grant_construction ||
+      input_wire is Some(_) ||
+      ledger_codec is Some(_) {
+      return Err(Unsupported)
+    }
+    guard plan.operations.get(member_index) is Some(demand) &&
+      demand.member_extents.get(operation_index) is Some(extent) &&
+      extent.operation.has_suffix(".footprint") &&
+      !extent.physical_attempt &&
+      extent.transfer_bytes == 0L &&
+      extent.maximum is None &&
+      extent.checked_row_capacity is None &&
+      extent.checked_effect_id_capacity is None &&
+      extent.host_input_limits is None &&
+      @execution.execution_capacity_retained_bytes(extent.capacity) == 0L else {
+      return refuse_installed_effect_operation_after_current(
+        owner,
+        prepared,
+        request,
+        ForeignOriginal,
+      ).map(_ => ())
+    }
+    Some(
+      Fixed(
+        @execution.execution_capacity_execution_bytes(extent.capacity),
+        None,
+      ),
+    )
+  } else if ledger_open is Some(root) {
+    guard installed_effect_ledger_open_workspace(root) is Some(workspace) else {
+      return Err(Unsupported)
+    }
+    Some(Fixed(workspace, None))
+  } else if ledger_family is Some((counts, entries, bytes, nodes, depth)) {
+    // No new policy refusal: unknown/larger geometry keeps the original full
+    // generic frame and all original method checks in their original order.
+    installed_effect_ledger_family_workspace(
+      counts, entries, bytes, nodes, depth,
+    ).map(workspace => Ledger(workspace))
+  } else if grant_construction {
+    if !active || input_wire is Some(_) || ledger_codec is Some(_) {
+      return Err(Unsupported)
+    }
+    guard standard_create_grant_capacity() is Some(grant) else {
+      return Err(Unsupported)
+    }
+    Some(
+      Fixed(
+        @execution.execution_capacity_execution_bytes(grant) -
+        @execution.execution_capacity_retained_bytes(grant),
+        None,
+      ),
+    )
+  } else if input is Some((_, host)) {
+    // This exact producer-owned Preview wire has its complete forest and
+    // decoder workspace quoted above from the SAME Plan's member limits.
+    // JSON.parse does not reconstruct Catalog/metadata or execute the full
+    // recipe. Select its existing scratch on this SAME control frame; the
+    // capacity combiner below still funds the whole original retained/idle
+    // floor plus host retention and the complete input execution demand.
+    if !active || ledger_codec is Some(_) {
+      return Err(Unsupported)
+    }
+    Some(
+      Fixed(
+        @execution.execution_capacity_execution_bytes(host) -
+        @execution.execution_capacity_retained_bytes(host),
+        None,
+      ),
+    )
+  } else if ledger_codec is Some(_) {
+    control.constructor_frame
+  } else {
+    None
+  }
   guard installed_effect_control_capacity(
       Some(control),
       plan,
       input~,
+      constructor_frame=Some(constructor_frame),
       codec_workspace=Some(codec_workspace),
       codec_retained=Some(codec_retained),
     )
@@ -1369,12 +1913,23 @@ fn resize_installed_effect_operation_control_construction(
     plan,
     ledger,
     () => {
-      check_installed_effect_operation_original(
-        owner,
-        ledger,
-        preparation,
-        Some(control),
-      )
+      match
+        check_installed_effect_operation_original(
+          owner,
+          ledger,
+          preparation,
+          Some(control),
+        ) {
+        Err(issue) => Err(issue)
+        Ok(_) =>
+          match constructor_frame {
+            Some(Fixed(_, Some(child))) =>
+              check_installed_effect_request_projection_original(
+                child, owner, ledger, preparation,
+              )
+            _ => Ok(())
+          }
+      }
     },
     control.reservation,
     retained,
@@ -1397,7 +1952,10 @@ fn resize_installed_effect_operation_control_construction(
           control.ledger_codec_workspace = codec_workspace
           control.ledger_codec_retained = codec_retained
         }
-        None => control.construction_active = active
+        None => {
+          control.construction_active = active
+          control.constructor_frame = constructor_frame
+        }
       }
       Ok(())
     }
@@ -1794,6 +2352,7 @@ fn installed_effect_control_capacity(
   codec_workspace? : Int64? = None,
   captured_rows? : Int? = None,
   codec_retained? : Int64? = None,
+  constructor_frame? : ClientEffectControlConstructorFrame?? = None,
 ) -> (@execution.ExecutionCapacity, Int64)? {
   let selected = match input {
     Some(value) => Some(value)
@@ -1831,6 +2390,23 @@ fn installed_effect_control_capacity(
     (plan.operation_control_capacity, plan.operation_control_idle_execution)
   }
   let base_retained = @execution.execution_capacity_retained_bytes(base)
+  // A failed/active constructor keeps its exact scratch on same-owner current
+  // paths. Only explicit successful completion returns it. Every original
+  // retained output and the fixed current/quantity frame remain charged.
+  let constructor_frame = constructor_frame.unwrap_or(
+    control.bind(value => value.constructor_frame),
+  )
+  let base_execution = match constructor_frame {
+    None => @execution.execution_capacity_execution_bytes(base)
+    Some(Fixed(workspace, _)) | Some(Ledger(workspace)) => {
+      guard workspace >= 0L &&
+        @execution.checked_preparation_add_product(base_retained, workspace, 1L)
+        is Some(execution) else {
+        return None
+      }
+      Int64::max(base_idle, execution)
+    }
+  }
   // The next actual wire's decoder coexists with these original controls.
   // Its retained tree/output and scratch are additional demand on the SAME
   // reservation, not limited by an initial zero-row quote. A finite parent
@@ -1838,18 +2414,26 @@ fn installed_effect_control_capacity(
   if codec_retained < 0L {
     return None
   }
+  // The selected snapshot/arrays remain live WHILE its original codec runs.
+  // Generic controls already cover their whole family; a fixed constructor
+  // cannot enter the nested codec at all. Only Ledger adds its coheld scratch.
+  let coheld_workspace = match constructor_frame {
+    Some(Ledger(workspace)) => workspace
+    _ => 0L
+  }
   guard @execution.checked_preparation_add_product(
       base_retained, codec_retained, 1L,
     )
     is Some(retained) &&
     @execution.checked_preparation_add_product(retained, codec_workspace, 1L)
     is Some(codec_execution) &&
+    @execution.checked_preparation_add_product(
+      codec_execution, coheld_workspace, 1L,
+    )
+    is Some(codec_execution) &&
     @execution.execution_capacity(
       retained,
-      Int64::max(
-        @execution.execution_capacity_execution_bytes(base),
-        codec_execution,
-      ),
+      Int64::max(base_execution, codec_execution),
     )
     is Some(original) else {
     return None

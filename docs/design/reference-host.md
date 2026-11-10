@@ -2420,8 +2420,19 @@ includes chunk Buffer headers and the original Array growth inventory.
 
 Successful original concatenation severs the same copied prefix and reader
 listener before returning the exact body. Only that returned Buffer remains in
-body retention; initial headers and trailers stay separately retained. The
-whole HTTP extent also retains the existing optional original-response byte
+body retention. Initial/raw/trailer dictionaries, normalization and parser
+vectors remain covered by the complete header construction peak. A successful
+Credential call returns only its declared, unique header-name/value pairs;
+the shared constructor retains those pairs and their outer Array, while
+conservatively keeping the complete old header String bound. It does not keep
+raw dictionaries, parser vectors or byte prefixes as returned header storage.
+The existing checked response-projection completion returns this private
+workspace only after the original request/socket, current, Journal and provider
+projection have succeeded. Failed or pending response construction keeps the
+full execution peak on that same original token. Returning completed workspace
+does not acknowledge any remaining physical cleanup. No header policy or pair
+selection changes.
+The whole HTTP extent also retains the existing optional original-response byte
 snapshot. It is constructed only after the copied receive prefix is severed,
 so both returned bodies fit within the unchanged full receive peak. Failed
 receive or concatenation keeps its original prefix under the unchanged full
@@ -2923,17 +2934,26 @@ rejection limits, the common tariff, grants, attempts or physical retirement.
 
 Provider response workspace retirement keeps the original captured Source,
 evidence and final Row cleanup authority. The same bound reader observation
-must confirm retirement before the direct provider's transient E-R may be
-returned. The retained provider frame, complete acquisition/evidence workspace
-and original page scratch remain charged. Whole-input, keyed and listing
-profiles retain their own lifetimes. A read Promise or stop request alone is
-not this boundary, and a pending or throwing observer supplies no credit.
+must confirm retirement before the direct Query provider's transient E-R may
+be returned. That Query's retained provider frame, acquisition/evidence
+workspace and page scratch stay charged. A completed nonlisting whole-input
+capture instead returns only its additive provider construction R/E and page E.
+Its receiver has already copied the selected row containers, admitted immutable
+Value graphs and charged their input holding. These Values retain no document
+or cursor; shared schema/value nodes remain covered by the holding and the
+receiver's remaining R/E. The Native holder metadata has a separate original
+reservation and stays live. Its reader reaches this boundary only after closing
+transport and discarding document/target/byte originals across earlier advances.
+The captured input, metadata and original cleanup observer remain live. Keyed
+and listing profiles retain their own lifetimes. A read Promise or logical stop
+is insufficient; pending or throwing observers supply no credit.
 
-The Resource operation reduces only the original reservation's absolute
-execution-byte remainder after its original current check. It does not return
-transfer, retention, quantities, attempts or consumed history, clear cleanup
-pending, close a reservation or acknowledge physical cleanup. Repeating the
-same remainder is idempotent; increasing it refuses. The response borrow's
+The existing Resource operation reduces only the original reservation's absolute
+remainders after its original current check. Query uses the unchanged E-only
+entrance; whole input uses the existing R/E reduction. Neither returns transfer,
+quantities, attempts or consumed history, clears cleanup pending, closes a
+reservation or acknowledges physical cleanup. Repeating the same return is
+idempotent; increasing a remainder refuses. The response borrow's
 existing state slot fences synchronous observer reentry, and its original
 observer remains installed until final Row cleanup. If resource currentness
 closes the original Source, already returned retired workspace is monotonic;
@@ -3002,6 +3022,43 @@ The shared Source binding reads the same retained Plan getter for an Effect
 record and the original current check for a Pure record. These alternatives
 construct no second Plan or execution permit. After that callback, original
 record, Request, parent and Plan identity fences precede provider work.
+
+The captured Core Plan-shape getter reads only its original immutable Plan's
+three scalar fields. The Host control wrapper checks that same current Plan
+before and after this read without opening constructor workspace. This route
+requires the original runtime, captured getter and one exact DATA Plan argument;
+argument accessors, Proxies and other callbacks retain the complete constructor
+path. The same retirement/reentry latch and invalid asynchronous-result handling
+remain active. This metadata read grants no row, physical operation, capacity
+or currentness reusable by later work; Core still owns every resource quantity.
+
+The same Run's control token has a separate synchronous Grant-construction
+entry for the installing Site's read/write issuers. Core uses its existing
+Credential Grant inventory for this workspace, while retaining the complete
+Plan's original outputs and fixed current/quantity frame. It does not reserve
+unrelated Receipt/codec scratch before this issuer. The original Site still
+checks the fresh decision, scope and currentness and signs each distinct Grant;
+this quantity selection is no permission or cached decision. Generic callbacks
+and Receipt work keep their full existing construction allowance. The same
+opening/reentry/retirement latches apply, a failed issuer keeps its workspace,
+and only actual synchronous completion returns it. A Grant cannot nest the
+unrelated Ledger codec. JS forwards the existing issuer and arguments to this
+Core boundary; legacy runtimes retain the complete generic frame.
+
+After an original row request constructor has completed, its Host facts export
+and original-row comparison may select that same constructor's private work
+on the existing control token. Core resolves the same Plan/member/row/operation
+coordinate to its original live, completed construction child; callback arguments
+supply no quantity. The original constructor envelope covers native export,
+JSON output and canonical comparison work; the full control retained allowance
+continues to fund newly returned Host trees/entries beside the original native
+output. This is not permission to treat newly parsed facts as borrowed strings.
+Both entry and completion keep the original current, Request, Plan, child and
+backing fences. A failed or pending frame retains its work and original child;
+only successful synchronous completion returns work. Other controls and Ledger
+codecs keep their complete generic construction path, and legacy runtimes fall
+back to that complete frame. No transfer/attempt, authorization, resource price,
+policy limit or physical-cleanup acknowledgement is changed.
 
 The ordinary execution installer requires its existing Request preparation
 owner. It receives that owner's original checked/compiler result and retains
@@ -3320,3 +3377,30 @@ uncertainty, retention, consumed work, or pending physical cleanup. A repeated
 absolute return is idempotent. An unstaged operation, failed callback, unresolved
 flight, changed original or failed current boundary cannot use this completion;
 the older pure-constructor completion still refuses physical operations.
+
+### Kintone UPDATE Mapping originals
+
+The kintone UPDATE Node binding passes the original `RecordDeclaration`, bounded
+field-source inventory and declaration limits to the existing native Mapping
+constructor. It preserves the complete original Form schema, writable fields,
+`$id` identity and required approval. Mapping/request correspondence requires
+the constructor-original Mapping and request, the same physical Catalog and
+complete before/write/omit inventories. Equal copied private fields do not
+establish that correspondence. Body/ref/CID projections refuse copied Mappings.
+These are synchronous DATA checks, not current authority, a target observation,
+a claim, a provider send or a cleanup acknowledgement. The installing caller
+reserves constructor work before invocation and retains the resulting material;
+normal current, authorization, cancellation and physical cleanup duties remain
+with their existing owners. The RelA bridge is generated from the same body.
+
+
+Native Effect manifest construction selects the physical exporter from the
+original captured Result borrow. Cells and acquired Source completions use the
+existing direct captured export; a resident completion uses its original managed
+operations and generation bridge. A suffix task inventory contains only work
+that suffix actually performed, so it cannot stand in for an earlier completed
+Source or Model Result. The representation projection is immutable DATA and
+provides no liveness or disclosure grant. Both exporters retain the same checked
+Result occurrence, original Run, bounded construction allowance and cleanup
+order, and independently reject a revoked or foreign borrow. Export failure is
+never a signal to retry through another representation.

@@ -77,6 +77,8 @@ pub fn parse_checkpoint_requirement(String) -> CheckpointRequirement?
 
 pub fn parse_run_status(String) -> @run_publication.RunOutcomeStatus?
 
+pub fn prepare_effect_approval_proof(SealedCheckpoint, String, String, WireLimits) -> Result[PreparedEffectApprovalProof, ResolutionIssue]
+
 pub fn prepare_resolution_proof(SealedCheckpoint, String, WireLimits) -> Result[PreparedResolutionProof, ResolutionIssue]
 
 pub fn resolution_effect(SealedCheckpoint, ResolutionDecision, unknown_effects? : Array[String]) -> ResolutionEffect
@@ -107,6 +109,8 @@ pub fn seal_checkpoint_body(String, WireLimits) -> Result[SealedCheckpoint, Chec
 
 pub fn seal_immediate_resolution(ImmediateAdmittedResolution, String, String, WireLimits) -> Result[ImmediateResolution, ResolutionIssue]
 
+pub fn seal_prepared_effect_approval_proof(PreparedEffectApprovalProof, String, String) -> Result[(String, String), ResolutionIssue]
+
 pub fn seal_prepared_resolution_proof(PreparedResolutionProof, String, String) -> Result[String, ResolutionIssue]
 
 pub fn seal_verified_resolution(AdmittedResolution, String, String, WireLimits) -> Result[VerifiedResolution, ResolutionIssue]
@@ -126,6 +130,7 @@ pub struct AdmittedResolution {
   attestation_preimage : String
   // private fields
 }
+pub fn AdmittedResolution::approval_proof_materials(Self, WireLimits) -> Result[(String, String, String)?, ResolutionIssue]
 pub fn AdmittedResolution::prepared_wire(Self, WireLimits) -> Result[String, ResolutionIssue]
 
 pub struct AttestedEffectResolution {
@@ -238,8 +243,14 @@ pub struct PersistedCheckpoint {
   artifact : SealedCheckpoint
 } derive(Eq, @debug.Debug)
 
+type PreparedEffectApprovalProof
+pub fn PreparedEffectApprovalProof::actor(Self) -> String
+pub fn PreparedEffectApprovalProof::checkpoint(Self) -> SealedCheckpoint
+pub fn PreparedEffectApprovalProof::preimage(Self) -> String
+
 type PreparedResolutionProof
 pub fn PreparedResolutionProof::actor(Self) -> String
+pub fn PreparedResolutionProof::approval_proof_materials(Self, String, String) -> Result[(String, String, String), ResolutionIssue]
 pub fn PreparedResolutionProof::checkpoint(Self) -> SealedCheckpoint
 pub fn PreparedResolutionProof::decision(Self) -> ResolutionDecision
 pub fn PreparedResolutionProof::preimage(Self) -> String

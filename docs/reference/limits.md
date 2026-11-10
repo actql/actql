@@ -63,7 +63,9 @@ separate decoded-value bounds are `maxRetainedValueBytes` of 10 MiB and
 `maxRowRetainedValueBytes` of 1 MiB; batch rows and retained bytes have their own
 bounds too. A total wire limit is not a per-row or decoded-retention limit.
 Client Result-read options default to the negotiated bounds and may only make
-them smaller. Other Host profiles must state their own selected bounds; these
+them smaller. The authorized delivery grant uses that same total-wire ceiling;
+publication output bounds do not supply the Result-read ceiling.
+Other Host profiles must state their own selected bounds; these
 Node Local values do not establish a universal Result maximum. See the
 [Local Host profile](../../packages/local-node/README.md).
 

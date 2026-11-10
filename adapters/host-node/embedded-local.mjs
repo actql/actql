@@ -22,6 +22,7 @@ import {ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs
 import {snapshotHostCapacityPolicy, snapshotHostLookupExecutionPolicy,
   selectInstalledHostEnvironment, selectInstalledLocalMaterializationEnvironment, localFilesLookupExecutionPolicy, localResourceLookupExecutionPolicy} from './installed-host-policy.mjs';
 import {createHash, createPublicKey, randomBytes, randomUUID} from 'node:crypto';
+import {hostResultStorePolicy} from './host-result-service-recipe.cjs';
 import {mkdir, readFile, stat} from 'node:fs/promises';
 import {homedir, userInfo} from 'node:os';
 import {join, resolve} from 'node:path';
@@ -521,6 +522,21 @@ export function readLocalPreparationContext(originals) {
   return context;
 }
 
+// Checked Source-slot coordinates are DATA from the original Core inventory.
+// A slot indexes Source custody; its Compute task remains a separate field.
+function installedDirectSourceCoordinates(moon, prepared) {
+  if (typeof moon.clientProgramDirectSourceCoordinates !== 'function') {
+    throw clientOperationError('NodeManagedRunRuntimeUnavailable');
+  }
+  const coordinates = checked(moon.clientProgramDirectSourceCoordinates(prepared));
+  if (!Array.isArray(coordinates) || coordinates.length !== moon.clientProgramAcquisitionCount(prepared) ||
+      coordinates.some((value, slot) => !Array.isArray(value) || value.length !== 4 || value[2] !== slot ||
+        value.some(item => !Number.isSafeInteger(item) || item < 0))) {
+    throw clientOperationError('InstalledSourcePreparationMismatch');
+  }
+  return coordinates;
+}
+
 // Same original Source inventory serves its retained Plan and legacy purpose
 // quote. A Source capacity is immutable DATA; it grants neither a read nor a
 // second Resource Run. Actual source readers retain their existing authority.
@@ -538,16 +554,17 @@ function retainedManagedCaptureInventory(originals, run, contracts) {
     }
     const inventory = [];
     const installed = prepareInstalledSequenceContractOriginal(originals);
-    for (let stage = 0; stage < count; stage++) {
+    const coordinates = installedDirectSourceCoordinates(moon, checkedPrepared);
+    for (const [stage, input] of coordinates) {
       if (typeof moon.clientProgramSelectInstalledSourceInput !== 'function' ||
           typeof moon.clientProgramSelectedSourceInputKind !== 'function' ||
           typeof moon.clientProgramSelectedSourceInputRef !== 'function') {
         throw clientOperationError('NodeManagedRunRuntimeUnavailable');
       }
       const selection = checked(moon.clientProgramSelectInstalledSourceInput(
-        checkedPrepared, run.request, stage, 0));
+        checkedPrepared, run.request, stage, input));
       const kind = moon.clientProgramSelectedSourceInputKind(selection);
-      if (kind !== 'query' && kind !== 'whole-input' || kind === 'whole-input' && count !== 1) {
+      if (kind !== 'query' && kind !== 'whole-input') {
         throw clientOperationError('InstalledSourcePreparationMismatch');
       }
       const adapter = installedSourceFor(run.sourceProfile,
@@ -563,10 +580,10 @@ function retainedManagedCaptureInventory(originals, run, contracts) {
       } else {
         requirement = checked(run.queryTimePreparation === undefined
           ? moon.clientProgramPrepareLocalQueryRequirement(
-            checkedPrepared, stage, 0, installed.admission,
+            checkedPrepared, stage, input, installed.admission,
             contracts.values, contracts.expression, contracts.ordered)
           : moon.clientProgramPrepareLocalQueryRequirementAtQueryTime(
-            checkedPrepared, stage, 0, run.queryTimePreparation, run.request,
+            checkedPrepared, stage, input, run.queryTimePreparation, run.request,
             installed.admission, contracts.values, contracts.expression, contracts.ordered));
         selected = adapter.managedCaptureCapacity(requirement);
       }
@@ -602,14 +619,18 @@ function prepareManagedComputeCapturePlan(originals, run, invocationOriginal) {
   let plan;
   if (inventory[0].kind === 'whole-input') {
     const timed = run.queryTimePreparation !== undefined;
-    const construct = timed ? moon.clientProgramPrepareInstalledManagedWholeSourcePlanAtQueryTime
-      : moon.clientProgramPrepareInstalledManagedWholeSourcePlan;
-    if (inventory.length !== 1 || typeof construct !== 'function') {
+    const plural = inventory.length > 1;
+    const construct = moon[timed
+      ? plural ? 'clientProgramPrepareInstalledManagedWholeSourcesPlanAtQueryTime' : 'clientProgramPrepareInstalledManagedWholeSourcePlanAtQueryTime'
+      : plural ? 'clientProgramPrepareInstalledManagedWholeSourcesPlan' : 'clientProgramPrepareInstalledManagedWholeSourcePlan'];
+    if (inventory.some(value => value.kind !== 'whole-input') || typeof construct !== 'function') {
       throw clientOperationError('NodeManagedRunRuntimeUnavailable');
     }
-    const original = inventory[0];
     const args = [
-      run.prepared, run.request, original.capacity, original.transferBytes, original.executionBytes,
+      run.prepared, run.request,
+      plural ? inventory.map(value => value.capacity) : inventory[0].capacity,
+      plural ? inventory.map(value => value.transferBytes) : inventory[0].transferBytes,
+      plural ? inventory.map(value => value.executionBytes) : inventory[0].executionBytes,
       installed.admission, contracts.values, contracts.expression, contracts.ordered, retainedRelationOutput];
     // Same temporary Core Option as ModuleBody. The typed constructor checks
     // it; no additional projection, retained carrier or legacy timed fallback.
@@ -940,10 +961,42 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
         run.preparedSequences, run.request, model.compiled, model.runDefinition,
         model.occurrence, model.graph, model.selectedBounds, physical);
   } else {
-    const sources = readInstalledMockPreparation(originals).sources;
+    if (run.sourceProfile !== originals.installation.managedSourceProfile ||
+        typeof moon.clientProgramRequestModelDirectSourceCoordinates !== 'function' ||
+        typeof moon.clientProgramSelectInstalledSourceInput !== 'function' ||
+        typeof moon.clientProgramSelectedSourceInputKind !== 'function') {
+      throw clientOperationError('NodeManagedRunRuntimeUnavailable');
+    }
+    // Classify only checked Source-kind DATA from this SAME Request input.
+    // Query construction belongs inside its backed module below; a generic
+    // capacity inventory would construct those acquisitions before admission.
+    const coordinates = checked(moon.clientProgramRequestModelDirectSourceCoordinates(parent, input));
+    if (!Array.isArray(coordinates) || coordinates.length !== count) {
+      throw clientOperationError('InstalledSourcePreparationMismatch');
+    }
+    const kinds = coordinates.map(coordinate => {
+      const selected = checked(moon.clientProgramSelectInstalledSourceInput(
+        run.prepared, run.request, coordinate[0], coordinate[1]));
+      const kind = moon.clientProgramSelectedSourceInputKind(selected);
+      current();
+      return kind;
+    });
+    const whole = kinds.every(kind => kind === 'whole-input');
+    if (!whole && kinds.some(kind => kind !== 'query')) {
+      throw clientOperationError('InstalledMockModelOperationalAdmissionUnavailable');
+    }
+    const inventory = whole ? retainedManagedCaptureInventory(originals, run, contracts) : undefined;
+    if (whole && (!Array.isArray(inventory) || inventory.length !== count ||
+        inventory.some(value => value.kind !== 'whole-input'))) {
+      throw clientOperationError('InstalledSourcePreparationMismatch');
+    }
+    const sources = whole ? inventory : readInstalledMockPreparation(originals).sources;
+    const construct = whole ? model.control.prepareCheckedClientRequestModelWholeInputsComponentCaptureModule
+      : model.control.prepareCheckedClientRequestModelComponentCaptureModule;
     if (sources.length !== 2 || model.selection?.graph !== model.graph || model.component !== undefined ||
-        typeof moon.clientProgramPrepareRequestModelComponentCaptureModule !== 'function' ||
-        typeof model.control.prepareCheckedClientRequestModelComponentCaptureModule !== 'function') {
+        typeof moon[whole ? 'clientProgramPrepareRequestModelWholeInputsComponentCaptureModule'
+          : 'clientProgramPrepareRequestModelComponentCaptureModule'] !== 'function' ||
+        typeof construct !== 'function') {
       throw clientOperationError('InstalledMockModelOperationalAdmissionUnavailable');
     }
     const query = readInitialControlInstallationAsset(initialControl, originals,
@@ -953,10 +1006,11 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
     // Same fixed Mock document limits as its real original reader. These
     // supply demand to Core; no row, Source observation or ACK is fabricated.
     const documentBytes = Object.freeze([1048576n, 1048576n]);
-    run.preparedSequences = model.control.prepareCheckedClientRequestModelComponentCaptureModule(
+    run.preparedSequences = Reflect.apply(construct, model.control, [
       parent, input, run.request, model.compiled, model.runDefinition, compilation,
-      sources.map(value => value.declaration), query, evidence,
-      documentBytes, documentBytes, installed.admission, retainedRelationOutput, run.queryTimePreparation,
+      sources.map(value => whole ? value.capacity : value.declaration), query, evidence,
+      whole ? inventory.map(value => value.transferBytes) : documentBytes,
+      whole ? inventory.map(value => value.executionBytes) : documentBytes, installed.admission, retainedRelationOutput, run.queryTimePreparation,
       (_capacity, prefix, bindSuffix) => {
         current();
         if (model.component !== undefined || typeof bindSuffix !== 'function') {
@@ -971,7 +1025,7 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
         model.component = component;
         current();
         return component.provider;
-      });
+      }]);
     current();
     run.modelPlan = model.control.bindCheckedClientMockModelCapturePlan(run.preparedSequences,
       model.compiled, model.runDefinition, model.occurrence, model.graph, model.selectedBounds);
@@ -2362,6 +2416,16 @@ async function openInstalledHost(originalInstallation, preparation) {
         ref.authorityScopeCid === authorityScopeCid);
     const authorizedScope = ({principalId: actual}) =>
       actual === principalId ? {namespaceId, authorityScopeCid} : undefined;
+    // One installed read policy supplies negotiation and the authorized
+    // delivery grant. Publication output bounds are a separate purpose.
+    const resultReadLimits = Object.freeze({
+      maxReadWireBytes: 10 * 1024 * 1024,
+      maxRowWireBytes: 1024 * 1024,
+      maxRowRetainedValueBytes: 1024 * 1024,
+      maxRetainedValueBytes: 10 * 1024 * 1024,
+      maxRows: 10000, maxBatchRows: 1000,
+      maxBatchRetainedValueBytes: 10 * 1024 * 1024,
+    });
     const negotiate = async value => ({version: 'actql-client-host/0.1',
       mode, owner: mode, durability: 'durable',
       ...(value.connection.workspaceId === undefined ? {} : {workspaceId}),
@@ -2369,14 +2433,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       ...(hostConnection(value) ? {submissionEpoch: await issueNodeClientSubmissionEpoch({
         journal,moon,authorizedScope: request => hostConnection(request)
           ? authorizedScope(request) : undefined},value)} : {}),
-      capabilities: ['result-jsonl'], limits: {
-        maxReadWireBytes: 10 * 1024 * 1024,
-        maxRowWireBytes: 1024 * 1024,
-        maxRowRetainedValueBytes: 1024 * 1024,
-        maxRetainedValueBytes: 10 * 1024 * 1024,
-        maxRows: 10000, maxBatchRows: 1000,
-        maxBatchRetainedValueBytes: 10 * 1024 * 1024,
-      }});
+      capabilities: ['result-jsonl'], limits: resultReadLimits});
     const initializePublicationServices = async () => {
     try {
     if (preparation !== undefined) {
@@ -2460,7 +2517,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       dataCeilingCid: cid({version: 'actql-local-read-ceiling/0.1'}),
       egressAdmissionCid: cid({version: 'actql-local-egress/0.1'}),
       expiresAt: plus(now(), 60 * 60 * 1000),
-      maxBytes: localOutputLimits.maxWireBytes, maxUses: 1,
+      maxBytes: resultReadLimits.maxReadWireBytes, maxUses: 1,
       };
     },
     authorizeResultRead: authorizeLocalResult,
@@ -2580,7 +2637,8 @@ async function openInstalledHost(originalInstallation, preparation) {
   };
   const capturedUpdateOriginal = submission => {
     if (prepareSubmit.kindOf(submission.preparedProgram) !== 'effectful') return {};
-    const original = effectRun.capturePreparedOriginal(submission.preparedProgram);
+    const original = effectRun.capturePreparedOriginal(submission.preparedProgram,
+      submission.updateTargetPreparedOriginal);
     return original === undefined ? {} : {updateTargetPreparedOriginal: original};
   };
   const plan = installClientStaticPlan({moon, control, prepare: prepareSubmit,
@@ -2632,7 +2690,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         cleanupPending: state.cleanupPending}, {ownerFactKey});
     } catch { observation.noteLoss(); }
   };
-  const observeRun = async ({ref, principalId: actual}) => {
+  const observeRun = async ({ref, principalId: actual}, originalFrame, retainFrame) => {
     if (actual !== principalId || ref.namespaceId !== namespaceId ||
         ref.authorityScopeCid !== authorityScopeCid) {
       throw clientOperationError('RunStateAccessDenied');
@@ -2640,7 +2698,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     // Recheck the journal revision after asynchronous Store observation so
     // control facts never combine observations from two journal revisions.
     for (let attempt = 0; attempt < 8; attempt++) {
-      const retained = journal.lookupRunDefinition(ref, moon, control);
+      const retained = journal.lookupRunDefinition(ref, moon, control, originalFrame);
       if (retained === undefined) {
         throw clientOperationError('RunStateAccessDenied');
       }
@@ -2713,8 +2771,10 @@ async function openInstalledHost(originalInstallation, preparation) {
       // Only this revision-stable common Owner projection supplies status.
       projectRunObservation(ref, state, retained);
       try {
-        return JSON.parse(journal.publishRunState(retained, state,
+        const observed = JSON.parse(journal.publishRunState(retained, state,
           moon, control));
+        retainFrame?.(retained);
+        return observed;
       } catch (cause) {
         if (cause?.code === 'RunStateObservationChanged') continue;
         throw cause;
@@ -2886,6 +2946,10 @@ async function openInstalledHost(originalInstallation, preparation) {
       try { return await Promise.race([promise, interrupted]); }
       finally { signal?.removeEventListener('abort', abort); }
     };
+    // Borrow only the last completed observation of this same wait. Journal
+    // still reads current SQL and compares the complete original row on use.
+    let originalFrame;
+    const retainFrame = frame => { originalFrame = frame; };
     for (;;) {
       if (signal?.aborted) throw interruption();
       let wake, timer;
@@ -2906,7 +2970,8 @@ async function openInstalledHost(originalInstallation, preparation) {
         captureWork();
         // Reuse the original read/authorization owner. A caller timeout does
         // not retire an unfinished Store read or the original physical work.
-        const current = await observeStep(observeRun({ref, principalId:actual}));
+        const current = await observeStep(observeRun({ref, principalId:actual},
+          originalFrame, retainFrame));
         if (signal?.aborted) throw interruption();
         const decision = installedRunWaitDecision(moon, current, since);
         if (decision === 'ready') return current;
@@ -3450,14 +3515,15 @@ async function openInstalledHost(originalInstallation, preparation) {
       if (modelCoordinates !== undefined && modelCoordinates.length !== acquisitionCount) {
         throw clientOperationError('InstalledSourcePreparationMismatch');
       }
+      const directCoordinates = installedDirectSourceCoordinates(moon, preparedProgram);
       // Every occurrence is selected by its checked requirement before any I/O.
       for (let task = 0; task < acquisitionCount; task++) {
         let unsupportedWholeSource;
         try {
           const coordinates = keyedAcquisition === undefined ? undefined
             : moon.clientProgramKeyedDirectAcquisitionCoordinates(keyedAcquisition);
-          const stage = modelCoordinates?.[task][0] ?? runtimeOptionalField(coordinates, 0) ?? task;
-          const input = modelCoordinates?.[task][1] ?? runtimeOptionalField(coordinates, 1) ?? 0;
+          const stage = modelCoordinates?.[task][0] ?? runtimeOptionalField(coordinates, 0) ?? directCoordinates[task][0];
+          const input = modelCoordinates?.[task][1] ?? runtimeOptionalField(coordinates, 1) ?? directCoordinates[task][1];
           const selectDomain = preparation?.selectManagedDomainSourceInput;
           if (preparation !== undefined && typeof selectDomain !== 'function') {
             throw clientOperationError('NodeManagedRunRuntimeUnavailable');
@@ -3469,7 +3535,7 @@ async function openInstalledHost(originalInstallation, preparation) {
             : domainSelection;
           const kind = moon.clientProgramSelectedSourceInputKind(selected);
           if (kind !== 'query' && kind !== 'whole-input' ||
-              kind === 'whole-input' && (acquisitionCount !== 1 || keyedAcquisition !== undefined)) {
+              kind === 'whole-input' && keyedAcquisition !== undefined) {
             throw new Error('InstalledSourcePreparationMismatch');
           }
           const sourceRef = moon.clientProgramSelectedSourceInputRef(selected);
@@ -3546,8 +3612,14 @@ async function openInstalledHost(originalInstallation, preparation) {
     return coordinates === undefined ? undefined
       : Object.freeze({stage: coordinates[0], input: coordinates[1], task: coordinates[2]});
   };
+  const directSourceOccurrence = (prepared, index) => {
+    const value = installedDirectSourceCoordinates(moon, prepared)[index];
+    if (value === undefined) throw clientOperationError('InstalledSourcePreparationMismatch');
+    const [stage, input, task, computeTask] = value;
+    return Object.freeze({stage, input, task, ...(computeTask === task ? {} : {computeTask})});
+  };
   const prepareAcquisition = async (preparedProgram, sourceAccess, occurrence, preparedSource) => {
-    occurrence ??= modelSourceOccurrence(preparedProgram, 0) ?? {stage: 0, input: 0, task: 0};
+    occurrence ??= modelSourceOccurrence(preparedProgram, 0) ?? directSourceOccurrence(preparedProgram, 0);
     const requestIdentity = sourceFreeRequestIdentities.get(preparedProgram)?.requested;
     if (requestIdentity === undefined) throw clientOperationError('ClientProgramNeedsInputs');
     const selected = checked(moon.clientProgramSelectInstalledSourceInput(
@@ -3581,7 +3653,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   const prepareAcquisitions = async preparedProgram => {
     const result = [];
     for (let task = 0; task < moon.clientProgramAcquisitionCount(preparedProgram); task++) {
-      const occurrence = modelSourceOccurrence(preparedProgram, task) ?? Object.freeze({stage: task, input: 0, task});
+      const occurrence = modelSourceOccurrence(preparedProgram, task) ?? directSourceOccurrence(preparedProgram, task);
       const prepared = await prepareAcquisition(preparedProgram, undefined, occurrence);
       // A held read has no selection before approval. Once authorized, keep
       // either typed acquisition owner; shared ledger admission happens before
@@ -4482,6 +4554,8 @@ async function openInstalledHost(originalInstallation, preparation) {
   };
   const effectRun = effectInstallation === undefined ? undefined :
     installNodeClientEffectRun({moon, publicationControl: control, journal,
+      reserveOriginal: (prepared, material, installations) =>
+        preparation.reserveManagedEffectOriginal(moon, prepared, material, installations),
       requestIdentityFor({prepared, authorityScopeCid: scope, requestId}) {
         if (scope !== authorityScopeCid) throw clientOperationError('ClientProgramNeedsInputs');
         return originalSourceFreeRequest(prepared, requestId, true);
@@ -5693,7 +5767,7 @@ async function openInstalledHost(originalInstallation, preparation) {
           effectResumeFlights.set(key, flight);
           const settlement = flight.catch(error => {
             diagnostic('effect_resume_failed', {ref,
-              code: error?.code ?? error?.message});
+              code: error?.code ?? error?.message, cause: error});
           }).finally(() => {
             effectResumeFlights.delete(key);
             if (checkpoints.journal.getRunState(view.runId)?.status !==
@@ -5705,7 +5779,7 @@ async function openInstalledHost(originalInstallation, preparation) {
           if (observing) await flight;
         } catch (error) {
           diagnostic('effect_resume_failed', {ref,
-            code: error?.code ?? error?.message});
+            code: error?.code ?? error?.message, cause: error});
           if (reconcileRef !== undefined) throw error;
         }
         busy = true;
@@ -5906,6 +5980,11 @@ async function openInstalledHost(originalInstallation, preparation) {
               prepareSubmit.assertSubmittedIntent(prepared, originalIntent.intent);
               localPreparationCustody.attach(submission,
                 localPreparationCustody.adopt(prepared, submission));
+              // This entrance owns a fresh funded Prepared/compiler, not the
+              // old projection's restored pair. Recapture on this Request;
+              // restoreComputation still admits the complete original Run
+              // materials against this compiler before any execution.
+              delete submission.updateTargetPreparedOriginal;
             }
             preparation.bindSourceRequest(submission, submission.preparedProgram);
             const requested = requestOf(submission);
@@ -6418,12 +6497,7 @@ function localPublicationStoreAuthorityCid(root, principalId) {
 function localPublicationStoreOptions(root, storeAuthorityCid, privateEvidenceKey) {
   return {
     directory: join(root, 'publication'), storeAuthorityCid,
-    capacityBytes: 512 * 1024 * 1024,
-    maxObjectBytes: localOutputLimits.maxWireBytes,
-    // A JSON value node occupies at least one byte in the selected wire.
-    // This is parser support, not an additional memory/resource grant.
-    maxObjects: 10000, maxContractNodes: localOutputLimits.maxWireBytes,
-    maxContractDepth: 64, privateEvidenceKey,
+    ...hostResultStorePolicy, privateEvidenceKey,
   };
 }
 
@@ -7825,6 +7899,16 @@ async function openPreparedInstalledHost(options, initialEntry) {
       return manager.prepareContentCompilation(prepared, originalSourceManagedHostRequest(originals, prepared), graph,
         (parent, input, originalGraph, contracts) => control.prepareCheckedClientRequestSerializationCompilation(
           parent, input, originalGraph, contracts));
+    },
+    reserveManagedEffectOriginal(runtime, prepared, material, installations) {
+      const manager = sourceManaged ?? computeManaged;
+      if (runtime !== moon || manager === undefined || typeof manager.reserveEffectOriginal !== 'function') {
+        throw clientOperationError('NodeManagedRunCompilationUnavailable');
+      }
+      (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
+        : assertSourceManagedInstallationCurrent)(manager, originals);
+      return manager.reserveEffectOriginal(prepared,
+        originalSourceManagedHostRequest(originals, prepared), material, installations);
     },
     prepareManagedModelMaterials(runtime, prepared, count, wireAt, containers) {
       const manager = sourceManaged ?? computeManaged;

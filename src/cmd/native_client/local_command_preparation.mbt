@@ -26,12 +26,30 @@ priv enum LocalCommandPreparationIssue {
   CommandInvalidProfile
   CommandNativeStorage(LocalCommandNativeStorageIssue)
   CommandUnavailable
+  CommandRequestPreparation(@local_values.ClientRequestPreparationIssue)
   CommandHost(@initial_bootstrap.NativeBootstrapIssue)
   CommandDomain(@initial_bootstrap.NativeBackedExecutionIssue)
   CommandRead(@initial_arena.InstalledArenaOriginalReadIssue)
   CommandRetainedExecution(@initial_arena.InstalledArenaRetainedExecutionIssue)
   CommandStoreOperation(@local_host.NativeLocalStoreOperationIssue)
+  CommandSavedResolution(@local_host.NativeLocalSavedEffectResolutionIssue)
   CommandBusinessChildren
+  CommandSavedFileResource(@initial_resources.LedgerIssue)
+  CommandSavedFileEntry(@initial_arena.InstalledArenaNonModelWorkEntryIssue)
+  CommandSavedFileResume(@local_host.NativeLocalInitialHostAttestationIssue)
+  CommandSavedEffectPublication(
+    @local_host.NativeLocalSavedEffectPublicationIssue
+  )
+  CommandSavedEffectOutput(@local_publication.NativePublicationOutputIssue)
+  CommandSavedEffectCompletion(LocalSavedEffectCompletionIssue)
+  CommandBusinessSource(@row_file.NativeRelationFileIssue)
+  CommandBusinessSourceIdentity(LocalNativeMockSourceIdentityIssue)
+  CommandBusinessModel(@local_host.NativeClientMockModelIssue)
+  CommandBusinessModelGraph(@local_values.ClientRequestProgramPlanIssue)
+  CommandBusinessEffectProposals(LocalNativeMockEffectProposalIssue)
+  CommandBusinessEffectAcceptance(
+    @local_host.NativeClientSubmittedEffectMaterialsIssue
+  )
   CommandBusinessPublication
   CommandBusinessStore(@local_store.NativePublicationStoreIssue)
   CommandRunObservationPending
@@ -48,6 +66,7 @@ priv enum LocalCommandPreparationIssue {
   CommandAdoption(@local_host.NativeLocalAdoptionIssue)
   CommandCapture(@local_host.NativeLocalAdoptionCaptureIssue)
   CommandApplication(String)
+  CommandProjectMock(LocalProjectMockModelIssue)
   CommandFilesystem(@files.NativeBoundedTextIssue)
   CommandFilesystemCleanup(@local_filesystem.NativeFilesystemIssue)
 }
@@ -78,6 +97,7 @@ priv struct LocalCommandPreparationOriginal {
   mut read_inventory_recorded : Bool
   mut business_inventory_recorded : Bool
   mut run_observation : LocalCommandRunObservationOriginal?
+  mut project : LocalProjectConfiguration?
   cancellation_recovery : Ref[String?]
   mut host : @initial_arena.InstalledArenaHost?
   mut backing_scope : @initial_arena.InstalledArenaBackingBorrow?
@@ -95,6 +115,8 @@ priv struct LocalCommandPreparationOriginal {
   mut component : @initial_arena.InstalledArenaCryptoComponent?
   mut outer_library : @local_crypto.Library?
   mut inner_library : @local_crypto.Library?
+  mut operator_host : @local_host.NativeLocalOperatorHostCapture?
+  mut operator_host_wire : String?
   mut product : @local_host.NativeLocalProductConfigurationCapture?
   mut initial_product_selected : Bool
   mut adoption : @local_host.NativeLocalAdoptionCapture?
@@ -141,7 +163,7 @@ fn prepare_local_command_preparation_original(
   }
   if business is Some(candidate) {
     match candidate.kind {
-      SourceFreeCompute =>
+      SourceFreeCompute | SavedEffectApply =>
         if candidate.domain_bytes <= 0L ||
           candidate.payload_facility_bytes <= 0L ||
           profile.control_bytes >
@@ -188,13 +210,29 @@ fn prepare_local_command_preparation_original(
     read_inventory_recorded: false,
     business_inventory_recorded: false,
     run_observation: None,
+    project: None,
     cancellation_recovery: Ref(None),
     business: business.map(candidate => {
       profile: candidate,
       selected_profile: None,
+      initial_window_bytes: None,
+      initial_domain_bytes: None,
       domain: None,
       execution: None,
       operation: None,
+      request_input: None,
+      request_intent: None,
+      request_intake_units: 0L,
+      request_read_failure: None,
+      request_initial: None,
+      request_parent: None,
+      request_body: None,
+      request_run: None,
+      request_retiring: false,
+      model_work: [],
+      effect_model: None,
+      saved_effect_rows: [],
+      saved_effect_files: None,
       values_work: None,
       values_failure: None,
       store: None,
@@ -239,6 +277,8 @@ fn prepare_local_command_preparation_original(
     component: None,
     outer_library: None,
     inner_library: None,
+    operator_host: None,
+    operator_host_wire: None,
     product: None,
     initial_product_selected: false,
     adoption: None,
@@ -312,12 +352,40 @@ fn LocalCommandPreparationOriginal::acquire_physical_read(
   }
   try {
     let profile = self.profile
+    // Preserve the immutable maximum profile. The initial Read funds only
+    // the existing first processing block and its actually coheld originals.
+    let read_budget = self.initial_read_budget()
+    let initial_pool = command_preparation_value(
+      native_storage_sum([
+        read_budget.bootstrap_retained,
+        read_budget.bootstrap_execution,
+        read_budget.workspace_execution,
+        read_budget.read_retained,
+        read_budget.read_execution,
+      ]).map_err(issue => CommandNativeStorage(issue)),
+    )
+    let read_domain_bytes = command_preparation_option(
+      local_command_domain_bytes(initial_pool),
+    )
+    let initial_domains = command_preparation_value(
+      native_storage_sum([read_domain_bytes, profile.sqlite_domain_bytes]).map_err(issue => {
+          CommandNativeStorage(issue)
+        },
+      ),
+    )
+    let (arena_bytes, _) = command_preparation_option(
+      local_command_backing_layout(initial_domains),
+    )
+    if read_domain_bytes > profile.read_domain_bytes ||
+      arena_bytes > profile.arena_bytes {
+      return Err(CommandInvalidProfile)
+    }
     let host = command_preparation_value(
       @initial_arena.prepare_installed_arena_host(
         profile.source,
         profile.recipe,
         1L,
-        profile.arena_bytes,
+        arena_bytes,
         profile.host_limits,
         profile.control_bytes,
       ).map_err(issue => CommandHost(issue)),
@@ -343,8 +411,9 @@ fn LocalCommandPreparationOriginal::acquire_physical_read(
       host
       .prepare_domain_in_process(
         scope,
-        profile.read_domain_bytes,
+        read_domain_bytes,
         profile.read_domain_limits,
+        initial_window=Some(initial_pool),
       )
       .map_err(issue => CommandDomain(issue)),
     )
@@ -416,7 +485,7 @@ fn LocalCommandPreparationOriginal::acquire_physical_read(
     )
     let acquired = command_preparation_value(
       host
-      .prepare_domain_original_read(read_domain, profile.read_budget)
+      .prepare_domain_original_read(read_domain, read_budget)
       .map_err(issue => CommandRead(issue)),
     )
     let read = match acquired {
@@ -516,12 +585,12 @@ fn LocalCommandPreparationOriginal::acquire_runtime(
       .map_err(issue => CommandPair(issue)),
     )
     self.pair = Some(pair)
-    // The same H is both the physical occupied-page ceiling and the original
-    // consuming claim. Generic demand-based claims retain their old argument.
-    let consumer_execution = match self.native_storage.read_facility_ceiling {
-      Some(ceiling) => ceiling
-      None => profile.consumer_execution_bytes
-    }
+    // H remains the physical maximum, independent of this first finite
+    // consuming block. Later constructors acquire backing before Read resize.
+    let consumer_execution = Int64::min(
+      profile.consumer_execution_bytes,
+      self.initial_read_budget().read_execution,
+    )
     let consumer = command_preparation_value(
       host
       .prepare_local_host_read_consumer(
@@ -759,12 +828,21 @@ fn LocalCommandPreparationOriginal::close_checked(
         .map_err(issue => CommandAdoption(issue)),
       )
     }
+    // A pending Saved publication still borrows its original review/current
+    // scope. Settle its actual payload children before cutting those aliases.
+    if self.business is Some(business) &&
+      business.saved_effect_files is Some(work) {
+      self.cleanup_stage = "saved-effect-publication"
+      command_preparation_value(self.close_saved_effect_publication(work))
+    }
     self.cleanup_stage = "run-observation"
     command_preparation_value(self.close_run_observation())
     self.cleanup_stage = "business-children"
     command_preparation_value(self.close_business_children())
     self.cleanup_stage = "business-operation"
     command_preparation_value(self.close_business_operation())
+    self.cleanup_stage = "saved-effect-entry"
+    command_preparation_value(self.close_saved_effect_entry_after_stores())
     if self.journal is Some(journal) {
       command_preparation_value(
         journal
@@ -844,6 +922,14 @@ fn LocalCommandPreparationOriginal::close_checked(
             return Err(CommandUnavailable)
           }
         }
+        if self.operator_host is Some(original) {
+          self.cleanup_stage = "operator-host"
+          command_preparation_value(
+            original.close().map_err(issue => CommandAdoption(issue)),
+          )
+          self.operator_host = None
+          self.operator_host_wire = None
+        }
         if self.product_parent_failure is Some(failure) {
           self.cleanup_stage = "product-parent-partial"
           command_preparation_value(
@@ -896,6 +982,16 @@ fn LocalCommandPreparationOriginal::close_checked(
           )
           self.outer_library = None
         }
+        self.cleanup_stage = "project-originals"
+        if self.project is Some(project) &&
+          project.mock_declarations is Some(original) {
+          match original.retire_originals() {
+            Ok(true) => ()
+            Ok(false) => return Err(CommandUnavailable)
+            Err(issue) => return Err(CommandProjectMock(issue))
+          }
+        }
+        self.project = None
         // These closed records still retain Read-managed aliases. Keep them
         // through their real close and then retire our own last references.
         // The closed Journal and Adoption still retain their actual SQLite DB.
@@ -1242,7 +1338,16 @@ fn LocalCommandPreparationOriginal::prepare_adoption(
       selected.map_err(issue => CommandAdoption(issue)),
     )
     self.adoption = Some(capture)
-    if capture.open().issue() is Some(issue) {
+    let operator_host = match self.operator_host {
+      Some(original) =>
+        Some(
+          command_preparation_value(
+            original.open().map_err(issue => CommandAdoption(issue)),
+          ),
+        )
+      None => None
+    }
+    if capture.open(product=self.product, operator_host~).issue() is Some(issue) {
       self.retain_primary(CommandCapture(issue))
       return Err(CommandCapture(issue))
     }
@@ -1344,5 +1449,38 @@ fn LocalCommandPreparationOriginal::prepare_adopted_journal(
       self.retain_primary(issue)
       Err(issue)
     }
+  }
+}
+
+///|
+fn LocalCommandPreparationOriginal::initial_read_budget(
+  self : LocalCommandPreparationOriginal,
+) -> @initial_arena.InstalledArenaOriginalReadBudget {
+  local_command_initial_read_budget(self.profile)
+}
+
+///|
+fn[T] command_preparation_option(
+  value : T?,
+) -> T raise LocalCommandPreparationStop {
+  match value {
+    Some(value) => value
+    None => raise LocalCommandPreparationStop(CommandInvalidProfile)
+  }
+}
+
+///|
+// The same selected initial Read basis is reused by its original command and
+// Native component consumers. This projection issues no platform original.
+fn local_command_initial_read_budget(
+  profile : LocalCommandPreparationProfile,
+) -> @initial_arena.InstalledArenaOriginalReadBudget {
+  let budget = profile.read_budget
+  {
+    ..budget,
+    read_execution: Int64::min(
+      budget.read_execution,
+      Int64::max(budget.bootstrap_execution, budget.workspace_execution),
+    ),
   }
 }

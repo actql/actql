@@ -24,8 +24,13 @@ pub fn NativeLocalReadPolicyBinding::prepare_material_receiver(
     self.selection.max_uses != 1 {
     return Err(MaterialUnavailable)
   }
-  let facts = match
+  let (facts, policy_cid) = match
     self.prepare_destination_facts(original, store, request, observed_at) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let policy_cids = match
+    self.selected_policy_cids(original, facts, policy_cid) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -41,7 +46,7 @@ pub fn NativeLocalReadPolicyBinding::prepare_material_receiver(
       chunk_bytes,
       8192,
       64,
-      self.selection.data_policy_cids,
+      policy_cids,
     ) {
     Ok(value) => value
     Err(_) => return Err(MaterialUnavailable)

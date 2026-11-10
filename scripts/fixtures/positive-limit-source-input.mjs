@@ -35,7 +35,7 @@ export const positiveLimitSuccesses = [
 export const positiveLimitRefusals = [
   ...['+id', '+(@count + 1)', '+NULL', '+0', '+2.5'].map((count, index) => ({
     name: 'operand-' + index, text: prefix + ` LIMIT ${count} OFFSET +@skip`,
-    expectedCode: 'ClientProgramRejected',
+    expectedCode: 'ClientProgramInvalidInput',
   })),
   {name: 'null-count-parameter', text: prefix + ' LIMIT +@count OFFSET +(@skip)',
     parameterDeclarations: {count: nullableNumber, skip: number},

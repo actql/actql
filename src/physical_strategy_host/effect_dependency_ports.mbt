@@ -44,14 +44,38 @@ fn captured_effect_original_acquisition_matches(
   unit : Int,
   identity : @query.CapturedSourceRelationIdentity,
 ) -> Bool {
-  if run.stopped || unit < 0 || unit >= run.graph.captured_prefix_value() {
+  if run.stopped || unit < 0 {
     return false
   }
-  guard run.original_sources.get(unit).bind(value => value) is Some(source) else {
-    return false
+  let graph = run.graph
+  if graph.captured_prefix_value() > 0 {
+    if unit >= graph.captured_prefix_value() {
+      return false
+    }
+    guard run.original_sources.get(unit).bind(value => value) is Some(source) else {
+      return false
+    }
+    return @query.captured_source_relation_identity_matches_source(
+        identity, source,
+      ) &&
+      !run.stopped
   }
-  @query.captured_source_relation_identity_matches_source(identity, source) &&
-  !run.stopped
+  // Whole Sources supply checked inputs, not completed task slots. Retain
+  // their exact original read binding; consuming that input does not erase
+  // the provenance of an independently retained computed Result.
+  for slot in graph.supplied_slots_iter() {
+    if graph_task_unit_index(graph, slot.consumer) != Some(unit) {
+      continue
+    }
+    if run.supplied_reads
+      .get(slot.consumer)
+      .bind(values => values.get(slot.input).bind(value => value))
+      is Some(read) &&
+      @query.captured_source_relation_identity_has_input_binding(identity, read) {
+      return !run.stopped
+    }
+  }
+  false
 }
 
 ///|
@@ -435,5 +459,151 @@ pub fn captured_effect_local_result_export_retained(
       inputs.table_pins.live &&
       captured_any_result_borrow_retained(value.result.borrow)
     LocalUnit(_) => false
+  }
+}
+
+///|
+/// Original computed Result correspondence in the graph actually opened by
+/// this capture. Source-input graphs preserve checked Program/Unit/target
+/// ownership while their task coordinates differ from captured-prefix graphs.
+/// This reads retained fields only; receipt/current checks stay with exports.
+pub fn captured_effect_local_result_export_matches_computed_unit(
+  value : CapturedEffectLocalResultExport,
+  computation : CheckedEffectComputationDAG,
+  unit : Int,
+) -> Bool {
+  let run = match value.owner {
+    EffectInputs(inputs) if inputs.live => inputs.run
+    LocalUnit(inputs) if inputs.live && inputs.unit == unit => inputs.run
+    _ => return false
+  }
+  let result = value.result
+  if run.captured.stopped ||
+    !physical_equal(run.checked.computation, computation) ||
+    result.stage != unit ||
+    !captured_any_result_borrow_retained(result.borrow) {
+    return false
+  }
+  let graph = run.captured.graph
+  result.task >= graph.captured_prefix_value() &&
+  graph_stage_target_task(
+    graph,
+    unit,
+    @ports.port_target(
+      @execution.managed_result_occurrence_port(
+        captured_any_result_borrow_occurrence(result.borrow),
+      ),
+    ),
+  ) ==
+  Some(result.task)
+}
+
+///|
+/// Bind a serial post-Model Result to the original Model input actually read
+/// by this captured Run. The completed Result is intentionally not the Model
+/// boundary itself. This reads the checked same-Unit edges and the existing
+/// sealed completed input binding; it never compares rows/CIDs, executes a task or issues
+/// an input, permission, current proof or cleanup acknowledgement.
+pub fn captured_effect_local_result_export_matches_model_suffix(
+  value : CapturedEffectLocalResultExport,
+  inputs : CapturedEffectInputs,
+  computation : CheckedEffectComputationDAG,
+  unit : Int,
+  model_task : Int,
+  original : @execution.CompletedOutput,
+  receipt : @execution.CompletedRelationExportReceipt,
+) -> Bool {
+  guard value.owner is EffectInputs(originals) &&
+    physical_equal(originals, inputs) &&
+    inputs.live &&
+    captured_effect_local_result_export_matches_computed_unit(
+      value, computation, unit,
+    ) else {
+    return false
+  }
+  let run = inputs.run.captured
+  let graph = run.graph
+  let result = value.result
+  if model_task < graph.captured_prefix_value() ||
+    model_task >= result.task ||
+    graph_task_unit_index(graph, model_task) != Some(unit) ||
+    !run.done[model_task] {
+    return false
+  }
+  let mut consumer = result.task
+  // Checked edges are ordered; a strictly decreasing cursor bounds this
+  // metadata-only walk without another stack, Array, graph or work owner.
+  while consumer > model_task {
+    if graph_task_unit_index(graph, consumer) != Some(unit) ||
+      graph_task_input_count(graph, consumer) != Some(1) ||
+      !run.done[consumer] {
+      return false
+    }
+    let mut producer = -1
+    for edge in graph.data_iter() {
+      if edge.consumer == consumer {
+        if producer >= 0 ||
+          edge.input != 0 ||
+          edge.producer < model_task ||
+          edge.producer >= consumer {
+          return false
+        }
+        producer = edge.producer
+      }
+    }
+    if producer < model_task {
+      return false
+    }
+    if producer == model_task {
+      guard captured_completed_task_has_original_input(run, consumer, original) &&
+        @execution.completed_output_available(original) &&
+        @execution.completed_result_export_preparation_matches_receipt(
+          value.preparation,
+          receipt,
+        ) else {
+        return false
+      }
+      // Original availability can call out. Keep only callback-free exact
+      // alias/lifetime fences afterwards; revocation cannot leave a live path.
+      return inputs.live &&
+        !run.stopped &&
+        run.lifetimes[model_task].live &&
+        run.lifetimes[consumer].live &&
+        captured_completed_task_has_original_input(run, consumer, original) &&
+        captured_effect_local_result_export_derived_retained(value) &&
+        captured_effect_local_result_export_retained(inputs, value)
+    }
+    consumer = producer
+  }
+  false
+}
+
+///|
+// Read the same completed task's retained admission, never the scheduling
+// cache cleared by commit_task_output. Completion already checked these exact
+// inputs before making the output visible. No callbacks or material reads.
+fn captured_completed_task_has_original_input(
+  run : CapturedDAG,
+  task : Int,
+  original : @execution.CompletedOutput,
+) -> Bool {
+  match run.outputs[task] {
+    Some(Materialized(output)) =>
+      @execution.completed_output_has_original_operation_input(
+        output, original, 0,
+      )
+    Some(Managed(_)) => {
+      guard run.executions[task] is Some(execution) &&
+        !execution.disposed &&
+        execution.admitted_managed_inputs is Some(inputs) &&
+        inputs.length() == 1 else {
+        return false
+      }
+      @execution.managed_input_binding_has_original_completion(
+        inputs[0],
+        original,
+      )
+    }
+    _ => false
   }
 }

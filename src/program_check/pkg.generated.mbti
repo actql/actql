@@ -88,7 +88,7 @@ pub fn asof_search_limit_source(AsOfSearchLimit) -> UnitOperationSource
 
 pub fn begin_parsed_source_registration(ParsedCheckRegistry, @stage_parameters.Source) -> Result[ParsedSourceRegistration, ParsedSourceRegistrationIssue]
 
-pub fn begin_request_policy_subjects(CheckedProgram, CompileLimits) -> RequestPolicySubjectPreparation raise UnitBuildFailure
+pub fn begin_request_policy_subjects(CheckedProgram, CompileLimits, cumulative_work? : Int64?) -> RequestPolicySubjectPreparation raise UnitBuildFailure
 
 pub fn bind_host_verified_request_value_policy(SourceExecution, @check_environment.SourceDataPolicy, Int, Int, Int, Int) -> HostRequestValuePolicyEvidence raise UnitBuildFailure
 
@@ -212,6 +212,8 @@ pub fn effect_computation_stage_results(EffectComputationCandidate) -> @stage_re
 
 pub fn effect_computation_supplied(EffectComputationCandidate) -> @decode_core.Cursor?
 
+pub fn effect_program_common_update_completion_free_inventory(EffectProgramStaticCandidate) -> Result[LocalCommonUpdateCompletionFreeInventory, CompletionFreeInventoryIssue]
+
 pub fn effect_program_completion_free_inventory(EffectProgramStaticCandidate) -> Result[CompletionFreeInventory, CompletionFreeInventoryIssue]
 
 pub fn effect_program_local_update_completion_free_inventory(EffectProgramStaticCandidate) -> Result[LocalUpdateCompletionFreeInventory, CompletionFreeInventoryIssue]
@@ -237,6 +239,10 @@ pub fn effective_policy_classification(EffectivePolicy) -> @check_environment.Da
 pub fn effective_policy_occurrence_at(EffectivePolicy, Int) -> SourcePolicyOccurrence?
 
 pub fn effective_policy_occurrence_count(EffectivePolicy) -> Int
+
+pub fn effective_policy_source_at(EffectivePolicy, Int) -> String?
+
+pub fn effective_policy_source_count(EffectivePolicy) -> Int
 
 pub fn emit_analytic_numeric_slot(AnalyticNumericSlot, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
@@ -392,6 +398,8 @@ pub fn local_common_normalization_inventory_requirements(LocalCommonNormalizatio
 
 pub fn local_common_normalization_inventory_work(LocalCommonNormalizationInventory) -> Int
 
+pub fn local_common_update_completion_free_inventory_matches(LocalCommonUpdateCompletionFreeInventory, EffectProgramStaticCandidate) -> Bool
+
 pub fn local_completion_free_inventory_matches(LocalCompletionFreeInventory, CheckedProgram) -> Bool
 
 pub fn local_completion_free_inventory_parameters_defaulted(LocalCompletionFreeInventory) -> Bool
@@ -515,6 +523,8 @@ pub fn observe_prepare_effect_computation_input(@stage_syntax.Program, CheckEnvi
 pub fn observe_supplement_checked_request_value_policies(CheckedProgram, Array[HostRequestValuePolicyEvidence], CompileLimits) -> (Result[CheckOutcome, LocalConstructionFailure], Int, Bool)
 
 pub fn observe_supplement_effect_request_value_policies(EffectComputationCandidate, Array[HostRequestValuePolicyEvidence], CompileLimits) -> (Result[EffectComputationCandidate, EffectComputationIssue], Int, Bool)
+
+pub fn original_check_diagnostic_outcome(CheckDiagnostic) -> CheckOutcome
 
 pub fn parsed_carriers_construction_extent(ParsedCarriersInput) -> @check_environment.RegistryConstructionExtent
 
@@ -667,6 +677,8 @@ pub fn prepare_effect_computation_input(@stage_syntax.Program, CheckEnvironment,
 pub fn prepare_infer_input_source_policy(CheckedProgram, Int, Int, Int, Int, Int, Int) -> PublicationSourcePolicy? raise UnitBuildFailure
 
 pub fn prepare_infer_item_limit(CheckedProgram, Int, Int, Int, Int, Int, Int) -> InferItemLimit raise UnitBuildFailure
+
+pub fn prepare_keyed_acquisition_source_policies(CheckedProgram, KeyedExecution, Int, Int, Int, Int) -> KeyedAcquisitionSourcePolicies raise UnitBuildFailure
 
 pub fn prepare_parsed_carriers_input(ParsedCheckRegistry) -> Result[ParsedCarriersInput, ParsedCheckPreludeIssue]
 
@@ -1430,6 +1442,13 @@ type InputRequests
 
 type IntervalSearchLimit
 
+pub struct KeyedAcquisitionSourcePolicies {
+  left : PublicationSourcePolicy?
+  request : EffectivePolicy
+  output : PublicationSourcePolicy?
+  original : SourceExecution
+}
+
 pub struct KeyedExecution {
   owner : @pipeline_check_context.SourceProducerContext
   stage : Int
@@ -1452,12 +1471,14 @@ pub(all) enum LocalCommonNormalizationIssue {
   UnsupportedRequirement
 } derive(Eq, @debug.Debug)
 
+type LocalCommonUpdateCompletionFreeInventory
+
 type LocalCompletionFreeInventory
 
 pub(all) enum LocalDependencyBodyIssue {
   MissingUnit
   MissingDependency
-  Encoding
+  Encoding(@encode_core.EncodeFailure)
   ForeignBody
   BudgetExceeded
 } derive(Eq, @debug.Debug)
@@ -1823,6 +1844,7 @@ pub struct SourceExecutionSubject {
 pub enum SourcePolicyOccurrence {
   DirectPolicy(DirectSourcePolicy)
   KeyedResponsePolicy(SourceExecution)
+  KeyedStaticRequestPolicy(SourceExecution)
 }
 
 pub(all) enum SourceReadAuthority {

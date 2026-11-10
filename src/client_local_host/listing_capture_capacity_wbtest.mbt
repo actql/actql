@@ -7,10 +7,22 @@ test "listing capture planner adds exact report amounts to the same original req
     acquisition,
     Some(report),
   ).unwrap()
-  assert_eq(complete.retained_bytes, original.retained_bytes + 7L)
-  assert_eq(complete.execution_bytes, original.execution_bytes + 9L)
+  assert_eq(complete.retained_bytes, original.retained_bytes + 7L + 40L)
+  assert_eq(complete.execution_bytes, original.execution_bytes + 9L + 40L)
   assert_true(physical_equal(complete.requirement, original.requirement))
   assert_eq(complete.original_input, original.original_input)
+  // Independently counted original configuration binding: H1/R2/W1 = 40.
+  assert_true(
+    installed_provider_row_capture_capacity_matches(
+      complete, acquisition, report,
+    ),
+  )
+  let equal_report = @execution.execution_capacity(7L, 9L).unwrap()
+  assert_false(
+    installed_provider_row_capture_capacity_matches(
+      complete, acquisition, equal_report,
+    ),
+  )
   // Small units prove DATA addition/binding only, not a numerical profile.
 }
 

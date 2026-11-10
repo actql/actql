@@ -64,7 +64,11 @@ test "positive navigation literals keep zero and exact integer bounds" {
 ///|
 test "positive navigation syntax cannot disguise computation or invalid atoms" {
   for function in ["LAG", "LEAD"] {
-    for value in ["+id", "+(id)", "+(1 + 1)", "+(@p + 1)", "+(-1)"] {
+    for
+      value in [
+        "+id", "+(id)", "+(1 + 1)", "+(@p + 1)", "+(-1)", "NULL", "(NULL)", "+NULL",
+        "+((NULL))", "+(+(NULL))",
+      ] {
       assert_true(
         compile(
           @query.parse_query(
@@ -85,8 +89,7 @@ test "positive navigation syntax cannot disguise computation or invalid atoms" {
         msg=value,
       )
     }
-    for
-      value in ["+NULL", "+'2'", "+TRUE", "+1.5", "+9007199254740992", "+(-0)"] {
+    for value in ["+'2'", "+TRUE", "+1.5", "+9007199254740992", "+(-0)"] {
       assert_true(
         compile(
           @query.parse_query(

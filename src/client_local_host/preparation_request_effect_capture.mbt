@@ -10,15 +10,30 @@ fn request_effect_capture_recovery_capacity(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  nodes? : Int? = None,
+  definition_nodes? : Int? = None,
 ) -> @execution.ExecutionCapacity? {
+  let tree_nodes = nodes.unwrap_or(encrypted_bytes)
+  let definition_tree_nodes = definition_nodes.unwrap_or(definition_units)
   if encrypted_bytes < 0 ||
+    tree_nodes < 0 ||
     definition_units < 0 ||
+    definition_tree_nodes < 0 ||
+    definition_tree_nodes > definition_units ||
     max_wire_bytes <= 0 ||
     max_nodes <= 0 ||
     max_depth <= 0 {
     return None
   }
   let bytes = encrypted_bytes.to_int64()
+  // Before AEAD, the encrypted JSON envelope itself still needs one full
+  // conservative native tree. After AEAD, retain the larger of that envelope
+  // peak and the three inventories bounded by the actual plaintext spelling.
+  // Legacy cold callers without plaintext geometry retain their original quote.
+  let node_slots = match nodes {
+    None => bytes * 3L
+    Some(_) => Int64::max(bytes, tree_nodes.to_int64() * 3L)
+  }
   @execution.execution_capacity_inventory(
     [
       // One selected physical piece and one failed-close piece can coexist.
@@ -33,13 +48,19 @@ fn request_effect_capture_recovery_capacity(
       // The original Definition wire getter is an alias; re-admitting that
       // contract creates one additional bounded tree/text backing before
       // capture metadata is known. Admit it in the initial zero-extent phase.
-      { unit: ValueNodeSlots, count: definition_units.to_int64(), copies: 1, },
+      // Only the live owner's successful constructor may select its recorded
+      // final node count. Initial/cold/failed calls keep the original peak.
+      {
+        unit: ValueNodeSlots,
+        count: definition_tree_nodes.to_int64(),
+        copies: 1,
+      },
       { unit: DecodedTextBytes, count: definition_units.to_int64(), copies: 1, },
       // Capture JSON, retained typed contracts, and prepared schema/member
       // inventory coexist during construction. Successful Store return cuts
       // only the full parsed container; the returned two tree inventories
       // stay backed until their original child cleanup has completed.
-      { unit: ValueNodeSlots, count: bytes, copies: 3, },
+      { unit: ValueNodeSlots, count: node_slots, copies: 1, },
       // Capture wire, decoded record strings, and independently decoded typed
       // strings. A getter alias of an existing wire is not another copy.
       { unit: DecodedTextBytes, count: bytes, copies: 3, },
@@ -54,7 +75,7 @@ fn request_effect_capture_recovery_capacity(
       // overlap the complete retained inventory, including partial failure.
       {
         unit: ValueNodeSlots,
-        count: Int::min(encrypted_bytes, max_nodes).to_int64(),
+        count: Int::min(tree_nodes, max_nodes).to_int64(),
         copies: 2,
       },
       { unit: CanonicalWireBytes, count: bytes, copies: 4, },

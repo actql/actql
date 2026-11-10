@@ -2,6 +2,7 @@
 package "actql/actql/logical_request_scope"
 
 import {
+  "actql/actql/encode_core",
   "moonbitlang/core/debug",
 }
 
@@ -11,6 +12,8 @@ pub fn logical_request_scope_authority(LogicalRequestScope) -> String
 pub fn logical_request_scope_caller_id(LogicalRequestScope) -> String
 
 pub fn logical_request_scope_cid(LogicalRequestScope) -> String
+
+pub fn logical_request_scope_construction_inventory() -> @encode_core.HashWriterConstructionInventory
 
 pub fn prepare_logical_request_scope(String, String, Int) -> Result[LogicalRequestScope, LogicalRequestScopeIssue]
 

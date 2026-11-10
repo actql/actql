@@ -350,3 +350,62 @@ test "Native checked Effect waiting and its independent witness commit together 
     database.close_checked().unwrap()
   }
 }
+
+///|
+// Actual SQLite transition routing; explicit current/Checkpoint metadata here
+// does not certify the installed Read pair, real Preview custody or backing.
+test "Native Effect waiting uses one original operation for its transaction read insert and CAS" {
+  let (database, journal, request, allowed, definition, before) = submitted_effect_checkpoint_setup(
+    "effect-wait-original-operation",
+  )
+  let persisted = submitted_effect_checkpoint_artifact(
+    database, allowed, definition,
+  )
+  let calls : Array[String] = []
+  let access = journal_test_operation_access(database, calls)
+  let waiting = journal
+    .wait_effect_checkpoint_with_operations(
+      request,
+      allowed,
+      persisted,
+      before.revision,
+      {
+        authorization_context_cid: "sha256:" + "a".repeat(64),
+        environment_binding_cid: "sha256:" + "b".repeat(64),
+      },
+      [],
+      "2026-10-10T00:00:30.000Z",
+      () => true,
+      operations=Some(access),
+    )
+    .unwrap()
+  let key = @host.client_request_scope_cid(request)
+  assert_eq(waiting.revision, before.revision + 1L)
+  assert_true(calls.contains("begin"))
+  assert_true(calls.contains("commit"))
+  assert_true(calls.contains("read:client_runs:" + key))
+  assert_true(calls.contains("insert:client_effect_custody:" + key))
+  assert_true(calls.contains("compare_exchange:client_runs:" + key))
+  assert_eq(
+    native_client_run_checkpoint_state(waiting).unwrap().status,
+    @publication.WaitingCheckpoint,
+  )
+  calls.clear()
+  let refused = journal.wait_effect_checkpoint_with_operations(
+    request,
+    allowed,
+    persisted,
+    waiting.revision,
+    {
+      authorization_context_cid: "sha256:" + "a".repeat(64),
+      environment_binding_cid: "sha256:" + "b".repeat(64),
+    },
+    [],
+    "2026-10-10T00:00:31.000Z",
+    () => false,
+    operations=Some(access),
+  )
+  assert_true(refused is Err(AuthorizationDenied))
+  assert_eq(calls.length(), 0)
+  database.close_checked().unwrap()
+}

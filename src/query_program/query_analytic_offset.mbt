@@ -41,6 +41,9 @@ fn lower_analytic_offset(
         ])
       // These forms cannot supply the required literal/whole-parameter role.
       Reference(_) | Binary(_, _, _) => raise Abort(InvalidQuery)
+      // A known NULL atom violates the navigation offset's non-null domain.
+      // Parentheses and unary plus cannot turn it into a support limitation.
+      Null => raise Abort(InvalidQuery)
       Unary("-", child) => {
         if work >= max_work {
           raise Abort(Expression({ issue: WorkLimit, origin: Some(origin), }))

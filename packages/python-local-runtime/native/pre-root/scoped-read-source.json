@@ -10,37 +10,37 @@
   ],
   "patch": {
     "path": "scoped-read-review.patch",
-    "bytes": 52592,
-    "sha256": "3ec2048e414aea70bb9514ae5a7b936d9ff0430310b1a5ef6d081cf885eefa57"
+    "bytes": 64668,
+    "sha256": "e7216dd090dd205f3112b4e95cde14c7a8ce6becda72d060582aabc8f2503b48"
   },
   "inputs": [
     {
       "root": "provider",
       "path": "owned_capacity.c",
       "output": "owned_capacity.c",
-      "bytes": 40262,
-      "sha256": "5b721be99bb8902767c4c80605459508045ddf08c4841a73ea4c11bb014bbd1f"
+      "bytes": 41465,
+      "sha256": "d043591d81b0988dbd262cec8f4d2fd77afb2a1bd87428350d1555b6137e9493"
     },
     {
       "root": "provider",
       "path": "owned_region.inc",
       "output": "owned_region.inc",
-      "bytes": 35034,
-      "sha256": "b01307a3f9dc717161107aa357525486f403ef10b904bc0542406d313c964d58"
+      "bytes": 36266,
+      "sha256": "6900203c7d7ec0a9f7515d9cda8355b1edaad545417451f494f49ce94cfdbe70"
     },
     {
       "root": "provider",
       "path": "owned_capacity.h",
       "output": "owned_capacity.h",
-      "bytes": 7243,
-      "sha256": "a338f46d2317ad4a35584e65b7545c7fbc452e0fca55f2e8738cffa2f6505eec"
+      "bytes": 7439,
+      "sha256": "0444df0c78d0fda6a23ffeb29f4b9e38f531cfc8fc758ea1e328b7819f85f149"
     },
     {
       "root": "provider",
       "path": "owned_region.h",
       "output": "owned_region.h",
-      "bytes": 10904,
-      "sha256": "2d6cc4cbd7a356d7b864deae2bb10493dc90aec91372197c98a6e6fa7258b294"
+      "bytes": 12839,
+      "sha256": "62a647e791f554801d05379d64ceaebc94af78b2ec2dc4cb368fa52447ce30e5"
     },
     {
       "root": "provider",
@@ -179,8 +179,8 @@
       "root": "provider",
       "path": "owned_domain_growth.inc",
       "output": "owned_domain_growth.inc",
-      "bytes": 13360,
-      "sha256": "64da9823085f699fd982382749b5b433b514e8829480deee8f277f7af2f08af7"
+      "bytes": 28051,
+      "sha256": "c743974199c77ea78c91126ee8e63b69a81c0f0cb8beb0f3917e8a82929dcace"
     }
   ],
   "outputs": {
@@ -221,12 +221,12 @@
       "sha256": "4995faa31ac633768430bad1b7ea28699ab601e216fb357739a092cbea455022"
     },
     "owned_capacity.c": {
-      "bytes": 41863,
-      "sha256": "ac0ba7d89903fcecbaeaa5ee2d87a4d23caf4e9563570c60c97f40316af8b752"
+      "bytes": 43094,
+      "sha256": "50c54bb6ca1df7b9cf51db1d8b3b400ed1c0ae4ced121ac0bec5cd6fdc5bd315"
     },
     "owned_capacity.h": {
-      "bytes": 7243,
-      "sha256": "a338f46d2317ad4a35584e65b7545c7fbc452e0fca55f2e8738cffa2f6505eec"
+      "bytes": 7439,
+      "sha256": "0444df0c78d0fda6a23ffeb29f4b9e38f531cfc8fc758ea1e328b7819f85f149"
     },
     "owned_domain_borrow.h": {
       "bytes": 2573,
@@ -237,12 +237,12 @@
       "sha256": "e3914075758a265d18c3a6b075053d2fe31a3f35ee8cc8aee0548493ab814373"
     },
     "owned_region.h": {
-      "bytes": 10904,
-      "sha256": "2d6cc4cbd7a356d7b864deae2bb10493dc90aec91372197c98a6e6fa7258b294"
+      "bytes": 12839,
+      "sha256": "62a647e791f554801d05379d64ceaebc94af78b2ec2dc4cb368fa52447ce30e5"
     },
     "owned_region.inc": {
-      "bytes": 35076,
-      "sha256": "ab28f328f8eeb4f5d936ff83f18028311da8faad915ff12a5c41f66e677bca07"
+      "bytes": 36308,
+      "sha256": "6eb9004e1862fcbad5f3316f20e0b27ded8aec295111aaea40cb507213af8a14"
     },
     "owned_rust_heap.inc": {
       "bytes": 9115,
@@ -261,12 +261,12 @@
       "sha256": "1f4e1bc297835605be01298370f1bff7d0f8ec2a23c86371bb20db89356e2369"
     },
     "scoped_read.h": {
-      "bytes": 2553,
-      "sha256": "dce7895efa71903d5ee7149b128f3ea29768a468627eff865fc7d66bfcbe5e90"
+      "bytes": 3096,
+      "sha256": "a1a80056815dc7c1e5ee476be46ffa3f0b6e036caae8dbc651341c10fc8291f2"
     },
     "scoped_read.inc": {
-      "bytes": 41798,
-      "sha256": "c62792feedde68038938e65375aa970bd540a88fef22e189b66cb46e67bfdebd"
+      "bytes": 53088,
+      "sha256": "df6839c5a40b4198d8e1673210a57ee858e7d9351ca5b98d464a0aba821a4eb6"
     },
     "sync_io.c": {
       "bytes": 6246,
@@ -285,8 +285,8 @@
       "sha256": "ca3b1d4c0dad0da85a1b3e1a20956d1ac696f52b0c7565f70547070f7f0d75ba"
     },
     "owned_domain_growth.inc": {
-      "bytes": 13360,
-      "sha256": "64da9823085f699fd982382749b5b433b514e8829480deee8f277f7af2f08af7"
+      "bytes": 28051,
+      "sha256": "c743974199c77ea78c91126ee8e63b69a81c0f0cb8beb0f3917e8a82929dcace"
     }
   },
   "normal_profile": null,

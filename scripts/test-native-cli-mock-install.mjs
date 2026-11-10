@@ -1,6 +1,6 @@
-// Opt-in positive acceptance, never an expected refusal or a skip. This stays
-// separate from source-free/Remote acceptance until the Native mock suppliers
-// and approval continuation are implemented. Missing support is a failure.
+// Positive installed acceptance, never an expected refusal or a skip. CI runs
+// this independently of source-free acceptance on the same prepared Native
+// release. Missing suppliers or approval continuation are failures.
 import assert from 'node:assert/strict';
 import {execFile} from 'node:child_process';
 import {createHash} from 'node:crypto';
@@ -79,7 +79,9 @@ try {
   assert.equal(binary.length, manifest.platforms[platform].binaryBytes);
   assert.equal(createHash('sha256').update(binary).digest('hex'), manifest.platforms[platform].binarySha256);
   env.PATH = join(root, 'empty-path');
-  for (const template of mockTemplates) scenarios.push(await runNativeCliMockScenario({root, template,
+  env.ACTQL_NATIVE_TIMINGS = '1';
+  env.ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS = '1';
+  for (const template of mockTemplates) scenarios.push(await runNativeCliMockScenario({root, template, launcherTimings: 'required',
     run: (args, cwd) => run(process.execPath, [launcher, ...args], cwd)}));
   assert.equal(scenarios.length, 2, 'Both README and Quickstart must finish without skips');
   assert.deepEqual(await readFile(join(platformRoot, 'bin/actql-native-client')), binary);

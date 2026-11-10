@@ -105,6 +105,10 @@ fn local_execute_publish_values(
     ) {
     Ok(value) => value
     Err(failure) => {
+      local_values_failure_tags(
+        @local_host.native_client_values_work_failure_issue(failure),
+        native_timing_amount,
+      )
       if !failure.close() {
         stop("LocalValuesCleanupPending")
       }
@@ -115,6 +119,9 @@ fn local_execute_publish_values(
     errdefer (if !work.close() { stop("LocalValuesCleanupPending") })
     let (row_limits, limits) = work
       .publication_limits(payload_limit)
+      .unwrap_or_else(() => stop("LocalValuesPublicationLimit"))
+    let (bridge_entries, evidence_entries) = work
+      .publication_entry_limits()
       .unwrap_or_else(() => stop("LocalValuesPublicationLimit"))
     let (_, _) = work
       .publication_invocation(65536, 8192, 64)
@@ -195,18 +202,8 @@ fn local_execute_publish_values(
       .unwrap_or_else(() => stop("LocalPublicationAuthorityUnavailable"))
     let pending = work
       .prepare_local_publication(
-        service,
-        results,
-        authoring,
-        intent,
-        occurrence,
-        row_limits,
-        limits.max_result_workspace_entries,
-        65536,
-        limits,
-        65536,
-        8192,
-        64,
+        service, results, authoring, intent, occurrence, row_limits, bridge_entries,
+        65536, limits, 65536, 8192, 64,
       )
       .unwrap_or_else(() => stop("LocalResultPublicationNotReady"))
     // Unknown commit retains the original Store attempt; it does not cancel
@@ -225,7 +222,7 @@ fn local_execute_publish_values(
         publisher,
         pending,
         local_utc_now(),
-        limits.max_result_workspace_entries,
+        evidence_entries,
         16,
         1000,
       ) {

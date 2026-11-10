@@ -70,8 +70,12 @@ fn[T] local_business_policy_result(
 ) -> Result[T, @local_host.NativeClientRunJournalIssue] raise ClientStop {
   match result {
     Ok(value) => Ok(value)
-    Err(@local_host.Journal(issue)) => Err(issue)
+    Err(@local_host.Journal(issue)) => {
+      local_report_submission_failure(@local_host.Journal(issue))
+      Err(issue)
+    }
     Err(issue) => {
+      local_report_submission_failure(issue)
       original.original.retain_primary(CommandAdoption(issue))
       match issue {
         @local_host.InstallationReadTransactionFailure(_, TransactionUnknown) =>

@@ -12,8 +12,10 @@ import {packedClientPackage, packedNpmCache, pinnedDuckDBPackage} from './packed
 import {exercisePackedInferSource} from './packed-infer-source-acceptance.mjs';
 import {graphPublicHostCases, graphPublicHostPattern} from './fixtures/graph-host-cases.mjs';
 import {validatePackedPublicQueryArguments} from './packed-public-query-options.mjs';
+import {selectAcceptanceTimeout} from './fixtures/packed-query-transport-owner.mjs';
 
 validatePackedPublicQueryArguments(process.argv.slice(2));
+const acceptanceTimeout = selectAcceptanceTimeout(process.env);
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const scratch = join(repository, '..', '.codex-scratch');
@@ -763,8 +765,19 @@ try {
   console.log('Packed missing generated asset: child failed as expected');
 } finally { await rename(asset + '.omitted', asset); }
 async function exerciseNativeGraphSource(sourceOnly = false) {
+  const compiler = environment.ACTQL_TEST_NATIVE_QUERY_COMPILER;
+  if (compiler !== undefined && (compiler !== 'clang-19' || process.platform !== 'linux')) {
+    throw new Error('PackedQueryNativeCompilerSelectionInvalid');
+  }
+  if (compiler !== undefined && !/\bclang version 19(?:\.|\s)/u.test(
+    run('cc', ['--version'], repository, environment, 10_000))) {
+    throw new Error('PackedQueryNativeCompilerMismatch');
+  }
+  // Selected Linux CI uses the normal Linux producer's compiler and 1800s
+  // serial compilation budget. Unselected developer builds retain their route.
   run('moon', ['build', '--target', 'native', '--release',
-    'src/cmd/native_client'], repository, environment);
+    ...(compiler === undefined ? [] : ['-j', '1']), 'src/cmd/native_client'],
+  repository, environment, compiler === undefined ? 900_000 : 1_800_000);
   const nativeClient = join(repository, '_build/native/release/build/cmd',
     'native_client/native_client.exe');
   console.log(run(process.execPath,
@@ -852,9 +865,11 @@ let acceptanceStarted = false, acceptanceSucceeded = false, packedFailure;
 try {
   if (!plannerSelectionOnly && !twoSourceExampleOnly) {
     acceptanceStarted = true;
+    const acceptanceDeadline = Date.now() + acceptanceTimeout;
     const output = run(process.execPath, ['packed-query-transports.mjs'], root,
-      {...runtimeEnvironment, ACTQL_TEST_QUERY_DEADLINE: String(Date.now() + 900_000),
-        ACTQL_TEST_QUERY_EXPECT_FULL_CORPUS: process.argv.some(flag => flag.endsWith('-only')) ? '0' : '1'}, 900_000);
+      {...runtimeEnvironment, ACTQL_TEST_QUERY_TIMEOUT_MS: String(acceptanceTimeout),
+        ACTQL_TEST_QUERY_DEADLINE: String(acceptanceDeadline),
+        ACTQL_TEST_QUERY_EXPECT_FULL_CORPUS: process.argv.some(flag => flag.endsWith('-only')) ? '0' : '1'}, acceptanceTimeout);
     acceptanceSucceeded = true;
     console.log(output.trimEnd());
     // Reuse this exact installation and its producer artifact. Source INFER

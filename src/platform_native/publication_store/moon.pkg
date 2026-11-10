@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/client_local_host" @local,
   "actql/actql/checkpoint_runtime" @checkpoint,
   "actql/actql/remote_credential" @credential,
   "actql/actql/platform_native/http_client" @http,
@@ -13,6 +14,9 @@ import {
   "actql/actql/connectors/salesforce/catalog",
   "actql/actql/encode_core" @encode,
   "actql/actql/decode_core" @decode,
+  "actql/actql/decode_scalar" @scalar,
+  "actql/actql/decode_shape" @shape,
+  "actql/actql/execution_relation" @execution,
   "actql/actql/source_value" @source,
   "moonbitlang/core/encoding/base64",
   "moonbitlang/core/string",
@@ -28,6 +32,10 @@ options(
   "native-stub": [ "store_format_stub.c" ],
   targets: {
     "store_native.mbt": [ "native" ],
+    "captured_content_custody_native.mbt": [ "native" ],
+    "captured_content_capacity_native.mbt": [ "native" ],
+    "captured_content_custody_native_wbtest.mbt": [ "native" ],
+    "captured_content_custody_unsupported.mbt": [ "not", "native" ],
     "publication_observation_native.mbt": [ "native" ],
     "publication_observation_unsupported.mbt": [ "not", "native" ],
     "original_checkpoint_continuation.mbt": [ "native" ],
@@ -35,6 +43,9 @@ options(
     "effect_source_custody_native.mbt": [ "native" ],
     "effect_capture_custody_native.mbt": [ "native" ],
     "effect_catalog_custody_native.mbt": [ "native" ],
+    "model_evidence_custody_native.mbt": [ "native" ],
+    "model_evidence_custody_native_wbtest.mbt": [ "native" ],
+    "model_evidence_custody_unsupported.mbt": [ "not", "native" ],
     "credential_raw_custody_native.mbt": [ "native" ],
     "credential_raw_custody_native_wbtest.mbt": [ "native" ],
     "credential_raw_custody_unsupported.mbt": [ "not", "native" ],
@@ -43,6 +54,7 @@ options(
     "effect_capture_custody_unsupported.mbt": [ "not", "native" ],
     "effect_source_custody_unsupported.mbt": [ "not", "native" ],
     "store_native_wbtest.mbt": [ "native" ],
+    "delivery_chunk_native_wbtest.mbt": [ "native" ],
     "open_failure_custody_native_wbtest.mbt": [ "native" ],
     "open_failure_gap_wbtest.mbt": [ "native" ],
     "checked_retirement_native_wbtest.mbt": [ "native" ],

@@ -451,9 +451,9 @@ test "original keyed empty listing keeps Direct custody through assembly cleanup
     source, "fixture-original-keyed-empty", original_row_query_contract_fixture,
     original_row_evidence_contract_fixture,
   ).unwrap()
-  // Independently calculated existing empty assembly envelope:
-  // No row containers are retained: 0*64 + 4096. Workspace still funds the
-  // bounded key/copy traversal: 64*32 + 64*8 + 4096.
+  // The empty assembly owns only its fixed 4096-byte control envelope.
+  // The max-work ceiling allocates no absent key/copy traversal. The original
+  // Direct capture independently retains its three bytes and two execution bytes.
   // These canonical-layout budgets are not a normal Node physical profile.
   let (scope, ledger) = original_row_scope(
     compiled,
@@ -554,8 +554,19 @@ test "original keyed empty listing keeps Direct custody through assembly cleanup
     assembled_usage.reserved_attempts,
     captured_usage.reserved_attempts + 1,
   )
-  assert_eq(assembled_usage.reserved_retention_bytes, 4096L + 3L)
-  assert_eq(assembled_usage.reserved_execution_bytes, 6658L)
+  // Same constructor retains left receipt/identity, Source cache, start time,
+  // issuer and completion references plus one consumed-work word: 6*8 + 8.
+  // The central tariff is unchanged; later payloads are funded only on use.
+  // Preserve this capture's independently supplied retained3/execution2.
+  let original_identity_fields = 6L * 8L + 8L
+  assert_eq(
+    assembled_usage.reserved_retention_bytes,
+    4096L + original_identity_fields + 3L,
+  )
+  assert_eq(
+    assembled_usage.reserved_execution_bytes,
+    4096L + original_identity_fields + 2L,
+  )
   assert_eq(assembled_usage.holdings, 1)
   // Zero progress is neither cleanup acknowledgment nor permission to return
   // the buffer's reservation. It must not close the original Direct child.

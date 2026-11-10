@@ -264,6 +264,15 @@ pub fn client_captured_content_workspace_capacity(
 }
 
 ///|
+/// Borrow the SAME Common capture candidate for the selected physical Store.
+/// This neither reparses its wire nor issues reference/Run/read authority.
+pub fn client_captured_content_candidate(
+  value : ClientCapturedContent,
+) -> @publication.CapturedContentReference {
+  value.candidate
+}
+
+///|
 pub fn client_captured_content_wire(value : ClientCapturedContent) -> String {
   @publication.captured_content_reference_wire(value.candidate)
 }

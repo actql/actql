@@ -832,6 +832,10 @@ struct PayloadDelivery {
   mut emitted_bytes : Int64
   mut emitted_rows : Int64
   mut delivery_digest : String?
+  // Private standalone constructor port used by the component controls. An
+  // installed Store always uses its nominal operation original instead.
+  mut chunk_construction : ((Int) -> Result[Unit, NativePublicationStoreIssue])?
+  mut funded_chunk_bytes : Int
   mut closed : Bool
 }
 
@@ -2630,12 +2634,31 @@ pub fn Store::commit_publication(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  capture? : @local.ClientProgramCapture? = None,
+  effectful? : @publication.EffectfulFinalRunEvidence? = None,
 ) -> Result[NativePublicationCommit, NativePublicationStoreIssue] {
   self.with_original_read(false, false, fn() {
     self.commit_publication_in_scope(
-      run_definition, invocation, definitions, artifacts, derivations, orderings,
-      retentions, bindings, binding_schema_wires, manifest, receipt, captured_run,
-      request, attempt, index, max_wire_bytes, max_nodes, max_depth,
+      run_definition,
+      invocation,
+      definitions,
+      artifacts,
+      derivations,
+      orderings,
+      retentions,
+      bindings,
+      binding_schema_wires,
+      manifest,
+      receipt,
+      captured_run,
+      request,
+      attempt,
+      index,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      capture~,
+      effectful~,
     )
   })
 }
@@ -2661,6 +2684,8 @@ fn Store::commit_publication_in_scope(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  capture? : @local.ClientProgramCapture? = None,
+  effectful? : @publication.EffectfulFinalRunEvidence? = None,
 ) -> Result[NativePublicationCommit, NativePublicationStoreIssue] {
   if self.closed {
     return Err(Closed)
@@ -2671,14 +2696,54 @@ fn Store::commit_publication_in_scope(
   if bindings.length() != binding_schema_wires.length() {
     return Err(InvalidConfiguration)
   }
-  match
-    publication_commit(
-      @publication.validate_effect_free_publication_commit_with_result_evidence(
-        run_definition, invocation, definitions, artifacts, derivations, orderings,
-        retentions, bindings, manifest, receipt, captured_run, request, attempt,
-        index, max_wire_bytes, max_nodes, max_depth,
-      ),
-    ) {
+  let checked = match effectful {
+    None =>
+      match capture {
+        Some(original) =>
+          @local.check_program_commit_validation(
+            original, run_definition, invocation, definitions, artifacts, derivations,
+            orderings, retentions, bindings, manifest, receipt, captured_run, request,
+            attempt, index,
+          ).map_err(issue => {
+            NativePublicationStoreIssue::PublicationPreparation(issue)
+          })
+        None =>
+          publication_commit(
+            @publication.validate_effect_free_publication_commit_with_result_evidence(
+              run_definition, invocation, definitions, artifacts, derivations, orderings,
+              retentions, bindings, manifest, receipt, captured_run, request, attempt,
+              index, max_wire_bytes, max_nodes, max_depth,
+            ),
+          )
+      }
+    Some(original) => {
+      if capture is Some(_) {
+        return Err(InvalidConfiguration)
+      }
+      match
+        @publication.validate_retained_effectful_publication_materials(
+          original,
+          run_definition,
+          invocation,
+          definitions,
+          artifacts,
+          derivations,
+          orderings,
+          retentions,
+          manifest,
+          receipt,
+          captured_run,
+          limits=Some((max_wire_bytes, max_nodes, max_depth)),
+        ) {
+        Err(issue) => return Err(PublicationCommit(issue))
+        Ok(_) => ()
+      }
+      @publication.validate_retained_effectful_publication_commit(
+        original, bindings, request, attempt, index,
+      ).map_err(issue => EffectfulPublication(issue))
+    }
+  }
+  match checked {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
@@ -3234,6 +3299,8 @@ fn Store::open_payload_delivery_in_scope(
     emitted_bytes: 0L,
     emitted_rows: 0L,
     delivery_digest: None,
+    chunk_construction: None,
+    funded_chunk_bytes: 0,
     closed: false,
   })
 }
@@ -3387,6 +3454,12 @@ pub fn PayloadDelivery::next(
 }
 
 ///|
+#borrow(original)
+extern "C" fn delivery_constructor_ffi(
+  original : @sqlite.NativeStoreOperationOriginal,
+) -> Int = "actql_native_sqlite_store_operation_delivery_constructor"
+
+///|
 fn PayloadDelivery::next_in_scope(
   self : PayloadDelivery,
   max_bytes : Int,
@@ -3397,6 +3470,85 @@ fn PayloadDelivery::next_in_scope(
   if max_bytes < 1 || max_bytes > 16777216 {
     return Err(InvalidConfiguration)
   }
+  // Both unmanaged and legacy routed Stores retain their one-row/slice path.
+  // Installed constructor custody remains mandatory and cannot fall back on
+  // refusal. The discriminator observes only this same normal Read flight.
+  let aggregate = match self.reader.store.operation_original {
+    Some(original) =>
+      match delivery_constructor_ffi(original) {
+        0 => false
+        1 => true
+        _ =>
+          return Err(
+            Database(@sqlite.Physical("original Store delivery unavailable")),
+          )
+      }
+    None => self.chunk_construction is Some(_)
+  }
+  if !aggregate {
+    return self.next_row_in_scope(max_bytes)
+  }
+  let target = Int::min(max_bytes, self.input_chunk_bytes)
+  if self.terminal && self.pending_offset == self.pending.length() {
+    return Ok({ bytes: b"", eof: true, })
+  }
+  if target > self.funded_chunk_bytes {
+    let funded = match self.reader.store.operation_original {
+      Some(original) =>
+        original
+        .prepare_delivery_window(target)
+        .map_err(issue => Database(issue))
+      None => self.chunk_construction.unwrap()(target)
+    }
+    match funded {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+    if self.closed ||
+      self.reader.closed ||
+      self.reader.store.closed ||
+      self.reader.store.retiring {
+      return Err(Closed)
+    }
+    self.funded_chunk_bytes = target
+  }
+  // The exact size hint prevents growth. Both this backing and to_bytes' copy
+  // were funded additively on the SAME Read before this first allocation.
+  let output = Buffer(size_hint=target)
+  while output.length() < target {
+    match fill_delivery_pending(self) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+    let count = Int::min(
+      target - output.length(),
+      self.pending.length() - self.pending_offset,
+    )
+    if count == 0 {
+      break
+    }
+    let end = self.pending_offset + count
+    output.write_bytes(self.pending[self.pending_offset:end])
+    self.pending_offset = end
+    if self.serializer_finished && self.pending_offset == self.pending.length() {
+      self.terminal = true
+    }
+    // No call to fill_delivery_pending follows a full chunk. In particular,
+    // a later row's serialization failure cannot replace this exact prefix.
+  }
+  let bytes = output.to_bytes()
+  self.emitted_bytes += bytes.length().to_int64()
+  @sha.update(self.hash, bytes) catch {
+    _ => return Err(StateCollision)
+  }
+  Ok({ bytes, eof: self.terminal, })
+}
+
+///|
+fn PayloadDelivery::next_row_in_scope(
+  self : PayloadDelivery,
+  max_bytes : Int,
+) -> Result[NativePublicationDeliveryChunk, NativePublicationStoreIssue] {
   match fill_delivery_pending(self) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
@@ -3476,6 +3628,7 @@ fn PayloadDelivery::close_in_scope(
     }
     @publication.cancel_durable_result_row_frames(self.frames)
   }
+  self.chunk_construction = None
   self.closed = true
   Ok(())
 }
@@ -4444,7 +4597,10 @@ fn Store::recover_in_scope(
     }
   }
   let mut cursor = ""
-  let mut retained = 0
+  let mut retained = match recover_captured_content_records(self) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   let mut reclaimed = 0
   while true {
     let entry = match self.database.scan_after("publication_payload", cursor) {

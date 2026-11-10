@@ -13,6 +13,9 @@ import {providerBindingOriginals} from './model-provider-binding-fixture.mjs';
 import {sourceCases, sourceRefusals, sourceRuntimeRefusals}
   from './infer-source-expectation.mjs';
 
+// These authored read-only Sources have no explicit RESULT; the public
+// implicit primary is main, independently of the historical JSON fixture.
+const resultName = 'main';
 const [transport, phase, caseName = 'minimal'] = process.argv.slice(2);
 assert.ok(['local', 'remote'].includes(transport));
 assert.ok(['success', 'capture', 'replay', 'refusal', 'runtime-refusal'].includes(phase));
@@ -22,8 +25,8 @@ const source = phase === 'refusal' ? sourceRefusals[caseName] :
 assert.equal(typeof source, 'string', 'select one explicitly authored input');
 const root = join(process.cwd(), `${transport}-${caseName}-${phase === 'replay' ? 'capture' : phase}`);
 const requestId = `packed-infer-source-${transport}-${caseName}-${phase === 'replay' ? 'capture' : phase}`;
-const {installation, taskCid} = configuration(
-  JSON.parse(readFileSync('base-environment.json', 'utf8')));
+const baseEnvironment = JSON.parse(readFileSync('base-environment.json', 'utf8'));
+const {installation, taskCid} = configuration(baseEnvironment);
 const keys = generateKeyPairSync('ed25519');
 let calls = 0;
 const authorization = {
@@ -97,6 +100,7 @@ let client;
 try {
   if (transport === 'remote') {
     host = await openInstalledRemoteHttpHost({directory: root,
+      hostCapacityPolicy: baseEnvironment.host_policy_profile.capacity,
       authenticate: () => userInfo().username, authorization,
       modelInstallation: installation, registerModelProviders});
     server = createServer({cert: readFileSync('remote.crt'),
@@ -107,6 +111,7 @@ try {
   } else {
     client = await connect({mode: 'local', owner: 'local', durability: 'durable',
       installation: {directory: root, authorization,
+        hostCapacityPolicy: baseEnvironment.host_policy_profile.capacity,
         modelInstallation: installation, registerModelProviders}});
   }
   // Persist the original epoch-bound identity before submit/capture. Replay
@@ -148,8 +153,8 @@ try {
       // projection of the private AssertionDuplicate/AssertionNullKey causes.
       assert.equal(state.terminal_error.code, 'ACTQL_E_UNPUBLISHED_RUN');
       assert.equal(state.result_available, false);
-      assert.equal(state.result_availability.answer.state, 'unavailable');
-      assert.equal(state.result_availability.answer.reason, 'not_published');
+      assert.equal(state.result_availability[resultName].state, 'unavailable');
+      assert.equal(state.result_availability[resultName].reason, 'not_published');
       assert.deepEqual(state.next_action, {kind: 'none'});
     };
     const before = journalCount();
@@ -160,16 +165,16 @@ try {
     assert.equal(calls, 0, 'failed assertions must not dispatch a Model');
     assert.equal(journalCount(), before + 1, 'runtime refusal must retain one accepted Run');
     assert.deepEqual((await client.checkpoints()).items, []);
-    await assert.rejects(run.result('answer').all({signal}), {code: 'ResultAccessDenied'});
-    await assert.rejects(run.result('answer').describe({signal}), {code: 'ResultAccessDenied'});
+    await assert.rejects(run.result(resultName).all({signal}), {code: 'ResultAccessDenied'});
+    await assert.rejects(run.result(resultName).describe({signal}), {code: 'ResultAccessDenied'});
     const lookup = await client.lookupSubmission(submissionRef);
     assert.equal(lookup.kind, 'ready');
     assert.deepEqual(lookup.submissionRef, submissionRef);
     assert.deepEqual(lookup.admission.ref, run.ref);
     const attached = await client.attach(run.ref);
     assertFailedRun(await attached.wait({signal}));
-    await assert.rejects(attached.result('answer').all({signal}), {code: 'ResultAccessDenied'});
-    await assert.rejects(attached.result('answer').describe({signal}), {code: 'ResultAccessDenied'});
+    await assert.rejects(attached.result(resultName).all({signal}), {code: 'ResultAccessDenied'});
+    await assert.rejects(attached.result(resultName).describe({signal}), {code: 'ResultAccessDenied'});
     const resent = await client.startSource(source, {format: 'aql-text', submissionRef});
     assert.deepEqual(resent.ref, run.ref);
     assertFailedRun(await resent.wait({signal}));
@@ -187,10 +192,10 @@ try {
       state: terminal, calls}));
     assert.equal(terminal.status, 'succeeded');
     assert.notEqual(phase, 'capture', 'capture exit boundary was not reached');
-    const result = run.result('answer');
+    const result = run.result(resultName);
     const description = await result.describe({signal});
     assert.deepEqual(description.ref, run.ref);
-    assert.equal(description.resultName, 'answer');
+    assert.equal(description.resultName, resultName);
     assert.equal(description.serialization.version, 'actql-jsonl/0.1');
     assert.equal(description.serialization.format, 'jsonl');
     assert.deepEqual(description.columns, fixture.columns);
@@ -201,15 +206,15 @@ try {
     assert.deepEqual(streamed, fixture.rows);
     assert.equal(reader.state(), 'complete', 'empty and nonempty streams must terminate');
     const attached = await client.attach(run.ref);
-    assert.deepEqual(await attached.result('answer').describe({signal}), description);
-    assert.deepEqual(await attached.result('answer').all({signal}), fixture.rows);
+    assert.deepEqual(await attached.result(resultName).describe({signal}), description);
+    assert.deepEqual(await attached.result(resultName).all({signal}), fixture.rows);
     const resent = await client.startSource(source, {format: 'aql-text', submissionRef});
     assert.deepEqual(resent.ref, run.ref);
     const lookup = await client.lookupSubmission(submissionRef);
     assert.equal(lookup.kind, 'ready');
     assert.deepEqual(lookup.submissionRef, submissionRef);
     assert.deepEqual(lookup.admission.ref, run.ref);
-    assert.deepEqual(await resent.result('answer').all({signal}), fixture.rows);
+    assert.deepEqual(await resent.result(resultName).all({signal}), fixture.rows);
     assert.equal(calls, phase === 'replay' ? 0 : fixture.calls);
     const journal = new DatabaseSync(join(root, 'requests', 'client-requests.sqlite3'),
       {readOnly: true});

@@ -6,6 +6,55 @@ extern "js" fn request_document_test_source(
   #|(text,format) => ({text,format})
 
 ///|
+test "default Source Request rejects the original incompatible membership annotation" {
+  let text = "SELECT 2 IN UNNEST(ARRAY<STRING>[1]) AS found"
+  let (environment, publication) = request_query_publication_fixture()
+  let (parent, input) = native_driver_parent(text)
+  let result = prepare_request_default_source_computation_check(
+    parent,
+    input,
+    request_document_test_source(text, "sql"),
+    native_json_reader,
+    environment,
+    publication,
+    [],
+    None,
+    @publication_host.client_standard_effect_computation_limits(),
+  )
+  assert_true(
+    result is Err(CheckOutcome(@checked.Rejected(_))),
+    msg="the original Request must preserve the annotation's semantic refusal",
+  )
+  assert_true(parent.compiled_program is None && parent.compiled_effect is None)
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "default Source Request keeps canonical signed zero in scalar membership" {
+  let text = "SELECT 2 IN UNNEST([-(0)]) AS found"
+  let (environment, publication) = request_query_publication_fixture()
+  let (parent, input) = native_driver_parent(text)
+  prepare_request_default_source_computation_check(
+    parent,
+    input,
+    request_document_test_source(text, "sql"),
+    native_json_reader,
+    environment,
+    publication,
+    [],
+    None,
+    @publication_host.client_standard_effect_computation_limits(),
+  ).unwrap()
+  assert_true(
+    parent.program_check.unwrap().check_outcome is Some(@checked.Checked(_)),
+    msg="the original numeric lowerer canonicalizes signed zero before checking",
+  )
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
 let request_document_yaml : String =
   #|version: actql/0.1
   #|id: source-document
@@ -501,4 +550,486 @@ test "Source document actual submitted intent keeps the same text format Paramet
     assert_true(request_submitted_intent_original(parent, input) is None)
     assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
   }
+}
+
+///|
+test "configured Native query result keeps answer and public Source keeps main" {
+  let (environment, publication) = request_query_publication_fixture()
+  for (public_primary, expected) in [(false, "answer"), (true, "main")] {
+    let document = "SELECT 2 AS id"
+    let (parent, input) = native_driver_parent(document)
+    // This is the SAME actual Query/Source/checker/compiler path selected by
+    // Native. No result rename, authority override or replacement Run is used.
+    prepare_request_native_source_computation(
+      parent,
+      input,
+      request_document_test_source(document, "sql"),
+      native_json_reader,
+      environment,
+      publication,
+      [],
+      @publication_host.client_standard_program_preparation_limits(),
+      @publication_host.client_standard_effect_computation_limits(),
+      public_primary~,
+    ).unwrap()
+    |> ignore
+    let syntax = parent.query_syntax.unwrap()
+    let artifact = prepare_request_program_compilation(
+      parent,
+      input,
+      request_program_module_contracts(),
+      manifests=request_program_module_manifests(),
+      compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+      retained_output=false,
+      provider_factory=_ => [],
+    ).unwrap()
+    let names = match artifact {
+      @publication_host.Values(original) =>
+        @publication_host.client_values_compilation_result_names(original)
+      @publication_host.Tasks(original) =>
+        @publication_host.client_task_compilation_result_names(original)
+      _ => fail("Expected the same Pure compilation")
+    }
+    assert_eq(names, [expected])
+    assert_true(physical_equal(parent.query_syntax.unwrap(), syntax))
+    assert_true(physical_equal(parent.program_compilation.unwrap(), artifact))
+    abort_request_preparation_after_cleanup(parent).unwrap()
+  }
+}
+
+///|
+test "configured Native query result preserves explicit Source exports" {
+  let (environment, publication) = request_query_publication_fixture()
+  for (public_primary, expected) in [(false, "chosen"), (true, "chosen")] {
+    let document = "WITH seed AS (SELECT 2 AS id) FROM seed |> SELECT id |> RESULT chosen"
+    let (parent, input) = native_driver_parent(document)
+    // This is the SAME actual Query/Source/checker/compiler path selected by
+    // Native. No result rename, authority override or replacement Run is used.
+    prepare_request_native_source_computation(
+      parent,
+      input,
+      request_document_test_source(document, "aql-text"),
+      native_json_reader,
+      environment,
+      publication,
+      [],
+      @publication_host.client_standard_program_preparation_limits(),
+      @publication_host.client_standard_effect_computation_limits(),
+      public_primary~,
+    ).unwrap()
+    |> ignore
+    let syntax = parent.query_syntax.unwrap()
+    let artifact = prepare_request_program_compilation(
+      parent,
+      input,
+      request_program_module_contracts(),
+      manifests=request_program_module_manifests(),
+      compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+      retained_output=false,
+      provider_factory=_ => [],
+    ).unwrap()
+    let names = match artifact {
+      @publication_host.Values(original) =>
+        @publication_host.client_values_compilation_result_names(original)
+      @publication_host.Tasks(original) =>
+        @publication_host.client_task_compilation_result_names(original)
+      _ => fail("Expected the same Pure compilation")
+    }
+    assert_eq(names, [expected])
+    assert_true(physical_equal(parent.query_syntax.unwrap(), syntax))
+    assert_true(physical_equal(parent.program_compilation.unwrap(), artifact))
+    abort_request_preparation_after_cleanup(parent).unwrap()
+  }
+}
+
+///|
+extern "js" fn request_default_document_fixture(
+  rows : Int,
+  text_units : Int,
+) -> String =
+  #|(rows, textUnits) => JSON.stringify({version:'actql/0.1',id:'default-document',
+  #| stages:[{id:'main',inputs:{},steps:[{as:'v',values:{schema:{v0:{type:'number',nullable:false},label:{type:'string',nullable:false}},
+  #| rows:Array.from({length:rows},(_,v0)=>({v0,label:'日😀\\\n'.repeat(Math.floor(textUnits/5))+'x'.repeat(textUnits%5)}))}}],
+  #| results:{rows:{from:'v',fields:['v0','label']}}}],results:{answer0:{from:{stage:'main',result:'rows'}}}})
+
+///|
+fn default_document_parent(
+  document : String,
+  observed : Ref[Int],
+) -> (ClientRequestPreparation[Array[Int]], Array[Int]) {
+  let input = [1]
+  let held : Ref[ClientRequestPreparation[Array[Int]]?] = Ref(None)
+  let parent = begin_request_preparation(
+    request_parent_fixture(input, current=() => {
+      if held.val is Some(parent) &&
+        parent.program_json is Some(child) &&
+        child.ready is Some(geometry) {
+        observed.val = Int::max(observed.val, geometry.node_upper)
+      }
+      true
+    }),
+    input,
+    client_local_resource_policy(),
+  ).unwrap()
+  held.val = Some(parent)
+  // Explicit outer-envelope fixture, not an SDK/physical capture claim. Its
+  // original Text is one value, not one node per authored character. Actual
+  // installed SDK capture/one-observer controls cover that separate boundary.
+  reserve_request_snapshot(
+    parent,
+    input,
+    document.length().to_int64() + 128L,
+    12L,
+  ).unwrap()
+  (parent, input)
+}
+
+///|
+test "default Source JSON observes actual nodes before the same Request parser and index" {
+  // Use the actual default Local row projection. The generic Query fixture's
+  // independent 1000-row Environment must still refuse larger Values input.
+  let wire = request_numeric_local_environment(
+    @publication_host.client_local_product_assets().environment,
+    client_local_materialized_row_ceiling(client_local_resource_policy()).unwrap(),
+  )
+  let environment = @publication_host.admit_client_check_environment(
+    wire,
+    request_numeric_environment_cid(wire),
+    { text_time: true, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  let publication = @source_publication.prepare_published_query_environment(
+    environment,
+    "{\"environmentCid\":\"" +
+    @checked.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}",
+  ).unwrap()
+  for (rows, text) in [(10001, 0), (1, 100001)] {
+    let document = request_default_document_fixture(rows, text)
+    assert_true(document.length() > 65536)
+    let observed = Ref(0)
+    let (parent, input) = default_document_parent(document, observed)
+    let result = prepare_request_default_source_computation_check(
+      parent,
+      input,
+      request_document_test_source(document, "json"),
+      native_json_reader,
+      environment,
+      publication,
+      [],
+      None,
+      @publication_host.client_standard_effect_computation_limits(),
+    )
+    match result {
+      Ok(_) => ()
+      Err(Preparation(ProgramCheck(issue))) => {
+        let stage = match issue {
+          Capacity(inner) => "Capacity " + @debug.to_string(inner)
+          Check(inner) =>
+            match inner {
+              Program(problem) => "Check Program " + @debug.to_string(problem)
+              InvalidLimits => "Check InvalidLimits"
+              CapacityInputs(_) => "Check CapacityInputs"
+              Environment(_) => "Check Environment"
+              Source(_) => "Check Source"
+              Closure(_) => "Check Closure"
+              Units(_) => "Check Units"
+              Template(_, _) => "Check Template"
+            }
+          Catalog(_) => "Catalog"
+          SourceRegistration(_) => "SourceRegistration"
+          TopologyEntry(_) => "TopologyEntry"
+          Prelude(_) => "Prelude"
+          Compilation(_) => "Compilation"
+          EffectInput(_) => "EffectInput"
+          EffectCompilation(_) => "EffectCompilation"
+          SourceInput(_) => "SourceInput"
+          Work(_) => "Work"
+          ChangedInputs => "ChangedInputs"
+          WrongPhase => "WrongPhase"
+          Overflow => "Overflow"
+          RequestPolicySubjects(_) => "RequestPolicySubjects"
+        }
+        fail("default original document ProgramCheck: " + stage)
+      }
+      Err(CheckOutcome(@checked.Rejected(diagnostic))) => {
+        let detail = match @checked.diagnostic_cause(diagnostic) {
+          Program(problem) => "Program " + @debug.to_string(problem)
+          Closure(Values(problem)) =>
+            "Closure Values " + @debug.to_string(problem)
+          Closure(BudgetExceeded) => "Closure BudgetExceeded"
+          Closure(_) => "Closure"
+          Source(Identity(_)) => "Source Identity"
+          Source(_) => "Source"
+          Units(BudgetExceeded) => "Units BudgetExceeded"
+          Units(_) => "Units"
+          Environment(_) => "Environment"
+          CapacityInputs(_) => "CapacityInputs"
+          InvalidLimits => "InvalidLimits"
+          Template(_, _) => "Template"
+        }
+        fail(
+          "default original diagnostic: " +
+          @debug.to_string(@checked.diagnostic_category(diagnostic)) +
+          " " +
+          detail,
+        )
+      }
+      Err(Preparation(issue)) =>
+        fail(
+          "default original document Preparation: " + @debug.to_string(issue),
+        )
+      Err(issue) => {
+        let original : Error = issue
+        fail("default original document failed: " + @debug.to_string(original))
+      }
+    }
+    if rows > 1 {
+      assert_true(observed.val > 8192)
+    } else {
+      // Few long Unicode/escaped values do not reserve their code units as
+      // retained nodes. Source's original preflight supplied this observation.
+      assert_true(observed.val > 0 && observed.val < 100)
+      assert_true(observed.val < document.length() / 100)
+    }
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+}
+
+///|
+test "default Source JSON keeps malformed input current refusal and no parser fallback" {
+  let (environment, publication) = request_query_publication_fixture()
+  let document = "{"
+  let observed = Ref(0)
+  let (parent, input) = default_document_parent(document, observed)
+  assert_true(
+    prepare_request_default_source_computation_check(
+      parent,
+      input,
+      request_document_test_source(document, "json"),
+      native_json_reader,
+      environment,
+      publication,
+      [],
+      None,
+      @publication_host.client_standard_effect_computation_limits(),
+    )
+    is Err(_),
+  )
+  assert_true(parent.program_json is Some(_))
+  let before = @resources.ledger_usage(parent.ledger)
+  assert_true(
+    prepare_request_default_source_computation_check(
+      parent,
+      input,
+      request_document_test_source(document, "json"),
+      native_json_reader,
+      environment,
+      publication,
+      [],
+      None,
+      @publication_host.client_standard_effect_computation_limits(),
+    )
+    is Err(_),
+  )
+  assert_eq(@resources.ledger_usage(parent.ledger), before)
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "default Source JSON refuses current loss and short original budget before parser construction" {
+  let (environment, publication) = request_query_publication_fixture()
+  for shortage in [false, true] {
+    let input = [1]
+    let current = Ref(true)
+    let parent = begin_request_preparation(
+      request_parent_fixture(input, current=() => current.val),
+      input,
+      client_local_resource_policy(),
+    ).unwrap()
+    reserve_request_snapshot(parent, input, 100L, 12L).unwrap()
+    let original_limits = @resources.ledger_limits(parent.ledger)
+    let before = @resources.ledger_usage(parent.ledger)
+    let blocker = if shortage {
+      Some(
+        @resources.reserve_capacity(
+          parent.ledger,
+          original_limits.retained_bytes - before.reserved_retention_bytes,
+          original_limits.execution_bytes - before.reserved_execution_bytes,
+        ).unwrap(),
+      )
+    } else {
+      current.val = false
+      None
+    }
+    let source = request_document_test_source("{", "json")
+    assert_true(
+      prepare_request_default_source_computation_check(
+        parent,
+        [1],
+        source,
+        native_json_reader,
+        environment,
+        publication,
+        [],
+        None,
+        @publication_host.client_standard_effect_computation_limits(),
+      )
+      is Err(Preparation(ForeignOriginal)),
+    )
+    let result = prepare_request_default_source_computation_check(
+      parent,
+      input,
+      source,
+      native_json_reader,
+      environment,
+      publication,
+      [],
+      None,
+      @publication_host.client_standard_effect_computation_limits(),
+    )
+    if shortage {
+      assert_true(
+        result
+        is Err(Preparation(ProgramJson(Capacity(Resource(RetentionLimit))))),
+      )
+    } else {
+      assert_true(
+        result
+        is Err(Preparation(ProgramJson(Capacity(Resource(ClosedReservation))))),
+      )
+    }
+    assert_true(parent.program_json is None && parent.held_program is None)
+    assert_eq(@resources.ledger_limits(parent.ledger), original_limits)
+    if blocker is Some(original) {
+      @resources.settle_capacity(parent.ledger, original).unwrap()
+    }
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+}
+
+///|
+extern "js" fn request_default_effect_document(base : String) -> String =
+  #|(base) => {const p=JSON.parse(base),v=p.stages[0].steps[0].values;v.schema.label={type:'string',nullable:false};v.rows[0].label='日😀\\\n'.repeat(20001);return JSON.stringify(p);}
+
+///|
+test "default Source JSON carries the original input selection through Effect compilation" {
+  let environment = @publication_host.admit_client_check_environment(
+    source_query_original_environment,
+    "sha256:05ee9059ef5f173069a3f3f1896e16ee62d34d0c842d81e9b0f8421db62e67a8",
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  let publication = @source_publication.prepare_published_query_environment(
+    environment,
+    "{\"environmentCid\":\"" +
+    @checked.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}",
+  ).unwrap()
+  let base =
+    #|{"version":"actql/0.1","id":"native-effect","params":{"n":{"type":"number","default":7}},"stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1}]},"as":"seed"},{"derive":{"amount":"id + $n"},"as":"changed"}],"results":{"rows":{"from":"changed","fields":["id","amount"]}},"effects":{"save":{"update":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"rows"},"id":"id","set":{"Name":{"field":"amount"}}}}}}],"results":{"rows":{"from":{"stage":"main","result":"rows"}}}}
+  let text = request_default_effect_document(base)
+  let observed = Ref(0)
+  let (parent, input) = default_document_parent(text, observed)
+  prepare_request_default_source_computation_check(
+    parent,
+    input,
+    request_document_test_source(text, "json"),
+    native_json_reader,
+    environment,
+    publication,
+    [],
+    None,
+    @publication_host.client_standard_effect_computation_limits(),
+    supplied=Some(request_native_test_value("{\"n\":9}")),
+  ).unwrap()
+  let source = parent.program_json.unwrap()
+  assert_eq(parent.computation_limits.unwrap().checking.input, source.limits)
+  assert_true(source.limits.tree.max_string_bytes > 65536)
+  assert_eq(
+    finish_request_checked_computation(parent, input, environment, publication).unwrap(),
+    Effect,
+  )
+  assert_true(
+    parent.compiled_effect is Some(_) && parent.compiled_program is None,
+  )
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "actual default JSON numeric 100000 keeps its original Request resource cause" {
+  // Use the actual default Local row projection. The generic Query fixture's
+  // independent 1000-row Environment must still refuse larger Values input.
+  let wire = request_numeric_local_environment(
+    @publication_host.client_local_product_assets().environment,
+    client_local_materialized_row_ceiling(client_local_resource_policy()).unwrap(),
+  )
+  let environment = @publication_host.admit_client_check_environment(
+    wire,
+    request_numeric_environment_cid(wire),
+    { text_time: true, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  let publication = @source_publication.prepare_published_query_environment(
+    environment,
+    "{\"environmentCid\":\"" +
+    @checked.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}",
+  ).unwrap()
+  let document = request_native_numeric_public_program(100000)
+  let observed = Ref(0)
+  let (parent, input) = default_document_parent(document, observed)
+  let result = prepare_request_default_source_computation_check(
+    parent,
+    input,
+    request_document_test_source(document, "json"),
+    native_json_reader,
+    environment,
+    publication,
+    [],
+    None,
+    @publication_host.client_standard_effect_computation_limits(),
+  )
+  match result {
+    Ok(_) => ()
+    Err(Preparation(ProgramJson(Capacity(Resource(issue))))) => {
+      let child = parent.program_json.unwrap()
+      let phase = match child.phase {
+        Preflight => "Preflight"
+        Ready => "Ready"
+        Indexed => "Indexed"
+        RetainedIndex => "RetainedIndex"
+        Inspected => "Inspected"
+        Constructed => "Constructed"
+        RetainedProgram => "RetainedProgram"
+        Transferred => "Transferred"
+        Failed => "Failed"
+        Retired => "Retired"
+      }
+      let held = @resources.ledger_usage(parent.ledger)
+      fail(
+        "same original JSON100000 Resource " +
+        @debug.to_string(issue) +
+        "; phase=" +
+        phase +
+        "; baseR=" +
+        child.base_retained.to_string() +
+        "; baseE=" +
+        child.base_execution.to_string() +
+        "; heldR=" +
+        held.reserved_retention_bytes.to_string() +
+        "; heldE=" +
+        held.reserved_execution_bytes.to_string() +
+        "; nodesObserved=" +
+        observed.val.to_string(),
+      )
+    }
+    Err(_) => fail("same original JSON100000 changed typed failure family")
+  }
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }

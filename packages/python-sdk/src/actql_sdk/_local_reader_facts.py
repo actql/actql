@@ -79,6 +79,12 @@ class OriginalReaderFacts:
             return self._root.observe_original(self._reader)
         return self._root.observe_completed_reader(self._reader)
 
+    def _prepare_snapshot(self) -> PhysicalFileSnapshot:
+        phase = getattr(self._projection._core, '_reconciliation_prepare', None)
+        if phase is not None and not phase.suspended:
+            return phase.snapshot(self)
+        return self._observe_reader()
+
     def _material_originals(self) -> tuple[tuple[object, ...], tuple[object, ...]]:
         projection = self._projection
         return ((self, projection, projection._core, projection._publication,
@@ -172,14 +178,14 @@ class OriginalReaderFacts:
             self._ready()
             originals = self._material_originals()
             with self._root._lock:
-                observed = self._observe_reader()
+                observed = self._prepare_snapshot()
                 if self._input is not None and self._sealed:
                     # No transfer or external IO separates the original binding
                     # and snapshot checks for this already sealed metadata loan.
                     loan = self._input
                     self._projection.validate_reader_facts(
                         self._record, loan, self._result, self._binding_index)
-                    after = self._observe_reader()
+                    after = self._prepare_snapshot()
                     if (self._projection._saved and self._same_material_originals(originals)
                             and self._input is loan and observed == after):
                         core._owned_input(loan)
@@ -219,7 +225,7 @@ class OriginalReaderFacts:
                 loan = self._input
                 core.validate_payload_snapshot(
                     self._record, loan, self._projection._configuration)
-                after = self._observe_reader()
+                after = self._prepare_snapshot()
                 if (self._projection._saved and self._same_material_originals(originals)
                         and self._input is loan and observed == after):
                     core._owned_input(loan)
@@ -278,3 +284,14 @@ class OriginalReaderFacts:
                     return False
                 self._input = None
             return True
+
+
+# Definition-time provenance for the fixed original reconciliation driver.
+from ._local_prepare_provenance import _capture_prepare_methods
+_PREPARE_METHODS = (
+    _capture_prepare_methods(OriginalReaderFacts, (
+        '_material_originals', '_observe_reader', '_prepare_snapshot',
+        '_ready', '_same_material_originals', 'before_lookup',
+        'serialized', 'validate',
+    )),
+)

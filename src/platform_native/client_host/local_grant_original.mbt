@@ -283,21 +283,16 @@ fn NativeLocalHostConnection::local_grant_custody(
     is Err(@sqlite.NotFound) else {
     return Err(CustodyLost)
   }
-  let text = @utf8.decode(issued.body) catch { _ => return Err(CustodyLost) }
-  if text.is_empty() || text.length() > 5 {
-    return Err(CustodyLost)
+  let count = match
+    local_journal_related_issuance_count(
+      issued.body,
+      issued.revision,
+      self.journal.max_records,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
-  let count = @string.parse_int(text) catch { _ => return Err(CustodyLost) }
-  if count < 0 ||
-    count > self.journal.max_records * 64 ||
-    count.to_string() != text ||
-    issued.revision != count.to_int64() {
-    return Err(CustodyLost)
-  }
-  let runs : Map[String, (Int, Int)] = Map(
-    [],
-    capacity=self.journal.max_records,
-  )
+  let runs : Map[String, (Int, Int)] = Map([])
   let mut cursor = ""
   let mut observed = 0
   let mut signing_results = 0
@@ -309,10 +304,10 @@ fn NativeLocalHostConnection::local_grant_custody(
       Err(@sqlite.NotFound) => break
       Err(issue) => return Err(Physical(issue))
     }
-    observed += 1
-    if observed > count {
+    if observed >= count {
       return Err(CustodyLost)
     }
+    observed += 1
     let original = match read_local_grant_original(crypto, row) {
       Ok(value) => value
       Err(issue) => return Err(issue)

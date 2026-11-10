@@ -99,7 +99,10 @@ pub fn client_local_configuration_selection_body(
   files : Array[ClientLocalOriginalConfigurationFile],
   managed : ClientLocalOriginalManagedRoot?,
 ) -> Result[Bytes, ClientLocalOriginalCodecIssue] {
-  if files.length() > 10 {
+  // The original ten selections plus the distinct initialized Host file.
+  // This is one additional physical original, not a resource allowance.
+  if files.length() > 11 ||
+    (files.length() == 11 && !files.any(file => file.name == "host.json")) {
     return Err(ConfigurationLimit)
   }
   let writer = @encode.writer(8192, 128, 4) catch { _ => return Err(Encoding) }

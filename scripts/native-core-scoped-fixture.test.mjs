@@ -5,7 +5,13 @@ import {closeSync, fstatSync, mkdirSync, mkdtempSync, openSync, readSync,
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
-import {nativeCoreOrdinaryProcessFixture, nativeCoreScopedFixture, nativeRelationFileCaptureFixture} from './native-core-scoped-fixture.mjs';
+import {createHash} from 'node:crypto';
+import {nativeProjectConfigurationFixture} from './native-project-configuration-fixture.mjs';
+import {nativeCoreOrdinaryProcessFixture, nativeCoreScopedFixture, nativeRelationFileCaptureFixture, nativeCoreModelFrameFixture,
+  nativeRelationTargetIOFixture, nativeRelationTargetIOLineageFixture,
+  nativeClientFileResponseFixture} from './native-core-scoped-fixture.mjs';
+import {nativeRelationCaptureTestFiles, nativeRelationTargetIOTestFile, nativeRelationTargetIOLineageTestFile,
+  nativeClientFileResponseTestFile, nativeScopedTestFiles, nativeCoreScopedAllocationProfile} from './native-core-test-selection.mjs';
 
 function fixture(t) {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-scoped-case-fixture-')));
@@ -13,6 +19,137 @@ function fixture(t) {
   return root;
 }
 const libraries = {cryptoLibrary: '/actual/crypto.dylib', sqliteLibrary: '/usr/lib/libsqlite3.dylib'};
+
+test('target I/O cases own exact original inputs and fresh backings without namespace reuse', t => {
+  assert.equal(nativeScopedTestFiles.filter(file => file === nativeRelationTargetIOTestFile).length, 1);
+  assert.equal(nativeCoreScopedAllocationProfile(nativeRelationTargetIOTestFile), 'scoped-review-values');
+  const suffixes = ['update', 'cancel', 'sync', 'funding'];
+  const source = readFileSync(new URL('../' + nativeRelationTargetIOTestFile, import.meta.url), 'utf8');
+  const declared = [...source.matchAll(/^test "[^"]+" \{\n  target_io_fixture_physical\((\d+)\)\n\}/gmu)];
+  assert.equal([...source.matchAll(/^test "/gmu)].length, suffixes.length);
+  assert.deepEqual(declared.map(match => Number(match[1])), suffixes.map((_, index) => index));
+  const roots = [];
+  for (const [index, suffix] of suffixes.entries()) {
+    const namespace = fixture(t), environment = nativeRelationTargetIOFixture(namespace, index);
+    const root = join(namespace, 'target-io'); roots.push(root);
+    assert.deepEqual(environment, {ACTQL_TEST_NATIVE_TARGET_IO_ROOT: root});
+    assert.equal(statSync(root).mode & 0o777, 0o700);
+    assert.deepEqual(readdirSync(root).sort(), ['target-' + suffix + '.json', 'target-backing-' + suffix].sort());
+    const input = join(root, 'target-' + suffix + '.json');
+    assert.equal(readFileSync(input, 'utf8'),
+      ' {"items":[{"id":"first","value":1},{"id":"second","value":2}],"keep":"untouched"}\n');
+    for (const path of [input, join(root, 'target-backing-' + suffix)]) {
+      const stat = statSync(path);
+      assert(stat.isFile()); assert.equal(stat.nlink, 1); assert.equal(stat.mode & 0o777, 0o600);
+    }
+    const backing = join(root, 'target-backing-' + suffix);
+    assert.equal(statSync(backing).size, 384 * 1024 ** 2);
+    const fd = openSync(backing, 'r');
+    try {
+      const bytes = Buffer.alloc(128, 1);
+      assert.equal(readSync(fd, bytes, 0, bytes.length, 0), bytes.length);
+      assert.deepEqual(bytes, Buffer.alloc(128));
+    } finally {closeSync(fd);}
+    writeFileSync(backing, 'original initialized owner');
+    const before = statSync(backing);
+    assert.throws(() => nativeRelationTargetIOFixture(namespace, index), {code: 'EEXIST'});
+    assert.equal(statSync(backing).ino, before.ino);
+    assert.equal(readFileSync(backing, 'utf8'), 'original initialized owner');
+  }
+  assert.equal(new Set(roots).size, suffixes.length);
+  const namespace = fixture(t);
+  for (const index of [-1, suffixes.length, 0.5, '1', undefined]) {
+    assert.throws(() => nativeRelationTargetIOFixture(namespace, index), /exact original/u);
+  }
+  assert.deepEqual(readdirSync(namespace), []);
+});
+
+test('Native lineage fixtures bind the three original kinds and only the replacement gets a foreign inode input', t => {
+  assert.equal(nativeScopedTestFiles.filter(file => file === nativeRelationTargetIOLineageTestFile).length, 1);
+  assert.equal(nativeCoreScopedAllocationProfile(nativeRelationTargetIOLineageTestFile), 'scoped-review-values');
+  const source = readFileSync(new URL('../' + nativeRelationTargetIOLineageTestFile, import.meta.url), 'utf8');
+  const kinds = [...source.matchAll(/^test "[^"]+" \{\n  target_io_fixture_physical\((\d+)\)\n\}/gmu)];
+  assert.deepEqual(kinds.map(match => Number(match[1])), [4, 5, 6]);
+  const roots = [];
+  for (const [index, suffix] of ['chain', 'inplace', 'replaced'].entries()) {
+    const namespace = fixture(t), env = nativeRelationTargetIOLineageFixture(namespace, index);
+    const root = join(namespace, 'target-io'); roots.push(root);
+    assert.deepEqual(env, {ACTQL_TEST_NATIVE_TARGET_IO_ROOT: root});
+    assert.deepEqual(readdirSync(root).sort(), ['target-' + suffix + '.json', 'target-backing-' + suffix,
+      ...(index === 2 ? ['foreign-copy.json'] : [])].sort());
+    const original = ' {"items":[{"id":"first","value":1},{"id":"second","value":2}],"keep":"untouched"}\n';
+    assert.equal(readFileSync(join(root, 'target-' + suffix + '.json'), 'utf8'), original);
+    if (index === 2) assert.equal(readFileSync(join(root, 'foreign-copy.json'), 'utf8'),
+      original.replace('"value":1', '"value":9'));
+    const backing = join(root, 'target-backing-' + suffix);
+    assert.equal(statSync(backing).size, 384 * 1024 ** 2);
+    for (const name of readdirSync(root)) {
+      const s = statSync(join(root, name)); assert(s.isFile()); assert.equal(s.nlink, 1); assert.equal(s.mode & 0o777, 0o600);
+    }
+    writeFileSync(backing, 'same initialized lineage owner');
+    assert.throws(() => nativeRelationTargetIOLineageFixture(namespace, index), {code: 'EEXIST'});
+    assert.equal(readFileSync(backing, 'utf8'), 'same initialized lineage owner');
+  }
+  assert.equal(new Set(roots).size, 3);
+  const namespace = fixture(t);
+  for (const index of [-1, 3, 0.5, '1', undefined]) assert.throws(
+    () => nativeRelationTargetIOLineageFixture(namespace, index), /exact original/u);
+  assert.deepEqual(readdirSync(namespace), []);
+});
+
+test('Native file response fixtures keep export input-free and isolate all three actual file and Journal namespaces', t => {
+  assert.equal(nativeScopedTestFiles.filter(file => file === nativeClientFileResponseTestFile).length, 1);
+  assert.equal(nativeCoreScopedAllocationProfile(nativeClientFileResponseTestFile), 'scoped-review-values');
+  assert.equal(nativeCoreScopedAllocationProfile('src/platform_native/client_host/run_effect_receipt_wbtest.mbt'), 'runtime-values');
+  const source = readFileSync(new URL('../' + nativeClientFileResponseTestFile, import.meta.url), 'utf8');
+  assert.equal([...source.matchAll(/^test /gmu)].length, 4);
+  assert.match(source, /test "export original Native file receipt Checkpoint signing references" \{[\s\S]*?receipt_test_checkpoint\(definition, file=true\)/u);
+  assert.deepEqual([...source.matchAll(/^test "[^"]+" \{\n  file_receipt_fixture_physical\((\d+)\)\n\}/gmu)]
+    .map(match => Number(match[1])), [0, 1, 2]);
+  const exported = fixture(t);
+  assert.deepEqual(nativeClientFileResponseFixture(exported, 0), {});
+  assert.deepEqual(readdirSync(exported), []);
+  const roots = [];
+  for (const index of [1, 2, 3]) {
+    const namespace = fixture(t), env = nativeClientFileResponseFixture(namespace, index);
+    const root = join(namespace, 'file-receipt'); roots.push(root);
+    assert.deepEqual(env, {ACTQL_TEST_NATIVE_FILE_RECEIPT_ROOT: root, ACTQL_TEST_NATIVE_SQLITE_ROOT: root});
+    assert.deepEqual(readdirSync(root).sort(), ['backing', 'original.json']);
+    assert.equal(readFileSync(join(root, 'original.json'), 'utf8'), '{"items":[{"id":"row-1","value":1}]}\n');
+    assert.equal(statSync(join(root, 'backing')).size, 384 * 1024 ** 2);
+    for (const name of readdirSync(root)) {
+      const s = statSync(join(root, name)); assert(s.isFile()); assert.equal(s.nlink, 1); assert.equal(s.mode & 0o777, 0o600);
+    }
+    writeFileSync(join(root, 'backing'), 'same initialized receipt owner');
+    assert.throws(() => nativeClientFileResponseFixture(namespace, index), {code: 'EEXIST'});
+    assert.equal(readFileSync(join(root, 'backing'), 'utf8'), 'same initialized receipt owner');
+  }
+  assert.equal(new Set(roots).size, 3);
+  const namespace = fixture(t);
+  for (const index of [-1, 4, 0.5, '1', undefined]) assert.throws(
+    () => nativeClientFileResponseFixture(namespace, index), /exact original/u);
+  assert.deepEqual(readdirSync(namespace), []);
+});
+
+test('Model frame fixtures retain real private backings without selecting unused components', t => {
+  const root = fixture(t), environment = nativeCoreModelFrameFixture(root);
+  const path = join(root, 'installed-process');
+  assert.deepEqual(environment, {ACTQL_TEST_INSTALLED_PROCESS_ROOT: path});
+  assert.deepEqual(readdirSync(path).sort(), ['source-frame-left.backing',
+    'source-frame-original.backing', 'source-frame-right.backing']);
+  const page = Number(execFileSync('/usr/bin/getconf', ['PAGESIZE'], {encoding: 'utf8'}).trim());
+  for (const name of readdirSync(path)) {
+    const fd = openSync(join(path, name), 2);
+    try {
+      assert.equal(fstatSync(fd).mode & 0o777, 0o600);
+      assert.equal(fstatSync(fd).size, 64 * page);
+      const original = Buffer.alloc(128, 1);
+      assert.equal(readSync(fd, original, 0, original.length, 0), original.length);
+      assert.deepEqual(original, Buffer.alloc(128));
+    } finally {closeSync(fd);}
+  }
+  assert.throws(() => nativeCoreModelFrameFixture(root), {code: 'EEXIST'});
+});
 
 test('selected physical case inputs use actual pages, exact private backing sizes and original library selections', t => {
   const root = fixture(t);
@@ -29,12 +166,16 @@ test('selected physical case inputs use actual pages, exact private backing size
     assert.equal(statSync(path).mode & 0o777, 0o700);
     const expected = new Map([
       ['backing',backingPages],['backing-0',256],['backing-3',256],['backing-4',256],
+      ['extent-backing-0',256],['extent-backing-1',256],['extent-backing-2',256],
       ['initialization-original.backing',64],['initialization-budget-refused.backing',64],
+      ['request-original.backing',64],['request-run-transfer.backing',64],['request-unstarted.backing',64],
+      ['common-request-entrance.backing',64],
+      ['source-frame-original.backing',64],['source-frame-left.backing',64],['source-frame-right.backing',64],
       ['consumer-current.backing',64],['consumer-managed-graph.backing',64],
       ['consumer-alias.backing',64],['consumer-usage-alias.backing',64],
       ['consumer-serial.backing',64],['consumer-entry-first.backing',64],
       ['consumer-entry-second.backing',64],['consumer-leave-refused.backing',64],
-      ['consumer-serial-alias.backing',64],['root-binding-first.backing',64],['root-binding-second.backing',64],
+      ['consumer-serial-alias.backing',64],['consumer-working-growth.backing',64],['root-binding-first.backing',64],['root-binding-second.backing',64],
     ]);
     assert.deepEqual(readdirSync(path).sort(), [...expected.keys(),'store'].sort());
     assert.equal(statSync(join(path, 'store')).mode & 0o777, 0o700);
@@ -72,11 +213,19 @@ test('case fixture refuses to adopt or reset initialized backing and refuses an 
 });
 
 test('relation capture has independent exact real-file inputs and never resets an existing namespace', t => {
+  assert.deepEqual(nativeRelationCaptureTestFiles, [
+    'src/platform_native/row_source/capture_physical_scoped_wbtest.mbt',
+    'src/platform_native/row_source/listing_capture_physical_scoped_wbtest.mbt',
+  ]);
+  for (const source of nativeRelationCaptureTestFiles) {
+    assert(nativeScopedTestFiles.includes(source));
+    assert.equal(nativeCoreScopedAllocationProfile(source), 'scoped-review-values');
+  }
   const namespace = fixture(t), env = nativeRelationFileCaptureFixture(namespace);
   const root = join(namespace, 'installed-process');
   assert.deepEqual(env, {ACTQL_TEST_INSTALLED_PROCESS_ROOT: root});
   assert.equal(statSync(root).mode & 0o777, 0o700);
-  const sizes = {'row-source-input':62, 'row-source-malformed':10,
+  const sizes = {'row-source-input':62, 'row-source-large-input':70062, 'row-source-files':242, 'row-source-malformed':10,
     'row-source-oversized':8193, 'row-source-backing':384*1024**2};
   assert.deepEqual(readdirSync(root).sort(), Object.keys(sizes).sort());
   for (const [name, size] of Object.entries(sizes)) {
@@ -86,6 +235,15 @@ test('relation capture has independent exact real-file inputs and never resets a
   }
   assert.equal(readFileSync(join(root,'row-source-input'),'utf8'),
     '{"items":[{"id":"first","value":1},{"id":"second","value":2}]}');
+  const large = readFileSync(join(root,'row-source-large-input'));
+  assert.deepEqual(large.subarray(0,62), readFileSync(join(root,'row-source-input')));
+  assert(large.subarray(62).every(byte => byte === 0x20));
+  assert.deepEqual(JSON.parse(large.toString('utf8')),
+    {items:[{id:'first',value:1},{id:'second',value:2}]});
+  assert.deepEqual(JSON.parse(readFileSync(join(root,'row-source-files'),'utf8')), {items:[
+    {id:'first',name:'Acme🌱',version:'label',media_type:'text/plain',body:'first\nnotes',path:null},
+    {id:'second',name:'Globex',version:'label',media_type:'text/plain',body:'second notes',path:'notes/globex'},
+  ]});
   assert.equal(readFileSync(join(root,'row-source-malformed'),'utf8'), '{"items":[');
   const backing = join(root,'row-source-backing');
   const fd = openSync(backing,2);
@@ -129,4 +287,26 @@ test('ordinary installed process inputs retain exact authored backings without s
   assert.throws(()=>nativeCoreOrdinaryProcessFixture(root),{code:'EEXIST'});
   assert.equal(statSync(file).ino,before.ino);
   assert.equal(statSync(file).size,before.size);
+});
+
+
+test('canonical Project fixture supplies the original File-facts consumer oracle without payload data', t => {
+  const root = fixture(t), environment = nativeProjectConfigurationFixture(root);
+  const project = join(environment.ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT, 'deal-review-missing');
+  assert.throws(() => statSync(join(project, 'mock/data.json')), {code: 'ENOENT'});
+  const catalog = readFileSync(join(project, 'mock/catalog.json'), 'utf8');
+  // Explicit ASCII-key canonical preimage, independent of the Native product.
+  const preimage = '{"catalog":' + JSON.stringify(catalog) + ',"connection":"drive","connector":"drive","dataPath":' +
+    JSON.stringify(join(project, 'mock/data.json')) + '}';
+  assert.equal(environment.ACTQL_TEST_NATIVE_MOCK_DRIVE_SCOPE_CID,
+    'sha256:' + createHash('sha256').update(preimage).digest('hex'));
+  assert.equal(environment.ACTQL_TEST_NATIVE_MOCK_FILE_DATA,
+    readFileSync(join(environment.ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT, 'deal-review/mock/data.json'), 'utf8'));
+  assert.deepEqual(JSON.parse(environment.ACTQL_TEST_NATIVE_MOCK_FILE_DATA).drive.files.rows.map(row => row.id),
+    ['file-acme-notes', 'file-globex-notes']);
+  const identity = '{"collection":"files","identity":"file-acme-notes","scope":' +
+    JSON.stringify(environment.ACTQL_TEST_NATIVE_MOCK_DRIVE_SCOPE_CID) + '}';
+  assert.equal(environment.ACTQL_TEST_NATIVE_MOCK_FIRST_RESOURCE_CID,
+    'sha256:' + createHash('sha256').update(identity).digest('hex'));
+  assert.throws(() => statSync(join(project, 'mock/data.json')), {code: 'ENOENT'});
 });

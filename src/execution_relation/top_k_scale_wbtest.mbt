@@ -43,7 +43,7 @@ fn check_top_k_scale(count : Int, partitioned : Bool) -> Unit raise {
   let levels = top_k_scale_levels(count)
   let allowance = count * (levels * 30 + 100) + 1000
   let control = { remaining: allowance, max_frames: 100, }
-  let workspace = { limit: count * 8 + 100, live: 0, peak: 0, }
+  let workspace = { ..row_workspace(count * 8 + 100), live: 0, peak: 0, }
   let selected = evaluate_top_k_selection(
     row_kernel(owner, 0),
     input,
@@ -98,7 +98,7 @@ test "large global and partitioned top-k budgets are exact" {
     let input = top_k_scale_table(owner, count)
     let maximum = 10000000
     let control = { remaining: maximum, max_frames: 100, }
-    let workspace = { limit: maximum, live: 0, peak: 0, }
+    let workspace = { ..row_workspace(maximum), live: 0, peak: 0, }
     let expected = evaluate_top_k_selection(
       row_kernel(owner, 0),
       input,
@@ -142,7 +142,7 @@ test "large global and partitioned top-k budgets are exact" {
           max_depth: 10,
           max_work: maximum,
         }).unwrap(),
-        { limit: entries, live: 0, peak: 0, },
+        { ..row_workspace(entries), live: 0, peak: 0, },
       )
       if good {
         assert_eq(result.unwrap(), expected)

@@ -6,6 +6,7 @@ import {join} from 'node:path';
 import test from 'node:test';
 import {runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
 import {createInstalledRowEffect} from './installed-row-effect.mjs';
+import {prepareInstalledEffectControlConstruction} from './installed-effect-plan.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 
 // The real row factory and its preparation entrances, with explicit Core and
@@ -34,6 +35,7 @@ async function fixture(t, variant = {}) {
   };
   const unused = () => assert.fail('No physical target, authorization or dispatch');
   const moon = {
+    ...variant.moon,
     strategyRemoteManagedOutputEvidenceKind: () => 'test-unused-kind',
     clientProgramEffectMemberDescriptor(value) {
       assert.strictEqual(value, prepared);
@@ -51,6 +53,7 @@ async function fixture(t, variant = {}) {
     site: {issueReadGrant: unused, issueEffectGrant: unused}, authorization: {authorize: unused},
     driver: {kinds: ['create'], prepareRequest: unused, requestFacts: unused,
       writeOperation: unused, send: unused, project: unused, footprint: unused},
+    limits: variant.limits,
     effectResources: Object.hasOwn(variant, 'port') ? variant.port : resourcePort,
   });
   const captured = {moon, prepared, compilation, definition: {}, identity: {},
@@ -68,7 +71,7 @@ async function fixture(t, variant = {}) {
       effects: [{effect_id: 'effect', effect_kind: 'create', target: 'connector://fixture/records',
         mapping: 'mapping:fixture/records', resolved_mapping_contract_cid: cid('a')}]}),
     effectComputationPreviewLedgerIdentity() {calls.push('preview-identity'); throw next;}}};
-  return {effect, calls, original, next, refusal, resourcePort, captured, recovered,
+  return {effect, moon, calls, original, next, refusal, resourcePort, captured, recovered,
     expect(value) {expectedFacts = value;}, revoke() {current = false;}};
 }
 
@@ -107,4 +110,43 @@ test('a resource accessor is not invoked or silently treated as an absent servic
     assertCurrent() {}, limits() {return {};}};
   await assert.rejects(fixture(t, {port}), {code: 'InstalledEffectResourcesUnavailable'});
   assert.equal(reads, 0);
+});
+
+
+test('managed recovery derives its shared row ceiling from the same current Plan, preserving explicit tighter bounds', async t => {
+  for (const [rows, supplied, expected, members = 1] of [[101, undefined, 101], [501, undefined, 501],
+    [101, 100, 100], [0, undefined, 0], [60, undefined, 120, 2],
+    [2147483647, undefined, 2147483647, 2]]) {
+    const plan = {}, value = {}, prepared = {}, request = {}, events = [];
+    let active = false;
+    const f = await fixture(t, {limits: supplied === undefined ? {} : {maxRows: supplied}, moon: {
+      clientProgramInstalledEffectManagedPlanShape(selected) {
+        assert.strictEqual(this, f.moon); assert.strictEqual(selected, plan); assert.equal(active, false);
+        events.push('shape'); return runtimeTupleFromFields({0: rows, 1: members, 2: 1});
+      },
+      clientProgramInstalledEffectManagedOperationPlan() {events.push('current'); return {$tag: 1, _0: plan};},
+      clientProgramInstalledEffectManagedPlanHasHostInput() {return false;},
+      clientProgramInstalledEffectOperationControlConstructionBegin(p, original, identity, selected) {
+        assert.deepEqual([p, original, identity, selected], [value, prepared, request, plan]);
+        assert.equal(active, false); active = true; events.push('begin'); return {$tag: 1, _0: undefined};
+      },
+      clientProgramInstalledEffectOperationControlConstructionComplete() {
+        assert.equal(active, true); active = false; events.push('complete'); return {$tag: 1, _0: undefined};
+      },
+      strategyEffectRecoveredPreviewKeys(_preview, _scope, _members, actualRows, work) {
+        assert.equal(actualRows, expected); assert.equal(work, 10000);
+        assert.equal(active, false); throw f.next;
+      },
+    }});
+    const managed = {runtime: f.moon, value, prepared, request, operationPlan: plan,
+      readPlan: f.moon.clientProgramInstalledEffectManagedOperationPlan, closed: false, selecting: false};
+    const work = prepareInstalledEffectControlConstruction(managed);
+    managed.controlConstruction = work; managed.retireControlConstruction = work.retire;
+    f.recovered.managedEffect = managed;
+    f.recovered.control.effectComputationPreviewLedgerIdentity = () => ({});
+    f.expect(f.recovered);
+    assert.throws(() => f.effect.prepareRecovered(f.recovered), error => error === f.next);
+    assert.deepEqual(events, ['current', 'shape', 'current']);
+    assert.equal(work.retire(), true);
+  }
 });

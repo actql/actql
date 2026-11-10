@@ -78,11 +78,11 @@ fn[I] request_effect_plan_quote(
       Ok(value) => value
     }
     guard owner.compiled_effect is Some(prepared) &&
-      installed_direct_occurrences_layout(
-        @strategy.graph_captured_prefix(
-          installed_managed_owner_graph(Effect(prepared)),
-        ),
+      @publication_host.client_effect_direct_acquisition_count(
+        prepared, 1000000,
       )
+      is Ok(source_count) &&
+      installed_direct_occurrences_layout(source_count)
       is Some((selector_retained, selector_execution)) &&
       @execution.checked_preparation_add_product(r, selector_retained, 1L)
       is Some(r) &&

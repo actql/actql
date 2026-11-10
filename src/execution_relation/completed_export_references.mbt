@@ -38,6 +38,76 @@ pub fn completed_relation_export_content_reference(
 }
 
 ///|
+/// Borrow the original export's Content identity occurrences, including nested
+/// cells, without traversing rows again or restoring References from wire.
+/// The caller backs the bounded result array before entry. Identity metadata
+/// is not current byte availability, read permission or retained Ref custody.
+pub fn completed_relation_export_content_reference_cids(
+  value : CompletedRelationExportReceipt,
+  max_references : Int,
+  max_work : Int,
+) -> Result[Array[String], CompletedExportIssue] {
+  completed_export_content_reference_cids(value.rows, max_references, max_work)
+}
+
+///|
+fn completed_export_content_reference_cids(
+  value : CompletedOutputExportReceipt,
+  max_references : Int,
+  max_work : Int,
+) -> Result[Array[String], CompletedExportIssue] {
+  if max_references < 0 || max_work < 1 {
+    return Err(Wire(InvalidLimits))
+  }
+  guard !value.binding &&
+    value.source is Some(source) &&
+    value.references is Some(references) &&
+    references.complete &&
+    !references.revoked &&
+    completed_output_available(source) else {
+    return Err(Unavailable)
+  }
+  // This is the only external current callback. It can retire the export;
+  // the following walk reads retained immutable metadata with no callbacks.
+  guard !value.binding &&
+    value.source.map(current => physical_equal(current, source)) == Some(true) &&
+    value.references.map(current => physical_equal(current, references)) ==
+    Some(true) &&
+    references.complete &&
+    !references.revoked else {
+    return Err(Unavailable)
+  }
+  let result : Array[String] = []
+  let mut remaining = max_work
+  for row in references.rows {
+    if remaining == 0 {
+      return Err(Wire(OrderLimit))
+    }
+    remaining -= 1
+    for cell in row {
+      if remaining == 0 {
+        return Err(Wire(OrderLimit))
+      }
+      remaining -= 1
+      for slot in cell {
+        if remaining == 0 {
+          return Err(Wire(OrderLimit))
+        }
+        remaining -= 1
+        if slot is Some(reference) &&
+          @admitted.reference_content_metadata(reference) is Some(_) {
+          if result.length() == max_references {
+            return Err(Wire(Encoding(@encode.OutputLimit)))
+          }
+          result.push(@admitted.reference_identity_cid(reference))
+        }
+      }
+    }
+  }
+  Ok(result)
+}
+
+///|
 /// Both the transient export and its explicit retained successor use this
 /// same per-cell inventory. Reading it never creates another Reference.
 fn original_export_content_reference(

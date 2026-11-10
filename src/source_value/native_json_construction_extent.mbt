@@ -17,34 +17,22 @@ pub fn captured_json_construction_extent(
   let frames = Int::min(max_nodes, max_depth)
   guard json_construction_extent(1, max_nodes, max_depth, normalize_keys=false)
     is Some(tree) &&
-    @shape.key_admission_construction_extent(max_nodes, max_nodes)
-    is Some(all_keys) &&
-    @shape.key_admission_construction_extent(frames, max_nodes)
-    is Some(live_keys) &&
     json_construction_extent(25, 1, 1, normalize_keys=false) is Some(number) else {
     return None
   }
   // Reuse the existing Node/Value/Field/container/ancestry representation.
-  // NativeObject retains KeyAdmission only on an open NativeJsonFrame; its
-  // completed Node owns fields, never the seen Map. Replace only that named
-  // lifetime component, preserving all entries and original growth overlap.
+  // Source already prices KeyAdmission only on an open frame, including all
+  // entries and growth overlap. Reuse that peak without replacing it again.
   // One native keys FixedArray per open object also borrows up to all input
   // key references. Scalar Number parsers run serially, not one per held row.
   let native : JsonConstructionExtent = {
-    record_headers: tree.record_headers -
-    all_keys.record_headers +
-    live_keys.record_headers +
+    record_headers: tree.record_headers +
     frames.to_int64() +
     number.record_headers,
-    reference_slots: tree.reference_slots -
-    all_keys.reference_slots +
-    live_keys.reference_slots +
+    reference_slots: tree.reference_slots +
     max_nodes.to_int64() +
     number.reference_slots,
-    scalar_words: tree.scalar_words -
-    all_keys.scalar_words +
-    live_keys.scalar_words +
-    number.scalar_words,
+    scalar_words: tree.scalar_words + number.scalar_words,
     // There is no quoted whole-document String builder, input byte buffer
     // or copied key/Text backing in native admission. Only this one native
     // Number spelling plus its actual scalar parser workspace is constructed.

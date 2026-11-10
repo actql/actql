@@ -52,6 +52,23 @@ test('current driver/common owner source and additive Native overlay are admitte
   }
 });
 
+// These valid source mutations preserve guard counts where possible. The
+// reviewed new import-current boundary must reject more than a missing call.
+for(const [name,from,to,anchor,reason] of [
+  ['shared import latch bypass', 'if active.val {', 'if false {',
+    'fn with_local_managed_import_mutation(', /Changed shared import mutation fence/],
+  ['per-copy import latch', 'let copied_rows = Ref(0L)',
+    'let import_mutating = Ref(false)\nlet copied_rows = Ref(0L)', undefined, /same Task mutation fence/],
+  ['transfer current before import latch',
+    'with_local_managed_import_mutation(import_mutating, fn()',
+    '@strategy.charge_task_execution_transfer(setup.run, execution, 0L) |> ignore\nwith_local_managed_import_mutation(import_mutating, fn()',
+    ['transfers.push(LocalManagedInputTransfer::', 'append: row =>'], /Current, transfer, grow, counter commit and append must stay inside the fence/],
+  ['after-grow original bridge check omitted', 'physical_equal(current, bridge)',
+    'true', ['transfers.push(LocalManagedInputTransfer::', 'append: row =>'], /Original import calculation\/current\/bridge checks/],
+]) test('import mutation source rejects '+name,()=>{
+  assert.throws(()=>checkDriverRetirementSource(changed(driverPath,from,to,anchor)),reason);
+});
+
 // Completed scratch can retire while the original output remains live. That
 // partial accounting cannot close retention, discard hooks or report cleanup.
 for (const [name,from,to] of [

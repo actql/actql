@@ -81,9 +81,42 @@ The original Source/Compute Plan retains a complete-input variant. Its checked
 physical graph view supplies the exact input to the original root computation;
 the authored root remains pending and executes its actual Select, Sort and
 other supported operations. Program, Parameters, task coordinates, Result ports
-and downstream wiring remain original. The initial supported view is one direct
-Source input; native file listings require their different Resource, native
-inventory and retained-material recipe and are refused by this JSON lane.
+and downstream wiring remain original.
+
+An independent whole-input Root feeding a composed keyed Model prefix executes
+its retained Plan sequence before the prefix imports that Root's Result. The
+existing bounded Local provider runs on the same Run Ledger. Its actual output,
+exact operation input reads and original reservation form the retained producer
+provenance; raw input custody cannot substitute for this completion. Source
+logical identity and observation still describe the original complete input.
+The Model Source closure verifies the same lookup's executed producers at its
+existing final live boundary. The consumer's cleanup precedes upstream provider
+cleanup, and consumed work remains available across the same child transitions.
+Per-poll work remains a delta; the original diagnostic getter sums retained
+child totals without refunding completed or failed work.
+
+Whole-input native file listings require their different Resource custody and
+retained-material recipe. Complete-input file listings retain their original `FileListProfile` and
+resolve the same Catalog/Host item ceiling. They use the existing RowRun
+listing protocol, Resource issuer, paths/glob selection, duplicate metadata
+comparison and terminal completeness check; no Query requirement is fabricated.
+An empty continuation page is not completion, and missing requested paths or
+conflicting metadata cannot publish a partial capture.
+
+Listing metadata includes excluded identities until terminal completeness.
+Its original typed admission supplies node/text usage once; the complete-input
+retention bounds cover that metadata as well as the selected input. A duplicate
+row's temporary usage retires only after comparison, while the original row
+stays charged. Physical transfer bytes remain distinct from translated metadata.
+
+Initial listing funding covers controls and the actual bound selector. Actual
+pages grow the same RowRun reservation before decoding/tree/metadata allocation,
+using the original Source preflight geometry and its same parser, transferred
+once. The parser stays on the original read across fallible current/resource
+checks so cancellation can retire it. Future listing/retention/page ceilings do
+not become initial listing demand. Resource refusal keeps original cleanup
+responsibility; no grant, Source success or physical stop follows from a quote.
+The separate Query-shaped listing/report path keeps its existing recipe.
 
 The Plan composes the original input, provider, Compute imports, output and
 simultaneous failed-child bounds through existing capacity functions and units.
@@ -154,6 +187,17 @@ before issuance and again before retaining the completed invocation. The existin
 one-shot invocation slot remains consumed on semantic failure. Complete original
 Source evidence and logical input values must fit the caller's encoding bounds;
 equal wire representations cannot replace their native capture correspondence.
+
+The keyed Model prefix borrows a closed input original from that live capture
+or the existing restored Source owner. Restored inputs retain their actual
+receiving reservation and holding; they do not acquire a replacement RowRun.
+Source slots remain distinct from Compute task indexes, so two complete inputs
+may feed the same authored JOIN task. The shared prefix and Model admission
+check each original acquisition, Source identity and parent Ledger, while the
+existing Source owner retains cleanup. Dependent Models preserve this same
+Source provenance through saved call-scope restoration. Query requirements
+keep their separate nominal variant; mixed Query and complete-input Plan
+binding remains unsupported.
 
 The original Task compiler represents external inputs even for a single task.
 Its Result port follows the same closed acquisition selection: Query publishes
@@ -371,6 +415,38 @@ Compute stops before the borrowed lookup and Direct input are reclaimed;
 their cleanup and final parent retirement remain separate duties. The
 standalone path and Model/serialization purposes retain their own contracts.
 
+## Keyed request identity for local publication
+
+The completed keyed lookup retains each original checked Request beside its
+existing captured response. Reuse still selects that same physical response;
+the additional Request reference does not spend another attempt or authorize a
+read. Its actual fields Array, field tuples and newly checked correlation
+wrappers are included before the existing holding grows. Static checked values,
+contracts, names and runtime payloads remain borrowed from their original
+template and left producer. Lookup cleanup cuts the Request aliases with the
+response aliases before returning that holding.
+
+Publication projects the actual correlation roles and checked tuple values from
+those originals. The existing lookup-key-set contract orders role names by
+canonical UTF-16 and deduplicates tuples by the shared typed key order. Resource
+and Content references contribute only their original identity CIDs, with no
+reference reissuance or capability envelope. Static bound Request fields exclude
+correlation roles and use canonical field ordering for their separate identity;
+the provider's existing Request wire keeps its original ordering.
+
+The key-set body is a dependency, not physical Source evidence or permission.
+It retains the original SourceView and Request-schema identities. Receiving
+admission checks both its pinned schema and typed ordering; incoming bodies are
+rejected rather than sorted or repaired. The checked Catalog supplies the
+Request-schema body through the existing dependency closure.
+
+The retained publication identity also holds that exact lookup original, its
+key-set, canonical static Request and their acquisition Scope. Metadata readers
+return those same immutable values without another encoding, hash or current
+callback. Original-reference correspondence does not assert current access;
+physical lookup availability, complete response ordering/provenance and final
+Artifact/Store publication remain separate obligations.
+
 ## Salesforce response construction on the original reader
 
 The installed Salesforce reader charges and retains each original response
@@ -396,3 +472,19 @@ locator request. Interruption retires its pending parser through the existing
 QueryRead, while the reader retains raw responses, failed children and physical
 cleanup responsibilities. Neither parser retirement nor a quantity quote is a
 physical-stop or Host-close acknowledgment.
+
+
+### Computed Effect dependency provenance
+
+A whole Source supplies an original input binding to the opened task graph;
+it does not occupy a completed Source task slot. An acquired Unit's computed
+Result is therefore matched against its captured graph's checked Unit, target
+and Result occurrence. The original captured-prefix graph's numeric task
+positions do not identify that physical result.
+
+The completed Source relation identity can compare its original supplied-read
+binding with the captured Run's same checked input slot. This immutable
+provenance comparison neither reacquires the consumed input nor grants a read,
+current authorization or physical cleanup acknowledgement. Result retention,
+export receipts and the caller's current boundaries remain independent. Legacy
+captured Source results keep their original Source matching path.

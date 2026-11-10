@@ -39,7 +39,9 @@ export function fullCheckpointJobs(gateJobs) {
   // missing full-family obligation. Manual macOS opt-in is checked separately;
   // do not generalize these exceptions to arbitrary skipped or missing jobs.
   return ['check', ...gateJobs.filter(name => !['focused-tests', 'main-performance', 'health-quick'].includes(name))
-    .flatMap(name => name === 'core' ? ['core (js)', 'core (wasm)', 'core (native)'] : [name])];
+    .flatMap(name => name === 'core' ? ['core (js)', 'core (wasm)',
+      'core (native 1/2)', 'core (native 2/2)'] : name === 'native-separated-network'
+      ? ['native-separated-network (direct)', 'native-separated-network (store)'] : [name])];
 }
 
 function validRun(run, {repository, repositoryId, workflowId, ancestors}) {

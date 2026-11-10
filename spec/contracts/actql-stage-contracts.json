@@ -4218,6 +4218,54 @@
         "result_artifact_cid"
       ],
       "additionalProperties": false
+    },
+    "local_model_observation": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-local-model-observation/0.1"
+        },
+        "unit_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "input_logical_relation_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "input_relation_schema_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "outcome_logical_relation_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "outcome_relation_schema_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "source_ordinal": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483646
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "unit_definition_cid",
+        "input_logical_relation_cid",
+        "input_relation_schema_cid",
+        "outcome_logical_relation_cid",
+        "outcome_relation_schema_cid",
+        "source_ordinal",
+        "self_cid"
+      ],
+      "additionalProperties": false
     }
   },
   "reference_roles": {
@@ -4334,6 +4382,13 @@
       "effective_data_policy_cid": "external:policy",
       "effective_retention_policy_cid": "external:retention",
       "provenance_evidence_cids/*": "external:observation"
+    },
+    "local_model_observation": {
+      "unit_definition_cid": "local_dependencies",
+      "input_logical_relation_cid": "external:relation-value",
+      "input_relation_schema_cid": "external:value-contract",
+      "outcome_logical_relation_cid": "external:relation-value",
+      "outcome_relation_schema_cid": "external:value-contract"
     }
   },
   "reference_graph": [
@@ -4770,6 +4825,36 @@
       "role": "semantic"
     },
     {
+      "source": "local_model_observation",
+      "slot": "unit_definition_cid",
+      "target": "local_dependencies",
+      "role": "semantic"
+    },
+    {
+      "source": "local_model_observation",
+      "slot": "input_logical_relation_cid",
+      "target": "external:relation-value",
+      "role": "semantic"
+    },
+    {
+      "source": "local_model_observation",
+      "slot": "input_relation_schema_cid",
+      "target": "external:value-contract",
+      "role": "semantic"
+    },
+    {
+      "source": "local_model_observation",
+      "slot": "outcome_logical_relation_cid",
+      "target": "external:relation-value",
+      "role": "semantic"
+    },
+    {
+      "source": "local_model_observation",
+      "slot": "outcome_relation_schema_cid",
+      "target": "external:value-contract",
+      "role": "semantic"
+    },
+    {
       "source": "local_table_input_definition",
       "slot": "unit_definition_cid",
       "target": "local_dependencies",
@@ -4921,6 +5006,7 @@
     "result_import_interface": "sha256:81898e3b8eb76b16e59e0de4b38ed5d948e7752ae127b45ae432f39e0afd2431",
     "result_import_observation": "sha256:3a622a55cb9af3939de08583caf298abd7d66b357bcde4a060140e39cccdde8d",
     "local_table_input_definition": "sha256:22699f824d1ed8137b7e62797bc636255823acdd803b944d61104354e4ba706b",
-    "local_table_input_artifact": "sha256:16f69bbc38782a3ea42fafcfbbd992f9d1356a68c70dd1182cb102e269db04f1"
+    "local_table_input_artifact": "sha256:16f69bbc38782a3ea42fafcfbbd992f9d1356a68c70dd1182cb102e269db04f1",
+    "local_model_observation": "sha256:00c4c147c9f572366acaa670d0929ea2adbb9c9f4819c53a5f5ff8cf37706afc"
   }
 }

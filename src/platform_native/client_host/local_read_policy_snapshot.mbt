@@ -288,10 +288,9 @@ fn NativeLocalReadPolicyBinding::resolve_policy_from_snapshot(
         Ok(value) => value
         Err(issue) => return Err(Journal(issue))
       }
-      if !self.selection.data_policy_cids.contains(
-          @publication.captured_effect_dependency_body_cid(body),
-        ) {
-        return Err(PolicyNotSelected)
+      match self.retain_result_policy_original(original, facts, body) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
       }
       Ok(body)
     }

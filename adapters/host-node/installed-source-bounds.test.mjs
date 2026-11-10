@@ -5,6 +5,7 @@ import {createRequire, syncBuiltinESMExports} from 'node:module';
 import fs from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {pathToFileURL} from 'node:url';
 import test from 'node:test';
 import {connectEmbeddedLocal} from './embedded-local.mjs';
 import {installedSourceIdentity, loadInstalledSource,
@@ -12,7 +13,6 @@ import {installedSourceIdentity, loadInstalledSource,
 import {installedRuntimeBundleCid, installedConfigurationChunkBytes} from './source-profile-json.mjs';
 import {installedSourceFixtureLifetime} from './fixtures/installed-source-initialization.mjs';
 import {retireInstalledSourceInitialization} from './installed-host-services.mjs';
-import {captureSourceAliasConstruction, sourceAliasProfileConstructionGeometry} from './source-alias-construction.mjs';
 import {sourceJsonWireGeometry} from './installed-source-construction-geometry.mjs';
 
 const byteLimit = 8 * 1024 * 1024;
@@ -85,16 +85,22 @@ function observeProvider(t) {
 async function fundedConfiguration(t) {
   // Register actual Source/parent retirement before directory removal.
   const lifetime = installedSourceFixtureLifetime(t), root = await directory(t);
-  const runtimeUrl = new URL('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
-  const common = await import(runtimeUrl.href), quotes = [];
+  const runtimeUrl = process.env.ACTQL_TEST_BOUND_CONSTRUCTION_RUNTIME === undefined
+    ? new URL('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url)
+    : pathToFileURL(process.env.ACTQL_TEST_BOUND_CONSTRUCTION_RUNTIME);
+  const common = await import(runtimeUrl.href), quotes = [], jsonQuotes = [], profileQuotes = [];
   const moon = Object.freeze({...common, clientProgramInstalledSourceConstructionCapacity(...counts) {
     assert.strictEqual(this, moon); quotes.push(counts);
     return Reflect.apply(common.clientProgramInstalledSourceConstructionCapacity, common, counts);
+  }, clientProgramInstalledSourceJsonConstructionCapacity(...counts) {
+    jsonQuotes.push(counts); return common.clientProgramInstalledSourceJsonConstructionCapacity(...counts);
+  }, clientProgramInstalledProfileConstructionCapacities(...counts) {
+    profileQuotes.push(counts); return common.clientProgramInstalledProfileConstructionCapacities(...counts);
   }});
   const opened = lifetime.open({root, moon, installation: Object.freeze({}),
     runtimeBundleCid: await installedRuntimeBundleCid(runtimeUrl)});
   return {path: join(root, 'configuration'), reader: opened.configurationReader,
-    services: opened.installationServices, moon, quotes};
+    services: opened.installationServices, moon, quotes, jsonQuotes, profileQuotes};
 }
 
 test('funded Source original text JSON keeps long scalar text separate from structural node demand', async t => {
@@ -105,9 +111,8 @@ test('funded Source original text JSON keeps long scalar text separate from stru
   const original = await f.reader.readText(f.path, {maxBytes: Buffer.byteLength(wire)});
   assert.deepEqual(f.reader.parseJsonText(original), expected);
   assert(measured.nodes < BigInt(wire.length) / 1000n);
-  assert(f.quotes.some(q => q[0] === 4n * measured.nodes && q[3] === 4n * measured.nodes &&
-    q[4] === 12n * BigInt(wire.length)), 'same four tree roles, complete unchanged decoded-text envelope');
-  assert.equal(f.quotes.at(-1)[0], 4n * measured.nodes, 'returned tree stays on the same material');
+  assert.deepEqual(f.jsonQuotes, [[measured.nodes, measured.units, 0n, measured.retained.nodes, measured.retained.text]],
+    'only original wire facts cross the Core recipe; no Host copy of its pricing formula');
 });
 
 test('funded Source original text JSON retains full whitespace escape and Unicode demand', async t => {
@@ -119,7 +124,7 @@ test('funded Source original text JSON retains full whitespace escape and Unicod
   await writeFile(f.path, wire);
   const original = await f.reader.readText(f.path, {maxBytes: Buffer.byteLength(wire)});
   assert.deepEqual(f.reader.parseJsonText(original), expected);
-  assert(f.quotes.some(q => q[3] === 4n * measured.nodes && q[4] === 12n * measured.units));
+  assert(f.jsonQuotes.some(q => q[0] === measured.nodes && q[1] === measured.units));
   const before = f.quotes.length;
   assert.throws(() => f.reader.parseJsonText(original + ' '), {code: 'ForeignInstalledConfigurationText'});
   assert.equal(f.quotes.length, before, 'foreign original refuses before any constructor quote');
@@ -136,7 +141,7 @@ test('funded Source original text JSON still refuses genuine node demand before 
   assert.throws(() => f.reader.parseJsonText(original), error =>
     error.code === 'MoonBitHostFailure' &&
     /PreparationCapacityIssue.*Resource$/u.test(error.cause?.constructor?.name ?? ''));
-  assert(f.quotes.some(q => q[3] === 4n * measured.nodes && q[4] === 12n * measured.units));
+  assert(f.jsonQuotes.some(q => q[0] === measured.nodes && q[1] === measured.units));
 });
 
 test('funded Source Alias profile preserves real string demand and refuses its constructor before allocation', async t => {
@@ -145,16 +150,16 @@ test('funded Source Alias profile preserves real string demand and refuses its c
   await writeFile(f.path, wire);
   const original = await f.reader.readText(f.path, {maxBytes: byteLimit});
   assert.equal(original, wire);
-  const quantity = sourceAliasProfileConstructionGeometry(original);
-  assert.equal(quantity.bounds.input.units, BigInt(wire.length), 'inside-string spaces remain actual payload');
-  const construct = captureSourceAliasConstruction(f.reader, f.moon);
+  const facts = sourceJsonWireGeometry(original, true);
+  assert.equal(facts.units, BigInt(wire.length), 'inside-string spaces remain actual payload');
   let entered = false;
-  assert.throws(() => construct(quantity, () => {
+  assert.throws(() => f.reader.prepareProfile(original, () => {
     entered = true;
     return Object.freeze(JSON.parse(original));
   }), error => error.message === 'MoonBitHostFailure' &&
     /PreparationCapacityIssue.*Resource$/u.test(error.cause?.constructor?.name ?? ''));
   assert.equal(entered, false, 'the same finite preparation owner refuses before the real parse');
+  assert.deepEqual(f.profileQuotes, [[facts.nodes, facts.units]]);
 });
 
 test('funded Source text decoder retains one String and exact file limit refusals', async t => {
@@ -187,10 +192,14 @@ test('funded Source strict UTF8 and JSON retain their distinct original decode e
   await writeFile(f.path, Buffer.from([0xff]));
   await assert.rejects(f.reader.readUtf8(f.path, {maxBytes: 1}), {code: 'ERR_ENCODING_INVALID_ENCODED_DATA'});
   const body = JSON.stringify({value: '日本語😀'}), size = BigInt(Buffer.byteLength(body));
+  const geometry = sourceJsonWireGeometry(body);
   await writeFile(f.path, body);
   assert.deepEqual(await f.reader.readJson(f.path), {value: '日本語😀'});
-  assert(f.quotes.some(q => q[3] === 4n * size && q[4] === 12n * size &&
-    q[5] === 8n * size + BigInt(installedConfigurationChunkBytes)), 'full JSON envelope is unchanged');
+  assert(f.quotes.some(q => q[3] === 0n && q[4] === 3n * size &&
+    q[5] === 2n * size + BigInt(installedConfigurationChunkBytes)), 'decode funds buffers and the same String before JSON values exist');
+  assert(f.jsonQuotes.some(q => q[0] === geometry.nodes && q[1] === geometry.units &&
+    q[2] === 8n * size + BigInt(installedConfigurationChunkBytes)),
+    'Core receives actual structural nodes, UTF16 units and simultaneous native buffers');
   await writeFile(f.path, '{"unfinished":');
   await assert.rejects(f.reader.readJson(f.path), SyntaxError);
 });

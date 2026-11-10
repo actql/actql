@@ -95,6 +95,7 @@ function recoveryView(state) {
       }
       state.closed = true;
       state.assertCurrent = undefined;
+      state.begin = undefined;
       state.complete = undefined;
       state.context = undefined;
       const retired = state.retired;
@@ -106,6 +107,16 @@ function recoveryView(state) {
     return flight;
   };
   view = Object.freeze({reserve,
+    reserveDecoded(wire) {
+      if (typeof wire !== 'string' || !state.busy || state.closing || state.closed || state.preparing) {
+        fail('EffectCaptureResourceUnavailable');
+      }
+      if (!state.live) return;
+      state.preparing = true;
+      try {checked(state.context.runtime.clientProgramReserveInstalledEffectCaptureDecoded(state.value, wire));}
+      catch (cause) {captureFailure(state, cause); throw cause;}
+      finally {state.preparing = false;}
+    },
     retainCleanup(operation) {
       if (state.closed || state.resultCleanup !== undefined || typeof operation !== 'function') {
         fail('EffectCaptureResourceUnavailable');
@@ -115,8 +126,16 @@ function recoveryView(state) {
       state.resultCleanup = operation;
     },
     begin() {
-      if (state.busy || state.closing || state.closed) fail('EffectCaptureResourceUnavailable');
+      if (state.busy || state.preparing || state.closing || state.closed) fail('EffectCaptureResourceUnavailable');
       state.busy = true;
+      try {
+        if (state.live) checked(Reflect.apply(state.begin, state.context.runtime, [state.value]));
+        if (state.closing || state.closed) fail('EffectCaptureResourceUnavailable');
+      } catch (cause) {
+        captureFailure(state, cause);
+        state.busy = false;
+        throw cause;
+      }
     },
     finish(failed, cause) {
       if (!state.busy) fail('EffectCaptureResourceUnavailable');
@@ -161,9 +180,13 @@ export function prepareEffectCaptureResources({moon, control, request, runDefini
     assertCurrent();
     if (state.closing || state.closed) fail('EffectCaptureResourceUnavailable');
     if (managed !== undefined) {
+      state.begin = Object.getOwnPropertyDescriptor(moon,
+        'clientProgramBeginInstalledEffectCaptureRecovery')?.value;
       state.complete = Object.getOwnPropertyDescriptor(moon,
         'clientProgramCompleteInstalledEffectCaptureRecovery')?.value;
       if (typeof moon.clientProgramPrepareInstalledEffectCaptureRecovery !== 'function' ||
+          typeof moon.clientProgramReserveInstalledEffectCaptureDecoded !== 'function' ||
+          typeof state.begin !== 'function' ||
           typeof state.complete !== 'function') {
         fail('EffectCaptureResourceUnavailable');
       }

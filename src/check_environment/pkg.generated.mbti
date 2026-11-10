@@ -228,6 +228,8 @@ pub fn compiler_grammar_manifest_wire() -> String
 
 pub fn compiler_inference_barrier_contract_cid() -> String
 
+pub fn compiler_lookup_barrier_contract_cid() -> String
+
 pub fn compiler_version_token() -> String
 
 pub fn connector_manifest(WireEnvironment) -> @decode_core.Cursor?
@@ -293,6 +295,8 @@ pub fn default_read_mode(SourceViewModes) -> SourceReadMode
 pub fn emit(WireEnvironment, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_host_policy(WireEnvironment, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn emit_lookup_execution_policy(LookupExecutionPolicy, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_member(Member, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 

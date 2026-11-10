@@ -477,6 +477,96 @@ test "planned Effect Compute executes retained sequence on the original managed 
 }
 
 ///|
+test "captured JOIN row ceiling does not prepay future operation controls on the same finite parent" {
+  let per_row = @execution.execution_capacity(67108864L, 67112960L).unwrap()
+  let plan = effect_operation_source_plan_fixture(
+    additional_source=true,
+    controls_per_row=Some(per_row),
+  )
+  assert_eq(plan.rows, 10)
+  assert_eq(plan.held_children, 11)
+  let quote = prepared_installed_effect_managed_requirements(plan)
+  // Preserve the ordinary 512 MiB policy and existing ten-byte input carrier.
+  // The checked JOIN ceiling is not ten already resident control payloads.
+  quote[4] = 536870902L
+  quote[5] = 536870902L
+  let (input, initial, ledger, capacity) = effect_parent_test_preparation(
+    plan, quote,
+  )
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial,
+    input,
+    capacity,
+    plan.prepared,
+    plan.request,
+    plan,
+  ).unwrap()
+  retain_installed_effect_operation_controls_before_construction(
+    owner,
+    plan.prepared,
+    plan.request,
+    plan,
+  ).unwrap()
+  |> ignore
+  assert_true(plan.closed_rows is None)
+  let control = owner.effect_operation_controls.unwrap()
+  let token = control.reservation
+  assert_true(
+    @resources.ledger_usage(ledger).reserved_retention_bytes < 67108864L,
+  )
+  let preparation = owner.preparation.unwrap()
+  let admission = match preparation {
+    PlannedEffectManaged(admission, original) => {
+      assert_true(physical_equal(original, plan))
+      admission
+    }
+    _ => fail("fixture must retain original Effect preparation")
+  }
+  // Explicit inventory port for this Resource component only. The ordinary
+  // caller must supply the existing original captured-input/Preview witness.
+  retain_installed_effect_control_row_inventory(
+    owner,
+    preparation,
+    admission,
+    plan,
+    ledger,
+    control,
+    2,
+    () => {
+      check_installed_effect_operation_original(
+        owner,
+        ledger,
+        preparation,
+        Some(control),
+      )
+    },
+  ).unwrap()
+  assert_true(physical_equal(control.reservation, token))
+  assert_eq(control.captured_rows, Some(2))
+  assert_true(
+    @resources.ledger_usage(ledger).reserved_retention_bytes >= 134217728L,
+  )
+  assert_eq(@resources.ledger_limits(ledger).retained_bytes, 536870912L)
+  assert_eq(@resources.ledger_limits(ledger).execution_bytes, 536870912L)
+  assert_eq(plan.rows, 10)
+  assert_true(
+    retain_installed_effect_control_row_inventory(
+      owner,
+      preparation,
+      admission,
+      plan,
+      ledger,
+      control,
+      11,
+      () => Ok(()),
+    )
+    is Err(InsufficientCapacity),
+  )
+  retire_installed_managed_run(owner).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+}
+
+///|
 test "unknown Effect capture grows its same control from completed original rows before child construction" {
   unknown_effect_capture_controls(effect_operation_source_plan_fixture())
 }
@@ -1880,6 +1970,84 @@ test "same original planned parent lookup observes physical current once" {
 }
 
 ///|
+test "original Plan metadata keeps current fences when real constructor execution is exhausted" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let baseline = effect_operation_plan_fixture(prepared, request, contracts)
+  let plan = effect_operation_plan_with_control_fixture(
+    prepared,
+    request,
+    contracts,
+    baseline,
+    @execution.execution_capacity(7L, 47L).unwrap(),
+  ).unwrap()
+  let quote = prepared_installed_effect_managed_requirements(plan)
+  quote[4] = 536870902L
+  quote[5] = 536870902L
+  let calls = Ref(0)
+  let (input, initial, ledger, capacity) = effect_parent_test_preparation(
+    plan,
+    quote,
+    current=() => calls.val += 1,
+  )
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
+  ).unwrap()
+  retain_installed_effect_operation_controls_before_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  |> ignore
+  let limits = @resources.ledger_limits(ledger)
+  assert_eq(limits.execution_bytes, 536870912L)
+  let before = @resources.ledger_usage(ledger)
+  let blocker = @resources.reserve_capacity(
+    ledger,
+    0L,
+    limits.execution_bytes - before.reserved_execution_bytes,
+  ).unwrap()
+  let blocked = @resources.ledger_usage(ledger)
+  calls.val = 0
+  let original = installed_effect_managed_operation_plan(
+    owner, prepared, request,
+  ).unwrap()
+  assert_true(physical_equal(original, plan))
+  assert_eq(
+    prepared_installed_effect_managed_shape(original),
+    (1, 1, plan.held_children),
+  )
+  assert_true(
+    physical_equal(
+      installed_effect_managed_operation_plan(owner, prepared, request).unwrap(),
+      plan,
+    ),
+  )
+  assert_eq(calls.val, 2)
+  assert_eq(@resources.ledger_usage(ledger), blocked)
+  assert_true(
+    begin_installed_effect_operation_control_construction(
+      owner, prepared, request, plan,
+    )
+    is Err(Ledger(ExecutionLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), blocked)
+  @resources.settle_capacity(ledger, blocker).unwrap()
+  begin_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  complete_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  assert_eq(
+    @resources.ledger_usage(ledger).reserved_execution_bytes,
+    before.reserved_execution_bytes,
+  )
+  retire_installed_managed_run(owner).unwrap()
+  assert_true(
+    installed_effect_managed_operation_plan(owner, prepared, request)
+    is Err(Unsupported),
+  )
+}
+
+///|
 test "bound Plan getter checks exact immutable originals and calls current once" {
   let (prepared, request, contracts) = effect_operation_plan_inputs()
   let plan = effect_operation_plan_fixture(prepared, request, contracts)
@@ -2114,4 +2282,859 @@ test "cold inventory grows original symbolic member backing without opening or r
     before.transferred_bytes,
   )
   retire_installed_managed_run(owner).unwrap()
+}
+
+///|
+// Actual original preparation/Ledger and row operation bounds. Provider
+// authorization, HTTP dispatch and physical ACK are not supplied by this case.
+test "managed row ceiling above a provider batch remains the same finite parent budget" {
+  let rows = "[" +
+    Array::makei(60, index => "{\"id\":" + index.to_string() + "}").join(",") +
+    "]"
+  let environment = @publication_host.admit_client_check_environment(
+    source_query_original_environment,
+    "sha256:05ee9059ef5f173069a3f3f1896e16ee62d34d0c842d81e9b0f8421db62e67a8",
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  let effect =
+    #|{"update":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"rows"},"id":"id","set":{"Name":{"field":"id"}}}}
+  let document =
+    #|{"version":"actql/0.1","id":"bounded-two-members","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":ROWS},"as":"seed"}],"results":{"rows":{"from":"seed","fields":["id"]}},"effects":{"first":EFFECT,"second":EFFECT}}],"results":{"rows":{"from":{"stage":"main","result":"rows"}}}}
+  let document = document
+    .replace(old="ROWS", new=rows)
+    .replace_all(old="EFFECT", new=effect)
+  let prepared = @publication_host.prepare_client_effect_computation(
+    document,
+    Json,
+    environment,
+    None,
+    [],
+    @publication_host.client_standard_effect_computation_limits(),
+  ).unwrap()
+  let request = @publication_host.prepare_client_effect_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "bounded-two-members",
+    "sha256:" + "b".repeat(64),
+  ).unwrap()
+  let contracts = prepare_installed_sequence_contracts(
+    source_query_original_registry,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+  ).unwrap()
+  let metadata = prepare_installed_effect_operation_extent(
+    "operation",
+    @execution.execution_capacity(100L, 200L).unwrap(),
+    17L,
+    true,
+  ).unwrap()
+  let send = prepare_installed_effect_operation_extent(
+    "operation",
+    @execution.execution_capacity(300L, 500L).unwrap(),
+    13L,
+    true,
+  ).unwrap()
+  let capture = prepare_installed_effect_operation_extent(
+    "operation",
+    @execution.execution_capacity(50L, 70L).unwrap(),
+    0L,
+    false,
+  ).unwrap()
+  let demands = ["first", "second"].map(effect_id => {
+    prepare_installed_effect_operation_demand(
+      prepared,
+      0,
+      effect_id,
+      [metadata],
+      [send, send, capture],
+    ).unwrap()
+  })
+  let plan = match
+    prepare_installed_effect_managed_plan(
+      prepared,
+      request,
+      [],
+      "",
+      "",
+      [],
+      [],
+      contracts,
+      source_query_original_values,
+      Some(source_query_original_fragment),
+      None,
+      demands,
+      provider_factory=_ => [],
+    ) {
+    Ok(value) => value
+    Err(issue) => {
+      let label = match issue {
+        Unsupported => "Unsupported"
+        ForeignOriginal => "ForeignOriginal"
+        InsufficientCapacity => "InsufficientCapacity"
+        MetadataCapacityUnavailable => "MetadataCapacityUnavailable"
+        Sequence(_) => "Sequence"
+        _ => "Other"
+      }
+      fail("Original120TargetPlan: " + label)
+    }
+  }
+  assert_eq(prepared_installed_effect_managed_shape(plan).0, 60)
+  assert_eq(prepared_installed_effect_managed_shape(plan).1, 2)
+  let (input, initial, ledger, capacity) = effect_parent_test_preparation(
+    plan,
+    prepared_installed_effect_managed_requirements(plan),
+  )
+  let run = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
+  ).unwrap()
+  retain_installed_effect_operation_controls_before_construction(
+    run, prepared, request, plan,
+  ).unwrap()
+  |> ignore
+  let mut completed = 0
+  for member_index in 0..<2 {
+    for row in 0..<60 {
+      let original = borrow_installed_effect_operation(
+        run, prepared, request, plan, member_index, true, 2, row, "operation",
+      ).unwrap()
+      complete_installed_effect_operation_construction(original).unwrap()
+      assert_true(retire_installed_effect_operation(original, true).unwrap())
+      completed += 1
+    }
+  }
+  assert_eq(completed, 120)
+  let before = @resources.ledger_usage(ledger)
+  assert_true(
+    borrow_installed_effect_operation(
+      run, prepared, request, plan, 0, true, 2, 60, "operation",
+    )
+    is Err(ForeignOriginal),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+  assert_true(require_installed_managed_run(run) is Err(Retired))
+  // One missing transfer byte still refuses the actual physical extent before
+  // a Start; row count cannot create budget or turn unknown cleanup into ACK.
+  let quote = prepared_installed_effect_managed_requirements(plan)
+  quote[3] = 16L
+  let (input, initial, ledger, capacity) = effect_preparation_test_capacity(
+    plan, quote,
+  )
+  let run = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
+  ).unwrap()
+  retain_installed_effect_operation_controls_before_construction(
+    run, prepared, request, plan,
+  ).unwrap()
+  |> ignore
+  assert_true(
+    borrow_installed_effect_operation(
+      run, prepared, request, plan, 0, false, 0, 0, "operation",
+    )
+    is Err(Ledger(TransferLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger).attempts, 0)
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+}
+
+///|
+test "original Grant constructor keeps retained outputs without reserving unrelated Receipt scratch" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let baseline = effect_operation_plan_fixture(prepared, request, contracts)
+  let full = standard_create_saved_control_capacity(1000000, 512, 16).unwrap()
+  let grant = standard_create_grant_capacity().unwrap()
+  let plan = effect_operation_plan_with_control_fixture(
+    prepared, request, contracts, baseline, full,
+  ).unwrap()
+  let quote = prepared_installed_effect_managed_requirements(plan)
+  quote[4] = 536870902L
+  quote[5] = 536870902L
+  let calls = Ref(0)
+  let (input, initial, ledger, capacity) = effect_parent_test_preparation(
+    plan,
+    quote,
+    current=() => calls.val += 1,
+  )
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
+  ).unwrap()
+  retain_installed_effect_operation_controls_before_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  |> ignore
+  let control = owner.effect_operation_controls.unwrap()
+  let token = control.reservation
+  let idle = @resources.ledger_usage(ledger)
+  assert_eq(@resources.ledger_limits(ledger).execution_bytes, 536870912L)
+  // Leave enough for this original issuer, but not the future Receipt family.
+  let workspace = @execution.execution_capacity_execution_bytes(grant) -
+    @execution.execution_capacity_retained_bytes(grant)
+  let remaining = @resources.ledger_limits(ledger).execution_bytes -
+    idle.reserved_execution_bytes
+  let increment = Int64::max(
+    0L,
+    workspace -
+    (
+      plan.operation_control_idle_execution -
+      @execution.execution_capacity_retained_bytes(
+        plan.operation_control_capacity,
+      )
+    ),
+  )
+  let pressure = @resources.reserve_capacity(ledger, 0L, remaining - increment).unwrap()
+  let occupied = @resources.ledger_usage(ledger)
+  assert_true(
+    begin_installed_effect_operation_control_construction(
+      owner, prepared, request, plan,
+    )
+    is Err(Ledger(ExecutionLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), occupied)
+  let last_byte = @resources.reserve_capacity(ledger, 0L, 1L).unwrap()
+  let exhausted = @resources.ledger_usage(ledger)
+  assert_true(
+    begin_installed_effect_operation_grant_construction(
+      owner, prepared, request, plan,
+    )
+    is Err(Ledger(ExecutionLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), exhausted)
+  assert_false(control.construction_active)
+  @resources.settle_capacity(ledger, last_byte).unwrap()
+  calls.val = 0
+  begin_installed_effect_operation_grant_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  assert_true(calls.val > 0)
+  let active = @resources.ledger_usage(ledger)
+  assert_eq(active.reserved_retention_bytes, occupied.reserved_retention_bytes)
+  assert_eq(
+    active.reserved_execution_bytes,
+    occupied.reserved_execution_bytes + increment,
+  )
+  assert_true(physical_equal(control.reservation, token))
+  let (same, _) = installed_effect_control_capacity(Some(control), plan).unwrap()
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(same),
+    @execution.execution_capacity_retained_bytes(
+      plan.operation_control_capacity,
+    ),
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(same) <
+    @execution.execution_capacity_execution_bytes(
+      plan.operation_control_capacity,
+    ),
+  )
+  // The original synchronous caller has not reported success yet. Reentry,
+  // foreign owners and a different nested codec cannot return its prefix.
+  assert_true(
+    begin_installed_effect_operation_grant_construction(
+      owner, prepared, request, plan,
+    )
+    is Err(AlreadyBound),
+  )
+  let foreign = { ..owner, }
+  assert_true(
+    complete_installed_effect_operation_control_construction(
+      foreign, prepared, request, plan,
+    )
+    is Err(ForeignOriginal),
+  )
+  assert_true(
+    begin_installed_effect_operation_ledger_codec(
+      owner,
+      prepared,
+      request,
+      plan,
+      Some("{}"),
+      512,
+      16,
+    )
+    is Err(AlreadyBound),
+  )
+  assert_eq(@resources.ledger_usage(ledger), active)
+  complete_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  assert_eq(@resources.ledger_usage(ledger), occupied)
+  assert_true(control.constructor_frame is None)
+  // A second, distinct issuer is admitted afresh; it is not a cached Allow.
+  begin_installed_effect_operation_grant_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  complete_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  assert_true(
+    begin_installed_effect_operation_control_construction(
+      owner, prepared, request, plan,
+    )
+    is Err(Ledger(ExecutionLimit)),
+  )
+  @resources.settle_capacity(ledger, pressure).unwrap()
+  begin_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  complete_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  retire_installed_managed_run(owner).unwrap()
+}
+
+///|
+test "completed original request projection selects its constructor on the same real Ledger control" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let baseline = effect_operation_plan_fixture(prepared, request, contracts)
+  // Authored production HubSpot body/request/read constructor limits. No
+  // metadata, permission, HTTP or mock reservation replaces this real quote.
+  let request_capacity = @hubspot_catalog.effect_request_construction_capacity(
+    {
+      max_input_bytes: 8192,
+      max_nodes: 2000,
+      max_depth: 24,
+      max_fields: 100,
+      max_name_bytes: 256,
+      max_value_nodes: 2000,
+      max_value_text_bytes: 8192,
+      max_comparison_work: 20000,
+      max_output_bytes: 8192,
+      max_output_nodes: 2000,
+      max_output_depth: 24,
+    },
+    {
+      max_rows: 100,
+      max_properties: 100,
+      max_trace_bytes: 128,
+      max_body_bytes: 20000,
+      max_body_nodes: 3000,
+      max_body_depth: 24,
+    },
+    {
+      max_rows: 1,
+      max_properties: 100,
+      max_columns: 100,
+      max_request_bytes: 20000,
+      max_request_nodes: 3000,
+      max_request_depth: 24,
+    },
+    2,
+    64,
+    512,
+  ).unwrap()
+  let rows = baseline.operations[0].row_extents.copy()
+  rows[2] = prepare_installed_effect_operation_extent(
+    "request", request_capacity, 0L, false,
+  ).unwrap()
+  let demand = prepare_installed_effect_operation_demand_with_controls(
+    prepared,
+    0,
+    "save",
+    baseline.operations[0].member_extents,
+    rows,
+    standard_create_saved_control_capacity(1000000, 512, 16).unwrap(),
+  ).unwrap()
+  let plan = prepare_installed_effect_managed_plan(
+    prepared,
+    request,
+    [],
+    "",
+    "",
+    [],
+    [],
+    contracts,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+    [demand],
+    provider_factory=_ => [],
+  ).unwrap()
+  let quote = prepared_installed_effect_managed_requirements(plan)
+  quote[4] = 536870902L
+  quote[5] = 536870902L
+  let calls = Ref(0)
+  let (input, initial, ledger, capacity) = effect_parent_test_preparation(
+    plan,
+    quote,
+    current=() => calls.val += 1,
+  )
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
+  ).unwrap()
+  retain_installed_effect_operation_controls_before_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  |> ignore
+  let child = retain_installed_effect_operation_construction(
+    owner, prepared, request, plan, 0, true, 2, 0, "request",
+  ).unwrap()
+  // A held or failed/incomplete constructor cannot select the later frame.
+  assert_true(
+    begin_installed_effect_operation_request_projection(
+      owner, prepared, request, plan, 0, 2, 0,
+    )
+    is Err(_),
+  )
+  begin_installed_effect_operation_construction(child).unwrap()
+  assert_true(
+    begin_installed_effect_operation_request_projection(
+      owner, prepared, request, plan, 0, 2, 0,
+    )
+    is Err(_),
+  )
+  complete_installed_effect_operation_construction(child).unwrap()
+  let control = owner.effect_operation_controls.unwrap()
+  let token = control.reservation
+  let idle = @resources.ledger_usage(ledger)
+  let remaining = @resources.ledger_limits(ledger).execution_bytes -
+    idle.reserved_execution_bytes
+  // Same observed current remaining E; the surrounding business state is
+  // represented only by independent real reservations, never reopened.
+  let pressure = @resources.reserve_capacity(ledger, 0L, remaining - 60375362L).unwrap()
+  let occupied = @resources.ledger_usage(ledger)
+  assert_true(
+    begin_installed_effect_operation_control_construction(
+      owner, prepared, request, plan,
+    )
+    is Err(Ledger(ExecutionLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), occupied)
+  assert_true(
+    begin_installed_effect_operation_request_projection(
+      owner, prepared, request, plan, 0, 2, 1,
+    )
+    is Err(_),
+  )
+  assert_true(
+    begin_installed_effect_operation_request_projection(
+      { ..owner, },
+      prepared,
+      request,
+      plan,
+      0,
+      2,
+      0,
+    )
+    is Err(ForeignOriginal),
+  )
+  calls.val = 0
+  begin_installed_effect_operation_request_projection(
+    owner, prepared, request, plan, 0, 2, 0,
+  ).unwrap()
+  assert_true(calls.val > 0)
+  let active = @resources.ledger_usage(ledger)
+  let increment = active.reserved_execution_bytes -
+    occupied.reserved_execution_bytes
+  assert_true(increment > 0L && increment < 60375362L)
+  println(
+    "Request projection component: constructor R=\{@execution.execution_capacity_retained_bytes(request_capacity)} E=\{@execution.execution_capacity_execution_bytes(request_capacity)}; control R=\{@execution.execution_capacity_retained_bytes(plan.operation_control_capacity)}; admitted increment E=\{increment}; independently available E=60375362",
+  )
+  assert_eq(active.reserved_retention_bytes, occupied.reserved_retention_bytes)
+  assert_eq(active.held_bytes, occupied.held_bytes)
+  assert_eq(active.planning_work, occupied.planning_work)
+  assert_eq(active.transferred_bytes, occupied.transferred_bytes)
+  assert_true(physical_equal(control.reservation, token))
+  assert_true(
+    control.constructor_frame is Some(Fixed(_, Some(original))) &&
+    physical_equal(original, child),
+  )
+  assert_true(
+    begin_installed_effect_operation_request_projection(
+      owner, prepared, request, plan, 0, 2, 0,
+    )
+    is Err(AlreadyBound),
+  )
+  assert_true(
+    begin_installed_effect_operation_ledger_codec(
+      owner,
+      prepared,
+      request,
+      plan,
+      Some("{}"),
+      512,
+      16,
+    )
+    is Err(AlreadyBound),
+  )
+  let (same, _) = installed_effect_control_capacity(Some(control), plan).unwrap()
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(same),
+    @execution.execution_capacity_retained_bytes(same) +
+    @execution.execution_capacity_execution_bytes(request_capacity) -
+    @execution.execution_capacity_retained_bytes(request_capacity),
+  )
+  assert_eq(@resources.ledger_usage(ledger), active)
+  complete_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  assert_eq(@resources.ledger_usage(ledger), occupied)
+  assert_true(control.constructor_frame is None)
+  // Independently leave exactly one byte too little for this SAME request.
+  let one_short = @resources.reserve_capacity(
+    ledger,
+    0L,
+    60375362L - increment + 1L,
+  ).unwrap()
+  let before_refusal = @resources.ledger_usage(ledger)
+  assert_true(
+    begin_installed_effect_operation_request_projection(
+      owner, prepared, request, plan, 0, 2, 0,
+    )
+    is Err(Ledger(ExecutionLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before_refusal)
+  assert_false(control.construction_active)
+  @resources.settle_capacity(ledger, one_short).unwrap()
+  @resources.settle_capacity(ledger, pressure).unwrap()
+  retire_installed_effect_operation(child, true).unwrap() |> ignore
+  assert_true(
+    begin_installed_effect_operation_request_projection(
+      owner, prepared, request, plan, 0, 2, 0,
+    )
+    is Err(_),
+  )
+  begin_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  complete_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  retire_installed_managed_run(owner).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+}
+
+///|
+test "request projection current retirement keeps failed control scratch until original cleanup" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs(
+    rows="[{\"id\":1},{\"id\":2}]",
+  )
+  let plan = effect_operation_plan_fixture(prepared, request, contracts)
+  let quote = prepared_installed_effect_managed_requirements(plan)
+  let retiring : Ref[ClientInstalledEffectOperationBorrow?] = Ref(None)
+  let (input, initial, ledger, capacity) = effect_parent_test_preparation(
+    plan,
+    quote,
+    current=() => {
+      if retiring.val is Some(child) {
+        retiring.val = None
+        retire_installed_effect_operation(child, true).unwrap() |> ignore
+      }
+    },
+  )
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
+  ).unwrap()
+  retain_installed_effect_operation_controls_before_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  |> ignore
+  let control = owner.effect_operation_controls.unwrap()
+  let first = retain_installed_effect_operation_construction(
+    owner, prepared, request, plan, 0, true, 2, 0, "operation",
+  ).unwrap()
+  begin_installed_effect_operation_construction(first).unwrap()
+  complete_installed_effect_operation_construction(first).unwrap()
+  retiring.val = Some(first)
+  // The Resource current retires this exact original after precheck. Its
+  // old coordinate must not fund any post-current Host parsing callback.
+  assert_true(
+    begin_installed_effect_operation_request_projection(
+      owner, prepared, request, plan, 0, 2, 0,
+    )
+    is Err(Retired),
+  )
+  assert_false(control.construction_active)
+  assert_true(control.constructor_frame is None)
+  let second = retain_installed_effect_operation_construction(
+    owner, prepared, request, plan, 0, true, 2, 1, "operation",
+  ).unwrap()
+  begin_installed_effect_operation_construction(second).unwrap()
+  complete_installed_effect_operation_construction(second).unwrap()
+  begin_installed_effect_operation_request_projection(
+    owner, prepared, request, plan, 0, 2, 1,
+  ).unwrap()
+  let (active, _) = installed_effect_control_capacity(Some(control), plan).unwrap()
+  assert_false(retire_installed_effect_operation(second, false).unwrap())
+  assert_true(
+    begin_installed_effect_operation_control_construction(
+      owner, prepared, request, plan,
+    )
+    is Err(AlreadyBound),
+  )
+  retiring.val = Some(second)
+  // Completion also observes current. Losing that child cannot certify
+  // synchronous success or return the active/failed projection's scratch.
+  assert_true(
+    complete_installed_effect_operation_control_construction(
+      owner, prepared, request, plan,
+    )
+    is Err(Retired),
+  )
+  assert_true(control.construction_active)
+  assert_true(
+    control.constructor_frame is Some(Fixed(_, Some(original))) &&
+    physical_equal(original, second),
+  )
+  let (failed, _) = installed_effect_control_capacity(Some(control), plan).unwrap()
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(active),
+    @execution.execution_capacity_retained_bytes(failed),
+  )
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(active),
+    @execution.execution_capacity_execution_bytes(failed),
+  )
+  // Only actual existing Run retirement after every original child cleanup
+  // settles the failed frame. A source component has no physical ACK to issue.
+  retire_installed_managed_run(owner).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+}
+
+///|
+fn effect_opaque_footprint_plan(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  contracts : ClientInstalledSequenceContracts,
+  footprint : ClientInstalledEffectOperationExtent,
+) -> ClientInstalledEffectManagedPlan {
+  let baseline = effect_operation_plan_fixture(prepared, request, contracts)
+  let members = baseline.operations[0].member_extents.copy()
+  members.push(footprint)
+  let demand = prepare_installed_effect_operation_demand_with_controls(
+    prepared,
+    0,
+    "save",
+    members,
+    baseline.operations[0].row_extents,
+    standard_create_saved_control_capacity(1000000, 512, 16).unwrap(),
+  ).unwrap()
+  prepare_installed_effect_managed_plan(
+    prepared,
+    request,
+    [],
+    "",
+    "",
+    [],
+    [],
+    contracts,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+    [demand],
+    provider_factory=_ => [],
+  ).unwrap()
+}
+
+///|
+test "opaque footprint uses original member scratch on same real Ledger with full retained floor" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let footprint = installed_effect_opaque_boundary_footprint_capacity(
+    "https://hubspot.invalid", "7", 64,
+  ).unwrap()
+  assert_eq(@execution.execution_capacity_retained_bytes(footprint), 0L)
+  let workspace = @execution.execution_capacity_execution_bytes(footprint)
+  assert_true(workspace > 0L)
+  let plan = effect_opaque_footprint_plan(
+    prepared,
+    request,
+    contracts,
+    prepare_installed_effect_operation_extent(
+      "save.footprint", footprint, 0L, false,
+    ).unwrap(),
+  )
+  let quote = prepared_installed_effect_managed_requirements(plan)
+  quote[4] = 536870902L
+  quote[5] = 536870902L
+  let calls = Ref(0)
+  let (input, initial, ledger, capacity) = effect_parent_test_preparation(
+    plan,
+    quote,
+    current=() => calls.val += 1,
+  )
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
+  ).unwrap()
+  retain_installed_effect_operation_controls_before_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  |> ignore
+  let control = owner.effect_operation_controls.unwrap()
+  let token = control.reservation
+  let idle = @resources.ledger_usage(ledger)
+  let available = workspace * 2L
+  let remaining = @resources.ledger_limits(ledger).execution_bytes -
+    idle.reserved_execution_bytes
+  let pressure = @resources.reserve_capacity(ledger, 0L, remaining - available).unwrap()
+  let occupied = @resources.ledger_usage(ledger)
+  assert_true(
+    begin_installed_effect_operation_control_construction(
+      owner, prepared, request, plan,
+    )
+    is Err(Ledger(ExecutionLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), occupied)
+  assert_true(
+    begin_installed_effect_operation_footprint_construction(
+      owner, prepared, request, plan, 0, 0,
+    )
+    is Err(ForeignOriginal),
+  )
+  assert_true(
+    begin_installed_effect_operation_footprint_construction(
+      owner, prepared, request, plan, 1, 1,
+    )
+    is Err(ForeignOriginal),
+  )
+  assert_true(
+    begin_installed_effect_operation_footprint_construction(
+      { ..owner, },
+      prepared,
+      request,
+      plan,
+      0,
+      1,
+    )
+    is Err(ForeignOriginal),
+  )
+  calls.val = 0
+  begin_installed_effect_operation_footprint_construction(
+    owner, prepared, request, plan, 0, 1,
+  ).unwrap()
+  assert_true(calls.val > 0)
+  let active = @resources.ledger_usage(ledger)
+  let increment = active.reserved_execution_bytes -
+    occupied.reserved_execution_bytes
+  // The idle control already owns its fixed current/quantity scratch. The
+  // constructor replaces that workspace; it is not added a second time.
+  assert_eq(
+    increment,
+    Int64::max(
+      plan.operation_control_idle_execution,
+      @execution.execution_capacity_retained_bytes(
+        plan.operation_control_capacity,
+      ) +
+      workspace,
+    ) -
+    plan.operation_control_idle_execution,
+  )
+  assert_eq(active.reserved_retention_bytes, occupied.reserved_retention_bytes)
+  assert_eq(active.held_bytes, occupied.held_bytes)
+  assert_eq(active.transferred_bytes, occupied.transferred_bytes)
+  assert_true(physical_equal(control.reservation, token))
+  assert_true(control.constructor_frame is Some(Fixed(_, None)))
+  assert_true(
+    begin_installed_effect_operation_footprint_construction(
+      owner, prepared, request, plan, 0, 1,
+    )
+    is Err(AlreadyBound),
+  )
+  // A failed callback has not completed this frame; repeated current checks
+  // cannot shrink its scratch before the original cleanup completes.
+  check_installed_effect_managed_run(owner, prepared, request).unwrap()
+  assert_eq(@resources.ledger_usage(ledger), active)
+  complete_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  assert_eq(@resources.ledger_usage(ledger), occupied)
+  assert_true(control.constructor_frame is None)
+  let one_short = @resources.reserve_capacity(
+    ledger,
+    0L,
+    available - increment + 1L,
+  ).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  assert_true(
+    begin_installed_effect_operation_footprint_construction(
+      owner, prepared, request, plan, 0, 1,
+    )
+    is Err(Ledger(ExecutionLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
+  assert_false(control.construction_active)
+  @resources.settle_capacity(ledger, one_short).unwrap()
+  @resources.settle_capacity(ledger, pressure).unwrap()
+  begin_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  complete_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  retire_installed_managed_run(owner).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+  assert_true(
+    begin_installed_effect_operation_footprint_construction(
+      owner, prepared, request, plan, 0, 1,
+    )
+    is Err(Retired),
+  )
+}
+
+///|
+test "opaque footprint refuses retained physical and staged members without widening original duty" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let scratch = installed_effect_opaque_boundary_footprint_capacity(
+    "https://hubspot.invalid", "7", 64,
+  ).unwrap()
+  let plain = prepare_installed_effect_operation_extent(
+    "save.footprint", scratch, 0L, false,
+  ).unwrap()
+  let invalid = [
+    prepare_installed_effect_operation_extent("save", scratch, 0L, false).unwrap(),
+    prepare_installed_effect_operation_extent(
+      "save.footprint", scratch, 1L, true,
+    ).unwrap(),
+    prepare_installed_effect_operation_extent(
+      "save.footprint",
+      @execution.execution_capacity(1L, 2L).unwrap(),
+      0L,
+      false,
+    ).unwrap(),
+    prepare_installed_effect_staged_extent(plain, plain).unwrap(),
+  ]
+  for extent in invalid {
+    let plan = effect_opaque_footprint_plan(
+      prepared, request, contracts, extent,
+    )
+    let (input, initial, ledger, capacity) = effect_parent_test_preparation(
+      plan,
+      prepared_installed_effect_managed_requirements(plan),
+    )
+    let owner = begin_preparation_owned_installed_effect_managed_run(
+      initial, input, capacity, prepared, request, plan,
+    ).unwrap()
+    retain_installed_effect_operation_controls_before_construction(
+      owner, prepared, request, plan,
+    ).unwrap()
+    |> ignore
+    let before = @resources.ledger_usage(ledger)
+    assert_true(
+      begin_installed_effect_operation_footprint_construction(
+        owner, prepared, request, plan, 0, 1,
+      )
+      is Err(ForeignOriginal),
+    )
+    assert_eq(@resources.ledger_usage(ledger), before)
+    retire_installed_managed_run(owner).unwrap()
+    assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+  }
+  assert_true(
+    installed_effect_opaque_boundary_footprint_capacity("", "7", 64) is None,
+  )
+  assert_true(
+    installed_effect_opaque_boundary_footprint_capacity(
+      "https://hubspot.invalid", "7", 0,
+    )
+    is None,
+  )
+  let escaped = installed_effect_opaque_boundary_footprint_capacity(
+    "https://hubspot.invalid", "\"\\\n", 128,
+  ).unwrap()
+  assert_true(
+    @execution.execution_capacity_execution_bytes(escaped) >
+    @execution.execution_capacity_execution_bytes(scratch),
+  )
 }

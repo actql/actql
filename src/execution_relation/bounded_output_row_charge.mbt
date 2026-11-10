@@ -243,6 +243,16 @@ fn advance_bounded_output_row_charge(
       }
     }
     Commit => {
+      if !fund_output_retention(
+          buffer.budget,
+          buffer.budget.nodes,
+          buffer.budget.text,
+        ) ||
+        !buffer.open ||
+        !buffer.reading ||
+        cursor.phase is Terminal {
+        return Err(OutputCapture(CaptureLimit))
+      }
       if cursor.presence_cells is Some(cells) {
         buffer.presence_rows.push({
           schema: buffer.schema,

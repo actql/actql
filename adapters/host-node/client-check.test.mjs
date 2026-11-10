@@ -102,7 +102,7 @@ const configurations = Object.freeze({
 });
 
 async function installedSource(root, {readOutcome, aliases,
-  environment = sourceEnvironment, seedAuthoringRows = false}, hostEnvironmentWire) {
+  environment = sourceEnvironment, seedAuthoringRows = false, incompatiblePhysicalSchema = false}, hostEnvironmentWire) {
   // This is an adapter publication for the installed Host, not a standalone
   // checker profile. Preserve the Host's own policy when adding Source facts.
   const base = JSON.parse(hostEnvironmentWire ?? selectInstalledLocalMaterializationEnvironment(moon,
@@ -114,8 +114,10 @@ async function installedSource(root, {readOutcome, aliases,
   const instance = await DuckDBInstance.create(database);
   const connection = await instance.connect();
   try {
-    await connection.run('CREATE TABLE records(id DOUBLE, amount DOUBLE)');
-    if (seedAuthoringRows) await connection.run('INSERT INTO records VALUES (1, 23), (2, 5)');
+    await connection.run(incompatiblePhysicalSchema ? 'CREATE TABLE records(id VARCHAR, amount DOUBLE)' : 'CREATE TABLE records(id DOUBLE, amount DOUBLE)');
+    if (Number.isSafeInteger(seedAuthoringRows)) {
+      await connection.run('INSERT INTO records SELECT CAST(range + 1 AS DOUBLE), 0::DOUBLE FROM range(CAST(? AS BIGINT))', [seedAuthoringRows]);
+    } else if (seedAuthoringRows) await connection.run('INSERT INTO records VALUES (1, 23), (2, 5)');
   } finally {
     connection.closeSync();
     instance.closeSync();
@@ -5885,19 +5887,17 @@ for (const entrance of ['local', 'http']) {
     }
     await noExecution();
     client.permitExplicitExecution();
-    // Complete bound checking does not promise a physical Program backend.
-    // The ordinary execution Owner currently refuses this direct Source route.
-    await assert.rejects(client.start(getCheckInput(sourceBound, 'program').value, {parameters: {x: 7}}), error => {
-      // Original implementation selection precedes business admission.
-      assert.equal(error.code, 'SubmissionNotAccepted');
-      const outcome = sdk.getSubmissionOutcome(error);
-      assert.equal(outcome.kind, 'not_accepted');
-      assert.equal(Object.hasOwn(outcome, 'admission'), false);
-      assert.deepEqual(outcome.problem,
-        {code: 'ClientProgramUnsupported', classification: 'implementation_limit'});
-      return true;
-    });
-    client.assertNoExecution();
+    // Explicit start now uses the installed Whole input route for this same
+    // checked Program. Authoring above still creates no execution work.
+    const programRun = await client.start(getCheckInput(sourceBound, 'program').value, {parameters: {x: 7}});
+    const programStatus = await programRun.wait({signal: AbortSignal.timeout(20000)});
+    assert.equal(programStatus.status, 'succeeded', JSON.stringify(programStatus));
+    if (entrance === 'http') {
+      // The existing account permits result/main, not this separate name.
+      await assert.rejects(programRun.result('out').all(), {code: 'ResultAccessDenied'});
+    } else {
+      assert.deepEqual((await programRun.result('out').all()).toSorted((a, b) => a.n - b.n), [{n: 8}, {n: 9}]);
+    }
     assert.equal(client.executionCounts().submissions, 1);
     let run;
     try { run = await client.startSource(query, {format: 'sql',
@@ -5912,13 +5912,13 @@ for (const entrance of ['local', 'http']) {
     assert.deepEqual(await run.result('main').all(), [{id: 1}]);
     await flushObservations();
     const counts = client.executionCounts();
-    assert.equal(counts.runs, 1);
+    assert.equal(counts.runs, 2);
     assert.equal(counts.submissions, 2);
     assert.equal(counts.issuedSubmissions, 2);
-    assert.equal(counts.dispatchReservations, 1);
-    assert.equal(counts.physicalReservations, 1);
+    assert.equal(counts.dispatchReservations, 2);
+    assert.equal(counts.physicalReservations, 2);
     assert.ok(counts.sourceOpens > 0, 'the explicit Run exercises the same installed Source observer');
-    if (entrance === 'http') assert.equal(counts.dispatches, 1);
+    if (entrance === 'http') assert.equal(counts.dispatches, 2);
     assert.ok(records.some(record => record.operation === 'compute' && record.event === 'task_started'),
       'the explicit Run exercises the common task observation path');
     assert.deepEqual({modelCalls, effectCalls, resumes}, {modelCalls: 0, effectCalls: 0, resumes: 0});
@@ -6256,6 +6256,44 @@ for (const entrance of ['local', 'http']) {
     assertNamespaceCheckOnly(client);
   });
 }
+
+test('local: unfiltered DuckDB Whole source retains the original native input', async t => {
+  const client = await localClient(t, {...configurations.allowed, seedAuthoringRows: true});
+  client.permitExplicitExecution();
+  for (const text of [
+    'SELECT id FROM records',
+    'WITH records AS (SELECT id FROM records) SELECT id FROM records',
+    'WITH chosen AS (SELECT id FROM records), records AS (SELECT id FROM chosen) SELECT id FROM records',
+  ]) {
+    const run = await client.startSource(text, {format: 'sql'});
+    assert.equal((await run.wait()).status, 'succeeded', text);
+    assert.deepEqual(await run.result('main').all(), [{id: 1}, {id: 2}], text);
+  }
+});
+
+test('local: unfiltered DuckDB Whole input publishes every row beyond the old small fixture', async t => {
+  const client = await localClient(t, {...configurations.allowed, seedAuthoringRows: 128});
+  client.permitExplicitExecution();
+  const run = await client.startSource('SELECT id FROM records', {format: 'sql'});
+  assert.equal((await run.wait()).status, 'succeeded');
+  assert.deepEqual(await run.result('main').all(),
+    Array.from({length: 128}, (_, index) => ({id: index + 1})));
+});
+
+test('local: empty DuckDB Whole source checks its original native schema', async t => {
+  const client = await localClient(t, configurations.allowed);
+  client.permitExplicitExecution();
+  const run = await client.startSource('SELECT id FROM records', {format: 'sql'});
+  assert.equal((await run.wait()).status, 'succeeded');
+  assert.deepEqual(await run.result('main').all(), []);
+});
+
+test('local: empty DuckDB Whole source refuses a foreign physical schema', async t => {
+  const client = await localClient(t, {...configurations.allowed, incompatiblePhysicalSchema: true});
+  client.permitExplicitExecution();
+  const run = await client.startSource('SELECT id FROM records', {format: 'sql'});
+  assert.equal((await run.wait()).status, 'failed');
+});
 
 for (const [entrance, open] of Object.entries(entrances)) {
   test(`${entrance}: semantic query violations remain distinct from implementation limits`, async t => {

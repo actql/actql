@@ -421,3 +421,54 @@ pub fn finish_client_model_read_inventory(
     original_run_cleanup_complete,
   ).map_err(issue => Resource(issue))
 }
+
+///|
+/// Grow the same entered singular consumer from its original preparation.
+/// The preparation supplies its retained immutable origin; Resource performs
+/// the one current/snapshot/grow boundary. No second origin/current getter,
+/// reservation, permission or Model handoff is issued by this projection.
+pub fn grow_client_model_read_preparation_consumer_capacity(
+  read : ClientModelReadPreparation,
+  consumer : ClientModelReadConsumer,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[Unit, ClientModelReadPreparationIssue] {
+  if read.retired ||
+    !client_model_read_origin_matches(read, compiled, definition, plan) {
+    return Err(ForeignRun)
+  }
+  @resources.grow_funded_read_consumer_capacity(
+    consumer.consumer,
+    read.origin,
+    retained_bytes,
+    execution_bytes,
+  ).map_err(issue => Resource(issue))
+}
+
+///|
+/// Preserve the SAME claimed preparation before its one consuming Execution
+/// enters. Resource performs the original-current/snapshot/grow boundary and
+/// retains the Preparing phase; an entered or foreign consumer is refused.
+pub fn grow_client_model_read_preparing_capacity(
+  read : ClientModelReadPreparation,
+  consumer : ClientModelReadConsumer,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[Unit, ClientModelReadPreparationIssue] {
+  if read.retired ||
+    !client_model_read_origin_matches(read, compiled, definition, plan) {
+    return Err(ForeignRun)
+  }
+  @resources.grow_funded_read_preparing_capacity(
+    consumer.consumer,
+    read.origin,
+    retained_bytes,
+    execution_bytes,
+  ).map_err(issue => Resource(issue))
+}

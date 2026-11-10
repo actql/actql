@@ -166,16 +166,25 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
       fail('SourceCaptureObservationUnavailable');
     }
     const binding = bindingFor(runDefinitionCid, state.scope, acquisition, sourceEvidenceWire);
-    const exported = checked(moon.clientProgramExportSourceCapture(captured.capture.source(),
-      captured.requirement, binding));
-    const originalRead = captured.capture.originalRead?.();
+    const wholeInput = captured.inputKind === 'whole-input';
+    if (captured.inputKind !== undefined && !wholeInput) fail('HeldAcquisitionChanged');
+    // Whole custody retains the actual Source/input snapshot. Its kind only
+    // selects the typed owner; it cannot manufacture a Query requirement.
+    const retained = wholeInput ? state.source.adapter.retainedCapture(state.source.preparedSource) : undefined;
+    if (wholeInput && retained.wholeInput !== true) fail('HeldAcquisitionChanged');
+    const exported = checked(wholeInput
+      ? moon.clientProgramExportWholeSourceCapture(captured.capture.source(), retained.capacity, binding)
+      : moon.clientProgramExportSourceCapture(captured.capture.source(), captured.requirement, binding));
+    const originalRead = wholeInput ? undefined : captured.capture.originalRead?.();
     const originalFacts = originalRead === undefined ? undefined :
-      checked(moon.clientProgramExportSourceOriginalRead(originalRead));
+      checked(moon.clientProgramExportQuerySourceOriginalRead(originalRead, captured.requirement));
     const record = {version: CAPTURE, run_definition_cid: runDefinitionCid,
       scope: state.scope, acquisition: acquisition ?? null, binding,
-      requirement_cid: moon.clientProgramSourceCaptureExportRequirement(exported),
-      descriptor: moon.clientProgramSourceCaptureExportDescriptor(exported),
-      rows: moon.clientProgramSourceCaptureExportRows(exported),
+      ...(wholeInput ? {input_kind: 'whole-input', source_identity: runtimeField(exported, 0),
+        schema_cid: runtimeField(exported, 1), rows_cid: runtimeField(exported, 2), rows: runtimeField(exported, 3)}
+        : {requirement_cid: moon.clientProgramSourceCaptureExportRequirement(exported),
+          descriptor: moon.clientProgramSourceCaptureExportDescriptor(exported),
+          rows: moon.clientProgramSourceCaptureExportRows(exported)}),
       ...(originalFacts === undefined ? {} : {original_input: {version: ORIGINAL_INPUT,
         schema_cid: runtimeField(originalFacts, 0), rows_cid: runtimeField(originalFacts, 1), rows: runtimeField(originalFacts, 2)}}),
       source_evidence_wire: sourceEvidenceWire,
@@ -309,44 +318,70 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
     restore(source, record, ledger) {
       const state = states.get(source.occurrence.task);
       sourceCurrent(state);
-      const {requirement, capacity, referenceIssuer} = source.adapter.retainedCapture(source.preparedSource);
+      const {requirement, capacity, referenceIssuer, wholeInput = false} = source.adapter.retainedCapture(source.preparedSource);
       const binding = bindingFor(runDefinitionCid, state.scope, record.acquisition,
         record.source_evidence_wire);
+      // The current installed owner selects the variant, before any saved
+      // DATA reaches Core. Core then checks its exact Source and row identity.
+      if (wholeInput !== (record.input_kind === 'whole-input') ||
+          record.input_kind !== undefined && record.input_kind !== 'whole-input' ||
+          wholeInput && (['requirement_cid', 'descriptor', 'original_input'].some(key => Object.hasOwn(record, key)) ||
+            !Array.isArray(record.source_identity) || !record.source_identity.every(value => typeof value === 'string') ||
+            typeof record.schema_cid !== 'string' || typeof record.rows_cid !== 'string' ||
+            !Array.isArray(record.rows) || !record.rows.every(value => typeof value === 'string'))) fail('HeldAcquisitionChanged');
       const input = record.original_input;
       if (input !== undefined && (input === null || Array.isArray(input) ||
           Object.keys(input).sort().join(',') !== 'rows,rows_cid,schema_cid,version' ||
           input.version !== ORIGINAL_INPUT || typeof input.schema_cid !== 'string' ||
           typeof input.rows_cid !== 'string' || !Array.isArray(input.rows) ||
           !input.rows.every(row => typeof row === 'string'))) fail('HeldAcquisitionChanged');
-      const owner = checked(moon.clientProgramRestoreSourceCapture(requirement,
+      const custodyAvailable = () => {
+        try { sourceCurrent(state); return true; }
+        catch { return false; }
+      };
+      const owner = checked(wholeInput
+        ? moon.clientProgramRestoreWholeSourceCapture(capacity, binding, record.binding,
+          record.source_identity, record.schema_cid, record.rows_cid, record.rows,
+          ledger, custodyAvailable, referenceIssuer)
+        : moon.clientProgramRestoreSourceCapture(requirement,
         record.requirement_cid, binding, record.binding, record.descriptor,
-        record.rows, ledger, capacity,
-        () => {
-          try { sourceCurrent(state); return true; }
-          catch { return false; }
-        }, referenceIssuer,
+        record.rows, ledger, capacity, custodyAvailable, referenceIssuer,
         input === undefined ? undefined : runtimeTriple(input.schema_cid, input.rows_cid, input.rows)));
       restorations.add(owner);
       const capturedSource = moon.clientProgramSourceCaptureSource(owner);
       if (capturedSource === undefined) fail('SourceCaptureCustodyUnavailable');
       const pure = acquired.kind === 'infer';
-      if (pure && moon.clientProgramCapturedTaskSourceMatches(acquired.prepared,
+      if (pure && !wholeInput && moon.clientProgramCapturedTaskSourceMatches(acquired.prepared,
           capturedSource, source.occurrence.task) !== true) fail('HeldAcquisitionChanged');
-      const identity = checked((pure ? moon.clientProgramIdentifyCapturedSourceRelation
-        : moon.clientProgramIdentifyCapturedEffectSourceRelation)(capturedSource));
-      const logicalInput = checked((pure ? moon.clientProgramIssueCapturedTaskSourceLogical
-        : moon.clientProgramEffectIssueCapturedSourceLogicalAt)(
-        acquired.prepared, capturedSource, identity, requirement, source.occurrence.task));
+      const identity = checked(wholeInput
+        ? (pure ? moon.clientProgramIdentifyWholeCapturedSourceRelation
+          : moon.clientProgramIdentifyWholeCapturedEffectSourceRelation)(capturedSource, capacity)
+        : (pure ? moon.clientProgramIdentifyQueryCapturedSourceRelation
+          : moon.clientProgramIdentifyQueryCapturedEffectSourceRelation)(capturedSource, requirement));
+      const logicalInput = checked(wholeInput
+        ? (pure ? moon.clientProgramIssueWholeSourceInputLogical
+          : moon.clientProgramIssueEffectWholeSourceInputLogical)(
+          acquired.prepared, capturedSource, identity, capacity)
+        : (pure ? moon.clientProgramIssueCapturedTaskSourceLogical
+          : moon.clientProgramEffectIssueCapturedSourceLogicalAt)(
+          acquired.prepared, capturedSource, identity, requirement, source.occurrence.task));
       const close = async () => {
         if (!moon.clientProgramCloseSourceCapture(owner)) fail('SourceCaptureCleanupPending');
         restorations.delete(owner);
       };
-      const captured = Object.freeze({identity, logicalInput, requirement, capturedSource,
+      const captured = Object.freeze({identity, logicalInput,
+        ...(wholeInput ? {inputKind: 'whole-input', wholeCapacity: capacity} : {requirement}), capturedSource,
         checkedSource: state.scope.checkedSource, occurrence: source.occurrence,
         acquisition: record.acquisition,
         capture: Object.freeze({source: () => moon.clientProgramSourceCaptureSource(owner),
           originalRead: () => moon.clientProgramSourceCaptureOriginalRead(owner),
-          retainTask: (dag, task) => checked(moon.clientProgramSourceCaptureRetainTask(owner, dag, task)),
+          ...(wholeInput ? {originalCapturedInput() {
+            if (this !== captured.capture) fail('SourceCaptureCustodyUnavailable');
+            return checked(moon.clientProgramRestoredWholeSourceCaptureInput(owner));
+          }} : {}),
+          retainTask: (dag, task) => checked(wholeInput
+            ? moon.clientProgramSourceCaptureRetainInput(owner, dag, task)
+            : moon.clientProgramSourceCaptureRetainTask(owner, dag, task)),
           close}), close,
       });
       state.captured = captured;

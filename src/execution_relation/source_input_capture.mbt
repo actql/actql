@@ -105,11 +105,20 @@ pub fn bind_completed_source_input_operation(
     ) {
     return Err(ProducerBindingMismatch)
   }
+  let input_index = match
+    @lower.node_at(@lower.bound_preparation(receiver), consumer_step) {
+    Some(node) =>
+      match @lower.node_input_target(node, edge) {
+        Some(@pipeline.Input(index)) => index
+        _ => return Err(ProducerBindingMismatch)
+      }
+    None => return Err(ProducerBindingMismatch)
+  }
   Ok({
-    identity: { input_index: edge, carrier: None, supplied: Some(read.rows), },
+    identity: { input_index, carrier: None, supplied: Some(read.rows), },
     receiver,
-    consumer_step: Some(consumer_step),
-    input_index: edge,
+    consumer_step: None,
+    input_index,
     output,
     projection: None,
   })
@@ -142,4 +151,54 @@ pub fn prepare_completed_source_input_relation_export(
     Some(schema_limits),
     max_batch_bytes,
   )
+}
+
+///|
+/// Borrow the contracts and prepared sequence already retained by the exact
+/// generated prefix. This creates no registry, task completion or new Source.
+pub fn capture_generated_supplied_source_input(
+  generated : GeneratedSequence,
+  read : SuppliedRelationRead,
+  max_fields : Int,
+  max_name_bytes : Int,
+) -> Result[CompletedOutput, TrustedOutputIssue] {
+  capture_supplied_source_input(
+    generated.contracts,
+    generated.sequence,
+    read,
+    max_fields,
+    max_name_bytes,
+  )
+}
+
+///|
+/// Constructor inventory of the supplied-input capture above. The completed
+/// table payload/variant, Input target, completion/result identity, imported
+/// store, live closure/Some, table/Some and Result/output carriers coexist.
+/// Three reference arrays hold actual names, empty producers and one binding.
+/// Captured Values, schema, names and original sequence remain borrowed.
+pub fn supplied_source_input_capture_capacity(
+  rows : CapturedRows,
+) -> ExecutionCapacity? {
+  guard @shape.collection_construction_extent({
+      records: 11L,
+      record_references: 21L,
+      record_words: 12L,
+      reference_arrays: 3L,
+      reference_items: @schema.field_count(rows.schema).to_int64() + 1L,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(units) else {
+    return None
+  }
+  identity_scan_capacity({
+    record_headers: units.record_headers,
+    reference_slots: units.reference_slots,
+    scalar_words: units.scalar_words,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  })
 }

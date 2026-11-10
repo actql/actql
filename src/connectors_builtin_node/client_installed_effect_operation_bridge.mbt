@@ -293,6 +293,55 @@ pub fn client_program_installed_effect_operation_control_construction_begin(
 }
 
 ///|
+// Exported functions cannot have optional arguments. Keep the original
+// four-argument ABI intact and connect only this typed Unit scratch quote.
+#export_name("clientProgramInstalledEffectOperationNativeConstructionBegin")
+pub fn client_program_installed_effect_operation_native_construction_begin(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  native : @execution.ExecutionCapacity,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.begin_installed_effect_operation_control_construction(
+    owner,
+    prepared,
+    request,
+    plan,
+    native=Some(native),
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectOperationGrantConstructionBegin")
+pub fn client_program_installed_effect_operation_grant_construction_begin(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.begin_installed_effect_operation_grant_construction(
+    owner, prepared, request, plan,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectOperationRequestProjectionBegin")
+pub fn client_program_installed_effect_operation_request_projection_begin(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  member_index : Int,
+  operation_index : Int,
+  row_index : Int,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.begin_installed_effect_operation_request_projection(
+    owner, prepared, request, plan, member_index, operation_index, row_index,
+  )
+}
+
+///|
 #export_name("clientProgramInstalledEffectOperationControlInputBegin")
 pub fn client_program_installed_effect_operation_control_input_begin(
   owner : @client_local_host.ClientInstalledManagedRun,
@@ -326,6 +375,15 @@ pub fn client_program_installed_effect_operation_input_begin(
   input : @client_local_host.ClientInstalledEffectOperationExtent,
 ) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
   @client_local_host.begin_installed_effect_operation_input(original, input)
+}
+
+///|
+#export_name("clientProgramInstalledEffectOperationInputGrow")
+pub fn client_program_installed_effect_operation_input_grow(
+  original : @client_local_host.ClientInstalledEffectOperationBorrow,
+  input : @client_local_host.ClientInstalledEffectOperationExtent,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.grow_installed_effect_operation_input(original, input)
 }
 
 ///|
@@ -376,5 +434,115 @@ pub fn client_program_installed_effect_operation_response_projection_complete(
 ) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
   @client_local_host.complete_installed_effect_operation_response_projection(
     original,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectOperationEmptyResponseHeadersExtentPrepare")
+pub fn client_program_installed_effect_operation_empty_response_headers_extent_prepare(
+  original : @client_local_host.ClientInstalledEffectOperationExtent,
+  max_header_bytes : Int,
+) -> Result[
+  @client_local_host.ClientInstalledEffectOperationExtent,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_installed_effect_empty_response_headers_extent(
+    original, max_header_bytes,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectOperationResponseHeadersRequire")
+pub fn client_program_installed_effect_operation_response_headers_require(
+  original : @client_local_host.ClientInstalledEffectOperationBorrow,
+  selected_names : Array[String],
+  max_header_bytes : Int,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.require_installed_effect_operation_response_headers(
+    original, selected_names, max_header_bytes,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectOperationDiscardedProjectionExtentPrepare")
+pub fn client_program_installed_effect_operation_discarded_projection_extent_prepare(
+  original : @client_local_host.ClientInstalledEffectOperationExtent,
+  remaining : @execution.ExecutionCapacity,
+) -> Result[
+  @client_local_host.ClientInstalledEffectOperationExtent,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_installed_effect_discarded_projection_extent(
+    original, remaining,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectOperationDiscardedResponseProjectionComplete")
+pub fn client_program_installed_effect_operation_discarded_response_projection_complete(
+  original : @client_local_host.ClientInstalledEffectOperationBorrow,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.complete_installed_effect_discarded_response_projection(
+    original,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledOpaqueBoundaryFootprintCapacity")
+pub fn client_program_installed_opaque_boundary_footprint_capacity(
+  origin : String,
+  account : String,
+  object_units : Int,
+) -> @execution.ExecutionCapacity? {
+  @client_local_host.installed_effect_opaque_boundary_footprint_capacity(
+    origin, account, object_units,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectOperationFootprintConstructionBegin")
+pub fn client_program_installed_effect_operation_footprint_construction_begin(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  member_index : Int,
+  operation_index : Int,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.begin_installed_effect_operation_footprint_construction(
+    owner, prepared, request, plan, member_index, operation_index,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectOperationLedgerOpenBegin")
+pub fn client_program_installed_effect_operation_ledger_open_begin(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  root : String,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.begin_installed_effect_operation_ledger_open(
+    owner, prepared, request, plan, root,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectOperationLedgerFamilyBegin")
+pub fn client_program_installed_effect_operation_ledger_family_begin(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  counts : Array[Int],
+  max_entries : Int,
+  max_entry_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.begin_installed_effect_operation_ledger_family(
+    owner, prepared, request, plan, counts, max_entries, max_entry_bytes, max_nodes,
+    max_depth,
   )
 }

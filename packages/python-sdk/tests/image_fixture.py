@@ -22,7 +22,7 @@ ORIGINAL = json.dumps({'wasmtime_version': '38.0.0', 'runtime_library_sha256': R
 
 def descriptor(source, version, module_hash):
     return {'source_sha': source, 'package_version': version, 'module_sha256': module_hash,
-        'core_abi': 83, 'wasmtime_version': '38.0.0', 'runtime_library_sha256': RUNTIME_HASH,
+        'core_abi': 87, 'wasmtime_version': '38.0.0', 'runtime_library_sha256': RUNTIME_HASH,
         'provider_library_sha256': PROVIDER_HASH,
         'platform': 'darwin-arm64', 'engine_body': json.loads(json.dumps(ENGINE)),
         'engine_sha256': hashlib.sha256(json.dumps(ENGINE, sort_keys=True,

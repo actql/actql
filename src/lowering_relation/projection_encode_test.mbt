@@ -46,3 +46,23 @@ test "projection preparation preserves cumulative binding and name budgets" {
     ),
   )
 }
+
+///|
+test "same checked projections retain bounded name demand without copying fields" {
+  let owner = expression_pipeline(
+    ",{\"rename\":{\"id\":\"renamed\"}},{\"drop\":[]}",
+  )
+  let prepared = @lowering_relation.bound_preparation(owner)
+  let nodes = @lowering_relation.node_count(prepared)
+  let demand = @lowering_relation.prepared_sequence_preparation_demand(
+    prepared,
+    nodes + 2,
+  ).unwrap()
+  // Original spellings id->renamed, then renamed->renamed: 23 UTF16 units.
+  assert_eq(demand.projection_name_bytes_bound, 69)
+  assert_eq(demand.work_used, nodes + 2)
+  assert_true(
+    @lowering_relation.prepared_sequence_preparation_demand(prepared, nodes + 1)
+    is Err(@lowering_relation.WorkLimit),
+  )
+}

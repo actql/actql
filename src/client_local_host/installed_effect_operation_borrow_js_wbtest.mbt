@@ -745,15 +745,17 @@ test "recovered input control vector follows actual members independently of fut
     ).unwrap()
     // Same existing collection Owner:3 reference slots per actual vector
     // item cover the old/new growth peak, independently of held row calls.
+    // The original same-flight grow lookup adds Map entry/link/bucket roles:
+    // 4 headers16 +11 refs8 +13 words8 for each actual member, not future rows.
     assert_eq(
       @execution.execution_capacity_retained_bytes(selected) -
       @execution.execution_capacity_retained_bytes(base),
-      2L * 3L * 8L,
+      2L * (3L * 8L + 4L * 16L + 11L * 8L + 13L * 8L),
     )
     assert_eq(
       @execution.execution_capacity_execution_bytes(selected) -
       @execution.execution_capacity_execution_bytes(base),
-      2L * 3L * 8L,
+      2L * (3L * 8L + 4L * 16L + 11L * 8L + 13L * 8L),
     )
   }
   assert_true(
@@ -961,6 +963,10 @@ test "Effect construction completion cannot dispose a physical operation or reen
   let physical_held = @resources.ledger_usage(ledger)
   assert_true(
     complete_installed_effect_operation_construction(physical)
+    is Err(Unsupported),
+  )
+  assert_true(
+    yield_installed_effect_operation_construction_workspace(physical)
     is Err(Unsupported),
   )
   assert_eq(@resources.ledger_usage(ledger), physical_held)
@@ -2016,6 +2022,7 @@ test "partial restored Host cleanup fences construction and preserves the same o
 ///|
 fn effect_output_refinement_fixture(
   current : () -> Unit,
+  staged? : Bool = false,
 ) -> (
   ClientInstalledEffectOperationBorrow,
   ClientInstalledManagedRun,
@@ -2025,12 +2032,25 @@ fn effect_output_refinement_fixture(
   let base = effect_operation_plan_fixture(prepared, request, contracts)
   let before = base.operations[0]
   let rows = before.row_extents.copy()
-  rows[2] = prepare_installed_effect_operation_extent(
+  let maximum = prepare_installed_effect_operation_extent(
     "operation",
     @execution.execution_capacity(100000L, 150000L).unwrap(),
     0L,
     false,
   ).unwrap()
+  rows[2] = if staged {
+    prepare_installed_effect_staged_extent(
+      prepare_installed_effect_operation_extent(
+        "operation",
+        @execution.execution_capacity(10000L, 10000L).unwrap(),
+        0L,
+        false,
+      ).unwrap(),
+      maximum,
+    ).unwrap()
+  } else {
+    maximum
+  }
   let demand = prepare_installed_effect_operation_demand(
     prepared,
     0,
@@ -2183,4 +2203,204 @@ test "owned constructor output refuses foreign wire bounds and current retiremen
     live_reservations: before.live_reservations - 1,
   })
   retire_installed_managed_run(owner).unwrap()
+}
+
+///|
+test "staged constructor completes the same selected input into one detached output" {
+  let (child, owner, ledger) = effect_output_refinement_fixture(
+    () => (),
+    staged=true,
+  )
+  assert_true(
+    complete_installed_effect_operation_construction_output(child, "{}")
+    is Err(Unsupported),
+  )
+  let selected = prepare_installed_effect_operation_extent(
+    "operation",
+    @execution.execution_capacity(50000L, 75000L).unwrap(),
+    0L,
+    false,
+  ).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  let history = @resources.quantity_usage(ledger)
+  begin_installed_effect_operation_input(child, selected).unwrap()
+  let grown = @resources.ledger_usage(ledger)
+  assert_eq(
+    grown.reserved_retention_bytes,
+    before.reserved_retention_bytes + 40000L,
+  )
+  assert_eq(
+    grown.reserved_execution_bytes,
+    before.reserved_execution_bytes + 65000L,
+  )
+  assert_true(
+    begin_installed_effect_operation_input(child, selected) is Err(AlreadyBound),
+  )
+  let backing = child.backing.unwrap()
+  complete_installed_effect_operation_construction_output(child, "{\"id\":1}").unwrap()
+  let retained = @execution.execution_capacity_retained_bytes(
+    local_file_store_json_capacity(8, 8, 8).unwrap(),
+  )
+  assert_eq(
+    @resources.ledger_usage(ledger).reserved_retention_bytes,
+    before.reserved_retention_bytes - 10000L + retained,
+  )
+  assert_eq(@resources.quantity_usage(ledger), history)
+  assert_true(child.input_selected && child.construction_completed)
+  assert_true(
+    match (backing, child.backing.unwrap()) {
+      (
+        @resources.NodeManagedRunOperationBacking::Construction(a),
+        @resources.NodeManagedRunOperationBacking::Construction(b),
+      ) => physical_equal(a, b)
+      _ => false
+    },
+  )
+  let finished = @resources.ledger_usage(ledger)
+  assert_true(
+    complete_installed_effect_operation_construction_output(child, "{}")
+    is Err(AlreadyBound),
+  )
+  assert_true(
+    grow_installed_effect_operation_input(child, selected) is Err(AlreadyBound),
+  )
+  assert_eq(@resources.ledger_usage(ledger), finished)
+  assert_true(retire_installed_effect_operation(child, true).unwrap())
+  retire_installed_managed_run(owner).unwrap()
+}
+
+///|
+test "static constructor keeps its existing late detached-output refinement" {
+  let (child, owner, ledger) = effect_output_refinement_fixture(() => ())
+  begin_installed_effect_operation_construction(child).unwrap()
+  complete_installed_effect_operation_construction(child).unwrap()
+  assert_true(child.construction_completed)
+  assert_false(child.input_selected)
+  let before = @resources.ledger_usage(ledger)
+  complete_installed_effect_operation_construction_output(child, "{\"id\":1}").unwrap()
+  assert_true(child.input_selected)
+  let retained = @execution.execution_capacity_retained_bytes(
+    local_file_store_json_capacity(8, 8, 8).unwrap(),
+  )
+  assert_eq(
+    @resources.ledger_usage(ledger).reserved_retention_bytes,
+    before.reserved_retention_bytes - 100000L + retained,
+  )
+  assert_true(
+    complete_installed_effect_operation_construction_output(child, "{}")
+    is Err(AlreadyBound),
+  )
+  assert_true(retire_installed_effect_operation(child, true).unwrap())
+  retire_installed_managed_run(owner).unwrap()
+}
+
+///|
+test "staged constructor phase yields only scratch and grows the same original before continuing" {
+  let calls = Ref(0)
+  let (child, owner, ledger) = effect_output_refinement_fixture(
+    () => calls.val += 1,
+    staged=true,
+  )
+  assert_true(
+    yield_installed_effect_operation_construction_workspace(child)
+    is Err(Unsupported),
+  )
+  let selected = prepare_installed_effect_operation_extent(
+    "operation",
+    @execution.execution_capacity(50000L, 75000L).unwrap(),
+    0L,
+    false,
+  ).unwrap()
+  begin_installed_effect_operation_input(child, selected).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  let history = @resources.quantity_usage(ledger)
+  let backing = child.backing.unwrap()
+  let observations = calls.val
+  yield_installed_effect_operation_construction_workspace(child).unwrap()
+  assert_eq(calls.val, observations + 1)
+  assert_eq(@resources.ledger_usage(ledger), {
+    ..before,
+    reserved_execution_bytes: before.reserved_execution_bytes - 25000L,
+  })
+  assert_eq(@resources.quantity_usage(ledger), history)
+  assert_true(child.started && child.input_selected)
+  assert_false(child.construction_completed)
+  let yielded = @resources.ledger_usage(ledger)
+  yield_installed_effect_operation_construction_workspace(child).unwrap()
+  assert_eq(@resources.ledger_usage(ledger), yielded)
+  let next = prepare_installed_effect_operation_extent(
+    "operation",
+    @execution.execution_capacity(60000L, 90000L).unwrap(),
+    0L,
+    false,
+  ).unwrap()
+  grow_installed_effect_operation_input(child, next).unwrap()
+  assert_eq(
+    @resources.ledger_usage(ledger).reserved_retention_bytes,
+    yielded.reserved_retention_bytes + 10000L,
+  )
+  assert_eq(
+    @resources.ledger_usage(ledger).reserved_execution_bytes,
+    yielded.reserved_execution_bytes + 40000L,
+  )
+  assert_true(
+    match (backing, child.backing.unwrap()) {
+      (
+        @resources.NodeManagedRunOperationBacking::Construction(a),
+        @resources.NodeManagedRunOperationBacking::Construction(b),
+      ) => physical_equal(a, b)
+      _ => false
+    },
+  )
+  assert_eq(@resources.quantity_usage(ledger), history)
+  complete_installed_effect_operation_construction(child).unwrap()
+  let finished = @resources.ledger_usage(ledger)
+  assert_true(
+    yield_installed_effect_operation_construction_workspace(child)
+    is Err(Unsupported),
+  )
+  assert_true(
+    grow_installed_effect_operation_input(child, next) is Err(AlreadyBound),
+  )
+  assert_eq(@resources.ledger_usage(ledger), finished)
+  assert_true(retire_installed_effect_operation(child, true).unwrap())
+  retire_installed_managed_run(owner).unwrap()
+}
+
+///|
+test "staged constructor phase yield refuses static and reentered retired originals" {
+  let (fixed, owner, ledger) = effect_output_refinement_fixture(() => ())
+  begin_installed_effect_operation_construction(fixed).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  assert_true(
+    yield_installed_effect_operation_construction_workspace(fixed)
+    is Err(Unsupported),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
+  assert_true(retire_installed_effect_operation(fixed, true).unwrap())
+  retire_installed_managed_run(owner).unwrap()
+  let on_current : Ref[() -> Unit] = Ref(() => ())
+  let (child, active, _) = effect_output_refinement_fixture(
+    () => (on_current.val)(),
+    staged=true,
+  )
+  let selected = prepare_installed_effect_operation_extent(
+    "operation",
+    @execution.execution_capacity(50000L, 75000L).unwrap(),
+    0L,
+    false,
+  ).unwrap()
+  begin_installed_effect_operation_input(child, selected).unwrap()
+  let retired = Ref(false)
+  on_current.val = () => {
+    on_current.val = () => ()
+    retired.val = retire_installed_effect_operation(child, true) is Ok(true)
+  }
+  assert_true(
+    yield_installed_effect_operation_construction_workspace(child)
+    is Err(Retired),
+  )
+  assert_true(retired.val)
+  assert_false(active.effect_operation_opening)
+  retire_installed_managed_run(active).unwrap()
 }

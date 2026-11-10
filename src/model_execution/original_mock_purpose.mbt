@@ -130,15 +130,12 @@ fn original_model_startup_limits_match(
   if !provider_matches {
     return false
   }
-  let parent = @resources.ledger_limits(value.ledger)
-  let bound = purpose.limits.ledger
-  valid_original_mock_purpose_limits(limits) &&
-  parent.planning_work >= bound.planning_work &&
-  parent.attempts >= bound.attempts &&
-  parent.holdings >= bound.holdings &&
-  parent.transfer_bytes >= bound.transfer_bytes &&
-  parent.retained_bytes >= bound.retained_bytes &&
-  parent.execution_bytes >= bound.execution_bytes
+  // These are the SAME component ceilings retained by the original seal,
+  // not an allocation of every maximum on the shared parent. Component work,
+  // attempt/response/quantity admission still checks this exact Limits value;
+  // Resource independently admits each actual operation against the SAME
+  // parent's aggregate limits and consumed history. Neither ceiling is raised.
+  valid_original_mock_purpose_limits(limits)
 }
 
 ///|
@@ -262,12 +259,14 @@ fn check_original_mock_capacity(
       }
     }
   }
-  if purpose.publication_retained > available_retained ||
-    retained > available_retained - purpose.publication_retained {
+  // Original publication borrows are already charged by this SAME parent
+  // Ledger. They are not a second Model attempt/output allocation and cannot
+  // shrink or enlarge this component's Model work ceiling. Their separate
+  // counters retain original cleanup association, not another byte quota.
+  if retained > available_retained {
     return Err(Ledger(@resources.RetentionLimit))
   }
-  if purpose.publication_execution > available_execution ||
-    execution > available_execution - purpose.publication_execution {
+  if execution > available_execution {
     return Err(Ledger(@resources.ExecutionLimit))
   }
   if quantities is Some(value) {

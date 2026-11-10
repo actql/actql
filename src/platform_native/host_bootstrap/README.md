@@ -129,6 +129,29 @@ view's backreference; successful parent settlement removes the loan's view
 backreference. Closed aliases are idempotent only after the original Host and
 child identity checks. No new Run/Recovery Owner or Python success inference.
 
+## Request preparation custody
+
+The fresh Request purpose uses the existing live-child issuer and original
+domain. It retains the input-bound frame before Common starts the child.
+Common alone creates its pristine preparation inventory and transfers that
+same admission and body custody to Run. Initialization's started bootstrap
+inventory is not reused for a Request.
+
+Request controls must be constructed outside child allocator scopes. Scope
+absence is only a lifetime requirement: the installed caller must separately
+fund the exact outer constructor/control inventory before using this seam in
+an ordinary command. A positive control-envelope declaration is not that
+proof, and this adapter does not supply an ordinary CLI resource policy.
+
+After Common unwinds the original body and borrowers, Native observes the
+retained frame, closes the actual allocator context, reports its original
+usage and acknowledges the same live access. Transferring to Run does not
+require taking the old admission again. A published-but-untaken Ledger or a
+lost usage report remains pending. A failed start with no published Ledger
+requires physical cleanup but no fabricated usage report. A refused live
+access retains its original domain identity through read-use return; absence
+of that already-returned use is never itself a physical retirement proof.
+
 ## Prepared original worker material
 
 `project_prepared_domain` checks the same current Host, region, original child,

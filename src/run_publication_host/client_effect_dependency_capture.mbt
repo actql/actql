@@ -4,6 +4,7 @@ pub(all) enum ClientEffectDependencyCaptureIssue {
   ForeignExport
   Dependency(@publication.CapturedEffectDependencyIssue)
   Static(@checked.LocalDependencyBodyIssue)
+  ConstructionRefused
 }
 
 ///|
@@ -79,6 +80,7 @@ pub fn admit_client_effect_dependency_capture(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  before_body? : ((Int, Int, Int) -> Bool)? = None,
 ) -> Result[ClientEffectDependencyCapture, ClientEffectDependencyCaptureIssue] {
   if !client_effect_dependency_capture_matches(
       materials, inputs, artifact, local_result,
@@ -118,16 +120,23 @@ pub fn admit_client_effect_dependency_capture(
     cid : String?,
     wire : String,
   ) -> Result[Unit, ClientEffectDependencyCaptureIssue] {
-    let bytes = @utf8.encode(wire).length()
-    if bytes > remaining {
-      return Err(Dependency(ByteLimit))
-    }
-    let body = match
-      @publication.admit_captured_effect_dependency_body(
-        kind, cid, wire, remaining, max_nodes, max_depth,
+    let (body, bytes) = match
+      admit_client_effect_dependency_capture_body(
+        kind,
+        cid,
+        wire,
+        remaining,
+        max_nodes,
+        max_depth,
+        before_body,
+        () => {
+          client_effect_dependency_capture_matches(
+            materials, inputs, artifact, local_result,
+          )
+        },
       ) {
       Ok(value) => value
-      Err(issue) => return Err(Dependency(issue))
+      Err(issue) => return Err(issue)
     }
     remaining -= bytes
     bodies.push(body)
@@ -206,4 +215,58 @@ pub fn admit_client_effect_dependency_capture(
     }
   }
   Ok({ artifact, bodies, })
+}
+
+///|
+// Keep the allocation/current boundary shared by every dependency kind. The
+// original Result check is repeated only across an actual Host callback.
+fn admit_client_effect_dependency_capture_body(
+  kind : String,
+  cid : String?,
+  wire : String,
+  remaining : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  before_body : ((Int, Int, Int) -> Bool)?,
+  original : () -> Bool,
+) -> Result[
+  (@publication.CapturedEffectDependencyBody, Int),
+  ClientEffectDependencyCaptureIssue,
+] {
+  let bytes = match before_body {
+    // Preserve the existing uninstrumented entrance, including its UTF8
+    // encoder's handling of invalid caller text. The funded Native entrance
+    // below only consumes original generated immutable contract wires.
+    None => @utf8.encode(wire).length()
+    Some(_) =>
+      match @scalar.admit_utf8_length(wire, remaining) {
+        Ok(value) => value
+        Err(@scalar.LimitExceeded) => return Err(Dependency(ByteLimit))
+        Err(_) => return Err(Dependency(InvalidBody))
+      }
+  }
+  if bytes > remaining {
+    return Err(Dependency(ByteLimit))
+  }
+  if before_body is Some(prepare) {
+    // Every JSON node consumes at least one original input byte. These are
+    // backing dimensions only; the semantic parser keeps its original limits.
+    if !prepare(
+        bytes,
+        Int::min(max_nodes, Int::max(1, bytes)),
+        Int::min(max_depth, Int::min(max_nodes, Int::max(1, bytes))),
+      ) {
+      return Err(ConstructionRefused)
+    }
+    if !original() {
+      return Err(ForeignInput)
+    }
+  }
+  match
+    @publication.admit_captured_effect_dependency_body(
+      kind, cid, wire, remaining, max_nodes, max_depth,
+    ) {
+    Ok(body) => Ok((body, bytes))
+    Err(issue) => Err(Dependency(issue))
+  }
 }

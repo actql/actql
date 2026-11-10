@@ -65,10 +65,33 @@ mock target updates, and retained Named Result rereads without replaying writes.
 An unsupported binding or approval supplier fails; it is never a skip or a
 successful refusal. Its harness unit tests alone do not establish this acceptance.
 
-The Native project adapter currently refuses mock execution. Complete acceptance
-still requires its physical project/catalog/Source/Model bindings, original
-Effect authority supplier, and same-Run approval/continuation to be connected.
-The source-free and Remote installed checks do not establish this workflow.
+The Native project adapter connects physical project/catalog/Source/Model
+bindings and the original Effect authority supplier to same-Run approval and
+continuation. Complete acceptance requires the installed workflow to finish
+approval, publication, its first close and cold Named Result reads with the
+same matching artifact. Source connections, source-free checks and Remote
+installed checks do not establish that complete workflow.
+
+Native Project declaration preparation uses the original connection's connector,
+complete catalogue wire and resolved payload locator for the declared-file scope
+identity. File listing and correlated Content capability facts bind the original
+public schema CIDs and the selected physical reader bounds. Common restores the
+completed declaration; public listing/content view holders are then rebound to
+those final originals while retaining the same physical provider and limits.
+The authored correlation cardinality and exact-stored-byte representation remain
+unchanged. These static identities are distinct from adopted Account authority,
+reference issuance, a physical read, Content custody and runtime availability.
+
+Declared Project writes use Common's full-Relation UPDATE Mapping constructor.
+The command selects write publication after binding its original packaged
+runtime to the adopted Host and before checking the Request. The retained
+runtime manifest and same captured Read's per-connection authority scope feed
+the existing Common installation-identity codec; aliases retain its original
+Mapping target and installation identity. Neither that identity nor the
+catalogue permission strings are an Account decision or an approval. The
+ordinary Effect supplier must separately implement dispatch and recovery under
+the same original current, claim and cleanup protocols. Mock execution remains
+unavailable until that complete connection is installed.
 
 ## Static Local explanation
 
@@ -301,11 +324,21 @@ adopted. Run settings, Source Policy and Account contracts are unchanged.
 
 Read settings explicitly name `enabled`, `principal`, `connection`, literal
 `result_names`, existing `formats`, `purpose`, `sink: "stdout"`, original
-`data_policy_cids`, and finite `max_bytes`, `max_uses`, `expires_at`. Missing,
+`data_policy_cids`, and finite `max_bytes`, `max_uses`, `expires_at`. The explicit
+finite Run role replaces `expires_at` with `run_policy_profile_cid`, `run_file`,
+`retention_file` and `store_file` together. Within that role, an explicit
+`accepted_run_policy: true` may replace the literal `data_policy_cids` list. It
+selects only the actual committed named Result's effective Policy root retained
+at the same original Run's first admission; an arbitrary CID or another closure
+body is insufficient. Fresh finite Mock initialization chooses this generic
+alternative. Existing literal lists and legacy originals are unchanged. Mixed,
+false or empty choices are refused. Missing,
 unknown, duplicate or excessive fields are refused. Admission of these settings
 is not current read permission, a grant or validation of the referenced Policy
 originals. Actual payload admission, issuer and original Policy checks are
-connected and accepted for the source-free installed profile. Missing read
+connected for the finite Run role as well as the source-free installed profile.
+Current Account, DataPolicy/privacy, egress and actual delivery still determine
+whether the selected Result can be disclosed. Missing read
 settings do not disable the independent metadata-only
 `delivery-attempt` lookup.
 
@@ -544,3 +577,30 @@ Run acceptance and provider I/O. JSON/YAML Program remains supported machine
 input. Text is never retried as another format, and extensions do not choose
 a language. Removal of the old surface does not claim that every adopted
 Graph, VecA/TEA or Effect surface is implemented.
+
+The Native Project adapter retains the admitted Mock implementation with the
+SAME selected execution contract. It consumes the normalization's original
+prompt and the retry/backoff material already produced during metadata
+preparation, rather than regenerating those dependencies in the Run caller.
+Lookup accepts that exact execution object; equal separately admitted material
+cannot select it. Retirement first removes this metadata alias and then waits
+for the original installation's users before releasing its other originals.
+This is implementation selection, not Account, Model dispatch, Scope funding or
+a physical cleanup acknowledgement. Run executions remain per-Run children.
+
+
+An explicit first Mock adoption derives finite Account subjects from the same
+admitted Project Source declarations, normalized Tasks and selected UPDATE
+Mapping. The existing Common Mock profile owns their policy meaning: reads and
+Model invocation are restricted to those exact subjects, while UPDATE remains
+Delegate until the original Preview/Checkpoint approval. Missing Mock documents
+cannot initialize a source-free Account instead.
+
+The actual Product initialization persists the selected Account and independent
+Result-read originals before Host adoption. The Native adoption entrance accepts
+that named profile only with the same live excluded Product Root, initialization
+intent and Account bytes. The existing acknowledged Journal adoption supplies
+its bootstrap record identity. Restoration reads the original Product/Account;
+it never refreshes subjects or deadlines from current Project files. Profile
+metadata and successful adoption do not supply execution, Model-call entry,
+approval or physical-cleanup acknowledgement.

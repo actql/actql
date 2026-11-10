@@ -692,3 +692,31 @@ Subjects: neither control nor use is converted between those purposes.
   offending byte, a consumed prefix before reply loss, both invalid callback
   settlements, charge failure and absence. Authority/Journal are explicit
   ports; these are not normal Account, Common funding or ordinary acceptance.
+
+
+### Same original secret across Resource bindings
+
+A separately authorized Resource can retain its actual parent binding as
+`originalSecretBinding`. The Credential owner accepts only its same-process
+opaque original with identical invocation/Site identity, control, Journal,
+resolver, secret bound and presentation. Metadata-purpose, authenticated,
+foreign, unfenced, changed, closing and retired originals refuse. No packet or Source
+configuration selects this private connection. It neither shares a Grant nor
+changes each child's current, physical request or Journal outcome duties.
+
+The parent owns the sole pinned static secret. A first child send pins that
+same original; every later parent or child resolver result is compared at the
+existing before-send fences. A replacement latches refusal on the parent and
+current child before a request can be constructed. There is no token cache,
+secret copy in the Source driver, inferred Account decision or grace period.
+
+The existing Credential state retains each dependent original reference and
+one parent dependency count. Parent close remains pending until all such
+children have really closed; child retirement clears its reference and allows
+the original parent's existing retirement to run. Independent child bindings,
+grants, current checks and pending/Unknown outcomes remain separate. The
+selected native Source constructor quotes these reference/count fields; this
+association supplies no physical cleanup acknowledgement. Focused real TLS and
+Journal controls cover replacement-before-data-send, foreign invocation and
+parent-close-before-child-close; the registered HubSpot caller retains its
+original cross-binding resolver-change control.

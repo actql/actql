@@ -391,6 +391,66 @@ fn attestation_fields() -> Array[String] {
 }
 
 ///|
+fn check_approval_review_projection(
+  approval : @json.CanonicalValue,
+  request : CheckpointRequest,
+  nested : String,
+) -> Unit raise ResolutionFailure {
+  if cid_field(approval, "review_projection_cid", nested) !=
+    request.review_projection_cid {
+    raise ResolutionFailed(EvidenceMismatch("review_projection_cid"))
+  }
+}
+
+///|
+// Shared closed Effect Approval subject/claim law. Unsigned preparation has
+// no placeholder proof or self CID; signed evidence retains every old check.
+fn check_effect_approval_subject(
+  approval : @json.CanonicalValue,
+  request : CheckpointRequest,
+  expected_authority_scope_cid : String,
+  limits : WireLimits,
+  signed~ : Bool,
+) -> Unit raise ResolutionFailure {
+  let nested = "approval_evidence.compatibility_approval."
+  let fields = if signed {
+    attestation_fields()
+  } else {
+    attestation_fields().filter(field => {
+      field != "proof" && field != "attestation_cid"
+    })
+  }
+  resolution_shape(approval, fields, [], nested)
+  if string_field(approval, "version") != Some("actql-approval-attestation/0.1") {
+    raise ResolutionFailed(ResolutionInvalidField(nested + "version"))
+  }
+  if cid_field(approval, "effect_preview_cid", nested) !=
+    request.required_artifact_cid {
+    raise ResolutionFailed(EvidenceMismatch("effect_preview_cid"))
+  }
+  if cid_field(approval, "authority_scope_cid", nested) !=
+    expected_authority_scope_cid {
+    raise ResolutionFailed(EvidenceMismatch("authority_scope_cid"))
+  }
+  let claims = match string_list_field(approval, "claims") {
+    Some(claims) => claims
+    None => raise ResolutionFailed(ResolutionInvalidField(nested + "claims"))
+  }
+  if claims != ["effect_scope_approved"] &&
+    claims != ["effect_scope_approved", "partial_application_accepted"] {
+    raise ResolutionFailed(ResolutionInvalidField(nested + "claims"))
+  }
+  for requirement in request.requirements {
+    if !claims.contains(checkpoint_requirement_token(requirement)) {
+      raise ResolutionFailed(EvidenceMismatch("claims"))
+    }
+  }
+  if signed && !self_cid(approval, "attestation_cid", limits) {
+    raise ResolutionFailed(EvidenceMismatch("attestation_cid"))
+  }
+}
+
+///|
 /// Approved Resolution Evidence: closed shape, exact hash, and bindings to the
 /// same Checkpoint, review projection, required artifact, reviewer, and every
 /// requirement claim carried by the Checkpoint.
@@ -431,38 +491,14 @@ fn check_evidence(
   let approval = object_of(value, "compatibility_approval", prefix)
   let nested = prefix + "compatibility_approval."
   match request.kind {
-    EffectSet => {
-      resolution_shape(approval, attestation_fields(), [], nested)
-      if string_field(approval, "version") !=
-        Some("actql-approval-attestation/0.1") {
-        raise ResolutionFailed(ResolutionInvalidField(nested + "version"))
-      }
-      if cid_field(approval, "effect_preview_cid", nested) !=
-        request.required_artifact_cid {
-        raise ResolutionFailed(EvidenceMismatch("effect_preview_cid"))
-      }
-      if cid_field(approval, "authority_scope_cid", nested) !=
-        expected_authority_scope_cid {
-        raise ResolutionFailed(EvidenceMismatch("authority_scope_cid"))
-      }
-      let claims = match string_list_field(approval, "claims") {
-        Some(claims) => claims
-        None =>
-          raise ResolutionFailed(ResolutionInvalidField(nested + "claims"))
-      }
-      if claims != ["effect_scope_approved"] &&
-        claims != ["effect_scope_approved", "partial_application_accepted"] {
-        raise ResolutionFailed(ResolutionInvalidField(nested + "claims"))
-      }
-      for requirement in request.requirements {
-        if !claims.contains(checkpoint_requirement_token(requirement)) {
-          raise ResolutionFailed(EvidenceMismatch("claims"))
-        }
-      }
-      if !self_cid(approval, "attestation_cid", limits) {
-        raise ResolutionFailed(EvidenceMismatch("attestation_cid"))
-      }
-    }
+    EffectSet =>
+      check_effect_approval_subject(
+        approval,
+        request,
+        expected_authority_scope_cid,
+        limits,
+        signed=true,
+      )
     _ => {
       resolution_shape(approval, run_scope_approval_fields(), [], nested)
       if string_field(approval, "version") !=
@@ -495,10 +531,7 @@ fn check_evidence(
       }
     }
   }
-  if cid_field(approval, "review_projection_cid", nested) !=
-    request.review_projection_cid {
-    raise ResolutionFailed(EvidenceMismatch("review_projection_cid"))
-  }
+  check_approval_review_projection(approval, request, nested)
   if text_of(approval, "approver", nested) != actor {
     raise ResolutionFailed(EvidenceMismatch("approver"))
   }

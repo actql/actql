@@ -21,6 +21,11 @@ const graph = producer => 'GRAPH (NODE TABLES (' + producer +
 const prefix = 'WITH n AS (SELECT 1 AS node_key, 7 AS p) , g AS (' + graph('n') + ') ';
 const suffix = ' |> SELECT equal |> RESULT comparison';
 export const graphEqualitySourceSuccesses = [
+  // The common singleton output retains its ORDER/LIMIT suffix. Preserve the
+  // original input and independently specified complete Boolean Result.
+  {name: 'graph-equality-common-unresolved-order', format: 'aql-text',
+    text: prefix + 'FROM g |> graphs_equal(with: g) |> SELECT equal |> ORDER BY equal |> LIMIT 1 |> RESULT comparison',
+    results: result(), sourceReadCount: 0},
   {name: 'graph-equality-json-control', format: 'json', text: json,
     results: result(), sourceReadCount: 0},
   {name: 'graph-equality-terminal-self', format: 'aql-text',
@@ -52,8 +57,5 @@ export const graphEqualitySourceRefusals = [
   ['graph-call-after-transition', 'FROM g |> graphs_equal(with: g) |> node_rows()' + suffix],
   ['incompatible-key-type', ", m AS (SELECT 'two' AS node_key, 7 AS p) , h AS (" +
     graph('m') + ') FROM g |> graphs_equal(with: h)' + suffix],
-  // Existing common order-evidence gap, not a source-language restriction.
-  // Keep the authored ORDER/LIMIT intact and observe pre-admission rejection.
-  ['common-unresolved-order', 'FROM g |> graphs_equal(with: g) |> SELECT equal |> ORDER BY equal |> LIMIT 1 |> RESULT comparison'],
 ].map(([name, text]) => ({name: 'graph-equality-' + name, format: 'aql-text',
   text: prefix + text}));

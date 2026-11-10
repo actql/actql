@@ -36,7 +36,14 @@ export function checkChainSource(source) {
   // it issues no Owner/current operation and never receives the private Refs.
   // Bind its body and arity before admitting its one generated custody call.
   const prefix = clean(reviewedFunction(source, 'relation_chain_reclaimed_prefix')).replace(/\s+/g, ' ').trim();
-  assert.equal(hash(prefix), '12c360ec8be76849f037562208afde41113dbc6a682236ff77205a66dd57cd9b',
+  // CrossJoin shares Join scratch retirement; Set remains singleton-only.
+  // Window extends eligibility through its reviewed detached-output cleanup,
+  // without changing query arity, parent construction or callback captures.
+  // PIVOT is eligible only for a singleton. It cannot extend a serial prefix;
+  // the capacity function returns its unchanged base before the prefix query.
+  // The existing unary census contains no Window or PIVOT and gains no measurement or
+  // whole-parent lifetime qualification from this Source correspondence.
+  assert.equal(hash(prefix), '7e2e7b6258cf147b15b58add0133399bb23fc3194b0c236d478d28ddfd36c2ef',
     'Changed reviewed reclaimed-prefix source body or arity');
   const constructor = clean(reviewedFunction(source, 'bounded_relation_chain_execution_state'));
   const open = '  let start_next = fn(';

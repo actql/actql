@@ -60,7 +60,7 @@
 -    size_t alignment, void **out, bool domain_storage, actql_owned_capacity *growth) {
 +static int allocate_storage_read_original_locked(actql_owned_capacity *lease, size_t bytes,
 +    size_t alignment, void **out, bool domain_storage, actql_owned_capacity *growth,
-+    struct actql_read_context *read_owner) {
++    struct actql_read_context *read_owner, bool read_heap) {
      if (lease->pending_growth_domain != growth) return ACTQL_OWNED_BUSY;
      size_t pages;
      if (!round_pages(bytes, lease->page_size, &pages)) return ACTQL_OWNED_INVALID;
@@ -82,7 +82,7 @@
 +                pending->read_context = read_owner;
 +                pending->read_process = getpid();
 +                pending->read_released = true;
-+                pending->read_heap = true;
++                pending->read_heap = read_heap;
 +            }
          }
          if (mprotect(base, length, PROT_READ | PROT_WRITE) != 0) {
@@ -107,7 +107,7 @@
 +static int allocate_storage_original_locked(actql_owned_capacity *lease, size_t bytes,
 +    size_t alignment, void **out, bool domain_storage, actql_owned_capacity *growth) {
 +    return allocate_storage_read_original_locked(lease, bytes, alignment, out,
-+                                                 domain_storage, growth, NULL);
++                                                 domain_storage, growth, NULL, false);
  }
 
  static int allocate_storage_locked(actql_owned_capacity *lease, size_t bytes,
@@ -165,7 +165,7 @@
          unlock_capacity(lease);
 --- /dev/null
 +++ b/scoped_read.h
-@@ -0,0 +1,42 @@
+@@ -0,0 +1,49 @@
 +#ifndef ACTQL_PRIVATE_SCOPED_READ_H
 +#define ACTQL_PRIVATE_SCOPED_READ_H
 +#include <stddef.h>
@@ -175,6 +175,13 @@
 +typedef struct actql_read_context actql_read_context;
 +int actql_read_context_create(actql_owned_capacity *, actql_read_context **);
 +int actql_read_context_retain(actql_read_context *);
++/* Closed issuer only: debit the original control claim first, then activate
++ * this cohort's managed slabs before entering any constructor. Partial pages
++ * stay on the same context. This is neither a public size knob nor a new pool. */
++int actql_read_context_prepare_managed(actql_read_context *, size_t, size_t);
++/* Finish/cancel this original cohort outside its Read. Pending retirement is
++ * retained until a retry obtains the actual ACK. Live aliases stay owned. */
++int actql_read_context_finish_managed(actql_read_context *, uint64_t);
 +int actql_read_context_release_after_owner_ack(actql_read_context *);
 +int actql_read_context_enter(actql_read_context *);
 +/* Original stopped read-use only; no fresh user or read permission. */
@@ -210,7 +217,7 @@
 +#endif
 --- /dev/null
 +++ b/scoped_read.inc
-@@ -0,0 +1,867 @@
+@@ -0,0 +1,1074 @@
 +/* Derived selected-runtime read allocator, included once by the ORIGINAL
 + * owned_capacity.c. Selection still requires its source-bound recipe and
 + * original physical supplier. This is physical provenance
@@ -308,10 +315,15 @@
 +    pid_t process;
 +    size_t users;
 +    size_t active;
-+    uint64_t managed_serial;
++    uint64_t managed_serial, managed_generation;
 +    /* Search hint only. Every use rechecks original extent provenance under
 +     * both existing locks; retirement/reuse cannot turn this index into credit. */
 +    size_t managed_page_hint;
++    /* Closed, one-shot constructor cohorts on the same context. Ordinary
++     * contexts do not select this mode. Counts are audited allocator calls,
++     * not a long-running payload quota or observed-free-memory credit. */
++    bool managed_prepared, managed_preparing, managed_cohort, managed_finishing;
++    size_t managed_remaining, managed_maximum;
 +    bool closing;
 +    /* Pure cleanup census is constructor-thread scoped; other existing Read
 +     * operations retain their original concurrency contracts. */
@@ -427,7 +439,8 @@
 +        ((!context->closing && context->users != 0) ||
 +         (cleanup && context->closing && context->users == 0) ||
 +         (cleanup && !context->closing && read_current == context && read_depth != 0)) &&
-+        context->active != SIZE_MAX &&
++        !context->managed_preparing && !context->managed_finishing &&
++        (!context->managed_prepared || context->managed_cohort) && context->active != SIZE_MAX &&
 +        (read_current == NULL || read_current == context) && read_depth != SIZE_MAX &&
 +        actql_native_owned_current() == context->lease) {
 +        lock_capacity(context->lease);
@@ -472,12 +485,14 @@
 + * No pointer/identity escapes, allocation fallback or cleanup acknowledgement. */
 +static _Thread_local struct {
 +    uint64_t requested, known, depth, active, current, occupied, peak, control, pages, page_bytes;
++    uint64_t extent_domain, managed_prepared, managed_preparing, managed_remaining, managed_maximum;
 +    int status;
 +} read_allocation_observation;
 +
 +static void report_read_allocation_failure(void) {
 +    static const char *names[] = {"requested", "known", "depth", "active", "current",
-+        "occupied", "peak", "control", "pages", "page_bytes", "status"};
++        "occupied", "peak", "control", "pages", "page_bytes", "status",
++        "extent_domain", "managed_prepared", "managed_preparing", "managed_remaining", "managed_maximum"};
 +    uint64_t values[] = {read_allocation_observation.requested,
 +        read_allocation_observation.known, read_allocation_observation.depth,
 +        read_allocation_observation.active, read_allocation_observation.current,
@@ -485,8 +500,11 @@
 +        read_allocation_observation.control, read_allocation_observation.pages,
 +        read_allocation_observation.page_bytes,
 +        (uint64_t)(read_allocation_observation.status < 0 ?
-+            -(int64_t)read_allocation_observation.status : read_allocation_observation.status)};
-+    char text[512]; size_t used = 0;
++            -(int64_t)read_allocation_observation.status : read_allocation_observation.status),
++        read_allocation_observation.extent_domain, read_allocation_observation.managed_prepared,
++        read_allocation_observation.managed_preparing, read_allocation_observation.managed_remaining,
++        read_allocation_observation.managed_maximum};
++    char text[1024]; size_t used = 0;
 +    const char *prefix = "actql-scoped-allocation-failed";
 +    while (*prefix) text[used++] = *prefix++;
 +    for (size_t i = 0; i < sizeof(values) / sizeof(values[0]); i++) {
@@ -515,7 +533,7 @@
 + * keep distinct free provenance. File buffers retain generic extents; private
 + * pages cannot be protected or lent, including multi-page C allocations. */
 +enum read_allocation_family { READ_FILE, READ_MANAGED, READ_PRIVATE_C };
-+struct read_heap_page { size_t live; };
++struct read_heap_page { size_t live, free_offset; };
 +struct read_heap_block { size_t capacity, requested; uint64_t serial;
 +    enum read_allocation_family family; };
 +static size_t read_heap_round(size_t bytes) {
@@ -552,9 +570,31 @@
 +    }
 +    return ACTQL_OWNED_INVALID;
 +}
++/* Only original block headers enter this helper. The page-local offset names
++ * a free block retained under the same locks; it changes search order only. */
++static bool allocate_read_heap_block_locked(actql_read_context *context,
++    size_t index, void *page, struct read_heap_block *block, size_t bytes,
++    size_t rounded, enum read_allocation_family family, void **output) {
++    if (block->requested || block->capacity < rounded) return false;
++    struct read_heap_page *header = page;
++    header->free_offset = 0;
++    if (block->capacity - rounded >= read_heap_header() + _Alignof(max_align_t)) {
++        struct read_heap_block *tail = (void *)((unsigned char *)read_heap_payload(block) + rounded);
++        *tail = (struct read_heap_block){.capacity = block->capacity - rounded - read_heap_header()};
++        block->capacity = rounded;
++        header->free_offset = (unsigned char *)tail - (unsigned char *)page;
++    }
++    block->requested = bytes; block->family = family;
++    block->serial = ++context->managed_serial;
++    header->live++;
++    *output = read_heap_payload(block);
++    memset(*output, 0, block->capacity);
++    context->managed_page_hint = index;
++    return true;
++}
 +/* Candidate lookup never grants a page: exact context/process, live extent
 + * and a genuinely free fitting block are checked under the original locks.
-+ * The hint changes only search order and cannot hide an exhausted capacity. */
++ * A failed offset hint still scans every original block. */
 +static bool allocate_read_heap_page_locked(actql_read_context *context,
 +    size_t index, size_t bytes, size_t rounded, enum read_allocation_family family,
 +    void **output) {
@@ -564,24 +604,155 @@
 +    if (!extent->read_heap || extent->read_context != context || extent->retired ||
 +        extent->read_released || extent->read_process != getpid()) return false;
 +    void *page = owned_page_address(lease, index);
++    struct read_heap_page *header = page;
++    size_t page_bytes = extent->pages * lease->page_size;
++    size_t offset = header->free_offset;
++    if (offset >= read_heap_round(sizeof(*header)) &&
++        offset <= page_bytes - read_heap_header()) {
++        struct read_heap_block *hint = (void *)((unsigned char *)page + offset);
++        if (allocate_read_heap_block_locked(context, index, page, hint,
++                                           bytes, rounded, family, output)) return true;
++    }
 +    for (struct read_heap_block *block = read_heap_first(page); block;
-+         block = read_heap_next(page, owned_extent(lease, index)->pages * lease->page_size, block)) {
-+        if (block->requested || block->capacity < rounded) continue;
-+        if (block->capacity - rounded >= read_heap_header() + _Alignof(max_align_t)) {
-+            struct read_heap_block *tail = (void *)((unsigned char *)read_heap_payload(block) + rounded);
-+            *tail = (struct read_heap_block){.capacity = block->capacity - rounded - read_heap_header()};
-+            block->capacity = rounded;
-+        }
-+        block->requested = bytes; block->family = family;
-+        block->serial = ++context->managed_serial;
-+        ((struct read_heap_page *)page)->live++;
-+        *output = read_heap_payload(block);
-+        memset(*output, 0, block->capacity);
-+        context->managed_page_hint = index;
-+        return true;
++         block = read_heap_next(page, page_bytes, block)) {
++        if (allocate_read_heap_block_locked(context, index, page, block,
++                                           bytes, rounded, family, output)) return true;
 +    }
 +    return false;
 +}
++/* Both original locks are held. An empty slab is still an acquired extent
++ * of this context, even before its first constructor. No separate page index. */
++static int prepare_read_heap_page_locked(actql_read_context *context,
++    size_t required, size_t *index_out) {
++    actql_owned_capacity *lease = context->lease;
++    void *page = NULL;
++    int status = allocate_storage_read_original_locked(lease, required,
++        lease->page_size, &page, false, NULL, context, true);
++    if (status != ACTQL_OWNED_OK) return status;
++    size_t logical_offset;
++    owned_pointer_offset(lease, page, &logical_offset);
++    size_t index = logical_offset / lease->page_size;
++    struct extent *extent = owned_extent(lease, index);
++    extent->read_heap = true; extent->read_context = context;
++    extent->read_process = getpid();
++    size_t overhead = read_heap_round(sizeof(struct read_heap_page)) + read_heap_header();
++    *read_heap_first(page) = (struct read_heap_block){
++        .capacity = extent->pages * lease->page_size - overhead};
++    ((struct read_heap_page *)page)->live = 0;
++    *index_out = index;
++    return ACTQL_OWNED_OK;
++}
++
++int actql_read_context_prepare_managed(actql_read_context *context,
++    size_t maximum, size_t requests) {
++    if (!lock_read_contexts()) return ACTQL_OWNED_INVALID;
++    int status = ACTQL_OWNED_INVALID;
++    if (!known_read_context(context) || context->closing || context->users == 0 ||
++        context->active != 0 || context->managed_preparing || context->managed_finishing ||
++        read_current != NULL ||
++        read_depth != 0 || actql_native_owned_current() != context->lease ||
++        !pthread_equal(context->observation_thread, pthread_self())) goto finished;
++    actql_owned_capacity *lease = context->lease;
++    lock_capacity(lease);
++    size_t rounded = read_heap_round(maximum);
++    size_t overhead = read_heap_round(sizeof(struct read_heap_page)) + read_heap_header();
++    if (lease->closing || !lease->transferred || foreign_domain_process(lease) ||
++        maximum == 0 || requests == 0 || maximum > lease->page_size / 2 ||
++        !rounded || overhead > lease->page_size || rounded > lease->page_size - overhead ||
++        (!context->managed_prepared && context->managed_serial != 0)) goto unlocked;
++    /* A new cohort cannot step past the existing domain acquisition receipt.
++     * Reconcile that same receipt first; free-looking pages grant no credit. */
++    if (lease->pending_growth_domain != NULL || lease->growth.state != OWNED_GROWTH_IDLE) {
++        status = ACTQL_OWNED_BUSY;
++        goto unlocked;
++    }
++    if (context->managed_generation == UINT64_MAX ||
++        requests > SIZE_MAX - context->managed_remaining ||
++        context->managed_remaining > UINT64_MAX - context->managed_serial ||
++        requests > UINT64_MAX - context->managed_serial - context->managed_remaining) {
++        status = ACTQL_OWNED_EXHAUSTED;
++        goto unlocked;
++    }
++    context->managed_generation++;
++    context->managed_prepared = true;
++    context->managed_cohort = true;
++    context->managed_preparing = true;
++    /* Publish partial custody before each fallible activation. Failure retains
++     * the original pending mode and every acquired slab for explicit close. */
++    for (size_t request = 0; request < requests; request++) {
++        size_t index;
++        status = prepare_read_heap_page_locked(context, rounded + overhead, &index);
++        if (status != ACTQL_OWNED_OK) goto unlocked;
++    }
++    context->managed_remaining += requests;
++    if (maximum > context->managed_maximum) context->managed_maximum = maximum;
++    context->managed_preparing = false;
++    status = ACTQL_OWNED_OK;
++unlocked:
++    unlock_capacity(lease);
++finished:
++    unlock_read_contexts();
++    return status;
++}
++
++/* This is receipt-only cleanup on the already owned context. It allocates
++ * no control object, grants no new Read user and never returns root mapping
++ * credit. A successful finish means no unused/empty/pending cohort storage,
++ * not that live managed aliases or the enclosing Resource claim have ended. */
++int actql_read_context_finish_managed(actql_read_context *context,
++    uint64_t generation) {
++    if (!lock_read_contexts()) return ACTQL_OWNED_INVALID;
++    int status = ACTQL_OWNED_INVALID;
++    if (!known_read_context(context) || !context->managed_prepared ||
++        generation == 0 || generation != context->managed_generation || context->closing || context->users == 0 || context->active != 0 ||
++        read_current != NULL || read_depth != 0 ||
++        actql_native_owned_current() != context->lease ||
++        !pthread_equal(context->observation_thread, pthread_self())) goto finished;
++    actql_owned_capacity *lease = context->lease;
++    lock_capacity(lease);
++    if (lease->closing || !lease->transferred || foreign_domain_process(lease)) goto unlocked;
++    if (lease->pending_growth_domain != NULL || lease->growth.state != OWNED_GROWTH_IDLE) {
++        status = ACTQL_OWNED_BUSY;
++        goto unlocked;
++    }
++    if (!context->managed_cohort && !context->managed_finishing) {
++        status = ACTQL_OWNED_OK;
++        goto unlocked;
++    }
++    /* Unused constructor permissions are cancelled, never recredited. The
++     * scalar serial remains monotone, including across later fresh cohorts. */
++    context->managed_finishing = true;
++    context->managed_cohort = false;
++    context->managed_remaining = 0;
++    context->managed_maximum = 0;
++    context->managed_page_hint = 0;
++    for (size_t index = lease->control_pages; index < lease->page_count; index++) {
++        struct extent *extent = owned_extent(lease, index);
++        if (extent->read_context != context || extent->read_process != getpid() ||
++            !extent->read_heap) continue;
++        /* A failed activation/retirement may already be PROT_NONE. Do not read
++         * any slab header until its original extent is known accessible. */
++        if (!extent->retired && !extent->read_released &&
++            ((struct read_heap_page *)owned_page_address(lease, index))->live != 0) continue;
++        extent->read_released = true;
++        extent->retired = true;
++        if (allocation_has_external_use(lease, index, false)) {
++            status = ACTQL_OWNED_BUSY;
++            goto unlocked;
++        }
++        status = clean_retired(lease, index);
++        if (status != ACTQL_OWNED_OK) goto unlocked;
++    }
++    context->managed_preparing = false;
++    context->managed_finishing = false;
++    status = ACTQL_OWNED_OK;
++unlocked:
++    unlock_capacity(lease);
++finished:
++    unlock_read_contexts();
++    return status;
++}
++
 +/* Read index lock is already held; the provider's original lock serializes
 + * page contents against span observations and last-slot physical retirement. */
 +static int allocate_read_heap_bytes(actql_read_context *context, size_t bytes,
@@ -600,40 +771,30 @@
 +        status = ACTQL_OWNED_OK;
 +        goto done;
 +    }
-+    /* A miss still examines every other original extent before requesting a
-+     * new page. No free space or physical-retirement attempt is skipped. */
-+    for (size_t index = lease->control_pages; index < lease->page_count; index++) {
-+        if (index != hint &&
-+            allocate_read_heap_page_locked(context, index, bytes, rounded, family, output)) {
++    /* Continue after the same hint, wrapping once through every other original
++     * extent before requesting a new page. Restarting at the first slab would
++     * repeatedly traverse an already full live prefix in a retained cohort.
++     * This changes search order only: every candidate keeps its original
++     * process/context/current/free-block checks; no page or credit is skipped. */
++    size_t search_index = hint >= lease->control_pages && hint < lease->page_count
++        ? hint : lease->page_count - 1;
++    for (size_t visited = 0; visited < lease->page_count - lease->control_pages; visited++) {
++        search_index = search_index == lease->page_count - 1 ? lease->control_pages : search_index + 1;
++        if (search_index != hint &&
++            allocate_read_heap_page_locked(context, search_index, bytes, rounded, family, output)) {
 +            status = ACTQL_OWNED_OK;
 +            goto done;
 +        }
 +    }
-+    void *page = NULL;
-+    size_t required = rounded + overhead;
-+    status = allocate_storage_read_original_locked(lease, required,
-+        lease->page_size, &page, false, NULL, context);
-+    if (status == ACTQL_OWNED_OK) {
-+        size_t logical_offset;
-+        owned_pointer_offset(lease, page, &logical_offset);
-+        size_t index = logical_offset / lease->page_size;
-+        struct extent *extent = owned_extent(lease, index);
-+        extent->read_heap = true; extent->read_context = context;
-+        extent->read_process = getpid();
-+        struct read_heap_block *block = read_heap_first(page);
-+        *block = (struct read_heap_block){.capacity = extent->pages * lease->page_size - overhead};
-+        /* The full replacement and its metadata are admitted before use. */
-+        if (block->capacity - rounded >= read_heap_header() + _Alignof(max_align_t)) {
-+            struct read_heap_block *tail = (void *)((unsigned char *)read_heap_payload(block) + rounded);
-+            *tail = (struct read_heap_block){.capacity = block->capacity - rounded - read_heap_header()};
-+            block->capacity = rounded;
-+        }
-+        block->requested = bytes; block->family = family;
-+        block->serial = ++context->managed_serial;
-+        ((struct read_heap_page *)page)->live = 1;
-+        context->managed_page_hint = index;
-+        *output = read_heap_payload(block); /* Original placement zeroed the page. */
-+    }
++    /* A prepared cohort has already acquired all of its constructor pages.
++     * Exhaustion is a certificate violation, never a request for hidden growth. */
++    if (context->managed_prepared) { status = ACTQL_OWNED_EXHAUSTED; goto done; }
++    size_t index;
++    status = prepare_read_heap_page_locked(context, rounded + overhead, &index);
++    if (status == ACTQL_OWNED_OK &&
++        !allocate_read_heap_page_locked(context, index, bytes, rounded, family, output))
++        status = ACTQL_OWNED_INVALID;
++
 +done:
 +    unlock_capacity(lease);
 +    return status;
@@ -652,18 +813,28 @@
 +        if (!block->requested || !block->serial || !header->live ||
 +            block->family != family) return ACTQL_OWNED_INVALID;
 +        block->requested = 0; block->serial = 0; header->live--;
-+        if (header->live == 0) {
++        if (header->live == 0 &&
++            !(extent->read_context->managed_cohort &&
++              !extent->read_context->managed_finishing &&
++              !extent->read_context->closing &&
++              !allocation_has_external_use(lease, index, false))) {
 +            if (extent->read_context->managed_page_hint == index)
 +                extent->read_context->managed_page_hint = 0;
 +            extent->read_released = true; extent->retired = true;
++            if (extent->read_context->managed_prepared &&
++                allocation_has_external_use(lease, index, false)) return ACTQL_OWNED_BUSY;
 +            return clean_retired(lease, index);
 +        }
 +        /* Reuse the just-freed original page before a whole-extent search.
 +         * This remains a hint: allocation independently rechecks the extent. */
 +        extent->read_context->managed_page_hint = index;
-+        /* Coalesce only free neighbors; no live allocation moves or changes. */
++        /* Coalescing can absorb the hinted header. Refresh only from surviving
++         * original free headers; no live allocation moves or changes. */
++        header->free_offset = 0;
 +        for (struct read_heap_block *item = read_heap_first(page); item;) {
 +            struct read_heap_block *next = read_heap_next(page, owned_extent(lease, index)->pages * lease->page_size, item);
++            if (!item->requested)
++                header->free_offset = (unsigned char *)item - (unsigned char *)page;
 +            if (!item->requested && next && !next->requested)
 +                item->capacity += read_heap_header() + next->capacity;
 +            else item = next;
@@ -671,6 +842,23 @@
 +        return ACTQL_OWNED_OK;
 +    }
 +    return ACTQL_OWNED_INVALID;
++}
++
++/* Raw File/large managed extents need the SAME pre-activation custody as
++ * slabs, but have no heap-page header. The caller holds the Read index lock;
++ * this helper takes only the existing capacity lock and never changes TLS. */
++static int allocate_read_extent_bytes(actql_read_context *context, size_t bytes,
++    void **output) {
++    actql_owned_capacity *lease = context->lease;
++    lock_capacity(lease);
++    int status = ACTQL_OWNED_INVALID;
++    if (foreign_domain_process(lease) || lease->closing)
++        status = ACTQL_OWNED_BUSY;
++    else if (lease->transferred)
++        status = allocate_storage_read_original_locked(lease, bytes,
++            _Alignof(max_align_t), output, false, NULL, context, false);
++    unlock_capacity(lease);
++    return status;
 +}
 +
 +static void *allocate_read_bytes(size_t bytes, enum read_allocation_family family) {
@@ -687,15 +875,25 @@
 +        read_allocation_observation.active = context->active;
 +        read_allocation_observation.current = actql_native_owned_current() == context->lease;
 +    }
++    bool prepared_current = true;
++    if (known && context->managed_prepared) {
++        prepared_current = family == READ_MANAGED && !context->managed_preparing &&
++            context->managed_remaining != 0 && bytes <= context->managed_maximum;
++        /* Debit only a current construction. A refused foreign/inactive call
++         * must not consume an original cohort request. Failed allocation keeps
++         * its debit: an uncertain constructor never recreates reusable credit. */
++        if (prepared_current && read_depth != 0 && context->active != 0 &&
++            actql_native_owned_current() == context->lease)
++            context->managed_remaining--;
++    }
 +    /* Closing cannot begin during an active ordinary frame. A closing active
 +     * frame can therefore only be the original cleanup entry above. */
-+    if (known_read_context(context) && read_depth != 0 &&
++    if (known_read_context(context) && prepared_current && read_depth != 0 &&
 +        context->active != 0 && actql_native_owned_current() == context->lease &&
 +        (read_allocation_observation.status = (family == READ_PRIVATE_C ||
 +            (family == READ_MANAGED && bytes <= context->lease->page_size / 2))
 +            ? allocate_read_heap_bytes(context, bytes ? bytes : 1, family, &output)
-+            : actql_native_owned_allocate(context->lease, bytes ? bytes : 1,
-+                _Alignof(max_align_t), &output)) == ACTQL_OWNED_OK) {
++            : allocate_read_extent_bytes(context, bytes ? bytes : 1, &output)) == ACTQL_OWNED_OK) {
 +        lock_capacity(context->lease);
 +        size_t logical_offset;
 +        owned_pointer_offset(context->lease, output, &logical_offset);
@@ -719,6 +917,13 @@
 +    }
 +    if (known && output == NULL) {
 +        lock_capacity(context->lease);
++        /* Closed role predicate only, never a lease address. Cohort quantities
++         * are observed AFTER this attempted constructor, with their original units. */
++        read_allocation_observation.extent_domain = context->lease->extent_domain ? 1 : 0;
++        read_allocation_observation.managed_prepared = context->managed_prepared ? 1 : 0;
++        read_allocation_observation.managed_preparing = context->managed_preparing ? 1 : 0;
++        read_allocation_observation.managed_remaining = context->managed_remaining;
++        read_allocation_observation.managed_maximum = context->managed_maximum;
 +        read_allocation_observation.occupied = context->lease->occupied_pages;
 +        read_allocation_observation.peak = context->lease->peak_occupied_pages;
 +        read_allocation_observation.control = owned_control_pages(context->lease);
@@ -823,6 +1028,15 @@
 +        bool selected = owned_extent(lease, index)->read_context == context &&
 +                        owned_extent(lease, index)->read_process == getpid();
 +        bool released = selected && owned_extent(lease, index)->read_released;
++        if (selected && context->managed_prepared &&
++            owned_extent(lease, index)->read_heap && !owned_extent(lease, index)->retired &&
++            ((struct read_heap_page *)owned_page_address(lease, index))->live == 0) {
++            /* An unused prepared slab has no aliases. Retire it through the
++             * same physical path; failed cleanup remains on this extent. */
++            owned_extent(lease, index)->read_released = true;
++            owned_extent(lease, index)->retired = true;
++            released = true;
++        }
 +        if (selected && owned_extent(lease, index)->read_heap && released) {
 +            int status = clean_retired(lease, index);
 +            unlock_capacity(lease);

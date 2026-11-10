@@ -53,23 +53,18 @@ const heterogeneous = 'WITH n AS (SELECT 1 AS id, 20 AS score) , e AS (SELECT 10
   + ', g AS (GRAPH (NODE TABLES (n AS S KEY (id) LABEL Start NO PROPERTIES, '
   + 'n AS T KEY (id) LABEL Target PROPERTIES (score)) EDGE TABLES '
   + '(e AS E KEY (key) SOURCE KEY (src) REFERENCES S DESTINATION KEY (dst) REFERENCES T LABEL R NO PROPERTIES))) ';
-// The installed Graph provider retains complete path identities under a
-// 10,000-byte text ceiling. Two keyed self-loops distinguish every path mode
-// within that ceiling; self-loops must not be counted twice for direction both.
+// Two keyed self-loops distinguish every path mode with a small complete
+// result; self-loops must not be counted twice for direction both.
 const boundedParameters = {nodes: [nodes[0]], edges: [
   {key: 10, src: 1, dst: 1}, {key: 11, src: 1, dst: 1},
 ]};
-// Preserve the original larger input and its mathematical result. Its 124
-// identity occurrences exceed the installed text ceiling before projection.
-// This is an execution resource boundary, not unsupported any-direction syntax.
-export const graphAnyDirectionOverCeiling = sourceCase('bounded-walk-installed-output-ceiling',
+// The larger input yields twenty paths and 124 identity occurrences before
+// projection. Each occurrence remains logically charged. The installed
+// storage's 10,000-byte ceiling is not a cumulative traversal-output policy,
+// and max_value_bytes applies to each top-level value, not the whole result.
+export const graphAnyDirectionCompleteWalk = sourceCase('bounded-walk-complete-identities',
   '(a:Node WHERE id = 1)-[:R]-{0,2}(b:Node)', [0, ...repeated(1, 6), ...repeated(2, 13)]);
-export const graphAnyDirectionExecutionFailures = [{
-  name: graphAnyDirectionOverCeiling.name, format: graphAnyDirectionOverCeiling.format,
-  text: graphAnyDirectionOverCeiling.text,
-  parameterDeclarations: declarations, parameters, resultNames: ['matched'],
-  sourceReadSessionCount: 0,
-}];
+export const graphAnyDirectionExecutionFailures = [];
 export const graphAnyDirectionSuccesses = [
   {name: 'graph-any-direction-json-fixed', format: 'json', text: JSON.stringify(machine(false)),
     results: result(repeated(1, 6)), sourceReadCount: 0},
@@ -87,6 +82,7 @@ export const graphAnyDirectionSuccesses = [
       [0, ...repeated(1, one), ...repeated(2, two)],
       {text: data + mapping + tail('(a:Node WHERE id = 1)-[:R]-{0,2}(b:Node)', mode),
         parameters: boundedParameters})),
+  graphAnyDirectionCompleteWalk,
 ];
 export const graphAnyDirectionRefusals = [
   ...['<-[]->', '-[]-*', '-[]-{1,}', '-[e:R]-{0,2}'].map((edge, index) => ({

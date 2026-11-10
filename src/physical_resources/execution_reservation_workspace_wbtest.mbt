@@ -1,4 +1,62 @@
 ///|
+test "completed byte workspace returns unused retention without refunding original work" {
+  let ledger = create_ledger({
+    ..test_limits(),
+    retained_bytes: 1000L,
+    execution_bytes: 1000L,
+  }).unwrap()
+  configure_quantities(ledger, { tokens: 3L, cost_units: 4L, duration_ms: 5L, }).unwrap()
+  let token = reserve_attempt(
+    ledger,
+    9L,
+    300L,
+    200L,
+    quantities=Some({ tokens: 3L, cost_units: 4L, duration_ms: 5L, }),
+  ).unwrap()
+  consume_reserved_attempt(ledger, token).unwrap()
+  charge_transfer(ledger, token, 2L).unwrap()
+  mark_transfer_uncertain(ledger, token, 2L).unwrap()
+  let holding = retain_allocation(ledger, token, 80L).unwrap()
+  mark_cleanup_pending(ledger, token).unwrap()
+  let before = ledger_usage(ledger)
+  let quantities = quantity_usage(ledger)
+  reduce_execution_reservation_capacity(ledger, token, 120L, 60L).unwrap()
+  let after = ledger_usage(ledger)
+  assert_eq(after, {
+    ..before,
+    reserved_retention_bytes: 120L,
+    reserved_execution_bytes: 60L,
+  })
+  assert_eq(quantity_usage(ledger), quantities)
+  assert_eq(token.transfer, 5L)
+  assert_true(reservation_pending(token))
+  assert_true(reservation_open(token))
+  reduce_execution_reservation_capacity(ledger, token, 120L, 60L).unwrap()
+  assert_eq(ledger_usage(ledger), after)
+  for (r, e) in [(-1L, 60L), (121L, 60L), (120L, 61L)] {
+    assert_eq(
+      reduce_execution_reservation_capacity(ledger, token, r, e),
+      Err(InvalidCharge),
+    )
+    assert_eq(ledger_usage(ledger), after)
+  }
+  let foreign = create_ledger(test_limits()).unwrap()
+  assert_eq(
+    reduce_execution_reservation_capacity(foreign, token, 0L, 0L),
+    Err(ForeignOwner),
+  )
+  settle_reservation(ledger, token).unwrap()
+  release_allocation(ledger, holding).unwrap()
+  assert_eq(ledger_usage(ledger).attempts, 1)
+  assert_eq(ledger_usage(ledger).transferred_bytes, 2L)
+  assert_eq(ledger_usage(ledger).uncertain_transfer_bytes, 2L)
+  assert_eq(
+    reduce_execution_reservation_capacity(ledger, token, 0L, 0L),
+    Err(ClosedReservation),
+  )
+}
+
+///|
 test "native response byte growth keeps the original attempt transfer and quantity history" {
   let ledger = create_ledger(test_limits()).unwrap()
   configure_quantities(ledger, { tokens: 3L, cost_units: 4L, duration_ms: 5L, }).unwrap()
@@ -72,6 +130,9 @@ test "native response growth cannot mutate a reservation closed by original curr
     stop: _ => 0,
     fixed_capacities: false,
     working: None,
+    current_window: None,
+    acquire_window: None,
+    acquiring_window: false,
     ledger: Some(ledger),
     stopping: false,
     unavailable: false,
@@ -161,6 +222,9 @@ test "execution remainder reduction rejects foreign closed invalid and unavailab
     stop: _ => 0,
     fixed_capacities: false,
     working: None,
+    current_window: None,
+    acquire_window: None,
+    acquiring_window: false,
     ledger: Some(ledger),
     stopping: false,
     unavailable: false,
@@ -205,6 +269,9 @@ test "execution remainder reduction rechecks closure after the same original cur
     stop: _ => 0,
     fixed_capacities: false,
     working: None,
+    current_window: None,
+    acquire_window: None,
+    acquiring_window: false,
     ledger: Some(ledger),
     stopping: false,
     unavailable: false,
@@ -235,6 +302,9 @@ test "execution remainder reduction cannot return a running imported fixed Host 
     stop: _ => 0,
     fixed_capacities: true,
     working: None,
+    current_window: None,
+    acquire_window: None,
+    acquiring_window: false,
     ledger: Some(ledger),
     stopping: false,
     unavailable: false,

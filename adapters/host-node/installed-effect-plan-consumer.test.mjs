@@ -11,6 +11,7 @@ import {selectAcquiredEffectSources, selectAcquiredEffectPlanInputs} from './acq
 import {openAcquiredEffectComputation} from './acquired-effect-computation.mjs';
 import {prepareInstalledRowCaptureChild} from './installed-row-capture-cleanup.mjs';
 import {prepareInstalledEffectRequestChild} from './installed-effect-plan.mjs';
+import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
 import {retainUpdateTargetSelection, originalUpdateTargetSelectionsCid, updateTargetSelectionMatchesRun}
   from './update-target-original-shape.mjs';
 
@@ -18,6 +19,64 @@ import {retainUpdateTargetSelection, originalUpdateTargetSelectionsCid, updateTa
 // Node owner/consumers, not actual Common funding, vendor work or normal support.
 const ok = value => ({$tag: 1, _0: value});
 const checked = result => {if (result.$tag !== 1) throw result._0; return result._0;};
+
+test('two whole Effect inputs retain distinct source slots on the same checked Compute task', () => {
+  const prepared = {}, request = {}, plan = {}, run = {};
+  const routes = [{}, {}], declarations = [{}, {}], providers = [{}, {}], acquisitions = [{}, {}], policies = [{}, {}];
+  const calls = [];
+  const adapters = [0, 1].map(index => Object.freeze({realizationKey: 'row-source-acquired',
+    admitsSource: ref => ref === `whole-${index}`,
+    prepare() {assert.fail('inert selection must not start a read');},
+    open() {assert.fail('inert selection must not start a read');},
+    managedEffectPlanSelection() {return Object.freeze({declaration: declarations[index], provider: providers[index], inputLimits: policies[index],
+      transferBytes: 11n, executionBytes: 13n});}}));
+  const moon = {
+    clientProgramEffectAcquisitionCount: () => 2,
+    clientProgramEffectDirectSourceCoordinates: actual => {assert.strictEqual(actual, prepared);
+      return ok([[0, 0, 0, 0], [0, 1, 1, 0]]);},
+    clientProgramSelectInstalledEffectSourceInput(actual, identity, stage, input) {
+      assert.strictEqual(actual, prepared); assert.strictEqual(identity, request); assert.equal(stage, 0);
+      calls.push(input); return ok(routes[input]);},
+    clientProgramSelectedSourceInputKind: () => 'whole-input',
+    clientProgramSelectedSourceInputRef: route => `whole-${routes.indexOf(route)}`,
+    clientProgramInstalledEffectManagedOperationPlan(actual, owner, identity) {
+      assert.strictEqual(actual, run); assert.strictEqual(owner, prepared); assert.strictEqual(identity, request);return ok(plan);},
+    clientProgramInstalledEffectManagedPlanWholeSource(actual, index) {
+      assert.strictEqual(actual, plan);return ok({_0: routes[index], _1: acquisitions[index], _2: providers[index]});},
+    clientProgramWholeSourceFacts: acquisition => [`whole-${acquisitions.indexOf(acquisition)}`],
+    clientProgramInstalledEffectRowSourceInputPrepare(declaration, provider, policy) {
+      const index = declarations.indexOf(declaration);assert(index >= 0);
+      assert.strictEqual(provider, providers[index]);assert.strictEqual(policy, policies[index]);
+      return ok({declaration, provider, policy});
+    },
+    clientProgramEffectPrepareLocalQueryRequirement() {assert.fail('a whole input cannot become a Query');},
+    clientProgramInstalledEffectManagedPlanSource() {assert.fail('a whole input has no Query requirement');},
+  };
+  const options = {moon, preparedEffect: prepared, requestIdentity: request, sourceProfile: {sources: adapters}};
+  const inputs = selectAcquiredEffectPlanInputs(options);
+  assert.deepEqual(inputs.inputs, declarations.map((declaration, index) => ({declaration, provider: providers[index], policy: policies[index]})));
+  const sources = selectAcquiredEffectSources({...options, managedPlan: plan, managedRun: run});
+  assert.deepEqual(calls, [0, 1, 0, 1]);
+  assert.deepEqual(sources.map(value => value.occurrence), [{stage: 0, input: 0, task: 0},
+    {stage: 0, input: 1, task: 1, computeTask: 0}]);
+  assert.deepEqual(sources.map(value => value.sourceKind), ['whole-input', 'whole-input']);
+  assert.strictEqual(sources[0].adapter, adapters[0]); assert.strictEqual(sources[1].adapter, adapters[1]);
+});
+
+test('Effect source coordinates refuse missing, foreign, duplicate and malformed originals before adapter selection', () => {
+  const prepared = {}, request = {}, original = new Error('Original coordinate refusal');
+  for (const get of [undefined, () => ok([[0, 0, 0, 0], [0, 1, 0, 0]]),
+    () => ok([[0, 0, 0, 0], [0, 0, 1, 0]]), () => ok([[0, 0, 0, 0], [0, -1, 1, 0]])]) {
+    const moon = {clientProgramEffectAcquisitionCount: () => 2,
+      clientProgramEffectDirectSourceCoordinates: get,
+      clientProgramSelectInstalledEffectSourceInput() {assert.fail('invalid coordinates cannot select an adapter');}};
+    assert.throws(() => selectAcquiredEffectSources({moon, preparedEffect: prepared, requestIdentity: request}),
+      /(?:InstalledEffectSourceCoordinatesUnavailable|InvalidInstalledEffectSourceCoordinates)/);
+  }
+  assert.throws(() => selectAcquiredEffectSources({preparedEffect: prepared, requestIdentity: request, moon: {
+    clientProgramEffectAcquisitionCount: () => 1, clientProgramEffectDirectSourceCoordinates: () => ({$tag: 0, _0: original}),
+  }}), error => error.code === 'MoonBitHostFailure' && error.cause === original);
+});
 
 test('Effect Plan source inputs follow original checked occurrence order without a second Query preparation', () => {
   const prepared = {}, request = {}, selections = [{}, {}], declarations = [{}, {}], providers = [{}, {}];
@@ -29,6 +88,7 @@ test('Effect Plan source inputs follow original checked occurrence order without
         transferBytes: BigInt(20 + index), executionBytes: BigInt(10 + index)});
     }}));
   const moon = {clientProgramEffectAcquisitionCount: () => 2,
+    clientProgramEffectDirectSourceCoordinates: () => ({$tag: 1, _0: [[0, 0, 0, 0], [1, 0, 1, 1]]}),
     clientProgramSelectInstalledEffectSourceInput(p, identity, stage, input) {
       assert.strictEqual(this, moon); assert.strictEqual(p, prepared); assert.strictEqual(identity, request);
       assert.equal(input, 0); calls.push(`select-${stage}`); return ok(selections[stage]);
@@ -50,6 +110,7 @@ test('Effect preadmission selects the checked Source without preparing its Query
   };
   let selections = 0;
   const moon = {clientProgramEffectAcquisitionCount: () => 1,
+    clientProgramEffectDirectSourceCoordinates: () => ({$tag: 1, _0: [[0, 0, 0, 0]]}),
     clientProgramSelectInstalledEffectSourceInput(p, identity, stage, input) {
       same([p, identity, stage, input], [prepared, request, 0, 0]); selections++; return ok(original);
     }, clientProgramSelectedSourceInputKind: value => {assert.strictEqual(value, original); return 'query';},
@@ -68,6 +129,7 @@ test('Effect managed native and row Sources borrow the same current Plan in eith
     const sources = keys.map((realizationKey, index) => ({realizationKey,
       admitsSource: ref => ref === requirements[index].ref, prepare() {}, open() {}}));
     const moon = {clientProgramEffectAcquisitionCount: () => 2,
+    clientProgramEffectDirectSourceCoordinates: () => ({$tag: 1, _0: [[0, 0, 0, 0], [1, 0, 1, 1]]}),
       clientProgramSelectInstalledEffectSourceInput(p, r, task, input) {
         assert.strictEqual(p, prepared); assert.strictEqual(r, request); assert.equal(input, 0);
         calls.push(`request-${task}`); return ok(task);
@@ -100,6 +162,7 @@ test('Effect managed native selection preserves original current and foreign ref
   const adapter = {realizationKey: 'duckdb-acquired', admitsSource: ref => ref === 'source', prepare() {}, open() {}};
   let current = plan, requirement = {ref: 'source'}, nativeCalls = 0, refuseNative = false;
   const moon = {clientProgramEffectAcquisitionCount: () => 1,
+    clientProgramEffectDirectSourceCoordinates: () => ({$tag: 1, _0: [[0, 0, 0, 0]]}),
     clientProgramSelectInstalledEffectSourceInput: () => ok({}),
     clientProgramSelectedSourceInputKind: () => 'query', clientProgramSelectedSourceInputRef: () => 'source',
     clientProgramQueryRequirementSourceRef: value => value.ref,
@@ -138,6 +201,7 @@ test('Effect native Source inputs retain complete physical bounds and each origi
   }));
   const moon = {
     clientProgramEffectAcquisitionCount: () => 2,
+    clientProgramEffectDirectSourceCoordinates: () => ({$tag: 1, _0: [[0, 0, 0, 0], [1, 0, 1, 1]]}),
     clientProgramSelectInstalledEffectSourceInput(p, r, task, input) {
       assert.strictEqual(p, prepared); assert.strictEqual(r, request); assert.equal(input, 0);
       calls.push(`select-${task}`); return ok(task);
@@ -185,6 +249,7 @@ test('retained mixed Effect Sources select original Requests without a Row-only 
     assert.strictEqual(actual, prepared); return parent;
   });
   const moon = {clientProgramEffectAcquisitionCount: () => 2,
+    clientProgramEffectDirectSourceCoordinates: () => ({$tag: 1, _0: [[0, 0, 0, 0], [1, 0, 1, 1]]}),
     clientProgramSelectInstalledEffectSourceInput(p, r, task, input) {
       assert.strictEqual(this, moon); assert.strictEqual(p, prepared); assert.strictEqual(r, request);
       assert.equal(input, 0); calls.push(`select-${task}`); return ok(selections[task]);
@@ -212,6 +277,7 @@ test('Effect native Source selection refuses foreign or incomplete originals wit
   let original = Object.freeze({nativeSource: native, transferBytes: 31n, executionBytes: 71n}), constructs = 0;
   const source = {admitsSource: ref => ref === 'source:native', managedEffectPlanSelection: () => original};
   const moon = {clientProgramEffectAcquisitionCount: () => 1,
+    clientProgramEffectDirectSourceCoordinates: () => ({$tag: 1, _0: [[0, 0, 0, 0]]}),
     clientProgramSelectInstalledEffectSourceInput: () => ok({}), clientProgramSelectedSourceInputKind: () => 'query',
     clientProgramSelectedSourceInputRef: () => 'source:native',
     clientProgramInstalledEffectDuckDBSourceInputPrepare() {constructs++; throw refusal;},
@@ -342,6 +408,7 @@ test('Source selection and preparation borrow the same retained Effect plan and 
     assert.strictEqual(original, prepared); return parent;
   });
   const moon = {clientProgramEffectAcquisitionCount: () => 1,
+    clientProgramEffectDirectSourceCoordinates: () => ({$tag: 1, _0: [[0, 0, 0, 0]]}),
     clientProgramInstalledEffectManagedPlanSource(original, slot) {
       assert.strictEqual(original, plan); assert.equal(slot, 0); calls.push('plan-source');
       return ok({_0: {}, _1: requirement, _2: {}, _3: {}});
@@ -378,7 +445,8 @@ test('source-free Effect open consumes its original planned parent without old H
 test('an unadmitted acquired Effect refuses before Source selection, preparation or physical read', async () => {
   let custody, selected = 0;
   await assert.rejects(openAcquiredEffectComputation({
-    moon: {clientProgramEffectAcquisitionCount: () => 1, clientProgramEffectSerializationOccurrences: () => []},
+    moon: {clientProgramEffectAcquisitionCount: () => 1,
+    clientProgramEffectDirectSourceCoordinates: () => ({$tag: 1, _0: [[0, 0, 0, 0]]}), clientProgramEffectSerializationOccurrences: () => []},
     acquired: {prepared: {}}, sourceProfile: {admitsSource() {selected++;}, prepare() {selected++;}, open() {selected++;}},
     retainComputationOwner(value) {custody = value;},
   }), /InstalledEffectPlanUnavailable/);
@@ -469,13 +537,14 @@ const recoveryRowNodes = [];
 (function walk(node) {
   if (!node || typeof node !== 'object') return;
   if (node.type === 'FunctionDeclaration' && node.id.name === 'prepareRecovered' ||
-      node.type === 'VariableDeclarator' && ['physicalRoute', 'prepareRecoveredEntries'].includes(node.id.name)) recoveryRowNodes.push(node);
+      node.type === 'VariableDeclarator' && ['physicalRoute', 'prepareRecoveredEntries', 'runLimits'].includes(node.id.name)) recoveryRowNodes.push(node);
   for (const child of Object.values(node)) if (Array.isArray(child)) child.forEach(walk);
   else if (child && typeof child === 'object') walk(child);
 })(parse(recoveryRowSource, {ecmaVersion: 'latest', sourceType: 'module'}));
 const recoveryNode = recoveryRowNodes.find(node => node.type === 'FunctionDeclaration');
 const recoveryRouteNode = recoveryRowNodes.find(node => node.id.name === 'physicalRoute').init;
 const recoveryEntriesNode = recoveryRowNodes.find(node => node.id.name === 'prepareRecoveredEntries').init;
+const recoveryRunLimitsNode = recoveryRowNodes.find(node => node.id.name === 'runLimits').init;
 
 function recoveredPhysicalFixture({managed = true, pending = false, failPrepare = false, prepareFailure, reenter, closeDuringRetain = false, storedResponse} = {}) {
   const prepared = {}, request = {}, value = {}, operationPlan = {}, preview = {}, computation = {}, storedResults = {},
@@ -503,6 +572,10 @@ function recoveredPhysicalFixture({managed = true, pending = false, failPrepare 
     readClaimedResponse() {events.push('stored-read'); return {};},
     recoverClaimFacts() {return {members: [{claims: []}]};}};
   const moon = {clientRequestRelation: (left, right) => left === right ? 1 : 2,
+    clientProgramInstalledEffectManagedPlanShape(selected) {
+      assert.strictEqual(this, moon); assert.strictEqual(selected, operationPlan);
+      return runtimeTupleFromFields({0: 1, 1: 1, 2: 1});
+    },
     strategyPublicationContractIdentity: original => original.identity,
     clientProgramInstalledEffectManagedOperationPlan(parent, p, identity) {
       assert.strictEqual(this, moon); assert.strictEqual(parent, value);
@@ -539,10 +612,14 @@ function recoveredPhysicalFixture({managed = true, pending = false, failPrepare 
     effectComputationPreviewLedgerIdentity: () => originalCurrent,
     effectComputationPreviewSemanticCid: () => 'original-preview'};
   const limits = {preview: {}, key: {}, maxRows: 1, maxWork: 1, maxFrontierWork: 1};
+  const limitPorts = {limits, moon, readManagedShape: moon.clientProgramInstalledEffectManagedPlanShape,
+    owners: [owner], fail, runtimeField};
+  const runLimits = new Function(...Object.keys(limitPorts), 'return (' +
+    recoveryRowSource.slice(recoveryRunLimitsNode.start, recoveryRunLimitsNode.end) + ');')(...Object.values(limitPorts));
   const ports = {moon, localContractLimits: {}, singular: undefined, ROUTING_VERSION: 'original-version',
     text: value => typeof value === 'string' && value.length > 0, selectionChanged: () => assert.fail('No target selection'),
     recoveredMembers: () => [member], bindRunResources() {}, selectionFence: () => () => {},
-    memberDispatch: () => 'original-dispatch', limits,
+    memberDispatch: () => 'original-dispatch', limits, runLimits,
     effect: {recoveredPreviewKeys: () => [], admitPreviewIdentity: () => ({})},
     openLedger() {events.push('ledger-open'); return ledger;},
     admitCapability: () => ({identity: 'original-capability'}), orderedSourceIndexes: () => [0],
@@ -1264,6 +1341,7 @@ test('retained Host reuses its live Plan without cold material and refuses missi
 function ordinaryEffectDefinitionFixture({target = false, stop = false} = {}) {
   const prepared = {}, identity = {}, compilation = {}, allowed = {}, definition = {}, targetOriginal = {};
   const calls = [], runDefinition = {identity: 'original-definition'}, wire = 'original-full-materials';
+  const reserveOriginal = () => assert.fail('Only the original converter owns reservation');
   const moon = {
     clientProgramIssueAllowedEffectRun(c) {assert.strictEqual(c, compilation); return ok(allowed);},
     clientProgramIssueEffectRunDefinition(a) {assert.strictEqual(a, allowed); return ok(definition);},
@@ -1274,14 +1352,15 @@ function ordinaryEffectDefinitionFixture({target = false, stop = false} = {}) {
     clientProgramAllowedEffectRunAuthorization: a => {assert.strictEqual(a, allowed); return 'authorization-evidence';},
     strategyRunEvidenceJson: value => value,
   };
-  const ports = {moon, checked, prepared, identity, limits: {}, requiresQueryTime: false, requestedStop: stop,
+  const ports = {moon, checked, prepared, identity, reserveOriginal, limits: {}, requiresQueryTime: false, requestedStop: stop,
     assertRequestedStopAvailable() {calls.push('requested-stop');},
     policy: {createdAt: 'original-time', expiresAt: 'original-expiry'}, namespaceId: 'original-scope',
     randomUUID: () => 'original-run', now: () => 'current-time', expired: () => new Error('expired'),
     compiled: () => compilation, contentPolicies: new WeakMap(), resultPolicyOriginalFor: undefined,
     inferPlanFor: undefined, control: {admit(kind, original) {
       assert.equal(kind, 'run_definition'); assert.equal(original, 'original-definition-wire'); return runDefinition;
-    }}, updateTargetOriginals: {captureRun(facts) {
+    }}, updateTargetOriginals: {captureRun(facts, reserve) {
+      assert.strictEqual(reserve, reserveOriginal);
       assert.strictEqual(facts.prepared, prepared); assert.strictEqual(facts.allowed, allowed);
       assert.strictEqual(facts.definition, definition); assert.strictEqual(facts.identity, identity);
       calls.push('capture-target'); return target ? targetOriginal : undefined;
@@ -1341,6 +1420,39 @@ test('existing whole Effect resume forwards the same restored Plan before recove
   const run = new Function(...Object.keys(ports), 'return (' + source.slice(entry.start, entry.end) + ');')(...Object.values(ports));
   assert.equal(await run({signal, retainExecution() {}, beginPhysicalWork() {}}), 'original-capture');
   assert.deepEqual(calls, ['prepare', 'resume', 'same-parent-capture']);
+});
+
+test('existing Effect resume diagnostics preserve the original refusal without completing or retrying its Run', async () => {
+  for (const boundary of ['continuation', 'managed-preparation']) {
+    const cause = Object.assign(new Error('original managed preparation refusal'), {code: 'MoonBitHostFailure'});
+    const key = 'original-run', view = {kind: 'effect_set', prepareAttemptId: null,
+      runDefinitionCid: key, runId: 'original-id', checkpointCid: 'original-checkpoint'};
+    const observations = [], flights = new Map(); let starts = 0;
+    const ports = {effectRun: {}, checkpoints: {journal: {
+      listRunCheckpoints: () => [view], getRunState: () => ({status: 'resuming'}),
+      currentResume: () => ({state: 'claimed'}),
+    }, async effectContinuation() {if (boundary === 'continuation') throw cause; return {};},
+    sweep() {assert.fail('A refused resuming Run cannot be restarted by diagnostic delivery');}},
+    retireIncompleteEffects: async () => {}, cancelEffectContinuation: async () => false,
+    effectResumeFlights: flights, namespaceId: 'namespace', authorityScopeCid: 'authority',
+    journal: {lookupRunDefinition: () => ({runDefinition: {identity: key}})},
+    moon: {}, control: {}, store: {}, principalId: 'principal', runContent: {}, storeAuthorityCid: 'store',
+    effectInstallation: {}, observation: undefined,
+    async restoreEffectManagedPreparation() {throw cause;},
+    dispatchOwner: {operation: () => undefined, track(ref, options) {
+      assert.equal(ref.runDefinitionCid, key); starts++; return options.run({});
+    }}, diagnostic(event, detail) {observations.push({event, detail});}};
+    const source = 'const ' + retainedRequestSourceMember('./embedded-local.mjs', 'sweepEffectRuns', 'VariableDeclarator') + ';return sweepEffectRuns;';
+    const sweep = new Function(...Object.keys(ports), source)(...Object.values(ports));
+    assert.equal(await sweep(), true);
+    await new Promise(setImmediate);
+    assert.equal(observations.length, 1);
+    assert.equal(observations[0].event, 'effect_resume_failed');
+    assert.equal(observations[0].detail.code, cause.code);
+    assert.strictEqual(observations[0].detail.cause, cause);
+    assert.equal(starts, boundary === 'continuation' ? 0 : 1);
+    assert.equal(flights.size, 0, 'Only the settled local flight is removed; the durable Run stays resuming');
+  }
 });
 
 test('bound recovery original is carried once without a second material codec or compiler', () => {
@@ -1446,4 +1558,94 @@ test('retained manager refuses ambiguous captured and typed intent inputs before
       missing?undefined:Object.freeze({kind:'program',input:{}})),{code:'ForeignInstalledSourceProducer'});
     assert.deepEqual(f.calls,[]);
   }
+});
+
+function freshModelEffectResumeFixture(options = {}) {
+  const savedOriginal = Object.freeze({preparedWire: 'saved-prepared-wire'});
+  const snapshot = Object.freeze({requestId: 'original-request', updateTargetPreparedOriginal: savedOriginal});
+  const prepared = {}, identity = {}, intent = {}, adopted = {}, facts = {}, freshOriginal = {};
+  const ref = {runDefinitionCid: 'original-definition'}, accepted = {ref}, calls = [];
+  const current = {requestId: snapshot.requestId, requestIdentity: identity, ref,
+    runDefinition: {}, runAdmissionEvidence: {updateTargetRunOriginal: {materialsWire: 'complete-saved-material'}}};
+  const prepareSubmit = async submission => {
+    assert.equal(submission.updateTargetPreparedOriginal.preparedWire, savedOriginal.preparedWire);
+    submission.preparedProgram = prepared; calls.push('fresh-prepare'); return prepared;
+  };
+  prepareSubmit.kindOf = value => {assert.strictEqual(value, prepared); return 'effectful';};
+  prepareSubmit.assertSubmittedIntent = (value, original) => {
+    assert.strictEqual(value, prepared); assert.strictEqual(original, intent); calls.push('same-intent');
+  };
+  const effectRun = {capturePreparedOriginal(value, oldProjection) {
+    assert.strictEqual(value, prepared);
+    if (oldProjection !== undefined) throw Object.assign(new Error('InstalledEffectOriginalSelectionChanged'),
+      {code: 'InstalledEffectOriginalSelectionChanged'});
+    calls.push('fresh-funded-capture'); return freshOriginal;
+  }, async restoreComputation(value) {
+    assert.strictEqual(value, accepted); calls.push('full-original-material-current');
+    if (Object.hasOwn(options, 'failure')) throw options.failure;
+    return facts;
+  }};
+  const ports = {prepared, identity, ref, retained: current, moon: {}, control: {}, namespaceId: 'original-scope',
+    token: {snapshot: {submission: snapshot}}, canonicalValueJson: JSON.stringify,
+    assertCurrent() {calls.push('current');}, hostConnection: () => true,
+    journal: {lookupOwnedDefinition: () => current,
+      originalSubmittedIntent: () => ({intent, assertCurrent() {calls.push('intent-current');}}),
+      resolveDefinition: () => ({ref: options.wrongRun ? {runDefinitionCid: 'foreign-definition'} : ref})},
+    preparation: {retainEffectRequestInput(_moon, submission, original, unused, wire) {
+      assert.equal(submission.updateTargetPreparedOriginal.preparedWire, savedOriginal.preparedWire);
+      assert.strictEqual(original, intent); assert.equal(unused, undefined); assert.equal(wire, 'complete-saved-material');
+      calls.push('fund-original-input'); return {finish: outcome => calls.push('finish-' + outcome)};
+    }, bindSourceRequest(submission, value) {assert.strictEqual(value, prepared); calls.push('bind-source');}},
+    prepareSubmit, localPreparationCustody: {
+      adopt(value) {assert.strictEqual(value, prepared); calls.push('adopt'); return adopted;},
+      attach(_submission, value) {assert.strictEqual(value, adopted); calls.push('attach');}},
+    retainRestoredSourceFreeRequest() {assert.fail('A fresh funded Effect cannot borrow an old restored pair');},
+    requestOf: () => ({requested: identity, effectful: true}), effectRun,
+    async admitEffectDefinition(submission) {
+      const original = capture(submission);
+      assert.strictEqual(original.updateTargetPreparedOriginal, freshOriginal);
+      calls.push('same-run-admission'); return accepted;
+    },
+    async executeEffectComputation(value, source, target, model) {
+      assert.strictEqual(value, facts); assert.equal(source, undefined); assert.equal(target, undefined);
+      assert.equal(model.active, false); calls.push('execute-original'); return {status: 'waiting_checkpoint'};
+    }, record: {checkpointCid: null}, claim: undefined, active: undefined, parentCheckpoint: undefined,
+    runId: 'original-run', restorationDispatchEntered: false, restorationStopConfirmed: false,
+    restorationReclaimed: () => true,
+    retainInstalledHostRuntimeFailure(cause, cleanup) {cleanup(); return cause;}};
+  const capture = new Function('prepareSubmit', 'effectRun',
+    'const ' + retainedRequestSourceMember('./embedded-local.mjs', 'capturedUpdateOriginal', 'VariableDeclarator') +
+    '; return capturedUpdateOriginal;')(prepareSubmit, effectRun);
+  const resume = new Function(...Object.keys(ports),
+    'const ' + retainedRequestSourceMember('./embedded-local.mjs', 'runRestoredModel', 'VariableDeclarator') +
+    '; return runRestoredModel;')(...Object.values(ports));
+  return {resume, calls, snapshot, savedOriginal};
+}
+
+test('cold Model Effect resume captures its fresh funded pair while retaining the complete saved original', async () => {
+  const f = freshModelEffectResumeFixture();
+  assert.deepEqual(await f.resume(), {status: 'waiting_checkpoint'});
+  assert.strictEqual(f.snapshot.updateTargetPreparedOriginal, f.savedOriginal);
+  assert.equal(f.calls.filter(value => value === 'fresh-funded-capture').length, 1);
+  assert(f.calls.indexOf('same-intent') < f.calls.indexOf('fresh-funded-capture'));
+  assert(f.calls.indexOf('full-original-material-current') < f.calls.indexOf('execute-original'));
+  assert.equal(f.calls.at(-1), 'finish-returned');
+});
+
+test('cold Model Effect resume keeps full material refusal primary and cleans the same fresh input', async () => {
+  for (const failure of [new Error('OriginalFullMaterialMismatch'), undefined]) {
+    const f = freshModelEffectResumeFixture({failure}); let rejected = false;
+    try {await f.resume();} catch (cause) {rejected = true; assert.strictEqual(cause, failure);}
+    assert(rejected); assert(!f.calls.includes('execute-original'));
+    assert.equal(f.calls.at(-1), 'finish-failed');
+    assert.strictEqual(f.snapshot.updateTargetPreparedOriginal, f.savedOriginal);
+  }
+});
+
+test('cold Model Effect resume refuses a different original Run before capture or execution', async () => {
+  const f = freshModelEffectResumeFixture({wrongRun: true});
+  await assert.rejects(f.resume(), {message: 'ModelResumeRunDefinitionMismatch'});
+  assert(!f.calls.includes('fresh-funded-capture')); assert(!f.calls.includes('execute-original'));
+  assert.equal(f.calls.at(-1), 'finish-failed');
+  assert.strictEqual(f.snapshot.updateTargetPreparedOriginal, f.savedOriginal);
 });

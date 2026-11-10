@@ -110,6 +110,116 @@ fn NativeLocalPublisherBinding::selected_original(
 }
 
 ///|
+// The Store and Host Journal keep separate Database bindings. Select only the
+// already retained Journal original from this same capture/Library/runtime;
+// neither a foreign carrier nor a Store route can stand in for that binding.
+fn NativeLocalHostConnection::publisher_read_original(
+  self : Self,
+  operation : NativeLocalStoreOperation,
+  journal_operation : NativeLocalStoreOperation?,
+) -> Result[NativeLocalStoreOperation, NativeLocalPublisherBindingIssue] {
+  match journal_operation {
+    None => Ok(operation)
+    Some(journal) => {
+      guard physical_equal(journal.receiver.capture, operation.receiver.capture) &&
+        physical_equal(journal.receiver.library, operation.receiver.library) &&
+        physical_equal(journal.receiver.runtime, operation.receiver.runtime) &&
+        journal.receiver.domain is StoreRunObservationDomain &&
+        journal.bridge is Some(original) &&
+        self.database.matches_original_store_operation(original) else {
+        return Err(SelectionMismatch)
+      }
+      Ok(journal)
+    }
+  }
+}
+
+///|
+fn[T] NativeLocalPublisherBinding::with_original_journal_read(
+  self : Self,
+  call : (NativeLocalHostConnection, NativeClientJournalOperationAccess) -> Result[
+    T,
+    NativeLocalPublisherBindingIssue,
+  ],
+) -> Result[T, NativeLocalPublisherBindingIssue] {
+  guard self.operation is Some(operation) &&
+    operation.bridge is Some(original) &&
+    self.store.matches_original_operation(original) else {
+    return Err(SelectionMismatch)
+  }
+  let selected = match
+    self.authority.host.publisher_read_original(
+      operation,
+      self.journal_operation,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  selected.with_publisher_read(call)
+}
+
+///|
+// Pure original association; no current callback, grant or scope is issued.
+fn NativeLocalPublisherBinding::matches_owned_journal(
+  self : Self,
+  journal : NativeClientRunJournal,
+  scope : String,
+) -> Bool {
+  physical_equal(self.authority.host.journal, journal) &&
+  self.authority.scope == scope &&
+  @host.client_request_authority_scope_cid(self.request) == scope &&
+  self.journal_operation is Some(operation) &&
+  operation.bridge is Some(original) &&
+  journal.database.matches_original_store_operation(original)
+}
+
+///|
+// Keep the SAME Journal transaction/cancellation fence while exchanging only
+// its entered routing flight for the separate physical Store's flight. Each
+// original return/reentry must acknowledge; neither is a Database close ACK.
+// A lost return after Store commit remains reconcilable through that retained
+// publication attempt, never evidence of non-publication or permission to resend.
+fn NativeLocalPublisherBinding::with_original_store_commit(
+  self : Self,
+  commit : () -> Result[
+    @native_publication.NativeRunPublicationResult,
+    @native_publication.NativeRunPublicationIssue,
+  ],
+) -> Result[
+  @native_publication.NativeRunPublicationResult,
+  @native_publication.NativeRunPublicationIssue,
+] {
+  guard self.journal_operation is Some(journal) else { return commit() }
+  let owner = self.authority.host.journal
+  guard self.store_commit_outcome is None &&
+    self.store_commit_route_issue is None &&
+    owner.transaction_active &&
+    owner.publication_read_locked &&
+    journal.pending_scope() is Ok(true) else {
+    return Err(@native_publication.CommitFenceUnavailable)
+  }
+  match journal.finish_captured_journal_read() {
+    Err(issue) => {
+      self.store_commit_route_issue = Some(issue)
+      return Err(@native_publication.CommitFenceUnavailable)
+    }
+    Ok(_) => ()
+  }
+  let outcome = commit()
+  // Retain the actual Ok OR Err before the next fallible routing operation.
+  // Missing reentry does not overwrite that known observation or permit a
+  // second commit. The existing pending publication still owns reconciliation.
+  self.store_commit_outcome = Some(outcome)
+  match journal.begin_captured_journal_read() {
+    Err(issue) => {
+      self.store_commit_route_issue = Some(issue)
+      Err(@native_publication.CommitFenceUnavailable)
+    }
+    Ok(_) => outcome
+  }
+}
+
+///|
 fn NativeLocalPublisherBinding::current_checked_in_mode(
   self : NativeLocalPublisherBinding,
   join_owned_transaction : Bool,
@@ -121,7 +231,7 @@ fn NativeLocalPublisherBinding::current_checked_in_mode(
         self.store.matches_original_operation(original) else {
         return false
       }
-      operation.with_publisher_read((host, operations) => {
+      self.with_original_journal_read((host, operations) => {
         if !physical_equal(host, self.authority.host) {
           return Err(AuthorizationDenied)
         }
@@ -150,12 +260,18 @@ pub fn NativeLocalHostConnection::bind_original_run_publisher(
   definition : @publication.PublicationContract,
   installation_file : String,
   store : @publication_store.Store,
+  journal_operation? : NativeLocalStoreOperation? = None,
 ) -> Result[NativeLocalPublisherBinding, NativeLocalPublisherBindingIssue] {
   guard operation.bridge is Some(original) &&
     store.matches_original_operation(original) else {
     return Err(SelectionMismatch)
   }
-  operation.with_publisher_read((host, operations) => {
+  let selected = match
+    self.publisher_read_original(operation, journal_operation) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  selected.with_publisher_read((host, operations) => {
     if !physical_equal(host, self) {
       return Err(SelectionMismatch)
     }
@@ -170,6 +286,7 @@ pub fn NativeLocalHostConnection::bind_original_run_publisher(
       operations=Some(operations),
       capture=Some(operation.receiver.capture),
       operation=Some(operation),
+      journal_operation~,
     )
   })
 }
@@ -181,8 +298,7 @@ pub fn NativeLocalHostConnection::bind_original_run_publisher(
 pub fn NativeLocalPublisherBinding::sample_original_generation_cid(
   self : NativeLocalPublisherBinding,
 ) -> Result[String, NativeLocalPublisherBindingIssue] {
-  guard self.operation is Some(operation) else { return Err(InvalidOriginal) }
-  operation.with_publisher_read((host, operations) => {
+  self.with_original_journal_read((host, operations) => {
     if !physical_equal(host, self.authority.host) ||
       !self.current_in_mode(false, reads=Some(operations.reads)) {
       return Err(AuthorizationDenied)

@@ -58,9 +58,15 @@ purpose or key metadata changes the identity; metadata alone cannot establish
 that an installation has a key or permits its use.
 
 `preimage` is the original Checkpoint Owner's CID text whose exact UTF-8 bytes
-are signed. For Reviewer proof it comes from
-`checkpoint_runtime.resolution_proof_preimage`; for Host attestation it comes
-from the admitted attestation preimage. The metadata layer does not substitute
+are signed. For Reviewer proof it comes only from the original Checkpoint
+Owner's typed Resolution proof (`resolution_proof_preimage` or
+`PreparedResolutionProof::preimage`) or typed Effect Approval proof
+(`PreparedEffectApprovalProof::preimage`). The latter signs the already
+required `actql-approval-attestation/0.1` with the same current Reviewer key as
+its Resolution. Each distinct preimage requires its own authenticated original
+scope and durable exact-preimage grant/use; one use cannot sign both artifacts.
+For Host attestation it comes from the admitted attestation preimage. The
+metadata layer does not substitute
 a grant CID, hash the preimage again, or reconstruct it from incoming Resolution
 fields. A syntactically valid caller-provided preimage remains metadata until
 the operational Owner authenticates its original binding.
@@ -150,6 +156,16 @@ does not resample/renew it. A prior claimed, expired or Unknown operation cannot
 be bypassed by another grant, ordinal, decision, preimage, key or initialization.
 Only absent configured signers selects this default; configured named signers
 retain their explicit original route and never fall back to this policy.
+
+For the two typed ReviewerProof artifacts, retain one original Effect Approval
+and one original Checkpoint Resolution. An Approved Resolution may follow only
+its exact required, already successful original Approval evidence: same
+Checkpoint, Request/Run/Unit, Reviewer, key generation, proof preimage and stored
+signature/use. This is not another operation for the same artifact. A renamed
+or changed Resolution, incomplete/Unknown Approval, foreign key or altered
+evidence cannot select this continuation. Rejected answers retain their
+existing evidence-free route; a signed Approved answer cannot be replaced by
+signing a conflicting rejection.
 
 The original trusted initialization/adoption must retain or durably authenticate
 the actual installation issuer identity and its explicitly selected finite

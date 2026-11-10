@@ -76,7 +76,7 @@ timedPreparation('runtime_libraries',()=>
 // flags; no compiled library or provider is borrowed across these recipes.
 const sharedOpenSSL=process.env.ACTQL_TEST_NATIVE_OPENSSL_SOURCE_ARCHIVE??
   (target==='darwin-arm64' && (process.env.ACTQL_TEST_NATIVE_CRYPTO_PROFILE??'source-macos11')==='source-macos11'
-    ?join(components,'crypto-source','openssl-original.tar.gz'):undefined);
+    ?join(components,'openssl-original.tar.gz'):undefined);
 const httpReceipt=selection==='bundle'?undefined:
   timedPreparation('http_component',()=>
     prepareNativeResidentHttpComponent(repository,join(destination,'http'),{seconds,tlsArchive:sharedOpenSSL,tlsJobs:httpJobs}));

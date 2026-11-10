@@ -7,6 +7,7 @@ fn journal_test_operation_access(
 ) -> NativeClientJournalOperationAccess {
   {
     reads: journal_test_read_access(database, calls),
+    before_construction: None,
     install_read_evidence_schema: max_rows => {
       calls.push("install read evidence schema")
       database.install_client_read_evidence_schema(max_rows)
@@ -33,6 +34,20 @@ fn journal_test_operation_access(
         table, key, bytes, objects, max_bytes, max_objects,
       )
     },
+    grow_capacity: (
+      table,
+      key,
+      previous,
+      bytes,
+      objects,
+      max_bytes,
+      max_objects,
+    ) => {
+      calls.push("grow:" + table + ":" + key)
+      grow_journal_capacity_in_transaction(
+        database, table, key, previous, bytes, objects, max_bytes, max_objects,
+      )
+    },
     insert: (table, key, body) => {
       calls.push("insert:" + table + ":" + key)
       database.insert(table, key, body)
@@ -46,6 +61,192 @@ fn journal_test_operation_access(
       database.compare_exchange(table, key, revision, body)
     },
   }
+}
+
+///|
+test "Model journal cumulative reservation keeps entries settlements and rollback on one original" {
+  let host = policy_host_fixture("model-cumulative-census")
+  let foreign = epoch_test_database("model-cumulative-census-foreign")
+  let calls : Array[String] = []
+  let access = journal_test_operation_access(host.database, calls)
+  let table = "client_model_call_originals"
+  let key = "original-scope"
+  host.journal
+  .transaction_with_reads(
+    () => {
+      for bytes in [10L, 20L, 3L, 4L] {
+        let previous = match
+          read_client_journal_capacity(host.database, table, key, Some(access)) {
+          Ok(value) => value
+          Err(@sqlite.NotFound) => { reserved_bytes: 0L, reserved_objects: 0L, }
+          Err(issue) => return Err(Physical(issue))
+        }
+        match
+          grow_client_journal_capacity(
+            host.database,
+            table,
+            key,
+            previous,
+            bytes,
+            1L,
+            47L,
+            6L,
+            Some(access),
+          ) {
+          Ok(_) => ()
+          Err(issue) => return Err(Physical(issue))
+        }
+      }
+      reserve_client_journal_capacity(
+        host.database,
+        table,
+        "other-scope",
+        7L,
+        1L,
+        47L,
+        6L,
+        Some(access),
+      )
+      .map(_ => ())
+      .map_err(issue => Physical(issue))
+    },
+    reads=Some(access.reads),
+  )
+  .unwrap()
+  let previous = read_client_journal_capacity(
+    host.database,
+    table,
+    key,
+    Some(access),
+  ).unwrap()
+  assert_eq(previous.reserved_bytes, 37L)
+  assert_eq(previous.reserved_objects, 4L)
+  // The new cumulative row fits individually, but not beside the other
+  // original reservation. Failure AFTER exact replacement must roll back.
+  assert_true(
+    host.journal.transaction_with_reads(
+      () => {
+        grow_client_journal_capacity(
+          host.database,
+          table,
+          key,
+          previous,
+          4L,
+          1L,
+          47L,
+          6L,
+          Some(access),
+        ).map_err(issue => Physical(issue))
+      },
+      reads=Some(access.reads),
+    )
+    is Err(Physical(@sqlite.CapacityExceeded)),
+  )
+  let retained = read_client_journal_capacity(
+    host.database,
+    table,
+    key,
+    Some(access),
+  ).unwrap()
+  assert_eq(retained.reserved_bytes, 37L)
+  assert_eq(retained.reserved_objects, 4L)
+  assert_eq(host.database.capacity_usage(table).unwrap().reserved_bytes, 44L)
+  for selected in [key, "missing-scope"] {
+    assert_true(
+      host.journal.transaction_with_reads(
+        () => {
+          grow_client_journal_capacity(
+            host.database,
+            table,
+            selected,
+            { reserved_bytes: 36L, reserved_objects: 4L, },
+            1L,
+            1L,
+            64L,
+            6L,
+            Some(access),
+          ).map_err(issue => Physical(issue))
+        },
+        reads=Some(access.reads),
+      )
+      is Err(Physical(@sqlite.Collision)),
+    )
+  }
+  calls.clear()
+  assert_true(
+    grow_client_journal_capacity(
+      foreign,
+      table,
+      key,
+      previous,
+      1L,
+      1L,
+      64L,
+      6L,
+      Some(access),
+    )
+    is Err(@sqlite.Collision),
+  )
+  assert_eq(calls, [])
+  assert_eq(host.database.capacity_usage(table).unwrap().reserved_bytes, 44L)
+  assert_eq(foreign.capacity_usage(table).unwrap().reserved_bytes, 0L)
+  foreign.close_checked().unwrap()
+  host.close().unwrap()
+}
+
+///|
+test "Model journal cumulative reservation keeps lost commit acknowledgement Unknown" {
+  let host = policy_host_fixture("model-cumulative-commit-unknown")
+  let calls : Array[String] = []
+  let access = journal_test_operation_access(host.database, calls)
+  host.journal
+  .transaction_with_reads(
+    () => {
+      grow_client_journal_capacity(
+        host.database,
+        "client_model_call_originals",
+        "original-scope",
+        { reserved_bytes: 0L, reserved_objects: 0L, },
+        10L,
+        1L,
+        64L,
+        4L,
+        Some(access),
+      ).map_err(issue => Physical(issue))
+    },
+    reads=Some(access.reads),
+  )
+  .unwrap()
+  client_test_fail_commit_reply(host.database, 1)
+  assert_true(
+    host.journal.transaction_with_reads(
+      () => {
+        grow_client_journal_capacity(
+          host.database,
+          "client_model_call_originals",
+          "original-scope",
+          { reserved_bytes: 10L, reserved_objects: 1L, },
+          20L,
+          1L,
+          64L,
+          4L,
+          Some(access),
+        ).map_err(issue => Physical(issue))
+      },
+      reads=Some(access.reads),
+    )
+    is Err(TransactionUnknown),
+  )
+  assert_true(host.journal.fenced)
+  assert_true(host.database.transaction_fenced())
+  // Historical bytes are present, but do not turn the missing COMMIT reply
+  // into a Model persistence acknowledgement or a retry permission.
+  let retained = host.database
+    .read_capacity("client_model_call_originals", "original-scope")
+    .unwrap()
+  assert_eq(retained.reserved_bytes, 30L)
+  assert_eq(retained.reserved_objects, 2L)
+  host.close().unwrap()
 }
 
 ///|

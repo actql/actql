@@ -37,7 +37,7 @@ test('UNPIVOT row-label oracle distinguishes repeated occurrences NULL and renam
   assert.equal(unpivotRowLabelSuccesses.length, 6);
   assert.equal(unpivotRowLabelRefusals.length, 5);
   assert.equal(unpivotRowLabelRefusals.find(item => item.name.endsWith('exact-integer-gap')).expectedCode,
-    'ClientProgramImplementationLimit');
+    'ClientProgramInvalidInput');
 });
 
 test('UNPIVOT row-label cases run in ordinary packed corpus and retain actual completion data', async () => {

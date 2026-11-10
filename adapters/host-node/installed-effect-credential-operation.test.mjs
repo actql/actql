@@ -452,3 +452,150 @@ test('response projection completion keeps the original preparing latch through 
   assert.equal(f.controls.settles,0);assert.equal(child.status().pending,true);
   assert.equal(await child.retry(),true);assert.equal(f.controls.settles,1);
 });
+
+test('same response Source staging precedes grow and stays on the original child through every failure',async t=>{
+  for(const mode of ['success','preflight','grow','consumer']){
+    const f=await operationFixture(t,{reply:()=>({body:'{"ok":true}'})});
+    const events=[],failure=new Error('original '+mode),geometry=Object.freeze([11]),extent={};
+    let originalBody;
+    const responsePreparation=Object.freeze({
+      prepare(body){originalBody=body;events.push('preflight');if(mode==='preflight')throw failure;return geometry;},
+      retire(){events.push('retire-source');},
+    });
+    f.runtime.clientProgramInstalledEffectOperationInputBegin=function(original,input){
+      assert.strictEqual(original,f.token);assert.strictEqual(input,extent);events.push('grow');
+      if(mode==='grow')throw failure;return {$tag:1,_0:undefined};
+    };
+    f.runtime.clientProgramInstalledEffectOperationResponseProjectionComplete=function(original){
+      assert.strictEqual(original,f.token);events.push('complete');return {$tag:1,_0:undefined};
+    };
+    const child=f.create(async context=>{
+      const response=await f.send(context);assert.strictEqual(response.body,originalBody);
+      events.push('consumer');if(mode==='consumer')throw failure;return response;
+    },{responsePreparation,responseExtent(bytes,body,data){
+      assert.equal(bytes,11);assert.strictEqual(body,originalBody);assert.strictEqual(data,geometry);
+      events.push('extent');return extent;
+    }});
+    if(mode==='success')await child.prepare();else await assert.rejects(child.prepare(),error=>error===failure);
+    assert.deepEqual(events,mode==='preflight'?['preflight']:mode==='grow'?['preflight','extent','grow']:
+      mode==='consumer'?['preflight','extent','grow','consumer']:['preflight','extent','grow','consumer','complete']);
+    assert.equal(await child.release(),false);assert.equal(events.includes('retire-source'),false);
+    assert.equal(f.controls.settles,0);assert.equal(f.controls.borrows,1);assert.equal(f.controls.starts,1);
+    f.controls.retiredAliases=true;assert.equal(await child.retry(),true);
+    assert.equal(events.at(-1),'retire-source');assert.equal(f.controls.settles,1);
+    assert.equal(await child.retry(),true);assert.equal(events.filter(e=>e==='retire-source').length,1);
+  }
+});
+
+test('response Source hooks require the original extent and synchronous own methods before borrowing',async t=>{
+  const f=await operationFixture(t);
+  for(const overrides of [
+    {responsePreparation:{prepare(){},retire(){}}},
+    {responseExtent:()=>({}),responsePreparation:{async prepare(){},retire(){}}},
+    {responseExtent:()=>({}),responsePreparation:new Proxy({prepare(){},retire(){}},{})},
+  ])assert.throws(()=>f.create(undefined,overrides));
+  assert.equal(f.controls.borrows,0);assert.equal(f.controls.bindings,0);assert.equal(f.server.seen().length,0);
+});
+
+// Same real TLS/Credential/child, explicit Core ports. Core reservation behavior
+// is separately checked against the real Ledger; these assert disposal order.
+test('Unit schema projection retires its Reader before the same admitted remainder while raw cleanup stays pending', async t => {
+  const f=await operationFixture(t), events=[];
+  f.runtime.clientProgramInstalledEffectOperationInputBegin=()=>({$tag:1});
+  f.runtime.clientProgramInstalledEffectOperationResponseProjectionComplete=()=>assert.fail('Not the full-output completion');
+  f.runtime.clientProgramInstalledEffectOperationDiscardedResponseProjectionComplete=original=>{
+    assert.equal(original,f.token);assert.deepEqual(events,['prepare','project','retire']);
+    assert.equal(f.controls.settles,0);events.push('reduce');return {$tag:1};
+  };
+  const child=f.create(async context=>{await f.send(context);events.push('project');return undefined;},{
+    discardResponseProjection:true,responseExtent:()=>({}),
+    responsePreparation:{prepare(){events.push('prepare');return [];},retire(){events.push('retire');}},
+  });
+  assert.equal(await child.prepare(),undefined);
+  assert.deepEqual(events,['prepare','project','retire','reduce']);
+  assert.equal(child.status().pending,true);assert.equal(await child.release(),false);
+  f.controls.retiredAliases=true;assert.equal(await child.retry(),true);
+  assert.deepEqual(events,['prepare','project','retire','reduce']);
+  assert.equal(f.controls.settles,1);assert.deepEqual(f.controls.charges,[2n,2n]);
+});
+test('failed non-Unit or unretired Reader projection cannot return its retained backing', async t => {
+  for(const mode of ['result','project','retire']){
+    const f=await operationFixture(t), cause=new Error('original failure');let retired=0,reduced=0;
+    f.runtime.clientProgramInstalledEffectOperationInputBegin=()=>({$tag:1});
+    f.runtime.clientProgramInstalledEffectOperationResponseProjectionComplete=()=>assert.fail();
+    f.runtime.clientProgramInstalledEffectOperationDiscardedResponseProjectionComplete=()=>{reduced++;return {$tag:1};};
+    const child=f.create(async context=>{await f.send(context);if(mode==='project')throw cause;return mode==='result'?{}:undefined;},{
+      discardResponseProjection:true,responseExtent:()=>({}),responsePreparation:{prepare:()=>[],retire(){retired++;if(mode==='retire')throw cause;}},
+    });
+    await assert.rejects(child.prepare(),mode==='result'?{code:'InvalidInstalledEffectDiscardedProjection'}:error=>error===cause);
+    assert.equal(reduced,0);assert.equal(retired,mode==='retire'?1:0);
+    assert.equal(child.status().pending,true);assert.equal(f.controls.settles,0);
+    f.controls.retiredAliases=true;
+    if(mode==='retire')assert.throws(()=>child.release(),error=>error===cause);
+    else assert.equal(await child.release(),true);
+  }
+});
+test('Unit projector disposal followed by changed current keeps the original full reservation and physical child', async t => {
+  const f=await operationFixture(t),cause=new Error('current changed');let disposed=false,reduced=0;
+  f.runtime.clientProgramInstalledEffectOperationInputBegin=()=>({$tag:1});
+  f.runtime.clientProgramInstalledEffectOperationResponseProjectionComplete=()=>assert.fail();
+  f.runtime.clientProgramInstalledEffectOperationDiscardedResponseProjectionComplete=()=>{reduced++;return {$tag:1};};
+  const child=f.create(async context=>{await f.send(context);},{discardResponseProjection:true,responseExtent:()=>({}),
+    assertCurrent(){if(disposed)throw cause;},responsePreparation:{prepare:()=>[],retire(){disposed=true;}}});
+  await assert.rejects(child.prepare(),error=>error===cause);
+  assert.equal(reduced,0);assert.equal(f.controls.settles,0);assert.equal(child.status().pending,true);
+  disposed=false;f.controls.retiredAliases=true;assert.equal(await child.release(),true);
+});
+
+
+test('empty header original is checked before actual TLS and success keeps body through same completion and cleanup',async t=>{
+  const f=await operationFixture(t,{reply:()=>({headers:{etag:'"original"','x-fixture':'received'},body:'{"ok":true}'})});
+  const events=[],extent={};
+  f.runtime.clientProgramInstalledEffectOperationResponseHeadersRequire=function(original,names,limit){
+    assert.equal(this,f.runtime);assert.equal(original,f.token);assert.deepEqual(names,[]);
+    assert(Object.isFrozen(names));assert.equal(limit,maxHeaderSize);assert.equal(f.server.seen().length,0);
+    events.push('empty-before-request');return {$tag:1,_0:undefined};
+  };
+  f.runtime.clientProgramInstalledEffectOperationInputBegin=function(original,input){
+    assert.equal(original,f.token);assert.equal(input,extent);events.push('grow');return {$tag:1,_0:undefined};
+  };
+  f.runtime.clientProgramInstalledEffectOperationResponseProjectionComplete=function(original){
+    assert.equal(original,f.token);assert.equal(f.controls.settles,0);
+    events.push('complete-original');return {$tag:1,_0:undefined};
+  };
+  const child=f.create(async context=>{
+    const response=await f.send(context);assert.deepEqual(response.headers,[]);
+    assert.equal(response.body.toString(),'{"ok":true}');events.push('consumer');return response;
+  },{responseExtent:()=>extent});
+  const response=await child.prepare();
+  assert.deepEqual(events,['empty-before-request','grow','consumer','complete-original']);
+  assert.equal(f.server.seen().length,1);assert.equal(response.body.toString(),'{"ok":true}');
+  assert.equal(await child.release(),false);assert.equal(f.controls.settles,0);
+  f.controls.retiredAliases=true;assert.equal(await child.retry(),true);assert.equal(f.controls.settles,1);
+});
+
+test('empty header mismatch current and failed consumers preserve full original duty without success completion',async t=>{
+  for(const mode of ['foreign','current','consumer','completion']){
+    const f=await operationFixture(t),cause=new Error('original '+mode),extent={};
+    let checks=0,completions=0;
+    f.runtime.clientProgramInstalledEffectOperationResponseHeadersRequire=function(original,names){
+      assert.equal(original,f.token);checks++;assert.equal(f.server.seen().length,0);
+      if(mode==='foreign'){assert.deepEqual(names,['etag']);throw cause;}
+      assert.deepEqual(names,[]);if(mode==='current')throw cause;return {$tag:1,_0:undefined};
+    };
+    f.runtime.clientProgramInstalledEffectOperationInputBegin=()=>({$tag:1,_0:undefined});
+    f.runtime.clientProgramInstalledEffectOperationResponseProjectionComplete=function(original){
+      assert.equal(original,f.token);completions++;throw cause;
+    };
+    const child=f.create(async context=>{
+      const response=mode==='foreign'?await invokeScopedCredentialOperation({...context,operation:'create',
+        method:'POST',path:'/create',body:'{}',responseHeaders:['etag'],maxRequestBytes:1024,maxResponseBytes:64}):await f.send(context);
+      if(mode==='consumer')throw cause;return response;
+    },{responseExtent:()=>extent});
+    await assert.rejects(child.prepare(),error=>error===cause);
+    assert.equal(checks,1);assert.equal(completions,mode==='completion'?1:0);
+    assert.equal(f.server.seen().length,['foreign','current'].includes(mode)?0:1);
+    assert.equal(await child.release(),false);assert.equal(f.controls.settles,0);
+    f.controls.retiredAliases=true;assert.equal(await child.retry(),true);assert.equal(f.controls.settles,1);
+  }
+});

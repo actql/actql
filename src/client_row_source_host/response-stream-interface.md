@@ -47,3 +47,19 @@ original response. These ports neither dispatch I/O nor admit source data.
   attempt cleanup. `row_stream_current_js_wbtest.mbt` covers synchronous original
   Resource-current closure after a debit. These are test references, not result
   receipts, physical I/O acceptance or a normal installed-profile success claim.
+
+
+## Growable listing construction
+
+An original installed listing starter may select response-capacity construction
+while retaining its SAME supplementary report declaration and bound cleanup
+observer. The default entrance retains its prior full declaration. This typed
+constructor selection grants neither Source authorization nor another attempt.
+
+The existing charged-response grow uses the listing sum, including report and
+encoding overlap, for an actual listing acquisition. Other Query acquisitions
+retain the ordinary provider sum. It preserves the original response ticket,
+reservation and current/reentry fences, and holds the successful grown allowance
+through final cleanup. The direct nonlisting workspace-return entrance still
+excludes listing; an inert transport or logical page completion cannot return a
+live listing report's backing.

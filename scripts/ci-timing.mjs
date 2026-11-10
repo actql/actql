@@ -84,8 +84,22 @@ function runnerConsumption(attempt, jobs, common, wallSpan, steps) {
     observedJobWallSpan: wallSpan, jobs: observations};
 }
 
+function aggregateCheckCompletion(attempt, jobs, common) {
+  const gates = jobs.filter(job => job.jobName === 'check');
+  const gate = gates.length === 1 ? gates[0] : null;
+  const reason = !attempt.evidenceComplete || !attempt.jobsAvailable ? 'incomplete-or-mismatched-evidence' :
+    !gate ? 'missing-or-ambiguous-aggregate-check' : gate.execution.reason;
+  const measured = interval(boundary(attempt.endpoint, 'run_started_at', attempt.startedAt),
+    gate?.execution.to ?? boundary(attempt.endpoint, 'unique check.completed_at', null), reason);
+  return {...common, jobId: gate?.jobId ?? null, jobName: gate?.jobName ?? null,
+    status: gate?.status ?? null, conclusion: gate?.conclusion ?? null,
+    execution: measured,
+    successfulSample: measured.reason === null && attempt.status === 'completed' &&
+      attempt.conclusion === 'success' && gate?.conclusion === 'success'};
+}
+
 export function addTimingEvidence(report, selection = []) {
-  const timing = report.timing = {observedAt: report.observedAt, configurations: [], measurements: [], runnerConsumption: [], longestJobs: [], longestSteps: [],
+  const timing = report.timing = {observedAt: report.observedAt, configurations: [], measurements: [], runnerConsumption: [], aggregateCheckCompletion: [], longestJobs: [], longestSteps: [],
     comparison: {selection, groups: [], unavailable: []}, limits: [
       'Timing is not successful test evidence and does not change check conclusions or readiness uncertainty.',
       'Execution uses reported started_at -> completed_at. Running/skipped durations are unknown, not zero or completed samples.',
@@ -95,6 +109,7 @@ export function addTimingEvidence(report, selection = []) {
       'Comparisons separate reported SHA, workflow, event, attempt, outcomes, completeness and observed configuration; missing configuration is isolated by run.',
       'Matching observed configuration does not prove matching checkout, runner image, action/dependency refs or cache state. Cache state stays unknown; dispatch inputs are unavailable.',
       'Runner consumption sums distinct completed job intervals once, including setup/transfer/check work inside each job; steps and Session phase sums are not added to it.',
+      'Final check completion is attempt start to the unique same-attempt check job completion, separate from runner totals or later reporting jobs. It is not branch-protection, merge or release approval.',
       'Jobs without an observed runner or started step leave runner totals unknown. Failed/cancelled attempts retain measured consumption but are not successful comparison samples.',
       'Job-duration totals are observed runner time, not billed minutes or causal savings. Cross-revision savings still require authenticated equal-input/obligation evidence and comparable execution conditions.',
     ]};
@@ -172,6 +187,7 @@ export function addTimingEvidence(report, selection = []) {
           attempt.number === 1 ? null : 'creation-is-not-retry-admission'),
     });
     timing.runnerConsumption.push(runnerConsumption(attempt, jobs, common, rows[0].execution, rows.filter(row => row.kind === 'step')));
+    timing.aggregateCheckCompletion.push(aggregateCheckCompletion(attempt, jobs, common));
     attempts.set(key, rows);
     timing.measurements.push(...rows);
   }
@@ -227,6 +243,9 @@ export function formatTiming(timing) {
   for (const [label, rows] of [['Longest jobs', timing.longestJobs], ['Longest steps', timing.longestSteps]]) {
     lines.push(`${label} (individual execution intervals):`);
     for (const row of rows) lines.push(`  ${row.execution.seconds}s | ${subject(row)} | ${identity(row)} | labels ${JSON.stringify(row.runnerLabels)}`);
+  }
+  for (const gate of timing.aggregateCheckCompletion) {
+    lines.push(`Final check completion: ${identity(gate)} | ${show(gate.execution)} | outcome ${gate.conclusion ?? 'unknown'} | successful sample ${gate.successfulSample}`);
   }
   for (const total of timing.runnerConsumption) {
     lines.push(`Runner consumption: ${identity(total)} | total ${total.totalJobSeconds === null ? `unknown (${total.reason})` : `${total.totalJobSeconds}s`} | known partial ${total.knownJobSeconds ?? 'unknown'}s | measured jobs ${total.measuredJobCount}, unknown ${total.unknownJobCount}, skipped ${total.skippedJobCount} | successful sample ${total.successfulSample}`);

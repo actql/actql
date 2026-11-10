@@ -1,4 +1,20 @@
 ///|
+/// Read identities already established by the original input export. This is
+/// a pure view of the admitted artifact, not another Relation traversal or an
+/// input/capture owner. The consuming Model must retain its original Scope.
+pub fn model_input_artifact_relation_identities(
+  input : RunEvidenceValue,
+) -> (String, String)? {
+  guard input.name == "model_input_artifact" &&
+    evidence_string(input.value, "completeness") == Some("complete") &&
+    evidence_string(input.value, "logical_relation_cid") is Some(logical) &&
+    evidence_string(input.value, "relation_schema_cid") is Some(schema) else {
+    return None
+  }
+  Some((logical, schema))
+}
+
+///|
 /// Check the fixed reference boundary of the initial source-free INFER route.
 /// Full slot verification, external evidence admission and durable custody
 /// belong to their owners. This function grants no execution/publication right.

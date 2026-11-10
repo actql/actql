@@ -527,3 +527,30 @@ test('wait correlation and Common projection follow the same registered rule', a
     assert.throws(() => buildClientHostWire(invalid, protocol), /InvalidClientHostRequestResponseRule/);
   }
 });
+
+
+test('text Program envelopes have no independent 65536 UTF-16 ceiling', async () => {
+  const {validClientBody, snapshotClientRequest} = await import('../packages/client-wire/index.mjs');
+  const connection = {mode: 'local', owner: 'local', consentRefs: [], runners: []};
+  for (const length of [65535, 65536, 65537]) {
+    for (const text of ['x'.repeat(length), '日'.repeat(length),
+      '😀'.repeat(Math.floor(length / 2)) + (length % 2 ? 'x' : ''),
+      '\n'.repeat(length)]) {
+      assert.equal(text.length, length);
+      const input = {text, format: 'sql'};
+      assert.equal(validClientBody('submit', {connection, requestId: 'text-demand',
+        kind: 'aql', input, parameters: null}), true);
+      assert.equal(validClientBody('check', {connection, scope: 'template_only',
+        kind: 'text', input}), true);
+      assert.equal(snapshotClientRequest({input}).input.text, text);
+    }
+  }
+  for (const text of ['', 'a\0b']) {
+    assert.equal(validClientBody('submit', {connection, requestId: 'invalid',
+      kind: 'aql', input: {text, format: 'sql'}, parameters: null}), false);
+    assert.equal(validClientBody('check', {connection, scope: 'template_only',
+      kind: 'text', input: {text, format: 'sql'}}), false);
+  }
+  assert.throws(() => snapshotClientRequest({input: {text: 'x'.repeat(65537)},
+    parameters: {value: Number.POSITIVE_INFINITY}}), /UnrepresentableClientNumber/);
+});

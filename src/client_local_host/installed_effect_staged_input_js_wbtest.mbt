@@ -3,6 +3,10 @@
 // ports. This is not ordinary Host, HTTP, Store or physical ACK evidence.
 fn staged_effect_input_fixture(
   current? : () -> Unit = () => (),
+  physical_initial? : @execution.ExecutionCapacity? = None,
+  parent_limit? : Int64? = None,
+  projection_retained? : @execution.ExecutionCapacity? = None,
+  empty_header_limit? : Int? = None,
 ) -> (
   @publication_host.PreparedClientEffectComputation,
   @publication_host.ClientRequestIdentity,
@@ -25,19 +29,37 @@ fn staged_effect_input_fixture(
       @execution.execution_capacity(1000000L, 2000000L).unwrap(),
     ).unwrap(),
   ).unwrap()
+  let bind_projection = (extent : ClientInstalledEffectOperationExtent) => {
+    let extent = match projection_retained {
+      None => extent
+      Some(remaining) =>
+        prepare_installed_effect_discarded_projection_extent(extent, remaining).unwrap()
+    }
+    match empty_header_limit {
+      None => extent
+      Some(limit) =>
+        prepare_installed_effect_empty_response_headers_extent(extent, limit).unwrap()
+    }
+  }
   let send = prepare_installed_effect_staged_extent(
-    prepare_installed_effect_operation_extent(
-      "send",
-      @execution.execution_capacity(5L, 8L).unwrap(),
-      7L,
-      true,
-    ).unwrap(),
-    prepare_installed_effect_operation_extent(
-      "send",
-      @execution.execution_capacity(1000000000L, 2000000000L).unwrap(),
-      7L,
-      true,
-    ).unwrap(),
+    bind_projection(
+      prepare_installed_effect_operation_extent(
+        "send",
+        physical_initial.unwrap_or(
+          @execution.execution_capacity(5L, 8L).unwrap(),
+        ),
+        7L,
+        true,
+      ).unwrap(),
+    ),
+    bind_projection(
+      prepare_installed_effect_operation_extent(
+        "send",
+        @execution.execution_capacity(1000000000L, 2000000000L).unwrap(),
+        7L,
+        true,
+      ).unwrap(),
+    ),
   ).unwrap()
   let demand = prepare_installed_effect_operation_demand(
     prepared,
@@ -66,6 +88,11 @@ fn staged_effect_input_fixture(
   assert_true(quote[5] < 2000000000L)
   quote[4] += 512L
   quote[5] += 512L
+  if parent_limit is Some(limit) {
+    // Existing preparation helper adds its separate original ten-byte carrier.
+    quote[4] = limit - 10L
+    quote[5] = limit - 10L
+  }
   let (input, initial, _, capacity) = effect_parent_test_preparation(
     plan,
     quote,
@@ -75,6 +102,205 @@ fn staged_effect_input_fixture(
     initial, input, capacity, prepared, request, plan,
   ).unwrap()
   (prepared, request, plan, owner, owner.ledger.unwrap())
+}
+
+///|
+test "full HubSpot response InputBegin reproduces current coheld execution refusal" {
+  let property_limits : @hubspot_catalog.PropertyLimits = {
+    max_bytes: 524288,
+    max_nodes: 65536,
+    max_depth: 32,
+    max_properties: 256,
+    max_name_units: 6003,
+  }
+  let metadata = @hubspot_catalog.effect_metadata_construction_capacity(
+    0, 9, property_limits,
+  ).unwrap()
+  let initial = hubspot_full_metadata_response_quote(metadata)
+  println(
+    "Full initial R=\{@execution.execution_capacity_retained_bytes(initial)} E=\{@execution.execution_capacity_execution_bytes(initial)}",
+  )
+  // Current shared HTTP retention owns two body views and only returned
+  // header pairs; completed parser dictionaries are not retained outputs.
+  let receive = installed_effect_http_response_construction_capacity(
+    524288,
+    16384,
+    response_read_quantum=16384,
+  ).unwrap()
+  let secret = installed_source_reader_policy()[0].to_int64()
+  // Independent Credential roles: three text/view headers, token/header
+  // strings and two encoded views. Use shared units, not a byte price or the
+  // composite value under test. Constructor-only secret wire remains in E.
+  let secret_retained = @execution.preparation_representation_cost({
+    record_headers: 3L,
+    reference_slots: 0L,
+    scalar_words: 0L,
+    owned_utf16_units: 3L * secret + 2L * 7L,
+    owned_wire_bytes: 2L * (secret + 7L),
+  }).unwrap()
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(initial),
+    @execution.execution_capacity_retained_bytes(receive) +
+    secret_retained +
+    @execution.execution_capacity_retained_bytes(metadata),
+  )
+  assert_eq(@execution.execution_capacity_execution_bytes(initial), 12333318L)
+  let (prepared, request, plan, owner, ledger) = staged_effect_input_fixture(
+    physical_initial=Some(initial),
+    parent_limit=Some(536870912L),
+  )
+  assert_eq(@resources.ledger_limits(ledger).execution_bytes, 536870912L)
+  let child = borrow_installed_effect_operation(
+    owner, prepared, request, plan, 0, true, 0, 0, "send",
+  ).unwrap()
+  start_installed_effect_operation(child).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  let holding_reservation = @resources.reserve_attempt(
+    ledger,
+    0L,
+    27452533L - before.held_bytes,
+    0L,
+  ).unwrap()
+  let holding = @resources.retain_allocation(
+    ledger,
+    holding_reservation,
+    27452533L - before.held_bytes,
+  ).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  let outside = @resources.reserve_capacity(
+    ledger,
+    419448946L - before.reserved_retention_bytes,
+    477625077L - before.reserved_execution_bytes,
+  ).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  assert_eq(before.held_bytes, 27452533L)
+  assert_eq(before.reserved_retention_bytes, 419448946L)
+  assert_eq(before.reserved_execution_bytes, 477625077L)
+  // Historical actual next-total remains refused: it is never relabeled as
+  // a successful new quote, or reduced by the measured shortage constant.
+  let observed = prepare_installed_effect_operation_extent(
+    "send",
+    @execution.execution_capacity(13553144L, 72617509L).unwrap(),
+    7L,
+    true,
+  ).unwrap()
+  assert_true(
+    begin_installed_effect_operation_input(child, observed)
+    is Err(Ledger(@resources.ExecutionLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
+  @resources.settle_capacity(ledger, outside).unwrap()
+  @resources.release_allocation(ledger, holding).unwrap()
+  @resources.settle_reservation(ledger, holding_reservation).unwrap()
+  assert_true(retire_installed_effect_operation(child, true).unwrap())
+  retire_installed_managed_run(owner).unwrap()
+}
+
+///|
+test "full HubSpot response InputBegin funds only original borrowed body and actual parser input" {
+  let property_limits : @hubspot_catalog.PropertyLimits = {
+    max_bytes: 524288,
+    max_nodes: 65536,
+    max_depth: 32,
+    max_properties: 256,
+    max_name_units: 6003,
+  }
+  // Independent large input with two unknown-field layouts. No actual body,
+  // configuration, stopped Run or guessed geometry is used by this component.
+  let properties = Array::makei(245, index => {
+    "{\"name\":\"field_" +
+    index.to_string() +
+    "\",\"type\":\"string\",\"fieldType\":\"text\",\"description\":\"" +
+    String::make(1050, 'x') +
+    "\",\"shape\":[" +
+    Array::make(
+      if index % 2 == 0 {
+        11
+      } else {
+        12
+      },
+      "{\"a\":0,\"b\":0,\"c\":0,\"d\":0,\"e\":0}",
+    ).join(",") +
+    "]}"
+  })
+  let body = @utf8.encode("{\"results\":[" + properties.join(",") + "]}")
+  let path = "/crm/v3/properties/companies"
+  let initial = hubspot_full_metadata_response_quote(
+    @hubspot_catalog.effect_metadata_construction_capacity(
+      0, 9, property_limits,
+    ).unwrap(),
+  )
+  let (prepared, request, plan, owner, ledger) = staged_effect_input_fixture(
+    physical_initial=Some(initial),
+    parent_limit=Some(536870912L),
+  )
+  let child = borrow_installed_effect_operation(
+    owner, prepared, request, plan, 0, true, 0, 0, "send",
+  ).unwrap()
+  start_installed_effect_operation(child).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  let holding_reservation = @resources.reserve_attempt(
+    ledger,
+    0L,
+    27452533L - before.held_bytes,
+    0L,
+  ).unwrap()
+  let holding = @resources.retain_allocation(
+    ledger,
+    holding_reservation,
+    27452533L - before.held_bytes,
+  ).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  let outside = @resources.reserve_capacity(
+    ledger,
+    419448946L - before.reserved_retention_bytes,
+    477625077L - before.reserved_execution_bytes,
+  ).unwrap()
+  // The full initial physical token, with its real preflight floor, is now
+  // live beside the captured coheld amounts before the Source view is built.
+  let prepared_source = @hubspot_catalog.prepare_property_response_source(
+    body, path, "companies", property_limits,
+  )
+  let data = @hubspot_catalog.property_response_source_geometry_data(
+    prepared_source,
+  )
+  assert_eq(data.length(), 12)
+  let selected = hubspot_full_metadata_response_quote(
+    @hubspot_catalog.effect_metadata_observed_construction_capacity(
+      body.length(),
+      9,
+      property_limits,
+      data,
+    ).unwrap(),
+  )
+  println(
+    "Full independent body=\{body.length()} R=\{@execution.execution_capacity_retained_bytes(selected)} E=\{@execution.execution_capacity_execution_bytes(selected)} outsideE=465291759",
+  )
+  let input = prepare_installed_effect_operation_extent(
+    "send", selected, 7L, true,
+  ).unwrap()
+  begin_installed_effect_operation_input(child, input).unwrap()
+  let active = @resources.ledger_usage(ledger)
+  let catalog = @hubspot_catalog.consume_property_response_source(
+    prepared_source, path, body,
+  ).unwrap()
+  @hubspot_catalog.recheck_property_catalog(catalog, catalog, 256).unwrap()
+  @hubspot_catalog.retire_property_response_source(prepared_source)
+  complete_installed_effect_operation_response_projection(child).unwrap()
+  let completed = @resources.ledger_usage(ledger)
+  assert_eq(completed.reserved_retention_bytes, active.reserved_retention_bytes)
+  assert_true(
+    completed.reserved_execution_bytes < active.reserved_execution_bytes,
+  )
+  assert_eq(completed.attempts, active.attempts)
+  assert_eq(completed.transferred_bytes, active.transferred_bytes)
+  assert_eq(completed.held_bytes, active.held_bytes)
+  assert_true(retire_installed_effect_operation(child, false) is Ok(false))
+  @resources.settle_capacity(ledger, outside).unwrap()
+  @resources.release_allocation(ledger, holding).unwrap()
+  @resources.settle_reservation(ledger, holding_reservation).unwrap()
+  assert_true(retire_installed_effect_operation(child, true).unwrap())
+  retire_installed_managed_run(owner).unwrap()
 }
 
 ///|
@@ -553,4 +779,95 @@ test "physical response projection preserves original current reentry fence befo
   child.retired = false
   assert_true(retire_installed_effect_operation(child, true).unwrap())
   retire_installed_managed_run(owner).unwrap()
+}
+
+///|
+test "selected constructor input grows through one original preflight without another operation" {
+  let (prepared, request, plan, owner, ledger) = staged_effect_input_fixture()
+  let child = retain_installed_effect_operation_construction(
+    owner, prepared, request, plan, 0, false, 0, 0, "capture",
+  ).unwrap()
+  let input = prepare_installed_effect_capture_extent(
+    "capture",
+    @execution.execution_capacity(20L, 30L).unwrap(),
+    @execution.execution_capacity(3L, 5L).unwrap(),
+  ).unwrap()
+  assert_true(
+    grow_installed_effect_operation_input(child, input) is Err(AlreadyBound),
+  )
+  begin_installed_effect_operation_input(child, input).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  let larger = prepare_installed_effect_capture_extent(
+    "capture",
+    @execution.execution_capacity(30L, 50L).unwrap(),
+    @execution.execution_capacity(3L, 5L).unwrap(),
+  ).unwrap()
+  grow_installed_effect_operation_input(child, larger).unwrap()
+  let grown = @resources.ledger_usage(ledger)
+  assert_eq(
+    grown.reserved_retention_bytes - before.reserved_retention_bytes,
+    10L,
+  )
+  assert_eq(
+    grown.reserved_execution_bytes - before.reserved_execution_bytes,
+    20L,
+  )
+  assert_eq(grown.attempts, before.attempts)
+  assert_eq(grown.reserved_attempts, before.reserved_attempts)
+  assert_eq(grown.transferred_bytes, before.transferred_bytes)
+  assert_eq(grown.reserved_transfer_bytes, before.reserved_transfer_bytes)
+  assert_true(
+    grow_installed_effect_operation_input(child, input)
+    is Err(InsufficientCapacity),
+  )
+  assert_eq(@resources.ledger_usage(ledger), grown)
+  complete_installed_effect_operation_construction(child).unwrap()
+  let completed = @resources.ledger_usage(ledger)
+  assert_true(
+    grow_installed_effect_operation_input(child, larger) is Err(AlreadyBound),
+  )
+  assert_eq(@resources.ledger_usage(ledger), completed)
+  assert_true(retire_installed_effect_operation(child, true).unwrap())
+  retire_installed_managed_run(owner).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+}
+
+///|
+test "nested constructor growth preserves full-budget refusal without spending or losing prior backing" {
+  let (prepared, request, plan, owner, ledger) = staged_effect_input_fixture()
+  let child = retain_installed_effect_operation_construction(
+    owner, prepared, request, plan, 0, false, 0, 0, "capture",
+  ).unwrap()
+  let input = prepare_installed_effect_capture_extent(
+    "capture",
+    @execution.execution_capacity(20L, 30L).unwrap(),
+    @execution.execution_capacity(3L, 5L).unwrap(),
+  ).unwrap()
+  begin_installed_effect_operation_input(child, input).unwrap()
+  let usage = @resources.ledger_usage(ledger)
+  let occupied = @resources.reserve_capacity(
+    ledger,
+    0L,
+    @resources.ledger_limits(ledger).execution_bytes -
+    usage.reserved_execution_bytes,
+  ).unwrap()
+  let full = @resources.ledger_usage(ledger)
+  let larger = prepare_installed_effect_capture_extent(
+    "capture",
+    @execution.execution_capacity(30L, 50L).unwrap(),
+    @execution.execution_capacity(3L, 5L).unwrap(),
+  ).unwrap()
+  assert_true(
+    grow_installed_effect_operation_input(child, larger)
+    is Err(Ledger(@resources.ExecutionLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), full)
+  @resources.settle_capacity(ledger, occupied).unwrap()
+  grow_installed_effect_operation_input(child, larger).unwrap()
+  complete_installed_effect_operation_construction(child).unwrap()
+  assert_true(retire_installed_effect_operation(child, false) is Ok(false))
+  assert_true(retire_installed_managed_run(owner) is Err(CleanupPending))
+  assert_true(retire_installed_effect_operation(child, true).unwrap())
+  retire_installed_managed_run(owner).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
 }

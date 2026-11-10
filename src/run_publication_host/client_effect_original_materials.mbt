@@ -26,7 +26,7 @@ pub fn issue_prepared_client_effect_run_materials(
     Some(original) =>
       match prepared_client_effect_normalization_evidence(prepared, original) {
         Ok(value) => {
-          if original.inventory is LocalUpdate(_) &&
+          if !(original.inventory is MappedCreate(_)) &&
             !same_client_effect_normalization_profile(
               Some(original.inventory),
               allowed.compilation.normalization_profile,
@@ -93,6 +93,11 @@ fn encode_prepared_client_effect_materials(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  let infer_native_read_profile = match
+    client_effect_original_infer_native_read_profile(allowed.compilation) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   let infer_inputs_wire = match
     client_effect_original_infer_inputs(allowed.compilation) {
     Ok(value) => value
@@ -114,6 +119,7 @@ fn encode_prepared_client_effect_materials(
     normalization_wire~,
     target_selections_wire=prepared_client_effect_target_selections(prepared),
     infer_input~,
+    infer_native_read_profile~,
     infer_inputs_wire~,
     source_free_policy_input~,
   ).map_err(fn(issue) { ClientEffectRunMaterialsIssue::Input(issue) })

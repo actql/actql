@@ -34,6 +34,8 @@ function managedComposition(acquired, count) {
   };
   const moon = {
     clientProgramEffectAcquisitionCount(actual) {assert.strictEqual(actual, prepared); return count;},
+    clientProgramEffectDirectSourceCoordinates(actual) {assert.strictEqual(actual, prepared);
+      return ok(Array.from({length: count}, (_, index) => [index, 0, index, index]));},
     clientProgramInstalledEffectManagedOperationPlan(parent, actual, identity) {
       assert.strictEqual(this, moon); same(parent, actual, identity); return ok(operationPlan);
     },
@@ -110,7 +112,9 @@ function fixture({restoring, selected = true} = {}) {
     clientProgramSourceCaptureExportRows: () => [],
     clientProgramRestoreSourceCapture(...args) { captureCurrent = args[8]; return ok({}); },
     clientProgramSourceCaptureSource: () => 'source',
-    clientProgramIdentifyCapturedEffectSourceRelation: () => ok('identity'),
+    clientProgramIdentifyQueryCapturedEffectSourceRelation(source, requirement) {
+      assert.equal(source, 'source'); assert.equal(requirement, 'requirement'); return ok('identity');
+    },
     clientProgramEffectIssueCapturedSourceLogicalAt: () => ok('logical'),
     clientProgramCloseSourceCapture() { calls.push('capture-close'); return true; },
   };

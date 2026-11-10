@@ -75,3 +75,73 @@ pub fn buffered_writer_next_construction_inventory(
     fragment_bytes, retained_fragment_utf16, keys, depth,
   )
 }
+
+///|
+/// The hashing variant owns the SAME bounded text builder beside its SHA
+/// sink. Count their common frame storage once. reset() may retain the old
+/// builder capacity, so the caller keeps its actual earlier fragment peak.
+pub fn buffered_hash_writer_start_construction_inventory() -> HashWriterConstructionInventory {
+  buffered_hash_writer_inventory(0, 0, 0, 0).unwrap()
+}
+
+///|
+fn buffered_hash_writer_inventory(
+  bytes : Int,
+  peak : Int,
+  nodes : Int,
+  depth : Int,
+) -> HashWriterConstructionInventory? {
+  guard buffered_writer_construction_inventory(bytes, peak, nodes, depth)
+    is Some(text) &&
+    hash_writer_live_key_inventory(nodes, depth) is Some(hash) else {
+    return None
+  }
+  let frames = writer_frame_construction_extent(nodes, depth)
+  Some({
+    record_headers: text.record_headers +
+    hash.record_headers -
+    frames.record_headers,
+    reference_slots: text.reference_slots +
+    hash.reference_slots -
+    frames.reference_slots,
+    scalar_words: text.scalar_words + hash.scalar_words - frames.scalar_words,
+    owned_utf16_units: text.owned_utf16_units + hash.owned_utf16_units,
+    owned_wire_bytes: hash.owned_wire_bytes,
+  })
+}
+
+///|
+pub fn buffered_hash_writer_next_construction_inventory(
+  writer : Writer,
+  fragment_bytes : Int,
+  retained_fragment_utf16 : Int,
+  additional_nodes : Int,
+  additional_depth : Int,
+) -> HashWriterConstructionInventory? {
+  guard !writer.closed &&
+    writer.output is BufferedHashOutput(buffer) &&
+    fragment_bytes >= 0 &&
+    retained_fragment_utf16 >= 0 &&
+    additional_nodes >= 0 &&
+    additional_depth >= 0 else {
+    return None
+  }
+  let fragment = Int::min(
+    fragment_bytes,
+    Int::min(writer.remaining_bytes, buffer.limit - buffer.bytes),
+  )
+  guard writer_next_live_keys(writer, additional_nodes) is Some(nodes) else {
+    return None
+  }
+  let depth = Int::max(
+    writer.peak_depth,
+    writer.frames.length() +
+    Int::min(additional_depth, writer.max_depth - writer.frames.length()),
+  )
+  buffered_hash_writer_inventory(
+    buffer.bytes + fragment,
+    retained_fragment_utf16,
+    nodes,
+    depth,
+  )
+}

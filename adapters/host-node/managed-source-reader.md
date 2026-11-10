@@ -1,5 +1,27 @@
 # Managed Source capture compilation
 
+## Source reader schema bounds
+
+Source reader eligibility uses the selected implementation profile and complete
+declared schema bounds. The standard Values cells-per-row ratio is not a Source
+column ceiling. The Host bridge preserves the original Core Int representation,
+secret and binding limits, same installation/current checks and typed reader
+capacity. Actual reads still enter their original query requirement and
+RowRun/Ledger before credential resolution or Site IO. Initialization does not
+grant read authority or imply a funded capture.
+
+The installed Query material owner derives its field traversal bound from the
+same admitted input/output schemas and original request fields. The corresponding
+Request constructor quote observes those same immutable originals through the
+existing structural Query shape entry, and funds its collection inventory before
+the full material constructor. The retained direct-occurrence holder is reused.
+This shape observation cannot discharge query-time, currentness or authorization;
+the original physical/material issuer still performs those duties. Explicitly
+tighter caller policies, work/byte/node/depth limits and integer overflow still
+refuse. No Source field is dropped and no Values ratio supplies this bound.
+
+## Captured artifact ownership
+
 The captured Plan's publication artifact is produced by the same Request-owned
 Pure artifact emitter as the source-free Plan. Its original typed compilation
 is retained in that Plan before completion and Run adoption. The shared emitter
@@ -587,3 +609,40 @@ whole-input acquisition. Its existing input-capacity owner adds the provider
 extent and original scratch; it is never cast to a Query acquisition. Both
 entrances retain the same current, monotone-dimension and cleanup fences.
 The separate direct Query capture workspace-retirement cut is unchanged.
+
+
+## Next bounded response transfer
+
+The ordinary Credential provider declaration retains its exact next-response
+unit alongside its existing total envelope. Only this selected RowRun path
+reserves constructor overlap at start without prepaying future-page transfer. Its installed reader's private fifth
+preparation argument forwards the same response borrow to
+`ensure_row_run_response_transfer_capacity`. Standard page fetches and managed
+native children call it for the selected `maxResponseBytes` from their original
+`currentBeforeSend`, before native I/O. Standard pages run serially; managed
+children retain their existing single-pending-operation refusal. Whole-input and Table/IPC readers keep their independently owned explicit
+transfer envelopes. The private callback also rejects a different unit bound.
+
+The existing Resource reservation owner extends only that reservation's
+remaining transfer allowance, by the additional bytes needed for this next
+bounded response. This is backing, not authorization, physical dispatch or an
+actual-byte charge. Received bytes, uncertain bytes and every competing
+reservation remain charged against the same original cumulative Ledger limit.
+An equal funded allowance is idempotent but still checks current. It creates no
+new attempt, Ledger, grant, quantity allowance or refill of spent transfer.
+The original imported current/stop, foreign/closed, cleanup-pending, bootstrap
+and fixed-capacity restrictions remain authoritative. A current callback that
+closes the reader cannot enter I/O after the same reservation mutation.
+
+The actual original body still passes through `charge_row_run_response_body`
+before decoding or projection. A refusal does not acknowledge stop or cleanup;
+any funded unused remainder and failed child stay with the original RowRun
+until its actual cleanup observer and existing settlement allow their return.
+No callback or absence of a response refunds received/uncertain usage. The
+existing provider limits, request count, Account/current authority and physical
+body bound remain unchanged. There is no fallback to a missing runtime method.
+
+Focused coverage is in `transfer_reservation_wbtest.mbt`,
+`row_response_transfer_wbtest.mbt` and the existing installed reader/RowRun Node
+fixtures. These establish cumulative accounting, current/refusal and callback
+ordering separately from ordinary package or physical transport acceptance.

@@ -22,7 +22,7 @@ fn derive_scale(count : Int, ordered : Bool) -> Unit raise {
     100,
     10,
   ).unwrap()
-  let workspace = { limit: count * 20 + 100, live: 0, peak: 0, }
+  let workspace = { ..row_workspace(count * 20 + 100), live: 0, peak: 0, }
   let result = evaluate_rows_with_workspace(
     row_kernel(owner, 1),
     input,

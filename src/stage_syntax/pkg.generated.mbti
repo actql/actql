@@ -333,6 +333,7 @@ pub(all) struct ProgramPreparationData {
   possible_growth : Int
   projected_fields : Int
   max_label_utf16 : Int
+  may_contain_expression_syntax : Bool
 } derive(Eq, @debug.Debug)
 
 pub(all) struct ProgramRepresentationExtent {

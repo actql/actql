@@ -73,13 +73,51 @@ test('combined Graph selection stays narrow and rereads after both producers exi
   assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_GRAPH_REMAINING_OPERATIONS_ONLY = '1'"));
   assert.ok(driver.includes("['scripts/fixtures/graph-remaining-operation-inputs.mjs', 'graph-remaining-operation-inputs.mjs']"));
   const source = driver.indexOf("['packed-query-transports.mjs']");
-  const restart = driver.indexOf('if (process.argv.includes(\'--graph-graft-only\')', source);
-  const end = driver.indexOf("if (process.argv.includes('--source-graph-member-only'))", restart);
-  assert.ok(source >= 0 && restart > source && end > restart);
-  const branch = driver.slice(restart, end);
-  assert.ok(branch.includes(flag));
-  assert.ok(branch.includes("exerciseRetainedQueryRestart({ACTQL_TEST_RETAINED_COHORT_ONLY: '1'})"));
-  assert.ok(branch.includes('return;'));
+  const {parse} = await import('acorn');
+  const syntax = parse(driver, {sourceType: 'module', ecmaVersion: 'latest'});
+  const branches = [];
+  const visit = node => {
+    if (node === null || typeof node !== 'object') return;
+    if (node.type === 'IfStatement' && node.consequent.type === 'BlockStatement' &&
+        driver.slice(node.test.start, node.test.end).includes(flag) &&
+        driver.slice(node.consequent.start, node.consequent.end)
+          .includes("exerciseRetainedQueryRestart({ACTQL_TEST_RETAINED_COHORT_ONLY: '1'})")) {
+      branches.push(node);
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value !== null && typeof value === 'object') visit(value);
+    }
+  };
+  visit(syntax);
+  assert.equal(branches.length, 1, 'one combined branch owns the cold Graph reread');
+  const [branch] = branches;
+  const modes = [];
+  const readModes = node => {
+    if (node.type === 'LogicalExpression') {
+      assert.equal(node.operator, '||', 'each selected narrow mode independently reaches restart');
+      readModes(node.left); readModes(node.right);
+      return;
+    }
+    assert.equal(node.type, 'CallExpression');
+    assert.equal(driver.slice(node.callee.start, node.callee.end), 'process.argv.includes');
+    assert.equal(node.arguments.length, 1);
+    assert.equal(node.arguments[0].type, 'Literal');
+    modes.push(node.arguments[0].value);
+  };
+  readModes(branch.test);
+  assert.ok(modes.includes('--graph-graft-only'));
+  assert.ok(modes.includes('--graph-remaining-operations-only'));
+  const end = driver.indexOf("if (process.argv.includes('--source-graph-member-only'))", branch.end);
+  assert.ok(source >= 0 && branch.start > source && end >= branch.end);
+  const first = branch.consequent.body[0];
+  assert.equal(first.type, 'ExpressionStatement');
+  assert.equal(first.expression.type, 'AwaitExpression');
+  assert.equal(driver.slice(first.expression.argument.start, first.expression.argument.end),
+    "exerciseRetainedQueryRestart({ACTQL_TEST_RETAINED_COHORT_ONLY: '1'})");
+  const last = branch.consequent.body.at(-1);
+  assert.equal(last.type, 'ReturnStatement');
+  assert.equal(last.argument, null, 'cold reread completes before returning from this narrow mode');
   const corpus = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
   assert.ok(corpus.includes('graphRemainingOperationsOnly ? graphRemainingOperationInputs'));
   assert.ok(corpus.includes('graphRemainingOperationCohortInputs(scopeInputs).flatMap(publicQueryCohorts)'));

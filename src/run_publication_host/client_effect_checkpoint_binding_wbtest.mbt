@@ -246,3 +246,41 @@ test "Effect Checkpoint binding rejects another review and extended original lif
     is Err(Checkpoint(_)),
   )
 }
+
+///|
+test "Effect Checkpoint exclusive end may equal original Run deadline without permitting a start there" {
+  let (allowed, definition, body) = checkpoint_binding_fixture()
+  let (_, until) = @publication.run_definition_lifetime(definition).unwrap()
+  let limits : @checkpoint.WireLimits = {
+    max_wire_bytes: 65536,
+    max_nodes: 4096,
+    max_depth: 64,
+  }
+  let original = @checkpoint.seal_checkpoint(
+    { ..body, expires_at: until, },
+    limits,
+  ).unwrap()
+  assert_true(
+    admit_client_effect_review_checkpoint_binding(
+      allowed,
+      definition,
+      original.wire,
+      limits,
+    )
+    is Ok(_),
+  )
+  assert_false(client_effect_run_start_current(allowed, definition, until))
+  let extended = @checkpoint.seal_checkpoint(
+    { ..body, expires_at: "2026-10-10T00:00:00.001Z", },
+    limits,
+  ).unwrap()
+  assert_true(
+    admit_client_effect_review_checkpoint_binding(
+      allowed,
+      definition,
+      extended.wire,
+      limits,
+    )
+    is Err(OriginalLifetime),
+  )
+}

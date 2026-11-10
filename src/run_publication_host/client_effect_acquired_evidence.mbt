@@ -6,11 +6,21 @@ pub(all) enum ClientEffectAcquiredEvidenceIssue {
 } derive(Eq, Debug)
 
 ///|
+// The old single-Source Artifact entry must not accept an individual Source
+// contribution from the new multi-input Model closure as an entire Unit.
+priv enum ClientEffectSourceEvidencePurpose {
+  SingleSourceUnit
+  ModelContribution
+}
+
+///|
 /// Closed source provenance from the actual common capture and checked
 /// static request. This does not grant a mutation or transfer Store custody.
 struct ClientEffectAcquiredEvidence {
   owner : PreparedClientEffectComputation
   identity : @query.CapturedSourceRelationIdentity
+  captured : @query.CapturedInputSource
+  purpose : ClientEffectSourceEvidencePurpose
   invocation : ClientEffectLocalInvocation
   input : @publication.RunEvidenceValue
   observation : @publication.RunEvidenceValue
@@ -145,6 +155,8 @@ pub fn issue_client_effect_acquired_evidence(
   Ok({
     owner,
     identity,
+    captured,
+    purpose: SingleSourceUnit,
     invocation,
     input,
     observation,
@@ -206,27 +218,28 @@ pub fn client_effect_acquired_dependency_bodies(
 fn client_effect_computed_result_matches_acquired_unit(
   owner : PreparedClientEffectComputation,
   source : ClientEffectAcquiredEvidence,
-  result : @strategy.CapturedEffectLocalResult,
+  exported : @strategy.CapturedEffectLocalResultExport,
 ) -> Bool {
-  let graph = @strategy.checked_effect_computation_graph(owner.graph)
-  let unit = @strategy.captured_effect_local_result_stage(result)
-  let task = @strategy.captured_effect_local_result_task(result)
-  if !physical_equal(source.owner, owner) ||
-    unit != source.invocation.unit ||
-    unit < 0 ||
-    unit >= @strategy.graph_captured_prefix(graph) ||
-    task < @strategy.graph_captured_prefix(graph) {
-    return false
-  }
-  let occurrence = @strategy.captured_any_result_borrow_occurrence(
-    @strategy.captured_effect_local_result_borrow(result),
+  physical_equal(source.owner, owner) &&
+  client_effect_computed_result_matches_invocation(
+    owner,
+    source.invocation,
+    exported,
   )
-  @strategy.graph_stage_target_task(
-    graph,
-    unit,
-    @results.port_target(@execution.managed_result_occurrence_port(occurrence)),
-  ) ==
-  Some(task)
+}
+
+///|
+fn client_effect_computed_result_matches_invocation(
+  owner : PreparedClientEffectComputation,
+  invocation : ClientEffectLocalInvocation,
+  exported : @strategy.CapturedEffectLocalResultExport,
+) -> Bool {
+  physical_equal(invocation.owner, owner) &&
+  @strategy.captured_effect_local_result_export_matches_computed_unit(
+    exported,
+    owner.graph,
+    invocation.unit,
+  )
 }
 
 ///|
@@ -258,7 +271,7 @@ pub fn issue_acquired_client_effect_local_result_artifact(
         source.identity,
       ) &&
       !(client_effect_computed_result_matches_acquired_unit(
-        owner, source, result,
+        owner, source, exported,
       ) &&
       @strategy.captured_effect_inputs_acquired_source_matches(
         inputs,
@@ -309,6 +322,9 @@ fn build_client_effect_acquired_result_artifact(
   ClientEffectLocalResultArtifact,
   ClientEffectLocalResultArtifactIssue,
 ] {
+  if source.purpose is ModelContribution {
+    return Err(ForeignOwner)
+  }
   if !client_effect_local_result_definition_matches(
       definition,
       owner,
@@ -358,4 +374,18 @@ fn build_client_effect_acquired_result_artifact(
     max_depth,
     scope=Some(source.scope),
   )
+}
+
+///|
+/// Read the preimages retained by this exact original Source identity pass.
+/// Keep this explicit currentful body borrow separate from the immutable
+/// metadata dependency getter. It performs no re-export/hash/provider read.
+/// Missing bodies or retired originals stay absent; they are never rebuilt.
+pub fn client_effect_acquired_relation_dependency_bodies(
+  value : ClientEffectAcquiredEvidence,
+) -> Array[(String, String)]? {
+  @query.captured_source_relation_dependency_bodies(
+    value.identity,
+    value.captured,
+  ).map(body => [("relation_value", body.0), ("relation_schema", body.1)])
 }

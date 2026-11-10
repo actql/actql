@@ -323,7 +323,11 @@ pub fn Store::commit_publication(
   _max_wire_bytes : Int,
   _max_nodes : Int,
   _max_depth : Int,
+  capture? : @local.ClientProgramCapture? = None,
+  effectful? : @publication.EffectfulFinalRunEvidence? = None,
 ) -> Result[NativePublicationCommit, NativePublicationStoreIssue] {
+  ignore(capture)
+  ignore(effectful)
   Err(UnsupportedTarget)
 }
 

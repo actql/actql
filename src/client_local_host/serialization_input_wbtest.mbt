@@ -12,6 +12,10 @@ fn bind_serialization_prefix_reservation(
     cleanup_busy: false,
     child_cleaned: false,
     released: false,
+    dependencies: [],
+    pending_start: false,
+    parent_busy: false,
+    composed: None,
   }
 }
 
@@ -28,6 +32,87 @@ fn serialization_test_ledger(
     retained_bytes: retained,
     execution_bytes: execution,
   }).unwrap()
+}
+
+///|
+test "composed prefix keeps upstream until the actual consumer closes and preserves consumed work" {
+  let ledger = @resources.create_ledger({
+    planning_work: 0,
+    attempts: 2,
+    holdings: 0,
+    transfer_bytes: 0L,
+    retained_bytes: 20L,
+    execution_bytes: 20L,
+  }).unwrap()
+  let main_token = @resources.reserve_attempt(ledger, 0L, 4L, 5L).unwrap()
+  let root_token = @resources.reserve_attempt(ledger, 0L, 6L, 7L).unwrap()
+  let ready = Ref(false)
+  let root_closes = Ref(0)
+  let main_closes = Ref(0)
+  let main = bind_serialization_prefix_reservation(
+    @local.managed_provider_execution(
+      _ => Ok(@local.managed_provider_continue(0L, 3L)),
+      () => true,
+      () => true,
+      () => {
+        main_closes.val += 1
+        Ok(ready.val)
+      },
+    ),
+    ledger,
+    main_token,
+  )
+  let root = bind_serialization_prefix_reservation(
+    @local.managed_provider_execution(
+      _ => Ok(@local.managed_provider_continue(0L, 5L)),
+      () => true,
+      () => true,
+      () => {
+        root_closes.val += 1
+        Ok(root_closes.val > 1)
+      },
+    ),
+    ledger,
+    root_token,
+  )
+  main.dependencies.push(root)
+  @resources.consume_reserved_attempt(ledger, main_token).unwrap()
+  @resources.consume_reserved_attempt(ledger, root_token).unwrap()
+  advance_client_serialization_prefix(main, 5).unwrap() |> ignore
+  advance_client_serialization_prefix(root, 5).unwrap() |> ignore
+  assert_eq(client_serialization_prefix_work(main), Ok(8L))
+  assert_false(cleanup_client_serialization_prefix(main).unwrap())
+  assert_eq(root_closes.val, 0)
+  ready.val = true
+  assert_false(cleanup_client_serialization_prefix(main).unwrap())
+  assert_true(main.child_cleaned && main.child is None)
+  assert_eq(root_closes.val, 1)
+  assert_true(@resources.reservation_open(main_token))
+  assert_true(@resources.reservation_open(root_token))
+  assert_true(cleanup_client_serialization_prefix(main).unwrap())
+  assert_eq(main_closes.val, 2)
+  assert_eq(root_closes.val, 2)
+  assert_true(main.dependencies.is_empty())
+  assert_eq(client_serialization_prefix_work(main), Ok(8L))
+  assert_eq(@resources.ledger_usage(ledger).attempts, 2)
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+}
+
+///|
+test "a composed main constructor not yet entered can retire without inventing a missing child ACK" {
+  let ledger = serialization_test_ledger(10L, 20L)
+  let token = @resources.reserve_attempt(ledger, 0L, 10L, 20L).unwrap()
+  let prefix = serialization_prefix_reservation(ledger, token)
+  prefix.pending_start = true
+  prefix.parent_busy = true
+  assert_false(cleanup_client_serialization_prefix(prefix).unwrap())
+  assert_false(cancel_client_serialization_prefix(prefix))
+  assert_true(prefix.pending_start && !prefix.child_cleaned)
+  prefix.parent_busy = false
+  assert_true(cleanup_client_serialization_prefix(prefix).unwrap())
+  assert_true(prefix.child_cleaned && prefix.released && !prefix.pending_start)
+  assert_eq(client_serialization_prefix_work(prefix), Ok(0L))
+  assert_eq(@resources.ledger_usage(ledger).attempts, 0)
 }
 
 ///|

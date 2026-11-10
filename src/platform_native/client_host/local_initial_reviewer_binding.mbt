@@ -21,8 +21,11 @@ fn NativeLocalInstalledEffectReviewer::initial_reviewer_original_current(
   self : NativeLocalInstalledEffectReviewer,
   original : NativeLocalInitialSigningOriginal,
 ) -> Bool {
+  // The sole caller just selected this Host's original configuration through
+  // selected_configuration, which completed the full binding check. Only the
+  // pure equality/reference comparisons below separate it from this entry.
   physical_equal(original.host, self.host) &&
-  original.require_current() is Ok(_) &&
+  original.require_current_after_host_binding() is Ok(_) &&
   initial_reviewer_host_configuration(self.original_bytes) &&
   self.reviewer.key_id == original.public_key.cid() &&
   self.reviewer.public_key_pem == original.public_key_pem &&
@@ -115,6 +118,13 @@ pub fn NativeLocalHostConnection::bind_initial_effect_reviewer(
     Err(issue) => return Err(issue)
   }
   self.bind_selected_effect_reviewer(
-    crypto, principal, connection, reference, request, approval_scope, now, installed,
+    crypto,
+    principal,
+    connection,
+    reference,
+    request,
+    ResidentApproval(approval_scope),
+    now,
+    installed,
   )
 }

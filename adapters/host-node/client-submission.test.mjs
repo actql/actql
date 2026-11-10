@@ -20,6 +20,7 @@ import {installNodeClientCheck} from './client-check.mjs';
 import {installNodeClientProgramPreparation} from './client-program-preparation.mjs';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
+import {checked} from '../host-common/runtime-result.mjs';
 import {prepareOrdinarySourceManagedInstallation} from './ordinary-source-managed.mjs';
 
 const valuesWire = JSON.parse(await readFile(new URL(
@@ -1003,11 +1004,14 @@ for (const partial of [false, true]) {
 function pairedAdmissionFixture({wholeSource = false, missingModel = false, effectSelection} = {}) {
   const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
   const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'}), declarations = new Map();
-  let holder, route, requestNode, unadmitted;
+  let holder, route, requestNode, unadmitted, directCoordinates;
   function visit(node) {
     if (node === null || typeof node !== 'object') return;
     if (node.type === 'FunctionDeclaration' && node.id?.name === 'captureInstalledManagedRunRoute') {
       assert.equal(route, undefined); route = node;
+    }
+    if (node.type === 'FunctionDeclaration' && node.id?.name === 'installedDirectSourceCoordinates') {
+      assert.equal(directCoordinates, undefined); directCoordinates = node;
     }
     if (node.type === 'Property' && node.method &&
         node.key.name === 'isOriginalManagedComputePreparationRefusal') {assert.equal(holder, undefined); holder = node;}
@@ -1026,7 +1030,7 @@ function pairedAdmissionFixture({wholeSource = false, missingModel = false, effe
       else if (child && typeof child === 'object') visit(child);
     }
   }
-  visit(ast); assert(holder); assert(route); assert(requestNode); assert(unadmitted); assert.equal(declarations.size, 3);
+  visit(ast); assert(holder); assert(route); assert(requestNode); assert(unadmitted); assert(directCoordinates); assert.equal(declarations.size, 3);
   const text = node => source.slice(node.start, node.end), record = {computeRuns: new Map()};
   const runtime = {clientProgramSerializationOccurrences: () => []}, prepared = {}, requested = {};
   const originalInstallation = {initialControl: {}}, originals = {installation: originalInstallation};
@@ -1086,6 +1090,10 @@ function pairedAdmissionFixture({wholeSource = false, missingModel = false, effe
       prepare() {assert.fail('No Source preparation');}, open() {assert.fail('No Source I/O');}};
     sourceProfile.sources = effectSelection === 'duplicate-owner' ? [adapter] : [adapter, second];
     Object.assign(runtime, {clientProgramEffectAcquisitionCount: () => 2,
+      clientProgramEffectDirectSourceCoordinates(value) {
+        assert.strictEqual(value, prepared);
+        return {$tag: 1, _0: [[0, 0, 0, 0], [1, 0, 1, 1]]};
+      },
       clientProgramSelectInstalledEffectSourceInput(value, request, stage, input) {
         assert.strictEqual(value, prepared); assert.strictEqual(request, requested); assert.equal(input, 0);
         return {$tag: 1, _0: stage === 0 ? sourceRef : secondRef};
@@ -1094,7 +1102,10 @@ function pairedAdmissionFixture({wholeSource = false, missingModel = false, effe
   }
   if (wholeSource) {
     Object.assign(runtime, {clientProgramAcquisitionCount: () => 1,
-      clientProgramSelectSingleKeyedAcquisition: () => undefined,
+      clientProgramDirectSourceCoordinates(value) {
+        assert.strictEqual(value, prepared); return {$tag: 1, _0: [[0, 0, 0, 0]]};
+      },
+      clientProgramSelectSingleKeyedAcquisition: () => ({$tag: 1, _0: undefined}),
       clientProgramSelectedSourceInputKind: () => 'whole-input',
       clientProgramSelectedSourceInputRef: () => sourceRef});
     preparation.managedModelSourceCoordinates = () => undefined;
@@ -1105,12 +1116,13 @@ function pairedAdmissionFixture({wholeSource = false, missingModel = false, effe
       registry: undefined, values: undefined, fragment: undefined, ordered: undefined,
       originalSourceFreeRequest(value, requestId) {
         assert.equal(value, prepared); sourceFreeRequestIdentities.set(value, {requested, requestId}); return requested;
-      }, preparation, installedSourceFor, inferSelections, checked: value => value,
+      }, preparation, installedSourceFor, inferSelections, checked,
       runtimeOptionalField: () => undefined, diagnostic() {}, runtimeTag: () => undefined,
       clientOperationError(code, cause) {
         sourceError = Object.assign(new Error(code, {cause}), {code}); return sourceError;
       }};
-    const actualRequest = new Function(...Object.keys(ports), `return (${text(requestNode)});`)(...Object.values(ports));
+    const actualRequest = new Function(...Object.keys(ports),
+      `${text(directCoordinates)}\nreturn (${text(requestNode)});`)(...Object.values(ports));
     requestOf = (...args) => {requestReads++; return actualRequest(...args);};
   }
   const prepareOrdinaryManagedRun = new Function('clientOperationError', `return ${text(route)};`)(

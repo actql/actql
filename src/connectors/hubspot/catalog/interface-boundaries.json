@@ -110,6 +110,579 @@
           }
         }
       ]
+    },
+    {
+      "module": "src/connectors/hubspot/catalog/mapping_initialization_construction.mbt",
+      "sha256": "9d9f838ffdae4cd542100f54201db127cbb83ec30dafede538f657f5eb74fff7",
+      "exports": [],
+      "operations": [
+        {
+          "name": "execution_mapping_construction_capacity",
+          "declaration": "execution_mapping_construction_capacity ( field_count : Int , source_count : Int , input_units : Int64 , limits : MappingLimits , ) - > @ execution . ExecutionCapacity ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing HubSpot Catalog/Mapping constructor and same Common Resource issuer",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "execution_mapping_construction_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/hubspot/catalog/effect_construction.mbt",
+      "sha256": "0653c861d304e3b3a8b05e90b17aa392eaf91c712d2b02f4245eebcfd1c97869",
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing HubSpot native constructors and shared representation inventory owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "effect_account_construction_capacity",
+          "declaration": "effect_account_construction_capacity ( body_bytes : Int , portal_units : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "effect_catalog_recheck_construction_capacity",
+          "declaration": "effect_catalog_recheck_construction_capacity ( max_properties : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "effect_finalization_construction_capacity",
+          "declaration": "effect_finalization_construction_capacity ( body : WriteBodyLimits , request : RecordRequestLimits , read : RecordReadLimits , fields : Int , field_units : Int , binding_units : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "effect_installation_construction_capacity",
+          "declaration": "effect_installation_construction_capacity ( mappings : Int , fields : Int , resources : Int , text_units : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "effect_metadata_capacity_with_geometry",
+          "declaration": "effect_metadata_capacity_with_geometry ( body_bytes : Int , object_units : Int , limits : PropertyLimits , geometry : @ source . JsonSourceGeometry ? , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "effect_metadata_construction_capacity",
+          "declaration": "effect_metadata_construction_capacity ( body_bytes : Int , object_units : Int , limits : PropertyLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "effect_metadata_disposed_construction_capacity",
+          "declaration": "effect_metadata_disposed_construction_capacity ( ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "effect_metadata_observed_construction_capacity",
+          "declaration": "effect_metadata_observed_construction_capacity ( body_bytes : Int , object_units : Int , limits : PropertyLimits , data : Array [ Int ] , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "effect_request_construction_capacity",
+          "declaration": "effect_request_construction_capacity ( body : WriteBodyLimits , request : RecordRequestLimits , read : RecordReadLimits , fields : Int , field_units : Int , binding_units : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "effect_response_construction_capacity",
+          "declaration": "effect_response_construction_capacity ( bytes : Int , nodes : Int , depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "effect_target_construction_capacity",
+          "declaration": "effect_target_construction_capacity ( limits : ObjectPageLimits , output : @ source . ParseLimits , fields : Int , field_units : Int , binding_units : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "hubspot_effect_body_limits_valid",
+          "declaration": "hubspot_effect_body_limits_valid ( limits : WriteBodyLimits ) - > Bool"
+        },
+        {
+          "name": "hubspot_effect_capacity",
+          "declaration": "hubspot_effect_capacity ( retained : @ execution . PreparationRepresentationUnits , workspace : Array [ @ execution . PreparationRepresentationUnits ] , ) - > @ execution . ExecutionCapacity ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "effect_account_construction_capacity",
+            "effect_catalog_recheck_construction_capacity",
+            "effect_finalization_construction_capacity",
+            "effect_installation_construction_capacity",
+            "effect_metadata_capacity_with_geometry",
+            "effect_metadata_construction_capacity",
+            "effect_metadata_disposed_construction_capacity",
+            "effect_metadata_observed_construction_capacity",
+            "effect_request_construction_capacity",
+            "effect_response_construction_capacity",
+            "effect_target_construction_capacity",
+            "hubspot_effect_body_limits_valid",
+            "hubspot_effect_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/hubspot/catalog/effect-construction.md",
+                "anchor": "- Responsibility:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/hubspot/catalog/effect-construction.md",
+                "anchor": "- Inputs and outputs:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/hubspot/catalog/effect-construction.md",
+                "anchor": "- Identity:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/hubspot/catalog/effect-construction.md",
+                "anchor": "- Ownership:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/hubspot/catalog/effect-construction.md",
+                "anchor": "- Synchronization:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/hubspot/catalog/effect-construction.md",
+                "anchor": "- Failure:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/hubspot/catalog/effect-construction.md",
+                "anchor": "- Cancellation:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/hubspot/catalog/effect-construction.md",
+                "anchor": "- Resources:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "The Host passes only original member and operation coordinates. Core resolves"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "The Effect Properties response quote keeps its full eventual Catalog retention"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "A retained Catalog recheck has a different constructor from receiving and"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/hubspot/catalog/effect-construction.md",
+                "anchor": "- Extension:"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/hubspot/catalog/effect-construction.md",
+                "anchor": "- Verification:"
+              },
+              {
+                "path": "adapters/connectors/hubspot/test/hubspot-effect-plan.test.mjs",
+                "anchor": "test('HubSpot fixed footprint binds a scratch-only original member distinct from all physical and capture roles'"
+              },
+              {
+                "path": "src/connectors/hubspot/catalog/effect_metadata_text_alias_wbtest.mbt",
+                "anchor": "test \"Effect shared Catalog text retains full output and real same-token one-short execution refusal\""
+              },
+              {
+                "path": "src/connectors/hubspot/catalog/effect_metadata_text_alias_wbtest.mbt",
+                "anchor": "test \"Effect shared Catalog text keeps independent retention refusal and complete malformed-prefix validation\""
+              },
+              {
+                "path": "src/connectors/hubspot/catalog/effect_recheck_construction_wbtest.mbt",
+                "anchor": "test \"Catalog recheck retains full native meaning and rejects an undersupplied original workspace\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_discarded_projection_js_wbtest.mbt",
+                "anchor": "test \"discarded Unit projection keeps full failed peak then reduces only the admitted remainder\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_empty_headers_js_wbtest.mbt",
+                "anchor": "test \"explicit empty headers keep full failed peak then SAME token retains body native output and pending cleanup\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/hubspot/catalog/source_read_construction.mbt",
+      "sha256": "129cf209e7c17bc34c683a4292aec38df5518cb3251086cd1cb604b3808e4ace",
+      "exports": [],
+      "operations": [
+        {
+          "name": "property_observation_construction_capacity",
+          "declaration": "property_observation_construction_capacity ( bytes : Int , object_units : Int , limits : PropertyLimits , geometry : @ source . JsonSourceGeometry ? , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "property_response_geometry_data",
+          "declaration": "property_response_geometry_data ( data : Array [ Int ] , expected_bytes : Int , ) - > @ source . JsonSourceGeometry ? ?"
+        },
+        {
+          "name": "property_response_observed_construction",
+          "declaration": "property_response_observed_construction ( geometry : @ source . JsonSourceGeometry , n : Int , depth : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "property_response_staging_capacity",
+          "declaration": "property_response_staging_capacity ( ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "source_normalization_phase_capacity",
+          "declaration": "source_normalization_phase_capacity ( parsed : @ execution . PreparationRepresentationUnits , key_units : Int , fixed : @ execution . PreparationRepresentationUnits , later : Array [ @ execution . PreparationRepresentationUnits ] , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "source_property_recheck_capacity_with_geometry",
+          "declaration": "source_property_recheck_capacity_with_geometry ( limits : Array [ Int ] , bytes : Int , geometry : @ source . JsonSourceGeometry ? , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "source_property_recheck_construction_capacity",
+          "declaration": "source_property_recheck_construction_capacity ( limits : Array [ Int ] , bytes : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "source_read_capacity_with_geometry",
+          "declaration": "source_read_capacity_with_geometry ( limits : Array [ Int ] , target_units : Int , received : Array [ Int ] , geometry : @ source . JsonSourceGeometry ? , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "source_read_construction_capacity",
+          "declaration": "source_read_construction_capacity ( limits : Array [ Int ] , target_units : Int , received : Array [ Int ] , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "source_read_observed_construction_capacity",
+          "declaration": "source_read_observed_construction_capacity ( limits : Array [ Int ] , target_units : Int , received : Array [ Int ] , data : Array [ Int ] , ) - > @ execution . ExecutionCapacity ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing HubSpot typed response construction under the original shared Source Reader",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "source_read_construction_capacity",
+            "property_response_observed_construction",
+            "property_response_staging_capacity",
+            "source_property_recheck_capacity_with_geometry",
+            "source_property_recheck_construction_capacity",
+            "source_read_capacity_with_geometry",
+            "source_read_observed_construction_capacity",
+            "source_normalization_phase_capacity",
+            "property_observation_construction_capacity",
+            "property_response_geometry_data"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/hubspot/host/README.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/hubspot/host/README.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/hubspot/host/README.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/hubspot/host/README.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/hubspot/host/README.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/hubspot/host/README.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/hubspot/host/README.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/hubspot/host/README.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/hubspot/host/README.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/hubspot/host/README.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/hubspot/catalog/property_response_source.mbt",
+      "sha256": "0055fa83a28e5fb0b09e6716560eaf8dbd964913de41b2dc490f6332a4dd4b93",
+      "exports": [],
+      "operations": [
+        {
+          "name": "consume_property_response_source",
+          "declaration": "consume_property_response_source ( prepared : Result [ PropertyResponseSource , PropertyIssue ] , path : String , bytes : Bytes , ) - > Result [ PropertyCatalog , PropertyIssue ]"
+        },
+        {
+          "name": "prepare_property_response_source",
+          "declaration": "prepare_property_response_source ( bytes : Bytes , path : String , object_type : String , limits : PropertyLimits , ) - > Result [ PropertyResponseSource , PropertyIssue ]"
+        },
+        {
+          "name": "property_response_source_geometry",
+          "declaration": "property_response_source_geometry ( prepared : Result [ PropertyResponseSource , PropertyIssue ] , ) - > @ source . JsonSourceGeometry ?"
+        },
+        {
+          "name": "property_response_source_geometry_data",
+          "declaration": "property_response_source_geometry_data ( prepared : Result [ PropertyResponseSource , PropertyIssue ] , ) - > Array [ Int ]"
+        },
+        {
+          "name": "retire_property_response_source",
+          "declaration": "retire_property_response_source ( prepared : Result [ PropertyResponseSource , PropertyIssue ] , ) - > Unit"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing Source parser staged under the SAME HubSpot Reader; no physical Owner or authority",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "consume_property_response_source",
+            "prepare_property_response_source",
+            "property_response_source_geometry",
+            "property_response_source_geometry_data",
+            "retire_property_response_source"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/hubspot/catalog/property-response-source.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/hubspot/catalog/property-response-source.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/hubspot/catalog/property-response-source.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/hubspot/catalog/property-response-source.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/hubspot/catalog/property-response-source.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/hubspot/catalog/property-response-source.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/hubspot/catalog/property-response-source.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/hubspot/catalog/property-response-source.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/hubspot/catalog/property-response-source.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/hubspot/catalog/property-response-source.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

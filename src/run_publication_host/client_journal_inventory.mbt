@@ -93,21 +93,21 @@ pub fn[E] inspect_client_run_journal_inventory(
   }
   let mut cursor = ""
   let mut observed = 0
-  let definitions : Map[String, Bool] = Map([], capacity=max_records)
-  let checkpoint_scopes : Map[String, Bool] = Map([], capacity=max_records)
-  let responses : Map[String, Bool] = Map([], capacity=max_records)
-  let receipts : Map[String, Bool] = Map([], capacity=max_records)
-  let task_chunks : Map[String, Bool] = Map([], capacity=max_records * 3)
+  let definitions : Map[String, Bool] = Map([])
+  let checkpoint_scopes : Map[String, Bool] = Map([])
+  let responses : Map[String, Bool] = Map([])
+  let receipts : Map[String, Bool] = Map([])
+  let task_chunks : Map[String, Bool] = Map([])
   while true {
     let row = match scan("client_runs", cursor) {
       Ok(Some(value)) => value
       Ok(None) => break
       Err(issue) => return Err(issue)
     }
-    observed = observed + 1
-    if observed > count {
+    if observed >= count {
       return Err(custody_lost)
     }
+    observed += 1
     let record = match validate_run(row) {
       Ok(value) => value
       Err(issue) => return Err(issue)
@@ -176,9 +176,11 @@ pub fn[E] inspect_client_run_journal_inventory(
       Ok(None) => break
       Err(issue) => return Err(issue)
     }
+    if chunk_count >= task_chunks.length() {
+      return Err(custody_lost)
+    }
     chunk_count += 1
-    if chunk_count > task_chunks.length() ||
-      !task_chunks.contains(row.key) ||
+    if !task_chunks.contains(row.key) ||
       row.key <= cursor ||
       row.revision != 0L ||
       row.body.length() == 0 ||
@@ -198,8 +200,11 @@ pub fn[E] inspect_client_run_journal_inventory(
       Ok(None) => break
       Err(issue) => return Err(issue)
     }
+    if witnesses >= observed {
+      return Err(custody_lost)
+    }
     witnesses += 1
-    if witnesses > observed || !checkpoint_scopes.contains(row.key) {
+    if !checkpoint_scopes.contains(row.key) {
       return Err(custody_lost)
     }
     cursor = row.key
@@ -218,10 +223,11 @@ pub fn[E] inspect_client_run_journal_inventory(
         Ok(None) => break
         Err(issue) => return Err(issue)
       }
+      if response_count >= responses.length() {
+        return Err(custody_lost)
+      }
       response_count += 1
-      if response_count > responses.length() ||
-        !responses.contains(row.key) ||
-        row.revision != 0L {
+      if !responses.contains(row.key) || row.revision != 0L {
         return Err(custody_lost)
       }
       cursor = row.key
@@ -238,10 +244,11 @@ pub fn[E] inspect_client_run_journal_inventory(
       Ok(None) => break
       Err(issue) => return Err(issue)
     }
+    if receipt_count >= receipts.length() {
+      return Err(custody_lost)
+    }
     receipt_count += 1
-    if receipt_count > receipts.length() ||
-      !receipts.contains(row.key) ||
-      row.revision != 0L {
+    if !receipts.contains(row.key) || row.revision != 0L {
       return Err(custody_lost)
     }
     receipt_cursor = row.key
@@ -257,7 +264,21 @@ pub fn[E] inspect_client_run_journal_inventory(
 }
 
 ///|
-/// The existing submitted-intent inventory and cumulative canonical-value cap.
+// Actual original byte metadata only; no future policy is allocated as RAM.
+fn journal_retained_intent_bytes_add(
+  retained : Int64,
+  wire_bytes : Int,
+) -> Int64? {
+  let bytes = wire_bytes.to_int64()
+  if retained < 0L || bytes < 0L || retained > 9223372036854775807L - bytes {
+    None
+  } else {
+    Some(retained + bytes)
+  }
+}
+
+///|
+/// The existing submitted-intent inventory and actual cumulative canonical bytes.
 /// validate_submission uses the original reference/intent decoder and retained
 /// Run relationship before returning the original intent for byte accounting.
 pub fn[E] inspect_client_submitted_journal_inventory(
@@ -286,10 +307,10 @@ pub fn[E] inspect_client_submitted_journal_inventory(
       Ok(None) => break
       Err(issue) => return Err(issue)
     }
-    observed += 1
-    if observed > count {
+    if observed >= count {
       return Err(custody_lost)
     }
+    observed += 1
     let record = match validate_submission(row) {
       Ok(value) => value
       Err(issue) => return Err(issue)
@@ -298,11 +319,13 @@ pub fn[E] inspect_client_submitted_journal_inventory(
       row.key {
       return Err(custody_lost)
     }
-    retained_bytes += @utf8.encode(client_submitted_intent_wire(record.intent))
-      .length()
-      .to_int64()
-    if retained_bytes > 67108864L {
-      return Err(custody_lost)
+    retained_bytes = match
+      journal_retained_intent_bytes_add(
+        retained_bytes,
+        record.intent.wire_bytes,
+      ) {
+      Some(value) => value
+      None => return Err(custody_lost)
     }
     cursor = row.key
   }

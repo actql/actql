@@ -111,8 +111,10 @@ export const statisticalAggregateRefusals = [
   'SELECT DISTINCT VARIANCE(amount) AS v FROM records ORDER BY VAR_POP(amount)',
   'SELECT DISTINCT VARIANCE(amount) AS v FROM records ORDER BY VAR_SAMP(amount + 1)',
 ].map((text, index) => ({name: 'statistical-aggregate-refuse-' + index, format: 'sql', text,
-  ...(text === defaultAnalyticFrame || text.startsWith('SELECT DISTINCT VARIANCE')
-    ? {expectedCode: 'ClientProgramImplementationLimit'} : {}),
+  ...(text === defaultAnalyticFrame
+    ? {expectedCode: 'ClientProgramImplementationLimit'}
+    : text.startsWith('SELECT DISTINCT VARIANCE')
+      ? {expectedCode: 'ClientProgramInvalidInput'} : {}),
 }));
 export const statisticalAggregateExecutionFailures = [{
   name: 'statistical-aggregate-demanded-error', format: 'sql',

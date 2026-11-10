@@ -18,7 +18,7 @@ struct NativeLocalReviewerProofMaterials {
   reviewer : NativeLocalEffectReviewerBinding
   registration : @effect_resolution.NativeEffectReviewerRegistration
   original : NativeLocalReviewerProofSnapshot
-  proof : @checkpoint.PreparedResolutionProof
+  proof : NativeLocalReviewerOriginalProof
 }
 
 ///|
@@ -55,6 +55,10 @@ fn local_reviewer_proof_snapshot_locked(
   expected_run : String,
   expected_checkpoint : String,
 ) -> Result[NativeLocalReviewerProofSnapshot, NativeClientRunJournalIssue] {
+  // Cold retained reads admit the complete checkpoint in read_checkpoint_record;
+  // the existing operation/transaction slot reuses only that admitted record,
+  // with its row bytes/revision and normal invalidation checks. Keep its opaque
+  // sealed artifact here instead of parsing the same immutable wire again.
   let record = match journal.retained(request) {
     Ok(Some(value)) => value
     Ok(None) => return Err(CustodyLost)
@@ -74,12 +78,7 @@ fn local_reviewer_proof_snapshot_locked(
     checkpoint.artifact.checkpoint.kind == @checkpoint.EffectSet &&
     checkpoint.artifact.checkpoint.run_id() == Some(run_id) &&
     checkpoint.artifact.checkpoint.run_definition_cid() == Some(expected_run) &&
-    checkpoint.state.run_id == run_id &&
-    @checkpoint.admit_checkpoint_wire(
-      checkpoint.artifact.wire,
-      native_checkpoint_limits(),
-    ) ==
-    Ok(checkpoint.artifact) else {
+    checkpoint.state.run_id == run_id else {
     return Err(ForeignRun)
   }
   // These are captured facts, not an eligibility decision. Unknown Effects,
@@ -126,6 +125,26 @@ fn prepare_local_reviewer_proof_materials(
   NativeLocalReviewerProofMaterials,
   NativeLocalReviewerProofMaterialsIssue,
 ] {
+  prepare_local_reviewer_original_proof_materials(
+    key,
+    reviewer,
+    unsigned_wire,
+    limits,
+    ResolutionOriginalKind,
+  )
+}
+
+///|
+fn prepare_local_reviewer_original_proof_materials(
+  key : NativeLocalReviewerProofKey,
+  reviewer : NativeLocalEffectReviewerBinding,
+  unsigned_wire : String,
+  limits : @checkpoint.WireLimits,
+  kind : NativeLocalReviewerOriginalProofKind,
+) -> Result[
+  NativeLocalReviewerProofMaterials,
+  NativeLocalReviewerProofMaterialsIssue,
+] {
   let registration = match key.read_current_reviewer(reviewer) {
     Ok(value) => value
     Err(issue) => return Err(ProofKey(issue))
@@ -140,14 +159,28 @@ fn prepare_local_reviewer_proof_materials(
     Ok(value) => value
     Err(issue) => return Err(ProofOriginal(issue))
   }
-  let proof = match
-    @checkpoint.prepare_resolution_proof(
-      original.artifact,
-      unsigned_wire,
-      limits,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(ProofBody(issue))
+  let proof = match kind {
+    ResolutionOriginalKind =>
+      match
+        @checkpoint.prepare_resolution_proof(
+          original.artifact,
+          unsigned_wire,
+          limits,
+        ) {
+        Ok(value) => ResolutionOriginal(value)
+        Err(issue) => return Err(ProofBody(issue))
+      }
+    ApprovalOriginalKind =>
+      match
+        @checkpoint.prepare_effect_approval_proof(
+          original.artifact,
+          unsigned_wire,
+          registration.approval_authority_scope_cid,
+          limits,
+        ) {
+        Ok(value) => ApprovalOriginal(value)
+        Err(issue) => return Err(ProofBody(issue))
+      }
   }
   if proof.actor() != registration.reviewer_id {
     return Err(ProofUnavailable)

@@ -135,3 +135,36 @@ test "physical batch rows share one request member and Preview" {
     effect_batch_rows_share_member(first, first_key, foreign_run, foreign_key),
   )
 }
+
+///|
+test "dispatch key caller borrows existing codec ceilings without truncating long row keys" {
+  let (bytes, nodes, depth) = effect_dispatch_key_codec_limits()
+  assert_eq((bytes, nodes, depth), (1000000, 1000, 32))
+  let scope = prepare_logical_request_scope(
+    "sha256:" + "a".repeat(64),
+    "request-1",
+    32,
+  ).unwrap()
+  let preview = "sha256:" + "b".repeat(64)
+  let row = "\"" + "x".repeat(9000) + "\""
+  assert_true(
+    prepare_effect_dispatch_key(scope, preview, row, 8192, nodes, depth)
+    is Err(InvalidRowKey),
+  )
+  assert_true(
+    prepare_effect_dispatch_key(scope, preview, row, bytes, nodes, depth)
+    is Ok(_),
+  )
+  assert_true(
+    prepare_effect_dispatch_key(scope, preview, row, bytes + 1, nodes, depth)
+    is Err(InvalidLimits),
+  )
+  assert_true(
+    prepare_effect_dispatch_key(scope, preview, row, bytes, nodes + 1, depth)
+    is Err(InvalidLimits),
+  )
+  assert_true(
+    prepare_effect_dispatch_key(scope, preview, row, bytes, nodes, depth + 1)
+    is Err(InvalidLimits),
+  )
+}

@@ -8,7 +8,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
-      "sha256": "b76a5b1ac9ad9ff300ab8507e493d1dd1aec2c5a1412c0b1e9b63c3644d9e937",
+      "sha256": "b721cfa805464f2209b42454fd30ed329614f9f9d70c7c119432c0e8cc222fdb",
       "exports": [
         "openAcquiredEffectComputation"
       ],
@@ -301,6 +301,11 @@
           "async": false
         },
         {
+          "name": "acquiredEffectModelGroup/retirePublication",
+          "parameters": [],
+          "async": true
+        },
+        {
           "name": "acquiredEffectModelGroup/same/same",
           "parameters": [],
           "async": false
@@ -501,7 +506,8 @@
         {
           "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#3",
           "parameters": [
-            "value"
+            "value",
+            "index"
           ],
           "async": false
         },
@@ -608,6 +614,18 @@
           "name": "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/sourceEvidence/sourceEvidence",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openAcquiredEffectComputation/retireInferPublication/retireInferPublication",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openAcquiredEffectComputation/wholeInputs/wholeInputs",
+          "parameters": [
+            "source"
           ],
           "async": false
         },
@@ -787,7 +805,10 @@
             "acquiredEffectModelGroup/retainCompleted/retainCompleted/retainCompleted#2",
             "acquiredEffectModelGroup/same/same",
             "acquiredEffectModelGroup/same/same/same",
-            "acquiredEffectModelGroup/init:bind/init:bind/inherited/inherited"
+            "acquiredEffectModelGroup/init:bind/init:bind/inherited/inherited",
+            "acquiredEffectModelGroup/retirePublication",
+            "openAcquiredEffectComputation/retireInferPublication/retireInferPublication",
+            "openAcquiredEffectComputation/wholeInputs/wholeInputs"
           ],
           "exports": [
             "openAcquiredEffectComputation"
@@ -1347,7 +1368,7 @@
     },
     {
       "module": "adapters/host-node/acquired-effect-continuation.mjs",
-      "sha256": "25a743c9e5d9b29001707d8af6c2587ddc752ee2c8b6318dadc2bf5ebfe7309d",
+      "sha256": "d3edabedbaf259facd3fb106e1d5c5a4979247ab7dbfd0c9e16162c0c307b0c9",
       "exports": [
         "acquiredEffectContinuation"
       ],
@@ -1566,20 +1587,46 @@
           "async": false
         },
         {
+          "name": "acquiredEffectContinuation/init:restore/init:restore/captured/init:originalCapturedInput/init:originalCapturedInput",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "acquiredEffectContinuation/init:restore/init:restore/close/close",
           "parameters": [],
           "async": true
         },
         {
+          "name": "acquiredEffectContinuation/init:restore/init:restore/custodyAvailable/custodyAvailable",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "acquiredEffectContinuation/init:restore/init:restore/init:restore",
           "parameters": [
-            "row"
+            "key"
           ],
           "async": false
         },
         {
-          "name": "acquiredEffectContinuation/init:restore/init:restore/owner/owner",
-          "parameters": [],
+          "name": "acquiredEffectContinuation/init:restore/init:restore/init:restore#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectContinuation/init:restore/init:restore/init:restore#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectContinuation/init:restore/init:restore/init:restore#4",
+          "parameters": [
+            "row"
+          ],
           "async": false
         },
         {
@@ -1716,7 +1763,6 @@
             "acquiredEffectContinuation/init:restore/init:restore/captured/captured#3",
             "acquiredEffectContinuation/init:restore/init:restore/close/close",
             "acquiredEffectContinuation/init:restore/init:restore/init:restore",
-            "acquiredEffectContinuation/init:restore/init:restore/owner/owner",
             "acquiredEffectContinuation/init:retainAll/init:retainAll",
             "acquiredEffectContinuation/nextJournal/nextJournal",
             "acquiredEffectContinuation/nextJournal/nextJournal#2",
@@ -1730,7 +1776,12 @@
             "bindingFor/bindingFor",
             "fail/fail",
             "same/same",
-            "sourceScope/sourceScope"
+            "sourceScope/sourceScope",
+            "acquiredEffectContinuation/init:restore/init:restore/custodyAvailable/custodyAvailable",
+            "acquiredEffectContinuation/init:restore/init:restore/init:restore#2",
+            "acquiredEffectContinuation/init:restore/init:restore/init:restore#3",
+            "acquiredEffectContinuation/init:restore/init:restore/init:restore#4",
+            "acquiredEffectContinuation/init:restore/init:restore/captured/init:originalCapturedInput/init:originalCapturedInput"
           ],
           "exports": [
             "acquiredEffectContinuation"
@@ -2793,44 +2844,51 @@
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#12",
-          "parameters": [],
+          "parameters": [
+            "value"
+          ],
           "async": false
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#13",
-          "parameters": [],
+          "parameters": [
+            "value"
+          ],
           "async": false
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#14",
           "parameters": [
-            "task"
+            "source"
           ],
           "async": false
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#15",
           "parameters": [
-            "task"
+            "value"
           ],
           "async": false
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#16",
           "parameters": [
-            "task"
+            "value"
           ],
           "async": false
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#17",
-          "parameters": [
-            "task"
-          ],
+          "parameters": [],
           "async": false
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#18",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/start/start/start/start#19",
           "parameters": [
             "task"
           ],
@@ -2840,6 +2898,34 @@
           "name": "installNodeClientDispatchOwner/start/start/start/start#2",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/start/start/start/start#20",
+          "parameters": [
+            "task"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/start/start/start/start#21",
+          "parameters": [
+            "task"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/start/start/start/start#22",
+          "parameters": [
+            "task"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/start/start/start/start#23",
+          "parameters": [
+            "task"
           ],
           "async": false
         },
@@ -2888,7 +2974,7 @@
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#9",
           "parameters": [
-            "source"
+            "value"
           ],
           "async": false
         },
@@ -3052,7 +3138,6 @@
             "cancelNodeRunContinuation",
             "collectNodeRunStop",
             "confirmNodeRunCancellation",
-            "observeNodeRunCancellation",
             "installNodeClientDispatchOwner",
             "installNodeClientDispatchOwner/acquireKeyedSources",
             "installNodeClientDispatchOwner/acquireKeyedSources/captured/captured",
@@ -3091,7 +3176,7 @@
             "installNodeClientDispatchOwner/start/start/start/result/init:retainExecution/init:retainExecution",
             "installNodeClientDispatchOwner/start/start/start/result/result",
             "installNodeClientDispatchOwner/start/start/start/result/result#2",
-            "installNodeClientDispatchOwner/start/start/start/start#9",
+            "installNodeClientDispatchOwner/start/start/start/start",
             "installNodeClientDispatchOwner/start/start/start/start#10",
             "installNodeClientDispatchOwner/start/start/start/start#11",
             "installNodeClientDispatchOwner/start/start/start/start#12",
@@ -3099,14 +3184,19 @@
             "installNodeClientDispatchOwner/start/start/start/start#14",
             "installNodeClientDispatchOwner/start/start/start/start#15",
             "installNodeClientDispatchOwner/start/start/start/start#18",
-            "installNodeClientDispatchOwner/start/start/start/start",
+            "installNodeClientDispatchOwner/start/start/start/start#19",
             "installNodeClientDispatchOwner/start/start/start/start#2",
+            "installNodeClientDispatchOwner/start/start/start/start#20",
+            "installNodeClientDispatchOwner/start/start/start/start#21",
+            "installNodeClientDispatchOwner/start/start/start/start#22",
+            "installNodeClientDispatchOwner/start/start/start/start#23",
             "installNodeClientDispatchOwner/start/start/start/start#3",
             "installNodeClientDispatchOwner/start/start/start/start#4",
             "installNodeClientDispatchOwner/start/start/start/start#5",
             "installNodeClientDispatchOwner/start/start/start/start#6",
             "installNodeClientDispatchOwner/start/start/start/start#7",
             "installNodeClientDispatchOwner/start/start/start/start#8",
+            "installNodeClientDispatchOwner/start/start/start/start#9",
             "installNodeClientDispatchOwner/step/step",
             "installNodeClientDispatchOwner/track/track",
             "installNodeClientDispatchOwner/track/track/track",
@@ -3119,6 +3209,7 @@
             "installNodeClientDispatchOwner/track/track/track/init:observePreEffectFailure/init:observePreEffectFailure",
             "installNodeClientDispatchOwner/track/track/track/init:retainExecution/init:retainExecution",
             "observeNodeRestoredModelStop",
+            "observeNodeRunCancellation",
             "observeNodeRunStop",
             "recordNodeRunPhysicalStop"
           ],
@@ -4365,7 +4456,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "0e903606e4b22f1aa09c8d512ed530dae48e8362fc2232d12eea236844845868",
+      "sha256": "d7fcf1d90056c91d8a9ecb61b3934df9eb7e62110d0108bf06b09631d7f97ca8",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {
@@ -7598,7 +7689,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual}));"
+                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
               },
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
@@ -8818,11 +8909,11 @@
             "resources": [
               {
                 "path": "adapters/host-node/host-result-service-recipe.cjs",
-                "anchor": "conditionalWireHistory: record("
+                "anchor": "maxReadWireBytes: 10 * 1024 * 1024"
               },
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
-                "anchor": "entry.storeOperations++;"
+                "anchor": "entry.storeCurrent = () => void resultCurrent(entry.original, held);"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -9969,9 +10060,9 @@
             "openPreparedInstalledHost/preparation/init:effectManagedRun/init:effectManagedRun",
             "openPreparedInstalledHost/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun",
             "openPreparedInstalledHost/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun/current/current",
+            "openPreparedInstalledHost/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun/modelFor/modelFor",
             "readSourceManagedEffectRunRequirements/readSourceManagedEffectRunRequirements",
-            "readSourceManagedEffectRunRequirements/readSourceManagedEffectRunRequirements#2",
-            "openPreparedInstalledHost/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun/modelFor/modelFor"
+            "readSourceManagedEffectRunRequirements/readSourceManagedEffectRunRequirements#2"
           ],
           "exports": [],
           "attributes": {
@@ -10973,9 +11064,15 @@
         },
         {
           "operations": [
+            "installedDirectSourceCoordinates",
+            "installedDirectSourceCoordinates/installedDirectSourceCoordinates",
+            "installedDirectSourceCoordinates/installedDirectSourceCoordinates/installedDirectSourceCoordinates",
             "openPreparedInstalledHost/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/funded/funded",
             "openPreparedInstalledHost/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/init:prepareManagedComputeRun#2",
             "prepareManagedComputeCapturePlan",
+            "prepareManagedComputeCapturePlan/args/args",
+            "prepareManagedComputeCapturePlan/args/args#2",
+            "prepareManagedComputeCapturePlan/args/args#3",
             "retainedManagedCaptureInventory"
           ],
           "exports": [],
@@ -11790,9 +11887,9 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareCapturedSubmission/prepareCapturedSubmission",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/prepareInferSelection",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/prepareInferSelection#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/prepareInferSelection/prepareInferSelection",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture/recoverEffectCapture#3",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/init:assertContinuationCurrent/init:assertContinuationCurrent",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/prepareInferSelection/prepareInferSelection"
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/init:assertContinuationCurrent/init:assertContinuationCurrent"
           ],
           "exports": [],
           "attributes": {
@@ -11824,6 +11921,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "A held-submission caller supplies its complete saved prepared original"
               }
             ],
             "inputsOutputs": [
@@ -11854,6 +11955,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "A held-submission caller supplies its complete saved prepared original"
               }
             ],
             "identity": [
@@ -11884,6 +11989,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "A held-submission caller supplies its complete saved prepared original"
               }
             ],
             "ownership": [
@@ -11914,6 +12023,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "A held-submission caller supplies its complete saved prepared original"
               }
             ],
             "synchronization": [
@@ -11944,6 +12057,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "A held-submission caller supplies its complete saved prepared original"
               }
             ],
             "failure": [
@@ -11974,6 +12091,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "A held-submission caller supplies its complete saved prepared original"
               }
             ],
             "cancellation": [
@@ -12004,6 +12125,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "A held-submission caller supplies its complete saved prepared original"
               }
             ],
             "resources": [
@@ -12034,6 +12159,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "A held-submission caller supplies its complete saved prepared original"
               }
             ],
             "extension": [
@@ -12064,6 +12193,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "A held-submission caller supplies its complete saved prepared original"
               }
             ],
             "verification": [
@@ -12118,6 +12251,14 @@
               {
                 "path": "adapters/host-node/request-model-material-resources.test.mjs",
                 "anchor": "test('Effect Model actual Host reserves execution and dependency materials through its same Request before readers'"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "A held-submission caller supplies its complete saved prepared original"
+              },
+              {
+                "path": "adapters/host-node/installed-update-originals.test.mjs",
+                "anchor": "held caller reuses its complete original only after existing nominal current and full-byte validation"
               }
             ]
           }
@@ -12318,13 +12459,18 @@
           "operations": [
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/observeAccount/observeAccount#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/selection/init:currentProvider/init:currentProvider",
+            "prepareRequestMockModelPlan/prepareRequestMockModelPlan#17",
+            "prepareRequestMockModelPlan/prepareRequestMockModelPlan#18",
+            "prepareRequestMockModelPlan/prepareRequestMockModelPlan#19",
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan#2",
             "readLocalMockModelRunRequirements",
             "readLocalMockModelRunRequirements/asset/asset",
             "readLocalMockModelRunRequirements/declarations/declarations",
             "readLocalMockModelRunRequirements/documentBytes/documentBytes",
             "readLocalMockModelRunRequirements/readLocalMockModelRunRequirements",
-            "readLocalMockModelRunRequirements/readLocalMockModelRunRequirements#2"
+            "readLocalMockModelRunRequirements/readLocalMockModelRunRequirements#2",
+            "prepareRequestMockModelPlan/kinds/kinds",
+            "prepareRequestMockModelPlan/prepareRequestMockModelPlan#20"
           ],
           "exports": [
             "readLocalMockModelRunRequirements"
@@ -13086,6 +13232,7 @@
             "prepareManagedComputeCapturePlan/prepareManagedComputeCapturePlan#2",
             "prepareManagedComputeCapturePlan/prepareManagedComputeCapturePlan#3",
             "prepareManagedComputeCapturePlan/prepareManagedComputeCapturePlan#4",
+            "prepareManagedComputeCapturePlan/prepareManagedComputeCapturePlan#5",
             "readManagedComputeRunRequirements/readManagedComputeRunRequirements#6"
           ],
           "exports": [],
@@ -14463,7 +14610,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual}));"
+                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
               },
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
@@ -16100,7 +16247,7 @@
         {
           "operations": [
             "openInstalledHost/assertMockEffectRunOriginal",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#6",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#7",
             "openInstalledHost/mockEffectResources/init:assertCurrent/init:assertCurrent",
             "openInstalledHost/mockEffectResources/init:bindRunOriginal/init:bindRunOriginal",
             "openInstalledHost/mockEffectResources/init:limits/init:limits",
@@ -16600,11 +16747,12 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/checkpointOperations/init:resolve/init:resolve",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/continueAcceptedCancellation/continueAcceptedCancellation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/definitionOf/definitionOf",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/directSourceOccurrence/directSourceOccurrence",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#4",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#5",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#6",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/init:requestIdentityFor/init:requestIdentityFor",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/init:validateInstallation/init:validateInstallation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation",
@@ -16619,9 +16767,11 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#4",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#5",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#6",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/records/records",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/sourceContinuation/sourceContinuation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/sourceContinuation/sourceContinuation#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/taskIndices/taskIndices",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/nextJournal/nextJournal",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/nextJournal/nextJournal#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/sourceCheckpoints/sourceCheckpoints",
@@ -16658,8 +16808,16 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/port/port/port",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareAcquisition/prepareAcquisition",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareAcquisitions/prepareAcquisitions",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareComposedInferSelection/prepareComposedInferSelection",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareComposedInferSelection/prepareComposedInferSelection/components/components",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareComposedInferSelection/prepareComposedInferSelection/graph/graph",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareComposedInferSelection/prepareComposedInferSelection/prepareComposedInferSelection",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareComposedInferSelection/prepareComposedInferSelection/prepareComposedInferSelection#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareEffectInferSelection/prepareEffectInferSelection",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareEffectInferSelection/prepareEffectInferSelection/occurrences/occurrences",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/observeAccount/observeAccount",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/prepareInferSelection#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/providerBinding/providerBinding",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/providerBinding/providerBinding#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/requestModelMaterials/requestModelMaterials",
@@ -16681,6 +16839,7 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture/recoverEffectCapture#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture/recoverEffectCapture#4",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/requestOf/requestOf",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/requestOf/requestOf/init:onUnsupportedSelection/init:onUnsupportedSelection",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/resultAuthority/resultAuthority",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/resultAuthority/resultAuthority#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld",
@@ -16800,17 +16959,7 @@
             "sameEmbeddedInstallation/sameEmbeddedInstallation",
             "validateSourceNamespace",
             "validateValuesMaxRows",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/requestOf/requestOf/init:onUnsupportedSelection/init:onUnsupportedSelection",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#6",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/taskIndices/taskIndices",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareComposedInferSelection/prepareComposedInferSelection",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareComposedInferSelection/prepareComposedInferSelection/components/components",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareComposedInferSelection/prepareComposedInferSelection/graph/graph",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareComposedInferSelection/prepareComposedInferSelection/prepareComposedInferSelection",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareComposedInferSelection/prepareComposedInferSelection/prepareComposedInferSelection#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareEffectInferSelection/prepareEffectInferSelection",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareEffectInferSelection/prepareEffectInferSelection/occurrences/occurrences",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/prepareInferSelection#3"
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/retainFrame/retainFrame"
           ],
           "exports": [
             "connectEmbeddedLocal",
@@ -17195,6 +17344,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "Within one Local wait invocation, the next poll may borrow the last completed"
               }
             ],
             "ownership": [
@@ -17207,7 +17360,7 @@
                 "path": "adapters/host-node/client-request-journal.mjs"
               },
               {
-                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual}));",
+                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));",
                 "path": "adapters/host-node/embedded-local.mjs"
               },
               {
@@ -18177,6 +18330,10 @@
               {
                 "anchor": "## Verification",
                 "path": "adapters/host-node/installed-funded-environment.md"
+              },
+              {
+                "path": "adapters/host-node/client-run-observation-reuse.test.mjs",
+                "anchor": "test('actual wait borrows one same-Journal frame while fresh SQL and current gates remain live'"
               }
             ]
           }
@@ -18216,6 +18373,7 @@
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan#7",
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan#8",
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan#9",
+            "prepareRequestMockModelPlan/whole/whole",
             "retainRequestModelBoundsAndBudget",
             "retainRequestModelBoundsAndBudget/retainRequestModelBoundsAndBudget",
             "retainRequestModelBoundsAndBudget/retainRequestModelBoundsAndBudget#2"
@@ -18687,6 +18845,115 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun",
+            "openPreparedInstalledHost/preparation/init:reserveManagedEffectOriginal/init:reserveManagedEffectOriginal"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_original.mbt",
+                "anchor": "reserve_request_effect_original_material"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_original.mbt",
+                "anchor": "reserve_request_effect_original_material"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_original.mbt",
+                "anchor": "reserve_request_effect_original_material"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_original.mbt",
+                "anchor": "reserve_request_effect_original_material"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_original.mbt",
+                "anchor": "reserve_request_effect_original_material"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_original.mbt",
+                "anchor": "reserve_request_effect_original_material"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_original.mbt",
+                "anchor": "reserve_request_effect_original_material"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_original.mbt",
+                "anchor": "reserve_request_effect_original_material"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Selection and installation metadata retains its 64 KiB bound."
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_original.mbt",
+                "anchor": "reserve_request_effect_original_material"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "Effect original projection forwards only the same checked Request and keeps a failed reservation sticky"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_original_js_wbtest.mbt",
+                "anchor": "Effect original envelope refuses one-byte-short retained backing without spending prepaid execution twice"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
@@ -18843,6 +19110,29 @@
           "parameters": [
             "key",
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedDirectSourceCoordinates",
+          "parameters": [
+            "moon",
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedDirectSourceCoordinates/installedDirectSourceCoordinates",
+          "parameters": [
+            "value",
+            "slot"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedDirectSourceCoordinates/installedDirectSourceCoordinates/installedDirectSourceCoordinates",
+          "parameters": [
+            "item"
           ],
           "async": false
         },
@@ -19399,9 +19689,19 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/directSourceOccurrence/directSourceOccurrence",
+          "parameters": [
+            "prepared",
+            "index"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun",
           "parameters": [
-            "prepared"
+            "prepared",
+            "material",
+            "installations"
           ],
           "async": false
         },
@@ -19415,19 +19715,26 @@
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#2",
           "parameters": [
-            "facts"
+            "prepared"
           ],
           "async": false
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#3",
           "parameters": [
-            "prepared"
+            "facts"
           ],
           "async": false
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#4",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#5",
           "parameters": [
             "actual",
             "connection"
@@ -19435,7 +19742,7 @@
           "async": true
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#5",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#6",
           "parameters": [
             "actual",
             "connection",
@@ -19444,7 +19751,7 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#6",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#7",
           "parameters": [
             "prepared",
             "compilation",
@@ -19875,7 +20182,9 @@
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/observeRun/observeRun",
           "parameters": [
             "ref",
-            "actual"
+            "actual",
+            "originalFrame",
+            "retainFrame"
           ],
           "async": true
         },
@@ -21051,6 +21360,13 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/retainFrame/retainFrame",
+          "parameters": [
+            "frame"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/wait",
           "parameters": [
             "resolve"
@@ -22147,6 +22463,16 @@
           "async": false
         },
         {
+          "name": "openPreparedInstalledHost/preparation/init:reserveManagedEffectOriginal/init:reserveManagedEffectOriginal",
+          "parameters": [
+            "runtime",
+            "prepared",
+            "material",
+            "installations"
+          ],
+          "async": false
+        },
+        {
           "name": "openPreparedInstalledHost/preparation/init:restoreManagedModelOriginal/init:restoreManagedModelOriginal",
           "parameters": [
             "runtime",
@@ -22403,6 +22729,27 @@
           "async": false
         },
         {
+          "name": "prepareManagedComputeCapturePlan/args/args",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareManagedComputeCapturePlan/args/args#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareManagedComputeCapturePlan/args/args#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareManagedComputeCapturePlan/prepareManagedComputeCapturePlan",
           "parameters": [
             "value"
@@ -22425,6 +22772,13 @@
         },
         {
           "name": "prepareManagedComputeCapturePlan/prepareManagedComputeCapturePlan#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareManagedComputeCapturePlan/prepareManagedComputeCapturePlan#5",
           "parameters": [
             "value"
           ],
@@ -22458,6 +22812,13 @@
         {
           "name": "prepareRequestMockModelPlan/current/current",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareRequestMockModelPlan/kinds/kinds",
+          "parameters": [
+            "coordinate"
+          ],
           "async": false
         },
         {
@@ -22510,16 +22871,35 @@
         {
           "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#15",
           "parameters": [
-            "value"
+            "kind"
           ],
           "async": false
         },
         {
           "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#16",
           "parameters": [
-            "_capacity",
-            "prefix",
-            "bindSuffix"
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#17",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#18",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#19",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -22527,6 +22907,15 @@
           "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#2",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#20",
+          "parameters": [
+            "_capacity",
+            "prefix",
+            "bindSuffix"
           ],
           "async": false
         },
@@ -22579,6 +22968,13 @@
           "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#9",
           "parameters": [
             "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRequestMockModelPlan/whole/whole",
+          "parameters": [
+            "kind"
           ],
           "async": false
         },
@@ -23002,6 +23398,7 @@
         "./effect-target-read-inventory.mjs",
         "./embedded-local-lifecycle.mjs",
         "./entry.mjs",
+        "./host-result-service-recipe.cjs",
         "./host-root-format.mjs",
         "./http-request-preparation.mjs",
         "./in-process-client.mjs",
@@ -23066,12 +23463,12 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "2d7b5959815ab92a763458949f1eb4b5241fc893d86f463be892c3439c7529ff"
+      "sha256": "aeb442a259f5e1ce2d79fe68b3fde8571faf57492844d2d0f22bb5f9d8e15825"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
       "role": "physical-io",
-      "owner": "A \u2014 existing Host preparation input boundary",
+      "owner": "A — existing Host preparation input boundary",
       "responsibilityFacet": "primary",
       "contracts": [
         {
@@ -24016,7 +24413,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "e410a4db88c534e862deb28891fa1e01b1dad7a9fee115d4f47113f3bac8064d",
+      "sha256": "7541355f2c2d0812db859afd0dc992eac91a40f1e39d6f5e24aab87b94214cb8",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -24096,6 +24493,7 @@
             "control",
             "acquired",
             "preparedProgram",
+            "publicationOriginal",
             "captured",
             "sourceEvidence",
             "keyedObservation",
@@ -24165,6 +24563,7 @@
             "control",
             "acquired",
             "preparedProgram",
+            "publicationOriginal",
             "sources",
             "authorityScopeCid",
             "effectiveDataPolicyCid",
@@ -24200,12 +24599,20 @@
           "async": false
         },
         {
+          "name": "acquiredMultiTaskPublicationPlan/whole/whole",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
           "name": "acquiredTaskPublicationPlan",
           "parameters": [
             "moon",
             "control",
             "acquired",
             "preparedProgram",
+            "publicationOriginal",
             "captured",
             "sourceEvidence",
             "authorityScopeCid",
@@ -24643,6 +25050,7 @@
             "acquiredMultiTaskPublicationPlan/acquiredMultiTaskPublicationPlan",
             "acquiredMultiTaskPublicationPlan/acquiredMultiTaskPublicationPlan#2",
             "acquiredMultiTaskPublicationPlan/acquiredMultiTaskPublicationPlan#3",
+            "acquiredMultiTaskPublicationPlan/whole/whole",
             "acquiredTaskPublicationPlan",
             "acquiredTaskRunAdmission",
             "buildLocalPublicationPlan",
@@ -24913,7 +25321,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -25216,7 +25624,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -25737,7 +26145,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -25899,6 +26307,7 @@
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/result-output-limits.mjs",
         "../host-common/runtime-result.mjs",
+        "./host-result-service-recipe.cjs",
         "./local-values-capacity.mjs",
         "./query-evaluation-clock.mjs",
         "node:crypto"
