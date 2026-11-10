@@ -108,20 +108,22 @@ fn NativeLocalSavedEffectReview::resolve_initial_original(
     return Err(SavedResolutionUnavailable)
   }
   let limits = native_checkpoint_limits()
+  // Both unsigned emitters are closed flat records (at most twelve fields,
+  // with one claim Array). Back this non-text measurement frame first; the
+  // SAME emitter then supplies actual bytes/nodes/depth for its text writer.
+  let measurement = @encode.text_writer_construction_inventory(0, 12, 2).unwrap()
   match
     self.capture.prepare_model_entry_construction(
-      Some(limits.max_wire_bytes),
-      nodes=limits.max_nodes,
-      depth=limits.max_depth,
+      None,
       additional_controls=Some({
         // Reuse the existing Native review emitter's larger fixed frame:
         // twelve borrowed field tuples, Writer controls and two digest slots.
         // This emitter has eleven pairs and two shorter original operation IDs.
         // Two retained slots plus the acknowledged record option/map frame.
-        record_headers: 42L,
-        reference_slots: 68L,
-        scalar_words: 401L,
-        owned_utf16_units: 256L,
+        record_headers: 42L + measurement.record_headers,
+        reference_slots: 68L + measurement.reference_slots,
+        scalar_words: 401L + measurement.scalar_words,
+        owned_utf16_units: 256L + measurement.owned_utf16_units,
         owned_wire_bytes: 192L,
       }),
     ) {
@@ -151,6 +153,28 @@ fn NativeLocalSavedEffectReview::resolve_initial_original(
   }
   let approval = if action == "approve" {
     let unsigned = try {
+      let measure = @encode.measuring_writer(
+        limits.max_wire_bytes,
+        limits.max_nodes,
+        limits.max_depth,
+      )
+      emit_saved_effect_approval(
+        measure,
+        original.checkpoint.artifact,
+        self.principal,
+        original.authority,
+        decided_at,
+      )
+      let (bytes, nodes, depth) = @encode.finish_measurement_usage(measure)
+      match
+        self.capture.prepare_model_entry_construction(
+          Some(bytes),
+          nodes~,
+          depth~,
+        ) {
+        Ok(_) => ()
+        Err(issue) => return Err(SavedResolutionOriginal(issue))
+      }
       let writer = @encode.writer(
         limits.max_wire_bytes,
         limits.max_nodes,
@@ -192,6 +216,25 @@ fn NativeLocalSavedEffectReview::resolve_initial_original(
     None
   }
   let unsigned = try {
+    let measure = @encode.measuring_writer(
+      limits.max_wire_bytes,
+      limits.max_nodes,
+      limits.max_depth,
+    )
+    emit_saved_effect_resolution(
+      measure,
+      original.checkpoint.artifact,
+      self.principal,
+      decision,
+      decided_at,
+      approval_evidence_cid=approval.map(value => value.1),
+    )
+    let (bytes, nodes, depth) = @encode.finish_measurement_usage(measure)
+    match
+      self.capture.prepare_model_entry_construction(Some(bytes), nodes~, depth~) {
+      Ok(_) => ()
+      Err(issue) => return Err(SavedResolutionOriginal(issue))
+    }
     let writer = @encode.writer(
       limits.max_wire_bytes,
       limits.max_nodes,

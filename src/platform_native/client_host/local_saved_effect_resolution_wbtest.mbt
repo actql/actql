@@ -111,3 +111,63 @@ test "Native saved resolution rejection omits evidence and Core rejects missing 
     is Err(@checkpoint.EvidenceRequired),
   )
 }
+
+///|
+test "Native saved decision construction measures actual escaped originals without using codec ceilings" {
+  let artifact = saved_resolution_codec_checkpoint()
+  let limits = native_checkpoint_limits()
+  let actor = "reviewer日😀\"\\\n"
+  let authority = "sha256:" + "5".repeat(64)
+  let measured = @encode.measuring_writer(
+    limits.max_wire_bytes,
+    limits.max_nodes,
+    limits.max_depth,
+  )
+  let written = @encode.writer(
+    limits.max_wire_bytes,
+    limits.max_nodes,
+    limits.max_depth,
+  )
+  for writer in [measured, written] {
+    emit_saved_effect_approval(
+      writer,
+      artifact,
+      actor,
+      authority,
+      artifact.checkpoint.created_at,
+    )
+  }
+  let (bytes, nodes, depth) = @encode.finish_measurement_usage(measured)
+  assert_eq(bytes, @utf8.encode(@encode.finish(written)).length())
+  assert_eq(nodes, 9)
+  assert_eq(depth, 2)
+  assert_true(bytes < limits.max_wire_bytes)
+  assert_true(nodes < limits.max_nodes)
+  for evidence in [None, Some("sha256:" + "6".repeat(64))] {
+    let measured = @encode.measuring_writer(
+      limits.max_wire_bytes,
+      limits.max_nodes,
+      limits.max_depth,
+    )
+    let written = @encode.writer(
+      limits.max_wire_bytes,
+      limits.max_nodes,
+      limits.max_depth,
+    )
+    for writer in [measured, written] {
+      emit_saved_effect_resolution(
+        writer,
+        artifact,
+        actor,
+        "approved",
+        artifact.checkpoint.created_at,
+        approval_evidence_cid=evidence,
+      )
+    }
+    let (bytes, nodes, depth) = @encode.finish_measurement_usage(measured)
+    assert_eq(bytes, @utf8.encode(@encode.finish(written)).length())
+    assert_eq(nodes, if evidence is Some(_) { 13 } else { 12 })
+    assert_eq(depth, 1)
+    assert_true(bytes < limits.max_wire_bytes)
+  }
+}
