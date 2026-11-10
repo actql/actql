@@ -127,3 +127,25 @@ test "Native saved review preserves complete original publication metadata witho
     )
   }
 }
+
+///|
+test "Native saved review closed codec accepts same one-use observed cursor" {
+  let limits : @checkpoint.WireLimits = {
+    max_wire_bytes: 4096,
+    max_nodes: 128,
+    max_depth: 4,
+  }
+  let (preflight, _) = saved_effect_observed_fixture(
+    saved_effect_review_codec_fixture(),
+    limits,
+  )
+  defer @source.cancel_json_source_preflight(preflight)
+  let cursor = saved_effect_admit_preflight(preflight, limits).unwrap()
+  let fields = saved_effect_review_fields_from_cursor(cursor).unwrap()
+  assert_eq(epoch_text(fields, "review_wire"), Some("preview original"))
+  assert_eq(
+    saved_effect_review_texts(fields, "result_definition_wires").unwrap(),
+    ["definition one", "definition two"],
+  )
+  assert_true(saved_effect_admit_preflight(preflight, limits) is Err(_))
+}
