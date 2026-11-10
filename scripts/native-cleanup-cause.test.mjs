@@ -328,8 +328,100 @@ test('cleanup category never serializes payloads and keeps public error code', {
         ModelGraph(_) => "ModelGraphConstruction"
         _ => "ModelGraphRequest"
       }`);
+  const savedStart = functionSource.indexOf('    CommandSavedFileResource(cause) =>');
+  const savedEnd = functionSource.indexOf('\n    CommandSavedEffectOutput(cause) =>', savedStart);
+  assert(savedStart > 0 && savedEnd > savedStart);
+  const savedFiles = functionSource.slice(savedStart, savedEnd);
+  assert.equal(savedFiles, `    CommandSavedFileResource(cause) =>
+      "SavedFileResource" + local_submission_ledger_tag(cause).to_string()
+    CommandSavedFileEntry(cause) =>
+      match cause {
+        Unavailable => "SavedFileEntryUnavailable"
+        Domain(Bootstrap(_)) => "SavedFileEntryDomainBootstrap"
+        Domain(Accounting(_)) => "SavedFileEntryDomainAccounting"
+        Resource(ledger) =>
+          "SavedFileEntryResource" +
+          local_submission_ledger_tag(ledger).to_string()
+      }`);
+  const diagnosticSource = readFileSync(new URL(
+    '../src/cmd/native_client/local_submission_failure_diagnostic.mbt', import.meta.url), 'utf8');
+  const ledgerStart = diagnosticSource.indexOf('fn local_submission_ledger_tag(');
+  const ledgerEnd = diagnosticSource.indexOf('\n///|\nfn local_submission_sql_tag(', ledgerStart);
+  assert(ledgerStart >= 0 && ledgerEnd > ledgerStart);
+  const ledgerSource = diagnosticSource.slice(ledgerStart, ledgerEnd).trim();
+  // Only this closed nullary projection may add a numeric label. Reject any
+  // payload access, fallback, expression or additional output from the helper.
+  const ledgerNames = ['InvalidLimits', 'PlanningLimit', 'AttemptLimit', 'HoldingLimit',
+    'TransferLimit', 'RetentionLimit', 'ExecutionLimit', 'ForeignOwner', 'ClosedReservation',
+    'ClosedHolding', 'InvalidCharge', 'IdentityOverflow', 'TokenLimit', 'CostLimit',
+    'DurationLimit', 'ResourceParked', 'ChildFundingUnavailable'];
+  function checkLedgerProjection(text) {
+    const rows = [...text.matchAll(/    ([A-Z]\w*) => ([1-9]\d*)L/gu)];
+    assert.deepEqual(rows.map(([, name, tag]) => [name, Number(tag)]),
+      ledgerNames.map((name, index) => [name, index + 1]));
+    const residual = rows.reduce((body, [row]) => body.replace(row, ''), text);
+    assert.match(residual, /^fn local_submission_ledger_tag\(issue : @initial_resources\.LedgerIssue\) -> Int64 \{\s*match issue \{\s*\}\s*\}$/u);
+  }
+  checkLedgerProjection(ledgerSource);
+  assert.throws(() => checkLedgerProjection(ledgerSource.replace('=> 1L', '=> issue.to_string()')));
+  assert.throws(() => checkLedgerProjection(ledgerSource.replace('=> 1L', '=> 1L + 1L')));
+  assert.throws(() => checkLedgerProjection(ledgerSource.replace('    InvalidLimits => 1L',
+    '    _ => 1L')));
+  const outputStart = functionSource.indexOf('    CommandSavedEffectOutput(cause) =>');
+  const outputEnd = functionSource.indexOf('\n    CommandSavedEffectPublication(cause) =>', outputStart);
+  assert(outputStart > 0 && outputEnd > outputStart);
+  const savedOutput = functionSource.slice(outputStart, outputEnd);
+  assert.equal(savedOutput, `    CommandSavedEffectOutput(cause) =>
+      match cause {
+        Snapshot(_) => "SavedPublicationSnapshot"
+        SnapshotCleanup(_, _) => "SavedPublicationSnapshotCleanup"
+        OutputCleanup(_, _) | StoreCleanup(_, _) | BindingCleanup(_, _) =>
+          "SavedPublicationOutputCleanup"
+        Store(_) => "SavedPublicationOutputStore"
+        Binding(_) => "SavedPublicationOutputBinding"
+        _ => "SavedPublicationOutput"
+      }
+    CommandSavedEffectCompletion(cause) =>
+      match cause {
+        Member(issue) =>
+          match issue {
+            ActivePhysicalOwner(_) => "SavedEffectMemberPhysicalOwner"
+            MissingTerminalReceipt(_) => "SavedEffectMemberMissingReceipt"
+            ForeignLedgerHead(_) => "SavedEffectMemberForeignLedger"
+            _ => "SavedEffectMemberReceipt"
+          }
+        Set(issue) =>
+          match issue {
+            MemberReceipt(_, _) => "SavedEffectSetMemberReceipt"
+            InvalidInventory => "SavedEffectSetInventory"
+            _ => "SavedEffectSetReceipt"
+          }
+        Final(issue) =>
+          match issue {
+            InvalidComputation => "SavedEffectFinalComputation"
+            References(_) => "SavedEffectFinalReferences"
+            _ => "SavedEffectFinalReceipt"
+          }
+        Admission(issue) =>
+          match issue {
+            ResultEvidence(_) => "SavedEffectFinalResultEvidence"
+            FinalChain(_) => "SavedEffectFinalChain"
+            _ => "SavedEffectFinalAdmission"
+          }
+      }`);
+  const resumeStart = functionSource.indexOf('    CommandSavedFileResume(cause) =>');
+  const resumeEnd = functionSource.indexOf('\n    CommandBusinessSource(cause) =>', resumeStart);
+  assert(resumeStart > 0 && resumeEnd > resumeStart);
+  const savedResume = functionSource.slice(resumeStart, resumeEnd);
+  assert.equal(savedResume, `    CommandSavedFileResume(cause) =>
+      match cause {
+        HostAttestationUnavailable => "SavedFileOriginalUnavailable"
+        HostAttestationJournal(_) => "SavedFileJournal"
+        _ => "SavedFileOriginalAuthority"
+      }`);
   let covered = functionSource.replace(projectMock, '').replace(effectProposals, '')
-    .replace(sourceIdentity, '').replace(modelGraph, '');
+    .replace(sourceIdentity, '').replace(modelGraph, '').replace(savedFiles, '')
+    .replace(savedOutput, '').replace(savedResume, '');
   const nested = [...covered.matchAll(/    (Command\w+)\(cause\) =>\s+match cause \{([\s\S]*?)\n      \}/g)];
   assert.ok(nested.length >= 20);
   for (const [block, variant, body] of nested) {
@@ -675,6 +767,89 @@ test('cleanup category never serializes payloads and keeps public error code', {
       }
     } else graphProject(value(item), 'ModelGraphRequest');
   }
+  const ledgerIssues = enumCases('src/physical_resources/ledger.mbt', 'LedgerIssue');
+  assert.deepEqual(ledgerIssues, ledgerNames.map(name => ({name, arity: 0})));
+  const savedDomains = enumCases('src/platform_native/host_bootstrap/backed_region_native.mbt',
+    'NativeBackedExecutionIssue');
+  assert.deepEqual(savedDomains, ['Bootstrap', 'Accounting'].map(name => ({name, arity: 1})));
+  const savedEntries = enumCases('src/platform_native/installed_arena_control/nonmodel_work_entry_native.mbt',
+    'InstalledArenaNonModelWorkEntryIssue');
+  assert.deepEqual(savedEntries, [{name: 'Unavailable', arity: 0}, {name: 'Resource', arity: 1},
+    {name: 'Domain', arity: 1}]);
+  declare('ProbeSavedFileDomain', savedDomains);
+  declare('ProbeSavedFileEntry', savedEntries, {
+    Resource: ['@initial_resources.LedgerIssue'], Domain: ['ProbeSavedFileDomain'],
+  });
+  outer.push('  CommandSavedFileResource(@initial_resources.LedgerIssue)',
+    '  CommandSavedFileEntry(ProbeSavedFileEntry)');
+  assertions.push('  assert_eq(command_preparation_cleanup_cause(CommandSavedFileEntry(Unavailable)), "SavedFileEntryUnavailable")');
+  for (const item of savedDomains) assertions.push(
+    `  assert_eq(command_preparation_cleanup_cause(CommandSavedFileEntry(Domain(${value(item)}))), "SavedFileEntryDomain${item.name}")`);
+  for (const [index, item] of ledgerIssues.entries()) {
+    const issue = '@initial_resources.LedgerIssue::' + item.name, tag = index + 1;
+    assertions.push(`  assert_eq(local_submission_ledger_tag(${issue}), ${tag}L)`,
+      `  assert_eq(command_preparation_cleanup_cause(CommandSavedFileResource(${issue})), "SavedFileResource${tag}")`,
+      `  assert_eq(command_preparation_cleanup_cause(CommandSavedFileEntry(Resource(${issue}))), "SavedFileEntryResource${tag}")`);
+  }
+  const savedLiteralFamilies = {
+    CommandSavedEffectOutput: {
+      path: 'src/platform_native/run_publication/publication.mbt', name: 'NativePublicationOutputIssue',
+      tags: {Snapshot: 'SavedPublicationSnapshot', SnapshotCleanup: 'SavedPublicationSnapshotCleanup',
+        OutputCleanup: 'SavedPublicationOutputCleanup', StoreCleanup: 'SavedPublicationOutputCleanup',
+        BindingCleanup: 'SavedPublicationOutputCleanup', Store: 'SavedPublicationOutputStore',
+        Binding: 'SavedPublicationOutputBinding'}, fallback: 'SavedPublicationOutput',
+    },
+    CommandSavedFileResume: {
+      path: 'src/platform_native/client_host/local_initial_host_attestation_preparation.mbt',
+      name: 'NativeLocalInitialHostAttestationIssue',
+      tags: {HostAttestationUnavailable: 'SavedFileOriginalUnavailable', HostAttestationJournal: 'SavedFileJournal'},
+      fallback: 'SavedFileOriginalAuthority',
+    },
+  };
+  for (const [command, owner] of Object.entries(savedLiteralFamilies)) {
+    const cases = enumCases(owner.path, owner.name), type = 'Probe' + command;
+    assert(Object.keys(owner.tags).every(name => cases.some(item => item.name === name)));
+    declare(type, cases);
+    outer.push(`  ${command}(${type})`);
+    for (const item of cases) assertions.push(
+      `  assert_eq(command_preparation_cleanup_cause(${command}(${value(item)})), "${owner.tags[item.name] ?? owner.fallback}")`);
+  }
+  const completionFamilies = {
+    Member: {
+      path: 'src/effect_application/member_receipt_evidence.mbt', name: 'EffectMemberReceiptEvidenceIssue',
+      tags: {ActivePhysicalOwner: 'SavedEffectMemberPhysicalOwner', MissingTerminalReceipt: 'SavedEffectMemberMissingReceipt',
+        ForeignLedgerHead: 'SavedEffectMemberForeignLedger'}, fallback: 'SavedEffectMemberReceipt',
+    },
+    Set: {
+      path: 'src/run_publication/effect_set_apply_receipt.mbt', name: 'EffectSetApplyReceiptIssuanceIssue',
+      tags: {MemberReceipt: 'SavedEffectSetMemberReceipt', InvalidInventory: 'SavedEffectSetInventory'},
+      fallback: 'SavedEffectSetReceipt',
+    },
+    Final: {
+      path: 'src/run_publication/effectful_final_receipt.mbt', name: 'EffectfulFinalReceiptIssuanceIssue',
+      tags: {InvalidComputation: 'SavedEffectFinalComputation', References: 'SavedEffectFinalReferences'},
+      fallback: 'SavedEffectFinalReceipt',
+    },
+    Admission: {
+      path: 'src/run_publication/effectful_final_receipt.mbt', name: 'EffectfulPublicationCommitIssue',
+      tags: {ResultEvidence: 'SavedEffectFinalResultEvidence', FinalChain: 'SavedEffectFinalChain'},
+      fallback: 'SavedEffectFinalAdmission',
+    },
+  };
+  const completionIssues = enumCases('src/cmd/native_client/local_effect_saved_publication.mbt',
+    'LocalSavedEffectCompletionIssue');
+  assert.deepEqual(completionIssues, Object.keys(completionFamilies).map(name => ({name, arity: 1})));
+  const completionTypes = {};
+  for (const [family, owner] of Object.entries(completionFamilies)) {
+    const cases = enumCases(owner.path, owner.name), type = 'ProbeSavedEffect' + family;
+    assert(Object.keys(owner.tags).every(name => cases.some(item => item.name === name)));
+    declare(type, cases);
+    completionTypes[family] = [type];
+    for (const item of cases) assertions.push(
+      `  assert_eq(command_preparation_cleanup_cause(CommandSavedEffectCompletion(${family}(${value(item)}))), "${owner.tags[item.name] ?? owner.fallback}")`);
+  }
+  declare('ProbeSavedEffectCompletion', completionIssues, completionTypes);
+  outer.push('  CommandSavedEffectCompletion(ProbeSavedEffectCompletion)');
   const commands = enumCases('src/cmd/native_client/local_command_preparation.mbt', 'LocalCommandPreparationIssue');
   assert.deepEqual(new Set(outer.map(line => /Command\w+/u.exec(line)[0])), new Set(commands.map(entry => entry.name)));
   for (const [name, tag] of [['ForeignOriginal', 'ProjectMockForeignOriginal'],
@@ -754,9 +929,13 @@ test('cleanup category never serializes payloads and keeps public error code', {
   writeFileSync(join(root, 'src/model/moon.pkg'), 'supported_targets = "js"\n');
   writeFileSync(join(root, 'src/model/answers.mbt'), 'pub(all) enum ModelMockAnswerIssue {\n' +
     answers.map(({name}) => '  ' + name).join('\n') + '\n}\n');
-  writeFileSync(join(root, 'src/moon.pkg'), 'import { "actql/cleanup-cause-probe/model" @model, }\nsupported_targets = "js"\n');
+  mkdirSync(join(root, 'src/resources'));
+  writeFileSync(join(root, 'src/resources/moon.pkg'), 'supported_targets = "js"\n');
+  writeFileSync(join(root, 'src/resources/ledger.mbt'), 'pub(all) enum LedgerIssue {\n' +
+    ledgerIssues.map(({name}) => '  ' + name).join('\n') + '\n}\n');
+  writeFileSync(join(root, 'src/moon.pkg'), 'import { "actql/cleanup-cause-probe/model" @model, "actql/cleanup-cause-probe/resources" @initial_resources, }\nsupported_targets = "js"\n');
   writeFileSync(join(root, 'src/probe.mbt'), declarations.join('\n') + '\npub(all) enum LocalCommandPreparationIssue {\n' + outer.join('\n') + '\n}\n');
-  writeFileSync(join(root, 'src/probe_wbtest.mbt'), functionSource + '\n' + answerSource + '\n' + 'test "all closed causes exclude private payloads" {\n' + assertions.join('\n') + '\n}\n');
+  writeFileSync(join(root, 'src/probe_wbtest.mbt'), functionSource + '\n' + ledgerSource + '\n' + answerSource + '\n' + 'test "all closed causes exclude private payloads" {\n' + assertions.join('\n') + '\n}\n');
   const actual = spawnSync('moon', ['test', '--target', 'js', '--deny-warn'], {cwd: root, encoding: 'utf8', timeout: 75_000, maxBuffer: 4 * 1024 * 1024});
   assert.equal(actual.error, undefined, actual.error?.message);
   assert.equal(actual.status, 0, actual.stdout + actual.stderr);
