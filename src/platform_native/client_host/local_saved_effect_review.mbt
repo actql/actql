@@ -17,6 +17,7 @@ struct NativeLocalSavedEffectReview {
   mut _retained_checkpoint : @publication_store.EffectCheckpointCustody?
   mut _retained_continuation : String?
   mut _retained_original : NativeClientOriginalCheckpointMetadata?
+  mut _retained_constructor_bytes : Int64
 }
 
 ///|
@@ -38,7 +39,7 @@ pub fn NativeLocalJournalCapture::prepare_saved_effect_review(
         // input identity/Store/String fields remain original borrowed values.
         record_headers: 5L,
         reference_slots: 26L,
-        scalar_words: 5L,
+        scalar_words: 6L,
         owned_utf16_units: 0L,
         owned_wire_bytes: 0L,
       }),
@@ -61,6 +62,7 @@ pub fn NativeLocalJournalCapture::prepare_saved_effect_review(
     _retained_checkpoint: None,
     _retained_continuation: None,
     _retained_original: None,
+    _retained_constructor_bytes: 0L,
   })
 }
 
@@ -154,7 +156,7 @@ pub fn NativeLocalSavedEffectReview::restore_in_original_read(
     // The Store rechecks the exact revision/extent, not a caller byte guess.
     match
       capture.prepare_private_store_layouts_construction(1, _ => Some(layout)) {
-      Ok(_) => ()
+      Ok(retained) => self._retained_constructor_bytes = retained
       Err(Original(issue)) => return Err(issue)
       Err(_) => return Err(Encoding)
     }

@@ -387,11 +387,13 @@ fn NativeLocalJournalCapture::prepare_private_store_children_construction(
   wire_at : (Int) -> String,
   additional_retained? : Int64 = 0L,
 ) -> Result[Unit, NativeClientMockModelIssue] {
-  self.prepare_private_store_layouts_construction(
+  self
+  .prepare_private_store_layouts_construction(
     count,
     index => store.private_evidence_custody_construction(wire_at(index)),
     additional_retained~,
   )
+  .map(_ => ())
 }
 
 ///|
@@ -403,7 +405,7 @@ fn NativeLocalJournalCapture::prepare_private_store_layouts_construction(
   count : Int,
   layout_at : (Int) -> @publication_store.PrivateEvidenceCustodyConstruction?,
   additional_retained? : Int64 = 0L,
-) -> Result[Unit, NativeClientMockModelIssue] {
+) -> Result[Int64, NativeClientMockModelIssue] {
   guard self.original_resources is Some(original) &&
     !original.interrupted &&
     original.active_phase is Some(@arena.HostRead) &&
@@ -460,7 +462,10 @@ fn NativeLocalJournalCapture::prepare_private_store_layouts_construction(
     execution,
     contiguous,
   )
-  .map_err(issue => Original(OriginalResources(@arena.Read(issue))))
+  .map_err(issue => {
+    NativeClientMockModelIssue::Original(OriginalResources(@arena.Read(issue)))
+  })
+  .map(_ => retained)
 }
 
 ///|
