@@ -81,7 +81,7 @@ try {
   env.PATH = join(root, 'empty-path');
   env.ACTQL_NATIVE_TIMINGS = '1';
   env.ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS = '1';
-  for (const template of mockTemplates) scenarios.push(await runNativeCliMockScenario({root, template,
+  for (const template of mockTemplates) scenarios.push(await runNativeCliMockScenario({root, template, launcherTimings: 'required',
     run: (args, cwd) => run(process.execPath, [launcher, ...args], cwd)}));
   assert.equal(scenarios.length, 2, 'Both README and Quickstart must finish without skips');
   assert.deepEqual(await readFile(join(platformRoot, 'bin/actql-native-client')), binary);

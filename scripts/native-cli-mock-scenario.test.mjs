@@ -1,3 +1,4 @@
+import {runInNewContext} from 'node:vm';
 // These are acceptance-harness unit tests with explicit doubles. A green result
 // here does not establish that the Native mock workflow is implemented.
 import assert from 'node:assert/strict';
@@ -300,4 +301,67 @@ test('different attempts cannot replace the original two Model slots', async t =
     if (args[0] === 'run') record.stderr = record.stderr.replaceAll('"ordinal":1','"ordinal":0');
   });
   await assert.rejects(runNativeCliMockScenario(options),/Changed original Model slots/u);
+});
+
+const launcherTimingTrailer = value => 'ACTQL_NATIVE_LAUNCHER_TIMINGS ' + JSON.stringify({units:'nanoseconds',preparation:12,child:30,total:42,...value}) + '\n';
+
+test('Node launcher acceptance unwraps its canonical final trailer without changing Native observations or raw stderr', async t => {
+  const raw = [];
+  const options = await fixture(t, 'deal-review-mock', ({record}) => {
+    record.stderr += launcherTimingTrailer(); raw.push(record.stderr);
+  });
+  options.launcherTimings = 'required';
+  const receipt = await runNativeCliMockScenario(options);
+  assert.equal(receipt.resultRows,2);
+  assert.deepEqual(receipt.commands.map(command=>command.stderr),raw);
+  assert(receipt.commands.every(command=>command.launcherTiming.units==='nanoseconds' && command.launcherTiming.total===42));
+  assert.equal(receipt.commands.find(command=>command.args[0]==='run').acceptance.modelAttempts.length,2);
+  assert.equal(receipt.commands.find(command=>command.args[0]==='approve').acceptance.writes.length,2);
+});
+
+test('the actual Node launcher timing statement remains compatible with the required harness envelope', async t => {
+  const source = await readFile(new URL('../packages/native-cli/bin/actql.mjs',import.meta.url),'utf8');
+  const start = source.indexOf("      writeSync(2, 'ACTQL_NATIVE_LAUNCHER_TIMINGS '");
+  const end = source.indexOf('\n    } catch {}',start);
+  assert(start>=0 && end>start);
+  let trailer;
+  runInNewContext(source.slice(start,end),{childStart:30n,timingStart:12n,finish:42n,
+    writeSync(fd,value){assert.equal(fd,2);trailer=value;}});
+  const options = await fixture(t,'deal-review-mock',({record})=>{record.stderr+=trailer;});
+  options.launcherTimings='required';
+  const receipt = await runNativeCliMockScenario(options);
+  assert(receipt.commands.every(command=>command.launcherTiming.total===30));
+});
+
+test('the required Node caller cannot silently become a direct Native caller', async t => {
+  const options = await fixture(t,'deal-review-mock'); options.launcherTimings='required';
+  await assert.rejects(runNativeCliMockScenario(options),/Required Node launcher timing trailer missing/u);
+  const installed = await readFile(new URL('./test-native-cli-mock-install.mjs',import.meta.url),'utf8');
+  assert(installed.includes("runNativeCliMockScenario({root, template, launcherTimings: 'required'"));
+});
+
+for (const [name, envelope] of [
+  ['duplicate trailer', text=>text+launcherTimingTrailer()+launcherTimingTrailer()],
+  ['out of order trailer', text=>launcherTimingTrailer()+text],
+  ['truncated trailer', text=>text+launcherTimingTrailer().slice(0,-1)],
+  ['unknown trailing record', text=>text+launcherTimingTrailer()+'ACTQL_NATIVE_UNKNOWN {}\n'],
+  ['ordinary error before trailer', text=>text+'PRIVATE error\n'+launcherTimingTrailer()],
+  ['ordinary error after trailer', text=>text+launcherTimingTrailer()+'PRIVATE error\n'],
+  ['PID field', text=>text+launcherTimingTrailer({pid:123})],
+  ['unknown field', text=>text+launcherTimingTrailer({error:'PRIVATE'})],
+  ['wrong units', text=>text+launcherTimingTrailer({units:'milliseconds'})],
+  ['negative amount', text=>text+launcherTimingTrailer({preparation:-1,total:29})],
+  ['fractional amount', text=>text+launcherTimingTrailer({child:0.5,total:12.5})],
+  ['unsafe amount', text=>text+launcherTimingTrailer({preparation:9007199254740992,child:0,total:9007199254740992})],
+  ['unsafe sum', text=>text+launcherTimingTrailer({preparation:Number.MAX_SAFE_INTEGER,child:1,total:Number.MAX_SAFE_INTEGER})],
+  ['incorrect sum', text=>text+launcherTimingTrailer({total:41})],
+  ['negative zero spelling', text=>text+launcherTimingTrailer().replace('"preparation":12','"preparation":-0')],
+  ['duplicate field', text=>text+launcherTimingTrailer().replace('"child":30','"child":30,"child":30')],
+  ['alternate field order', text=>text+'ACTQL_NATIVE_LAUNCHER_TIMINGS {"preparation":12,"units":"nanoseconds","child":30,"total":42}\n'],
+  ['noncanonical whitespace', text=>text+launcherTimingTrailer().replace('{','{ ')],
+  ['unknown launcher prefix', text=>text+launcherTimingTrailer().replace('LAUNCHER_TIMINGS','LAUNCHER_ERROR')],
+]) test(`launcher observations refuse ${name} without laundering Native errors`, async t => {
+  const options=await fixture(t,'deal-review-mock',({record})=>{record.stderr=envelope(record.stderr);});
+  options.launcherTimings='required';
+  await assert.rejects(runNativeCliMockScenario(options));
 });

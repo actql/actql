@@ -132,7 +132,35 @@ function requireNativeMockWork(args, groups, rows) {
   return {modelAttempts: model, writes};
 }
 
-export async function runNativeCliMockScenario({root, template, run}) {
+// The Node launcher's PID-less timing envelope is outside the Native stream.
+// Remove only its one canonical final line; never filter Native diagnostics.
+function nativeLauncherEnvelope(stderr, mode) {
+  assert.equal(typeof stderr, 'string', 'Launcher diagnostic stream unavailable');
+  const prefix = 'ACTQL_NATIVE_LAUNCHER_TIMINGS ';
+  const start = stderr.indexOf(prefix);
+  if (start < 0) {
+    assert(mode === 'optional', 'Required Node launcher timing trailer missing');
+    return {native: stderr};
+  }
+  assert(start > 0 && stderr[start - 1] === '\n' && stderr.indexOf('\n', start) === stderr.length - 1,
+    'Node launcher timing trailer must occur exactly once at the end');
+  const body = stderr.slice(start + prefix.length, -1);
+  assert(body.length <= 256, 'Oversized Node launcher timing trailer');
+  let timing;
+  try { timing = JSON.parse(body); } catch { assert.fail('Malformed Node launcher timing trailer'); }
+  assert(timing && !Array.isArray(timing) && typeof timing === 'object' &&
+    Object.keys(timing).join(',') === 'units,preparation,child,total' && JSON.stringify(timing) === body,
+    'Noncanonical Node launcher timing trailer fields');
+  assert(timing.units === 'nanoseconds', 'Invalid Node launcher timing units');
+  assert(['preparation','child','total'].every(key => Number.isSafeInteger(timing[key]) && timing[key] >= 0 && !Object.is(timing[key], -0)),
+    'Invalid Node launcher timing quantity');
+  assert(timing.preparation <= Number.MAX_SAFE_INTEGER - timing.child && timing.preparation + timing.child === timing.total,
+    'Inconsistent Node launcher timing total');
+  return {native: stderr.slice(0, start), timing};
+}
+
+export async function runNativeCliMockScenario({root, template, run, launcherTimings = 'optional'}) {
+  assert(['optional','required'].includes(launcherTimings), 'Invalid launcher observation contract');
   assert(mockTemplates.includes(template), 'Unknown Native mock acceptance template');
   assert.equal(typeof run, 'function');
   const project = join(root, template), file = join(project, 'mock/data.json');
@@ -142,7 +170,9 @@ export async function runNativeCliMockScenario({root, template, run}) {
     commands.push({args, cwd, ...record});
     assert.equal(record.signal, null, `${args[0]} terminated by signal`);
     assert.equal(record.code, 0, `${args.join(' ')} failed: ${record.stderr}`);
-    const observations = nativeMockAcceptanceObservations(record.stderr);
+    const envelope = nativeLauncherEnvelope(record.stderr, launcherTimings);
+    const observations = nativeMockAcceptanceObservations(envelope.native);
+    if (envelope.timing) { record.launcherTiming = envelope.timing; commands.at(-1).launcherTiming = envelope.timing; }
     assert.equal(observations.length, args[0] === 'init' ? 2 : 1, 'Native child observations missing or duplicated');
     record.acceptance = requireNativeMockWork(args, observations, expectedChanges[template].rows.length);
     commands.at(-1).acceptance = record.acceptance;
