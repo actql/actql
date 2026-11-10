@@ -440,7 +440,41 @@ fn valid_local_journal_options(
   ttl_ms < 1.0 ||
   ttl_ms > 86400000.0 ||
   max_records < 1 ||
-  max_records > 1024 ||
   max_snapshot_bytes < 0L ||
   max_snapshot_bytes > 536870912L)
+}
+
+///|
+// Read/grant history permits at most 64 entries per selected Run. The policy
+// product is Int64; the actual stored counter remains the existing Int wire.
+fn local_journal_related_issuance_count(
+  body : Bytes,
+  revision : Int64,
+  max_records : Int,
+) -> Result[Int, NativeClientRunJournalIssue] {
+  if max_records < 1 {
+    return Err(CustodyLost)
+  }
+  let count = match @host.client_journal_issuance_count(body, 2147483647) {
+    Ok(value) => value
+    Err(_) => return Err(CustodyLost)
+  }
+  if count.to_int64() > max_records.to_int64() * 64L ||
+    revision != count.to_int64() {
+    return Err(CustodyLost)
+  }
+  Ok(count)
+}
+
+///|
+// Refuse an actual exhausted Int counter BEFORE insertion or issued CAS.
+// A larger future policy product alone is not a reason to reject the policy.
+fn local_journal_related_append_available(
+  count : Int,
+  max_records : Int,
+) -> Bool {
+  max_records > 0 &&
+  count >= 0 &&
+  count < 2147483647 &&
+  count.to_int64() < max_records.to_int64() * 64L
 }

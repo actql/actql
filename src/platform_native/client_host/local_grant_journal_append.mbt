@@ -152,7 +152,12 @@ fn append_local_owned_grant_original_locked(
   let appended_bytes = packet.length() +
     target_packet.map(body => body.length()).unwrap_or(0) +
     prepared_packet.map(body => body.length()).unwrap_or(0)
-  if entries >= 64 || appended_bytes > 65536 - bytes {
+  if !local_journal_related_append_available(
+      count,
+      grant_host.journal.max_records,
+    ) ||
+    entries >= 64 ||
+    appended_bytes > 65536 - bytes {
     return Err(CapacityExceeded)
   }
   // Recheck actual authority and the typed original fence after finite

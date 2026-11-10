@@ -506,7 +506,7 @@ fn open_native_client_run_journal_with_reads(
   if client_journal_transaction_fenced(database, reads) {
     return Err(Fenced)
   }
-  if max_records < 1 || max_records > 1024 {
+  if max_records < 1 {
     return Err(CapacityExceeded)
   }
   let append_schema = match

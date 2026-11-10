@@ -39,8 +39,7 @@ pub fn inspect_native_client_state(
   if max_record_bytes < 1L ||
     max_record_bytes > 1048576L ||
     max_snapshot_bytes < 0L ||
-    max_records < 1 ||
-    max_records > 1024 {
+    max_records < 1 {
     return Err(InvalidLimit)
   }
   let mut refusal : NativeClientCustodyIssue? = None

@@ -52,7 +52,6 @@ pub fn client_submitted_journal_usage_body(
   max_records : Int,
 ) -> Result[Bytes, ClientJournalDecodingIssue] {
   if max_records < 1 ||
-    max_records > 1024 ||
     count < 0 ||
     count > max_records ||
     retained_bytes < 0L ||
@@ -71,7 +70,14 @@ pub fn client_submitted_journal_usage(
   count : Int,
   max_records : Int,
 ) -> Result[Int64, ClientJournalDecodingIssue] {
-  if row.key != "retained" || row.revision < 0L || row.body.length() > 14 {
+  // Same count:bytes spelling; the selected Int count and existing eight-digit
+  // retained-byte policy bound the text before decoding.
+  if max_records < 1 ||
+    count < 0 ||
+    count > max_records ||
+    row.key != "retained" ||
+    row.revision < 0L ||
+    row.body.length() > max_records.to_string().length() + 1 + 8 {
     return Err(CustodyLost)
   }
   let text = @utf8.decode(row.body) catch { _ => return Err(CustodyLost) }

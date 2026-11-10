@@ -428,24 +428,7 @@ fn local_read_evidence_issuance_count(
   revision : Int64,
   max_records : Int,
 ) -> Result[Int, NativeClientRunJournalIssue] {
-  let count_text = @utf8.decode(body) catch { _ => return Err(CustodyLost) }
-  if count_text.is_empty() || count_text.length() > 5 {
-    return Err(CustodyLost)
-  }
-  let mut count = 0
-  for unit in count_text {
-    let digit = unit.to_int() - 48
-    if digit < 0 || digit > 9 {
-      return Err(CustodyLost)
-    }
-    count = count * 10 + digit
-  }
-  if count.to_string() != count_text ||
-    count > max_records * 64 ||
-    revision != count.to_int64() {
-    return Err(CustodyLost)
-  }
-  Ok(count)
+  local_journal_related_issuance_count(body, revision, max_records)
 }
 
 ///|
@@ -496,10 +479,7 @@ fn NativeLocalHostConnection::read_evidence_custody(
   if max_inspect_rows is Some(limit) && (limit < 0L || count.to_int64() > limit) {
     return Err(CapacityExceeded)
   }
-  let runs : Map[String, (Int, Int)] = Map(
-    [],
-    capacity=self.journal.max_records,
-  )
+  let runs : Map[String, (Int, Int)] = Map([])
   let mut cursor = ""
   let mut observed = 0
   // This is a complete evidence-namespace inventory attempt, even if empty.
@@ -516,10 +496,10 @@ fn NativeLocalHostConnection::read_evidence_custody(
       Err(@sqlite.NotFound) => break
       Err(issue) => return Err(Physical(issue))
     }
-    observed += 1
-    if observed > count {
+    if observed >= count {
       return Err(CustodyLost)
     }
+    observed += 1
     let scope = match
       self.validate_read_evidence(crypto, row, operations~, capture~) {
       Ok(value) => value
@@ -740,7 +720,12 @@ fn NativeLocalReadPolicyBinding::retain_read_admission_with_operations(
         Ok(row) if row.revision == 0L && row.body == packet => ()
         Ok(_) => return Err(CustodyLost)
         Err(@sqlite.NotFound) => {
-          if entries >= 64 || packet.length() > 65536 - used_bytes {
+          if !local_journal_related_append_available(
+              count,
+              self.host.journal.max_records,
+            ) ||
+            entries >= 64 ||
+            packet.length() > 65536 - used_bytes {
             return Err(CapacityExceeded)
           }
           match

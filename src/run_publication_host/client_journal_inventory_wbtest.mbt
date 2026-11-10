@@ -518,3 +518,23 @@ test "submitted inventory propagates original retained relationship failure and 
     )
   }
 }
+
+///|
+test "empty original journal inventory accepts large selected policy without policy-sized Maps" {
+  let rows = [
+    ("client_run_custody", inventory_row("issued", b"0", revision=0L)),
+  ]
+  for maximum in [1023, 1024, 1025, 2147483647] {
+    assert_eq(
+      inspect_client_run_journal_inventory(
+        maximum,
+        (table, cursor) => inventory_scan(rows, table, cursor),
+        (table, key) => inventory_read(rows, table, key),
+        _ => Err("empty inventory has no Run"),
+        () => Ok(()),
+        "custody",
+      ),
+      Ok((0, 0L)),
+    )
+  }
+}

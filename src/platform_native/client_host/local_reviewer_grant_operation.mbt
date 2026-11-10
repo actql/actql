@@ -242,7 +242,7 @@ fn NativeLocalHostConnection::same_signing_operation_locked(
   guard original.grant is SigningGrant(grant) else { return Err(ChangedIntent) }
   let scope = @credential.local_signing_credential_grant_scope(grant)
   let mut cursor = ""
-  let mut observed = 0
+  let mut observed = 0L
   while true {
     let row = match
       self.database.scan_after("client_local_grant_originals", cursor) {
@@ -250,8 +250,8 @@ fn NativeLocalHostConnection::same_signing_operation_locked(
       Err(@sqlite.NotFound) => return Ok(())
       Err(issue) => return Err(Physical(issue))
     }
-    observed += 1
-    if observed > self.journal.max_records * 64 {
+    observed += 1L
+    if observed > self.journal.max_records.to_int64() * 64L {
       return Err(CustodyLost)
     }
     let prior = match read_local_grant_original(self.epoch.crypto, row) {
