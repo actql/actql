@@ -765,9 +765,19 @@ try {
   console.log('Packed missing generated asset: child failed as expected');
 } finally { await rename(asset + '.omitted', asset); }
 async function exerciseNativeGraphSource(sourceOnly = false) {
-  // Match the existing Native producer's finite 900s compilation budget.
+  const compiler = environment.ACTQL_TEST_NATIVE_QUERY_COMPILER;
+  if (compiler !== undefined && (compiler !== 'clang-19' || process.platform !== 'linux')) {
+    throw new Error('PackedQueryNativeCompilerSelectionInvalid');
+  }
+  if (compiler !== undefined && !/\bclang version 19(?:\.|\s)/u.test(
+    run('cc', ['--version'], repository, environment, 10_000))) {
+    throw new Error('PackedQueryNativeCompilerMismatch');
+  }
+  // Selected Linux CI uses the normal Linux producer's compiler and 1800s
+  // serial compilation budget. Unselected developer builds retain their route.
   run('moon', ['build', '--target', 'native', '--release',
-    'src/cmd/native_client'], repository, environment, 900_000);
+    ...(compiler === undefined ? [] : ['-j', '1']), 'src/cmd/native_client'],
+  repository, environment, compiler === undefined ? 900_000 : 1_800_000);
   const nativeClient = join(repository, '_build/native/release/build/cmd',
     'native_client/native_client.exe');
   console.log(run(process.execPath,

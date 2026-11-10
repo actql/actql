@@ -1548,6 +1548,15 @@ jobs:
       - uses: ./.github/actions/setup-toolchain
         with:
           python: 'true'
+      - name: Select the packed Native Graph compiler
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes clang-19
+          compiler_bin="$RUNNER_TEMP/packed-query-compiler"
+          mkdir -m 700 "$compiler_bin"
+          ln -s "$(realpath /usr/bin/clang-19)" "$compiler_bin/cc"
+          ln -s "$(realpath /usr/bin/ar)" "$compiler_bin/ar"
+          echo "$compiler_bin" >> "$GITHUB_PATH"
       - name: Download the exact Client package artifact
         id: client-inputs
         uses: ./.github/actions/download-client-packages
@@ -1623,7 +1632,10 @@ jobs:
         id: packed-query
         env:
           ACTQL_TEST_QUERY_TIMEOUT_MS: '1800000'
+          ACTQL_TEST_NATIVE_QUERY_COMPILER: 'clang-19'
         run: |
+          test "$(realpath "$(command -v cc)")" = "$(realpath /usr/bin/clang-19)"
+          cc --version
           node --test scripts/packed-query-evidence.test.mjs
           node scripts/test-packed-public-query.mjs
       - name: Retain packed public query evidence

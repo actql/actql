@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {mkdtempSync, readFileSync, rmSync} from 'node:fs';
+import {mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, unlinkSync, writeFileSync} from 'node:fs';
 import {readFile, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -781,6 +781,13 @@ test('each Client group retains its acceptance commands exactly once', () => {
     'normal tar acceptance does not rebuild the checkout runtime');
   assert.deepEqual(jobs['client-distribution-native'].needs, ['select-targets', 'preflight']);
   assert.deepEqual(runs('client-packed'), [
+    `sudo apt-get update
+sudo apt-get install --yes clang-19
+compiler_bin="$RUNNER_TEMP/packed-query-compiler"
+mkdir -m 700 "$compiler_bin"
+ln -s "$(realpath /usr/bin/clang-19)" "$compiler_bin/cc"
+ln -s "$(realpath /usr/bin/ar)" "$compiler_bin/ar"
+echo "$compiler_bin" >> "$GITHUB_PATH"`,
     'node scripts/test-packed-local-node-assets.mjs',
     'node scripts/test-packed-sheets.mjs',
     'node scripts/test-packed-hubspot-source.mjs --ci --approval',
@@ -792,7 +799,10 @@ test('each Client group retains its acceptance commands exactly once', () => {
     'node scripts/test-packed-single-infer.mjs',
     'node scripts/test-packed-infer-evaluation.mjs',
     'node scripts/test-packed-acquired-infer.mjs',
-    'node --test scripts/packed-query-evidence.test.mjs\nnode scripts/test-packed-public-query.mjs',
+    `test "$(realpath "$(command -v cc)")" = "$(realpath /usr/bin/clang-19)"
+cc --version
+node --test scripts/packed-query-evidence.test.mjs
+node scripts/test-packed-public-query.mjs`,
     'node scripts/test-packed-result-description.mjs',
   ]);
   const approvalSteps = jobs['client-packed'].steps.filter(step =>
@@ -842,6 +852,52 @@ done`,
   const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
   assert(!manifest.scripts['check:local-node-assets'].includes('test-packed-salesforce-source'),
     'the packed composition acceptance moves from Host into the artifact consumer exactly once');
+});
+
+test('packed Native Graph compiler setup retains exact cc and ar selection', () => {
+  const job = jobs['client-packed'];
+  const setup = job.steps.find(step => step.name === 'Select the packed Native Graph compiler');
+  const query = job.steps.find(step => step.id === 'packed-query');
+  assert(setup && query);
+  assert(job.steps.indexOf(setup) < job.steps.indexOf(query));
+  assert.deepEqual(job.needs, ['select-targets', 'preflight', 'client-packages']);
+  assert.equal(job['runs-on'], 'ubuntu-24.04');
+  assert.equal(job['timeout-minutes'], 60);
+  assert.equal(setup['continue-on-error'], undefined);
+  assert.equal(query['continue-on-error'], undefined);
+  assert.equal(query.env.ACTQL_TEST_NATIVE_QUERY_COMPILER, 'clang-19');
+  assert.equal(query.env.ACTQL_TEST_QUERY_TIMEOUT_MS, '1800000');
+  assert(setup.run.startsWith('sudo apt-get update\nsudo apt-get install --yes clang-19\n'));
+  const directory = mkdtempSync(join(tmpdir(), 'actql-packed-compiler-control-'));
+  try {
+    const cc = join(directory, 'selected-clang-19');
+    const ar = join(directory, 'selected-ar');
+    const foreign = join(directory, 'foreign-cc');
+    const pathFile = join(directory, 'github-path');
+    writeFileSync(cc, '#!/bin/sh\nprintf "%s\\n" "Ubuntu clang version 19.1.7"\n', {mode: 0o700});
+    writeFileSync(ar, '#!/bin/sh\nexit 0\n', {mode: 0o700});
+    writeFileSync(foreign, '#!/bin/sh\nexit 0\n', {mode: 0o700});
+    // Execute the actual alias setup and pre-corpus check with only the two
+    // installed tool paths replaced; package installation/compiler work is absent.
+    const paths = script => script.replaceAll('/usr/bin/clang-19', cc).replaceAll('/usr/bin/ar', ar);
+    const originalSetup = paths(setup.run.slice(setup.run.indexOf('compiler_bin=')));
+    const prepared = run(originalSetup, {RUNNER_TEMP: directory, GITHUB_PATH: pathFile});
+    assert.equal(prepared.status, 0, prepared.stderr);
+    const compilerBin = join(directory, 'packed-query-compiler');
+    assert.equal(readFileSync(pathFile, 'utf8'), compilerBin + '\n');
+    assert.equal(realpathSync(join(compilerBin, 'cc')), realpathSync(cc));
+    assert.equal(realpathSync(join(compilerBin, 'ar')), realpathSync(ar));
+    const prefix = query.run.slice(0, query.run.indexOf('node --test '));
+    assert(prefix.startsWith('test "$(realpath "$(command -v cc)")" = '));
+    const selected = run(paths(prefix), {PATH: compilerBin + ':' + process.env.PATH});
+    assert.equal(selected.status, 0, selected.stderr);
+    assert.match(selected.stdout, /Ubuntu clang version 19\.1\.7/u);
+    unlinkSync(join(compilerBin, 'cc'));
+    symlinkSync(foreign, join(compilerBin, 'cc'));
+    const refused = run(paths(prefix), {PATH: compilerBin + ':' + process.env.PATH});
+    assert.notEqual(refused.status, 0, 'a foreign ambient compiler cannot replace the selected compiler');
+    assert.equal(refused.stdout, '', 'selection fails before invoking the foreign compiler or corpus');
+  } finally { rmSync(directory, {recursive: true, force: true}); }
 });
 
 test('ordinary Local assets reuse tarballs while cold and external builds stay source-backed', () => {
