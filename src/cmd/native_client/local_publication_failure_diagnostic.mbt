@@ -59,6 +59,7 @@ fn local_publication_primary_tags(
         match original {
           InvalidOutputConfiguration => 1L
           Preparation(_) => 4L
+          Snapshot(_) | SnapshotCleanup(_, _) => 5L
           Output(cause) | OutputCleanup(cause, _) =>
             100L + local_persisted_export_issue_tag(cause)
           Payload(_) => 2L
