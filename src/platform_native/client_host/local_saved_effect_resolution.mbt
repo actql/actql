@@ -12,6 +12,18 @@ pub(all) enum NativeLocalSavedEffectResolutionIssue {
 }
 
 ///|
+// The SAME caller-owned field tuples/Array and returned decision controls
+// overlap each real text emission. A preceding measurement peak is not an
+// additive reservation, so both text phases name this one immutable inventory.
+let saved_effect_decision_emission_controls : @execution.PreparationRepresentationUnits = {
+  record_headers: 42L,
+  reference_slots: 68L,
+  scalar_words: 401L,
+  owned_utf16_units: 256L,
+  owned_wire_bytes: 192L,
+}
+
+///|
 // The existing Checkpoint codec admits this unsigned body and independently
 // derives its proof preimage. No text replacement, signature placeholder,
 // incoming authority, current Boolean or caller-selected key is accepted.
@@ -120,11 +132,15 @@ fn NativeLocalSavedEffectReview::resolve_initial_original(
         // twelve borrowed field tuples, Writer controls and two digest slots.
         // This emitter has eleven pairs and two shorter original operation IDs.
         // Two retained slots plus the acknowledged record option/map frame.
-        record_headers: 42L + measurement.record_headers,
-        reference_slots: 68L + measurement.reference_slots,
-        scalar_words: 401L + measurement.scalar_words,
-        owned_utf16_units: 256L + measurement.owned_utf16_units,
-        owned_wire_bytes: 192L,
+        record_headers: saved_effect_decision_emission_controls.record_headers +
+        measurement.record_headers,
+        reference_slots: saved_effect_decision_emission_controls.reference_slots +
+        measurement.reference_slots,
+        scalar_words: saved_effect_decision_emission_controls.scalar_words +
+        measurement.scalar_words,
+        owned_utf16_units: saved_effect_decision_emission_controls.owned_utf16_units +
+        measurement.owned_utf16_units,
+        owned_wire_bytes: saved_effect_decision_emission_controls.owned_wire_bytes,
       }),
     ) {
     Ok(_) => ()
@@ -171,6 +187,7 @@ fn NativeLocalSavedEffectReview::resolve_initial_original(
           Some(bytes),
           nodes~,
           depth~,
+          additional_controls=Some(saved_effect_decision_emission_controls),
         ) {
         Ok(_) => ()
         Err(issue) => return Err(SavedResolutionOriginal(issue))
@@ -231,7 +248,12 @@ fn NativeLocalSavedEffectReview::resolve_initial_original(
     )
     let (bytes, nodes, depth) = @encode.finish_measurement_usage(measure)
     match
-      self.capture.prepare_model_entry_construction(Some(bytes), nodes~, depth~) {
+      self.capture.prepare_model_entry_construction(
+        Some(bytes),
+        nodes~,
+        depth~,
+        additional_controls=Some(saved_effect_decision_emission_controls),
+      ) {
       Ok(_) => ()
       Err(issue) => return Err(SavedResolutionOriginal(issue))
     }

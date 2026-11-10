@@ -525,9 +525,13 @@ pub fn NativeLocalEffectResumeOriginal::prepare_application_file_request_in_orig
         // already contains target and intended changes. Two hashes include
         // their temporary hex/final CIDs. This closed constructor inventory
         // uses no unrelated Value slack. All sums are checked before entry.
-        record_headers: headers,
-        reference_slots: 32L + retained_requests.to_int64() * 24L,
-        scalar_words: 8L + retained_requests.to_int64() * 4L,
+        record_headers: headers + traversal.record_headers,
+        reference_slots: 32L +
+        retained_requests.to_int64() * 24L +
+        traversal.reference_slots,
+        scalar_words: 8L +
+        retained_requests.to_int64() * 4L +
+        traversal.scalar_words,
         owned_utf16_units: total_owned_units,
         owned_wire_bytes: 0L,
       }),
