@@ -680,9 +680,48 @@ function remoteHostClose(server, selectHost) {
   };
 }
 
-async function closeRetainedStoreFixtureHost(host, t) {
+// Closed diagnostic DATA from the original close carrier, never its payload,
+// message, stack, references or replacement cleanup owner.
+function firstHostCloseFailureDiagnostic(error) {
+  const owners = new Set(['stop', 'drain', 'retire', 'checkpoint', 'journal',
+    'source', 'effect', 'store', 'publicationOwnership', 'ownerViews',
+    'diagnostic', 'observation', 'initialControl', 'finalize']);
+  const codes = new Set(['InstalledHostCleanupPending', 'PublicationStoreCleanupPending',
+    'ClientDispatchCleanupPending', 'InstalledHostJournalCleanupPending',
+    'InstalledHostPublicationOwnershipCleanupPending', 'EffectCaptureCleanupPending',
+    'InstalledEffectConstructionCleanupPending']);
+  const own = (value, key) => {
+    if (value === null || typeof value !== 'object' || utilTypes.isProxy(value)) return undefined;
+    const field = Object.getOwnPropertyDescriptor(value, key);
+    return field && Object.hasOwn(field, 'value') ? field.value : undefined;
+  };
+  const closed = (value, allowed) => allowed.has(value) ? value : 'unrecognized';
+  const bounded = (value, project) => Array.isArray(value) && !utilTypes.isProxy(value)
+    ? Array.from({length: Math.min(value.length, 16)}, (_, index) => project(own(value, String(index))))
+    : null;
+  let pendingOwners = null;
+  try {
+    const original = own(error, 'cleanupHandle'), status = own(original, 'status');
+    if (typeof status === 'function') pendingOwners = bounded(
+      own(Reflect.apply(status, original, []), 'pending'), name => closed(name, owners));
+  } catch { /* Unavailable diagnostics never replace the original close failure. */ }
+  return {phase: 'original_host_first_close_failure',
+    code: closed(own(error, 'code'), codes),
+    cleanupPending: own(error, 'cleanupPending') === true,
+    storeCleanupPending: own(error, 'storeCleanupPending') === true,
+    cleanupErrors: bounded(own(error, 'cleanupErrors'), entry => ({
+      owner: closed(own(entry, 'owner'), owners),
+      code: closed(own(own(entry, 'error'), 'code'), codes),
+    })), pendingOwners};
+}
+
+async function closeRetainedStoreFixtureHost(host, t, observeFirstClose = false) {
   try { return await host.close(); }
   catch (original) {
+    if (observeFirstClose) {
+      try { t.diagnostic(JSON.stringify(firstHostCloseFailureDiagnostic(original))); }
+      catch { /* Diagnostics cannot replace the original close failure. */ }
+    }
     const pendingStore = error => error?.code === 'InstalledHostCleanupPending' &&
       error.cleanupPending === true && error.storeCleanupPending === true &&
       Array.isArray(error.cleanupErrors) && error.cleanupErrors.length === 1 &&
@@ -716,7 +755,8 @@ async function closeRetainedStoreFixtureHost(host, t) {
 
 test('Remote Host fixture retains its same close owner after refusal and joins one flight', async t => {
   const child = Object.assign(new Error('PublicationStoreCleanupPending'), {code: 'PublicationStoreCleanupPending'});
-  let released = false, retries = 0;
+  let released = false, retries = 0, privateReads = 0;
+  Object.defineProperty(child, 'privatePayload', {get() {privateReads++; throw new Error('PRIVATE');}});
   const cleanup = Object.freeze({
     status() {return {pending: released ? [] : ['store']};},
     async retry() {
@@ -739,7 +779,19 @@ test('Remote Host fixture retains its same close owner after refusal and joins o
   assert.equal(close(), first, 'overlapping close must join the original flight');
   await assert.rejects(first, error => error === original);
   assert.deepEqual(cleanup.status().pending, ['store']);
-  await closeRetainedStoreFixtureHost({close}, t);
+  const observations = [];
+  await closeRetainedStoreFixtureHost({close}, {diagnostic(value) {
+    observations.push(JSON.parse(value)); t.diagnostic(value);
+  }}, true);
+  assert.deepEqual(observations[0], {phase: 'original_host_first_close_failure',
+    code: 'InstalledHostCleanupPending', cleanupPending: true, storeCleanupPending: true,
+    cleanupErrors: [{owner: 'store', code: 'PublicationStoreCleanupPending'}], pendingOwners: ['store']});
+  assert.equal(privateReads, 0);
+  assert(!JSON.stringify(observations).includes('PRIVATE'));
+  assert.deepEqual(firstHostCloseFailureDiagnostic({code: 'private-run-id',
+    cleanupErrors: [{owner: 'private-key', error: {code: 'private-payload'}}]}), {
+    phase: 'original_host_first_close_failure', code: 'unrecognized', cleanupPending: false,
+    storeCleanupPending: false, cleanupErrors: [{owner: 'unrecognized', code: 'unrecognized'}], pendingOwners: null});
   assert.equal(retries, 2, 'pending retries must continue the same original handle to its ACK');
   assert.equal(original.cleanupHandle, cleanup);
   assert.equal(original.errors[0], child);
@@ -753,8 +805,8 @@ test('Remote Host fixture retains its same close owner after refusal and joins o
   const foreign = Object.assign(new Error('InstalledHostCleanupPending'), {
     ...original, cleanupErrors: [{owner: 'source', error: child}],
   });
-  await assert.rejects(closeRetainedStoreFixtureHost({async close() {throw foreign;}}, t),
-    error => error === foreign);
+  await assert.rejects(closeRetainedStoreFixtureHost({async close() {throw foreign;}},
+    {diagnostic() {throw new Error('DiagnosticUnavailable');}}, true), error => error === foreign);
   assert.equal(retries, 2, 'a different owner must never enter the Store continuation');
   const retryFailure = new Error('OriginalRetryFailed');
   const failing = Object.assign(new Error('InstalledHostCleanupPending'), {...original,
@@ -2546,7 +2598,7 @@ test('public Effect dispatch waits for and obeys the Host barrier',
     await waitFor(async () => (await run.status()).status === 'succeeded');
     assert.equal(captures, 1);
     assert.deepEqual(sends, [[0, 0], [0, 1]]);
-    await closeRetainedStoreFixtureHost(first, t);
+    await closeRetainedStoreFixtureHost(first, t, true);
 
     let refusedCaptures = 0;
     const refused = createInstalledEffectSite({
