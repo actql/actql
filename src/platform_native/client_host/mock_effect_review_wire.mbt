@@ -139,7 +139,8 @@ pub fn NativeClientMockModelWork::save_effect_review_in_original_read(
           // following measurement Writer. No input body is copied here.
           record_headers: 52L,
           reference_slots: 89L,
-          scalar_words: 424L,
+          // Same saved-review carrier adds one constructor-inventory word.
+          scalar_words: 425L,
           owned_utf16_units: 256L,
           owned_wire_bytes: 192L,
         }),

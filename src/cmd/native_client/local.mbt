@@ -116,7 +116,11 @@ fn execute_native_local(matches : @argparse.Matches) -> String raise ClientStop 
     } else {
       execute_native_local_adoption(matches, original_operation, child)
     }
-    return local_run_reply(child, reply)
+    return if command_preparation_invocation.val is Some(_) {
+      reply
+    } else {
+      local_run_reply(child, reply)
+    }
   }
   if optional(matches, "config-file") is None {
     if !local_product_operation(operation) {

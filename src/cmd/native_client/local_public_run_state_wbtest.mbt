@@ -135,7 +135,12 @@ test "public run returns the original portable State and Result across Host reop
   assert_eq(before.state().wire(), state)
   let status = public_run_state_status(run_id)
   let observed = local_saved_run_status(
-    host, settings, crypto, "must-not-open", status,
+    host,
+    settings,
+    crypto,
+    "must-not-open",
+    status,
+    human_display=Some(_ => stop("JSONMustNotReadPrivatePreview")),
   ) catch {
     ClientStop(kind) => fail("public.status: " + kind)
   }
@@ -154,6 +159,7 @@ test "public run returns the original portable State and Result across Host reop
     crypto,
     "must-not-open",
     watch.subcommand.unwrap().1,
+    human_display=Some(_ => stop("JSONWatchMustNotReadPrivatePreview")),
   ) catch {
     ClientStop(kind) => fail("public.watch: " + kind)
   }

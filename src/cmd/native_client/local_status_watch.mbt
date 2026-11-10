@@ -242,6 +242,7 @@ fn local_saved_run_status_command(
   input_root : String,
   child : @argparse.Matches,
   capture? : @local_host.NativeLocalJournalCapture? = None,
+  human_display? : ((String) -> String raise ClientStop)? = None,
   original_reader? : ((String) -> @local_host.NativeClientSavedRunStateSelection raise ClientStop)? = None,
 ) -> String raise ClientStop {
   guard local_status_watch_options(child) is Some(options) else {
@@ -252,6 +253,7 @@ fn local_saved_run_status_command(
       input_root,
       child,
       capture~,
+      human_display~,
       original_reader~,
     )
   }
@@ -306,9 +308,13 @@ fn local_saved_run_status_command(
       let text = if child.flags.get("json").unwrap_or(false) {
         wire
       } else {
-        local_run_state_display(wire).unwrap_or_else(() => {
-          stop("LocalRunStateDisplayUnavailable")
-        })
+        match human_display {
+          Some(display) => display(wire)
+          None =>
+            local_run_state_display(wire).unwrap_or_else(() => {
+              stop("LocalRunStateDisplayUnavailable")
+            })
+        }
       }
       let bytes = @utf8.encode(text + "\n")
       local_status_watch_progress_ffi(bytes, bytes.length())
@@ -327,8 +333,12 @@ fn local_saved_run_status_command(
   if child.flags.get("json").unwrap_or(false) {
     wire
   } else {
-    local_run_state_display(wire).unwrap_or_else(() => {
-      stop("LocalRunStateDisplayUnavailable")
-    })
+    match human_display {
+      Some(display) => display(wire)
+      None =>
+        local_run_state_display(wire).unwrap_or_else(() => {
+          stop("LocalRunStateDisplayUnavailable")
+        })
+    }
   }
 }
