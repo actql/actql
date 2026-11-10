@@ -70,7 +70,7 @@ async function fixture(t, template, mutate = () => {}) {
       record.stdout = ['Run: "unit-original-run"', 'State: "waiting_checkpoint"',
         'Checkpoint: "unit-original-checkpoint"', `  Original CID: "sha256:${'a'.repeat(64)}"`,
         'Stored Effect Preview (read-only; not approval):',
-        `  Effect: "update"  Target: "salesforce.${resource}"`, '  Items: 2',
+        `  Effect: "update"  Target: "connector://salesforce/${resource}"`, '  Items: 2',
         '  Preview strength: "full_diff"', '  Changes:', ...updates.flatMap(update => [
           '    Row: ' + JSON.stringify(update.id),
           '      Before: ' + JSON.stringify({state: 'present', value: originals.find(row => row.id === update.id)}),
@@ -201,6 +201,12 @@ for (const [name, mutate, pattern] of [
   }, /Human waiting Preview/u],
   ['a replacement Checkpoint in human output', ({record}) => {
     record.stdout = record.stdout.replace('a'.repeat(64), 'b'.repeat(64));
+  }, /Human waiting Preview/u],
+  ['a Program alias instead of the original target URI', ({record}) => {
+    record.stdout = record.stdout.replace('connector://salesforce/Opportunity', 'salesforce.Opportunity');
+  }, /Human waiting Preview/u],
+  ['a different connector target resource', ({record}) => {
+    record.stdout = record.stdout.replace('connector://salesforce/Opportunity', 'connector://salesforce/Account');
   }, /Human waiting Preview/u],
   ['incorrect displayed before evidence', ({record}) => {
     record.stdout = record.stdout.replace('"StageName":"Proposal"', '"StageName":"Other"');
