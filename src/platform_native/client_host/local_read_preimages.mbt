@@ -184,9 +184,6 @@ fn NativeLocalReadPolicyBinding::read_admission_originals(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  if !self.selection.data_policy_cids.contains(actual_policy_cid) {
-    return Err(PolicyNotSelected)
-  }
   self.read_admission_preimages(original, facts, actual_policy_cid)
 }
 
@@ -198,6 +195,11 @@ fn NativeLocalReadPolicyBinding::read_admission_preimages(
   facts : @result_access.NativeResultReadFacts,
   actual_policy_cid : String,
 ) -> Result[NativeLocalReadAdmissionOriginals, NativeLocalReadBindingIssue] {
+  let policy_cids = match
+    self.selected_policy_cids(original, facts, actual_policy_cid) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   // The original stdout constructor cannot certify internal material. Its
   // separate receiver/schema/ordering and physical-loan join is mandatory.
   let material = if self.selection.sink == Material {
@@ -252,7 +254,7 @@ fn NativeLocalReadPolicyBinding::read_admission_preimages(
     local_read_preimage(
       self.crypto,
       [
-        ("data_policy_cids", Texts(self.selection.data_policy_cids)),
+        ("data_policy_cids", Texts(policy_cids)),
         ("domain", Text("native_local_read.data_ceiling")),
         ("expires_at", Text(self.expires_at)),
         ("max_bytes", Quantity(self.selection.max_bytes)),

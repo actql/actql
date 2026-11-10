@@ -435,6 +435,25 @@ test "finite Mock product originals retain the closed selected Account and Resul
   )
   for name in ["read.json", "material-read.json", "file-read.json"] {
     let value = product_asset_value(product_test_original(selected, name)).unwrap()
+    assert_true(
+      product_test_field(value, ["native", "result_read", "accepted_run_policy"])
+      is @canonical.Bool(true),
+    )
+    assert_true(
+      @canonical.object_field(
+        product_test_field(value, ["native", "result_read"]),
+        "data_policy_cids",
+      )
+      is None,
+    )
+    let unchanged = product_asset_value(product_test_original(baseline, name)).unwrap()
+    assert_true(
+      @canonical.object_field(
+        product_test_field(unchanged, ["native", "result_read"]),
+        "accepted_run_policy",
+      )
+      is None,
+    )
     guard product_test_field(value, ["native", "result_read", "result_names"])
       is @canonical.Array(names) else {
       fail("missing original Result selection")

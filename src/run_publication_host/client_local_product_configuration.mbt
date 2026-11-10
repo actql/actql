@@ -493,7 +493,11 @@ fn product_assemble_originals(
                 ("formats", product_texts(["csv", "json", "jsonl"])),
                 ("purpose", Json::string("cli-read")),
                 ("sink", Json::string("stdout")),
-                ("data_policy_cids", product_texts([policy])),
+                if finite_run_profile && mock is Some(_) {
+                  ("accepted_run_policy", Json::boolean(true))
+                } else {
+                  ("data_policy_cids", product_texts([policy]))
+                },
                 ("max_bytes", Json::number(65536)),
                 ("max_uses", Json::number(1)),
                 ("expires_at", Json::string(common.expires)),

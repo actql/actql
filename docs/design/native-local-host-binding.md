@@ -1413,6 +1413,28 @@ The explicit finite read alternative selects `run_policy_profile_cid`, `run_file
 `retention_file` and `store_file` together. These literal names follow the existing
 selected-file admission and identify actual adopted originals; they grant no
 permission. Initial binding compares them with the opaque profile binding.
+Within this finite alternative, exactly one Policy selector is required:
+`data_policy_cids` retains its nonempty literal CID list, or
+`accepted_run_policy: true` explicitly selects the actual committed Result's
+effective Policy root from the same Run's authenticated first-admission packet.
+The latter is a generic selected-file role, not a Mock authorization exception.
+Fresh finite Mock installation selects it explicitly because Source response
+identities can depend on the actual installed Project. Absolute and legacy read
+originals retain their literal lists. Mixed, empty, false, missing or unknown
+alternatives are refused; no old selected file is rewritten.
+
+The existing Result resolver joins the actual Store custody, original Request,
+Run, named Result, public index, manifest, Artifact, definition and material
+generation before retaining that one root in the existing read binding. Mere
+membership in a Policy closure does not select an ancestor. Read admission and
+the data-ceiling preimage consume the same root without another Store read or
+Policy calculation. Material construction receives that exact root list; file
+output uses the same selection. Archive reconstruction consumes only the exact
+authenticated saved admission and accepted Run packet, and issues no permission.
+Independent current Account, classification/privacy, egress, sink, format,
+byte/use limits and physical delivery checks remain at their existing boundaries.
+Missing or changed originals are refusals, never later backfill or a new Allow.
+
 Read-evidence restoration uses each saved row's independent read-original CID
 and that original's roles, then rechecks current Host authority, selected file
 generations and the original accepted Run packet. Different read selections in

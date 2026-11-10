@@ -7,7 +7,11 @@ fn NativeLocalReadPolicyBinding::prepare_destination_facts(
   store : @publication_store.Store,
   request : @result_access.NativeResultAccessRequest,
   observed_at : String,
-) -> Result[@result_access.NativeResultReadFacts, NativeLocalReadBindingIssue] {
+) -> Result[
+  (@result_access.NativeResultReadFacts, String),
+  NativeLocalReadBindingIssue,
+] {
+  self.result_policy_original = None
   let facts : @result_access.NativeResultReadFacts = {
     request,
     public_index_entry_cid: "",
@@ -61,14 +65,13 @@ fn NativeLocalReadPolicyBinding::prepare_destination_facts(
     Ok(value) => value
     Err(issue) => return Err(Adoption(issue))
   }
-  if !self.selection.data_policy_cids.contains(
-      @publication.captured_effect_dependency_body_cid(policy),
-    ) {
-    return Err(PolicyNotSelected)
+  match self.retain_result_policy_original(original, facts, policy) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
   match self.require_request_selection(original, facts) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  Ok(facts)
+  Ok((facts, @publication.captured_effect_dependency_body_cid(policy)))
 }
