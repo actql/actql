@@ -109,6 +109,64 @@ test "epoch receipt verification shares the original Journal transaction and nev
 }
 
 ///|
+// A real legacy publisher is not the captured Journal's routing original.
+// Its public Account permission cannot authorize joining another transaction.
+test "publication epoch refuses an unbound publisher and keeps the original fence" {
+  let (host, request, definition, store) = local_publisher_fixture(
+    "epoch-unbound-publication-publisher", true,
+  )
+  let publisher = host
+    .bind_run_publisher(
+      epoch_test_crypto(),
+      "operator",
+      "cli",
+      request,
+      definition,
+      "epoch-unbound-publication-publisher.run.json",
+      store,
+    )
+    .unwrap()
+  let (database, journal, authority, reference) = submitted_test_setup(
+    "epoch-unbound-publication-journal",
+  )
+  let calls : Array[String] = []
+  let operations = journal_test_operation_access(database, calls)
+  let scope = "sha256:" + "a".repeat(64)
+  authority.begin_operation(false)
+  let before = database.read("client_submission_epoch", "authority").unwrap()
+  let refused = journal
+    .transaction_with_reads(
+      () => {
+        journal.publication_read_locked = true
+        let refused = authority.verify_epoch_in_journal_transaction(
+          journal,
+          reference.epoch,
+          scope,
+          true,
+          1001.0,
+          Some(operations),
+          publication=Some(publisher),
+        )
+        journal.publication_read_locked = false
+        Ok(refused)
+      },
+      reads=Some(operations.reads),
+    )
+    .unwrap()
+  assert_true(refused is Err(CustodyLost))
+  assert_false(calls.any(call => call.has_prefix("compare_exchange:")))
+  let after = database.read("client_submission_epoch", "authority").unwrap()
+  assert_eq(before.body, after.body)
+  assert_eq(before.revision, after.revision)
+  assert_true(publisher.current())
+  authority.end_operation()
+  database.close_checked().unwrap()
+  authority.crypto.close_checked().unwrap()
+  host.close().unwrap()
+  assert_true(store.close().unwrap())
+}
+
+///|
 test "epoch receipt lost outer commit leaves no reusable watermark observation" {
   let (database, journal, authority, reference) = submitted_test_setup(
     "epoch-original-receipt-commit-unknown",

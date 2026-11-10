@@ -137,6 +137,16 @@ separately binds the same resumed Request, definition and current Account;
 observation custody is not publication authority. Pending publication children
 retire before the observation owner closes that original Store and its roots.
 Missing Store custody cannot initialize another namespace.
+The captured Host Journal and publication Store keep their distinct original
+Database bindings. The publisher retains the already bound Journal operation
+for metadata/current reads, while payload and index work use the Store's own
+operation. Only an actual dispatch or original publisher can join that same
+Journal transaction for checkpoint/epoch currentness. For the Store commit,
+the Journal transaction and cancellation fence remain held while its routing
+flight returns; authorization callbacks borrow and return that same Journal
+route, then the Store performs its own exchange. The Journal route must reenter
+before its outer transaction can commit. Missing return or reentry stays pending
+and cannot prove non-publication, authorize a resend or acknowledge cleanup.
 The restoration-to-application boundary first retains the composed extent as
 data, then enters that same original constructor to acquire usable backing before
 resizing its byte token. A Read-side resize alone cannot acquire more business

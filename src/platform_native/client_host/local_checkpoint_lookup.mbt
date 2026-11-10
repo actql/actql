@@ -173,12 +173,18 @@ fn NativeLocalHostConnection::lookup_submitted_checkpoint_metadata_with_operatio
 }
 
 ///|
-// The exact existing Effect dispatch borrows its Journal's current transaction.
-// Ordinary lookup/transaction reentry remains refused. Account, epoch, original
-// Submission/Run and current Checkpoint are observed, never replaced by DATA.
-fn NativeLocalHostConnection::lookup_effect_dispatch_checkpoint_metadata_locked(
+priv enum NativeLocalOwnedEffectCheckpoint {
+  DispatchCheckpoint(NativeClientEffectDispatchClaim)
+  PublicationCheckpoint(NativeLocalPublisherBinding)
+}
+
+///|
+// Only a retained dispatch or original publisher can join this same Journal's
+// transaction. Ordinary lookup/reentry stays refused. Account, epoch, original
+// Submission/Run and current Checkpoint remain actual, never supplied as DATA.
+fn NativeLocalHostConnection::lookup_effect_checkpoint_metadata_in_owned_transaction(
   self : Self,
-  dispatch : NativeClientEffectDispatchClaim,
+  original : NativeLocalOwnedEffectCheckpoint,
   crypto : @crypto.Library,
   principal : String,
   connection : String,
@@ -192,10 +198,27 @@ fn NativeLocalHostConnection::lookup_effect_dispatch_checkpoint_metadata_locked(
   NativeClientOriginalCheckpointLookupIssue,
 ] {
   let journal = self.journal
-  if !physical_equal(journal, dispatch.journal) ||
-    dispatch.request != request ||
-    !journal.transaction_active ||
-    journal.publication_read_locked ||
+  let publication = match original {
+    DispatchCheckpoint(dispatch) => {
+      if !physical_equal(journal, dispatch.journal) ||
+        dispatch.request != request ||
+        journal.publication_read_locked {
+        return Err(Journal(Checkpoint(InvalidMaterial)))
+      }
+      None
+    }
+    PublicationCheckpoint(publisher) => {
+      if publisher.request != request ||
+        !publisher.matches_owned_journal(
+          journal,
+          @host.client_request_authority_scope_cid(request),
+        ) {
+        return Err(Journal(Checkpoint(InvalidMaterial)))
+      }
+      Some(publisher)
+    }
+  }
+  if !journal.transaction_active ||
     journal.fenced ||
     !physical_equal(journal.database, self.epoch.database) ||
     !physical_equal(journal.database, self.database) {
@@ -223,6 +246,7 @@ fn NativeLocalHostConnection::lookup_effect_dispatch_checkpoint_metadata_locked(
       allowed,
       now,
       Some(operations),
+      publication~,
     ) {
     Ok(_) => ()
     Err(issue) => return Err(Journal(Epoch(issue)))
@@ -240,7 +264,32 @@ fn NativeLocalHostConnection::lookup_effect_dispatch_checkpoint_metadata_locked(
     @host.SameRequest {
     return Err(Journal(ChangedIntent))
   }
-  let record = match journal.require_effect_dispatch_locked(dispatch) {
+  let retained = fn() -> Result[
+    NativeClientRunRecord,
+    NativeClientRunJournalIssue,
+  ] {
+    match original {
+      DispatchCheckpoint(dispatch) =>
+        journal.require_effect_dispatch_locked(dispatch)
+      PublicationCheckpoint(publisher) => {
+        let record = match
+          journal.retained(request, reads=Some(operations.reads)) {
+          Ok(Some(value)) => value
+          Ok(None) => return Err(CustodyLost)
+          Err(issue) => return Err(issue)
+        }
+        if !journal.transaction_active ||
+          !publisher.matches_owned_journal(journal, authority.scope) ||
+          record.publication_binding != Some(publisher.store_binding) ||
+          @publication.publication_contract_identity(record.definition) !=
+          @publication.publication_contract_identity(publisher.definition) {
+          return Err(CustodyLost)
+        }
+        Ok(record)
+      }
+    }
+  }
+  let record = match retained() {
     Ok(value) => value
     Err(issue) => return Err(Journal(issue))
   }
@@ -250,12 +299,12 @@ fn NativeLocalHostConnection::lookup_effect_dispatch_checkpoint_metadata_locked(
   }
   if !authority.current_for(journal, request) ||
     !journal.transaction_active ||
-    journal.publication_read_locked ||
+    (journal.publication_read_locked && publication is None) ||
     journal.fenced {
     return Err(Journal(AuthorizationDenied))
   }
   // The Account callback cannot retire this same dispatch or replace its row.
-  let current = match journal.require_effect_dispatch_locked(dispatch) {
+  let current = match retained() {
     Ok(value) => value
     Err(issue) => return Err(Journal(issue))
   }

@@ -512,13 +512,18 @@ fn NativeClientEpochAuthority::verify_epoch_in_journal_transaction(
   current_authorization : Bool,
   now : Double,
   operations : NativeClientJournalOperationAccess?,
+  publication? : NativeLocalPublisherBinding? = None,
 ) -> Result[@scope.SubmissionEpochValidity, NativeClientEpochIssue] {
   if !current_authorization {
     return Err(AuthorizationDenied)
   }
   if !physical_equal(self.database, journal.database) ||
     !journal.transaction_active ||
-    journal.publication_read_locked ||
+    (
+      journal.publication_read_locked &&
+      !(publication is Some(original) &&
+      original.matches_owned_journal(journal, authority_scope_cid))
+    ) ||
     journal.fenced ||
     client_journal_transaction_fenced(
       self.database,
@@ -535,7 +540,11 @@ fn NativeClientEpochAuthority::verify_epoch_in_journal_transaction(
     Ok(_) => ()
   }
   if !journal.transaction_active ||
-    journal.publication_read_locked ||
+    (
+      journal.publication_read_locked &&
+      !(publication is Some(original) &&
+      original.matches_owned_journal(journal, authority_scope_cid))
+    ) ||
     journal.fenced ||
     self.fenced {
     return Err(CustodyLost)

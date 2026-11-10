@@ -4,6 +4,7 @@ pub(all) enum NativeLocalSavedEffectPublicationIssue {
   Journal(NativeClientRunJournalIssue)
   Service(@native_publication.NativeRunPublicationIssue)
   Construction
+  Publisher(NativeLocalPublisherBindingIssue)
 }
 
 ///|
@@ -111,6 +112,9 @@ pub fn NativeLocalEffectResumeOriginal::install_saved_publication_service_in_ori
   }
   guard self.subject is Some(SavedSigningSubject(read)) &&
     physical_equal(publisher.authority.host, self.host) &&
+    publisher.authority.capture is Some(capture) &&
+    physical_equal(capture, read.owner.capture) &&
+    publisher.journal_operation is Some(_) &&
     physical_equal(publisher.store, store) &&
     publisher.request == self.request &&
     publisher.namespace_id == namespace_id &&
@@ -120,18 +124,26 @@ pub fn NativeLocalEffectResumeOriginal::install_saved_publication_service_in_ori
     ) else {
     return Err(Construction)
   }
-  let capture = read.owner.capture
   let live = () => {
     self
     .application_original_in_original_read()
     .map(_ => ())
     .map_err(issue => NativeLocalSavedEffectPublicationIssue::Original(issue))
   }
+  let current = () => {
+    publisher.with_original_journal_read((host, _) => {
+      if !physical_equal(host, self.host) {
+        return Err(SelectionMismatch)
+      }
+      Ok(self.authority_current(publication=Some(publisher)))
+    })
+    is Ok(true)
+  }
   install_native_client_work_publication_service(
     self.host.journal,
     self.request,
     original.materials.run_definition,
-    () => self.authority_current(),
+    current,
     live,
     store,
     namespace_id,
@@ -143,29 +155,21 @@ pub fn NativeLocalEffectResumeOriginal::install_saved_publication_service_in_ori
       publisher.authorize_request(context, facts)
     }),
     bind_original=Some(binding => {
-      capture
-      .with_current_adoption_material_in_original_read((
-        host,
-        _material,
-        operations,
-      ) => {
+      publisher
+      .with_original_journal_read((host, operations) => {
         if !physical_equal(host, self.host) {
-          return Err(Journal(CustodyLost))
+          return Err(SelectionMismatch)
         }
         host.journal
         .bind_publication(
           self.request,
           binding,
-          () => self.authority_current(),
+          current,
           operations=Some(operations),
         )
         .map_err(issue => Journal(issue))
       })
-      .map_err(issue => {
-        NativeLocalSavedEffectPublicationIssue::Original(
-          HostAttestationOriginal(issue),
-        )
-      })
+      .map_err(issue => NativeLocalSavedEffectPublicationIssue::Publisher(issue))
     }),
     fence_original=Some((binding, commit) => {
       // Retain a real committed/lost reply before the original Read return.
@@ -176,21 +180,17 @@ pub fn NativeLocalEffectResumeOriginal::install_saved_publication_service_in_ori
           @native_publication.NativeRunPublicationIssue,
         ]?,
       ] = Ref(None)
-      let captured = capture.with_current_adoption_material_in_original_read((
-        host,
-        _material,
-        operations,
-      ) => {
+      let captured = publisher.with_original_journal_read((host, operations) => {
         if !physical_equal(host, self.host) {
-          return Err(Journal(CustodyLost))
+          return Err(SelectionMismatch)
         }
         match
           host.journal.fence_publication_outcome(
             self.request,
             original.materials.run_definition,
             binding,
-            () => self.authority_current(),
-            commit,
+            current,
+            () => publisher.with_original_store_commit(commit),
             operations=Some(operations),
           ) {
           Ok(value) => {
@@ -364,15 +364,16 @@ pub fn NativeLocalEffectResumeOriginal::prepare_saved_publication_construction_i
     is Some(writer) &&
     @execution.preparation_representation_cost({
       record_headers: writer.record_headers +
-      96L +
+      // Additional current callback/Some/Result and routing-exchange frames.
+      112L +
       12L * rows +
       16L * results.to_int64(),
       reference_slots: writer.reference_slots +
-      384L +
+      416L +
       32L * rows +
       48L * results.to_int64(),
       scalar_words: writer.scalar_words +
-      192L +
+      208L +
       16L * rows +
       24L * results.to_int64(),
       owned_utf16_units: writer.owned_utf16_units + bound,

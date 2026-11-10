@@ -139,6 +139,7 @@ fn command_preparation_cleanup_cause(
         Journal(_) => "SavedPublicationJournal"
         Service(_) => "SavedPublicationService"
         Construction => "SavedPublicationConstruction"
+        Publisher(_) => "SavedPublicationPublisher"
       }
     CommandSavedFileResume(cause) =>
       match cause {

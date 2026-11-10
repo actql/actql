@@ -126,6 +126,7 @@ pub fn NativeLocalInitialHostAttestationSigning::prepare_effect_resume_original(
 fn NativeLocalEffectResumeOriginal::authority_current(
   self : NativeLocalEffectResumeOriginal,
   dispatch? : NativeClientEffectDispatchClaim? = None,
+  publication? : NativeLocalPublisherBinding? = None,
 ) -> Bool {
   guard !self.retired &&
     !self.host.closed &&
@@ -179,9 +180,14 @@ fn NativeLocalEffectResumeOriginal::authority_current(
           configuration.configuration_cid() == self.authentication.policy_cid else {
           return Err(CustodyLost)
         }
-        if self.host.journal.transaction_active && dispatch is Some(original) {
+        let owned = match (dispatch, publication) {
+          (Some(original), None) => Some(DispatchCheckpoint(original))
+          (None, Some(original)) => Some(PublicationCheckpoint(original))
+          _ => None
+        }
+        if self.host.journal.transaction_active && owned is Some(original) {
           return Ok(
-            host.lookup_effect_dispatch_checkpoint_metadata_locked(
+            host.lookup_effect_checkpoint_metadata_in_owned_transaction(
               original,
               self.crypto,
               self.principal,

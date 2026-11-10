@@ -26,6 +26,7 @@ struct NativeLocalPublisherBinding {
   store : @publication_store.Store
   store_binding : String
   operation : NativeLocalStoreOperation?
+  journal_operation : NativeLocalStoreOperation?
 }
 
 ///|
@@ -103,6 +104,7 @@ fn NativeLocalHostConnection::bind_run_publisher_with_operations(
   operations? : NativeClientJournalOperationAccess? = None,
   capture? : NativeLocalJournalCapture? = None,
   operation? : NativeLocalStoreOperation? = None,
+  journal_operation? : NativeLocalStoreOperation? = None,
 ) -> Result[NativeLocalPublisherBinding, NativeLocalPublisherBindingIssue] {
   let reads = operations.map(value => value.reads)
   let current = match capture {
@@ -182,6 +184,7 @@ fn NativeLocalHostConnection::bind_run_publisher_with_operations(
     store,
     store_binding,
     operation,
+    journal_operation,
   }
   if !binding.current() {
     return Err(AuthorizationDenied)

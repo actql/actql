@@ -176,8 +176,8 @@ fn LocalCommandPreparationOriginal::publish_saved_effect_files(
     ).map_err(issue => CommandSavedEffectCompletion(Admission(issue)))
     |> command_preparation_result
   let settings = configuration.settings
-  let publisher = host
-    .bind_original_run_publisher(
+  let publisher = match
+    host.bind_original_run_publisher(
       operation,
       settings.principal,
       settings.connection,
@@ -187,8 +187,14 @@ fn LocalCommandPreparationOriginal::publish_saved_effect_files(
         stop("LocalRunInstallationRequired")
       }),
       store,
-    )
-    .unwrap_or_else(() => stop("LocalPublisherAuthorityUnavailable"))
+      journal_operation=observation.journal_operation,
+    ) {
+    Ok(value) => value
+    Err(issue) => {
+      self.retain_primary(CommandSavedEffectPublication(Publisher(issue)))
+      stop("LocalPublisherAuthorityUnavailable")
+    }
+  }
   business.publication_publisher = Some(publisher)
   let now = local_utc_now()
   let intent : @local_publication.NativeRunPublicationIntent = {
