@@ -53,6 +53,91 @@ test('public query HTTPS observation selects only its original operator and auth
   assert.match(source, /if \(authorization !== undefined\) saved\.authorization = authorization/u);
 });
 
+test('exact physical HTTPS targets forward only their authored Run and Result observation policy', async () => {
+  const {parse} = await import('acorn');
+  const source = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
+  const syntax = parse(source, {sourceType: 'module', ecmaVersion: 'latest'});
+  const nodes = [];
+  const visit = node => {
+    if (node === null || typeof node !== 'object') return;
+    if (typeof node.type === 'string') nodes.push(node);
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value !== null && typeof value === 'object') visit(value);
+    }
+  };
+  visit(syntax);
+  const declaration = name => nodes.find(node =>
+    node.type === 'FunctionDeclaration' && node.id.name === name);
+  const policy = declaration('createPublicQueryHttpAuthorization');
+  const create = Function('userInfo', 'canonical', 'publicQueryResultOracles',
+    `return (${source.slice(policy.start, policy.end)});`)(
+      () => ({username: 'exact-operator'}), JSON.stringify, publicQueryResultOracles);
+  const entry = declaration('exerciseExactPhysicalTargets');
+  const targets = nodes.find(node => node.type === 'VariableDeclarator' && node.id.name === 'exactTargetPairs').init;
+  const exactTargetPairs = Function(`return (${source.slice(targets.start, targets.end)});`)();
+  const files = new Map(), installed = new Map(), opened = [], calls = [];
+  let hostCloses = 0, serverCloses = 0;
+  const baseProfile = {original: 'source-profile'};
+  const ports = {
+    assert, exactTargetPairs, sourceProfilePath: 'source.json', hostCapacityPolicy: {original: 'capacity'},
+    resolve: path => path,
+    async readFile(path) {return path === 'source.json' ? JSON.stringify(baseProfile) : 'fixture-TLS';},
+    async writeFile(path, bytes) {files.set(path, JSON.parse(bytes));},
+    observe: () => () => ({original: 'no-provider-I/O'}),
+    async connect(options) {
+      const {directory, sourceProfilePath} = options.installation;
+      const profile = files.get(sourceProfilePath), original = installed.get(directory);
+      if (original !== undefined && (profile.schema !== original.schema || profile.table !== original.table)) {
+        throw new TypeError('InstalledHostConfigurationMismatch');
+      }
+      installed.set(directory, profile);
+      return {close() {}};
+    },
+    createPublicQueryHttpAuthorization: create,
+    async exercisePublicQueryInput(_connect, options, input) {
+      calls.push({options, input});
+      if (options.mode === 'local') {
+        const {directory, sourceProfilePath} = options.installation;
+        installed.set(directory, files.get(sourceProfilePath));
+        return;
+      }
+      const host = opened.at(-1);
+      assert.ok(host.authorization, 'the actual exact-target HTTP Host must receive its operator policy');
+      const account = JSON.parse(host.authorization.accountConfiguration);
+      assert.deepEqual(account, JSON.parse(create({successes: input.successes}).accountConfiguration));
+      assert.deepEqual(account.entries[0].resource, {any_of: ['result/main', 'run']});
+      assert.deepEqual(account.entries[0].principal, {any_of: ['exact-operator']});
+      assert.deepEqual(account.entries[0].connection, {any_of: ['actql-remote-host']});
+      assert.deepEqual(account.entries[0].operation, {any_of: ['read']});
+      assert.equal(host.authenticate('Bearer fixture-token'), 'exact-operator');
+      assert.equal(host.authenticate('Bearer other-token'), undefined);
+    },
+    async openInstalledRemoteHttpHost(options) {
+      opened.push(options);
+      return {handler() {}, async close() {hostCloses++;}};
+    },
+    createServer() {
+      return {listen(_port, _host, callback) {callback();}, address() {return {port: 443};},
+        closeAllConnections() {}, close(callback) {serverCloses++; callback();}};
+    },
+    userInfo: () => ({username: 'exact-operator'}),
+  };
+  const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+  await AsyncFunction(...Object.keys(ports),
+    `return (${source.slice(entry.start, entry.end)})();`)(...Object.values(ports));
+  assert.equal(opened.length, 4);
+  assert.equal(hostCloses, 4);
+  assert.equal(serverCloses, 4);
+  assert.equal(calls.length, 8);
+  assert.deepEqual(calls.map(({input}) => input.successes[0].expected), [
+    [{id: 101, amount: 11}], [{id: 101, amount: 11}],
+    [{id: 202, amount: 22}], [{id: 202, amount: 22}],
+    [{id: 303, amount: 33}], [{id: 303, amount: 33}],
+    [{id: 404, amount: 44}], [{id: 404, amount: 44}],
+  ]);
+});
+
 test('Host failure diagnostics preserve original authorization and observer call semantics', () => {
   const result = Promise.resolve('original-return'), receiver = {}, detail = {code: 'ClientHostFailure'};
   const context = {}, calls = [];

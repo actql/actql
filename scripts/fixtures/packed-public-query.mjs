@@ -1312,7 +1312,9 @@ async function exerciseExactPhysicalTargets() {
         'unchanged target with reordered JSON must reuse without provider I/O');
       const remoteDirectory = resolve(`exact-${field}-remote-${index}`);
       const remoteHost = await openInstalledRemoteHttpHost({directory: remoteDirectory,
-        sourceProfilePath: path, hostCapacityPolicy, authenticate: header => header === 'Bearer fixture-token'
+        sourceProfilePath: path, hostCapacityPolicy,
+        authorization: createPublicQueryHttpAuthorization({successes: [fixture]}),
+        authenticate: header => header === 'Bearer fixture-token'
           ? userInfo().username : undefined});
       const remoteServer = createServer({key: await readFile('remote.key'),
         cert: await readFile('remote.crt')}, remoteHost.handler);
