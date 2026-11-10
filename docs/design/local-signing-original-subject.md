@@ -118,6 +118,11 @@ never reset or refunded. The same work record increments an actual completed-ACK
 byte counter before fallible child close; startup funds row slots and the current
 I/O envelope, not every future row's maximum page. The callback runs outside file locks, followed by the
 same current filesystem generation and original logical row-version checks.
+Each row's separate attempt reserves its possible transfer bytes in the existing
+Ledger's transfer field. Its retained and execution amounts are zero because
+the same work entry already holds the complete I/O construction envelope.
+Observed and uncertain transfer charges and consumed attempts survive settlement;
+the row token neither duplicates that working extent nor refunds its history.
 The restoration-to-application boundary first retains the composed extent as
 data, then enters that same original constructor to acquire usable backing before
 resizing its byte token. A Read-side resize alone cannot acquire more business

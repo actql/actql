@@ -325,6 +325,17 @@ fn LocalCommandPreparationOriginal::prepare_saved_effect_response_construction(
 }
 
 ///|
+fn saved_effect_file_reserve_transfer(
+  ledger : @initial_resources.Ledger,
+  max_page_bytes : Int,
+) -> Result[@initial_resources.Reservation, @initial_resources.LedgerIssue] {
+  let transfer = max_page_bytes.to_int64() * 2L
+  // SAME entry already funds the child's complete R/E working envelope.
+  // This token accounts the actual IO attempt and transfer, not another E peak.
+  @initial_resources.reserve_attempt(ledger, transfer, 0L, 0L)
+}
+
+///|
 fn LocalCommandPreparationOriginal::apply_saved_effect_files(
   self : Self,
   capture : @local_host.NativeLocalJournalCapture,
@@ -450,10 +461,9 @@ fn LocalCommandPreparationOriginal::apply_saved_effect_files(
     }
     self.with_business_request(capture, () => {
       let ledger = work.ledger.unwrap()
-      let transfer = row._retained_row_binding.limits.page.max_bytes.to_int64() *
-        2L
-      let reservation = @initial_resources.reserve_attempt(
-        ledger, 0L, 0L, transfer,
+      let reservation = saved_effect_file_reserve_transfer(
+        ledger,
+        row._retained_row_binding.limits.page.max_bytes,
       ).map_err(issue => CommandSavedFileResource(issue))
       let reservation = command_preparation_result(reservation)
       work.reservation = Some(reservation)
