@@ -3,13 +3,14 @@
 // authored current/lifetime counters do not supply an installed Read pair.
 fn read_snapshot_selected_original(
   name : String,
+  accepted_policy? : Bool = false,
 ) -> (
   NativeLocalHostConnection,
   NativeLocalReadPolicyBinding,
   @host.ClientRequestIdentity,
   @result_access.NativeResultReadFacts,
 ) raise {
-  let host = selected_read_roles_fixture(name)
+  let host = selected_read_roles_fixture(name, accepted_policy~)
   let crypto = epoch_test_crypto()
   let scope = host.authority_scope_cid("local-cli", "local", crypto).unwrap()
   let epoch = host.epoch.issue_epoch(scope, true, 1000.0).unwrap()
@@ -210,4 +211,104 @@ test "read snapshot preserves commit and rollback uncertainty plus original body
     assert_eq(calls, [])
     database.close_checked().unwrap()
   }
+}
+
+///|
+// Actual selected-file/accepted-Run/Journal/Crypto component. The metadata below
+// deliberately exercises the private post-Store-resolution seam; it is not a
+// physical Store publication, payload read, grant or ordinary CLI acceptance.
+test "accepted Run root correspondence cannot select another body Result or Request" {
+  let (host, binding, request, initial) = read_snapshot_selected_original(
+    "accepted-policy-root",
+    accepted_policy=true,
+  )
+  defer host.close() |> ignore
+  assert_true(binding.selection.policy is AcceptedRunPolicy)
+  let facts = {
+    ..initial,
+    public_index_entry_cid: "sha256:" + "a".repeat(64),
+    result_manifest_cid: "sha256:" + "b".repeat(64),
+    result_artifact_cid: "sha256:" + "c".repeat(64),
+    result_definition_cid: "sha256:" + "d".repeat(64),
+    material_generation_cid: "sha256:" + "e".repeat(64),
+  }
+  let cid = "sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563"
+  let body = @publication.admit_captured_effect_dependency_body(
+    "data_policy",
+    Some(cid),
+    "{\"classification\":\"unknown\",\"source_data_policy_cids\":[],\"source_response_policy_cids\":[],\"unknown_provenance\":true,\"version\":\"actql-effective-data-policy/0.1\"}",
+    65536,
+    8192,
+    64,
+  ).unwrap()
+  assert_true(
+    binding.read_admission_originals(request, facts, cid)
+    is Err(PolicyNotSelected),
+  )
+  binding.retain_result_policy_original(request, facts, body).unwrap()
+  let originals = binding.read_admission_originals(request, facts, cid).unwrap()
+  assert_true(
+    originals.ceiling.wire.contains("\"data_policy_cids\":[\"" + cid + "\"]"),
+  )
+  assert_eq(binding.selected_policy_cids(request, facts, cid).unwrap(), [cid])
+  assert_true(
+    binding.selected_policy_cids(request, facts, "sha256:" + "f".repeat(64))
+    is Err(PolicyNotSelected),
+  )
+  for
+    foreign in [
+      { ..facts, public_index_entry_cid: "sha256:" + "f".repeat(64), },
+      { ..facts, result_manifest_cid: "sha256:" + "f".repeat(64), },
+      { ..facts, result_artifact_cid: "sha256:" + "f".repeat(64), },
+      { ..facts, result_definition_cid: "sha256:" + "f".repeat(64), },
+      { ..facts, material_generation_cid: "sha256:" + "f".repeat(64), },
+      { ..facts, request: { ..facts.request, result_name: "different", }, },
+      { ..facts, request: { ..facts.request, attempt_id: "different", }, },
+    ] {
+    assert_true(
+      binding.selected_policy_cids(request, foreign, cid)
+      is Err(PolicyNotSelected),
+    )
+  }
+  let (foreign, _, _, _) = journal_test_run(
+    "foreign-policy-request",
+    "foreign-policy-run",
+    scope=binding.scope,
+  )
+  assert_true(
+    binding.selected_policy_cids(foreign, facts, cid) is Err(PolicyNotSelected),
+  )
+  let missing = { ..binding, run_policy_original: None, }
+  assert_true(
+    missing.selected_policy_cids(request, facts, cid) is Err(PolicyNotSelected),
+  )
+  // Literal mode is unchanged: the same root must still occur in its exact
+  // independent configured list, and all original list values enter the ceiling.
+  let literal = {
+    ..binding,
+    selection: {
+      ..binding.selection,
+      policy: ExplicitPolicyCids([cid, "sha256:" + "f".repeat(64)]),
+    },
+  }
+  assert_eq(literal.selected_policy_cids(request, facts, cid).unwrap(), [
+    cid,
+    "sha256:" + "f".repeat(64),
+  ])
+  assert_true(
+    literal.selected_policy_cids(request, facts, "sha256:" + "a".repeat(64))
+    is Err(PolicyNotSelected),
+  )
+  // Losing the exact accepted packet cannot be repaired by a retained root.
+  guard binding.run_policy_original is Some((reference, bound, _)) else {
+    fail("missing original packet")
+  }
+  let changed = {
+    ..binding,
+    run_policy_original: Some((reference, bound, b"{}")),
+  }
+  assert_true(
+    changed.read_admission_originals(request, facts, cid)
+    is Err(Journal(CustodyLost)),
+  )
 }

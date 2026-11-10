@@ -254,8 +254,7 @@ fn NativeLocalHostConnection::validate_read_evidence(
     Err(_) => return Err(AuthorizationDenied)
   }
   if @host.client_request_authority_scope_cid(original) != scope ||
-    !selection.enabled ||
-    !selection.data_policy_cids.contains(policy_cid) {
+    !selection.enabled {
     return Err(CustodyLost)
   }
   guard epoch_text(egress, "run_definition_cid") is Some(run_cid) &&
@@ -384,6 +383,7 @@ fn NativeLocalHostConnection::validate_read_evidence(
     file_preparation: None,
     upgrade_packet: upgrade.map(value => value.packet),
     run_policy_original,
+    result_policy_original: None,
   }
   let facts : @result_access.NativeResultReadFacts = {
     request: {
@@ -404,6 +404,12 @@ fn NativeLocalHostConnection::validate_read_evidence(
     result_definition_cid: result_cid,
     material_generation_cid: generation_cid,
     observed_at: "",
+  }
+  // This authenticated saved row was issued only after the original committed
+  // Result root joined the first accepted Policy packet. Reconstruct its exact
+  // immutable correspondence, never a Store observation or current read grant.
+  if selection.policy is AcceptedRunPolicy {
+    binding.result_policy_original = Some((original, facts, policy_cid))
   }
   let expected = match
     binding.read_admission_preimages(original, facts, policy_cid) {
@@ -609,9 +615,12 @@ fn NativeLocalReadPolicyBinding::retain_read_admission_with_operations(
           return Err(AuthorizationDenied)
         }
       }
-      if !self.selection.data_policy_cids.contains(actual_policy_cid) {
-        authority_refusal = Some(PolicyNotSelected)
-        return Err(AuthorizationDenied)
+      match self.selected_policy_cids(original, facts, actual_policy_cid) {
+        Err(issue) => {
+          authority_refusal = Some(issue)
+          return Err(AuthorizationDenied)
+        }
+        Ok(_) => ()
       }
       let record = match self.host.journal.retained(original, reads~) {
         Ok(Some(value)) => value

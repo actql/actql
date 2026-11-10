@@ -237,3 +237,43 @@ test "legacy facts have one canonical correspondence independent of input order"
     first, second,
   ])
 }
+
+///|
+test "finite read conversion preserves the explicit accepted Run selector and rejects mixed alternatives" {
+  let profile = client_local_run_policy_profile(product_common_test_originals()).unwrap()
+  let literal = "\"data_policy_cids\":[\"sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563\"]"
+  let selected = policy_upgrade_old_read.replace(
+    old=literal,
+    new="\"accepted_run_policy\":true",
+  )
+  let finite = client_local_finite_read_selection_wire(
+    selected, profile, "work.json", "keep.json", "payload.json",
+  ).unwrap()
+  assert_eq(
+    finite,
+    policy_upgrade_read
+    .replace(old=literal + ",", new="")
+    .replace(
+      old="{\"connection\":",
+      new="{\"accepted_run_policy\":true,\"connection\":",
+    ),
+  )
+  for
+    replacement in [
+      "\"accepted_run_policy\":false",
+      "\"accepted_run_policy\":null",
+      "\"accepted_run_policy\":true," + literal,
+      "\"unknown_policy\":true",
+    ] {
+    assert_true(
+      client_local_finite_read_selection_wire(
+        policy_upgrade_old_read.replace(old=literal, new=replacement),
+        profile,
+        "work.json",
+        "keep.json",
+        "payload.json",
+      )
+      is Err(InvalidOriginal),
+    )
+  }
+}

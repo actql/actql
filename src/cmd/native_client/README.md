@@ -324,11 +324,21 @@ adopted. Run settings, Source Policy and Account contracts are unchanged.
 
 Read settings explicitly name `enabled`, `principal`, `connection`, literal
 `result_names`, existing `formats`, `purpose`, `sink: "stdout"`, original
-`data_policy_cids`, and finite `max_bytes`, `max_uses`, `expires_at`. Missing,
+`data_policy_cids`, and finite `max_bytes`, `max_uses`, `expires_at`. The explicit
+finite Run role replaces `expires_at` with `run_policy_profile_cid`, `run_file`,
+`retention_file` and `store_file` together. Within that role, an explicit
+`accepted_run_policy: true` may replace the literal `data_policy_cids` list. It
+selects only the actual committed named Result's effective Policy root retained
+at the same original Run's first admission; an arbitrary CID or another closure
+body is insufficient. Fresh finite Mock initialization chooses this generic
+alternative. Existing literal lists and legacy originals are unchanged. Mixed,
+false or empty choices are refused. Missing,
 unknown, duplicate or excessive fields are refused. Admission of these settings
 is not current read permission, a grant or validation of the referenced Policy
 originals. Actual payload admission, issuer and original Policy checks are
-connected and accepted for the source-free installed profile. Missing read
+connected for the finite Run role as well as the source-free installed profile.
+Current Account, DataPolicy/privacy, egress and actual delivery still determine
+whether the selected Result can be disclosed. Missing read
 settings do not disable the independent metadata-only
 `delivery-attempt` lookup.
 

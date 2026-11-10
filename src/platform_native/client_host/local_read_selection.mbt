@@ -9,10 +9,18 @@ struct NativeLocalReadSelection {
   formats : Array[String]
   purpose : String
   sink : NativeLocalReadSink
-  data_policy_cids : Array[String]
+  policy : NativeLocalReadPolicySelection
   max_bytes : Int
   max_uses : Int
   expiry : NativeLocalReadExpiry
+}
+
+///|
+// Exactly one explicit selection. The Run alternative selects only the actual
+// committed Result root, not every dependency in its retained Policy closure.
+priv enum NativeLocalReadPolicySelection {
+  ExplicitPolicyCids(Array[String])
+  AcceptedRunPolicy
 }
 
 ///|
@@ -195,8 +203,8 @@ pub fn admit_native_local_read_selection(
     let fields = read_policy_decoded(
       @decode.closed_object(read_policy_field(native, "result_read"), [
         "enabled", "principal", "connection", "result_names", "formats", "purpose",
-        "sink", "data_policy_cids", "max_bytes", "max_uses", "expires_at", "run_policy_profile_cid",
-        "run_file", "retention_file", "store_file",
+        "sink", "data_policy_cids", "accepted_run_policy", "max_bytes", "max_uses",
+        "expires_at", "run_policy_profile_cid", "run_file", "retention_file", "store_file",
       ]),
     )
     let enabled = read_policy_decoded(
@@ -212,12 +220,6 @@ pub fn admit_native_local_read_selection(
     for format in formats {
       if format != "json" && format != "jsonl" && format != "csv" {
         return Err(UnsupportedFormat)
-      }
-    }
-    let data_policy_cids = read_policy_list(fields, "data_policy_cids", 16, 71)
-    for identity in data_policy_cids {
-      if !read_policy_cid(identity) {
-        return Err(InvalidPolicyReference)
       }
     }
     let expiry = match
@@ -251,6 +253,28 @@ pub fn admit_native_local_read_selection(
       }
       _ => return Err(InvalidOriginal)
     }
+    let policy = match
+      (
+        @decode.lookup(fields, "data_policy_cids"),
+        @decode.lookup(fields, "accepted_run_policy"),
+      ) {
+      (Some(_), None) => {
+        let cids = read_policy_list(fields, "data_policy_cids", 16, 71)
+        for cid in cids {
+          if !read_policy_cid(cid) {
+            return Err(InvalidPolicyReference)
+          }
+        }
+        ExplicitPolicyCids(cids)
+      }
+      (None, Some(value)) if expiry is AcceptedRunProfile(_) => {
+        if !read_policy_decoded(@decode.boolean(value)) {
+          return Err(InvalidOriginal)
+        }
+        AcceptedRunPolicy
+      }
+      _ => return Err(InvalidOriginal)
+    }
     Ok({
       enabled,
       principal: read_policy_text(fields, "principal", 512),
@@ -259,7 +283,7 @@ pub fn admit_native_local_read_selection(
       formats,
       purpose: read_policy_text(fields, "purpose", 256),
       sink,
-      data_policy_cids,
+      policy,
       max_bytes: read_policy_quantity(fields, "max_bytes", 536870912L),
       max_uses: read_policy_quantity(fields, "max_uses", 1024L),
       expiry,
