@@ -204,6 +204,37 @@ test('documented two-source HTTPS example uses the existing exact Result observe
   assert.deepEqual(actual, JSON.parse(create({successes: [{resultName: 'joined'}]}).accountConfiguration));
 });
 
+test('two-source example setup forwards its existing declared source capacity', async () => {
+  const {source, nodes} = await fixtureSyntax('../examples/two-source-join/setup-example.mjs');
+  const program = nodes.find(node => node.type === 'Program');
+  const code = program.body.filter(node => node.type !== 'ImportDeclaration')
+    .map(node => source.slice(node.start, node.end)).join('\n')
+    .replaceAll('import.meta.url', JSON.stringify(new URL('../examples/two-source-join/setup-example.mjs', import.meta.url).href));
+  const capacity = {max_artifact_rows: 1000};
+  for (const changed of [false, true]) {
+    const written = new Map();
+    const ports = {
+      assert, URL, resolve: (...parts) => parts.join('/'), async mkdir() {}, console: {log() {}},
+      async readFile(url) {
+        if (url.pathname.endsWith('database-rows.json')) return JSON.stringify({left: [], right: []});
+        return JSON.stringify({host_policy_profile: {capacity: changed && url.pathname.endsWith('right.environment.json')
+          ? {...capacity, max_artifact_rows: 999} : capacity}, schema_snapshots: [{source_ref: 'original-source'}]});
+      },
+      async writeFile(path, bytes) {written.set(path, JSON.parse(bytes));},
+      DuckDBInstance: {async create() {return {async connect() {return {async run() {}, closeSync() {}};}, closeSync() {}};}},
+    };
+    const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+    const run = () => AsyncFunction(...Object.keys(ports), code)(...Object.values(ports));
+    if (changed) {
+      await assert.rejects(run(), {code: 'ERR_ASSERTION'});
+      assert.equal(written.has('two-source-example-data/connection.json'), false);
+    } else {
+      await run();
+      assert.deepEqual(written.get('two-source-example-data/connection.json').installation.hostCapacityPolicy, capacity);
+    }
+  }
+});
+
 test('planner Host observation policy leaves original provider read Deny independent', async () => {
   const {source, nodes} = await fixtureSyntax('./fixtures/planner-selection-public-query.mjs');
   const account = nodes.find(node => node.type === 'VariableDeclarator' && node.id.name === 'accountConfiguration');
@@ -270,6 +301,32 @@ test('exact-string fresh Saved readers forward only the originally recorded oper
     assert.equal(hostCloses, 1);
     assert.equal(clientCloses, 2);
   }
+});
+
+test('planner Local and HTTPS constructors retain the supplied original source capacity', async () => {
+  const {source, nodes} = await fixtureSyntax('./fixtures/planner-selection-public-query.mjs');
+  const declaration = nodes.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'openSingleSourcePublicHost');
+  const opened = [], connected = [];
+  let closes = 0;
+  const create = Function('createServer', 'userInfo',
+    `return (${source.slice(declaration.start, declaration.end)});`)(() => ({
+      listen(_port, _host, callback) {callback();}, address() {return {port: 443};},
+      closeAllConnections() {}, close(callback) {callback();},
+    }), () => ({username: 'planner-operator'}));
+  const hostCapacityPolicy = Object.freeze({max_artifact_rows: 1000});
+  for (const mode of ['local', 'https']) {
+    const running = await create({mode, directory: mode, sourceProfilePath: 'original-source',
+      tls: {key: 'fixture', cert: 'fixture'}, authorization: {original: 'policy'}, hostCapacityPolicy,
+      async connect(options) {connected.push(options);},
+      async openInstalledRemoteHttpHost(options) {
+        opened.push(options);return {handler() {}, async close() {closes++;}};
+      }});
+    await running.connect();
+    await running.close();
+  }
+  assert.equal(connected[0].installation.hostCapacityPolicy, hostCapacityPolicy);
+  assert.equal(opened[0].hostCapacityPolicy, hostCapacityPolicy);
+  assert.equal(closes, 1);
 });
 
 test('Host failure diagnostics preserve original authorization and observer call semantics', () => {

@@ -89,6 +89,7 @@ try {
   try {
     host = await openInstalledRemoteHttpHost({directory,
       sourceProfilePaths: localOptions.installation.sourceProfilePaths,
+      hostCapacityPolicy: localOptions.installation.hostCapacityPolicy,
       authorization: {accountConfiguration: canonical({
         version: 'actql-execution-account-config/0.1', account_id: 'packed-query-http',
         entries: [{entry_id: 'read-original', outcome: 'allow',

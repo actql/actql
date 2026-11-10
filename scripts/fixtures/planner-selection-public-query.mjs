@@ -159,18 +159,18 @@ export async function installPlannerSelectionFixture({root, duckdb, environment,
   nativeCheaper.candidates.nativeQuery.estimates[0].milliseconds = 30;
   assert.deepEqual(nativeCheaper, planning['broad-cheaper'],
     'changing only one Native estimate is sufficient to reverse the choice');
-  return {database, profiles, source};
+  return {database, profiles, source, hostCapacityPolicy: environment.host_policy_profile.capacity};
 }
 
 async function openSingleSourcePublicHost({connect, openInstalledRemoteHttpHost,
-  mode, directory, sourceProfilePath, tls, authorization,
+  mode, directory, sourceProfilePath, tls, authorization, hostCapacityPolicy,
   retainedRelationOutput = false}) {
   let host, server;
   let options = {mode: 'local', owner: 'local', durability: 'durable',
-    installation: {directory, sourceProfilePath, authorization,
+    installation: {directory, sourceProfilePath, authorization, hostCapacityPolicy,
       retainedRelationOutput}};
   if (mode === 'https') {
-    host = await openInstalledRemoteHttpHost({directory, sourceProfilePath, authorization,
+    host = await openInstalledRemoteHttpHost({directory, sourceProfilePath, authorization, hostCapacityPolicy,
       retainedRelationOutput,
       authenticate: header => header === 'Bearer fixture-token' ? userInfo().username : undefined});
     server = createServer(tls, host.handler);
@@ -201,7 +201,7 @@ export async function exerciseRetainedPlannerPublicQuery({connect, root,
   });
   const running = await openSingleSourcePublicHost({connect,
     mode: 'local', directory, sourceProfilePath: installation.profiles[item.name],
-    authorization, retainedRelationOutput: true});
+    authorization, hostCapacityPolicy: installation.hostCapacityPolicy, retainedRelationOutput: true});
   let client;
   try {
     client = await running.connect().catch(error => {
@@ -371,6 +371,7 @@ export async function exercisePlannerSelectionPublicQuery({connect, openInstalle
       const before = provider.snapshot();
       const running = await openSingleSourcePublicHost({connect, openInstalledRemoteHttpHost,
         mode, directory, sourceProfilePath: installation.profiles[item.name], tls,
+        hostCapacityPolicy: installation.hostCapacityPolicy,
         authorization: hostAuthorization((name, detail) => events.push({name, detail}))});
       let client;
       const requestId = `planner-${mode}-${item.name}`;
