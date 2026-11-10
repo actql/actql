@@ -69520,7 +69520,7 @@
     },
     {
       "module": "src/run_publication/effectful_final_receipt.mbt",
-      "sha256": "349dcd457f944c03edca85b11c0b114a44d52d11de4b20b3a95c6211faf5818f",
+      "sha256": "dcf1ee24b19e594ba007ff41025ed69847128cbb5f62057249a32ff537bf37ed",
       "operations": [
         {
           "name": "admit_effectful_final_receipt_evidence",
@@ -69540,7 +69540,7 @@
         },
         {
           "name": "admit_retained_effectful_final_run_evidence",
-          "declaration": "admit_retained_effectful_final_run_evidence ( run_definition : PublicationContract , invocation : PublicationContract , definitions : Array [ PublicationContract ] , artifacts : Array [ PublicationContract ] , derivations : Array [ PublicationContract ] , orderings : Array [ PublicationContract ] , retentions : Array [ PublicationContract ] , manifest : PublicationContract , computation_receipt : PublicationContract , captured_run : PublicationContract , preview : EffectPreviewIdentity , set_receipt_wire : String , member_receipt_wires : Array [ String ] , final_receipt_wire : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ EffectfulFinalRunEvidence , EffectfulPublicationCommitIssue ]"
+          "declaration": "admit_retained_effectful_final_run_evidence ( run_definition : PublicationContract , invocation : PublicationContract , definitions : Array [ PublicationContract ] , artifacts : Array [ PublicationContract ] , derivations : Array [ PublicationContract ] , orderings : Array [ PublicationContract ] , retentions : Array [ PublicationContract ] , manifest : PublicationContract , computation_receipt : PublicationContract , captured_run : PublicationContract , preview : EffectPreviewIdentity , set_receipt_wire : String , member_receipt_wires : Array [ String ] , final_receipt_wire : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , computation ? : RetainedEffectfulComputation ?"
         },
         {
           "name": "effectful_final_run_evidence_failed_state",
