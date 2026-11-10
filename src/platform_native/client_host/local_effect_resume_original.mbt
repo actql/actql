@@ -125,6 +125,7 @@ pub fn NativeLocalInitialHostAttestationSigning::prepare_effect_resume_original(
 ///|
 fn NativeLocalEffectResumeOriginal::authority_current(
   self : NativeLocalEffectResumeOriginal,
+  dispatch? : NativeClientEffectDispatchClaim? = None,
 ) -> Bool {
   guard !self.retired &&
     !self.host.closed &&
@@ -177,6 +178,21 @@ fn NativeLocalEffectResumeOriginal::authority_current(
           is Ok(configuration) &&
           configuration.configuration_cid() == self.authentication.policy_cid else {
           return Err(CustodyLost)
+        }
+        if self.host.journal.transaction_active && dispatch is Some(original) {
+          return Ok(
+            host.lookup_effect_dispatch_checkpoint_metadata_locked(
+              original,
+              self.crypto,
+              self.principal,
+              self.connection,
+              self.reference,
+              self.request,
+              @env.now().to_double(),
+              operations,
+              read.owner.capture,
+            ),
+          )
         }
         Ok(
           host.lookup_submitted_checkpoint_metadata_with_operations(

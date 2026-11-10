@@ -425,30 +425,7 @@ fn NativeClientEpochAuthority::clock(
     Ok(_) => ()
     Err(issue) => return Err(self.fail_operation(Physical(issue)))
   }
-  let result = match self.custody(reads) {
-    Err(issue) => Err(issue)
-    Ok((key, retained, revision)) => {
-      let clock = if now > retained { now } else { retained }
-      if clock == retained {
-        Ok((key, clock, revision))
-      } else {
-        match epoch_custody_body(key, clock) {
-          Err(issue) => Err(issue)
-          Ok(body) =>
-            compare_exchange_client_journal_value(
-              self.database,
-              "client_submission_epoch",
-              "authority",
-              revision,
-              body,
-              operations,
-            )
-            .map(next_revision => (key, clock, next_revision))
-            .map_err(issue => Physical(issue))
-        }
-      }
-    }
-  }
+  let result = self.clock_in_current_transaction(now, operations)
   match result {
     Ok((key, clock, revision)) =>
       match
@@ -486,6 +463,91 @@ fn NativeClientEpochAuthority::clock(
         }
       }
   }
+}
+
+///|
+// Shared clock mutation only. The caller owns the existing SQLite transaction;
+// this body never begins/commits it or publishes an uncommitted clock cache.
+fn NativeClientEpochAuthority::clock_in_current_transaction(
+  self : Self,
+  now : Double,
+  operations : NativeClientJournalOperationAccess?,
+) -> Result[(Bytes, Double, Int64), NativeClientEpochIssue] {
+  let reads = operations.map(original => original.reads)
+  match self.custody(reads) {
+    Err(issue) => Err(issue)
+    Ok((key, retained, revision)) => {
+      let clock = if now > retained { now } else { retained }
+      if clock == retained {
+        Ok((key, clock, revision))
+      } else {
+        match epoch_custody_body(key, clock) {
+          Err(issue) => Err(issue)
+          Ok(body) =>
+            compare_exchange_client_journal_value(
+              self.database,
+              "client_submission_epoch",
+              "authority",
+              revision,
+              body,
+              operations,
+            )
+            .map(next_revision => (key, clock, next_revision))
+            .map_err(issue => Physical(issue))
+        }
+      }
+    }
+  }
+}
+
+///|
+// Only the SAME Journal's active transaction can borrow the original epoch.
+// Advance/authenticate at actual current time without a nested BEGIN or an
+// early COMMIT. The outer original transaction alone owns commit/rollback.
+fn NativeClientEpochAuthority::verify_epoch_in_journal_transaction(
+  self : Self,
+  journal : NativeClientRunJournal,
+  epoch : NativeClientSubmissionEpoch,
+  authority_scope_cid : String,
+  current_authorization : Bool,
+  now : Double,
+  operations : NativeClientJournalOperationAccess?,
+) -> Result[@scope.SubmissionEpochValidity, NativeClientEpochIssue] {
+  if !current_authorization {
+    return Err(AuthorizationDenied)
+  }
+  if !physical_equal(self.database, journal.database) ||
+    !journal.transaction_active ||
+    journal.publication_read_locked ||
+    journal.fenced ||
+    client_journal_transaction_fenced(
+      self.database,
+      operations.map(value => value.reads),
+    ) {
+    return Err(CustodyLost)
+  }
+  if !valid_epoch_clock(now) {
+    return Err(InvalidInput)
+  }
+  let reads = operations.map(value => value.reads)
+  match self.require_operation_current(reads) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if !journal.transaction_active ||
+    journal.publication_read_locked ||
+    journal.fenced ||
+    self.fenced {
+    return Err(CustodyLost)
+  }
+  let (key, clock, _) = match
+    self.clock_in_current_transaction(now, operations) {
+    Ok(value) => value
+    Err(issue) => return Err(self.fail_operation(issue))
+  }
+  // No successor is reusable before the outer transaction acknowledges COMMIT.
+  self.invalidate_custody()
+  self.verify_epoch_with_custody(epoch, authority_scope_cid, key, clock)
 }
 
 ///|

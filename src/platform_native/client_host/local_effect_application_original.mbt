@@ -668,7 +668,7 @@ pub fn NativeLocalEffectResumeOriginal::record_file_row_receipt_in_original_read
       operation,
       ack,
       outcome_wire,
-      () => self.authority_current(),
+      () => self.authority_current(dispatch=Some(dispatch)),
       max_response_bytes,
     ) {
     Ok(_) => ()
@@ -684,7 +684,7 @@ pub fn NativeLocalEffectResumeOriginal::record_file_row_receipt_in_original_read
     key,
     canonical_request_cid,
     outcome_wire,
-    () => self.authority_current(),
+    () => self.authority_current(dispatch=Some(dispatch)),
     max_response_bytes,
   )
   .map_err(issue => HostAttestationJournal(issue))
@@ -777,11 +777,12 @@ fn saved_effect_file_entry_control_bytes() -> Int64 {
   @execution.preparation_representation_cost({
     // Direct original entry H33/R34/S73 (same existing entry constructor).
     // Work H1/R7/S3; its two empty/growing array controls H4/R18/S4.
-    // Eight Option/Result/closure/failure frontiers H8/R12/S8. All
+    // Eight Option/Result/closure/failure frontiers H8/R12/S8; two
+    // same-dispatch current callback/metadata frames H4/R4/S4. All
     // variable requests are already retained on this SAME original Read.
-    record_headers: 33L + 1L + 4L + 8L,
-    reference_slots: 34L + 7L + 18L + 12L,
-    scalar_words: 73L + 3L + 4L + 8L,
+    record_headers: 33L + 1L + 4L + 8L + 4L,
+    reference_slots: 34L + 7L + 18L + 12L + 4L,
+    scalar_words: 73L + 3L + 4L + 8L + 4L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }).unwrap()

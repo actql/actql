@@ -123,6 +123,12 @@ Ledger's transfer field. Its retained and execution amounts are zero because
 the same work entry already holds the complete I/O construction envelope.
 Observed and uncertain transfer charges and consumed attempts survive settlement;
 the row token neither duplicates that working extent nor refunds its history.
+Receipt currentness retains the exact dispatch and reads its original
+Submission/Run/Checkpoint inside that Journal's existing transaction. Account,
+Reviewer and key checks still run at the original callback boundaries. The
+same epoch Owner advances its watermark through that transaction's CAS; only
+the outer receipt transaction commits it. No uncommitted successor is cached,
+and ordinary lookup still cannot start a nested transaction.
 The restoration-to-application boundary first retains the composed extent as
 data, then enters that same original constructor to acquire usable backing before
 resizing its byte token. A Read-side resize alone cannot acquire more business
