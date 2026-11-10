@@ -68,15 +68,13 @@ pub fn NativeLocalInitialHostAttestationSigning::prepare_effect_resume_original(
   }
   // The current original already backed the preceding signer/commit. Add this
   // view, optional/result/authority array and callback/clock/claim controls
-  // before constructing them. Dynamic verified-wire admission uses the same
-  // bounded Checkpoint codec; no guessed spare extent or new budget is used.
+  // before constructing them. The already admitted record/verified wire are
+  // borrowed originals here: this constructor emits/parses no wire and must
+  // not reserve another copy sized by the Checkpoint admission ceiling.
   if binding.approval_scope is SavedApproval(owner) {
-    let limits = native_checkpoint_limits()
     match
       owner.capture.prepare_model_entry_construction(
-        Some(limits.max_wire_bytes),
-        nodes=limits.max_nodes,
-        depth=limits.max_depth,
+        None,
         additional_controls=Some({
           record_headers: 20L,
           reference_slots: 48L,
