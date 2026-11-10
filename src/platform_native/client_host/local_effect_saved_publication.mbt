@@ -7,6 +7,85 @@ pub(all) enum NativeLocalSavedEffectPublicationIssue {
 }
 
 ///|
+// Closed receipt emitters add scalar CID/ordinal/state fields, not arbitrary
+// provider JSON. Preserve the original receipt's encoder usage and count the
+// appended member/row/final controls separately from their wire bytes.
+fn saved_effect_publication_geometry(
+  receipt_usage : (Int, Int, Int),
+  receipt_text_units : Int,
+  schema_text_units : Int64,
+  rows : Int64,
+  members : Int,
+  results : Int,
+  limits : @checkpoint.WireLimits,
+) -> (Int, Int, Int)? {
+  let (receipt_bytes, receipt_nodes, receipt_depth) = receipt_usage
+  if receipt_bytes < 1 ||
+    receipt_nodes < 1 ||
+    receipt_depth < 1 ||
+    receipt_text_units < 1 ||
+    receipt_text_units > receipt_bytes ||
+    schema_text_units < 0L ||
+    rows < 0L ||
+    members < 1 ||
+    results < 0 {
+    return None
+  }
+  // A member row has at most six scalar fields (including its ordinal),
+  // beneath the rows array. Thirty-two nodes covers object/key/value controls
+  // and the enclosing sealed identity. Set member records have five scalar
+  // fields. Final Run receipt adds three scalar CID fields to the SAME old
+  // receipt. The extra result/control allowance covers publication bindings.
+  // The byte envelope also includes escaping and the existing result wires.
+  guard @execution.checked_preparation_add_product(1024L, rows, 800L)
+    is Some(bytes) &&
+    @execution.checked_preparation_add_product(bytes, members.to_int64(), 512L)
+    is Some(bytes) &&
+    @execution.checked_preparation_add_product(bytes, results.to_int64(), 4096L)
+    is Some(bytes) &&
+    @execution.checked_preparation_add_product(
+      bytes,
+      receipt_text_units.to_int64(),
+      6L,
+    )
+    is Some(bytes) &&
+    @execution.checked_preparation_add_product(bytes, schema_text_units, 6L)
+    is Some(bytes) &&
+    @execution.checked_preparation_add_product(128L, rows, 32L) is Some(nodes) &&
+    @execution.checked_preparation_add_product(nodes, members.to_int64(), 32L)
+    is Some(nodes) &&
+    @execution.checked_preparation_add_product(nodes, results.to_int64(), 64L)
+    is Some(nodes) &&
+    @execution.checked_preparation_add_product(
+      nodes,
+      receipt_nodes.to_int64(),
+      1L,
+    )
+    is Some(nodes) &&
+    @execution.checked_preparation_add_product(nodes, schema_text_units, 1L)
+    is Some(nodes) else {
+    return None
+  }
+  if bytes > limits.max_wire_bytes.to_int64() ||
+    limits.max_nodes < 1 ||
+    limits.max_depth < 1 ||
+    receipt_nodes > limits.max_nodes ||
+    receipt_depth > limits.max_depth {
+    return None
+  }
+  // Every successful existing encoder is also bounded by this SAME policy.
+  // A conservative coholding quote must not impose stricter admission on a
+  // small but sufficient node/depth limit. Keep the old UTF16 byte envelope.
+  Some(
+    (
+      bytes.to_int(),
+      Int64::min(nodes, limits.max_nodes.to_int64()).to_int(),
+      limits.max_depth,
+    ),
+  )
+}
+
+///|
 /// Install the existing publication service for this SAME resumed Request.
 /// Store operations retain their own Read flights; the Journal fence never
 /// encloses a whole Store SQLite exchange. No new Request or publisher exists.
@@ -174,6 +253,18 @@ pub fn NativeLocalEffectResumeOriginal::prepare_saved_publication_construction_i
   }
   let members = @publication.effect_preview_member_count(original.preview)
   let results = original.definitions.length()
+  let mut schema_text_units = 0L
+  for wire in original.schema_wires {
+    guard @execution.checked_preparation_add_product(
+        schema_text_units,
+        wire.length().to_int64(),
+        1L,
+      )
+      is Some(next) else {
+      return Err(Construction)
+    }
+    schema_text_units = next
+  }
   let mut rows = 0L
   for member_index in 0..<members {
     guard @publication.effect_preview_row_count(original.preview, member_index)
@@ -184,24 +275,21 @@ pub fn NativeLocalEffectResumeOriginal::prepare_saved_publication_construction_i
     }
     rows = next
   }
-  // A member row has at most six CID fields (71 ASCII units each), two Int
-  // spellings and the closed keys/state/punctuation (<800 bytes). Member/Set
-  // wrappers add <512 each. Final receipt retains its original fields and
-  // adds the closed final-reference fields, never arbitrary provider DATA.
-  let receipt_units = @publication.publication_contract_json(original.receipt)
-    .length()
-    .to_int64()
-  let bound = 1024L +
-    rows * 800L +
-    members.to_int64() * 512L +
-    results.to_int64() * 4096L +
-    receipt_units * 6L
-  if bound <= 0L || bound > original.wire_limits.max_wire_bytes.to_int64() {
+  guard @publication.publication_contract_wire_usage(original.receipt)
+    is Some(receipt_usage) &&
+    saved_effect_publication_geometry(
+      receipt_usage,
+      @publication.publication_contract_json(original.receipt).length(),
+      schema_text_units,
+      rows,
+      members,
+      results,
+      original.wire_limits,
+    )
+    is Some((bytes, nodes, depth)) else {
     return Err(Construction)
   }
-  let bytes = bound.to_int()
-  let nodes = Int::min(bytes, original.wire_limits.max_nodes)
-  let depth = original.wire_limits.max_depth
+  let bound = bytes.to_int64()
   let empty = @execution.execution_capacity(0L, 0L).unwrap()
   let semantic = match
     @local.installed_json_effect_response_construction_capacity(

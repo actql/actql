@@ -47,6 +47,10 @@ fn NativeLocalReviewerProofMaterials::initial_signing_current(
       reviewer.connection,
       reviewer.request,
       ReadRunMaterials,
+      capture=match reviewer.approval_scope {
+        SavedApproval(saved) => Some(saved.capture)
+        ResidentApproval(_) => None
+      },
     ) {
     Err(issue) => return Err(OriginalSigningJournal(issue))
     Ok(value) => value

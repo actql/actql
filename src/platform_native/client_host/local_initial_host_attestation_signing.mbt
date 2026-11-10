@@ -27,7 +27,10 @@ fn NativeLocalInitialHostAttestationPreparation::require_current_locked(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  match self.account.require_signing_scope(self.scope) {
+  // The helper just observed this account and then the same subject through
+  // a noncallback fence. Compare its immutable scope without invoking all
+  // Account/key/current callbacks a second time at this one boundary.
+  match self.account.require_signing_scope_after_current(self.scope) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }

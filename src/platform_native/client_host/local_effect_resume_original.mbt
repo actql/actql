@@ -138,34 +138,86 @@ fn NativeLocalEffectResumeOriginal::authority_current(
   }
   // Current Client Read, Reviewer registration and adopted Host key are
   // independent. Signing-use permission is not renewed for continuation.
-  guard self.host.authority_scope_cid(
+  let metadata = if subject is SavedSigningSubject(read) {
+    // Carry the same original Read through the continuation too. The paired
+    // key/Reviewer checks above and terminal subject check below stay fresh;
+    // immutable scope/configuration is not readmitted by each nested getter.
+    match
+      read.owner.capture.with_current_adoption_material_in_original_read((
+        host,
+        material,
+        operations,
+      ) => {
+        if !physical_equal(host, self.host) {
+          return Err(CustodyLost)
+        }
+        guard read.owner.capture.operation_scope(
+            host,
+            material,
+            self.principal,
+            self.connection,
+          )
+          is Ok(authority) &&
+          authority == @host.client_request_authority_scope_cid(self.request) &&
+          read.owner.capture.operation_scope(
+            host,
+            material,
+            self.installed.reviewer.principal,
+            self.installed.reviewer.connection,
+          )
+          is Ok(context) &&
+          context == self.authentication.authority_context_cid &&
+          @host.client_local_adopted_current_account(material, host.database)
+          is Ok(configuration) &&
+          configuration.configuration_cid() == self.authentication.policy_cid else {
+          return Err(CustodyLost)
+        }
+        Ok(
+          host.lookup_submitted_checkpoint_metadata_with_operations(
+            self.crypto,
+            self.principal,
+            self.connection,
+            self.reference,
+            self.request,
+            @env.now().to_double(),
+            operations=Some(operations),
+            capture=Some(read.owner.capture),
+          ),
+        )
+      }) {
+      Ok(value) => value
+      Err(_) => return false
+    }
+  } else {
+    guard self.host.authority_scope_cid(
+        self.principal,
+        self.connection,
+        self.crypto,
+      )
+      is Ok(authority) &&
+      authority == @host.client_request_authority_scope_cid(self.request) &&
+      self.host.authority_scope_cid(
+        self.installed.reviewer.principal,
+        self.installed.reviewer.connection,
+        self.crypto,
+      )
+      is Ok(context) &&
+      context == self.authentication.authority_context_cid else {
+      return false
+    }
+    guard self.host.configuration() is Ok(configuration) &&
+      configuration.configuration_cid() == self.authentication.policy_cid else {
+      return false
+    }
+    self.host.lookup_submitted_checkpoint_metadata(
+      self.crypto,
       self.principal,
       self.connection,
-      self.crypto,
+      self.reference,
+      self.request,
+      @env.now().to_double(),
     )
-    is Ok(authority) &&
-    authority == @host.client_request_authority_scope_cid(self.request) &&
-    self.host.authority_scope_cid(
-      self.installed.reviewer.principal,
-      self.installed.reviewer.connection,
-      self.crypto,
-    )
-    is Ok(context) &&
-    context == self.authentication.authority_context_cid else {
-    return false
   }
-  guard self.host.configuration() is Ok(configuration) &&
-    configuration.configuration_cid() == self.authentication.policy_cid else {
-    return false
-  }
-  let metadata = self.host.lookup_submitted_checkpoint_metadata(
-    self.crypto,
-    self.principal,
-    self.connection,
-    self.reference,
-    self.request,
-    @env.now().to_double(),
-  )
   guard metadata is Ok(Some(actual)) &&
     actual.checkpoint_cid == checkpoint.artifact.checkpoint_cid &&
     actual.run_definition_cid ==
