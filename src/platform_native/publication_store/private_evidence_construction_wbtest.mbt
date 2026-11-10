@@ -78,3 +78,50 @@ test "private envelope mixed JSON construction covers scalar container field and
   assert_true(private_evidence_json_construction_extent(0L) is None)
   assert_true(private_evidence_json_construction_extent(1398273L) is None)
 }
+
+///|
+test "private envelope mixed containers use one grammar constrained construction peak" {
+  // An Array of 1000 empty Maps is 3001 bytes, not 1501 independent
+  // Map/value pairs. The independent shared constructor expansion for every
+  // grammar mixture fits 11H/33R/25W per three syntax bytes, plus at most
+  // 1024 unfinished containers and the final token/key frontier.
+  let bound = private_evidence_json_construction_extent(3001L).unwrap()
+  assert_true(bound.record_headers <= 14800L)
+  assert_true(bound.reference_slots <= 44384L)
+  assert_true(bound.scalar_words <= 33616L)
+  // Enumerate independent tree inventories, including nonempty Arrays,
+  // object fields, duplicate keys, and mixed-container branching. Every
+  // nonempty Map needs a field, every nonempty Array an item.
+  for values in 1L..<33L {
+    for maps in 0L..<=values {
+      for arrays in 0L..<=(values - maps) {
+        for fields in 0L..<values {
+          let items = values - fields - 1L
+          if (fields > 0L && maps == 0L) || (items > 0L && arrays == 0L) {
+            continue
+          }
+          let nonempty = Int64::min(maps, fields) + Int64::min(arrays, items)
+          let bytes = 2L * values + arrays + maps + 3L * fields - nonempty - 1L
+          if bytes < 1L {
+            continue
+          }
+          let actual = @shape.collection_construction_extent({
+            records: 4L * values + 2L * fields + 16L,
+            record_references: 6L * values + 2L * fields + 32L,
+            record_words: 4L * values + fields + 16L,
+            reference_arrays: arrays,
+            reference_items: items,
+            scalar_arrays: 0L,
+            scalar_items: 0L,
+            maps,
+            map_entries: fields,
+          }).unwrap()
+          let quoted = private_evidence_json_construction_extent(bytes).unwrap()
+          assert_true(quoted.record_headers >= actual.record_headers)
+          assert_true(quoted.reference_slots >= actual.reference_slots)
+          assert_true(quoted.scalar_words >= actual.scalar_words)
+        }
+      }
+    }
+  }
+}

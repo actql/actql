@@ -41,22 +41,26 @@ fn private_evidence_envelope_construction(
 // The existing parser still admits/refuses the SAME JSON and Base64 envelope.
 // Charge a single dominating mixed-container family instead of simultaneously
 // assuming one growing Array AND one growing Map AND one entry per input byte.
-// In a complete JSON prefix with V values, K object fields and P nonempty
-// containers, syntax consumes at least 2V+3K-1+(containers-P) bytes. At most
-// 1024 unfinished containers survive the pinned parser's existing depth guard.
-// Thus ceil((bytes+min(bytes,1024)+1)/2) worst-Map/value units dominate the
-// combined Array, Map, field-link and value/token controls, including malformed
-// prefixes. This is representation DATA, not a lower syntax/Store/read limit.
+// With V values, K fields, N Array items, A Arrays, M Maps and P nonempty
+// containers, V=1+K+N and syntax needs >=2V+A+M+3K-P-1 bytes.
+// Since P<=A+K, S=bytes+1 >=2V+M+2K. The shared collection expansion is
+// H=4V+6K+3A+7M, R=6V+13K+13A+3N+18M, W=4V+14K+2A+21M.
+// A+M<=V therefore gives H<=11S/3, R<=11S, W<=25S/3, without
+// treating every two bytes as another independent Map. The pinned parser
+// leaves at most1024 open containers; their missing closing bytes and six
+// final token/key frontier bytes dominate malformed prefixes too. Fixed
+// controls remain separate. Expand the SAME Map/collection recipe below;
+// this changes neither the tariff nor syntax/Store/read admission limits.
 fn private_evidence_json_construction_extent(
   bytes : Int64,
 ) -> @shape.CollectionConstructionExtent? {
   if bytes < 1L || bytes > 1398272L {
     return None
   }
-  let units = (bytes + Int64::min(bytes, 1024L) + 2L) / 2L
+  let units = (bytes + Int64::min(bytes, 1024L) + 8L) / 3L
   @shape.collection_construction_extent({
     records: 4L * units + 16L,
-    record_references: 6L * units + 32L,
+    record_references: 15L * units + 32L,
     record_words: 4L * units + 16L,
     reference_arrays: 0L,
     reference_items: 0L,
