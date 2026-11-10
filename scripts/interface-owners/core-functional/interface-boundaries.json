@@ -49852,7 +49852,7 @@
     },
     {
       "module": "src/client_row_source_host/response_borrow.mbt",
-      "sha256": "7561f6ec5e50dab2b59ac6ac4f3262768adbe50a7568c538a467e23ba5c5f007",
+      "sha256": "e8481acb94c39baf5e684145f24c3ca1b30d43e188941aaebc45469c9b94955c",
       "exports": [],
       "operations": [
         {

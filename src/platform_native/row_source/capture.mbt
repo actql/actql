@@ -1599,8 +1599,9 @@ fn NativeRelationFileCapture::advance_original(
             Some(FileInputAcquisition(_))
             | Some(ManagedFileInputAcquisition(_, _, _, _)) =>
               // The original transport and document/target constructors have
-              // retired across earlier advances. Keep their complete retained
-              // allowance and the captured input; return only provider/page E
+              // retired across earlier advances. The receiver's input holding
+              // backs the transferred Values; this holder keeps its separate
+              // metadata reservation. Return only provider R/E and page E
               // through the SAME reader borrow and original cleanup observer.
               file_require(
                 @rows.retire_row_run_response_workspace(self.responses.unwrap()).map_err(issue => {

@@ -300,10 +300,11 @@ test "WholeInput completed provider returns only workspace while its original in
   retired.val = true
   @row_host.retire_row_run_response_workspace(borrow).unwrap()
   let remaining = @resources.ledger_usage(ledger)
-  // The original provider declared E9 and the caller's page scratch E20000.
-  // Keep ALL retention, holdings, attempts, transfer and receiver workspace.
+  // The original retired provider declared R7/E9; page scratch was E20000.
+  // Keep the independently retained input, holdings, receiver R/E and history.
   assert_eq(remaining, {
     ..captured,
+    reserved_retention_bytes: captured.reserved_retention_bytes - 7L,
     reserved_execution_bytes: captured.reserved_execution_bytes - 20009L,
   })
   @row_host.retire_row_run_response_workspace(borrow).unwrap()
@@ -369,6 +370,7 @@ test "WholeInput workspace return fences original observer reentry and cancellat
       result.unwrap()
       assert_eq(@resources.ledger_usage(ledger), {
         ..before,
+        reserved_retention_bytes: before.reserved_retention_bytes - 7L,
         reserved_execution_bytes: before.reserved_execution_bytes - 20009L,
       })
     }

@@ -264,9 +264,12 @@ fn file_capture_transport_capacity(
 
 ///|
 // Common owns parser/mapping/typed-projection geometry. Reserve the complete
-// transport/document overlap before Root construction or receiving bytes, and
-// retain it until original RowRun cleanup. These logical tariffs never replace
-// the independently enforced physical Native domain backing.
+// transport/document overlap before Root construction or receiving bytes.
+// After whole-input construction, the original retirement fence can return
+// this temporary provider envelope: transferred Values have their separately
+// charged receiver holding and Native holder metadata has its own reservation.
+// Query/keyed/listing lifetimes retain their existing envelopes. Logical quotes
+// never replace independently enforced physical Native domain backing.
 fn file_capture_provider_capacity(
   selection : NativeRelationFileSelection,
   limits : NativeRelationFileLimits,

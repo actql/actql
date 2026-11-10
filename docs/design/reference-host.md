@@ -2934,23 +2934,26 @@ rejection limits, the common tariff, grants, attempts or physical retirement.
 
 Provider response workspace retirement keeps the original captured Source,
 evidence and final Row cleanup authority. The same bound reader observation
-must confirm retirement before the direct provider's transient E-R may be
-returned. The retained provider frame, complete acquisition/evidence workspace
-and original page scratch remain charged. A completed nonlisting whole-input
-capture instead keeps all provider and receiver retention plus the receiver's
-execution peak, returning only its additive provider construction execution
-and page scratch. Its original Native reader enters this same boundary after
-closing transport and discarding document/target/parser originals across
-earlier advances; the captured input and original cleanup observer remain live.
-Keyed and listing profiles retain their own lifetimes. A read Promise or stop
-request alone is not this boundary, and a pending or throwing observer supplies
-no credit.
+must confirm retirement before the direct Query provider's transient E-R may
+be returned. That Query's retained provider frame, acquisition/evidence
+workspace and page scratch stay charged. A completed nonlisting whole-input
+capture instead returns only its additive provider construction R/E and page E.
+Its receiver has already copied the selected row containers, admitted immutable
+Value graphs and charged their input holding. These Values retain no document
+or cursor; shared schema/value nodes remain covered by the holding and the
+receiver's remaining R/E. The Native holder metadata has a separate original
+reservation and stays live. Its reader reaches this boundary only after closing
+transport and discarding document/target/byte originals across earlier advances.
+The captured input, metadata and original cleanup observer remain live. Keyed
+and listing profiles retain their own lifetimes. A read Promise or logical stop
+is insufficient; pending or throwing observers supply no credit.
 
-The Resource operation reduces only the original reservation's absolute
-execution-byte remainder after its original current check. It does not return
-transfer, retention, quantities, attempts or consumed history, clear cleanup
-pending, close a reservation or acknowledge physical cleanup. Repeating the
-same remainder is idempotent; increasing it refuses. The response borrow's
+The existing Resource operation reduces only the original reservation's absolute
+remainders after its original current check. Query uses the unchanged E-only
+entrance; whole input uses the existing R/E reduction. Neither returns transfer,
+quantities, attempts or consumed history, clears cleanup pending, closes a
+reservation or acknowledges physical cleanup. Repeating the same return is
+idempotent; increasing a remainder refuses. The response borrow's
 existing state slot fences synchronous observer reentry, and its original
 observer remains installed until final Row cleanup. If resource currentness
 closes the original Source, already returned retired workspace is monotonic;

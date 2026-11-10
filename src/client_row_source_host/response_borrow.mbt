@@ -302,13 +302,13 @@ fn row_response_workspace_capture_current(value : RowRunResponseBorrow) -> Bool 
 }
 
 ///|
-/// Return only the selected provider's transient execution workspace, after
-/// the SAME bound reader confirms its actual retirement. Retain its declared
-/// live frame, Source backing, original observer and all other reservation
-/// obligations for final Row cleanup. Whole input has finished its provider
-/// constructors and transfers their values to the retained input: return that
-/// provider E and page scratch, keeping ALL R and receiver E. A logical stop
-/// is insufficient.
+/// Return the selected provider's retired construction workspace after the
+/// SAME bound reader confirms retirement. Whole-input pages have transferred
+/// their immutable checked values to the separately charged input holding;
+/// return only provider R/E and page E, keeping receiver R/E, that holding,
+/// the original observer and all consumed history. Provider holder metadata
+/// remains its caller's separate obligation. Query captures retain their old
+/// frame remainder. A logical stop or a completed page alone is insufficient.
 pub fn retire_row_run_response_workspace(
   value : RowRunResponseBorrow,
 ) -> Result[Unit, RowHostIssue] {
@@ -324,7 +324,7 @@ pub fn retire_row_run_response_workspace(
     physical.cleanup_confirmed is Some(confirm) else {
     return Err(InvalidState)
   }
-  let remaining = match value.selection {
+  let (remaining_retention, remaining) = match value.selection {
     QueryResponse(acquisition) => {
       // Preserve the direct capture's original retained-frame remainder.
       let provider_retained = @execution.execution_capacity_retained_bytes(
@@ -336,14 +336,14 @@ pub fn retire_row_run_response_workspace(
         9223372036854775807L - base - provider_retained {
         return Err(Physical(InvalidLimits))
       }
-      base + provider_retained + physical.execution_scratch
+      (None, base + provider_retained + physical.execution_scratch)
     }
     InputResponse(_) => {
-      // Actual pages/validation grew this SAME token. Its provider declaration
-      // is additive to that receiver peak, and neither may grow after capture.
-      // The existing borrow state permits this subtraction only once, even
-      // when a Resource callback retires the Source before the return fence.
-      let (_, execution) = match
+      // The SAME token funded provider construction beside the receiver.
+      // Its immutable transferred values now have their own input holding;
+      // no provider document/cursor is stored in the receiver's Value graph.
+      // Keep every receiver remainder, rather than settling the whole token.
+      let (retention, execution) = match
         @resources.reservation_capacity_amounts(
           physical.ledger,
           physical.reservation,
@@ -351,14 +351,21 @@ pub fn retire_row_run_response_workspace(
         Ok(value) => value
         Err(issue) => return Err(Physical(issue))
       }
+      let provider_retained = @execution.execution_capacity_retained_bytes(
+        provider,
+      )
       let provider_execution = @execution.execution_capacity_execution_bytes(
         provider,
       )
-      if execution < provider_execution ||
+      if retention < provider_retained ||
+        execution < provider_execution ||
         execution - provider_execution < physical.execution_scratch {
         return Err(Physical(InvalidLimits))
       }
-      execution - provider_execution - physical.execution_scratch
+      (
+        Some(retention - provider_retained),
+        execution - provider_execution - physical.execution_scratch,
+      )
     }
   }
   // Synchronous external observers may reenter. A throwing observer leaves
@@ -377,12 +384,22 @@ pub fn retire_row_run_response_workspace(
     value.cleanup_state = Bound
     return Err(Evidence(UnverifiedTransport))
   }
-  match
-    @resources.reduce_execution_reservation(
-      physical.ledger,
-      physical.reservation,
-      remaining,
-    ) {
+  let returned = match remaining_retention {
+    None =>
+      @resources.reduce_execution_reservation(
+        physical.ledger,
+        physical.reservation,
+        remaining,
+      )
+    Some(retention) =>
+      @resources.reduce_execution_reservation_capacity(
+        physical.ledger,
+        physical.reservation,
+        retention,
+        remaining,
+      )
+  }
+  match returned {
     Err(issue) => {
       value.cleanup_state = Bound
       Err(Physical(issue))
