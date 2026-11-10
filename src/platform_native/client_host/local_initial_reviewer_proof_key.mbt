@@ -36,7 +36,7 @@ fn NativeLocalInitialReviewerSigningKey::finish_original_projection(
   let original = self.original
   // No caller clock/current callback follows this original-generation check.
   guard self.installed.current() &&
-    original.host.selected_configuration(self.installed.file)
+    original.host.session.selected_configuration(self.installed.file)
     is Ok(configuration) &&
     configuration == self.installed.original_bytes &&
     original.host.database.read("client_local_installation_custody", "host")
