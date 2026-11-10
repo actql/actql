@@ -256,6 +256,50 @@ test('new environment reads beside reviewed C reads are not allowlisted', () => 
     [path]: sources[path] + '\ngetenv("NEW");'}).mode, 'full-fallback');
 });
 
+test('reviewed diagnostics do not allow duplicate or unknown environment reads', () => {
+  const path = 'src/platform_native/filesystem/native_timings.inc';
+  for (const owner of ['http-client', 'remote-runtime']) {
+    for (const extra of [
+      'getenv("ACTQL_NATIVE_TIMINGS");',
+      'getenv("ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS");',
+      'getenv("NEW_DIAGNOSTIC");',
+      'secure_getenv("ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS");',
+      'extern char **environ;',
+      'char *(*reader)(const char *) = getenv; reader("ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS");',
+    ]) {
+      const selection = select(owner, {...repositorySources,
+        [path]: repositorySources[path] + '\n' + extra});
+      assert.equal(selection.mode, 'full-fallback', extra);
+      assert.ok(selection.reasons.includes(`production environment reader: ${path}`));
+      assert.deepEqual(selection.paths, ['src/query_integration', 'src/native_values_integration']);
+    }
+  }
+});
+
+test('diagnostic exemptions require the exact getenv reader', () => {
+  const path = 'src/platform_native/filesystem/native_timings.inc';
+  for (const name of ['ACTQL_NATIVE_TIMINGS', 'ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS']) {
+    const source = repositorySources[path].replace(`getenv("${name}")`, `secure_getenv("${name}")`);
+    assert.notEqual(source, repositorySources[path]);
+    const selection = select('http-client', {...repositorySources, [path]: source});
+    assert.equal(selection.mode, 'full-fallback', name);
+    assert.ok(selection.reasons.includes(`production environment reader: ${path}`));
+  }
+});
+
+test('diagnostic exemptions cannot transfer to another FFI source', () => {
+  const path = 'src/platform_native/filesystem/native_timings.inc';
+  const foreign = 'src/platform_native/filesystem/other_diagnostic.inc';
+  for (const name of ['ACTQL_NATIVE_TIMINGS', 'ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS']) {
+    const selection = select('http-client', {...repositorySources,
+      [path]: repositorySources[path] + '\n#include "other_diagnostic.inc"\n',
+      [foreign]: `const char *value = getenv("${name}");`});
+    assert.equal(selection.mode, 'full-fallback', name);
+    assert.ok(selection.reasons.includes(`production environment reader: ${foreign}`));
+    assert.deepEqual(selection.paths, ['src/query_integration', 'src/native_values_integration']);
+  }
+});
+
 test('unknown file ownership falls back, and empty inventory fails', () => {
   const manifest = structuredClone(nativeQueryCoverage);
   delete manifest.files['src/query_integration/resident_native_source_wbtest.mbt'];
