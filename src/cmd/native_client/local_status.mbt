@@ -27,6 +27,7 @@ fn local_saved_run_status(
   input_root : String,
   child : @argparse.Matches,
   state_only? : Bool = false,
+  human_display? : ((String) -> String raise ClientStop)? = None,
   capture? : @local_host.NativeLocalJournalCapture? = None,
   original_reader? : ((String) -> @local_host.NativeClientSavedRunStateSelection raise ClientStop)? = None,
 ) -> String raise ClientStop {
@@ -119,9 +120,13 @@ fn local_saved_run_status(
     return if state_only || child.flags.get("json").unwrap_or(false) {
       state.wire()
     } else {
-      local_run_state_display(state.wire()).unwrap_or_else(() => {
-        stop("LocalRunStateDisplayUnavailable")
-      })
+      match human_display {
+        Some(display) => display(state.wire())
+        None =>
+          local_run_state_display(state.wire()).unwrap_or_else(() => {
+            stop("LocalRunStateDisplayUnavailable")
+          })
+      }
     }
   }
   let original = @json.parse(state.wire()) catch {

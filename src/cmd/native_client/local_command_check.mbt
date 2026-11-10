@@ -636,6 +636,9 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
             input_root,
             child,
             capture=Some(capture),
+            human_display=Some(wire => {
+              self.display_saved_waiting_run(capture, configuration, wire)
+            }),
             original_reader=Some(id => {
               self.refresh_run_observation_state(
                 host, capture, configuration, runtime, id,
@@ -689,8 +692,11 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
               stop("LocalReadOriginalCustodyUnavailable")
             })
             return Ok(
-              self.present_retained_run(
-                host, capture, configuration, runtime, crypto, child, reply,
+              local_run_reply(
+                child,
+                self.present_retained_run(
+                  host, capture, configuration, runtime, crypto, child, reply,
+                ),
               ),
             )
           }
@@ -778,7 +784,13 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
           local_host_result(capture.check_current_in_original_read())
           body
         }
-        Ok(body)
+        Ok(
+          if public_run && !child.flags.get("json").unwrap_or(false) {
+            self.display_fresh_waiting_run(settings, body)
+          } else {
+            body
+          },
+        )
       } catch {
         ClientStop(message) => Err(message)
       }

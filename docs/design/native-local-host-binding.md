@@ -3496,6 +3496,23 @@ Retiring this command's aliases never invokes historical evidence cleanup or
 releases its Store quota. This observation does not issue approval, a signing
 use, a resume claim, a write or a fresh computation.
 
+Human `run` and public Run-ID `status` presentation may display the original
+waiting Effect Preview as Local-owner read DATA. Fresh submission uses its
+already persisted ModelWork Preview and Checkpoint children; cold status uses
+the same restored Store/checkpoint aliases. Both require current Run-read
+permission, the original request/Run/checkpoint binding and unchanged Journal
+revision before disclosure. Display does not reconstruct approval, sign,
+resolve, resume, replay Model work or establish physical cleanup.
+
+Only Effect kind/target/count/strength and original row identity/before/after
+are rendered, with bounded canonical literals that preserve numeric precision
+and escape terminal controls. Unavailable and absent evidence remain explicit.
+The private continuation, guards, permissions and authoring evidence are not
+printed. This Local presentation does not issue the distinct redaction-bound
+`actql-review-projection/0.1` artifact or become approval evidence. JSON state
+and checkpoint-metadata responses retain their existing private-free shape
+and do not read the Preview for presentation.
+
 An acknowledged original Approved Resolution can retain its existing resume
 view across signer closure. Row dispatch uses that same view and Journal lease,
 checks the original Run, approved Preview, Unit and Common single-row binding,
