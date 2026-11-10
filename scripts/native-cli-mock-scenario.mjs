@@ -45,6 +45,9 @@ function runState(record, expectedStatus, runId) {
   const value = JSON.parse(record.stdout);
   assert.equal(value.version, 'actql-run-state/0.1', 'A command receipt is not a Run state');
   assert.equal(value.status, expectedStatus);
+  assert.doesNotMatch(record.stdout,
+    /"(?:preview|effect_preview|review_projection|displayed_rows|before|after)"\s*:/u,
+    'JSON Run state must not embed restricted Preview contents');
   assert.equal(typeof value.run_id, 'string');
   assert(value.run_id.length > 0, 'The original Run identity must be present');
   if (runId !== undefined) assert.equal(value.run_id, runId, 'Recovery must retain the original Run');
@@ -57,6 +60,44 @@ function checkpointId(state) {
   assert.equal(typeof state.checkpoint.checkpoint_cid, 'string');
   assert.match(state.checkpoint.checkpoint_cid, /^sha256:[0-9a-f]{64}$/u);
   return state.checkpoint.checkpoint_id;
+}
+
+// One read-only presentation of the SAME saved Checkpoint. The independent
+// template rows supply the expected changes, never parsed product output.
+function waitingHuman(record, original, before, change) {
+  const lines = record.stdout.trimEnd().split('\n');
+  for (const [prefix, expected] of [
+    ['Run: ', `Run: ${JSON.stringify(original.run_id)}`],
+    ['State: ', 'State: "waiting_checkpoint"'],
+    ['Checkpoint: ', `Checkpoint: ${JSON.stringify(original.checkpoint.checkpoint_id)}`],
+    ['  Original CID: ', `  Original CID: ${JSON.stringify(original.checkpoint.checkpoint_cid)}`],
+    ['Stored Effect Preview', 'Stored Effect Preview (read-only; not approval):'],
+    ['  Effect: ', `  Effect: "update"  Target: ${JSON.stringify('salesforce.' + change.resource)}`],
+    ['  Items: ', `  Items: ${change.rows.length}`],
+    ['  Preview strength: ', '  Preview strength: "full_diff"'],
+    ['  Changes:', '  Changes:'],
+  ]) assert.deepEqual(lines.filter(line => line.startsWith(prefix)), [expected],
+    `Human waiting Preview must retain original ${prefix}`);
+  const values = prefix => lines.filter(line => line.startsWith(prefix))
+    .map(line => JSON.parse(line.slice(prefix.length)));
+  const identities = values('    Row: '), previous = values('      Before: '), next = values('      After: ');
+  assert.deepEqual([...identities].sort(), change.rows.map(row => row.id).sort(),
+    'Human Preview must display the exact original target rows');
+  assert.equal(previous.length, change.rows.length, 'Human Preview must retain every before row');
+  assert.equal(next.length, change.rows.length, 'Human Preview must retain every after row');
+  const originals = JSON.parse(before.bytes).salesforce[change.resource].rows;
+  for (const [index, id] of identities.entries()) {
+    const expected = change.rows.find(row => row.id === id);
+    const source = originals.find(row => row.id === id);
+    const fields = Object.fromEntries(Object.entries(expected).filter(([name]) => name !== 'id'));
+    assert.equal(previous[index].state, 'present', 'Human Preview must retain observed before evidence');
+    assert.equal(next[index].state, 'present', 'Human Preview must retain the original intended change');
+    for (const field of Object.keys(fields)) assert.deepEqual(previous[index].value[field], source[field],
+      `Human Preview must retain original before ${field}`);
+    assert.deepEqual(next[index].value, fields, 'Human Preview must retain the exact intended after fields');
+  }
+  return {runId: original.run_id, checkpointId: original.checkpoint.checkpoint_id,
+    checkpointCid: original.checkpoint.checkpoint_cid, rows: identities.length};
 }
 
 export async function runNativeCliMockScenario({root, template, run}) {
@@ -89,6 +130,10 @@ export async function runNativeCliMockScenario({root, template, run}) {
   assert.equal(checkpointId(pending), checkpoint);
   assert.equal(pending.checkpoint.checkpoint_cid, original.checkpoint.checkpoint_cid);
   assert.deepEqual(await targetSnapshot(file), before, 'Pending status must not write');
+  // The AQL and Model answers are already gone. HUMAN status must consume the
+  // same saved review, not prepare another Run or repeat Source/Model work.
+  const humanWaiting = waitingHuman(await invoke(['status', runId]), original, before, expectedChanges[template]);
+  assert.deepEqual(await targetSnapshot(file), before, 'Human waiting status must not write');
 
   await invoke(['approve', checkpoint, '--wait', '--json']);
   const after = await targetSnapshot(file);
@@ -126,6 +171,6 @@ export async function runNativeCliMockScenario({root, template, run}) {
   assert.equal(reread.stdout, first.stdout, 'Fresh-process Result must retain original bytes');
   assert.deepEqual(await targetSnapshot(file), after, 'Saved Run/Result reread must not rewrite the target');
   return {template, runId, checkpointId: checkpoint, checkpointCid: original.checkpoint.checkpoint_cid,
-    beforeSha256: before.sha256, afterSha256: after.sha256, resultRows: rows.length,
+    beforeSha256: before.sha256, afterSha256: after.sha256, humanWaiting, resultRows: rows.length,
     resultSha256: createHash('sha256').update(first.stdout).digest('hex'), commands};
 }

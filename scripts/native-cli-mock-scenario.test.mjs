@@ -28,6 +28,13 @@ async function fixture(t, template, mutate = () => {}) {
   t.after(() => rm(root, {recursive: true, force: true}));
   const file = join(root, template, 'mock/data.json');
   let approved = false, reads = 0;
+  const updates = template === 'deal-review-mock' ? [
+    {id: '006Acme', StageName: 'Negotiation', NextStep: 'Send revised pricing by Friday'},
+    {id: '006Globex', StageName: 'Closed Lost', NextStep: 'Revisit next fiscal year'},
+  ] : [
+    {id: '001Acme', Churn_Risk__c: 'high', Risk_Reason__c: 'falling usage and a competitor evaluation'},
+    {id: '001Globex', Churn_Risk__c: 'high', Risk_Reason__c: 'support tickets about pricing'},
+  ];
   const calls = [];
   const run = async (args, cwd) => {
     calls.push({args: [...args], cwd});
@@ -56,6 +63,21 @@ async function fixture(t, template, mutate = () => {}) {
       value = {resolved: true};
     }
     const record = {code: 0, signal: null, stderr: '', stdout: value ? JSON.stringify(value) : ''};
+    if (args[0] === 'status' && !args.includes('--json')) {
+      assert.equal(approved, false);
+      const resource = template === 'deal-review-mock' ? 'Opportunity' : 'Account';
+      const originals = JSON.parse(await readFile(file, 'utf8')).salesforce[resource].rows;
+      record.stdout = ['Run: "unit-original-run"', 'State: "waiting_checkpoint"',
+        'Checkpoint: "unit-original-checkpoint"', `  Original CID: "sha256:${'a'.repeat(64)}"`,
+        'Stored Effect Preview (read-only; not approval):',
+        `  Effect: "update"  Target: "salesforce.${resource}"`, '  Items: 2',
+        '  Preview strength: "full_diff"', '  Changes:', ...updates.flatMap(update => [
+          '    Row: ' + JSON.stringify(update.id),
+          '      Before: ' + JSON.stringify({state: 'present', value: originals.find(row => row.id === update.id)}),
+          '      After: ' + JSON.stringify({state: 'present', value:
+            Object.fromEntries(Object.entries(update).filter(([name]) => name !== 'id'))}),
+        ])].join('\n') + '\n';
+    }
     if (args[0] === 'result') {
       reads++;
       const ids = template === 'deal-review-mock' ? ['006Acme', '006Globex'] : ['001Acme', '001Globex'];
@@ -82,8 +104,13 @@ for (const template of mockTemplates) test(`harness requires the public ${templa
   assert.equal(receipt.runId, 'unit-original-run');
   assert.equal(receipt.resultRows, 2);
   assert.deepEqual(options.calls.map(({args}) => args[0]),
-    ['init', 'run', 'status', 'approve', 'status', 'result', 'status', 'result']);
+    ['init', 'run', 'status', 'status', 'approve', 'status', 'result', 'status', 'result']);
   assert.equal(options.calls.filter(({args}) => args[0] === 'run').length, 1);
+  assert.equal(options.calls.filter(({args}) => args[0] === 'approve').length, 1);
+  assert.deepEqual(receipt.humanWaiting, {runId: 'unit-original-run', checkpointId: 'unit-original-checkpoint',
+    checkpointCid: `sha256:${'a'.repeat(64)}`, rows: 2});
+  assert.deepEqual(options.calls.filter(({args}) => args[0] === 'status' && !args.includes('--json'))
+    .map(({args}) => args), [['status', 'unit-original-run']]);
 });
 
 for (const [name, mutate, pattern] of [
@@ -145,7 +172,7 @@ test('harness refuses deferring the approved Effect until status', async t => {
 
 test('harness refuses same-byte Effect replay during completed status', async t => {
   const options = await fixture(t, 'deal-review-mock', async ({args, record, file}) => {
-    if (args[0] === 'status' && JSON.parse(record.stdout).status === 'succeeded') {
+    if (args[0] === 'status' && args.includes('--json') && JSON.parse(record.stdout).status === 'succeeded') {
       await writeFile(file, await readFile(file));
     }
   });
@@ -163,3 +190,35 @@ for (const operation of ['approve', 'result']) {
     await assert.rejects(runNativeCliMockScenario(options), {code: 'ENOENT'});
   });
 }
+
+
+for (const [name, mutate, pattern] of [
+  ['State-only output without the stored Preview', ({record}) => {
+    record.stdout = record.stdout.split('Stored Effect Preview')[0];
+  }, /Human waiting Preview/u],
+  ['a replacement Run in human output', ({record}) => {
+    record.stdout = record.stdout.replace('unit-original-run', 'replacement-run');
+  }, /Human waiting Preview/u],
+  ['a replacement Checkpoint in human output', ({record}) => {
+    record.stdout = record.stdout.replace('a'.repeat(64), 'b'.repeat(64));
+  }, /Human waiting Preview/u],
+  ['incorrect displayed before evidence', ({record}) => {
+    record.stdout = record.stdout.replace('"StageName":"Proposal"', '"StageName":"Other"');
+  }, /original before StageName/u],
+  ['incorrect displayed intended changes', ({record}) => {
+    record.stdout = record.stdout.replace('"StageName":"Negotiation"', '"StageName":"Other"');
+  }, /intended after fields/u],
+]) test(`harness refuses ${name}`, async t => {
+  const options = await fixture(t, 'deal-review-mock', context => {
+    if (context.args[0] === 'status' && !context.args.includes('--json')) mutate(context);
+  });
+  await assert.rejects(runNativeCliMockScenario(options), pattern);
+});
+
+test('harness rejects restricted Preview contents added to canonical JSON state', async t => {
+  const options = await fixture(t, 'deal-review-mock', ({args, record}) => {
+    if (args[0] === 'run') record.stdout = JSON.stringify({...JSON.parse(record.stdout),
+      effect_preview: {before: 'restricted original'}});
+  });
+  await assert.rejects(runNativeCliMockScenario(options), /JSON Run state must not embed restricted Preview/u);
+});
