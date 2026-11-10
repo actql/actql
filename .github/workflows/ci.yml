@@ -1847,6 +1847,8 @@ jobs:
             ${{ runner.temp }}/native-cli-linux-local/production/artifact/artifact.json
             ${{ runner.temp }}/native-cli-linux-local/production/artifact/native-producer/build.json
             ${{ runner.temp }}/native-cli-linux-local/release/release.json
+            ${{ runner.temp }}/native-cli-linux-local/release/actql-0.0.2-rc.0.tgz
+            ${{ runner.temp }}/native-cli-linux-local/release/actql-cli-linux-x64-gnu-0.0.2-rc.0.tgz
             ${{ runner.temp }}/native-cli-linux-local/release/source-free-install-*.json
             ${{ runner.temp }}/native-cli-linux-local/release/source-free-observed-*.json
             ${{ runner.temp }}/native-cli-linux-local/release/mock-install-*.json
