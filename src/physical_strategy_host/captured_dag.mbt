@@ -483,6 +483,7 @@ fn open_checked_dag(
   supplied_reads? : Array[(Int, Int, @execution.SuppliedRelationRead)] = [],
   retained_model? : (Int, Int, @execution.CompletedOutput)? = None,
   retained_models? : Array[(Int, Int, @execution.CompletedOutput)] = [],
+  retained_source_tasks? : Array[(Int, @execution.CompletedOutput)] = [],
 ) -> Result[CapturedDAG, RunIssue] {
   let count = graph.owners_count()
   if count == 0 {
@@ -604,6 +605,22 @@ fn open_checked_dag(
     if graph_keyed_model_plan_inputs_complete(graph, task, step) {
       retained_keyed_input = true
     }
+  }
+  for (task, output) in retained_source_tasks {
+    guard task >= first_task &&
+      task < count &&
+      outputs[task] is None &&
+      graph.targets_at(task).unwrap() is Some(target) &&
+      @execution.completed_output_matches_port(
+        output,
+        graph.owners_at(task).unwrap(),
+        target,
+      ) &&
+      @execution.completed_output_available(output) else {
+      return Err(ForeignCapture)
+    }
+    outputs[task] = Some(Materialized(output))
+    retained_tasks.push(task)
   }
   if !graph_ordered_inputs_complete(graph) &&
     retained_task is None &&
@@ -2338,6 +2355,14 @@ pub fn open_source_inputs_effect_run_dag(
   ledger : @resources.Ledger,
   keyed? : (Int, Int, @execution.SuppliedRelationRead)? = None,
   models? : Array[(Int, Int, @execution.CompletedOutput)] = [],
+  source_results? : Array[
+    (
+      Int,
+      @execution.GeneratedSequence,
+      Array[(Int, Int, @execution.ProducerRead)],
+      @execution.CompletedSegmentInputs,
+    ),
+  ] = [],
 ) -> Result[CapturedEffectRunDAG, RunIssue] {
   guard @graph.source_inputs_dag_matches_original(
     graph,
@@ -2378,6 +2403,31 @@ pub fn open_source_inputs_effect_run_dag(
   if reads.length() != graph.supplied_slots_count() {
     return Err(ForeignCapture)
   }
+  let completed_sources : Array[(Int, @execution.CompletedOutput)] = []
+  for (task, sequence, inputs, proof) in source_results {
+    guard task >= 0 &&
+      task < graph_task_count(graph) &&
+      !models.any(model => model.0 == task) &&
+      !completed_sources.any(original => original.0 == task) &&
+      graph.owners_at(task) is Some(owner) &&
+      physical_equal(@execution.generated_sequence_owner(sequence), owner) &&
+      !inputs.is_empty() &&
+      inputs.all(input => {
+        sources.any(source => {
+          @query.captured_source_matches(
+            source,
+            @checked.source_identity(graph.program_value()),
+            owner,
+          ) &&
+          @query.captured_source_matches_segment_input(source, input.2)
+        })
+      }) &&
+      @execution.completed_segment_inputs_output(proof, sequence, inputs)
+      is Some(output) else {
+      return Err(ForeignCapture)
+    }
+    completed_sources.push((task, output))
+  }
   let dependencies = match
     effect_dependency_ports(checked.computation, 4096, 65536, 64) {
     Ok(value) => value
@@ -2391,6 +2441,7 @@ pub fn open_source_inputs_effect_run_dag(
       [],
       supplied_reads=reads,
       retained_models=models,
+      retained_source_tasks=completed_sources,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)

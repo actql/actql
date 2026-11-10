@@ -11,6 +11,14 @@ pub fn open_installed_effect_retained_model_host(
   model_graph : @publication_host.ClientInferPlanGraph,
   output : @execution.CompletedOutput,
   completed_model : @model.ModelExecution,
+  source_results? : Array[
+    (
+      Int,
+      @execution.GeneratedSequence,
+      Array[(Int, Int, @execution.ProducerRead)],
+      @execution.CompletedSegmentInputs,
+    ),
+  ] = [],
 ) -> Result[
   (
     @builtin.ConfiguredComputeHost[@strategy.RunIssue],
@@ -35,6 +43,7 @@ pub fn open_installed_effect_retained_model_host(
     model_graph,
     output,
     completed_model,
+    source_results~,
   )
 }
 
@@ -48,6 +57,14 @@ fn select_installed_effect_retained_model_host(
   model_graph : @publication_host.ClientInferPlanGraph,
   output : @execution.CompletedOutput,
   completed_model : @model.ModelExecution,
+  source_results? : Array[
+    (
+      Int,
+      @execution.GeneratedSequence,
+      Array[(Int, Int, @execution.ProducerRead)],
+      @execution.CompletedSegmentInputs,
+    ),
+  ] = [],
   models? : Array[
     (
       @publication_host.ClientInferPlanGraph,
@@ -100,6 +117,9 @@ fn select_installed_effect_retained_model_host(
     installed_effect_managed_limits_fit(owner, plan, ledger) else {
     return Err(ForeignOriginal)
   }
+  if !whole && !source_results.is_empty() {
+    return Err(ForeignOriginal)
+  }
   if plan.query_time is Some(original) &&
     !@publication_host.client_effect_run_query_time_matches(
       bound,
@@ -130,6 +150,7 @@ fn select_installed_effect_retained_model_host(
         sources,
         ledger,
         models=[(task, step, output)],
+        source_results~,
       )
     } else {
       @strategy.open_multi_captured_effect_run_retained_model_dag(

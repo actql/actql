@@ -39,6 +39,7 @@ fn LocalCommandBusinessPreparation::execute_mock_effect_model(
     read_retained,
     read_execution,
     provider_inputs,
+    installed_plan,
   ) = self.original.with_business_request(self.capture, () => {
     let controls = native_mock_model_read_controls(
       state.captured_inputs.length(),
@@ -65,6 +66,8 @@ fn LocalCommandBusinessPreparation::execute_mock_effect_model(
       identities: [],
       logicals: [],
       observations: [],
+      roots: [],
+      root_work: 0L,
       retained: base_retained,
       execution: base_execution,
     }
@@ -100,16 +103,8 @@ fn LocalCommandBusinessPreparation::execute_mock_effect_model(
           held.logicals.push(original.logical)
           held.observations.push(original.observation)
         }
-        None => {
+        None =>
           self.prepare_mock_model_whole_source(state, held, index, completed_at)
-          let read = @query.captured_source_original_input_read(source).unwrap_or_else(() => {
-              stop("LocalOriginalModelSourceUnavailable")
-            },
-          )
-          provider_inputs.push(
-            @local_compute.managed_provider_supplied_relation_input(read),
-          )
-        }
       }
       captured_sources.push(source)
     }
@@ -150,8 +145,17 @@ fn LocalCommandBusinessPreparation::execute_mock_effect_model(
       held.retained,
       held.execution,
       provider_inputs,
+      plan,
     )
   })
+  let provider_inputs = if state.lookup is None {
+    self.prepare_mock_model_source_results(state, installed_plan, work)
+  } else {
+    provider_inputs
+  }
+  let (read_retained, read_execution) = state.model_read
+    .map(held => (held.retained, held.execution))
+    .unwrap_or((read_retained, read_execution))
   let require_model = (
     result : Result[Unit, @local_host.NativeClientMockModelIssue],
   ) => {
@@ -178,6 +182,9 @@ fn LocalCommandBusinessPreparation::execute_mock_effect_model(
         limits.identity.wire.max_bytes.to_int64(),
         input_body_read=state.model_read.map(held => held.read),
         inputs=provider_inputs,
+        prior_input_work=state.model_read
+          .map(held => held.root_work)
+          .unwrap_or(0L),
       ),
     )
   })
@@ -296,6 +303,13 @@ fn LocalCommandBusinessPreparation::retain_mock_effect_host(
         state.graph,
         output,
         completed,
+        source_results=state.model_read
+          .map(held => {
+            held.roots.map(root => {
+              (root.task, root.sequence, root.bindings, root.completed.unwrap())
+            })
+          })
+          .unwrap_or([]),
       )
       .unwrap_or_else(() => stop("LocalOriginalEffectContinuationUnavailable"))
       .unwrap_or_else(() => stop("LocalOriginalEffectContinuationUnavailable"))

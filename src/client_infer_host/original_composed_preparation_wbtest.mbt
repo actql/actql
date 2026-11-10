@@ -534,3 +534,90 @@ test "original restored composed input refusal retains entered read without repl
   assert_eq(calls.val, 0)
   original_composed_test_release(ledger, consumer)
 }
+
+///|
+// Explicit original byte grants; no installed Source, permission or provider
+// IO. Prior producer work remains consumed by this same one-shot input owner.
+test "original composed producer work remains consumed before input and suffix progress" {
+  let prepared = fixture_prepared()
+  let (occurrence, prefix) = original_composed_test_input(prepared)
+  let plan = call_identity_plan(prepared)
+  let limits = standard_limits()
+  let calls = Ref(0)
+  let provider = original_funded_start_provider(calls)
+  let (compiled, definition, ledger, read) = original_funded_start_read(
+    prepared, plan, limits,
+  )
+  let consumer = @publication_host.claim_client_model_read_preparation(
+    read, compiled, definition, plan, 7L, 5L,
+  ).unwrap()
+  let active = start_original_composed(
+    occurrence,
+    plan,
+    prefix,
+    [],
+    provider,
+    limits,
+    compiled,
+    definition,
+    consumer,
+    7L,
+    5L,
+    100L,
+    5L,
+    prior_input_work=7L,
+  ).unwrap()
+  assert_eq(active.work, 7L)
+  assert_eq(active.child_work, 0L)
+  assert_true(execution_input_unadvanced(active))
+  for _ in 0..<5000 {
+    advance(active, 1).unwrap() |> ignore
+    if active.work > 7L {
+      break
+    }
+  }
+  assert_true(active.work > 7L)
+  assert_false(execution_input_unadvanced(active))
+  assert_eq(calls.val, 0)
+  assert_true(cancel(active))
+  assert_true(fixture_finish(active, initial_work=active.work) is Stopped(..))
+  assert_true(cleanup(active).unwrap())
+  original_composed_test_release(ledger, consumer)
+}
+
+///|
+test "original composed producer work cannot renew an exhausted input allowance" {
+  let prepared = fixture_prepared()
+  let (occurrence, prefix) = original_composed_test_input(prepared)
+  let plan = call_identity_plan(prepared)
+  let limits = standard_limits()
+  let calls = Ref(0)
+  let provider = original_funded_start_provider(calls)
+  let (compiled, definition, ledger, read) = original_funded_start_read(
+    prepared, plan, limits,
+  )
+  let consumer = @publication_host.claim_client_model_read_preparation(
+    read, compiled, definition, plan, 7L, 5L,
+  ).unwrap()
+  assert_true(
+    start_original_composed(
+      occurrence,
+      plan,
+      prefix,
+      [],
+      provider,
+      limits,
+      compiled,
+      definition,
+      consumer,
+      7L,
+      5L,
+      100L,
+      5L,
+      prior_input_work=limits.input.max_work.to_int64() + 1L,
+    )
+    is Err(InvalidAdvance),
+  )
+  assert_eq(calls.val, 0)
+  original_composed_test_release(ledger, consumer)
+}

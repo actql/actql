@@ -261,6 +261,8 @@ pub fn client_broad_residual_execution(ClientBroadResidual) -> @local.ManagedPro
 
 pub fn client_command_key_workspace_capacity(@execution_relation.GeneratedSequence, @run_publication_host.PublicationOutputExportLimits) -> @execution_relation.ExecutionCapacity?
 
+pub fn client_composed_source_root_control_bytes(@execution_relation.GeneratedSequence) -> Int64?
+
 pub fn client_content_local_provider(@run_publication_host.PreparedClientProgram, Int, Int, ClientInstalledSequenceContracts, String, String?, String?, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, ClientSerializationWorkspaceLimits, ClientLocalContentPhysicalPort, (ClientLocalContentStep) -> Bool, recovery? : ClientRetainedContentOutput?) -> @local.ManagedProvider?
 
 pub fn client_duckdb_acquisition_estimate(Array[Array[Int]], Array[Int64?], Array[Int64?]) -> Result[ClientDuckDBAcquisitionEstimate, ClientDuckDBAcquisitionIssue]
@@ -663,7 +665,7 @@ pub fn open_installed_effect_managed_host(ClientInstalledManagedRun, @run_public
 
 pub fn open_installed_effect_managed_keyed_host(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectRun, Array[@execution_query.CapturedInputSource], @run_publication_host.ClientKeyedLookupInput) -> Result[(@connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], @physical_strategy_host.CapturedEffectRunDAG, Array[@execution_relation.GeneratedSequence])?, ClientInstalledManagedRunIssue]
 
-pub fn open_installed_effect_retained_model_host(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectRun, Array[@execution_query.CapturedInputSource], @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @execution_relation.CompletedOutput, @model_execution.ModelExecution) -> Result[(@connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], @physical_strategy_host.CapturedEffectRunDAG, Array[@execution_relation.GeneratedSequence])?, ClientInstalledManagedRunIssue]
+pub fn open_installed_effect_retained_model_host(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectRun, Array[@execution_query.CapturedInputSource], @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @execution_relation.CompletedOutput, @model_execution.ModelExecution, source_results? : Array[(Int, @execution_relation.GeneratedSequence, Array[(Int, Int, @execution_relation.ProducerRead)], @execution_relation.CompletedSegmentInputs)]) -> Result[(@connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], @physical_strategy_host.CapturedEffectRunDAG, Array[@execution_relation.GeneratedSequence])?, ClientInstalledManagedRunIssue]
 
 pub fn open_installed_effect_retained_models_host(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectRun, Array[@execution_query.CapturedInputSource], @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, Array[(@run_publication_host.ClientInferPlanGraph, @execution_relation.CompletedOutput, @model_execution.ModelExecution)]) -> Result[(@connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], @physical_strategy_host.CapturedEffectRunDAG, Array[@execution_relation.GeneratedSequence])?, ClientInstalledManagedRunIssue]
 
@@ -976,6 +978,8 @@ pub fn prepared_installed_effect_managed_source(ClientInstalledEffectManagedPlan
 pub fn prepared_installed_effect_managed_whole_source(ClientInstalledEffectManagedPlan, Int) -> Result[(@sourceview_resolution.SourceAcquisition, @client_row_source_host.RowInputAcquisition, ClientInstalledWholeSourceCapacity), ClientInstalledManagedRunIssue]
 
 pub fn prepared_installed_effect_model_sequence(ClientInstalledEffectManagedPlan, @run_publication_host.ClientInferPlanGraph) -> Result[@execution_relation.GeneratedSequence, ClientInstalledManagedRunIssue]
+
+pub fn prepared_installed_effect_source_sequence(ClientInstalledEffectManagedPlan, Int) -> Result[(Int, @execution_relation.GeneratedSequence), ClientInstalledManagedRunIssue]
 
 pub fn prepared_installed_managed_capture_acquisition(ClientInstalledManagedCapturePlan, Int) -> @client_row_source_host.RowAcquisition?
 

@@ -310,6 +310,27 @@ fn LocalCommandPreparationOriginal::close_business_children(
         }
         held.scan = None
       }
+      if state.model_read is Some(held) {
+        for index = held.roots.length() - 1; index >= 0; index = index - 1 {
+          let root = held.roots[index]
+          if root.child is Some(child) {
+            @local_compute.cancel_managed_provider(child) |> ignore
+            match @local_compute.cleanup_managed_provider(child) {
+              Ok(true) => ()
+              _ => return Err(CommandBusinessChildren)
+            }
+          }
+          root.output = None
+          root.completed = None
+          root.child = None
+          root.inputs.clear()
+          root.inputs.shrink_to_fit()
+          root.bindings.clear()
+          root.bindings.shrink_to_fit()
+        }
+        held.roots.clear()
+        held.roots.shrink_to_fit()
+      }
       // Stop new assembly work without returning its backing. Raw envelopes
       // borrowed by Source/Store children remain funded by this SAME lookup
       // until those original physical children have retired and cut aliases.
