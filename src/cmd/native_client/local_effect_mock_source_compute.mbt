@@ -43,27 +43,27 @@ fn LocalCommandBusinessPreparation::prepare_mock_model_source_results(
   })
   let limits = state.first._retained_models[0]._retained_limits
   for index, captured in state.captured_inputs {
-    let source = @row_host.row_captured_input_source(captured).unwrap()
-    let (task, sequence) = @local_values.prepared_installed_effect_source_sequence(
-      plan, index,
-    ).unwrap_or_else(() => stop("LocalOriginalModelSourceComputeUnavailable"))
-    let execution = {
-      ..limits.input,
-      max_work: limits.input.max_work - held.root_work.to_int(),
-    }
-    guard @local_compute.local_bounded_relation_provider(
-        execution,
-        limits.measurement,
-        sequence,
-      )
-      is Some(provider) &&
-      @local_compute.managed_provider_capacity(provider, sequence)
-      is Some(capacity) &&
-      @local_values.client_composed_source_root_control_bytes(sequence)
-      is Some(controls) else {
-      stop("LocalOriginalModelSourceComputeUnavailable")
-    }
     self.original.with_business_request(self.capture, () => {
+      let source = @row_host.row_captured_input_source(captured).unwrap()
+      let (task, sequence) = @local_values.prepared_installed_effect_source_sequence(
+        plan, index,
+      ).unwrap_or_else(() => stop("LocalOriginalModelSourceComputeUnavailable"))
+      let execution = {
+        ..limits.input,
+        max_work: limits.input.max_work - held.root_work.to_int(),
+      }
+      guard @local_compute.local_bounded_relation_provider(
+          execution,
+          limits.measurement,
+          sequence,
+        )
+        is Some(provider) &&
+        @local_compute.managed_provider_capacity(provider, sequence)
+        is Some(capacity) &&
+        @local_values.client_composed_source_root_control_bytes(sequence)
+        is Some(controls) else {
+        stop("LocalOriginalModelSourceComputeUnavailable")
+      }
       let retained = @execution.checked_preparation_add_product(
           held.retained,
           controls,
@@ -155,25 +155,35 @@ fn LocalCommandBusinessPreparation::prepare_mock_model_source_results(
         }
       }
       let poll = self.original.with_business_request(self.capture, () => {
-        @local_compute.advance_managed_provider(child, 31).native_model_source_compute(
+        let poll = @local_compute.advance_managed_provider(child, 31).native_model_source_compute(
           self.original,
         )
-      })
-      match poll {
-        @local_compute.Complete(output, ..) => {
+        if poll is @local_compute.Complete(output, ..) {
           root.output = Some(output)
           root.completed = Some(
             @execution.retain_completed_segment_inputs(
               root.output.unwrap(),
-              sequence,
+              root.sequence,
               root.bindings,
               limits.output_work,
             ).unwrap_or_else(() => {
               stop("LocalOriginalModelSourceComputeUnavailable")
             }),
           )
-          done = true
+          let used = @local_compute.managed_provider_cumulative_work(child).unwrap_or_else(() => {
+              stop("LocalOriginalModelSourceComputeUnavailable")
+            },
+          )
+          if used < 0L ||
+            used > limits.input.max_work.to_int64() - held.root_work {
+            stop("LocalOriginalModelSourceComputeUnavailable")
+          }
+          held.root_work += used
         }
+        poll
+      })
+      match poll {
+        @local_compute.Complete(_, ..) => done = true
         @local_compute.Continue(..)
         | @local_compute.Settling(_, ..)
         | @local_compute.Waiting(..) => ()
@@ -182,23 +192,15 @@ fn LocalCommandBusinessPreparation::prepare_mock_model_source_results(
         _ => stop("LocalOriginalModelSourceComputeUnavailable")
       }
     }
-    let used = @local_compute.managed_provider_cumulative_work(child).unwrap_or_else(() => {
-        stop("LocalOriginalModelSourceComputeUnavailable")
-      },
-    )
-    if used < 0L || used > limits.input.max_work.to_int64() - held.root_work {
-      stop("LocalOriginalModelSourceComputeUnavailable")
-    }
-    held.root_work += used
   }
-  let model_sequence = @local_values.prepared_installed_effect_model_sequence(
-    plan,
-    state.graph,
-  ).unwrap_or_else(() => stop("LocalOriginalModelSourceComputeUnavailable"))
-  let controls = @local_values.client_composed_source_root_control_bytes(
-    model_sequence,
-  ).unwrap_or_else(() => stop("LocalOriginalModelSourceComputeUnavailable"))
   self.original.with_business_request(self.capture, () => {
+    let model_sequence = @local_values.prepared_installed_effect_model_sequence(
+      plan,
+      state.graph,
+    ).unwrap_or_else(() => stop("LocalOriginalModelSourceComputeUnavailable"))
+    let controls = @local_values.client_composed_source_root_control_bytes(
+      model_sequence,
+    ).unwrap_or_else(() => stop("LocalOriginalModelSourceComputeUnavailable"))
     let retained = @execution.checked_preparation_add_product(
       held.retained,
       controls,
@@ -210,45 +212,47 @@ fn LocalCommandBusinessPreparation::prepare_mock_model_source_results(
       1L,
     ).unwrap_or_else(() => stop("LocalOriginalModelSourceComputeUnavailable"))
     held.grow(state, retained, peak, self.original)
-  })
-  let inputs = []
-  let model_owner = @run_host.client_infer_occurrence_preparation(
-    state.graph.occurrence,
-  )
-  let graph = @strategy.checked_effect_computation_graph(
-    @run_host.prepared_client_effect_computation_graph(state._retained_prepared),
-  )
-  let (task, _, _) = @run_host.client_infer_occurrence_coordinates(
-    state.graph.occurrence,
-  )
-  for index in 0..<@strategy.graph_data_count(graph) {
-    let edge = @strategy.graph_data_at(graph, index).unwrap()
-    if @strategy.data_edge_consumer(edge) != task {
-      continue
+    let inputs = []
+    let model_owner = @run_host.client_infer_occurrence_preparation(
+      state.graph.occurrence,
+    )
+    let graph = @strategy.checked_effect_computation_graph(
+      @run_host.prepared_client_effect_computation_graph(
+        state._retained_prepared,
+      ),
+    )
+    let (task, _, _) = @run_host.client_infer_occurrence_coordinates(
+      state.graph.occurrence,
+    )
+    for index in 0..<@strategy.graph_data_count(graph) {
+      let edge = @strategy.graph_data_at(graph, index).unwrap()
+      if @strategy.data_edge_consumer(edge) != task {
+        continue
+      }
+      let producer = @strategy.data_edge_producer(edge)
+      let root = held.roots
+        .iter()
+        .find_first(root => root.task == producer)
+        .unwrap_or_else(() => stop("LocalOriginalModelSourceComputeUnavailable"))
+      let output = @execution.completed_segment_inputs_output(
+        root.completed.unwrap(),
+        root.sequence,
+        root.bindings,
+      ).unwrap_or_else(() => stop("LocalOriginalModelSourceComputeUnavailable"))
+      let bound = @execution.bind_completed_input(
+        model_owner,
+        @strategy.data_edge_input(edge),
+        @execution.generated_sequence_owner(root.sequence),
+        output,
+      ).unwrap_or_else(() => stop("LocalOriginalModelSourceComputeUnavailable"))
+      let read = @execution.prepare_producer_read(
+        model_owner,
+        bound,
+        limits.input.rows.operation_entries,
+        limits.measurement.max_bytes,
+      ).unwrap_or_else(() => stop("LocalOriginalModelSourceComputeUnavailable"))
+      inputs.push(@local_compute.managed_provider_relation_input(read))
     }
-    let producer = @strategy.data_edge_producer(edge)
-    let root = held.roots
-      .iter()
-      .find_first(root => root.task == producer)
-      .unwrap_or_else(() => stop("LocalOriginalModelSourceComputeUnavailable"))
-    let output = @execution.completed_segment_inputs_output(
-      root.completed.unwrap(),
-      root.sequence,
-      root.bindings,
-    ).unwrap_or_else(() => stop("LocalOriginalModelSourceComputeUnavailable"))
-    let bound = @execution.bind_completed_input(
-      model_owner,
-      @strategy.data_edge_input(edge),
-      @execution.generated_sequence_owner(root.sequence),
-      output,
-    ).unwrap_or_else(() => stop("LocalOriginalModelSourceComputeUnavailable"))
-    let read = @execution.prepare_producer_read(
-      model_owner,
-      bound,
-      limits.input.rows.operation_entries,
-      limits.measurement.max_bytes,
-    ).unwrap_or_else(() => stop("LocalOriginalModelSourceComputeUnavailable"))
-    inputs.push(@local_compute.managed_provider_relation_input(read))
-  }
-  inputs
+    inputs
+  })
 }
