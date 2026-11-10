@@ -147,6 +147,11 @@ flight returns; authorization callbacks borrow and return that same Journal
 route, then the Store performs its own exchange. The Journal route must reenter
 before its outer transaction can commit. Missing return or reentry stays pending
 and cannot prove non-publication, authorize a resend or acknowledge cleanup.
+The existing retained publisher keeps the actual Store commit result, including
+its original error, before attempting Journal reentry. A separate typed routing
+issue preserves a failed return/reentry. Neither observation promotes success
+through a missing acknowledgement, and another commit is refused; the same
+pending publication remains responsible for reconciliation and retirement.
 The restoration-to-application boundary first retains the composed extent as
 data, then enters that same original constructor to acquire usable backing before
 resizing its byte token. A Read-side resize alone cannot acquire more business

@@ -365,11 +365,13 @@ pub fn NativeLocalEffectResumeOriginal::prepare_saved_publication_construction_i
     @execution.preparation_representation_cost({
       record_headers: writer.record_headers +
       // Additional current callback/Some/Result and routing-exchange frames.
-      112L +
+      // The outcome and routing-issue Some values can coexist after a lost
+      // reentry: 2H2R plus their two fields, with no copied Result strings.
+      114L +
       12L * rows +
       16L * results.to_int64(),
       reference_slots: writer.reference_slots +
-      416L +
+      420L +
       32L * rows +
       48L * results.to_int64(),
       scalar_words: writer.scalar_words +

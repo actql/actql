@@ -191,18 +191,30 @@ fn NativeLocalPublisherBinding::with_original_store_commit(
 ] {
   guard self.journal_operation is Some(journal) else { return commit() }
   let owner = self.authority.host.journal
-  guard owner.transaction_active &&
+  guard self.store_commit_outcome is None &&
+    self.store_commit_route_issue is None &&
+    owner.transaction_active &&
     owner.publication_read_locked &&
     journal.pending_scope() is Ok(true) else {
     return Err(@native_publication.CommitFenceUnavailable)
   }
   match journal.finish_captured_journal_read() {
-    Err(_) => return Err(@native_publication.CommitFenceUnavailable)
+    Err(issue) => {
+      self.store_commit_route_issue = Some(issue)
+      return Err(@native_publication.CommitFenceUnavailable)
+    }
     Ok(_) => ()
   }
   let outcome = commit()
+  // Retain the actual Ok OR Err before the next fallible routing operation.
+  // Missing reentry does not overwrite that known observation or permit a
+  // second commit. The existing pending publication still owns reconciliation.
+  self.store_commit_outcome = Some(outcome)
   match journal.begin_captured_journal_read() {
-    Err(_) => Err(@native_publication.CommitFenceUnavailable)
+    Err(issue) => {
+      self.store_commit_route_issue = Some(issue)
+      Err(@native_publication.CommitFenceUnavailable)
+    }
     Ok(_) => outcome
   }
 }

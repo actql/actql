@@ -27,6 +27,13 @@ struct NativeLocalPublisherBinding {
   store_binding : String
   operation : NativeLocalStoreOperation?
   journal_operation : NativeLocalStoreOperation?
+  // Observation DATA on this retained binding, never a replacement commit
+  // owner or success/cleanup ACK when the original Journal reentry is pending.
+  mut store_commit_outcome : Result[
+    @native_publication.NativeRunPublicationResult,
+    @native_publication.NativeRunPublicationIssue,
+  ]?
+  mut store_commit_route_issue : NativeLocalStoreOperationIssue?
 }
 
 ///|
@@ -185,6 +192,8 @@ fn NativeLocalHostConnection::bind_run_publisher_with_operations(
     store_binding,
     operation,
     journal_operation,
+    store_commit_outcome: None,
+    store_commit_route_issue: None,
   }
   if !binding.current() {
     return Err(AuthorizationDenied)
