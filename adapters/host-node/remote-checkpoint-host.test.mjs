@@ -715,12 +715,17 @@ function firstHostCloseFailureDiagnostic(error) {
     })), pendingOwners};
 }
 
-async function closeRetainedStoreFixtureHost(host, t, observeFirstClose = false) {
+async function closeRetainedStoreFixtureHost(host, t,
+  {observeFirstClose = false, requireFirstClose = false} = {}) {
   try { return await host.close(); }
   catch (original) {
-    if (observeFirstClose) {
-      try { t.diagnostic(JSON.stringify(firstHostCloseFailureDiagnostic(original))); }
+    const diagnostic = value => {
+      try { t.diagnostic(JSON.stringify(value)); }
       catch { /* Diagnostics cannot replace the original close failure. */ }
+    };
+    if (observeFirstClose) {
+      try { diagnostic(firstHostCloseFailureDiagnostic(original)); }
+      catch { /* Unavailable projection cannot replace the original failure. */ }
     }
     const pendingStore = error => error?.code === 'InstalledHostCleanupPending' &&
       error.cleanupPending === true && error.storeCleanupPending === true &&
@@ -728,8 +733,8 @@ async function closeRetainedStoreFixtureHost(host, t, observeFirstClose = false)
       error.cleanupErrors[0].owner === 'store' &&
       error.cleanupErrors[0].error?.code === 'PublicationStoreCleanupPending';
     if (!pendingStore(original)) throw original;
-    t.diagnostic(JSON.stringify({phase: 'original_host_close_pending',
-      owner: 'store', code: 'PublicationStoreCleanupPending'}));
+    diagnostic({phase: 'original_host_close_pending',
+      owner: 'store', code: 'PublicationStoreCleanupPending'});
     // Continue only this retained Store cleanup, never reopen or resend.
     const cleanup = original.cleanupHandle;
     try {
@@ -744,12 +749,16 @@ async function closeRetainedStoreFixtureHost(host, t, observeFirstClose = false)
         return cleanup.status().pending.length === 0;
       });
       assert.deepEqual(cleanup.status().pending, []);
-      t.diagnostic(JSON.stringify({phase: 'original_host_close_confirmed', pendingOwners: []}));
+      diagnostic({phase: 'original_host_close_confirmed', pendingOwners: []});
     } catch (cause) {
+      if (requireFirstClose) throw original;
       // Keep the first refusal if its SAME owner cannot confirm cleanup.
       throw new AggregateError([original, cause], 'OriginalHostCleanupUnconfirmed',
         {cause: original});
     }
+    // This named acceptance requires its ordinary first close to succeed.
+    // Eventual SAME-owner cleanup is hygiene, not a replacement positive.
+    if (requireFirstClose) throw original;
   }
 }
 
@@ -782,7 +791,7 @@ test('Remote Host fixture retains its same close owner after refusal and joins o
   const observations = [];
   await closeRetainedStoreFixtureHost({close}, {diagnostic(value) {
     observations.push(JSON.parse(value)); t.diagnostic(value);
-  }}, true);
+  }}, {observeFirstClose: true});
   assert.deepEqual(observations[0], {phase: 'original_host_first_close_failure',
     code: 'InstalledHostCleanupPending', cleanupPending: true, storeCleanupPending: true,
     cleanupErrors: [{owner: 'store', code: 'PublicationStoreCleanupPending'}], pendingOwners: ['store']});
@@ -806,8 +815,27 @@ test('Remote Host fixture retains its same close owner after refusal and joins o
     ...original, cleanupErrors: [{owner: 'source', error: child}],
   });
   await assert.rejects(closeRetainedStoreFixtureHost({async close() {throw foreign;}},
-    {diagnostic() {throw new Error('DiagnosticUnavailable');}}, true), error => error === foreign);
+    {diagnostic() {throw new Error('DiagnosticUnavailable');}}, {observeFirstClose: true}), error => error === foreign);
   assert.equal(retries, 2, 'a different owner must never enter the Store continuation');
+  for (const unavailableDiagnostic of [false, true]) {
+    let confirmed = false, retryCalls = 0;
+    const handle = Object.freeze({
+      status() {return {pending: confirmed ? [] : ['store']};},
+      async retry() {assert.equal(this, handle); retryCalls++; confirmed = true;},
+    });
+    const firstFailure = Object.freeze(Object.assign(new AggregateError([child], 'InstalledHostCleanupPending'), {
+      code: 'InstalledHostCleanupPending', cleanupPending: true, storeCleanupPending: true,
+      cleanupErrors: [{owner: 'store', error: child}], cleanupHandle: handle,
+    }));
+    await assert.rejects(closeRetainedStoreFixtureHost({async close() {throw firstFailure;}}, {
+      diagnostic() {if (unavailableDiagnostic) throw new Error('DiagnosticUnavailable');},
+    }, {observeFirstClose: true, requireFirstClose: true}), error => error === firstFailure);
+    assert.equal(retryCalls, 1, 'required first-close failure still completes SAME-handle cleanup');
+    assert.equal(firstFailure.cleanupHandle, handle);
+    assert.deepEqual(handle.status().pending, []);
+  }
+  assert.equal(await closeRetainedStoreFixtureHost({async close() {return confirmed;}}, t,
+    {requireFirstClose: true}), confirmed, 'ordinary first-close success remains the positive outcome');
   const retryFailure = new Error('OriginalRetryFailed');
   const failing = Object.assign(new Error('InstalledHostCleanupPending'), {...original,
     cleanupHandle: {status: cleanup.status, async retry() {throw retryFailure;}},
@@ -2598,7 +2626,7 @@ test('public Effect dispatch waits for and obeys the Host barrier',
     await waitFor(async () => (await run.status()).status === 'succeeded');
     assert.equal(captures, 1);
     assert.deepEqual(sends, [[0, 0], [0, 1]]);
-    await closeRetainedStoreFixtureHost(first, t, true);
+    await closeRetainedStoreFixtureHost(first, t, {observeFirstClose: true, requireFirstClose: true});
 
     let refusedCaptures = 0;
     const refused = createInstalledEffectSite({
