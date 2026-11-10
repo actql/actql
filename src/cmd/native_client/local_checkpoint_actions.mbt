@@ -214,7 +214,7 @@ fn LocalCommandPreparationOriginal::resolve_checkpoint_review(
   command_preparation_result(
     self.prepare_saved_effect_construction_capacity(capture, capacity),
   )
-  capture
+  review
   .prepare_saved_effect_file_entry_in_original_read()
   .map_err(issue => CommandSavedFileResume(issue))
   |> command_preparation_result

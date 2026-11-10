@@ -131,6 +131,7 @@ fn nonmodel_physical_entry_case(
   claimed : Bool,
   retained_frame? : Bool = false,
   constructing? : Bool = false,
+  whole_read_frame? : Bool = false,
 ) -> Unit raise {
   let root = @env.get_env_var("ACTQL_TEST_INSTALLED_PROCESS_ROOT").unwrap()
   let sqlite_path = @env.get_env_var("ACTQL_TEST_SQLITE_COMPONENT").unwrap()
@@ -307,7 +308,7 @@ fn nonmodel_physical_entry_case(
   let consumer = host
     .prepare_domain_original_read_consumer(
       read,
-      16L * page + read_entry_bytes,
+      (if whole_read_frame { page } else { 16L * page }) + read_entry_bytes,
       1024L * page + read_entry_bytes,
     )
     .unwrap()
@@ -323,6 +324,7 @@ fn nonmodel_physical_entry_case(
       execution,
       control_bytes,
       retained_frame~,
+      whole_read_frame~,
     )
   }
   assert_true(consumer.scope == ConsumerScopeLeft)
@@ -346,8 +348,23 @@ fn nonmodel_unclaimed_original_work(
   execution : InstalledArenaRetainedExecution,
   control_bytes : Int64,
   retained_frame? : Bool = false,
+  whole_read_frame? : Bool = false,
 ) -> Bool raise {
   host.enter_local_host_phase(pair, HostRead).unwrap()
+  if whole_read_frame {
+    let before_retained = read.funded_retained_bytes
+    let before_execution = read.funded_execution_bytes
+    let consumer = read.consumer.unwrap()
+    // A previously acquired temporary peak already reaches the fixed child
+    // ceiling. The actual coheld frame belongs beside the original baseline,
+    // not beside another copy of that retired peak. Preserve the same token.
+    assert_true(consumer.initial_retained_bytes + 32L < before_retained)
+    host.prepare_domain_original_read_construction(read, 32L, 32L, 32L).unwrap()
+    assert_eq(read.funded_retained_bytes, before_retained)
+    // This fixture has no earlier execution peak, so its real new 32B call
+    // frame still grows execution. Retention alone must not copy the old peak.
+    assert_eq(read.funded_execution_bytes, before_execution + 32L)
+  }
   if retained_frame {
     let before_retained = read.funded_retained_bytes
     let before_execution = read.funded_execution_bytes
@@ -474,4 +491,9 @@ fn nonmodel_constructor_original_work(
 ///|
 test "same original constructor backing grows across Read and business before one IO borrow" {
   nonmodel_physical_entry_case(true, constructing=true)
+}
+
+///|
+test "whole Read frame preserves an already funded high water without duplicate retention" {
+  nonmodel_physical_entry_case(false, whole_read_frame=true)
 }

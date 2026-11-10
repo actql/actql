@@ -707,7 +707,7 @@ pub fn NativeLocalEffectResumeOriginal::prepare_file_application_controls_in_ori
     !resources.interrupted else {
     return Err(HostAttestationUnavailable)
   }
-  match read.owner.capture.prepare_saved_effect_file_entry_in_original_read() {
+  match read.owner.prepare_saved_effect_file_entry_in_original_read() {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
@@ -782,37 +782,61 @@ fn saved_effect_file_entry_control_bytes() -> Int64 {
 // The exact existing entry/controller inventory, funded on the SAME original
 // command Read before either restoration construction or later dispatch.
 // This supplies no entry, capacity token, signing/dispatch permission or ACK.
-pub fn NativeLocalJournalCapture::prepare_saved_effect_file_entry_in_original_read(
-  self : NativeLocalJournalCapture,
+pub fn NativeLocalSavedEffectReview::prepare_saved_effect_file_entry_in_original_read(
+  self : NativeLocalSavedEffectReview,
 ) -> Result[Unit, NativeLocalInitialHostAttestationIssue] {
-  guard !self.closing &&
-    self.read_callback_active &&
-    self.read_facts_valid &&
-    self.original_resources is Some(resources) &&
+  let capture = self.capture
+  guard !self.retired &&
+    !capture.closing &&
+    capture.read_callback_active &&
+    capture.read_facts_valid &&
+    capture.original_resources is Some(resources) &&
     resources.active_phase is Some(@arena.HostRead) &&
     !resources.interrupted else {
     return Err(HostAttestationUnavailable)
   }
+  if self._retained_file_entry_control is Some(original) {
+    return original
+  }
   let controls = saved_effect_file_entry_control_bytes()
-  match
-    resources.host.prepare_domain_original_read_retained_construction(
+  guard @execution.checked_preparation_add_product(
+      self._retained_constructor_bytes,
+      controls,
+      1L,
+    )
+    is Some(retained) else {
+    return Err(HostAttestationOriginal(ConfigurationLimit))
+  }
+  // The SAME review owns the complete Store/cursor/entry-frame inventory.
+  // A prior temporary high-water mark is not another simultaneously live
+  // forest. Preserve it as a maximum; never append this frame to that peak.
+  // Keep an in-flight refusal before the physical current/grow callback, so
+  // reentry cannot issue a duplicate frame or upgrade a failed preparation.
+  self._retained_constructor_bytes = retained
+  self._retained_file_entry_control = Some(Err(HostAttestationUnavailable))
+  let prepared = match
+    resources.host.prepare_domain_original_read_construction(
       resources.read,
-      controls,
-      controls,
+      retained,
+      retained,
       controls,
     ) {
     Err(issue) =>
-      return Err(HostAttestationOriginal(OriginalResources(@arena.Read(issue))))
-    Ok(_) => ()
+      Err(HostAttestationOriginal(OriginalResources(@arena.Read(issue))))
+    Ok(_) =>
+      if self.retired ||
+        capture.closing ||
+        !(capture.original_resources is Some(actual) &&
+        physical_equal(actual, resources)) ||
+        !capture.read_callback_active ||
+        !capture.read_facts_valid ||
+        resources.interrupted ||
+        !(resources.active_phase is Some(@arena.HostRead)) {
+        Err(HostAttestationUnavailable)
+      } else {
+        Ok(())
+      }
   }
-  if self.closing ||
-    !(self.original_resources is Some(actual) &&
-    physical_equal(actual, resources)) ||
-    !self.read_callback_active ||
-    !self.read_facts_valid ||
-    resources.interrupted ||
-    !(resources.active_phase is Some(@arena.HostRead)) {
-    return Err(HostAttestationUnavailable)
-  }
-  Ok(())
+  self._retained_file_entry_control = Some(prepared)
+  prepared
 }
