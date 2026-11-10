@@ -29,3 +29,56 @@ test "Native journal construction separates returned wire from simultaneous scra
   let (header, unit, _, _, _) = @bootstrap.native_managed_value_layout()
   assert_eq(raw, header + (bytes.to_int64() + 1L) * unit)
 }
+
+///|
+test "Native journal selected record policy exceeds 1024 without changing finite limits" {
+  for maximum in [1023, 1024, 1025, 2147483647] {
+    assert_true(valid_local_journal_options(1000.0, maximum, 1048576L))
+    let count = Int64::min(maximum.to_int64() * 64L, 2147483647L).to_int()
+    assert_true(
+      local_journal_related_issuance_count(
+        @utf8.encode(count.to_string()),
+        count.to_int64(),
+        maximum,
+      )
+      is Ok(actual) &&
+      actual == count,
+    )
+  }
+  assert_false(valid_local_journal_options(1000.0, 0, 1048576L))
+  assert_false(valid_local_journal_options(1000.0, -1, 1048576L))
+  assert_false(valid_local_journal_options(0.0, 1025, 1048576L))
+  assert_false(valid_local_journal_options(1000.0, 1025, 536870913L))
+  assert_true(
+    local_journal_related_issuance_count(b"100000", 100000L, 2000) is Ok(actual) &&
+    actual == 100000,
+  )
+  assert_true(
+    local_journal_related_issuance_count(b"2147483647", 2147483647L, 2147483647)
+    is Ok(actual) &&
+    actual == 2147483647,
+  )
+  for
+    body in [
+      b"", b"00", b"-1", b"+1", b"65537", b"2147483648", b"999999999999999999",
+    ] {
+    assert_true(
+      local_journal_related_issuance_count(body, 0L, 1024) is Err(CustodyLost),
+    )
+  }
+  assert_true(
+    local_journal_related_issuance_count(b"65536", 65535L, 1024)
+    is Err(CustodyLost),
+  )
+}
+
+///|
+test "Native related journal append refuses actual counter exhaustion before wrap" {
+  assert_true(local_journal_related_append_available(65535, 1024))
+  assert_false(local_journal_related_append_available(65536, 1024))
+  assert_true(local_journal_related_append_available(65536, 1025))
+  assert_true(local_journal_related_append_available(2147483646, 2147483647))
+  assert_false(local_journal_related_append_available(2147483647, 2147483647))
+  assert_false(local_journal_related_append_available(-1, 1025))
+  assert_false(local_journal_related_append_available(0, 0))
+}

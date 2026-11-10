@@ -209,12 +209,12 @@ fn cancellation_custody(
     Err(@sqlite.NotFound) => ()
     _ => return Err(CustodyLost)
   }
-  let text = @utf8.decode(marker.body) catch { _ => return Err(CustodyLost) }
-  let count = @string.parse_int(text) catch { _ => return Err(CustodyLost) }
-  if count < 0 ||
-    count > max_records ||
-    count.to_string() != text ||
-    marker.revision != count.to_int64() {
+  let count = match
+    @host.client_journal_issuance_count(marker.body, max_records) {
+    Ok(value) => value
+    Err(_) => return Err(CustodyLost)
+  }
+  if marker.revision != count.to_int64() {
     return Err(CustodyLost)
   }
   let mut cursor = ""
@@ -226,10 +226,10 @@ fn cancellation_custody(
       Err(@sqlite.NotFound) => break
       Err(issue) => return Err(Physical(issue))
     }
-    observed += 1
-    if observed > count {
+    if observed >= count {
       return Err(CustodyLost)
     }
+    observed += 1
     let value = match
       read_cancellation({ body: row.body, revision: row.revision, }) {
       Ok(value) => value
@@ -296,10 +296,10 @@ fn cancellation_custody(
       Err(@sqlite.NotFound) => break
       Err(issue) => return Err(Physical(issue))
     }
-    originals += 1
-    if originals > count || row.revision != 0L {
+    if originals >= count || row.revision != 0L {
       return Err(CustodyLost)
     }
+    originals += 1
     match
       read_client_journal_value(
         database,

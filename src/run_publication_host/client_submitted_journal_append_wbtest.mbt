@@ -346,3 +346,98 @@ test "original intent encoding retains exact canonical byte inventory for Journa
     )
   }
 }
+
+///|
+test "selected journal count above 1024 preserves usage wire and exact append exhaustion" {
+  for maximum in [1023, 1024, 1025, 2147483647] {
+    let body = client_submitted_journal_usage_body(maximum, 67108864L, maximum).unwrap()
+    assert_eq(body, @utf8.encode(maximum.to_string() + ":67108864"))
+    assert_eq(
+      client_submitted_journal_usage(
+        inventory_row("retained", body),
+        maximum,
+        maximum,
+      ),
+      Ok(67108864L),
+    )
+  }
+  for
+    bytes in [
+      b"1025:67108865", b"1025:00", b"1025:-1", b"1025:", b"01025:0", b"1025:999999999999999999",
+    ] {
+    assert_eq(
+      client_submitted_journal_usage(
+        inventory_row("retained", bytes),
+        1025,
+        1025,
+      ),
+      Err(CustodyLost),
+    )
+  }
+  for count in [1023, 1024, 1025] {
+    let original = append_original_record()
+    let rows = [
+      (
+        "client_submitted_intent_custody",
+        inventory_row(
+          "issued",
+          @utf8.encode(count.to_string()),
+          revision=count.to_int64(),
+        ),
+      ),
+    ]
+    let decide = maximum => {
+      prepare_client_submitted_journal_append(
+        original.reference,
+        original.intent,
+        @request_scope.Admissible,
+        maximum,
+        (_, _) => Err("indexed append must not scan"),
+        (table, key) => inventory_read(rows, table, key),
+        _ => Err("unrelated intent"),
+        _ => Err("unrelated Run"),
+        "custody",
+        usage=Some(() => {
+          Ok(
+            Some(
+              inventory_row(
+                "retained",
+                client_submitted_journal_usage_body(count, 1000L, maximum).unwrap(),
+                revision=9L,
+              ),
+            ),
+          )
+        }),
+      )
+    }
+    assert_true(decide(count) is Err(CapacityExceeded))
+    guard decide(count + 1) is Ok(Append(plan)) else {
+      fail("selected next record refused")
+    }
+    let (_, _, revision, issued) = client_submitted_journal_append_rows(plan)
+    assert_eq(revision, count.to_int64())
+    assert_eq(issued, @utf8.encode((count + 1).to_string()))
+  }
+  let rows = [
+    (
+      "client_submitted_intent_custody",
+      inventory_row("issued", b"1025", revision=1025L),
+    ),
+    (
+      "client_submitted_intents",
+      inventory_row(
+        append_request_id,
+        @utf8.encode(saved_submission_preparing),
+        revision=6L,
+      ),
+    ),
+  ]
+  // Retained originals precede expiry and capacity. Neither scan nor a new
+  // preparing row is allowed merely because the selected issuance is full.
+  guard append_plan(rows, validity=@request_scope.Expired, max_records=1025)
+    is Ok(Retained(retained)) else {
+    fail("retained original lost above old internal ceiling")
+  }
+  assert_eq(client_saved_submission_revision(retained), 6L)
+  assert_true(client_saved_submission_record(retained).run_admission is None)
+}
