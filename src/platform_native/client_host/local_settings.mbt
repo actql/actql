@@ -256,15 +256,18 @@ pub fn NativeLocalHostConnection::authority_scope_cid(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  // Binding just checked the full current Host and admitted these originals.
+  // This pure projection has no callback or I/O boundary requiring its
+  // current port again; keep the existing canonical scope construction.
   let body = match
-    @host.client_local_adopted_authority_scope_body(
-      material,
-      self.database,
+    @host.client_local_authority_scope_body(
+      material.account,
+      material.adoption_cid,
       principal,
       connection,
     ) {
     Ok(value) => value
-    Err(issue) => return Err(local_current_material_issue(issue))
+    Err(issue) => return Err(local_current_material_issue(@host.Scope(issue)))
   }
   local_adoption_digest(crypto, body)
 }
@@ -281,9 +284,9 @@ pub fn NativeLocalHostConnection::authorize(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  @host.client_local_adopted_account_outcome(material, self.database, request).map_err(
-    local_current_material_issue,
-  )
+  // Evaluate this tuple independently after the same full current admission.
+  // No callback, I/O or write separates binding from the pure Account Owner.
+  Ok(@authorization.evaluate_account(material.account, request))
 }
 
 ///|
