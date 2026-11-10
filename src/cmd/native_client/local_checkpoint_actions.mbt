@@ -344,9 +344,7 @@ fn LocalCommandPreparationOriginal::resolve_checkpoint_review(
           command_preparation_result(
             self.prepare_saved_effect_capacity(capture, capacity),
           )
-          self.apply_saved_effect_files(
-            capture, configuration, continuation, capacity, raw,
-          )
+          self.apply_saved_effect_files(capture, continuation, capacity, raw)
         }
         return self.publish_saved_effect_files(
           capture, configuration, installation, continuation,

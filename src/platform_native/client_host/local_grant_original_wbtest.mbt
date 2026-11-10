@@ -348,6 +348,10 @@ test "Native grant original append requires the actual retained resume fence ins
       claimant: scope.fence_claimant,
       generation: scope.fence_generation,
     },
+    approval: @checkpoint.resumed_approval(
+      @env.get_env_var("ACTQL_TEST_CLIENT_APPROVE_VERIFIED_WIRE").unwrap(),
+      native_checkpoint_limits(),
+    ).unwrap(),
   }
   assert_true(
     binding.retain_grant_original(original, fabricated)

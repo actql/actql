@@ -76,10 +76,16 @@ pub fn NativeLocalInitialHostAttestationSigning::prepare_effect_resume_original(
       owner.capture.prepare_model_entry_construction(
         None,
         additional_controls=Some({
-          record_headers: 20L,
-          reference_slots: 48L,
-          scalar_words: 32L,
-          owned_utf16_units: 32L,
+          // The claim retains its SAME already parsed approval: its record,
+          // claims Array/backing, up to six scalar Strings and the new claim
+          // reference. No second verified-wire parse or signature is issued.
+          record_headers: 29L,
+          reference_slots: 57L,
+          scalar_words: 34L,
+          owned_utf16_units: 32L +
+          3L * 71L +
+          binding.installed.reviewer.reviewer_id.length().to_int64() +
+          49L,
           owned_wire_bytes: 0L,
         }),
       ) {

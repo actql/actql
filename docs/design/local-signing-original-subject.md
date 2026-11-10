@@ -214,3 +214,13 @@ already admitted answer or grant a mutation. Alias retirement invalidates the
 view without changing durable intent, consumed work or physical cleanup duties.
 Provider dispatch, response/outcome receipts and final publication remain
 separate operations under the same original Journal/Store owners.
+
+The claim retains the same `ResumedApproval` already parsed after signature
+admission. A saved UPDATE evaluates the actual target's `effect` tuple, not
+the separate realization's `write` tuple. Its original member, Mapping,
+installation binding, sealed Preview and current Account/context must match.
+The existing decision Owner admits only the verified reviewer's actual claims,
+then binds that answer through `bind_dispatch_authorization` at `EffectCommit`.
+A claim or `Delegate` alone remains insufficient; denial and changed bindings
+still refuse. Whole-set target checks follow claim acquisition before any row
+dispatch, and the original generation/lease fence remains before every IO step.
