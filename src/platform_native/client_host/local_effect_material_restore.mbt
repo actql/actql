@@ -29,41 +29,9 @@ pub fn NativeLocalHostConnection::restore_submitted_effect_material_original(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let restore = fn() -> Result[
-    @host.ClientEffectRunMaterials,
-    @host.ClientEffectRunMaterialsIssue,
-  ] {
-    let materials = match
-      @host.admit_client_effect_run_materials(
-        original.materials_wire,
-        @publication.publication_contract_identity(original.definition),
-        expressions,
-        operations,
-        manifests,
-        limits,
-        effect_limits,
-        expected_request=Some(original.request),
-      ) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    if materials.request != Some(original.request) ||
-      @publication.publication_contract_identity(materials.run_definition) !=
-      @publication.publication_contract_identity(original.definition) {
-      return Err(RunMismatch)
-    }
-    // Missing or legacy unbound normalization is not repaired by an issuer.
-    match @host.restore_client_effect_run_normalization(materials) {
-      Ok(_) => ()
-      Err(issue) => return Err(Normalization(issue))
-    }
-    if @host.client_effect_normalization_materials_cid(materials) !=
-      Some(original.materials_cid) {
-      return Err(Normalization(UnverifiedOriginalMaterials))
-    }
-    Ok(materials)
-  }
-  let materials = restore()
+  let materials = restore_original_effect_material_packet(
+    original, expressions, operations, manifests, limits, effect_limits,
+  )
   // Recheck current original Host/adoption/Account and immutable custody after
   // the pure restore, including before returning a material refusal. Control
   // revision changes alone do not replace packet
@@ -84,4 +52,47 @@ pub fn NativeLocalHostConnection::restore_submitted_effect_material_original(
     return Err(Journal(CustodyLost))
   }
   materials.map_err(issue => Materials(issue))
+}
+
+///|
+// SAME original material Owner, independent of a particular Native allocator
+// scope. The caller must fund these pure checker/Graph/compiler constructors;
+// original current Journal/custody is checked before and after by the Host.
+fn restore_original_effect_material_packet(
+  original : NativeClientRetainedEffectMaterials,
+  expressions : @context.ExpressionProfiles,
+  operations : @context.PureOperationProfiles,
+  manifests : @host.ClientCompilationManifests,
+  limits : @host.ClientValuesRunMaterialsLimits,
+  effect_limits : @host.ClientEffectComputationLimits,
+) -> Result[@host.ClientEffectRunMaterials, @host.ClientEffectRunMaterialsIssue] {
+  let materials = match
+    @host.admit_client_effect_run_materials(
+      original.materials_wire,
+      @publication.publication_contract_identity(original.definition),
+      expressions,
+      operations,
+      manifests,
+      limits,
+      effect_limits,
+      expected_request=Some(original.request),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if materials.request != Some(original.request) ||
+    @publication.publication_contract_identity(materials.run_definition) !=
+    @publication.publication_contract_identity(original.definition) {
+    return Err(RunMismatch)
+  }
+  // Missing or legacy unbound normalization is not repaired by an issuer.
+  match @host.restore_client_effect_run_normalization(materials) {
+    Ok(_) => ()
+    Err(issue) => return Err(Normalization(issue))
+  }
+  if @host.client_effect_normalization_materials_cid(materials) !=
+    Some(original.materials_cid) {
+    return Err(Normalization(UnverifiedOriginalMaterials))
+  }
+  Ok(materials)
 }
