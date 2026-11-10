@@ -24,27 +24,25 @@ pub fn PublicationCommitPreparation::begin_observed_commit(
   if remaining < 12 {
     return Err(CommitEncoding)
   }
-  let chain = inputs.computation
-  let child = start_effect_free_publication_commit_check(
-    chain.run_definition,
-    chain.invocation,
-    chain.definitions,
-    chain.artifacts,
-    inputs.derivations,
-    inputs.orderings,
-    inputs.retentions,
-    inputs.bindings,
-    chain.manifest,
-    chain.receipt,
-    chain.captured_run,
-    stored_request,
-    stored_attempt,
-    stored_index,
-    chain.max_wire_bytes,
-    chain.max_nodes,
-    chain.max_depth,
+  if preparation.retained_effectful is Some(_) && remaining < 13 {
+    return Err(CommitEncoding)
+  }
+  let child = new_publication_commit_preparation(
+    {
+      ..inputs,
+      origin: BorrowedInputs,
+      request: stored_request,
+      attempt: stored_attempt,
+      index_entry: stored_index,
+    },
     remaining,
   )
+  child.retained_effectful = preparation.retained_effectful
+  if child.retained_effectful is Some(_) {
+    child.live += 1
+    child.peak = child.live
+  }
+
   // A stored read or an owned Plan may observe the exact three immutable
   // contracts its completed view just fully validated. Both own private copied
   // inventories. General borrowed arrays, copied contracts and changed

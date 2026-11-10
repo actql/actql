@@ -2201,3 +2201,186 @@ test "retained computation rejects foreign chains and serializer failure keeps o
   )
   assert_eq((rows, bytes), (1, 13))
 }
+
+///|
+test "retained Effectful commit loans the existing observed state protocol and rejects foreign stored request" {
+  let schema_wire = "{\"value\":{\"nullable\":false,\"type\":\"integer\"}}"
+  let schema = @json.cid_value(
+    captured_test_value(schema_wire),
+    65536,
+    4096,
+    32,
+  ) catch {
+    _ => abort("authored schema")
+  }
+  let chain = captured_run_test_chain(schema_cid=schema)
+  let preview = final_test_preview(chain)
+  let captured = final_test_captured(chain)
+  let (set_wire, members, set_cid) = final_test_receipts(preview)
+  let final_wire = final_test_receipt_wire(
+    chain.receipt,
+    preview,
+    set_cid,
+    captured,
+  )
+  let receipt = admit_publication_contract(
+    "run_receipt", final_wire, 65536, 4096, 32,
+  ).unwrap()
+  let final_evidence = admit_retained_effectful_final_run_evidence(
+    chain.run,
+    chain.invocation,
+    [chain.definition],
+    [chain.artifact],
+    [result_ordering_derivation_contract(chain.evidence)],
+    [result_ordering_evidence_contract(chain.evidence)],
+    [chain.retention],
+    chain.manifest,
+    chain.receipt,
+    captured,
+    preview,
+    set_wire,
+    members,
+    final_wire,
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let binding = issue_durable_result_binding(
+    chain.run,
+    chain.definition,
+    chain.invocation,
+    chain.artifact,
+    result_ordering_evidence_contract(chain.evidence),
+    chain.retention,
+    ordering_test_cid("8"),
+    ["value"],
+    schema_wire,
+    ordering_test_cid("9"),
+    ordering_test_cid("a"),
+    1,
+    13,
+    "0".repeat(64),
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let request = issue_publication_request(
+    chain.run,
+    [chain.definition],
+    "namespace-a",
+    ordering_test_cid("1"),
+    ordering_test_cid("2"),
+    ordering_test_cid("3"),
+    "2026-09-18T00:00:00.000Z",
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let attempt = issue_publication_attempt(
+    request,
+    chain.run,
+    "original-attempt",
+    ordering_test_cid("4"),
+    None,
+    "2026-09-18T00:00:01.000Z",
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let index = issue_public_index_entry(
+    chain.run,
+    chain.invocation,
+    chain.manifest,
+    receipt,
+    captured,
+    [binding],
+    request,
+    attempt,
+    "2026-09-18T00:00:02.000Z",
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  assert_true(
+    prepare_retained_effectful_publication_commit_check(
+      final_evidence,
+      [binding],
+      request,
+      attempt,
+      index,
+      65536,
+      4096,
+      32,
+      14,
+    )
+    is Err(_),
+  )
+  assert_true(
+    prepare_retained_effectful_publication_commit_check(
+      final_evidence,
+      [binding],
+      request,
+      attempt,
+      index,
+      65536,
+      1,
+      32,
+      4096,
+    )
+    is Err(_),
+  )
+  let bindings = [binding]
+  let owner = prepare_retained_effectful_publication_commit_check(
+    final_evidence, bindings, request, attempt, index, 65536, 4096, 32, 4096,
+  ).unwrap()
+  bindings.clear()
+  let view = owner.finish_view().unwrap()
+  assert_eq(owner.view_count(view), Ok(14))
+  assert_true(physical_equal(owner.view_contract(view, 13).unwrap(), binding))
+  owner.begin_observed_commit(view, request, attempt, index).unwrap()
+  assert_true(owner.release_view(view) is Err(_))
+  while !owner.advance_observed_commit(view, 1).unwrap().0 {
+    ()
+  }
+  assert_true(
+    physical_equal(owner.finish_observed_commit(view).unwrap(), index),
+  )
+  let wire = owner
+    .observed_run_state_wire(view, "2026-09-18T00:00:03.000Z", 65536, 4096, 32)
+    .unwrap()
+  assert_true(
+    @json.object_field(captured_test_value(wire), "status")
+    is Some(@json.String("succeeded")),
+  )
+  owner.release_observed_commit(view).unwrap()
+  owner.release_view(view).unwrap()
+  assert_true(owner.view_count(view) is Err(_))
+  let other = issue_publication_request(
+    chain.run,
+    [chain.definition],
+    "foreign-namespace",
+    ordering_test_cid("1"),
+    ordering_test_cid("2"),
+    ordering_test_cid("3"),
+    "2026-09-18T00:00:00.000Z",
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let owner = prepare_retained_effectful_publication_commit_check(
+    final_evidence,
+    [binding],
+    request,
+    attempt,
+    index,
+    65536,
+    4096,
+    32,
+    4096,
+  ).unwrap()
+  let view = owner.finish_view().unwrap()
+  assert_true(
+    owner.begin_observed_commit(view, other, attempt, index) is Err(_),
+  )
+  owner.release_view(view).unwrap()
+}

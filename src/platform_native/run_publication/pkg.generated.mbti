@@ -35,6 +35,8 @@ pub fn prepare_effectful_run_publication_native(NativeRunPublicationService, Nat
 
 pub fn prepare_exported_effect_free_run_publication_native(NativeRunPublicationService, @physical_strategy_host.CapturedDAG, NativeEffectFreeRunContext, Array[@run_publication_host.PublicationOutputExport], Array[NativeCapturedResultPublicationContext], NativeRunPublicationIntent, NativeRunPublicationOccurrence, publication? : @client_local_host.ClientProgramPublication?) -> Result[NativePreparedCapturedRunPublication, NativeCapturedRunPublicationPreparationIssue]
 
+pub fn prepare_retained_effectful_run_publication_native(NativeRunPublicationService, NativeEffectfulPublicationEvidence, NativeRunPublicationIntent, NativeRunPublicationOccurrence, NativeRunPublicationPreparation) -> Result[NativePreparedEffectfulRunPublication, NativeRunPublicationIssue]
+
 pub fn publish_effect_free_run_native(NativeRunPublicationService, NativeEffectFreePublicationEvidence, NativeRunPublicationIntent, NativeRunPublicationOccurrence) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue]
 
 pub fn publish_effectful_run_native(NativeRunPublicationService, NativeEffectfulPublicationEvidence, NativeRunPublicationIntent, NativeRunPublicationOccurrence) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue]
@@ -106,6 +108,12 @@ pub(all) struct NativeEffectFreeRunContext {
   authoring : @actql/actql/run_publication.RunEvidenceValue
 }
 
+pub(all) enum NativeEffectfulPublicationCancellationIssue {
+  PublicationCommitted
+  PublicationUnresolved(NativeRunPublicationIssue)
+  Cleanup(Array[NativeCapturedRunCleanupFailure])
+}
+
 pub(all) struct NativeEffectfulPublicationEvidence {
   final_evidence : @actql/actql/run_publication.EffectfulFinalRunEvidence
   run_definition : @actql/actql/run_publication.PublicationContract
@@ -126,6 +134,11 @@ type NativePreparedCapturedRunPublication
 pub fn NativePreparedCapturedRunPublication::cancel(Self) -> Result[Bool, NativeCapturedRunPublicationCancellationIssue]
 pub fn NativePreparedCapturedRunPublication::commit(Self) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue]
 pub fn NativePreparedCapturedRunPublication::prepare_run_state_candidate(Self, String, Int, Int, Int) -> Result[NativeRunStateCandidate, NativeRunStateCandidateIssue]
+
+type NativePreparedEffectfulRunPublication
+pub fn NativePreparedEffectfulRunPublication::cancel(Self) -> Result[Bool, NativeEffectfulPublicationCancellationIssue]
+pub fn NativePreparedEffectfulRunPublication::commit(Self) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue]
+pub fn NativePreparedEffectfulRunPublication::prepare_run_state_candidate(Self, String, Int, Int, Int) -> Result[NativeRunStateCandidate, NativeRunStateCandidateIssue]
 
 pub(all) struct NativePublicationOutputContext {
   run_definition : @actql/actql/run_publication.PublicationContract

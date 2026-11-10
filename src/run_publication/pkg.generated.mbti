@@ -841,6 +841,8 @@ pub fn prepare_result_material_holds_step(ResultMaterialHolds, String, String) -
 
 pub fn prepare_result_material_schema(String, Array[String], Int, Int, Int, Int) -> Result[ResultMaterialSchema, ResultMaterialIssue]
 
+pub fn prepare_retained_effectful_publication_commit_check(EffectfulFinalRunEvidence, Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, Int, Int, Int, Int) -> Result[PublicationCommitPreparation, EffectfulPublicationCommitIssue]
+
 pub fn prepare_run_state_observation(String, String, Int64, Int, Int, Int) -> Result[RunStateObservation, RunStateObservationIssue]
 
 pub fn prepare_stored_captured_content_reference(String, GeneratedContentBinding, @value_admission.ReferenceLimits) -> Result[CapturedContentReference, GeneratedContentReferenceIssue]

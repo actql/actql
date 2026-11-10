@@ -192,3 +192,89 @@ pub fn validate_retained_effectful_publication_materials(
     Err(CommitReferenceMismatch("retained Effectful materials"))
   }
 }
+
+///|
+/// Same retained final proof, with the actual stored request/attempt/index.
+/// This loans existing Core view/current/release machinery, not a state wire,
+/// publisher authority or an Effect-free computation. Caller funds the fixed
+/// controls and binding-reference snapshot before entry on its original Read.
+pub fn prepare_retained_effectful_publication_commit_check(
+  original : EffectfulFinalRunEvidence,
+  bindings : Array[PublicationContract],
+  request : PublicationContract,
+  attempt : PublicationContract,
+  index : PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_workspace : Int,
+) -> Result[PublicationCommitPreparation, EffectfulPublicationCommitIssue] {
+  // The existing observed-state protocol projects a successfully completed
+  // Run. Rejected/unknown Effect outcomes must keep their original disposition.
+  if effect_set_apply_receipt_disposition(original.outcomes) != 0 {
+    return Err(
+      Index(CommitReferenceMismatch("Effectful outcome is not successful")),
+    )
+  }
+  let need = 13L + bindings.length().to_int64()
+  if need >= max_workspace.to_int64() {
+    return Err(Index(CommitEncoding))
+  }
+  match
+    validate_retained_effectful_publication_materials(
+      original,
+      original.run_definition,
+      original.invocation,
+      original.definitions,
+      original.artifacts,
+      original._observed_derivations,
+      original.orderings,
+      original.retentions,
+      original.manifest,
+      original.final_receipt,
+      original.captured_run,
+      limits=Some((max_wire_bytes, max_nodes, max_depth)),
+    ) {
+    Err(issue) => return Err(Index(issue))
+    Ok(_) => ()
+  }
+  let bindings = bindings.copy()
+  match
+    validate_retained_effectful_publication_commit(
+      original, bindings, request, attempt, index,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let value = new_publication_commit_preparation(
+    {
+      origin: OwnedInputs,
+      computation: {
+        run_definition: original.run_definition,
+        invocation: original.invocation,
+        definitions: original.definitions,
+        artifacts: original.artifacts,
+        manifest: original.manifest,
+        receipt: original.final_receipt,
+        captured_run: original.captured_run,
+        preview: None,
+        max_wire_bytes,
+        max_nodes,
+        max_depth,
+      },
+      derivations: original._observed_derivations,
+      orderings: original.orderings,
+      retentions: original.retentions,
+      bindings,
+      request,
+      attempt,
+      index_entry: index,
+    },
+    max_workspace,
+  )
+  value.retained_effectful = Some(original)
+  value.phase = Done
+  value.live = need.to_int()
+  value.peak = value.live
+  Ok(value)
+}

@@ -9,7 +9,7 @@ struct NativeRunStateCandidate {
   view : @publication.PublicationCommitReadView
   observed_at : String
   mut released : Bool
-  pending : NativePreparedCapturedRunPublication
+  pending : NativeRunStateCandidateOriginal
   request : @publication.PublicationContract
   attempt : @publication.PublicationContract
   index : @publication.PublicationContract
@@ -31,7 +31,7 @@ pub(all) enum NativeRunStateCandidateIssue {
 pub fn NativeRunStateCandidate::original_metadata(
   self : NativeRunStateCandidate,
 ) -> (@publication.PublicationContract, @publication.PublicationContract) {
-  (self.definition, self.pending.evidence.manifest)
+  (self.definition, self.pending.manifest())
 }
 
 ///|
@@ -59,9 +59,9 @@ pub fn NativeRunStateCandidate::projection_materials(
       self.validation,
       self.view,
       self.observed_at,
-      self.pending.service.max_wire_bytes,
-      self.pending.service.max_nodes,
-      self.pending.service.max_depth,
+      self.pending.service().max_wire_bytes,
+      self.pending.service().max_nodes,
+      self.pending.service().max_depth,
     ),
   )
 }
@@ -92,7 +92,7 @@ pub fn NativeRunStateCandidate::release(
 pub fn NativeRunStateCandidate::original_client_request(
   self : NativeRunStateCandidate,
 ) -> @publication_host.ClientRequestIdentity? {
-  self.pending.service.client_request
+  self.pending.service().client_request
 }
 
 ///|
@@ -108,11 +108,11 @@ pub fn NativeRunStateCandidate::matches_original_publisher(
   target_cid : String,
 ) -> Bool {
   let pending = self.pending
-  physical_equal(pending.service.store, store) &&
-  pending.intent.namespace_id == namespace_id &&
-  pending.intent.authority_scope_cid == scope &&
-  pending.intent.publication_policy_cid == policy_cid &&
-  pending.intent.publication_target_cid == target_cid &&
+  physical_equal(pending.service().store, store) &&
+  pending.intent().namespace_id == namespace_id &&
+  pending.intent().authority_scope_cid == scope &&
+  pending.intent().publication_policy_cid == policy_cid &&
+  pending.intent().publication_target_cid == target_cid &&
   @publication.publication_contract_identity(self.definition) == definition_cid
 }
 
@@ -124,30 +124,30 @@ pub fn NativeRunStateCandidate::require_original_store_current(
 ) -> Result[Unit, NativeRunStateCandidateIssue] {
   let pending = self.pending
   if self.released ||
-    pending.cancelled ||
+    pending.cancelled() ||
     !native_state_validation_loan_current(self.validation, self.preparation) {
     return Err(Unavailable)
   }
   match
-    pending.service.store.observe_publication_payload_facts(
-      pending.evidence.bindings,
-      pending.evidence.binding_schema_wires,
-      pending.service.max_wire_bytes,
-      pending.service.max_nodes,
-      pending.service.max_depth,
+    pending.service().store.observe_publication_payload_facts(
+      pending.bindings(),
+      pending.binding_schema_wires(),
+      pending.service().max_wire_bytes,
+      pending.service().max_nodes,
+      pending.service().max_depth,
     ) {
     Ok(_) => ()
     Err(issue) => return Err(Publication(Store(issue)))
   }
-  let store = pending.service.store
+  let store = pending.service().store
   match
     store.inspect_committed_publication(
-      pending.intent.namespace_id,
-      pending.intent.authority_scope_cid,
+      pending.intent().namespace_id,
+      pending.intent().authority_scope_cid,
       @publication.publication_contract_identity(self.definition),
-      pending.service.max_wire_bytes,
-      pending.service.max_nodes,
-      pending.service.max_depth,
+      pending.service().max_wire_bytes,
+      pending.service().max_nodes,
+      pending.service().max_depth,
     ) {
     Ok(Some(current)) if @publication.publication_contract_identity(current) ==
       @publication.publication_contract_identity(self.index) => ()
@@ -166,12 +166,12 @@ pub fn NativeRunStateCandidate::require_original_store_current(
   // Borrow the original evidence arrays, without another view-array copy.
   for
     originals in [
-      pending.evidence.definitions,
-      pending.evidence.artifacts,
-      pending.evidence.derivations,
-      pending.evidence.orderings,
-      pending.evidence.retentions,
-      pending.evidence.bindings,
+      pending.definitions(),
+      pending.artifacts(),
+      pending.derivations(),
+      pending.orderings(),
+      pending.retentions(),
+      pending.bindings(),
     ] {
     for original in originals {
       match check(original) {
@@ -183,10 +183,10 @@ pub fn NativeRunStateCandidate::require_original_store_current(
   for
     original in [
       self.definition,
-      pending.evidence.invocation,
-      pending.evidence.manifest,
-      pending.evidence.receipt,
-      pending.evidence.captured_run,
+      pending.invocation(),
+      pending.manifest(),
+      pending.receipt(),
+      pending.captured_run(),
       self.request,
       self.attempt,
       self.index,
@@ -544,7 +544,7 @@ fn NativePreparedCapturedRunPublication::finish_observed_run_state(
     view,
     observed_at,
     released: false,
-    pending: self,
+    pending: EffectFree(self),
     request: stored_request,
     attempt: stored_attempt,
     index,
@@ -572,5 +572,151 @@ fn cancel_native_state_validation(
   match owner {
     None => checker.cancel()
     Some(value) => @local.cancel_program_validation(value)
+  }
+}
+
+///|
+priv enum NativeRunStateCandidateOriginal {
+  EffectFree(NativePreparedCapturedRunPublication)
+  Effectful(NativePreparedEffectfulRunPublication)
+}
+
+///|
+fn NativeRunStateCandidateOriginal::service(
+  self : NativeRunStateCandidateOriginal,
+) -> NativeRunPublicationService {
+  match self {
+    EffectFree(value) => value.service
+    Effectful(value) => value.service
+  }
+}
+
+///|
+fn NativeRunStateCandidateOriginal::intent(
+  self : NativeRunStateCandidateOriginal,
+) -> NativeRunPublicationIntent {
+  match self {
+    EffectFree(value) => value.intent
+    Effectful(value) => value.intent
+  }
+}
+
+///|
+fn NativeRunStateCandidateOriginal::cancelled(
+  self : NativeRunStateCandidateOriginal,
+) -> Bool {
+  match self {
+    EffectFree(value) => value.cancelled
+    Effectful(value) => value.cancelled || value.closing
+  }
+}
+
+///|
+fn NativeRunStateCandidateOriginal::manifest(
+  self : NativeRunStateCandidateOriginal,
+) -> @publication.PublicationContract {
+  match self {
+    EffectFree(value) => value.evidence.manifest
+    Effectful(value) => value.evidence.manifest
+  }
+}
+
+///|
+fn NativeRunStateCandidateOriginal::definitions(
+  self : NativeRunStateCandidateOriginal,
+) -> Array[@publication.PublicationContract] {
+  match self {
+    EffectFree(value) => value.evidence.definitions
+    Effectful(value) => value.evidence.definitions
+  }
+}
+
+///|
+fn NativeRunStateCandidateOriginal::artifacts(
+  self : NativeRunStateCandidateOriginal,
+) -> Array[@publication.PublicationContract] {
+  match self {
+    EffectFree(value) => value.evidence.artifacts
+    Effectful(value) => value.evidence.artifacts
+  }
+}
+
+///|
+fn NativeRunStateCandidateOriginal::derivations(
+  self : NativeRunStateCandidateOriginal,
+) -> Array[@publication.PublicationContract] {
+  match self {
+    EffectFree(value) => value.evidence.derivations
+    Effectful(value) => value.evidence.derivations
+  }
+}
+
+///|
+fn NativeRunStateCandidateOriginal::orderings(
+  self : NativeRunStateCandidateOriginal,
+) -> Array[@publication.PublicationContract] {
+  match self {
+    EffectFree(value) => value.evidence.orderings
+    Effectful(value) => value.evidence.orderings
+  }
+}
+
+///|
+fn NativeRunStateCandidateOriginal::retentions(
+  self : NativeRunStateCandidateOriginal,
+) -> Array[@publication.PublicationContract] {
+  match self {
+    EffectFree(value) => value.evidence.retentions
+    Effectful(value) => value.evidence.retentions
+  }
+}
+
+///|
+fn NativeRunStateCandidateOriginal::bindings(
+  self : NativeRunStateCandidateOriginal,
+) -> Array[@publication.PublicationContract] {
+  match self {
+    EffectFree(value) => value.evidence.bindings
+    Effectful(value) => value.evidence.bindings
+  }
+}
+
+///|
+fn NativeRunStateCandidateOriginal::binding_schema_wires(
+  self : NativeRunStateCandidateOriginal,
+) -> Array[String] {
+  match self {
+    EffectFree(value) => value.evidence.binding_schema_wires
+    Effectful(value) => value.evidence.binding_schema_wires
+  }
+}
+
+///|
+fn NativeRunStateCandidateOriginal::invocation(
+  self : NativeRunStateCandidateOriginal,
+) -> @publication.PublicationContract {
+  match self {
+    EffectFree(value) => value.evidence.invocation
+    Effectful(value) => value.evidence.invocation
+  }
+}
+
+///|
+fn NativeRunStateCandidateOriginal::receipt(
+  self : NativeRunStateCandidateOriginal,
+) -> @publication.PublicationContract {
+  match self {
+    EffectFree(value) => value.evidence.receipt
+    Effectful(value) => value.evidence.receipt
+  }
+}
+
+///|
+fn NativeRunStateCandidateOriginal::captured_run(
+  self : NativeRunStateCandidateOriginal,
+) -> @publication.PublicationContract {
+  match self {
+    EffectFree(value) => value.evidence.captured_run
+    Effectful(value) => value.evidence.captured_run
   }
 }
