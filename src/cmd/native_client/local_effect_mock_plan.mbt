@@ -12,7 +12,7 @@ priv struct LocalNativeMockEffectPlan {
   mut source_completed_at : String?
   mut prefix : @local_values.ClientOriginalComposedKeyedPrefix?
   mut lookup : @run_host.ClientKeyedLookupInput?
-  mut model_read : @run_host.ClientModelReadPreparation?
+  mut model_read : LocalNativeMockModelRead?
   mut model_output : @execution.CompletedOutput?
   mut _retained_model_observation : (
     @publication.RunEvidenceValue,

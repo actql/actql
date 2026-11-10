@@ -1115,6 +1115,8 @@ pub fn client_project_model_task_selection_usage(ClientProjectModelTaskSelection
 
 pub fn client_project_profile_matches(ClientProjectProfileSelection, ClientProjectConfiguration?, String?) -> Bool
 
+pub fn client_protocol_metadata_construction_bytes(Int, Int64, extra_controls? : Int64, copies? : Int) -> (Int64, Int64)?
+
 pub fn client_publication_plan_fact_bindings(ClientPublicationPlanFacts) -> Array[String]
 
 pub fn client_publication_plan_fact_entries(ClientPublicationPlanFacts) -> Array[String]

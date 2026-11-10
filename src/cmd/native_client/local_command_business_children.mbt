@@ -304,6 +304,12 @@ fn LocalCommandPreparationOriginal::close_business_children(
       }
       state.source_failures.clear()
       state.source_failures.shrink_to_fit()
+      if state.model_read is Some(held) && held.scan is Some(scan) {
+        if !@query.cancel_captured_source_cell_identity(scan) {
+          return Err(CommandBusinessChildren)
+        }
+        held.scan = None
+      }
       // Stop new assembly work without returning its backing. Raw envelopes
       // borrowed by Source/Store children remain funded by this SAME lookup
       // until those original physical children have retired and cut aliases.
@@ -350,7 +356,14 @@ fn LocalCommandPreparationOriginal::close_business_children(
       state.keyed_reads.clear()
       state.keyed_reads.shrink_to_fit()
       state.model_output = None
-      if state.model_read is Some(read) {
+      if state.model_read is Some(held) {
+        held.identities.clear()
+        held.identities.shrink_to_fit()
+        held.logicals.clear()
+        held.logicals.shrink_to_fit()
+        held.observations.clear()
+        held.observations.shrink_to_fit()
+        let read = held.read
         match
           @run_host.stop_client_model_read_checked(
             state.scope.unwrap(),

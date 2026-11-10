@@ -454,13 +454,15 @@ pub fn client_keyed_lookup_planned_request_identity(
 }
 
 ///|
-fn grow_keyed_lookup_protocol_metadata(
-  lookup : ClientKeyedLookupInput,
+/// Existing closed-protocol writer/parser construction quote. These quantities
+/// are DATA only; the owning Run must fund them before encoding. Share the same
+/// quote between keyed metadata and ordinary whole-Source Model evidence.
+pub fn client_protocol_metadata_construction_bytes(
   max_bytes : Int,
   slots : Int64,
   extra_controls? : Int64 = 0L,
   copies? : Int = 1,
-) -> Result[(Int64, Int64, Int64), ClientKeyedRequestIssue] {
+) -> (Int64, Int64)? {
   guard copies > 0 &&
     @execution.checked_preparation_add_product(
       0L,
@@ -473,6 +475,26 @@ fn grow_keyed_lookup_protocol_metadata(
     is Some(controls) &&
     @execution.checked_preparation_add_product(bodies, controls, 1L)
     is Some(metadata) else {
+    return None
+  }
+  Some((metadata, controls))
+}
+
+///|
+fn grow_keyed_lookup_protocol_metadata(
+  lookup : ClientKeyedLookupInput,
+  max_bytes : Int,
+  slots : Int64,
+  extra_controls? : Int64 = 0L,
+  copies? : Int = 1,
+) -> Result[(Int64, Int64, Int64), ClientKeyedRequestIssue] {
+  guard client_protocol_metadata_construction_bytes(
+      max_bytes,
+      slots,
+      extra_controls~,
+      copies~,
+    )
+    is Some((metadata, controls)) else {
     return Err(Assembly("capacity_overflow"))
   }
   if metadata > 9223372036854775807L - lookup.retained_bytes ||
