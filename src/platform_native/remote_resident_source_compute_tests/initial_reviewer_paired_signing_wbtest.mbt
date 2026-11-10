@@ -17,6 +17,8 @@ priv struct PairedInitialReviewerFixture {
   current_reads : Ref[Int]
   mut deny_clock_at : Int?
   mut denied_clock : Bool
+  mut on_clock : (() -> Unit)?
+  mut signer_closed_in_callback : Bool
   mut resume_claimed : Bool
   mut host_applied : Bool
 }
@@ -127,6 +129,8 @@ fn paired_initial_reviewer_fixture(
     current_reads: Ref(0),
     deny_clock_at: None,
     denied_clock: false,
+    on_clock: None,
+    signer_closed_in_callback: false,
     resume_claimed: false,
     host_applied: false,
   }
@@ -162,6 +166,11 @@ fn paired_initial_reviewer_signing(
       approval_scope,
       () => {
         fixture.current_reads.val += 1
+        let hook = fixture.on_clock
+        fixture.on_clock = None
+        if hook is Some(run) {
+          run()
+        }
         if fixture.deny_clock_at == Some(fixture.current_reads.val) {
           fixture.denied_clock = true
           -1.0
@@ -247,12 +256,34 @@ fn paired_initial_reviewer_signing(
     scope.authority_scope_cid,
     host.authority_scope_cid("operator", "cli", fixture.crypto).unwrap(),
   )
+  let before_prepare = fixture.current_reads.val
   let signing = materials
     .prepare_initial_resolution_signing("paired-initial-reviewer")
     .unwrap()
+  if fixture.probe_scope_once {
+    // Full scope construction16 + fresh initial view21 + post-child material5.
+    assert_eq(fixture.current_reads.val - before_prepare, 42)
+  }
+  let before_sign = fixture.current_reads.val
   let wire = signing.sign_candidate_once().unwrap()
+  if fixture.probe_scope_once {
+    // One complete entry21, then four real phase/material boundaries5 each.
+    // Claim/use/expiry/row checks still run in their original locked scopes.
+    assert_eq(fixture.current_reads.val - before_sign, 41)
+  }
   assert_true(binding.authenticate_resolution(wire, limits) is Ok(_))
+  let before_read = fixture.current_reads.val
   assert_eq(signing.original_candidate().unwrap(), wire)
+  if fixture.probe_scope_once {
+    // A distinct public getter has its own complete entry, then the final
+    // material callback and locked gate. It cannot reuse an earlier Allow.
+    assert_eq(fixture.current_reads.val - before_read, 26)
+    fixture.on_clock = Some(() => {
+      fixture.signer_closed_in_callback = signing.close_checked() is Ok(_)
+    })
+    assert_true(signing.original_candidate() is Err(_))
+    assert_true(fixture.signer_closed_in_callback)
+  }
   assert_true(signing.sign_candidate_once() is Err(_))
   assert_true(
     binding.restore_initial_resolution_candidate("paired-initial-reviewer")

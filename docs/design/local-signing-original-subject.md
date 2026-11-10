@@ -65,6 +65,14 @@ initial signing view rechecks material after authority selection and retains the
 same subject for the existing transaction fences. No observation is a reusable
 permission, a signing grant, a replacement capture or a physical acknowledgement.
 
+The one-shot signer carries that same checked view through its own phases. Each
+constructor, confirmed transaction and physical signing boundary rechecks the
+complete material and the same subject/receiver lifetimes. After the original
+claim COMMIT, subsequent locked checks bind the same actual retained grant/use;
+the preclaim view's absent use cannot substitute for it. A separate public
+candidate read starts with a fresh complete scope observation. Durable history,
+expiry/revocation, cancellation and final locked checks remain independent.
+
 ## Reviewer proof artifacts
 
 Approved Effect Resolutions already require both the same-key signed Approval
