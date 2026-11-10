@@ -765,8 +765,9 @@ try {
   console.log('Packed missing generated asset: child failed as expected');
 } finally { await rename(asset + '.omitted', asset); }
 async function exerciseNativeGraphSource(sourceOnly = false) {
+  // Match the existing Native producer's finite 900s compilation budget.
   run('moon', ['build', '--target', 'native', '--release',
-    'src/cmd/native_client'], repository, environment);
+    'src/cmd/native_client'], repository, environment, 900_000);
   const nativeClient = join(repository, '_build/native/release/build/cmd',
     'native_client/native_client.exe');
   console.log(run(process.execPath,
