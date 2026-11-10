@@ -195,6 +195,10 @@ pub fn admit_client_effect_run_materials(
   original_source? : ClientSourcePreparation? = None,
   numeric_profile_cid? : String? = None,
   original_compilation? : ClientEffectCompilation? = None,
+  request_value_policies? : ((@checked.EffectComputationCandidate) -> Result[
+    Array[@checked.HostRequestValuePolicyEvidence],
+    ClientEffectComputationIssue,
+  ])? = None,
   before_compilation? : ((ClientEffectCompilationConstructionInput) -> Result[
     Unit,
     ClientEffectRunMaterialsIssue,
@@ -235,6 +239,7 @@ pub fn admit_client_effect_run_materials(
           body.parameters,
           [],
           effect_limits,
+          request_value_policies~,
         ) {
         Ok(value) => value
         Err(Candidate(@checked.MissingEffects)) if body.infer_inputs_wire

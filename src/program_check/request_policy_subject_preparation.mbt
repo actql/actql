@@ -29,6 +29,8 @@ struct RequestPolicySubjectPreparation {
   subjects : Array[PreparedRequestPolicySubject]
   budget : IdentityBudget
   initial_work : Int
+  measurement_work : Int
+  cumulative_work : Int64?
   mut construction_work : Int?
   mut additional_work : Int64
   mut output_bytes : Int64
@@ -44,12 +46,22 @@ struct RequestPolicySubjectPreparation {
 pub fn begin_request_policy_subjects(
   original : CheckedProgram,
   limits : CompileLimits,
+  cumulative_work? : Int64? = None,
 ) -> RequestPolicySubjectPreparation raise UnitBuildFailure {
   if !compile_limits_valid(limits) {
     raise BudgetExceeded
   }
+  let measurement_work = match cumulative_work {
+    None => limits.work
+    Some(maximum) => {
+      if maximum < 0L {
+        raise BudgetExceeded
+      }
+      Int64::min(limits.work.to_int64(), maximum).to_int()
+    }
+  }
   let budget = IdentityBudget::{
-    work: limits.work,
+    work: measurement_work,
     bytes: limits.artifacts.bytes,
     nodes: limits.artifacts.nodes,
     depth: limits.artifacts.depth,
@@ -59,6 +71,8 @@ pub fn begin_request_policy_subjects(
     subjects: [],
     budget,
     initial_work: limits.work,
+    measurement_work,
+    cumulative_work,
     construction_work: None,
     additional_work: 0L,
     output_bytes: 0L,
@@ -125,7 +139,7 @@ pub fn measure_request_policy_subjects(
     })
   }
   prepared.construction_work = Some(
-    prepared.initial_work - prepared.budget.work,
+    prepared.measurement_work - prepared.budget.work,
   )
   prepared.phase = Measured
 }
@@ -150,7 +164,10 @@ pub fn construct_request_policy_subjects(
   // Consume the constructor before entry; a partial failure cannot retry or
   // replace the selected immutable request with a different measurement.
   prepared.phase = Constructing
-  let allowance = prepared.construction_work.unwrap()
+  let allowance = request_policy_subject_call_allowance(
+    prepared,
+    prepared.construction_work.unwrap(),
+  )
   // The same complete legacy descriptor bound has already admitted the input.
   // Its measured work bounds this additional render, excluding hashing/origins
   // that are not repeated. This is added actual work, not a refill of the
@@ -226,14 +243,18 @@ pub fn bind_prepared_request_policy_subject(
   // Preserve the existing per-binding logical refusal bound. The original
   // Request's one cumulative Resource receipt charges this actual delta too;
   // no Resource maximum, spent work or phase is reset between callbacks.
+  let allowance = request_policy_subject_call_allowance(
+    prepared,
+    prepared.initial_work,
+  )
   let binding = IdentityBudget::{
-    work: prepared.initial_work,
+    work: allowance,
     bytes: prepared.budget.bytes,
     nodes: prepared.budget.nodes,
     depth: prepared.budget.depth,
   }
   errdefer {
-    prepared.additional_work += (prepared.initial_work - binding.work).to_int64()
+    prepared.additional_work += (allowance - binding.work).to_int64()
     prepared.phase = Failed
   }
   let policy = request_value_policy_for_cid(subject.check, cid, binding)
@@ -245,7 +266,7 @@ pub fn bind_prepared_request_policy_subject(
     subject.request_cid,
     subject.origins,
   )
-  prepared.additional_work += (prepared.initial_work - binding.work).to_int64()
+  prepared.additional_work += (allowance - binding.work).to_int64()
   Some(proof)
 }
 
@@ -264,7 +285,7 @@ pub fn retire_request_policy_subjects(
 pub fn request_policy_subjects_spent_work(
   prepared : RequestPolicySubjectPreparation,
 ) -> Int64 {
-  (prepared.initial_work - prepared.budget.work).to_int64() +
+  (prepared.measurement_work - prepared.budget.work).to_int64() +
   prepared.additional_work
 }
 
@@ -280,4 +301,18 @@ pub fn request_policy_subject_bindings_complete(
   prepared : RequestPolicySubjectPreparation,
 ) -> Bool {
   prepared.phase == Constructed && prepared.next == prepared.subjects.length()
+}
+
+///|
+// Ordinary Request callers retain their existing cumulative Resource receipt.
+// A bounded pure restoration instead shares its original derived phase limit
+// across measurement, rendering and every binding, with no per-call refill.
+fn request_policy_subject_call_allowance(
+  prepared : RequestPolicySubjectPreparation,
+  allowance : Int,
+) -> Int raise UnitBuildFailure {
+  guard prepared.cumulative_work is Some(maximum) else { return allowance }
+  let spent = request_policy_subjects_spent_work(prepared)
+  guard spent >= 0L && spent <= maximum else { raise BudgetExceeded }
+  Int64::min(allowance.to_int64(), maximum - spent).to_int()
 }

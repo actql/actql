@@ -88,7 +88,7 @@ pub fn asof_search_limit_source(AsOfSearchLimit) -> UnitOperationSource
 
 pub fn begin_parsed_source_registration(ParsedCheckRegistry, @stage_parameters.Source) -> Result[ParsedSourceRegistration, ParsedSourceRegistrationIssue]
 
-pub fn begin_request_policy_subjects(CheckedProgram, CompileLimits) -> RequestPolicySubjectPreparation raise UnitBuildFailure
+pub fn begin_request_policy_subjects(CheckedProgram, CompileLimits, cumulative_work? : Int64?) -> RequestPolicySubjectPreparation raise UnitBuildFailure
 
 pub fn bind_host_verified_request_value_policy(SourceExecution, @check_environment.SourceDataPolicy, Int, Int, Int, Int) -> HostRequestValuePolicyEvidence raise UnitBuildFailure
 

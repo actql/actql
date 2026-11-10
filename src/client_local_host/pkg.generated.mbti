@@ -1091,6 +1091,12 @@ pub fn[I] request_model_recovery_usage_isolated(ClientRequestPreparation[I], I, 
 
 pub fn[I] request_native_static_plan_view(ClientRequestPreparation[I], I, @program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment, @run_publication_host.ClientCompilationManifests) -> Result[String, ClientRequestTerminalIssue]
 
+pub fn request_policy_subject_output_inventory(@program_check.RequestPolicySubjectPreparation) -> @execution_relation.PreparationRepresentationUnits?
+
+pub fn request_policy_subject_prelude_inventory(@program_check.CheckedProgram, @decode_core.Cursor?, @program_check.CompileLimits) -> (@execution_relation.PreparationRepresentationUnits, Int)?
+
+pub fn request_policy_subject_work_limit(Int, @program_check.CompileLimits) -> Int64?
+
 pub fn[I] request_preparation_accounting(ClientRequestPreparation[I]) -> (Int64, Int64, Int64, Int64, Int64, Int64)
 
 pub fn[I] request_preparation_parameters_original(ClientRequestPreparation[I], I) -> Result[@decode_core.Cursor?, ClientRequestPreparationIssue]

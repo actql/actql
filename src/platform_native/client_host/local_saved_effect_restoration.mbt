@@ -18,12 +18,15 @@ priv struct NativeLocalSavedEffectRestoration {
 ///|
 // Fixed call-expanded constructor controls: two staged parser/report scopes,
 // original packet/candidate/Result views and entered measurement/grow frames.
+// The policy continuation adds eight callback/optional/Result frames with
+// at most 24 borrowed references and 12 scalar words; variable subject DATA
+// uses the original shared Request inventory before its constructors.
 // Outer review DATA uses its SAME admitted JSON geometry; only the actual
 // computation material uses the complete conservative compiler recovery recipe.
 let native_saved_restoration_control_bytes : Int64 = @execution.preparation_representation_cost({
-    record_headers: 128L,
-    reference_slots: 512L,
-    scalar_words: 256L,
+    record_headers: 136L,
+    reference_slots: 536L,
+    scalar_words: 268L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   },
@@ -174,6 +177,10 @@ pub fn NativeLocalSavedEffectReview::construct_approval_in_entered_constructor(
     Unit,
     @host.ClientEffectRunMaterialsIssue,
   ],
+  request_value_policies? : ((@checked.EffectComputationCandidate) -> Result[
+    Array[@checked.HostRequestValuePolicyEvidence],
+    @host.ClientEffectComputationIssue,
+  ])? = None,
   publication_required? : Bool = false,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
   guard !self.retired &&
@@ -241,6 +248,7 @@ pub fn NativeLocalSavedEffectReview::construct_approval_in_entered_constructor(
         limits,
         effect_limits,
         before_compilation=Some(before_compilation),
+        request_value_policies~,
       ) {
       Ok(value) => value
       Err(issue) => {

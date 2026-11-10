@@ -57,7 +57,25 @@ fn LocalProjectMockDeclarations::verify_static_request_policy(
         None => false
       }
   }
-  if !same_environment || wire.length() > 2147483519 / 3 {
+  if !same_environment {
+    return None
+  }
+  self.verify_restored_static_request_policy(wire)
+}
+
+///|
+// The Saved consumer owns its current original Read and obtains this wire
+// only from Core's SAME checked static Request subject. Reuse the original
+// installed Source/view/origin verifier without constructing a second current
+// Environment. No saved policy CID is accepted as Host verification.
+fn LocalProjectMockDeclarations::verify_restored_static_request_policy(
+  self : Self,
+  wire : String,
+) -> String? {
+  if self.closing ||
+    self.retired ||
+    !self.sources_started ||
+    wire.length() > 2147483519 / 3 {
     return None
   }
   let bytes = wire.length() * 3 + 128
