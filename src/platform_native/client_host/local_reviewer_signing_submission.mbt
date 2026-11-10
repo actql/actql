@@ -1,14 +1,11 @@
 ///|
-// Identity from the authenticated retained Submission/Run admission, never
-// from the incoming reference's getter alone. History lookup does not renew an
-// epoch, authorize a new start or provide signing eligibility.
-fn NativeLocalReviewerProofMaterials::original_signing_submission_scope(
+// Authenticated retained Submission/Run identity, not an incoming CID getter.
+// Called only after this Owner's complete material check, with no intervening
+// callback or physical/Journal I/O. Pure original-lifetime comparisons do not
+// reopen it. The final material check runs on successful and failed lookups.
+fn NativeLocalReviewerProofMaterials::original_signing_submission_scope_after_current(
   self : NativeLocalReviewerProofMaterials,
 ) -> Result[String, NativeLocalReviewerProofMaterialsIssue] {
-  match self.require_current() {
-    Ok(_) => ()
-    Err(issue) => return Err(issue)
-  }
   let reviewer = self.reviewer
   // Keep the large retained intent/admission inside this read phase; only its
   // existing Submission identity is returned to the final current fence.

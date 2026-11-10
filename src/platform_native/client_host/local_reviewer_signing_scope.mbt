@@ -39,6 +39,20 @@ pub fn NativeLocalReviewerProofMaterials::require_original_signing_scope(
   self : NativeLocalReviewerProofMaterials,
   scope : @credential.LocalSigningCredentialScope,
 ) -> Result[Unit, NativeLocalReviewerProofMaterialsIssue] {
+  self.read_original_signing_scope(scope).map(_ => ())
+}
+
+///|
+// Keep the actual checked subject instead of discarding it at the Unit facade.
+// This private view lasts only through the existing signing operation; every
+// later transaction/physical-signing boundary performs its own current checks.
+fn NativeLocalReviewerProofMaterials::read_original_signing_scope(
+  self : NativeLocalReviewerProofMaterials,
+  scope : @credential.LocalSigningCredentialScope,
+) -> Result[
+  NativeLocalOriginalEffectSigningSubjectRead,
+  NativeLocalReviewerProofMaterialsIssue,
+] {
   match self.require_current() {
     Err(issue) => return Err(issue)
     Ok(_) => ()
@@ -47,15 +61,16 @@ pub fn NativeLocalReviewerProofMaterials::require_original_signing_scope(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  match self.require_original_reviewer_signing_subject(scope) {
+  let subject = match
+    self.read_original_reviewer_signing_subject_after_current(scope) {
     Err(issue) => return Err(issue)
-    Ok(_) => ()
+    Ok(value) => value
   }
   // The subject reader's last clock/RunRead callback may replace the original
   // key file. Export compares that same Root/file generation without invoking
   // another caller callback; it cannot retire the already-fenced capture.
   // This is original projection custody, not private/public-key correspondence.
-  self.key.finish_original_projection()
+  self.key.finish_original_projection().map(_ => subject)
 }
 
 ///|
@@ -82,15 +97,21 @@ pub fn NativeLocalReviewerProofMaterials::prepare_signing_scope(
     attempt_id.contains("\u{0}") {
     return Err(ProofUnavailable)
   }
-  let (request, logical_scope, invocation, unit) = match
-    self.original_signing_subject() {
+  let subject = match self.read_original_signing_subject_after_current() {
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
-  let submission = match self.original_signing_submission_scope() {
+  let (invocation, unit) = match subject.original_subject_after_current() {
+    Err(_) => return Err(ProofUnavailable)
+    Ok(value) => value
+  }
+  let submission = match
+    self.original_signing_submission_scope_after_current() {
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
+  let request = @host.client_request_intent_cid(self.reviewer.request)
+  let logical_scope = @host.client_request_scope_cid(self.reviewer.request)
   let key = self.key.scope_fields()
   let checkpoint = self.original.artifact
   let scope : @credential.LocalSigningCredentialScope = {
@@ -116,8 +137,17 @@ pub fn NativeLocalReviewerProofMaterials::prepare_signing_scope(
     unit_definition_cid: unit,
     purpose: @credential.ReviewerProof,
   }
-  // The Submission lookup and key/Account reads above may run current/clock
-  // callbacks. Re-read original correspondence and finish with the existing
-  // noncallback paired-capture lifetime fence, including on mismatch paths.
-  self.require_original_signing_scope(scope).map(_ => scope)
+  // Every field was derived from these SAME current originals; there is no
+  // candidate scope to re-admit. Submission already ran the complete material
+  // fence after its callback. Keep the final original key and subject fences
+  // rather than discard their observations and traverse the whole scope again.
+  match self.key.finish_original_projection() {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  match subject.original_subject_after_current() {
+    Ok((after_invocation, after_unit)) if after_invocation == invocation &&
+      after_unit == unit => Ok(scope)
+    Ok(_) | Err(_) => Err(ProofUnavailable)
+  }
 }

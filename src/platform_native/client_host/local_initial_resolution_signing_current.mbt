@@ -26,10 +26,11 @@ fn NativeLocalReviewerProofMaterials::initial_signing_current(
   NativeLocalInitialSigningCurrent,
   NativeLocalInitialResolutionSigningIssue,
 ] {
-  match self.require_original_signing_scope(scope) {
+  let subject = match self.read_original_signing_scope(scope) {
     Err(issue) => return Err(OriginalSigningProof(issue))
-    Ok(_) => ()
+    Ok(value) => value
   }
+
   if self.original.cancellation_requested &&
     self.proof.decision() == @checkpoint.Approved {
     return Err(OriginalSigningJournal(Checkpoint(NeedsOriginalContinuation)))
@@ -50,16 +51,10 @@ fn NativeLocalReviewerProofMaterials::initial_signing_current(
     Err(issue) => return Err(OriginalSigningJournal(issue))
     Ok(value) => value
   }
-  let subject = match
-    reviewer.approval_scope.read_original_signing_subject_for(
-      reviewer.request,
-      reviewer.original.run_definition_cid,
-      self.original.artifact.checkpoint_cid,
-    ) {
-    Err(_) => return Err(OriginalSigningUnavailable)
-    Ok(value) => value
-  }
-  match self.require_original_signing_scope(scope) {
+  // Authority selection may call current after the scope read. Recheck the
+  // same material and retain its original subject's terminal lifetime fence;
+  // do not discard the read and repeat the whole scope/Submission traversal.
+  match self.require_current() {
     Err(issue) => return Err(OriginalSigningProof(issue))
     Ok(_) => ()
   }

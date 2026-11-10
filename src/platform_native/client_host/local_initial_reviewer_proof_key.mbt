@@ -171,14 +171,12 @@ fn NativeLocalInitialReviewerSigningKey::read_current_reviewer(
     registration.policy_cid == self.fields.account_configuration_cid else {
     return Err(SigningOriginalUnavailable)
   }
-  match self.require_current() {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
-  }
-  if binding.read_current(selected, registration.key_id) != Some(registration) {
-    return Err(SigningOriginalUnavailable)
-  }
-  self.require_current().map(_ => registration)
+  // read_current already checks the original Client before/after its clock
+  // and paired-subject callbacks, then the selected Reviewer/Host. Re-entering
+  // it would run those same callbacks again. Finish the SAME key/registration
+  // projection after the last callback; equal bytes cannot replace its file
+  // generation and this does not grant a signature or a credential use.
+  self.finish_original_projection().map(_ => registration)
 }
 
 ///|

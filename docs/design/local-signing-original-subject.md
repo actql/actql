@@ -48,6 +48,23 @@ unchanged. Past signed evidence is preserved and cannot be relabeled as new
 operational authority. Original claim/outcome/Unknown and cleanup retain their
 existing Owners and responsibilities.
 
+## Scope observation boundaries
+
+The Native signing operation carries the same opaque subject read across its
+Submission and current callbacks. The private scope reader returns that checked
+view; the public Unit facade remains unchanged. A scope assembled entirely from
+these current originals does not re-admit its own immutable fields. Adjacent
+private helpers reuse the immediately preceding material check only when no
+callback or physical/Journal observation intervenes.
+
+After a subject or Submission callback, the complete material check still
+compares the original Client RunRead, Reviewer registration, Checkpoint revision
+and cancellation state. The final original key projection and noncallback subject
+lifetime fence remain after the last callback, including refusal paths. The
+initial signing view rechecks material after authority selection and retains the
+same subject for the existing transaction fences. No observation is a reusable
+permission, a signing grant, a replacement capture or a physical acknowledgement.
+
 ## Reviewer proof artifacts
 
 Approved Effect Resolutions already require both the same-key signed Approval

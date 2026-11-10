@@ -3,17 +3,16 @@
 // admission or a signing permit. Issuer, key original, attempt,
 // expiry, durable claim and outcome must pass their separate existing Owners.
 // Submission uses its authenticated retained reference, not the logical scope.
-fn NativeLocalReviewerProofMaterials::require_original_reviewer_signing_subject(
+fn NativeLocalReviewerProofMaterials::read_original_reviewer_signing_subject_after_current(
   self : NativeLocalReviewerProofMaterials,
   scope : @credential.LocalSigningCredentialScope,
-) -> Result[Unit, NativeLocalReviewerProofMaterialsIssue] {
-  // Keep the same opaque original references across every later Submission
-  // and current callback. An immediate metadata tuple cannot fence retirement
-  // caused by those callbacks, even when every CID still has equal bytes.
-  match self.require_current() {
-    Ok(_) => ()
-    Err(issue) => return Err(issue)
-  }
+) -> Result[
+  NativeLocalOriginalEffectSigningSubjectRead,
+  NativeLocalReviewerProofMaterialsIssue,
+] {
+  // The enclosing scope reader has checked this same material and key. The
+  // actual subject read owns its current callbacks, followed by the complete
+  // material fence below; no fresh proof/current ticket is issued here.
   let reviewer = self.reviewer
   let projected = reviewer.approval_scope.read_original_signing_subject_for(
     reviewer.request,
@@ -34,7 +33,8 @@ fn NativeLocalReviewerProofMaterials::require_original_reviewer_signing_subject(
   }
   let request = @host.client_request_intent_cid(reviewer.request)
   let logical_scope = @host.client_request_scope_cid(reviewer.request)
-  let submission = match self.original_signing_submission_scope() {
+  let submission = match
+    self.original_signing_submission_scope_after_current() {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -50,20 +50,17 @@ fn NativeLocalReviewerProofMaterials::require_original_reviewer_signing_subject(
     scope.checkpoint_id == checkpoint.checkpoint.checkpoint_id &&
     scope.checkpoint_kind == checkpoint.checkpoint.kind &&
     scope.preimage == self.proof.preimage()
-  // Re-read the same original and actual current authorization after comparison,
-  // including the mismatch path. A stale revision/current denial keeps priority;
-  // no preparation, capture, unsigned proof, grant or use is reissued.
-  match self.require_current() {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
-  }
+  // Submission's final complete material check already follows its last
+  // callback, including the mismatch path. All comparisons above are immutable;
+  // retain the same subject's noncallback lifetime fence rather than introduce
+  // another full current/RunRead/clock round trip.
   // No callback follows this existing Owner's terminal reference/lifetime
   // check, including on a subject mismatch. It neither recaptures originals
   // nor acquires signing permission, a grant or a renewed reservation.
   match read.original_subject_after_current() {
     Ok((after_invocation, after_unit)) if same_subject &&
       after_invocation == invocation &&
-      after_unit == unit => Ok(())
+      after_unit == unit => Ok(read)
     Ok(_) | Err(_) => Err(ProofUnavailable)
   }
 }
