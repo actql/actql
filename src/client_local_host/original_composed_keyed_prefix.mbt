@@ -89,6 +89,17 @@ fn composed_keyed_root_control_bytes(
 }
 
 ///|
+/// Same existing root/controller representation for a borrowed source prefix.
+/// This includes the root/receiver read vectors, completion and retained-DAG
+/// handoff tuples within the existing controller/port envelope. It quotes
+/// controls only; the provider and its original parent fund rows.
+pub fn client_composed_source_root_control_bytes(
+  sequence : @execution.GeneratedSequence,
+) -> Int64? {
+  composed_keyed_root_control_bytes([sequence])
+}
+
+///|
 // Controller state only: every execution remains the existing provider child
 // retained by the same prefix cleanup tree, never another Run or Ledger.
 priv struct ClientComposedRootExecution {

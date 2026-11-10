@@ -31,15 +31,21 @@ priv struct LocalNativeMockModelRead {
   identities : Array[@query.CapturedSourceRelationIdentity]
   logicals : Array[@publication.RunEvidenceValue]
   observations : Array[@publication.RunEvidenceValue]
+  roots : Array[LocalNativeMockModelRoot]
+  mut root_work : Int64
   mut retained : Int64
   mut execution : Int64
 }
 
 ///|
-// This record H1/R6/W2; six arrays for retained evidence, capture/original
-// projections and real producer inputs; optional consumer/scan/result frames.
-// Per producer: restricted read H1/R4/W1, narrowing closure H1/R2/W1,
-// and the supplied-input enum H1/R1. No Source bytes are copied; the original
+// This record H1/R7/W3; the returned construction tuple also borrows the
+// SAME installed Plan (one additional reference). eight arrays for retained evidence, capture/original
+// projections, root inventory and a quote-input/receiver-read vector reused
+// across nonoverlapping phases; optional consumer/scan/result frames.
+// Root/provider/port controls use the existing composed-root quote before
+// their constructors. Per producer metadata: restricted read H1/R4/W1, narrowing closure H1/R2/W1,
+// and the supplied-input enum H1/R1. The remaining-work input-limits copy
+// adds H1/R1/W2 and its existing input-constructor closure retains one work Word. No Source bytes are copied; the original
 // physical captures keep their own backing and lifetime. The fixed prefix
 // view adds one GeneratedSequence H1/R22, Some(last) H1/W1, two returned/lookup
 // Some frames H2/R2 and a fixed one-reference retained-id Array H2/R11/W2.
@@ -49,9 +55,9 @@ fn native_mock_model_read_controls(count : Int) -> Int64? {
     return None
   }
   @execution.preparation_representation_cost({
-    record_headers: 13L + 3L * count.to_int64() + 6L * array.record_headers,
-    reference_slots: 49L + 7L * count.to_int64() + 6L * array.reference_slots,
-    scalar_words: 7L + 2L * count.to_int64() + 6L * array.scalar_words,
+    record_headers: 14L + 3L * count.to_int64() + 8L * array.record_headers,
+    reference_slots: 52L + 7L * count.to_int64() + 8L * array.reference_slots,
+    scalar_words: 11L + 2L * count.to_int64() + 8L * array.scalar_words,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   })

@@ -248,7 +248,7 @@ pub fn start_complete_observation_issuance(Array[Execution], @physical_resources
 
 pub fn start_complete_original_observation_issuance(Array[Execution], @model_execution.OriginalModelPublicationCapacity, ObservationIssuanceLimits, generations? : Array[@run_publication_host.ClientSerializationGeneration]) -> Result[ObservationIssuance, Issue]
 
-pub fn start_composed(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @execution_relation.GeneratedSequence, Array[@local.ManagedProviderInput], @model_execution.ModelProvider, Limits, sources? : @run_publication_host.ClientInferComposedSources?, root? : (@execution_relation.GeneratedSequence?, @physical_resources.Ledger)?) -> Result[Execution, Issue]
+pub fn start_composed(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @execution_relation.GeneratedSequence, Array[@local.ManagedProviderInput], @model_execution.ModelProvider, Limits, sources? : @run_publication_host.ClientInferComposedSources?, root? : (@execution_relation.GeneratedSequence?, @physical_resources.Ledger)?, prior_input_work? : Int64) -> Result[Execution, Issue]
 
 pub fn start_generated(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientInferPlanGraph, @model_execution.ModelProvider, Limits) -> Result[Execution, Issue]
 
@@ -258,7 +258,7 @@ pub fn start_keyed(@run_publication_host.ClientInferOccurrence, @run_publication
 
 pub fn start_observation_issuance(Execution, @physical_resources.Ledger, ObservationIssuanceLimits, generations? : Array[@run_publication_host.ClientSerializationGeneration]) -> Result[ObservationIssuance, Issue]
 
-pub fn start_original_composed(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @execution_relation.GeneratedSequence, Array[@local.ManagedProviderInput], @model_execution.ModelProvider, Limits, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientModelReadConsumer, Int64, Int64, Int64, Int64, sources? : @run_publication_host.ClientInferComposedSources?, input_body_read? : @run_publication_host.ClientModelReadPreparation?) -> Result[Execution, Issue]
+pub fn start_original_composed(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @execution_relation.GeneratedSequence, Array[@local.ManagedProviderInput], @model_execution.ModelProvider, Limits, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientModelReadConsumer, Int64, Int64, Int64, Int64, sources? : @run_publication_host.ClientInferComposedSources?, input_body_read? : @run_publication_host.ClientModelReadPreparation?, prior_input_work? : Int64) -> Result[Execution, Issue]
 
 pub fn start_original_generated(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientInferPlanGraph, @model_execution.ModelProvider, Limits, @run_publication.PublicationContract, @run_publication_host.ClientModelReadConsumer, Int64, Int64, Int64, Int64) -> Result[Execution, Issue]
 

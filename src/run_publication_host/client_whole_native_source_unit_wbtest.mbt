@@ -91,6 +91,106 @@ test "whole Source Unit evidence keeps original producer and refuses foreign or 
   assert_true(
     client_effect_local_invocation_matches(acquired.invocation, prepared, 0),
   )
+  // The real Source SELECT aliases id -> value. Its Result, not the raw
+  // Source read, is the only lawful input to the downstream receiver.
+  let assets = client_local_product_assets()
+  let contracts = @local_query_time.prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let sequences = @local_query_time.prepare_client_effect_local_sequences(
+    prepared,
+    contracts,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let root_sequence = sequences[0]
+  let execution = string_try_number_execution_limits()
+  let measure : @execution.FixedInputGuardMeasureLimits = {
+    max_work: 100000,
+    max_bytes: 20000,
+    max_nodes: 10000,
+    max_depth: 20,
+  }
+  let bound_input = @query.bind_captured_source_operation(captured, owner, 0, 0).unwrap()
+  let producer_input = @execution.prepare_producer_read(
+    owner, bound_input, 10000, 20000,
+  ).unwrap()
+  let provider = @local.local_bounded_relation_provider(
+    execution, measure, root_sequence,
+  ).unwrap()
+  let child = @local.start_managed_provider_with_inputs_and_execution(
+    provider,
+    root_sequence,
+    [@local.managed_provider_relation_input(producer_input)],
+    100,
+    20000,
+    execution,
+  ).unwrap()
+  let mut completed = None
+  for _ in 0..<10000 {
+    match @local.advance_managed_provider(child, 31).unwrap() {
+      @local.Complete(value, ..) => {
+        completed = Some(value)
+        break
+      }
+      @local.Continue(..) | @local.Settling(_, ..) => ()
+      _ => fail("the original Source SELECT must complete")
+    }
+  }
+  let output = completed.unwrap()
+  assert_true(@execution.completed_cell(output, 0, 0) is Some(Number(1.0)))
+  let receiver = @strategy.graph_task_owner(graph, 1).unwrap()
+  assert_true(
+    @execution.supplied_relation_read_matches_input(original, receiver, 0) ==
+    false,
+  )
+  assert_true(
+    @execution.bind_completed_input(receiver, 0, owner, output) is Ok(_),
+  )
+  let root_bindings = [(0, 0, producer_input)]
+  let proof = @execution.retain_completed_segment_inputs(
+    output, root_sequence, root_bindings, 100000,
+  ).unwrap()
+  let allowed = issue_client_effect_allowed_run(
+    compilation,
+    "sha256:" + "a".repeat(64),
+    "sha256:" + "b".repeat(64),
+    "2026-10-10T00:00:00.000Z",
+  ).unwrap()
+  let definition = issue_client_effect_run_definition(
+    allowed, "scope", "source-result-run", "2026-10-09T00:00:00.000Z", "2026-10-10T00:00:00.000Z",
+  ).unwrap()
+  let bound = bind_prepared_client_effect_run(
+    prepared,
+    client_effect_allowed_run_admission(allowed),
+    definition,
+  ).unwrap()
+  let selected_graph = @strategy.prepare_source_inputs_dag(graph, [acquisition]).unwrap()
+  let ledger = @resources.create_ledger({
+    planning_work: 100000,
+    attempts: 10,
+    holdings: 10,
+    transfer_bytes: 10000000L,
+    retained_bytes: 10000000L,
+    execution_bytes: 10000000L,
+  }).unwrap()
+  let restored = @strategy.open_source_inputs_effect_run_dag(
+    prepared_client_effect_run_graph(bound),
+    selected_graph,
+    [captured],
+    ledger,
+    source_results=[(0, root_sequence, root_bindings, proof)],
+  ).unwrap()
+  let actual = @strategy.captured_effect_run_dag(restored)
+  assert_true(@strategy.captured_task_completed(actual, 0))
+  assert_eq(@strategy.next_captured_task(actual), Some(1))
+  assert_true(@strategy.retire_captured_task_outputs(actual))
+  @local.cancel_managed_provider(child) |> ignore
+  assert_true(@local.cleanup_managed_provider(child) is Ok(true))
   let (foreign, _, _, _, _) = bound_effect_source_fixture()
   assert_true(
     issue_client_whole_native_effect_source_unit(

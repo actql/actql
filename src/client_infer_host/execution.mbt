@@ -665,6 +665,7 @@ fn start_occurrence(
     @relation.GeneratedSequence?,
     @resources.Ledger,
   )? = None,
+  prior_input_work? : Int64 = 0L,
 ) -> Result[Execution, Issue] {
   // A caller-supplied Ledger/root tuple is not the original read/consumer.
   // The checked generated branch enters that same Owner before construction.
@@ -720,6 +721,10 @@ fn start_occurrence(
       )
     })
     .unwrap_or(0L)
+  if prior_input_work < 0L ||
+    prior_input_work > limits.input.max_work.to_int64() - entry_work {
+    return Err(InvalidAdvance)
+  }
   let input = match start_input(limits) {
     Ok(value) => value
     Err(issue) => return Err(Input(issue))
@@ -752,8 +757,8 @@ fn start_occurrence(
     cancelled: false,
     advancing: false,
     reclaimed: false,
-    entry_work,
-    work: entry_work,
+    entry_work: entry_work + prior_input_work,
+    work: entry_work + prior_input_work,
     child_work: entry_work,
     output_uses: 0,
     run_binding: None,
@@ -794,6 +799,7 @@ pub fn start_composed(
   limits : Limits,
   sources? : @publication_host.ClientInferComposedSources? = None,
   root? : (@relation.GeneratedSequence?, @resources.Ledger)? = None,
+  prior_input_work? : Int64 = 0L,
 ) -> Result[Execution, Issue] {
   if sources is Some(value) &&
     !@publication_host.client_infer_composed_sources_matches(value, occurrence) {
@@ -815,7 +821,14 @@ pub fn start_composed(
         occurrence,
         prefix,
         inputs,
-        limits.input,
+        if prior_input_work == 0L {
+          limits.input
+        } else {
+          {
+            ..limits.input,
+            max_work: limits.input.max_work - prior_input_work.to_int(),
+          }
+        },
         limits.measurement,
         limits.mapping,
         keyed=sources.bind(value => {
@@ -831,6 +844,7 @@ pub fn start_composed(
       )
     },
     composed_sources=sources,
+    prior_input_work~,
     root=root.map(value => (prefix, value.0, value.1)),
   )
 }
@@ -880,7 +894,10 @@ pub fn advance_root(active : Execution, quantum : Int) -> Result[Poll, Issue] {
 fn execution_input_unadvanced(active : Execution) -> Bool {
   active.phase is Input &&
   active.work == active.entry_work &&
-  active.child_work == active.entry_work
+  // entry_work includes already consumed original producer work; the live
+  // child's own cumulative report starts at its original input entry. Any
+  // new child work increments active.work and fails the equality above.
+  active.child_work <= active.entry_work
 }
 
 ///|

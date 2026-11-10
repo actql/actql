@@ -1559,3 +1559,26 @@ pub fn prepared_installed_effect_model_sequence(
     None => Err(Unsupported)
   }
 }
+
+///|
+/// Borrow the ORIGINAL whole-Source producer sequence selected by this Plan.
+/// No new lowering, Source read, current callback or execution grant occurs.
+pub fn prepared_installed_effect_source_sequence(
+  plan : ClientInstalledEffectManagedPlan,
+  index : Int,
+) -> Result[(Int, @execution.GeneratedSequence), ClientInstalledManagedRunIssue] {
+  guard plan.direct_occurrences is Some(direct) &&
+    @publication_host.client_direct_acquisition_occurrence_at(direct, index)
+    is Some((_, _, task)) &&
+    plan.whole_sources.get(index) is Some(Some((_, original))) &&
+    plan.sequences.get(task) is Some(sequence) &&
+    physical_equal(
+      @sourceviews.source_acquisition_pipeline(original.original),
+      @lower.pipeline(
+        @lower.bound_preparation(@execution.generated_sequence_owner(sequence)),
+      ),
+    ) else {
+    return Err(ForeignOriginal)
+  }
+  Ok((task, sequence))
+}

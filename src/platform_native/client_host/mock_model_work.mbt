@@ -325,6 +325,7 @@ pub fn NativeClientMockModelWork::open(
   model_execution_bytes : Int64,
   input_body_read? : @host.ClientModelReadPreparation? = None,
   inputs? : Array[@compute_local.ManagedProviderInput] = [],
+  prior_input_work? : Int64 = 0L,
 ) -> Result[Unit, NativeClientMockModelIssue] {
   try {
     if self.open_attempted ||
@@ -334,6 +335,10 @@ pub fn NativeClientMockModelWork::open(
       self.account is None ||
       self.observation_time is None {
       return Err(ForeignOriginal)
+    }
+    if prior_input_work < 0L ||
+      prior_input_work > self._retained_limits.input.max_work.to_int64() {
+      return Err(Model(@infer.Input(@local.InvalidLimits)))
     }
     self.open_attempted = true
     let (_, _, model_step) = @host.client_infer_occurrence_coordinates(
@@ -371,6 +376,7 @@ pub fn NativeClientMockModelWork::open(
         model_execution_bytes,
         sources=Some(sources),
         input_body_read~,
+        prior_input_work~,
       ).map_err(issue => NativeClientMockModelIssue::Model(issue)),
     )
     self.active = Some(active)
