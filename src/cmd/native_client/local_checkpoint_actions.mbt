@@ -185,9 +185,20 @@ fn LocalCommandPreparationOriginal::resolve_checkpoint_review(
     .begin_captured_journal_read()
     .map_err(issue => CommandStoreOperation(issue)),
   )
+  let wire_limits : @checkpoint.WireLimits = {
+    max_wire_bytes: native_mock_effect_record_bytes(installation),
+    max_nodes: policy.effects.max_admission_nodes,
+    max_depth: policy.effects.max_admission_depth,
+  }
   let capacity = review.prepare_approval_restoration_in_original_read(
     @env.now().to_double(),
+    wire_limits,
   )
+  // Preserve the constructor's primary before returning its original Read;
+  // a simultaneous return failure remains a separate cleanup obligation.
+  if capacity is Err(issue) {
+    self.retain_primary(CommandAdoption(issue))
+  }
   let returned = journal.finish_captured_journal_read()
   if returned is Err(issue) {
     self.retain_primary(CommandStoreOperation(issue))
@@ -226,11 +237,7 @@ fn LocalCommandPreparationOriginal::resolve_checkpoint_review(
       native_request_manifests,
       material_limits,
       policy,
-      {
-        max_wire_bytes: native_mock_effect_record_bytes(installation),
-        max_nodes: policy.effects.max_admission_nodes,
-        max_depth: policy.effects.max_admission_depth,
-      },
+      wire_limits,
       input => {
         self.prepare_saved_effect_compiler_placement(
           work, input, material_limits,

@@ -12,6 +12,7 @@ import {
   "actql/actql/canonical_json" @canonical,
   "actql/actql/canonical_value",
   "actql/actql/run_publication" @publication,
+  "actql/actql/checkpoint_runtime" @checkpoint,
   "actql/actql/run_publication_host" @run_host,
   "actql/actql/client_source_publication" @source_publication,
   "actql/actql/client_local_host" @local_values,

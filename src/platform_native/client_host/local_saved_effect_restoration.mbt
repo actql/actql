@@ -4,6 +4,7 @@
 priv struct NativeLocalSavedEffectRestoration {
   packet : NativeClientRetainedEffectMaterials
   capacity : @execution.ExecutionCapacity
+  fields : @decode.ObjectView
   mut attempted : Bool
   mut completed : Bool
   mut candidate : Result[
@@ -16,7 +17,8 @@ priv struct NativeLocalSavedEffectRestoration {
 ///|
 // Fixed call-expanded constructor controls: two staged parser/report scopes,
 // original packet/candidate/Result views and entered measurement/grow frames.
-// Variable tree/text/compiler backing is the SAME complete recovery recipe.
+// Outer review DATA uses its SAME admitted JSON geometry; only the actual
+// computation material uses the complete conservative compiler recovery recipe.
 let native_saved_restoration_control_bytes : Int64 = @execution.preparation_representation_cost({
     record_headers: 128L,
     reference_slots: 512L,
@@ -34,6 +36,7 @@ let native_saved_restoration_control_bytes : Int64 = @execution.preparation_repr
 pub fn NativeLocalSavedEffectReview::prepare_approval_restoration_in_original_read(
   self : NativeLocalSavedEffectReview,
   now : Double,
+  wire_limits : @checkpoint.WireLimits,
 ) -> Result[@execution.ExecutionCapacity, NativeLocalAdoptionIssue] {
   guard !self.retired &&
     !self.approval_attempted &&
@@ -61,29 +64,30 @@ pub fn NativeLocalSavedEffectReview::prepare_approval_restoration_in_original_re
     Err(Journal(issue)) => return Err(Journal(issue))
     Err(_) => return Err(Journal(CustodyLost))
   }
-  guard @execution.checked_preparation_add_product(
-      0L,
-      packet.materials_wire.length().to_int64(),
-      3L,
+  // The existing original-Read constructor admits this outer JSON exactly
+  // once. Its text fields are computation/contract wires, not compiled IR.
+  let cursor = match self.admit_wire_in_original_read(wire, wire_limits) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let fields = match saved_effect_review_fields_from_cursor(cursor) {
+    Ok(value) => value
+    Err(issue) => return Err(Journal(issue))
+  }
+  let geometry = @decode.observe_subtree_construction_geometry(cursor)
+  guard saved_effect_restoration_capacity(
+      packet.materials_wire,
+      wire,
+      geometry,
+      wire_limits.max_depth,
     )
-    is Some(units) &&
-    @execution.checked_preparation_add_product(
-      units,
-      wire.length().to_int64(),
-      3L,
-    )
-    is Some(units) &&
-    @local.request_model_recovery_capacity(units, 2) is Some(whole) &&
-    @execution.execution_capacity(
-      native_saved_restoration_control_bytes, native_saved_restoration_control_bytes,
-    )
-    is Some(controls) &&
-    @execution.add_execution_capacity(whole, controls) is Some(capacity) else {
+    is Some(capacity) else {
     return Err(ConfigurationLimit)
   }
   self._retained_restoration = Some({
     packet,
     capacity,
+    fields,
     attempted: false,
     completed: false,
     candidate: None,
@@ -121,50 +125,33 @@ fn native_saved_material_input_raw(units : Int) -> Int64? {
 }
 
 ///|
-fn saved_effect_constructor_wire(
-  entry : @arena.InstalledArenaNonModelWorkEntry,
-  capacity : @execution.ExecutionCapacity,
-  wire : String,
-  limits : @checkpoint.WireLimits,
-) -> Result[@decode.Cursor, NativeLocalAdoptionIssue] {
-  let preflight = match
-    @source.start_json_source_preflight(
-      wire,
-      {
-        max_input_bytes: limits.max_wire_bytes,
-        max_nodes: limits.max_nodes,
-        max_depth: limits.max_depth,
-      },
-      data_keys=true,
-    ) {
-    Ok(value) => value
-    Err(_) => return Err(Journal(CustodyLost))
+// Preserve the complete recovery envelope for actual computation material.
+// The surrounding review is already admitted JSON DATA: the same original
+// cursor geometry supplies its tree/text roles, never compiler syntax nodes.
+// Neither component is counted again as another whole compiler allowance.
+fn saved_effect_restoration_capacity(
+  material : String,
+  review : String,
+  geometry : @decode.SubtreeConstructionGeometry,
+  depth : Int,
+) -> @execution.ExecutionCapacity? {
+  guard @execution.checked_preparation_add_product(
+      0L,
+      material.length().to_int64(),
+      3L,
+    )
+    is Some(units) &&
+    @local.request_model_recovery_capacity(units, 1) is Some(computation) &&
+    @local.request_model_recovery_material_capacity(review, geometry, depth, 1)
+    is Some(metadata) &&
+    @execution.add_execution_capacity(computation, metadata) is Some(combined) &&
+    @execution.execution_capacity(
+      native_saved_restoration_control_bytes, native_saved_restoration_control_bytes,
+    )
+    is Some(controls) else {
+    return None
   }
-  defer @source.cancel_json_source_preflight(preflight)
-  let geometry = while true {
-    match @source.advance_json_source_preflight(preflight, 4096) {
-      Ok(@source.JsonSourceContinue(..)) => continue
-      Ok(@source.JsonSourceReady(value, ..)) => break value
-      _ => return Err(Journal(CustodyLost))
-    }
-  } nobreak {
-    return Err(Journal(CustodyLost))
-  }
-  guard saved_effect_wire_construction(geometry) is Some((retained, peak, raw)) &&
-    retained <= @execution.execution_capacity_retained_bytes(capacity) &&
-    peak <= @execution.execution_capacity_execution_bytes(capacity) else {
-    return Err(ConfigurationLimit)
-  }
-  match
-    entry.prepare_constructor_in_entered_scope(
-      @execution.execution_capacity_retained_bytes(capacity),
-      @execution.execution_capacity_execution_bytes(capacity),
-      raw,
-    ) {
-    Err(issue) => return Err(saved_effect_constructor_issue(issue))
-    Ok(_) => ()
-  }
-  saved_effect_admit_preflight(preflight, limits)
+  @execution.add_execution_capacity(combined, controls)
 }
 
 ///|
@@ -228,20 +215,7 @@ pub fn NativeLocalSavedEffectReview::construct_approval_in_entered_constructor(
       ) else {
       return Err(OriginalResourceScopePending)
     }
-    let cursor = match
-      saved_effect_constructor_wire(
-        entry,
-        restoration.capacity,
-        wire,
-        wire_limits,
-      ) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    let fields = match saved_effect_review_fields_from_cursor(cursor) {
-      Ok(value) => value
-      Err(issue) => return Err(Journal(issue))
-    }
+    let fields = restoration.fields
     let publication_present = @decode.lookup(fields, "result_derivation_wires")
       is Some(_)
     if publication_required && !publication_present {
