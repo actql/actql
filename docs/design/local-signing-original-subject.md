@@ -129,6 +129,12 @@ Reviewer and key checks still run at the original callback boundaries. The
 same epoch Owner advances its watermark through that transaction's CAS; only
 the outer receipt transaction commits it. No uncommitted successor is cached,
 and ordinary lookup still cannot start a nested transaction.
+Before a saved file application claims or dispatches a row, its existing
+prepared business operation activates and opens only the already installed
+Store through the original writer constructor. The independent observation
+Store remains read custody. It is not cast into a publisher or replaced;
+both existing carriers retain their own partial acquisition and child-first
+cleanup obligations. Missing Store custody cannot initialize another namespace.
 The restoration-to-application boundary first retains the composed extent as
 data, then enters that same original constructor to acquire usable backing before
 resizing its byte token. A Read-side resize alone cannot acquire more business

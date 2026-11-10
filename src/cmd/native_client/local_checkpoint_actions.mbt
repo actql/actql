@@ -344,6 +344,28 @@ fn LocalCommandPreparationOriginal::resolve_checkpoint_review(
           command_preparation_result(
             self.prepare_saved_effect_capacity(capture, capacity),
           )
+          // The retained observation Store is read custody, not this business
+          // operation's publisher. Open only the SAME existing installed Store
+          // through its actual prepared writer BEFORE claim or target IO.
+          guard self.host is Some(host) &&
+            self.pair is Some(pair) &&
+            business.operation is Some(store_operation) else {
+            stop("LocalSavedEffectPublicationUnavailable")
+          }
+          let sqlite = host
+            .borrow_local_host_sqlite(pair)
+            .unwrap_or_else(() => stop("LocalCheckpointReadUnavailable"))
+          let managed = local_host_result(
+            capture.managed_root_path_in_original_read(),
+          ).unwrap_or_else(() => stop("LocalManagedRootRequired"))
+          local_host_result(capture.check_current_in_original_read()) |> ignore
+          command_preparation_result(
+            store_operation
+            .activate()
+            .map_err(issue => CommandStoreOperation(issue)),
+          )
+          self.open_business_store(sqlite, managed, installation, existing=true)
+          |> ignore
           self.apply_saved_effect_files(capture, continuation, capacity, raw)
         }
         return self.publish_saved_effect_files(
