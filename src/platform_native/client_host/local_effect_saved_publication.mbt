@@ -159,6 +159,12 @@ pub fn NativeLocalEffectResumeOriginal::prepare_saved_publication_construction_i
     resources.active_phase is Some(@arena.HostRead) else {
     return Err(Construction)
   }
+  if read.owner._retained_publication_construction is Some(previous) {
+    return previous
+  }
+  // Same original Review, one actual publication packet. Reentry and failed
+  // construction retain the original refusal instead of debiting a new frame.
+  read.owner._retained_publication_construction = Some(Err(Construction))
   if original.definitions.length() != original.derivations.length() ||
     original.definitions.length() != original.orderings.length() ||
     original.definitions.length() != original.retentions.length() ||
@@ -279,23 +285,37 @@ pub fn NativeLocalEffectResumeOriginal::prepare_saved_publication_construction_i
     is Some((_, _, writer_raw)) else {
     return Err(Construction)
   }
-  match
-    resources.host.prepare_domain_original_read_retained_construction(
+  let old_retained = read.owner._retained_constructor_bytes
+  guard @execution.checked_preparation_add_product(old_retained, retained, 1L)
+    is Some(whole_retained) &&
+    @execution.checked_preparation_add_product(old_retained, execution, 1L)
+    is Some(whole_execution) else {
+    return Err(Construction)
+  }
+  // This exact saved owner retains Store/cursors/entry controls alongside the
+  // new publication forest. A past temporary Read peak is preserved as a max,
+  // not counted as an additional live forest. No prior debit is refunded.
+  read.owner._retained_constructor_bytes = whole_retained
+  let prepared : Result[Unit, NativeLocalSavedEffectPublicationIssue] = match
+    resources.host.prepare_domain_original_read_construction(
       resources.read,
-      retained,
-      execution,
+      whole_retained,
+      whole_execution,
       Int64::max(array_raw, writer_raw),
     ) {
     Err(issue) =>
-      return Err(
+      Err(
         Original(HostAttestationOriginal(OriginalResources(@arena.Read(issue)))),
       )
-    Ok(_) => ()
+    Ok(_) =>
+      if self.retired || !read.owner.saved_approval_original_live(original) {
+        Err(Construction)
+      } else {
+        Ok(())
+      }
   }
-  if self.retired || !read.owner.saved_approval_original_live(original) {
-    return Err(Construction)
-  }
-  Ok(())
+  read.owner._retained_publication_construction = Some(prepared)
+  prepared
 }
 
 ///|
