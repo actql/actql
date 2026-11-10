@@ -1,7 +1,8 @@
 ///|
 // Decode only the authenticated saved Preview, never the private continuation.
 // This is evidence DATA under an existing Read, not an approval or resume.
-fn saved_effect_display_preview(
+fn NativeLocalSavedEffectReview::saved_effect_display_preview(
+  self : NativeLocalSavedEffectReview,
   persisted : @checkpoint.PersistedCheckpoint,
   continuation : String,
   definition_cid : String,
@@ -17,6 +18,12 @@ fn saved_effect_display_preview(
     persisted.artifact.checkpoint.review_projection_cid ==
     "sha256:" + @sha.hex(@utf8.encode(wire)) else {
     return Err(Journal(CustodyLost))
+  }
+  // The existing packet Owner quotes this exact admitted Preview wire,
+  // independently of its unchanged maximum admission limits.
+  match self.prepare_wire_construction_in_original_read(wire, limits) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   let preview = match
     @publication.admit_effect_preview_identity(
@@ -59,11 +66,9 @@ pub fn NativeLocalSavedEffectReview::display_preview_in_original_read(
   }
   match
     self.capture.prepare_model_entry_construction(
-      Some(limits.max_wire_bytes),
-      nodes=limits.max_nodes,
-      depth=limits.max_depth,
-      // The saved continuation decode overlaps the bounded display parser,
-      // canonical tree, escaped literals and final text. No Store quota funds it.
+      None,
+      // The bounded display parser/canonical/escaped text has its own policy.
+      // The already held continuation is quoted from ACTUAL geometry below.
       additional=Some((65536, 8192, 64)),
       additional_controls=Some({
         record_headers: 8L,
@@ -73,6 +78,10 @@ pub fn NativeLocalSavedEffectReview::display_preview_in_original_read(
         owned_wire_bytes: 65536L,
       }),
     ) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  match self.prepare_wire_construction_in_original_read(continuation, limits) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
@@ -104,7 +113,7 @@ pub fn NativeLocalSavedEffectReview::display_preview_in_original_read(
       return Err(Journal(CustodyLost))
     }
     let wire = match
-      saved_effect_display_preview(
+      self.saved_effect_display_preview(
         persisted,
         continuation,
         original.run_definition_cid,
