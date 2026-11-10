@@ -40,16 +40,18 @@ priv struct LocalNativeMockModelRead {
 // projections and real producer inputs; optional consumer/scan/result frames.
 // Per producer: restricted read H1/R4/W1, narrowing closure H1/R2/W1,
 // and the supplied-input enum H1/R1. No Source bytes are copied; the original
-// physical captures keep their own backing and lifetime.
+// physical captures keep their own backing and lifetime. The fixed prefix
+// view adds one GeneratedSequence H1/R22, Some(last) H1/W1, two returned/lookup
+// Some frames H2/R2 and a fixed one-reference retained-id Array H2/R11/W2.
 fn native_mock_model_read_controls(count : Int) -> Int64? {
   guard @execution.preparation_array_representation(1L, count.to_int64(), true)
     is Some(array) else {
     return None
   }
   @execution.preparation_representation_cost({
-    record_headers: 7L + 3L * count.to_int64() + 6L * array.record_headers,
-    reference_slots: 14L + 7L * count.to_int64() + 6L * array.reference_slots,
-    scalar_words: 4L + 2L * count.to_int64() + 6L * array.scalar_words,
+    record_headers: 13L + 3L * count.to_int64() + 6L * array.record_headers,
+    reference_slots: 49L + 7L * count.to_int64() + 6L * array.reference_slots,
+    scalar_words: 7L + 2L * count.to_int64() + 6L * array.scalar_words,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   })

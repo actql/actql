@@ -336,11 +336,29 @@ pub fn NativeClientMockModelWork::open(
       return Err(ForeignOriginal)
     }
     self.open_attempted = true
+    let (_, _, model_step) = @host.client_infer_occurrence_coordinates(
+      self.graph.occurrence,
+    )
+    // Real producer ports consume exactly the checked pre-Model prefix. Keep
+    // the full original for the later suffix; this view preserves its owner
+    // and step coordinates and neither recompiles nor copies kernel contexts.
+    let input_sequence = if inputs.is_empty() {
+      sequence
+    } else {
+      guard @execution.select_generated_sequence_prefix(
+          sequence,
+          model_step - 1,
+        )
+        is Some(prefix) else {
+        return Err(Model(@infer.Input(@local.UnsupportedProgram)))
+      }
+      prefix
+    }
     let active = mock_model_require(
       @infer.start_original_composed(
         self.graph.occurrence,
         self.graph,
-        sequence,
+        input_sequence,
         inputs,
         self._retained_provider,
         self._retained_limits,
@@ -356,9 +374,6 @@ pub fn NativeClientMockModelWork::open(
       ).map_err(issue => NativeClientMockModelIssue::Model(issue)),
     )
     self.active = Some(active)
-    let (_, _, model_step) = @host.client_infer_occurrence_coordinates(
-      self.graph.occurrence,
-    )
     guard @host.client_infer_occurrence_output_step(self.graph.occurrence)
       is Some(last) &&
       last >= model_step else {

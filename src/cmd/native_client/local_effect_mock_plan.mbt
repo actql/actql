@@ -589,14 +589,16 @@ fn native_mock_effect_import_construction(
   // observation and derived Relation. Per producer: Invocation/full Manifest.
   // The imported combined scope and semantic Invocation add two bodies; the
   // once-selected original-observation retention projection adds one more.
-  let documents = 4L * results + 2L * imports + 2L * units + 3L
+  // Whole-input producers additionally retain their request, source policy,
+  // Relation, Ordering and Scope; keyed callers borrow those same bodies.
+  let documents = 4L * results + 2L * imports + 8L * units + 3L
   let json = @local_values.installed_json_effect_response_construction_capacity(
     empty, 16384, 1024, 20,
   ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
   let r = @execution.checked_preparation_add_product(
     0L,
     @execution.execution_capacity_retained_bytes(json),
-    Int64::max(3L, imports + 2L),
+    Int64::max(6L, imports + 2L),
   ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
   let arrays = @execution.preparation_array_representation(
     // Five additional public-evidence vectors retain borrowed original
