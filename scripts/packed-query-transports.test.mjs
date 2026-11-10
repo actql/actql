@@ -385,14 +385,16 @@ test('planner refusals require the exact original durable preparation outcome', 
     {item: {deferred: true}, code: 'ClientProgramRejected', kind: 'preparation_failed', valid: true},
     {item: {deferred: true}, code: 'ClientProgramUnsupported', kind: 'preparation_failed', valid: false},
     {item: {deferred: true}, code: 'ClientProgramRejected', kind: 'not_accepted', valid: false},
+    {item: {deferred: true}, code: 'ClientProgramRejected', kind: 'preparation_failed', foreign: true, valid: false},
   ]) {
     const submissionRef = {original: 'fixture-submission'};
-    const outcome = {kind: scenario.kind, submissionRef, problem: {code: scenario.code}};
+    const outcome = {kind: scenario.kind, submissionRef: scenario.foreign ? {foreign: 'submission'} : submissionRef,
+      problem: {code: scenario.code}};
     let durableLookups = 0;
-    const ports = {assert, items: [scenario.item], text: 'original-program', requestId: 'original-request',
+    const ports = {assert, items: [scenario.item], text: 'original-program', requestId: 'original-request', submissionRef,
       client: {async startSource() {throw Object.assign(new Error('SubmissionPreparationFailed'),
         {code: 'SubmissionPreparationFailed', outcome});},
-        async lookupRequest() {return {kind: 'not_found'};},
+        async lookupRequest() {assert.fail('legacy name lookup is not this original submission');},
         async lookupSubmission(ref) {assert.equal(ref, submissionRef);durableLookups++;return outcome;}},
       provider: {snapshot: () => ({sourceIo: 0})}, before: {sourceIo: 0},
       events: [], readSelection: () => ({original: 'selection'}), assertSelection() {},

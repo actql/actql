@@ -208,8 +208,9 @@ export async function exerciseRetainedPlannerPublicQuery({connect, root,
       assert.fail(`retained Host initialization: ${error.primaryFailure?.stack ?? error.stack}`);
     });
     const requestId = 'retained-public-planner';
+    const submissionRef = client.newSubmission({nonce: requestId});
     const program = plannerSelectionProgram();
-    const execution = await client.startSource(program, {format: 'json', requestId});
+    const execution = await client.startSource(program, {format: 'json', submissionRef});
     const state = await execution.wait({signal: AbortSignal.timeout(30_000)});
     assert.equal(state.status, 'succeeded', JSON.stringify({state,
       events: events.map(event => ({name: event.name,
@@ -222,9 +223,9 @@ export async function exerciseRetainedPlannerPublicQuery({connect, root,
     'the public Host must select a real retained-file output');
     const attached = await client.attach(execution.ref);
     assert.deepEqual(await attached.result('selected').all(), expectedRows);
-    const resent = await client.startSource(program, {format: 'json', requestId});
+    const resent = await client.startSource(program, {format: 'json', submissionRef});
     assert.deepEqual(resent.ref, execution.ref);
-  } finally { client?.close(); await running.close(); }
+  } finally { await client?.close(); await running.close(); }
 }
 
 function assertSelection(selection, item, source) {
@@ -378,12 +379,14 @@ export async function exercisePlannerSelectionPublicQuery({connect, openInstalle
       const text = item.filter === undefined ? program : plannerSelectionProgram(item.filter);
       try {
         client = await running.connect();
+        const submissionRef = client.newSubmission({nonce: requestId});
         if (item.denyRead || item.deferred) {
           let refusalCode, refusalOutcome;
-          await assert.rejects(client.startSource(text, {format: 'json', requestId}), error => {
+          await assert.rejects(client.startSource(text, {format: 'json', submissionRef}), error => {
             assert.equal(error.code, 'SubmissionPreparationFailed');
             refusalOutcome = error.outcome;
             assert.equal(refusalOutcome.kind, 'preparation_failed');
+            assert.deepEqual(refusalOutcome.submissionRef, submissionRef);
             refusalCode = refusalOutcome.problem.code;
             if (item.denyRead) assert.equal(refusalCode, 'ACTQL_E_ACCOUNT_DENIED');
             else assert.equal(refusalCode, 'ClientProgramRejected',
@@ -392,8 +395,7 @@ export async function exercisePlannerSelectionPublicQuery({connect, openInstalle
           });
           await new Promise(resolve => setImmediate(resolve));
           assert.deepEqual(provider.snapshot(), before, 'refusal performs zero provider opens and zero SQL');
-          assert.deepEqual(await client.lookupRequest(requestId), {kind: 'not_found'});
-          assert.deepEqual(await client.lookupSubmission(refusalOutcome.submissionRef), refusalOutcome,
+          assert.deepEqual(await client.lookupSubmission(submissionRef), refusalOutcome,
             'the same original submission retains its exact preparation refusal');
           assert.equal(readTwoSourceJournal(directory).length, 0, 'refusal accepts no Run');
           assert.equal(events.filter(event => event.name === 'acquisition_started').length, 0);
@@ -406,7 +408,7 @@ export async function exercisePlannerSelectionPublicQuery({connect, openInstalle
             provider: {sourceIo: 0, sourceReads: 0, sourceProviderOpens: []}});
           continue;
         }
-        const execution = await client.startSource(text, {format: 'json', requestId});
+        const execution = await client.startSource(text, {format: 'json', submissionRef});
         const state = await execution.wait({signal: AbortSignal.timeout(30_000)});
         assert.equal(state.status, 'succeeded', JSON.stringify({mode, name: item.name, state}));
         const result = execution.result('selected');
@@ -427,15 +429,18 @@ export async function exercisePlannerSelectionPublicQuery({connect, openInstalle
         const commands = assertSourceCommands(before, after, installation.database, item);
         const attached = await client.attach(execution.ref);
         assert.deepEqual(await attached.result('selected').all(), expectedRows);
-        const resent = await client.startSource(text, {format: 'json', requestId});
+        const resent = await client.startSource(text, {format: 'json', submissionRef});
         assert.deepEqual(resent.ref, execution.ref);
-        assert.deepEqual((await client.lookupRequest(requestId)).ref, execution.ref);
+        const lookup = await client.lookupSubmission(submissionRef);
+        assert.equal(lookup.kind, 'ready');
+        assert.deepEqual(lookup.submissionRef, submissionRef);
+        assert.deepEqual(lookup.admission.ref, execution.ref);
         assert.deepEqual(provider.snapshot(), after, 'retained reads and duplicate submission do not reacquire');
         assert.equal(readTwoSourceJournal(directory).length, 1);
         observations.push({mode, name: item.name, ref: execution.ref,
           selection, acquisition, sourceReadCommands: commands, rows, columns});
         console.log(`Public planner selection passed: ${mode}/${item.name}`);
-      } finally { client?.close(); await running.close(); }
+      } finally { await client?.close(); await running.close(); }
     }
     // Profile-only latency changes preserve the same checked requirement and
     // output contract, while the actual receipt-owner shape changes.
