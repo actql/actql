@@ -6,6 +6,7 @@ pub(all) enum NativeLocalInitialHostAttestationIssue {
   HostAttestationReviewer(NativeLocalEffectReviewerBindingIssue)
   HostAttestationProof(NativeLocalInitialResolutionSigningIssue)
   HostAttestationBody(@checkpoint.ResolutionIssue)
+  HostAttestationAuthorization(@authorization.DispatchBindingIssue)
   HostAttestationJournal(NativeClientRunJournalIssue)
   HostAttestationCredential(@credential_resource.NativeCredentialResourceIssue)
   HostAttestationPhysical(@crypto.NativeSignatureIssue)

@@ -62,28 +62,27 @@ fn[T] LocalCommandPreparationOriginal::with_saved_effect_journal(
 }
 
 ///|
-// Same currently adopted Account, independently of the historical approval.
-// A checked technical Mapping/installation is not Account Allow. File writes
-// use the existing write/Transfer tuple, not a guessed permission-name table.
+// Same current Account's Effect decision, bound to the actual original signed
+// Set approval. A technical Mapping, claim or unresolved Delegate grants no
+// write. The existing row/lease fence remains independently required before IO.
 fn LocalCommandPreparationOriginal::require_saved_effect_file_write(
   self : Self,
   capture : @local_host.NativeLocalJournalCapture,
-  configuration : LocalCommandConfiguration,
+  continuation : @local_host.NativeLocalEffectResumeOriginal,
   row : LocalNativeSavedEffectFileRow,
 ) -> Unit raise ClientStop {
-  let settings = configuration.settings
-  let tuple : @authorization.AccessTuple = {
-    principal: settings.principal,
-    connection: row._retained_installation._retained_source._retained_connection,
-    resource: row._retained_row_binding.view.resource,
-    operation: "write",
-  }
-  match capture.authorize_in_original_read(tuple) {
-    Ok(@authorization.Allow(_)) => ()
-    Ok(_) => stop("LocalOriginalEffectWriteDenied")
+  match
+    continuation.authorize_saved_file_effect_in_original_read(
+      capture,
+      row._retained_member_index,
+      row._retained_installation._retained_source._retained_declaration,
+      row._retained_installation.write.mapping,
+      row._retained_installation.binding,
+    ) {
+    Ok(_) => ()
     Err(issue) => {
-      self.retain_primary(CommandAdoption(issue))
-      stop("LocalOriginalEffectWriteUnavailable")
+      self.retain_primary(CommandSavedFileResume(issue))
+      stop("LocalOriginalEffectWriteDenied")
     }
   }
 }
@@ -329,7 +328,6 @@ fn LocalCommandPreparationOriginal::prepare_saved_effect_response_construction(
 fn LocalCommandPreparationOriginal::apply_saved_effect_files(
   self : Self,
   capture : @local_host.NativeLocalJournalCapture,
-  configuration : LocalCommandConfiguration,
   continuation : @local_host.NativeLocalEffectResumeOriginal,
   capacity : @execution.ExecutionCapacity,
   initial_raw : Int64,
@@ -395,9 +393,6 @@ fn LocalCommandPreparationOriginal::apply_saved_effect_files(
       .unwrap_or_else(() => stop("LocalOriginalEffectEntryUnavailable"))
     work.ledger = Some(ledger)
   })
-  for row in business.saved_effect_rows {
-    self.require_saved_effect_file_write(capture, configuration, row)
-  }
   self.with_saved_effect_journal(() => {
     match continuation.claim(30000L) {
       Ok(@local_host.Claimed(_)) => ()
@@ -408,6 +403,11 @@ fn LocalCommandPreparationOriginal::apply_saved_effect_files(
       }
     }
   })
+  // Claim is ownership only. Admit every actual target's current Effect tuple
+  // against that SAME original signed Set before the first row dispatch.
+  for row in business.saved_effect_rows {
+    self.require_saved_effect_file_write(capture, continuation, row)
+  }
   for row in business.saved_effect_rows {
     let member_index = row._retained_member_index
     let ordinal = row._retained_row_ordinal
@@ -421,7 +421,7 @@ fn LocalCommandPreparationOriginal::apply_saved_effect_files(
         row.request_cid,
       )
       .unwrap_or_else(() => stop("LocalOriginalEffectRowUnavailable"))
-    self.require_saved_effect_file_write(capture, configuration, row)
+    self.require_saved_effect_file_write(capture, continuation, row)
     let dispatch = self.with_saved_effect_journal(() => {
       match
         continuation.dispatch_row(
@@ -504,7 +504,7 @@ fn LocalCommandPreparationOriginal::apply_saved_effect_files(
     })
     let mut complete = false
     for _ in 0..<row._retained_row_binding.limits.max_work {
-      self.require_saved_effect_file_write(capture, configuration, row)
+      self.require_saved_effect_file_write(capture, continuation, row)
       self.with_saved_effect_journal(() => {
         match continuation.fence() {
           Ok(@local_host.Current) => ()
