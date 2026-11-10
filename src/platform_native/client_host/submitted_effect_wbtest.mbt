@@ -31,6 +31,24 @@ test "Native original Effect Submission is admitted without reserving or startin
   assert_false(before.dispatch_reserved)
   assert_false(before.physical_start_claimed)
   assert_true(before.checkpoint is None)
+  guard before.run_observation_originals is Some(observation_wire) else {
+    fail("original Effect admission omitted observation originals")
+  }
+  let observation = read_native_run_observation_originals(
+    observation_wire, definition,
+  ).unwrap()
+  assert_eq(
+    @publication.run_evidence_value_json(observation.prepared()),
+    @publication.run_evidence_value_json(
+      @host.client_effect_allowed_run_prepared(allowed),
+    ),
+  )
+  assert_eq(
+    @publication.run_evidence_value_json(observation.authorization()),
+    @publication.run_evidence_value_json(
+      @host.client_effect_allowed_run_authorization(allowed),
+    ),
+  )
   assert_eq(run_journal_custody(database, 8).unwrap().0, 1)
   let repeated = journal
     .accept_submitted_effect_run(

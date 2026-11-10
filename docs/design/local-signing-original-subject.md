@@ -156,6 +156,13 @@ The final Saved Run-state CAS also borrows the same Journal operation from the
 actual opaque publication observation's original publisher. Its original
 reference/Request join, independent RunRead Account, current publication and CAS
 remain in place; Store commit is not a substitute for that acknowledgement.
+First acceptance of an Effect Run retains the same original compiler's
+prepared invocation and authorization in the existing Journal observation
+envelope, alongside its original material packet. The projection validates the
+original Effect owner and Run; it creates no Effect-free compilation, policy or
+permission. Saved observation uses this retained metadata with its independent
+current Read. Already accepted rows without these originals remain unavailable;
+restoration and repeated acceptance cannot backfill them from a new compiler.
 The restoration-to-application boundary first retains the composed extent as
 data, then enters that same original constructor to acquire usable backing before
 resizing its byte token. A Read-side resize alone cannot acquire more business
