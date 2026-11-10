@@ -105,7 +105,7 @@ output:
 `,
     'mock/catalog.json': json({connections: {
       salesforce: {
-        views: [{resource: 'Account', resource_kind: 'record', schema: {
+        views: [{resource: 'Account', resource_kind: 'record', data_classification: 'internal', schema: {
           id: {type: 'string', nullable: false}, name: {type: 'string', nullable: false},
           description: {type: 'string', nullable: false},
           Churn_Risk__c: {type: 'string', nullable: false}, Risk_Reason__c: {type: 'string', nullable: true},
@@ -119,7 +119,7 @@ output:
           aliases: ['salesforce.Account']}],
       },
       snowflake: {
-        views: [{resource: 'usage_30d', resource_kind: 'table', schema: {
+        views: [{resource: 'usage_30d', resource_kind: 'table', data_classification: 'internal', schema: {
           account_id: {type: 'string', nullable: false}, active_users: {type: 'int64', nullable: false},
           trend: {type: 'string', nullable: false},
         }, facts: {relation_keys: {candidate_keys: [['account_id']]}}}],

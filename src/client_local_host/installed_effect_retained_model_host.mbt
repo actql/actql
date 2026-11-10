@@ -225,6 +225,7 @@ fn select_installed_effect_retained_model_host(
     0L,
     0L,
     0L,
+    captured_effect=if whole { Some(captured) } else { None },
   )
   match require_installed_managed_run(owner) {
     Ok(original) if physical_equal(original, ledger) &&
