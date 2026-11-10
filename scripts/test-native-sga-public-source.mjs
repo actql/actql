@@ -44,11 +44,28 @@ const sourceProfile = sourceOnly ? undefined :
   JSON.parse(await readFile(sourceProfilePath, 'utf8'));
 const hostCapacityPolicy = sourceOnly ? undefined :
   JSON.parse(sourceProfile.checkEnvironmentWire).host_policy_profile.capacity;
+// Source input permission is separate from public Run/Result observation.
+// Match the current packed Host fixture's original principal, Site and targets.
+const authorization = {accountConfiguration: JSON.stringify({
+  version: 'actql-execution-account-config/0.1', account_id: 'native-graph-http',
+  entries: [{entry_id: 'read-original', outcome: 'allow',
+    principal: {any_of: [userInfo().username]},
+    connection: {any_of: ['actql-remote-host']},
+    resource: {any_of: ['run', ...new Set(cases.flatMap(item =>
+      Object.keys(item.results).map(name => 'result/' + name)))].sort()},
+    operation: {any_of: ['read']}, exclusions: []},
+  {entry_id: 'request-original', outcome: 'allow',
+    principal: {any_of: [userInfo().username]},
+    connection: {any_of: ['actql-remote-host']},
+    resource: {any_of: [sourceOnly ? 'source-free-values' : 'duckdb-acquired']},
+    operation: {any_of: ['write']}, exclusions: []}],
+})};
 const host = await openInstalledRemoteHttpHost({
   directory: join(installation, 'sga-native-state'),
   // This isolated source-only corpus uses Values producers, so it needs no
   // external alias profile or provider schema injected by another test.
   ...(sourceOnly ? {} : {sourceProfilePath, hostCapacityPolicy}),
+  authorization,
   beforeDispatch: () => { dispatches++; },
   authenticate: header => header === 'Bearer fixture-token'
     ? userInfo().username : undefined,

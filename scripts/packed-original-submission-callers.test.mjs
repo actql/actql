@@ -32,14 +32,14 @@ function nodes(value, predicate, found = []) {
 function nativeGraphHostCaller() {
   const text = readFileSync(new URL('./test-native-sga-public-source.mjs', import.meta.url), 'utf8');
   const parsed = parse(text, {ecmaVersion: 'latest', sourceType: 'module'});
-  const names = ['sourceProfilePath', 'sourceProfile', 'hostCapacityPolicy', 'host'];
+  const names = ['sourceProfilePath', 'sourceProfile', 'hostCapacityPolicy', 'authorization', 'host'];
   const declarations = parsed.body.filter(node => node.type === 'VariableDeclaration' &&
     node.declarations.some(value => names.includes(value.id.name)));
   assert.equal(declarations.filter(node => node.declarations.some(value => value.id.name === 'host')).length, 1);
   // Execute only the actual caller's declarations with explicit file/Host ports,
   // without importing product modules or running the Native executable.
   return new Function('sourceOnly', 'installation', 'join', 'readFile',
-    'openInstalledRemoteHttpHost', 'userInfo', 'return (async () => {let dispatches = 0;\n' +
+    'openInstalledRemoteHttpHost', 'userInfo', 'cases = [{results: {answer: {}}}]', 'return (async () => {let dispatches = 0;\n' +
     declarations.map(node => text.slice(node.start, node.end)).join('\n') + '\nreturn host;})();');
 }
 
@@ -57,6 +57,7 @@ test('Native Graph Source Host forwards its exact selected profile policy once',
         assert.equal(options.directory, 'fixture-root/sga-native-state');
         assert.equal(options.sourceProfilePath, 'fixture-root/source-profile.json');
         assert.deepEqual(options.hostCapacityPolicy, capacity);
+        assert.equal(typeof options.authorization?.accountConfiguration, 'string');
         assert.equal(options.authenticate('Bearer fixture-token'), 'fixture-owner');
         assert.equal(options.authenticate('Bearer foreign'), undefined);
         return host;
@@ -76,6 +77,38 @@ test('Native Graph source-only Host retains default policy without reading a pro
       return host;
     }, () => ({username: 'fixture-owner'}));
   assert.equal(actual, host);
+});
+
+test('Native Graph Host policy scopes observation to its original principal site and authored Results', async () => {
+  for (const sourceOnly of [false, true]) {
+    const cases = [{results: {answer: {}, second: {}}}, {results: {answer: {}}}];
+    const before = structuredClone(cases);
+    let selected;
+    await nativeGraphHostCaller()(sourceOnly, 'fixture-root', (...parts) => parts.join('/'),
+      async () => JSON.stringify({checkEnvironmentWire: JSON.stringify({host_policy_profile: {capacity: {selected: 1}}})}),
+      async options => { selected = options; return {}; }, () => ({username: 'fixture-owner'}), cases);
+    assert.equal(typeof selected.authorization?.accountConfiguration, 'string');
+    const account = JSON.parse(selected.authorization.accountConfiguration);
+    assert.deepEqual(account, {version: 'actql-execution-account-config/0.1',
+      account_id: 'native-graph-http', entries: [
+        {entry_id: 'read-original', outcome: 'allow', principal: {any_of: ['fixture-owner']},
+          connection: {any_of: ['actql-remote-host']}, resource: {any_of: ['result/answer', 'result/second', 'run']},
+          operation: {any_of: ['read']}, exclusions: []},
+        {entry_id: 'request-original', outcome: 'allow', principal: {any_of: ['fixture-owner']},
+          connection: {any_of: ['actql-remote-host']},
+          resource: {any_of: [sourceOnly ? 'source-free-values' : 'duckdb-acquired']},
+          operation: {any_of: ['write']}, exclusions: []},
+      ]});
+    const read = account.entries[0], write = account.entries[1];
+    assert.equal(read.principal.any_of.includes('foreign-owner'), false);
+    assert.equal(read.connection.any_of.includes('foreign-site'), false);
+    assert.equal(read.resource.any_of.includes('result/foreign'), false);
+    assert.equal(read.operation.any_of.includes('write'), false);
+    assert.equal(write.resource.any_of.includes('run'), false);
+    assert.equal(write.resource.any_of.includes(sourceOnly ? 'duckdb-acquired' : 'source-free-values'), false);
+    assert.equal(selected.authenticate('Bearer foreign'), undefined);
+    assert.deepEqual(cases, before);
+  }
 });
 
 function nativeGraphSubmissionCaller(ports) {
