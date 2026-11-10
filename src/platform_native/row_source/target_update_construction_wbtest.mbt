@@ -1,5 +1,5 @@
 ///|
-test "Native staged update quote uses original response and changes without changing limits" {
+fn target_update_quote_work() -> Unit raise {
   let declaration = @rows.generate_row_declaration(
     "native-file-fixture",
     "fixture",
@@ -34,13 +34,13 @@ test "Native staged update quote uses original response and changes without chan
     },
     {
       page: {
-        max_bytes: 4000000,
-        max_nodes: 400000,
-        max_depth: 64,
-        max_rows: 10000,
+        max_bytes: 1048576,
+        max_nodes: 4096,
+        max_depth: 32,
+        max_rows: 100,
       },
-      max_work: 100000000,
-      chunk_bytes: 65536,
+      max_work: 16777216,
+      chunk_bytes: 8192,
       diagnostic_ceiling: 4096,
     },
   ).unwrap()
@@ -74,9 +74,9 @@ test "Native staged update quote uses original response and changes without chan
     536870912L,
   )
   assert_true(raw > 0L)
-  assert_eq(provider.limits.page.max_bytes, 4000000)
-  assert_eq(provider.limits.page.max_nodes, 400000)
-  for size in [-1, 4000001] {
+  assert_eq(provider.limits.page.max_bytes, 1048576)
+  assert_eq(provider.limits.page.max_nodes, 4096)
+  for size in [-1, 1048577] {
     assert_true(
       native_relation_file_target_update_construction(
         provider, 1, size, changes,

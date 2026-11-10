@@ -324,6 +324,7 @@ test "Native target I/O preserves a replaced file after ambiguous directory sync
 // Explicit quota callbacks, not a normal operation/Account supplier. Actual
 // original FS observations/readers prove the callback precedes body allocation.
 fn target_io_fixture_funding_work(directory : String) -> Unit raise {
+  target_update_quote_work()
   let provider = target_io_fixture_provider(directory, "target-funding.json")
   let calls = Ref(0)
   let measured = Ref(-1)

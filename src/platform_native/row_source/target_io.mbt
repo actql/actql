@@ -195,9 +195,6 @@ pub fn prepare_native_relation_file_target_io(
   predecessor? : NativeRelationFileReplacementAck? = None,
   before_response? : ((Int) -> Bool)? = None,
 ) -> Result[NativeRelationFileTargetIO, NativeRelationFileIssue] {
-  if update is Some(_) && before_response is Some(_) {
-    return Err(InvalidInput)
-  }
   prepare_native_relation_file_target_io_original(
     provider,
     writable,
@@ -228,6 +225,7 @@ pub fn prepare_native_relation_file_target_update_io(
     update=Some(update),
     predecessor~,
     before_response=Some(before_response),
+    staged_update=true,
   )
 }
 
@@ -239,6 +237,7 @@ fn prepare_native_relation_file_target_io_original(
   update? : (String, String, String)? = None,
   predecessor? : NativeRelationFileReplacementAck? = None,
   before_response? : ((Int) -> Bool)? = None,
+  staged_update? : Bool = false,
 ) -> Result[NativeRelationFileTargetIO, NativeRelationFileIssue] {
   if !file_capture_text(identity, provider.limits.page.max_bytes) ||
     writable.is_empty() ||
@@ -260,6 +259,11 @@ fn prepare_native_relation_file_target_io_original(
   if predecessor is Some(prior) &&
     (update is None || !physical_equal(prior.provider, provider)) {
     return Err(ForeignOriginal)
+  }
+  // Private constructor selection only, never authority or funding evidence.
+  // Keep the general entrance's original validation order and refusal.
+  if !staged_update && update is Some(_) && before_response is Some(_) {
+    return Err(InvalidInput)
   }
   let child : NativeRelationFileTargetIO = {
     original: None,

@@ -114,7 +114,9 @@ response continuation may grow that reservation only with that exact view in
 the same entered business scope. The default constructor retains its pristine,
 unclaimed contract. Absolute extents grow monotonically, including actual
 response backing and every earlier ACK; attempts, holdings and transfers are
-never reset or refunded. The callback runs outside file locks, followed by the
+never reset or refunded. The same work record increments an actual completed-ACK
+byte counter before fallible child close; startup funds row slots and the current
+I/O envelope, not every future row's maximum page. The callback runs outside file locks, followed by the
 same current filesystem generation and original logical row-version checks.
 
 ## Reviewer proof artifacts

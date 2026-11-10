@@ -335,16 +335,17 @@ fn LocalCommandPreparationOriginal::resolve_checkpoint_review(
           .application_original_in_original_read()
           .unwrap_or_else(() => stop("LocalCheckpointOriginalUnavailable"))
         if self.saved_effect_file_constructor_capacity(original)
-          is Some(capacity) {
+          is Some((capacity, raw)) {
           let capacity = saved_effect_file_application_capacity(
-            business.saved_effect_rows,
+            business.saved_effect_rows.length(),
             capacity,
+            0L,
           ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
           command_preparation_result(
             self.prepare_saved_effect_capacity(capture, capacity),
           )
           self.apply_saved_effect_files(
-            capture, configuration, continuation, capacity,
+            capture, configuration, continuation, capacity, raw,
           )
         }
         return self.publish_saved_effect_files(
@@ -367,7 +368,7 @@ fn LocalCommandPreparationOriginal::resolve_checkpoint_review(
 fn LocalCommandPreparationOriginal::saved_effect_file_constructor_capacity(
   self : Self,
   original : @local_host.NativeLocalSavedEffectApprovalOriginal,
-) -> @execution.ExecutionCapacity? raise ClientStop {
+) -> (@execution.ExecutionCapacity, Int64)? raise ClientStop {
   guard self.project is Some(project) &&
     project.mock_declarations is Some(mock) &&
     !mock.closing &&
@@ -387,7 +388,7 @@ fn LocalCommandPreparationOriginal::saved_effect_file_constructor_capacity(
     @run_host.prepared_client_effect_computation_candidate(materials.prepared),
   )
   let policy = @run_host.client_standard_effect_computation_limits()
-  let mut demand : @execution.ExecutionCapacity? = None
+  let mut demand : (@execution.ExecutionCapacity, Int64)? = None
   for member_index in 0..<@publication.effect_preview_member_count(preview) {
     guard @publication.effect_preview_member_effect_id(preview, member_index)
       is Some(effect_id) &&
@@ -513,7 +514,7 @@ fn LocalCommandPreparationOriginal::saved_effect_file_constructor_capacity(
         changes_wire,
         version,
       })
-      let (physical, _) = @row_file.native_relation_file_target_update_construction(
+      let (physical, raw) = @row_file.native_relation_file_target_update_construction(
         row_binding.provider,
         installation.write.mapping.write_fields.length(),
         0,
@@ -521,11 +522,14 @@ fn LocalCommandPreparationOriginal::saved_effect_file_constructor_capacity(
       ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
       demand = Some(
         match demand {
-          None => physical
-          Some(prior) =>
-            native_mock_effect_capacity_envelope(prior, physical).unwrap_or_else(() => {
-                stop("LocalOriginalEffectCapacityUnavailable")
-              },
+          None => (physical, raw)
+          Some((prior, prior_raw)) =>
+            (
+              native_mock_effect_capacity_envelope(prior, physical).unwrap_or_else(() => {
+                  stop("LocalOriginalEffectCapacityUnavailable")
+                },
+              ),
+              Int64::max(prior_raw, raw),
             )
         },
       )

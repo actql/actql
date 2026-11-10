@@ -15,6 +15,7 @@ priv struct LocalNativeSavedEffectRowTerminal {
 priv struct LocalNativeSavedEffectFileWork {
   mut capacity : @execution.ExecutionCapacity
   mut application_base_retained : Int64?
+  mut retained_ack_bytes : Int64
   mut entry : @initial_arena.InstalledArenaNonModelWorkEntry?
   mut ledger : @initial_resources.Ledger?
   mut reservation : @initial_resources.Reservation?
@@ -89,33 +90,26 @@ fn LocalCommandPreparationOriginal::require_saved_effect_file_write(
 
 ///|
 // The existing file implementation runs serially. Its one live decoder/Writer
-// peak overlaps all retained original ACK bodies and the actual caller slots.
+// peak overlaps actually retained original ACK bytes and checked row slots.
+// Future ACK bodies are not allocated or reserved at each row's page maximum.
 // Requests remain on their already-backed original Read, not copied here.
 fn saved_effect_file_application_capacity(
-  rows : Array[LocalNativeSavedEffectFileRow],
+  row_count : Int,
   physical : @execution.ExecutionCapacity,
+  retained_ack_bytes : Int64,
 ) -> @execution.ExecutionCapacity? {
-  let mut ack_bytes = 0L
-  for row in rows {
-    guard @execution.checked_preparation_add_product(
-        ack_bytes,
-        row._retained_row_binding.limits.page.max_bytes.to_int64(),
-        1L,
-      )
-      is Some(next) else {
-      return None
-    }
-    ack_bytes = next
+  if row_count < 0 || retained_ack_bytes < 0L {
+    return None
   }
-  let count = rows.length().to_int64()
+  let count = row_count.to_int64()
   guard @execution.preparation_representation_cost({
       // Work, entry/reservation/optional controls and one original child;
       // ACK/provider pairs and row-receipt tuples plus both growable backings.
       record_headers: 29L + 12L * count,
       reference_slots: 84L + 32L * count,
-      scalar_words: 28L + 12L * count,
+      scalar_words: 29L + 12L * count,
       owned_utf16_units: 0L,
-      owned_wire_bytes: ack_bytes,
+      owned_wire_bytes: retained_ack_bytes,
     })
     is Some(extra) &&
     @execution.checked_preparation_add_product(
@@ -206,6 +200,7 @@ fn LocalCommandPreparationOriginal::prepare_saved_effect_file_entry(
   let work : LocalNativeSavedEffectFileWork = {
     capacity,
     application_base_retained: None,
+    retained_ack_bytes: 0L,
     entry: None,
     ledger: None,
     reservation: None,
@@ -270,7 +265,11 @@ fn LocalCommandPreparationOriginal::prepare_saved_effect_response_construction(
       row.changes_wire,
     )
     is Some((physical, raw)) &&
-    saved_effect_file_application_capacity(business.saved_effect_rows, physical)
+    saved_effect_file_application_capacity(
+      business.saved_effect_rows.length(),
+      physical,
+      work.retained_ack_bytes,
+    )
     is Some(phase) &&
     @execution.checked_preparation_add_product(
       base,
@@ -325,6 +324,7 @@ fn LocalCommandPreparationOriginal::apply_saved_effect_files(
   configuration : LocalCommandConfiguration,
   continuation : @local_host.NativeLocalEffectResumeOriginal,
   capacity : @execution.ExecutionCapacity,
+  initial_raw : Int64,
 ) -> Unit raise ClientStop {
   guard self.business is Some(business) &&
     business.profile.kind == SavedEffectApply &&
@@ -360,7 +360,10 @@ fn LocalCommandPreparationOriginal::apply_saved_effect_files(
       entry.prepare_constructor_in_entered_scope(
         @execution.execution_capacity_retained_bytes(capacity),
         @execution.execution_capacity_execution_bytes(capacity),
-        Int64::max(header, array_header) + 64L * pointer,
+        Int64::max(
+          initial_raw,
+          Int64::max(header, array_header) + 64L * pointer,
+        ),
       ) {
       Ok(_) => ()
       Err(issue) => {
@@ -555,7 +558,13 @@ fn LocalCommandPreparationOriginal::apply_saved_effect_files(
           stop("LocalOriginalEffectReplacementUnacknowledged")
         })
       // Retain SAME ACK/body before close or its scope return can fail.
+      let ack_bytes = @execution.checked_preparation_add_product(
+        work.retained_ack_bytes,
+        ack.replacement().length().to_int64(),
+        1L,
+      ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
       work.acknowledgments.push((provider, ack))
+      work.retained_ack_bytes = ack_bytes
       work.response_pending = true
       match child.close() {
         Ok(true) => work.child = None

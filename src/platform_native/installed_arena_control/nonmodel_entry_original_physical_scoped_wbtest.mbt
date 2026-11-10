@@ -428,7 +428,7 @@ fn nonmodel_constructor_phases(
   read : InstalledArenaOriginalRead,
   execution : InstalledArenaRetainedExecution,
   entry : InstalledArenaNonModelWorkEntry,
-) -> Bool {
+) -> Bool raise {
   host.leave_local_host_phase(pair).unwrap()
   host.enter_domain_retained_execution(execution).unwrap()
   entry.prepare_constructor_in_entered_scope(8192L, 32768L, 256L).unwrap()

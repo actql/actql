@@ -37,9 +37,10 @@ pub fn native_relation_file_target_update_construction(
   }
   // The original String has not been encoded again merely to quote it. UTF8
   // needs at most three bytes per UTF16 unit; both original guards stay below.
+  let encoded_change_bytes = 3L * changes_wire.length().to_int64()
   let change_bytes = Int64::min(
     limits.page.max_bytes.to_int64(),
-    3L * changes_wire.length().to_int64(),
+    encoded_change_bytes,
   ).to_int()
   let change_bytes = Int::max(1, change_bytes)
   let change_nodes = Int::min(limits.page.max_nodes, change_bytes)
@@ -59,19 +60,20 @@ pub fn native_relation_file_target_update_construction(
     @execution.checked_preparation_add_product(128L, text, 6L) is Some(encoded) else {
     return None
   }
+  let text_profile = file_capture_text_contract_nodes(contract) is Some(_)
   // Numeric/reference/nested Contracts retain their full original output
   // envelope. Only the existing closed Text law bounds rendering by text.
-  let value_bytes = if file_capture_text_contract_nodes(contract) is Some(_) {
+  let value_bytes = if text_profile {
     Int64::min(limits.page.max_bytes.to_int64(), encoded).to_int()
   } else {
     limits.page.max_bytes
   }
-  let value_nodes = if file_capture_text_contract_nodes(contract) is Some(_) {
+  let value_nodes = if text_profile {
     change_nodes
   } else {
     limits.page.max_nodes
   }
-  let value_depth = if file_capture_text_contract_nodes(contract) is Some(_) {
+  let value_depth = if text_profile {
     change_depth
   } else {
     limits.page.max_depth
@@ -93,6 +95,7 @@ pub fn native_relation_file_target_update_construction(
     )
     is Some(observation) &&
     @files.native_filesystem_write_layout() is Some(writer) &&
+    @files.native_filesystem_read_layout() is Some(reader) &&
     @encode.text_writer_construction_inventory(
       projected.max_bytes,
       projected.max_nodes,
@@ -110,7 +113,7 @@ pub fn native_relation_file_target_update_construction(
         reference_slots: request.reference_slots,
         scalar_words: request.scalar_words,
         owned_utf16_units: request.owned_utf16_units,
-        owned_wire_bytes: change_bytes.to_int64(),
+        owned_wire_bytes: encoded_change_bytes,
       },
       {
         record_headers: normalizing.record_headers,
@@ -158,8 +161,13 @@ pub fn native_relation_file_target_update_construction(
     8L * 64L +
     10L * 17L +
     8L
-  let native = 2L *
-    (writer.writer_payload_bytes + writer.external_object_overhead_bytes) +
+  let native = reader.root_payload_bytes +
+    reader.reader_payload_bytes +
+    reader.observation_payload_bytes +
+    2L * reader.acquisition_payload_bytes +
+    5L * reader.external_object_overhead_bytes +
+    12L * provider.selection.directory.length().to_int64() +
+    2L * (writer.writer_payload_bytes + writer.external_object_overhead_bytes) +
     names +
     16L * limits.diagnostic_ceiling.to_int64() +
     6L
@@ -170,7 +178,7 @@ pub fn native_relation_file_target_update_construction(
       reference_slots: 32L,
       scalar_words: 16L,
       owned_utf16_units: 0L,
-      owned_wire_bytes: output_bytes + change_bytes.to_int64(),
+      owned_wire_bytes: output_bytes + encoded_change_bytes,
     })
     is Some(carriers) &&
     @execution.execution_capacity(
