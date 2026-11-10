@@ -1,4 +1,31 @@
 ///|
+fn saved_effect_review_fields(
+  wire : String,
+  limits : @checkpoint.WireLimits,
+) -> Result[@decode.ObjectView, NativeClientRunJournalIssue] {
+  let source = match
+    @source.parse_json_bytes_preserving(@utf8.encode(wire), {
+      max_input_bytes: limits.max_wire_bytes,
+      max_nodes: limits.max_nodes,
+      max_depth: limits.max_depth,
+    }) {
+    Ok(value) => value
+    Err(_) => return Err(CustodyLost)
+  }
+  let cursor = match
+    @decode.admit(source, {
+      max_nodes: limits.max_nodes,
+      max_depth: limits.max_depth,
+      max_string_bytes: limits.max_wire_bytes,
+      max_total_string_bytes: limits.max_wire_bytes,
+    }) {
+    Ok(value) => value
+    Err(_) => return Err(CustodyLost)
+  }
+  saved_effect_review_fields_from_cursor(cursor)
+}
+
+///|
 fn saved_effect_review_codec_fixture() -> String {
   (
     // Codec DATA only: these deliberately are not admitted computation bodies,

@@ -274,6 +274,21 @@ fn LocalCommandPreparationOriginal::apply_saved_effect_files(
   let capacity = work.capacity
   self.with_business_request(capture, () => {
     let entry = work.entry.unwrap()
+    let (header, _, _, array_header, pointer) = @initial_bootstrap.native_managed_value_layout()
+    // This immediate original Ledger/entered-controller frame has at most
+    //64 slots; variable IO backing is the separately admitted full capacity.
+    match
+      entry.prepare_constructor_in_entered_scope(
+        @execution.execution_capacity_retained_bytes(capacity),
+        @execution.execution_capacity_execution_bytes(capacity),
+        Int64::max(header, array_header) + 64L * pointer,
+      ) {
+      Ok(_) => ()
+      Err(issue) => {
+        self.retain_primary(CommandSavedFileEntry(issue))
+        stop("LocalOriginalEffectEntryUnavailable")
+      }
+    }
     let ledger = entry
       .take_entered_ledger(
         execution,

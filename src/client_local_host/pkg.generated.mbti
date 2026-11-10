@@ -1075,6 +1075,8 @@ pub fn[I] request_default_program_preparation_limits(ClientRequestPreparation[I]
 
 pub fn[I] request_model_direct_occurrences(ClientRequestPreparation[I], I) -> Result[@run_publication_host.ClientDirectAcquisitionOccurrences, ClientInstalledManagedRunIssue]
 
+pub fn request_model_recovery_capacity(Int64, Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn[I] request_model_recovery_direct_occurrences(ClientRequestPreparation[I], I, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, @run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientDirectAcquisitionOccurrences, ClientInstalledManagedRunIssue]
 
 pub fn request_model_recovery_effect_compiler_capacity(@run_publication_host.ClientEffectCompilationConstruction) -> @execution_relation.ExecutionCapacity?

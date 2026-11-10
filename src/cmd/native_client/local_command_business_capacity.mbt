@@ -210,6 +210,21 @@ fn LocalCommandPreparationOriginal::prepare_saved_effect_capacity(
     observation.effect_resume is Some(_) else {
     return Err(CommandUnavailable)
   }
+  if self.business is Some(business) &&
+    business.profile.kind == SavedEffectApply &&
+    business.selected_profile is Some(_) &&
+    business.domain is Some(_) &&
+    business.execution is Some(_) &&
+    business.operation is Some(_) &&
+    business.saved_effect_files is Some(_) &&
+    self.saved_observation_business_disjoint() &&
+    self.journal is Some(original) &&
+    physical_equal(original, capture) &&
+    !self.closing &&
+    !self.closed &&
+    self.primary is None {
+    return Ok(())
+  }
   self.prepare_saved_effect_construction_capacity(capture, capacity)
 }
 
