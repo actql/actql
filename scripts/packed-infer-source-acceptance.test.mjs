@@ -222,3 +222,39 @@ test('Source INFER retains the public implicit main Result for success and refus
     node.arguments[0].object.name === 'description' && node.arguments[0].property.name === 'resultName');
   assert.equal(description?.arguments[1]?.name, 'resultName');
 });
+
+test('Source INFER strict property filters refine only the compared original receiver', () => {
+  // A TRUE equality on value.risk excludes a NULL value receiver; it proves
+  // nothing about the unrelated nullable reason member. This is the same
+  // Object-path rule exercised by relation_typing/property_filter_refinement_test.
+  const filteredColumns = [
+    {name: 'id', contract: {type: 'string', nullable: false, max_utf8_bytes: 8}},
+    {name: 'note', contract: {type: 'string', nullable: false, max_utf8_bytes: 6}},
+    {name: 'assessment', contract: {
+      type: 'object', nullable: false, additional_properties: false, fields: {
+        input_key: {type: 'object', nullable: false,
+          additional_properties: false, fields: {
+            id: {type: 'string', nullable: false, max_utf8_bytes: 8},
+          }},
+        outcome: {type: 'string', nullable: false},
+        value: {type: 'object', nullable: false, additional_properties: false,
+          fields: {reason: {type: 'string', nullable: true},
+            risk: {type: 'string', nullable: false}}},
+      },
+    }},
+  ];
+  for (const name of ['keep-filter', 'folded-filter']) {
+    assert.match(sourceCases[name].source,
+      /WHERE assessment\.outcome = 'ok' AND assessment\.value\.risk = 'high'$/iu);
+    assert.deepEqual(sourceCases[name].columns, filteredColumns);
+    assert.deepEqual(sourceCases[name].rows, sourceCases.keep.rows);
+    assert.equal(sourceCases[name].calls, 1);
+  }
+  // The proof belongs to those predicates, not the ModelTask's output type.
+  for (const name of ['keep', 'default-keep', 'nullable-keep', 'empty']) {
+    const value = sourceCases[name].columns.find(column => column.name === 'assessment')
+      .contract.fields.value;
+    assert.equal(value.nullable, true);
+    assert.equal(value.fields.reason.nullable, true);
+  }
+});
