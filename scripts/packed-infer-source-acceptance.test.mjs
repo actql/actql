@@ -7,6 +7,7 @@ import {join} from 'node:path';
 import test from 'node:test';
 import {parse} from 'acorn';
 import {configuration} from './fixtures/installed-infer-fixture.mjs';
+import {sourceCases, sourceRuntimeRefusals} from './fixtures/infer-source-expectation.mjs';
 import {exercisePackedInferSource} from './packed-infer-source-acceptance.mjs';
 
 // Independent literal inventories, never read from the selected fixture map.
@@ -179,4 +180,45 @@ test('Source INFER Hosts retain the same authored Environment capacity as their 
     assert.deepEqual(JSON.parse(selected.modelInstallation.environmentWire).host_policy_profile.capacity,
       selected.hostCapacityPolicy, 'no replacement policy or derived capacity');
   }
+});
+
+
+test('Source INFER retains the public implicit main Result for success and refused reads', async () => {
+  // These authored read-only programs have no explicit RESULT. The public
+  // Source contract selects main; the old structured/historical answer recipe
+  // is separate (source_frontend/public_primary_test.mbt and the Result
+  // resource contract in docs/spec/execution.md).
+  for (const value of [...Object.values(sourceCases).map(value => value.source),
+    ...Object.values(sourceRuntimeRefusals)]) assert.doesNotMatch(value, /\bRESULT\b/iu);
+  const source = await readFile(new URL('./fixtures/packed-infer-source.mjs', import.meta.url), 'utf8');
+  const nodes = [];
+  function visit(node) {
+    if (node === null || typeof node !== 'object') return;
+    if (typeof node.type === 'string') nodes.push(node);
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value !== null && typeof value === 'object') visit(value);
+    }
+  }
+  visit(parse(source, {ecmaVersion: 'latest', sourceType: 'module'}));
+  const selected = nodes.find(node => node.type === 'VariableDeclarator' && node.id.name === 'resultName');
+  assert.equal(selected?.init?.value, 'main', 'pin the authored public contract, not observed Run output');
+  const reads = nodes.filter(node => node.type === 'CallExpression' &&
+    node.callee.type === 'MemberExpression' && node.callee.property.name === 'result');
+  // Initial + two attached + resend selectors; failed initial/attached each
+  // retain both all/describe. Stream and same-Run assertions use those readers.
+  assert.equal(reads.length, 8);
+  for (const call of reads) assert.equal(call.arguments[0]?.name, 'resultName');
+  const unavailable = nodes.filter(node => node.type === 'MemberExpression' &&
+    node.object.type === 'MemberExpression' && node.object.property.name === 'result_availability');
+  assert.equal(unavailable.length, 2);
+  for (const field of unavailable) {
+    assert.equal(field.computed, true);
+    assert.equal(field.property.name, 'resultName');
+  }
+  const description = nodes.find(node => node.type === 'CallExpression' &&
+    node.callee.type === 'MemberExpression' && node.callee.object.name === 'assert' &&
+    node.callee.property.name === 'equal' && node.arguments[0]?.type === 'MemberExpression' &&
+    node.arguments[0].object.name === 'description' && node.arguments[0].property.name === 'resultName');
+  assert.equal(description?.arguments[1]?.name, 'resultName');
 });
