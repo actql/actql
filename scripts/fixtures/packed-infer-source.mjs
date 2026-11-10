@@ -22,8 +22,8 @@ const source = phase === 'refusal' ? sourceRefusals[caseName] :
 assert.equal(typeof source, 'string', 'select one explicitly authored input');
 const root = join(process.cwd(), `${transport}-${caseName}-${phase === 'replay' ? 'capture' : phase}`);
 const requestId = `packed-infer-source-${transport}-${caseName}-${phase === 'replay' ? 'capture' : phase}`;
-const {installation, taskCid} = configuration(
-  JSON.parse(readFileSync('base-environment.json', 'utf8')));
+const baseEnvironment = JSON.parse(readFileSync('base-environment.json', 'utf8'));
+const {installation, taskCid} = configuration(baseEnvironment);
 const keys = generateKeyPairSync('ed25519');
 let calls = 0;
 const authorization = {
@@ -97,6 +97,7 @@ let client;
 try {
   if (transport === 'remote') {
     host = await openInstalledRemoteHttpHost({directory: root,
+      hostCapacityPolicy: baseEnvironment.host_policy_profile.capacity,
       authenticate: () => userInfo().username, authorization,
       modelInstallation: installation, registerModelProviders});
     server = createServer({cert: readFileSync('remote.crt'),
@@ -107,6 +108,7 @@ try {
   } else {
     client = await connect({mode: 'local', owner: 'local', durability: 'durable',
       installation: {directory: root, authorization,
+        hostCapacityPolicy: baseEnvironment.host_policy_profile.capacity,
         modelInstallation: installation, registerModelProviders}});
   }
   // Persist the original epoch-bound identity before submit/capture. Replay
