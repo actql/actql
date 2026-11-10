@@ -95,8 +95,10 @@ export const currentPackageConfigurations = Object.freeze({
   // The HTTP-header/native-control/discarded-projection/Definition and
   // empty-header regressions are JS-only. Removing
   // their selectors restores the reviewed scope-import descriptor exactly;
-  // production/WB imports, other targets and options are unchanged.
-  'src/client_local_host/moon.pkg': Object.freeze({digest: '5a8d99327028ad653aae66e18dcb81a190c2dadbe7b3a948ad30196149a0eac9', rule: 'literal-target-selectors-with-bound-source-membership', revision: '734b43cc49343b347f146b5b8b93a5d02f421c67'}),
+  // The successor adds only the real Model provider's WB import. Deleting
+  // that line restores the complete prior descriptor; production imports,
+  // target selectors and options are unchanged.
+  'src/client_local_host/moon.pkg': Object.freeze({digest: '5af382fee097e2f379cb3a50727ea88d0fc462f6d0beab3f15d0affb39971363', rule: 'literal-target-selectors-with-bound-source-membership', revision: '4c6c5793f750577c21724f75b09380e598f7a4c2'}),
   'src/connectors_builtin_node/moon.pkg': Object.freeze({digest: 'd515c9868140c30ef68b5778b71863813cad0d53cc7300e4ba8fcc3e00405d9d', rule: 'literal-js-foreign-library-with-bound-source-membership', revision: '6f27dfdf10aa232977277ec8580557463e44e81f'}),
   'src/execution_relation/moon.pkg': Object.freeze({digest: '2a223e06a52cbb8c01280e9d5c5132485434728f59271ff02900f74ea582d079', rule: 'literal-target-selectors-with-bound-source-membership', revision: '6813ab0330a17f99c8eef5c9f4a70480ecc7e96c'}),
   'src/native_values_integration/moon.pkg': Object.freeze({digest: 'aa3777f1835f552da0ea34a13bbcb0de9afeb6c96adeadfbb26b483ce683c54f', rule: 'literal-native-options-with-bound-source-membership'}),

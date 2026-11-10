@@ -254,15 +254,34 @@ test('current Local Host successor binds its pure Ledger-open import and preserv
   const rule = 'literal-target-selectors-with-bound-source-membership';
   const currentRevision = '734b43cc49343b347f146b5b8b93a5d02f421c67';
   const currentDigest = '5a8d99327028ad653aae66e18dcb81a190c2dadbe7b3a948ad30196149a0eac9';
+  const modelRevision = '4c6c5793f750577c21724f75b09380e598f7a4c2';
+  const modelDigest = '5af382fee097e2f379cb3a50727ea88d0fc462f6d0beab3f15d0affb39971363';
   const scopeRevision = 'ff4e214d60984ee7b5c42ae57943d0b6d3e95437';
   const catalogRevision = 'f213d49c0748b99a69ae25fd462e8f9d500d7109';
   const catalogDigest = '11e08f7a636e2e73d47863ea626632b5dbf6e45e16ba00a32a27952c72e4007e';
-  assert.deepEqual(currentPackageConfigurations[path], {revision: currentRevision, digest: currentDigest, rule});
+  assert.deepEqual(currentPackageConfigurations[path], {revision: modelRevision, digest: modelDigest, rule});
+  execFileSync('git', ['merge-base', '--is-ancestor', modelRevision, 'HEAD'], {cwd: root});
+  execFileSync('git', ['merge-base', '--is-ancestor', currentRevision, modelRevision], {cwd: root});
   execFileSync('git', ['merge-base', '--is-ancestor', currentRevision, 'HEAD'], {cwd: root});
   execFileSync('git', ['merge-base', '--is-ancestor', revision, 'HEAD'], {cwd: root});
   const reviewed = gitTree(root, revision), body = reviewed.read(path).toString();
   const keyedSelector = '    "request_native_keyed_plan_js_wbtest.mbt": [ "js" ],\n';
   const currentBody = gitTree(root, currentRevision).read(path).toString();
+  const modelBody = gitTree(root, modelRevision).read(path).toString();
+  const modelImport = '  "actql/actql/client_infer_host" @infer_host,\n';
+  assert.equal(hash(modelBody), modelDigest);
+  assert.equal(Buffer.byteLength(modelBody), 10392);
+  assert.equal(Buffer.byteLength(modelImport), 47);
+  assert.equal(modelBody.split(modelImport).length, 2);
+  assert.equal(modelBody.replace(modelImport, ''), currentBody,
+    'only the actual Model provider WB import extends the complete prior descriptor');
+  assert(modelBody.match(/\nimport \{([^{}]*)\} for "wbtest"/u)?.[1].includes(modelImport));
+  assert.equal(modelBody.match(/\nimport \{([^{}]*)\}\n/u)?.[0],
+    currentBody.match(/\nimport \{([^{}]*)\}\n/u)?.[0], 'production imports stay exact');
+  assert.deepEqual(packageImports(modelBody).imports,
+    [...packageImports(currentBody).imports, 'actql/actql/client_infer_host'].sort());
+  assert.equal(currentPackageConfigurationReviewFor(request(path, currentDigest)), null,
+    'the prior descriptor does not qualify the current provider dependency');
   const scopeBody = gitTree(root, scopeRevision).read(path).toString();
   const completionSelectors = ['installed_effect_header_lifetime_js_wbtest.mbt',
     'installed_effect_native_control_js_wbtest.mbt', 'installed_effect_discarded_projection_js_wbtest.mbt',
@@ -392,9 +411,9 @@ test('current Local Host successor binds its pure Ledger-open import and preserv
   assert.equal(currentPackageConfigurationReviewFor(request(path, hash(intakeRevision))), null);
   assert.deepEqual(packageImports(body).imports,
     [...packageImports(previous).imports, 'actql/actql/capacity_policy'].sort());
-  assert.equal(currentTree.read(path).toString(), currentBody);
+  assert.equal(currentTree.read(path).toString(), modelBody);
   assert.equal(hash(currentTree.read('toolchain.json')), toolchainDigest);
-  assert.equal(currentPackageConfigurationReviewFor(request(path, currentDigest))?.revision, currentRevision);
+  assert.equal(currentPackageConfigurationReviewFor(request(path, modelDigest))?.revision, modelRevision);
   assert.equal(currentPackageConfigurationReviewFor(request(path, digest)), null);
   assert.equal(currentPackageConfigurationReviewFor(request(path, hash(previous))), null);
   assert.equal(currentPackageConfigurationReviewFor(request(path, hash(introduced))), null);
@@ -422,28 +441,35 @@ test('current Local Host successor binds its pure Ledger-open import and preserv
     assert.equal(currentTree.entries.get(member)?.kind, 'blob');
     assert.equal(currentTree.entries.get(member)?.mode, '100644');
   }
-  for (const changed of [previous, callbackBody, valuesBody, effectBody, body, reentryBody, catalogBody, fourSelectorBody,
-    currentBody.replace('@request_scope,', '@unreviewed_scope,'),
-    currentBody.replace('actql/actql/logical_request_scope', 'actql/actql/unreviewed_scope'),
-    currentBody.replace(scopeImport, scopeImport + '  "actql/actql/unreviewed_scope" @extra,\n'),
-    currentBody.replace('@hubspot_catalog,', '@unreviewed_hubspot,'),
-    currentBody.replace('actql/actql/connectors/hubspot/catalog', 'actql/actql/unreviewed_catalog'),
-    currentBody.replace(dependency, ''), currentBody.replace('@capacity,', '@permission,'),
-    currentBody.replace('"moonbitlang/core/encoding/utf8"', '"moonbitlang/core/encoding/utf16"'),
-    ...[reentrySelector, keyedSelector, originalSelector, valuesSelector, ...selectors, ...successorSelectors].map(selector => currentBody.replace(selector, selector.replace('"js"', '"native"'))),
-    ...completionSelectors.flatMap(selector => [currentBody.replace(selector, ''),
-      currentBody.replace(selector, selector.replace('"js"', '"native"')),
-      currentBody.replace(selector, selector.replace('"js"', '"wasm"')),
-      currentBody.replace(selector, selector.replace('.mbt', '_unreviewed.mbt'))]),
-    currentBody.replace(keyedSelector, keyedSelector + '    "unreviewed_keyed_target.mbt": [ "js" ],\n'),
-    currentBody + '\noptions(pre_build: {command: "unreviewed"})\n']) {
+  for (const member of ['src/client_infer_host/moon.pkg', 'src/client_infer_host/local_provider.mbt']) {
+    assert(selected.paths.includes(member), member);
+    assert.equal(currentTree.entries.get(member)?.kind, 'blob');
+    assert.equal(currentTree.entries.get(member)?.mode, '100644');
+  }
+  for (const changed of [previous, callbackBody, valuesBody, effectBody, body, reentryBody, catalogBody, fourSelectorBody, currentBody,
+    modelBody.replace(modelImport, ''), modelBody.replace('@infer_host,', '@unreviewed_model,'),
+    modelBody.replace(modelImport, '').replace('import {\n', 'import {\n' + modelImport),
+    modelBody.replace('@request_scope,', '@unreviewed_scope,'),
+    modelBody.replace('actql/actql/logical_request_scope', 'actql/actql/unreviewed_scope'),
+    modelBody.replace(scopeImport, scopeImport + '  "actql/actql/unreviewed_scope" @extra,\n'),
+    modelBody.replace('@hubspot_catalog,', '@unreviewed_hubspot,'),
+    modelBody.replace('actql/actql/connectors/hubspot/catalog', 'actql/actql/unreviewed_catalog'),
+    modelBody.replace(dependency, ''), modelBody.replace('@capacity,', '@permission,'),
+    modelBody.replace('"moonbitlang/core/encoding/utf8"', '"moonbitlang/core/encoding/utf16"'),
+    ...[reentrySelector, keyedSelector, originalSelector, valuesSelector, ...selectors, ...successorSelectors].map(selector => modelBody.replace(selector, selector.replace('"js"', '"native"'))),
+    ...completionSelectors.flatMap(selector => [modelBody.replace(selector, ''),
+      modelBody.replace(selector, selector.replace('"js"', '"native"')),
+      modelBody.replace(selector, selector.replace('"js"', '"wasm"')),
+      modelBody.replace(selector, selector.replace('.mbt', '_unreviewed.mbt'))]),
+    modelBody.replace(keyedSelector, keyedSelector + '    "unreviewed_keyed_target.mbt": [ "js" ],\n'),
+    modelBody + '\noptions(pre_build: {command: "unreviewed"})\n']) {
     assert.equal(currentPackageConfigurationReviewFor(request(path, hash(changed))), null);
     const altered = {...currentTree, read: member => member === path ? Buffer.from(changed) : currentTree.read(member)};
     assert(packageSourceInputs({tree: altered, packages: ['src/client_local_host'], target: 'js'})
       .unresolved.includes('Unreviewed package configuration: ' + path));
   }
   for (const delta of [{target: 'native'}, {target: 'wasm'}, {toolchainDigest: '0'.repeat(64)}])
-    assert.equal(currentPackageConfigurationReviewFor({...request(path, currentDigest), ...delta}), null);
+    assert.equal(currentPackageConfigurationReviewFor({...request(path, modelDigest), ...delta}), null);
 });
 
 test('historical Local Host review preserves the original carrier, Source builder and Model completion preimages', () => {
