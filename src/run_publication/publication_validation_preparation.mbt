@@ -344,22 +344,10 @@ fn PublicationCommitPreparation::advance_bindings(
       )
       if done {
         child.cancel()
-        if preparation.retained_effectful is Some(original) {
-          let inputs = preparation.inputs.unwrap()
-          match
-            validate_retained_effectful_publication_commit(
-              original,
-              inputs.bindings,
-              inputs.request,
-              inputs.attempt,
-              inputs.index_entry,
-            ) {
-            Err(_) =>
-              return Err(
-                CommitReferenceMismatch("retained Effectful observation"),
-              )
-            Ok(_) => preparation.phase = Done
-          }
+        if preparation.retained_effectful is Some(_) {
+          // The same typed final original already proves computation. Keep
+          // all remaining request/attempt/index work in the bounded checker.
+          preparation.phase = BeginReferences
         } else if preparation.retained_capture is Some(original) &&
           original.matches_computation(chain) {
           preparation.phase = BeginReferences

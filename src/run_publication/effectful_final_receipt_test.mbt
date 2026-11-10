@@ -2329,11 +2329,42 @@ test "retained Effectful commit loans the existing observed state protocol and r
     )
     is Err(_),
   )
+  // One binding retains14 slots, but15 cannot also hold the actual child
+  // controls. Construction may retain inputs; it cannot claim validation done.
+  let tiny = prepare_retained_effectful_publication_commit_check(
+    final_evidence,
+    [binding],
+    request,
+    attempt,
+    index,
+    65536,
+    4096,
+    32,
+    15,
+  ).unwrap()
+  assert_true(tiny.finish_view() is Err(_))
+  assert_true(tiny.advance(1) is Err(_))
+  tiny.cancel()
   let bindings = [binding]
   let owner = prepare_retained_effectful_publication_commit_check(
     final_evidence, bindings, request, attempt, index, 65536, 4096, 32, 4096,
   ).unwrap()
   bindings.clear()
+  assert_true(owner.finish_view() is Err(_))
+  let first = owner.advance(1).unwrap()
+  assert_false(first.0)
+  assert_eq(first.1, 1)
+  let mut work = first.1
+  while true {
+    let (done, used) = owner.advance(1).unwrap()
+    assert_true(used <= 1)
+    work += used
+    if done {
+      break
+    }
+  }
+  assert_true(work > 1)
+
   let view = owner.finish_view().unwrap()
   assert_eq(owner.view_count(view), Ok(14))
   assert_true(physical_equal(owner.view_contract(view, 13).unwrap(), binding))
@@ -2378,6 +2409,9 @@ test "retained Effectful commit loans the existing observed state protocol and r
     32,
     4096,
   ).unwrap()
+  while !owner.advance(1).unwrap().0 {
+    ()
+  }
   let view = owner.finish_view().unwrap()
   assert_true(
     owner.begin_observed_commit(view, other, attempt, index) is Err(_),

@@ -239,13 +239,7 @@ pub fn prepare_retained_effectful_publication_commit_check(
     Ok(_) => ()
   }
   let bindings = bindings.copy()
-  match
-    validate_retained_effectful_publication_commit(
-      original, bindings, request, attempt, index,
-    ) {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
-  }
+
   let value = new_publication_commit_preparation(
     {
       origin: OwnedInputs,
@@ -273,7 +267,8 @@ pub fn prepare_retained_effectful_publication_commit_check(
     max_workspace,
   )
   value.retained_effectful = Some(original)
-  value.phase = Done
+  // All Result, binding and reference work stays in the existing bounded
+  // phases. Only the immutable computation fact is retained, not re-executed.
   value.live = need.to_int()
   value.peak = value.live
   Ok(value)
