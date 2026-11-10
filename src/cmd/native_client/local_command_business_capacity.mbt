@@ -206,12 +206,29 @@ fn LocalCommandPreparationOriginal::prepare_saved_effect_capacity(
   capture : @local_host.NativeLocalJournalCapture,
   capacity : @execution.ExecutionCapacity,
 ) -> Result[Unit, LocalCommandPreparationIssue] {
+  guard self.run_observation is Some(observation) &&
+    observation.effect_resume is Some(_) else {
+    return Err(CommandUnavailable)
+  }
+  self.prepare_saved_effect_construction_capacity(capture, capacity)
+}
+
+///|
+// The SAME already selected Saved business facility can back restoration
+// before signing. This prefix issues no Resume, claim, Request, dispatch or
+// Ledger view. The later activation wrapper still requires the original
+// signed Resume. Retain each physical stage before the next fallible step.
+fn LocalCommandPreparationOriginal::prepare_saved_effect_construction_capacity(
+  self : Self,
+  capture : @local_host.NativeLocalJournalCapture,
+  capacity : @execution.ExecutionCapacity,
+) -> Result[Unit, LocalCommandPreparationIssue] {
   guard self.host is Some(host) &&
     self.journal is Some(actual) &&
     physical_equal(actual, capture) &&
     self.journal_read_open &&
     self.run_observation is Some(observation) &&
-    observation.effect_resume is Some(_) &&
+    observation.saved_effect_review is Some(_) &&
     self.business is Some(business) &&
     business.profile.kind == SavedEffectApply &&
     self.saved_observation_business_disjoint() &&

@@ -707,34 +707,11 @@ pub fn NativeLocalEffectResumeOriginal::prepare_file_application_controls_in_ori
     !resources.interrupted else {
     return Err(HostAttestationUnavailable)
   }
-  let controls = match
-    @execution.preparation_representation_cost({
-      // Direct original entry H33/R34/S71 (same existing entry constructor).
-      // Work H1/R7/S3; its two empty/growing array controls H4/R18/S4.
-      // Eight Option/Result/closure/failure frontiers H8/R12/S8. All
-      // variable requests are already retained on this SAME original Read.
-      record_headers: 33L + 1L + 4L + 8L,
-      reference_slots: 34L + 7L + 18L + 12L,
-      scalar_words: 71L + 3L + 4L + 8L,
-      owned_utf16_units: 0L,
-      owned_wire_bytes: 0L,
-    }) {
-    Some(value) => value
-    None => return Err(HostAttestationUnavailable)
-  }
-  match
-    resources.host.prepare_domain_original_read_retained_construction(
-      resources.read,
-      controls,
-      controls,
-      controls,
-    ) {
-    Err(issue) =>
-      return Err(HostAttestationOriginal(OriginalResources(@arena.Read(issue))))
+  match read.owner.capture.prepare_saved_effect_file_entry_in_original_read() {
     Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
-  // Actual backing/current may call out. Keep the SAME Saved original after
-  // return without repeating Account, parsing or immutable Plan preparation.
+  // Backing/current may call out. Preserve this SAME Saved subject.
   if self.retired || !read.owner.saved_approval_original_live(original) {
     return Err(HostAttestationUnavailable)
   }
@@ -784,4 +761,58 @@ pub fn NativeLocalSavedEffectApprovalOriginal::computation_publication_originals
     self.captured,
     self.computation,
   )
+}
+
+///|
+fn saved_effect_file_entry_control_bytes() -> Int64 {
+  @execution.preparation_representation_cost({
+    // Direct original entry H33/R34/S73 (same existing entry constructor).
+    // Work H1/R7/S3; its two empty/growing array controls H4/R18/S4.
+    // Eight Option/Result/closure/failure frontiers H8/R12/S8. All
+    // variable requests are already retained on this SAME original Read.
+    record_headers: 33L + 1L + 4L + 8L,
+    reference_slots: 34L + 7L + 18L + 12L,
+    scalar_words: 73L + 3L + 4L + 8L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).unwrap()
+}
+
+///|
+// The exact existing entry/controller inventory, funded on the SAME original
+// command Read before either restoration construction or later dispatch.
+// This supplies no entry, capacity token, signing/dispatch permission or ACK.
+pub fn NativeLocalJournalCapture::prepare_saved_effect_file_entry_in_original_read(
+  self : NativeLocalJournalCapture,
+) -> Result[Unit, NativeLocalInitialHostAttestationIssue] {
+  guard !self.closing &&
+    self.read_callback_active &&
+    self.read_facts_valid &&
+    self.original_resources is Some(resources) &&
+    resources.active_phase is Some(@arena.HostRead) &&
+    !resources.interrupted else {
+    return Err(HostAttestationUnavailable)
+  }
+  let controls = saved_effect_file_entry_control_bytes()
+  match
+    resources.host.prepare_domain_original_read_retained_construction(
+      resources.read,
+      controls,
+      controls,
+      controls,
+    ) {
+    Err(issue) =>
+      return Err(HostAttestationOriginal(OriginalResources(@arena.Read(issue))))
+    Ok(_) => ()
+  }
+  if self.closing ||
+    !(self.original_resources is Some(actual) &&
+    physical_equal(actual, resources)) ||
+    !self.read_callback_active ||
+    !self.read_facts_valid ||
+    resources.interrupted ||
+    !(resources.active_phase is Some(@arena.HostRead)) {
+    return Err(HostAttestationUnavailable)
+  }
+  Ok(())
 }

@@ -89,6 +89,8 @@ fn command_preparation_cleanup_cause(
     CommandSavedFileEntry(cause) =>
       match cause {
         Unavailable => "SavedFileEntryUnavailable"
+        Domain(Bootstrap(_)) => "SavedFileEntryDomainBootstrap"
+        Domain(Accounting(_)) => "SavedFileEntryDomainAccounting"
         Resource(ledger) =>
           "SavedFileEntryResource" +
           local_submission_ledger_tag(ledger).to_string()

@@ -11,8 +11,10 @@ struct InstalledArenaNonModelWorkEntry {
   ledger : @resources.Ledger
   control : @resources.CapacityReservation
   ledger_view : @resources.Ledger?
-  retained_bytes : Int64
-  execution_bytes : Int64
+  mut retained_bytes : Int64
+  mut execution_bytes : Int64
+  mut growing : Bool
+  mut constructor_entered : Bool
   mut claimed : Bool
   mut finished : Bool
   mut settled : Bool
@@ -23,6 +25,7 @@ struct InstalledArenaNonModelWorkEntry {
 pub(all) enum InstalledArenaNonModelWorkEntryIssue {
   Unavailable
   Resource(@resources.LedgerIssue)
+  Domain(@bootstrap.NativeBackedExecutionIssue)
 }
 
 ///|
@@ -172,6 +175,8 @@ pub fn InstalledArenaHost::prepare_domain_nonmodel_work_entry(
     ledger_view: Some(ledger),
     retained_bytes,
     execution_bytes,
+    growing: false,
+    constructor_entered: false,
     claimed: false,
     finished: false,
     settled: false,
@@ -191,6 +196,182 @@ pub fn InstalledArenaHost::prepare_domain_nonmodel_work_entry(
 }
 
 ///|
+/// Grow the SAME unclaimed constructor reservation before the next original
+/// phase. No second Ledger, reservation, attempt or borrower view is issued.
+/// Constructor payload already returned from the business scope remains held;
+/// only byte demand grows. A failed/current/reentrant return keeps the original
+/// token and physical cleanup responsibility, never a refund or replacement.
+pub fn InstalledArenaNonModelWorkEntry::grow_in_original_read(
+  self : InstalledArenaNonModelWorkEntry,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[Unit, InstalledArenaNonModelWorkEntryIssue] {
+  guard self.is_original() &&
+    !self.closed &&
+    !self.growing &&
+    !self.claimed &&
+    !self.finished &&
+    !self.settled &&
+    retained_bytes >= self.retained_bytes &&
+    execution_bytes >= self.execution_bytes &&
+    self.host.nonmodel_entry_scopes_match(
+      self.pair,
+      self.read,
+      self.execution,
+      false,
+      false,
+    ) &&
+    self.owns_only_control() else {
+    return Err(Unavailable)
+  }
+  self.growing = true
+  defer {
+    self.growing = false
+  }
+  match
+    @resources.grow_capacity_reservation(
+      self.ledger,
+      self.control,
+      retained_bytes,
+      execution_bytes,
+    ) {
+    Err(issue) => return Err(Resource(issue))
+    Ok(_) => ()
+  }
+  // Preserve the actual successful debit even if the original callback spent
+  // this enclosing scope. Later cleanup settles this exact grown token.
+  self.retained_bytes = retained_bytes
+  self.execution_bytes = execution_bytes
+  if !self.is_original() ||
+    self.closed ||
+    self.claimed ||
+    self.finished ||
+    self.settled ||
+    !self.host.nonmodel_entry_scopes_match(
+      self.pair,
+      self.read,
+      self.execution,
+      false,
+      false,
+    ) ||
+    !self.owns_only_control() {
+    return Err(Unavailable)
+  }
+  Ok(())
+}
+
+///|
+/// Fund a constructor inside this SAME original business scope before its
+/// first allocation. Actual contiguous placement is independent of the R/E
+/// envelope. The existing backing owner checks policy/current, acquires and
+/// publishes real storage; only then does the SAME byte token grow.
+/// No Ledger view, new reservation, attempt or original Read is issued.
+pub fn InstalledArenaNonModelWorkEntry::prepare_constructor_in_entered_scope(
+  self : InstalledArenaNonModelWorkEntry,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+  contiguous_bytes : Int64,
+) -> Result[Unit, InstalledArenaNonModelWorkEntryIssue] {
+  guard self.is_original() &&
+    !self.closed &&
+    !self.growing &&
+    !self.claimed &&
+    !self.finished &&
+    !self.settled &&
+    retained_bytes >= self.retained_bytes &&
+    execution_bytes >= self.execution_bytes &&
+    contiguous_bytes > 0L &&
+    self.owns_only_control() &&
+    self.execution.live is Some(live) &&
+    self.host.nonmodel_entry_scopes_match(
+      self.pair,
+      self.read,
+      self.execution,
+      true,
+      false,
+    ) else {
+    return Err(Unavailable)
+  }
+  self.growing = true
+  defer {
+    self.growing = false
+  }
+  // Keep the attempted constructor/physical growth even if a current callback
+  // refuses. A later unclaimed cancellation must not refund retained payload.
+  self.constructor_entered = true
+  match
+    self.execution.domain.backing.prepare_backed_original_read_working(
+      self.host,
+      live,
+      self.execution,
+      retained_bytes,
+      execution_bytes,
+      contiguous_bytes,
+    ) {
+    Err(issue) => return Err(Domain(issue))
+    Ok(_) => ()
+  }
+  match
+    @resources.grow_capacity_reservation(
+      self.ledger,
+      self.control,
+      retained_bytes,
+      execution_bytes,
+    ) {
+    Err(issue) => return Err(Resource(issue))
+    Ok(_) => ()
+  }
+  self.retained_bytes = retained_bytes
+  self.execution_bytes = execution_bytes
+  if !self.is_original() ||
+    self.closed ||
+    self.claimed ||
+    self.finished ||
+    self.settled ||
+    !self.owns_only_control() ||
+    !self.host.nonmodel_entry_scopes_match(
+      self.pair,
+      self.read,
+      self.execution,
+      true,
+      false,
+    ) {
+    return Err(Unavailable)
+  }
+  Ok(())
+}
+
+///|
+/// Match the original Host/Read tuple only inside this already retained
+/// constructor's business scope. No callback or new admission is performed.
+/// A copied token, other Read or later IO/Ledger borrower cannot use this view.
+pub fn InstalledArenaNonModelWorkEntry::constructor_scope_for(
+  self : InstalledArenaNonModelWorkEntry,
+  host : InstalledArenaHost,
+  pair : InstalledArenaLocalHostResources,
+  read : InstalledArenaOriginalRead,
+) -> Bool {
+  self.is_original() &&
+  self.constructor_entered &&
+  !self.growing &&
+  !self.claimed &&
+  !self.finished &&
+  !self.settled &&
+  !self.closed &&
+  physical_equal(self.host, host) &&
+  physical_equal(self.pair, pair) &&
+  physical_equal(self.read, read) &&
+  self.owns_only_control() &&
+  self.host.nonmodel_entry_scopes_match(
+    self.pair,
+    self.read,
+    self.execution,
+    true,
+    false,
+  )
+}
+
+///|
 /// Return a preallocated view only in the exact funded business scope. Invalid
 /// and reused calls return inline None before any allocating current observer.
 /// This never weakens the ordinary entered-only Ledger-borrow API.
@@ -202,6 +383,7 @@ pub fn InstalledArenaNonModelWorkEntry::take_entered_ledger(
 ) -> @resources.Ledger? {
   if !self.is_original() ||
     self.closed ||
+    self.growing ||
     self.claimed ||
     self.finished ||
     !physical_equal(self.execution, execution) ||
@@ -291,6 +473,7 @@ pub fn InstalledArenaNonModelWorkEntry::finish_business_cleanup(
 ) -> Bool {
   if !self.is_original() ||
     self.closed ||
+    self.growing ||
     !self.claimed ||
     !self.host.nonmodel_entry_scopes_match(
       self.pair,
@@ -315,6 +498,8 @@ pub fn InstalledArenaNonModelWorkEntry::cancel_unclaimed_in_original_read(
     return true
   }
   if !self.is_original() ||
+    self.growing ||
+    self.constructor_entered ||
     self.claimed ||
     !self.host.nonmodel_entry_scopes_match(
       self.pair,
@@ -348,6 +533,7 @@ pub fn InstalledArenaNonModelWorkEntry::close_after_original_return(
     return true
   }
   if !self.is_original() ||
+    self.growing ||
     retained_execution_control_scope_clear_ffi() != 1 ||
     (self.claimed && !self.finished) ||
     self.execution.active ||

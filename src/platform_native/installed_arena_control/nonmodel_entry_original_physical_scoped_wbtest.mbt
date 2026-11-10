@@ -130,14 +130,16 @@ fn nonmodel_eligible_original_work(
 fn nonmodel_physical_entry_case(
   claimed : Bool,
   retained_frame? : Bool = false,
+  constructing? : Bool = false,
 ) -> Unit raise {
   let root = @env.get_env_var("ACTQL_TEST_INSTALLED_PROCESS_ROOT").unwrap()
   let sqlite_path = @env.get_env_var("ACTQL_TEST_SQLITE_COMPONENT").unwrap()
   let page = domain_page_bytes()
-  // Direct arena preparation is H33/R34/S71=1368B; the actual shallow copy
-  // adds H1/R8/S6=128B. Compose before the one-shot consumer admission.
-  let read_entry_bytes = 34L * 16L + 42L * 8L + 77L * 8L
-  assert_eq(read_entry_bytes, 1496L)
+  // Direct arena preparation adds the two constructor/grow state words;
+  // its actual shallow copy retains those same two words as DATA.
+  // H34/R42/S81 includes both original and copy before consumer admission.
+  let read_entry_bytes = 34L * 16L + 42L * 8L + 81L * 8L
+  assert_eq(read_entry_bytes, 1528L)
   // Successful direct enter-after-C plus leave-before-C: H8/R4/S10.
   // This reservation remains open until actual business C retirement.
   let control_bytes = 8L * 16L + 4L * 8L + 10L * 8L
@@ -181,7 +183,13 @@ fn nonmodel_physical_entry_case(
     attempts: 0,
     holdings: 2,
     transfer_bytes: 4096L,
-    retained_bytes: page,
+    // This distinct constructor case admits its real current/backing/resize
+    // frame plus the retained String; original take-only cases stay unchanged.
+    retained_bytes: if constructing {
+      16L * page
+    } else {
+      page
+    },
     execution_bytes: 32L * page,
   }
   // The SAME root pays one reserved backing attempt plus one provisioning
@@ -303,7 +311,9 @@ fn nonmodel_physical_entry_case(
       1024L * page + read_entry_bytes,
     )
     .unwrap()
-  let proved = if claimed {
+  let proved = if constructing {
+    nonmodel_constructor_original_work(host, pair, read, execution)
+  } else if claimed {
     nonmodel_eligible_original_work(host, pair, read, execution, control_bytes)
   } else {
     nonmodel_unclaimed_original_work(
@@ -390,4 +400,78 @@ test "unclaimed original entry retires only after actual parent scope return" {
 ///|
 test "simultaneous Read frame preserves prior backing through original retirement" {
   nonmodel_physical_entry_case(false, retained_frame=true)
+}
+
+///|
+// Business payload is scoped inside this helper, so its original String has
+// dropped before the outer owner attempts actual context retirement.
+fn nonmodel_constructor_phases(
+  host : InstalledArenaHost,
+  pair : InstalledArenaLocalHostResources,
+  read : InstalledArenaOriginalRead,
+  execution : InstalledArenaRetainedExecution,
+  entry : InstalledArenaNonModelWorkEntry,
+) -> Bool {
+  host.leave_local_host_phase(pair).unwrap()
+  host.enter_domain_retained_execution(execution).unwrap()
+  entry.prepare_constructor_in_entered_scope(8192L, 32768L, 256L).unwrap()
+  // Actual fixed UTF16 payload:64 units+terminator/header fits the independent
+  // 256B placement, unrelated to either logical byte reservation dimension.
+  let held = String::make(64, 'x')
+  let first = entry.constructor_scope_for(host, pair, read)
+  host.leave_domain_retained_execution(execution).unwrap()
+  host.enter_local_host_phase(pair, HostRead).unwrap()
+  let cancel_refused = !entry.cancel_unclaimed_in_original_read()
+  entry.grow_in_original_read(12288L, 49152L).unwrap()
+  let token_same = entry.owns_only_control() &&
+    entry.usage().live_reservations == 1
+  host.leave_local_host_phase(pair).unwrap()
+  host.enter_domain_retained_execution(execution).unwrap()
+  entry.prepare_constructor_in_entered_scope(16384L, 65536L, 256L).unwrap()
+  let second = entry.constructor_scope_for(host, pair, read) &&
+    held.length() == 64 &&
+    held[0] == 'x'
+  let ledger = entry.take_entered_ledger(execution, 16384L, 65536L).unwrap()
+  let same = physical_equal(ledger, execution.ledger.unwrap()) &&
+    entry.usage().attempts == 0 &&
+    entry.usage().holdings == 0 &&
+    entry.usage().transferred_bytes == 0L
+  let finished = entry.finish_business_cleanup()
+  host.leave_domain_retained_execution(execution).unwrap()
+  first && second && token_same && cancel_refused && same && finished
+}
+
+///|
+fn nonmodel_constructor_original_work(
+  host : InstalledArenaHost,
+  pair : InstalledArenaLocalHostResources,
+  read : InstalledArenaOriginalRead,
+  execution : InstalledArenaRetainedExecution,
+) -> Bool raise {
+  host.enter_local_host_phase(pair, HostRead).unwrap()
+  let entry = match
+    host.prepare_domain_nonmodel_work_entry(pair, read, execution, 4096L, 8192L) {
+    Some(Ok(ReadyNonModelWorkEntry(value))) => value
+    _ => fail("constructor original entry")
+  }
+  entry.grow_in_original_read(8192L, 32768L).unwrap()
+  let proved = nonmodel_constructor_phases(host, pair, read, execution, entry)
+  // Actual context retirement/settlement after all returned payload aliases
+  // dropped, not a manually changed field or a synthetic cleanup receipt.
+  assert_true(entry.close_after_original_return())
+  assert_true(
+    execution.physical_retired && execution.reported && execution.closed,
+  )
+  let usage = entry.usage()
+  assert_eq(usage.live_reservations, 0)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_eq(usage.attempts, 0)
+  assert_eq(usage.transferred_bytes, 0L)
+  proved
+}
+
+///|
+test "same original constructor backing grows across Read and business before one IO borrow" {
+  nonmodel_physical_entry_case(true, constructing=true)
 }

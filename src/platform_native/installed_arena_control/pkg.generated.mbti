@@ -453,9 +453,12 @@ type InstalledArenaNonModelWorkEntry
 pub fn InstalledArenaNonModelWorkEntry::business_cleanup_complete(Self) -> Bool
 pub fn InstalledArenaNonModelWorkEntry::cancel_unclaimed_in_original_read(Self) -> Bool
 pub fn InstalledArenaNonModelWorkEntry::close_after_original_return(Self) -> Bool
+pub fn InstalledArenaNonModelWorkEntry::constructor_scope_for(Self, InstalledArenaHost, InstalledArenaLocalHostResources, InstalledArenaOriginalRead) -> Bool
 pub fn InstalledArenaNonModelWorkEntry::finish_business_cleanup(Self) -> Bool
+pub fn InstalledArenaNonModelWorkEntry::grow_in_original_read(Self, Int64, Int64) -> Result[Unit, InstalledArenaNonModelWorkEntryIssue]
 pub fn InstalledArenaNonModelWorkEntry::matches_business_scope(Self, Bool) -> Bool
 pub fn InstalledArenaNonModelWorkEntry::owns_only_control(Self) -> Bool
+pub fn InstalledArenaNonModelWorkEntry::prepare_constructor_in_entered_scope(Self, Int64, Int64, Int64) -> Result[Unit, InstalledArenaNonModelWorkEntryIssue]
 pub fn InstalledArenaNonModelWorkEntry::take_entered_ledger(Self, InstalledArenaRetainedExecution, Int64, Int64) -> @physical_resources.Ledger?
 pub fn InstalledArenaNonModelWorkEntry::usage(Self) -> @physical_resources.LedgerUsage
 
@@ -467,6 +470,7 @@ pub(all) enum InstalledArenaNonModelWorkEntryAcquisition {
 pub(all) enum InstalledArenaNonModelWorkEntryIssue {
   Unavailable
   Resource(@physical_resources.LedgerIssue)
+  Domain(@host_bootstrap.NativeBackedExecutionIssue)
 }
 
 pub(all) enum InstalledArenaOperation {

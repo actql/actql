@@ -13,7 +13,7 @@ priv struct LocalNativeSavedEffectRowTerminal {
 // Caller custody on the SAME command. Arena/Resource/FS/Journal remain the
 // owners of their respective acknowledgements; this record issues none.
 priv struct LocalNativeSavedEffectFileWork {
-  capacity : @execution.ExecutionCapacity
+  mut capacity : @execution.ExecutionCapacity
   mut entry : @initial_arena.InstalledArenaNonModelWorkEntry?
   mut ledger : @initial_resources.Ledger?
   mut reservation : @initial_resources.Reservation?
@@ -135,30 +135,73 @@ fn saved_effect_file_application_capacity(
 }
 
 ///|
-fn LocalCommandPreparationOriginal::apply_saved_effect_files(
+// One original byte token serves restoration constructors and later IO. The
+// caller backs this entry/control frame on the original Read BEFORE entering.
+// A later phase adds its retained data, takes a scratch maximum, and grows the
+// same token before any allocation. No attempt, holding or transfer is reset.
+fn LocalCommandPreparationOriginal::prepare_saved_effect_file_entry(
   self : Self,
-  capture : @local_host.NativeLocalJournalCapture,
-  configuration : LocalCommandConfiguration,
-  continuation : @local_host.NativeLocalEffectResumeOriginal,
   capacity : @execution.ExecutionCapacity,
 ) -> Unit raise ClientStop {
   guard self.business is Some(business) &&
     business.profile.kind == SavedEffectApply &&
-    business.saved_effect_files is None &&
     business.execution is Some(execution) &&
     self.host is Some(host) &&
     self.pair is Some(pair) &&
     self.read is Some(read) else {
-    stop("LocalOriginalEffectExecutionUnavailable")
+    stop("LocalOriginalEffectEntryUnavailable")
   }
-  continuation
-  .prepare_saved_publication_construction_in_original_read()
-  .map_err(issue => CommandSavedEffectPublication(issue))
-  |> command_preparation_result
-  continuation
-  .prepare_file_application_controls_in_original_read()
-  .map_err(issue => CommandSavedFileResume(issue))
-  |> command_preparation_result
+  if business.saved_effect_files is Some(work) {
+    guard work.entry is Some(entry) &&
+      work.ledger is None &&
+      work.child is None &&
+      work.reservation is None &&
+      work.acknowledgments.is_empty() &&
+      work.receipts.is_empty() &&
+      work.publication is None &&
+      !work.response_pending else {
+      stop("LocalOriginalEffectEntryUnavailable")
+    }
+    let old_retained = @execution.execution_capacity_retained_bytes(
+      work.capacity,
+    )
+    guard @execution.checked_preparation_add_product(
+        old_retained,
+        @execution.execution_capacity_retained_bytes(capacity),
+        1L,
+      )
+      is Some(retained) &&
+      @execution.checked_preparation_add_product(
+        old_retained,
+        @execution.execution_capacity_execution_bytes(capacity),
+        1L,
+      )
+      is Some(overlap) &&
+      @execution.execution_capacity(
+        retained,
+        Int64::max(
+          @execution.execution_capacity_execution_bytes(work.capacity),
+          overlap,
+        ),
+      )
+      is Some(combined) else {
+      stop("LocalOriginalEffectCapacityUnavailable")
+    }
+    // Preserve the attempted phase tuple even on a declined/current return;
+    // actual token/physical cleanup remains on the existing entry itself.
+    work.capacity = combined
+    match
+      entry.grow_in_original_read(
+        retained,
+        @execution.execution_capacity_execution_bytes(combined),
+      ) {
+      Ok(_) => return
+      Err(issue) => {
+        self.retain_primary(CommandSavedFileEntry(issue))
+        stop("LocalOriginalEffectEntryUnavailable")
+      }
+    }
+  }
   let work : LocalNativeSavedEffectFileWork = {
     capacity,
     entry: None,
@@ -199,6 +242,36 @@ fn LocalCommandPreparationOriginal::apply_saved_effect_files(
   if !ready {
     stop("LocalOriginalEffectEntryPending")
   }
+  // Entry is retained before every later current/callback or scope switch.
+}
+
+///|
+fn LocalCommandPreparationOriginal::apply_saved_effect_files(
+  self : Self,
+  capture : @local_host.NativeLocalJournalCapture,
+  configuration : LocalCommandConfiguration,
+  continuation : @local_host.NativeLocalEffectResumeOriginal,
+  capacity : @execution.ExecutionCapacity,
+) -> Unit raise ClientStop {
+  guard self.business is Some(business) &&
+    business.profile.kind == SavedEffectApply &&
+    business.execution is Some(execution) &&
+    self.host is Some(_) &&
+    self.pair is Some(_) &&
+    self.read is Some(_) else {
+    stop("LocalOriginalEffectExecutionUnavailable")
+  }
+  continuation
+  .prepare_saved_publication_construction_in_original_read()
+  .map_err(issue => CommandSavedEffectPublication(issue))
+  |> command_preparation_result
+  continuation
+  .prepare_file_application_controls_in_original_read()
+  .map_err(issue => CommandSavedFileResume(issue))
+  |> command_preparation_result
+  self.prepare_saved_effect_file_entry(capacity)
+  let work = business.saved_effect_files.unwrap()
+  let capacity = work.capacity
   self.with_business_request(capture, () => {
     let entry = work.entry.unwrap()
     let ledger = entry

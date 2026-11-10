@@ -53,6 +53,8 @@ fn nonmodel_entry_negative_carrier(
     ledger_view: Some(ledger),
     retained_bytes: 16L,
     execution_bytes: 16L,
+    growing: false,
+    constructor_entered: false,
     claimed: false,
     finished: false,
     settled: false,
@@ -86,6 +88,20 @@ test "copied nonmodel entry predicate and unentered refusal preserve original to
   assert_false(copy.is_original())
   assert_true(copy.take_entered_ledger(entry.execution, 16L, 16L) is None)
   assert_false(copy.owns_only_control())
+  assert_true(copy.grow_in_original_read(24L, 24L) is Err(Unavailable))
+  assert_true(entry.grow_in_original_read(24L, 24L) is Err(Unavailable))
+  assert_eq(entry.retained_bytes, 16L)
+  assert_eq(entry.execution_bytes, 16L)
+  assert_false(entry.growing)
+  assert_true(
+    copy.prepare_constructor_in_entered_scope(24L, 24L, 8L) is Err(Unavailable),
+  )
+  assert_true(
+    entry.prepare_constructor_in_entered_scope(24L, 24L, 8L) is Err(Unavailable),
+  )
+  assert_false(entry.constructor_entered)
+  assert_false(entry.constructor_scope_for(host, entry.pair, read))
+  assert_false(copy.constructor_scope_for(host, entry.pair, read))
   assert_false(copy.finish_business_cleanup())
   assert_false(copy.cancel_unclaimed_in_original_read())
   assert_false(copy.close_after_original_return())
