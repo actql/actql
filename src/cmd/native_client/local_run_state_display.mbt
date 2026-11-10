@@ -93,9 +93,18 @@ fn local_run_state_display(
       local_run_display_literal(local_run_display_field(root, "run_id")) +
       "\nState: " +
       local_run_display_literal(local_run_display_field(root, "status")) +
-      "\nState revision: " +
-      local_run_display_integer(local_run_display_field(root, "revision")) +
-      "\nUpdated: " +
+      "\n",
+    )
+    // A saved waiting Checkpoint may precede the first observation counter.
+    // Show only a revision actually supplied by that same State owner; the
+    // independent control/SQL revision is never a presentation substitute.
+    if @decode.lookup(root, "revision") is Some(revision) {
+      output.append(
+        "State revision: " + local_run_display_integer(revision) + "\n",
+      )
+    }
+    output.append(
+      "Updated: " +
       local_run_display_literal(local_run_display_field(root, "updated_at")) +
       "\n",
     )
