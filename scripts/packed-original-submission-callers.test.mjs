@@ -28,6 +28,56 @@ function nodes(value, predicate, found = []) {
   }
   return found;
 }
+
+function nativeGraphHostCaller() {
+  const text = readFileSync(new URL('./test-native-sga-public-source.mjs', import.meta.url), 'utf8');
+  const parsed = parse(text, {ecmaVersion: 'latest', sourceType: 'module'});
+  const names = ['sourceProfilePath', 'sourceProfile', 'hostCapacityPolicy', 'host'];
+  const declarations = parsed.body.filter(node => node.type === 'VariableDeclaration' &&
+    node.declarations.some(value => names.includes(value.id.name)));
+  assert.equal(declarations.filter(node => node.declarations.some(value => value.id.name === 'host')).length, 1);
+  // Execute only the actual caller's declarations with explicit file/Host ports,
+  // without importing product modules or running the Native executable.
+  return new Function('sourceOnly', 'installation', 'join', 'readFile',
+    'openInstalledRemoteHttpHost', 'userInfo', 'return (async () => {let dispatches = 0;\n' +
+    declarations.map(node => text.slice(node.start, node.end)).join('\n') + '\nreturn host;})();');
+}
+
+test('Native Graph Source Host forwards its exact selected profile policy once', async () => {
+  const construct = nativeGraphHostCaller();
+  for (const capacity of [{max_analytic_frame_memberships: 37},
+    {max_analytic_frame_memberships: 53, max_graph_construction_nodes: 71}]) {
+    const reads = [], host = {};
+    const actual = await construct(false, 'fixture-root', (...parts) => parts.join('/'),
+      async (path, encoding) => {
+        reads.push(path);assert.equal(encoding, 'utf8');
+        assert.equal(path, 'fixture-root/source-profile.json');
+        return JSON.stringify({checkEnvironmentWire: JSON.stringify({host_policy_profile: {capacity}})});
+      }, async options => {
+        assert.equal(options.directory, 'fixture-root/sga-native-state');
+        assert.equal(options.sourceProfilePath, 'fixture-root/source-profile.json');
+        assert.deepEqual(options.hostCapacityPolicy, capacity);
+        assert.equal(options.authenticate('Bearer fixture-token'), 'fixture-owner');
+        assert.equal(options.authenticate('Bearer foreign'), undefined);
+        return host;
+      }, () => ({username: 'fixture-owner'}));
+    assert.equal(actual, host);
+    assert.deepEqual(reads, ['fixture-root/source-profile.json']);
+  }
+});
+
+test('Native Graph source-only Host retains default policy without reading a profile', async () => {
+  const host = {};
+  const actual = await nativeGraphHostCaller()(true, 'fixture-root', (...parts) => parts.join('/'),
+    () => {throw new Error('SourceOnlyMustNotReadProfile');}, async options => {
+      assert.equal(options.directory, 'fixture-root/sga-native-state');
+      assert.equal(Object.hasOwn(options, 'sourceProfilePath'), false);
+      assert.equal(Object.hasOwn(options, 'hostCapacityPolicy'), false);
+      return host;
+    }, () => ({username: 'fixture-owner'}));
+  assert.equal(actual, host);
+});
+
 const limits = {maxReadWireBytes: 4096, maxRowWireBytes: 1024, maxRowRetainedValueBytes: 1024,
   maxRetainedValueBytes: 4096, maxRows: 10, maxBatchRows: 3, maxBatchRetainedValueBytes: 1024};
 

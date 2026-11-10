@@ -39,11 +39,16 @@ DuckDBPreparedStatement.prototype.stream = function(...args) {
 };
 const {openInstalledRemoteHttpHost} = await import(pathToFileURL(
   requireInstalled.resolve('@actql/local-node/http-host')));
+const sourceProfilePath = sourceOnly ? undefined : join(installation, 'source-profile.json');
+const sourceProfile = sourceOnly ? undefined :
+  JSON.parse(await readFile(sourceProfilePath, 'utf8'));
+const hostCapacityPolicy = sourceOnly ? undefined :
+  JSON.parse(sourceProfile.checkEnvironmentWire).host_policy_profile.capacity;
 const host = await openInstalledRemoteHttpHost({
   directory: join(installation, 'sga-native-state'),
   // This isolated source-only corpus uses Values producers, so it needs no
   // external alias profile or provider schema injected by another test.
-  ...(sourceOnly ? {} : {sourceProfilePath: join(installation, 'source-profile.json')}),
+  ...(sourceOnly ? {} : {sourceProfilePath, hostCapacityPolicy}),
   beforeDispatch: () => { dispatches++; },
   authenticate: header => header === 'Bearer fixture-token'
     ? userInfo().username : undefined,
