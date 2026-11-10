@@ -286,7 +286,12 @@ pub fn admit_client_effect_run_materials(
     Some(_) => None
     None =>
       match
-        restore_client_effect_original_infer(prepared, body.infer_input, limits) {
+        restore_client_effect_original_infer(
+          prepared,
+          body.infer_input,
+          limits,
+          native_read_profile=body.infer_native_read_profile,
+        ) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }

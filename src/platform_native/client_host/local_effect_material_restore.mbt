@@ -41,7 +41,12 @@ pub fn NativeLocalHostConnection::restore_submitted_effect_material_original(
       crypto, principal, connection, reference, request, now, original,
     ) {
     Ok(_) => ()
-    Err(issue) => return Err(issue)
+    Err(issue) => {
+      if materials is Ok(value) {
+        @host.clear_prepared_client_effect_custody_after_cleanup(value.prepared)
+      }
+      return Err(issue)
+    }
   }
   materials.map_err(issue => Materials(issue))
 }
@@ -80,15 +85,22 @@ fn restore_original_effect_material_packet(
   if materials.request != Some(original.request) ||
     @publication.publication_contract_identity(materials.run_definition) !=
     @publication.publication_contract_identity(original.definition) {
+    @host.clear_prepared_client_effect_custody_after_cleanup(materials.prepared)
     return Err(RunMismatch)
   }
   // Missing or legacy unbound normalization is not repaired by an issuer.
   match @host.restore_client_effect_run_normalization(materials) {
     Ok(_) => ()
-    Err(issue) => return Err(Normalization(issue))
+    Err(issue) => {
+      @host.clear_prepared_client_effect_custody_after_cleanup(
+        materials.prepared,
+      )
+      return Err(Normalization(issue))
+    }
   }
   if @host.client_effect_normalization_materials_cid(materials) !=
     Some(original.materials_cid) {
+    @host.clear_prepared_client_effect_custody_after_cleanup(materials.prepared)
     return Err(Normalization(UnverifiedOriginalMaterials))
   }
   Ok(materials)
