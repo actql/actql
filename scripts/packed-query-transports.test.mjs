@@ -376,6 +376,43 @@ test('planner Local and HTTPS constructors retain the supplied original source c
   assert.equal(closes, 1);
 });
 
+test('planner refusals require the exact original durable preparation outcome', async () => {
+  const {source, nodes} = await fixtureSyntax('./fixtures/planner-selection-public-query.mjs');
+  const branch = nodes.find(node => node.type === 'IfStatement' &&
+    source.slice(node.test.start, node.test.end) === 'item.denyRead || item.deferred');
+  for (const scenario of [
+    {item: {denyRead: true}, code: 'ACTQL_E_ACCOUNT_DENIED', kind: 'preparation_failed', valid: true},
+    {item: {deferred: true}, code: 'ClientProgramRejected', kind: 'preparation_failed', valid: true},
+    {item: {deferred: true}, code: 'ClientProgramUnsupported', kind: 'preparation_failed', valid: false},
+    {item: {deferred: true}, code: 'ClientProgramRejected', kind: 'not_accepted', valid: false},
+  ]) {
+    const submissionRef = {original: 'fixture-submission'};
+    const outcome = {kind: scenario.kind, submissionRef, problem: {code: scenario.code}};
+    let durableLookups = 0;
+    const ports = {assert, items: [scenario.item], text: 'original-program', requestId: 'original-request',
+      client: {async startSource() {throw Object.assign(new Error('SubmissionPreparationFailed'),
+        {code: 'SubmissionPreparationFailed', outcome});},
+        async lookupRequest() {return {kind: 'not_found'};},
+        async lookupSubmission(ref) {assert.equal(ref, submissionRef);durableLookups++;return outcome;}},
+      provider: {snapshot: () => ({sourceIo: 0})}, before: {sourceIo: 0},
+      events: [], readSelection: () => ({original: 'selection'}), assertSelection() {},
+      readTwoSourceJournal: () => [], directory: 'original-fixture', mode: 'local', installation: {source: {}},
+      observations: [],
+    };
+    const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+    const run = () => AsyncFunction(...Object.keys(ports),
+      'for (const item of items) {' + source.slice(branch.start, branch.end) + '}')(...Object.values(ports));
+    if (scenario.valid) {
+      await run();
+      assert.equal(durableLookups, 1);
+      assert.equal(ports.observations.length, 1);
+    } else {
+      await assert.rejects(run(), {code: 'ERR_ASSERTION'});
+      assert.equal(durableLookups, 0);
+    }
+  }
+});
+
 test('Host failure diagnostics preserve original authorization and observer call semantics', () => {
   const result = Promise.resolve('original-return'), receiver = {}, detail = {code: 'ClientHostFailure'};
   const context = {}, calls = [];

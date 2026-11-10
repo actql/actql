@@ -379,9 +379,12 @@ export async function exercisePlannerSelectionPublicQuery({connect, openInstalle
       try {
         client = await running.connect();
         if (item.denyRead || item.deferred) {
-          let refusalCode;
+          let refusalCode, refusalOutcome;
           await assert.rejects(client.startSource(text, {format: 'json', requestId}), error => {
-            refusalCode = error.code;
+            assert.equal(error.code, 'SubmissionPreparationFailed');
+            refusalOutcome = error.outcome;
+            assert.equal(refusalOutcome.kind, 'preparation_failed');
+            refusalCode = refusalOutcome.problem.code;
             if (item.denyRead) assert.equal(refusalCode, 'ACTQL_E_ACCOUNT_DENIED');
             else assert.equal(refusalCode, 'ClientProgramRejected',
               'cost ignorance is a rejected preparation, not an unsupported Program claim');
@@ -390,6 +393,8 @@ export async function exercisePlannerSelectionPublicQuery({connect, openInstalle
           await new Promise(resolve => setImmediate(resolve));
           assert.deepEqual(provider.snapshot(), before, 'refusal performs zero provider opens and zero SQL');
           assert.deepEqual(await client.lookupRequest(requestId), {kind: 'not_found'});
+          assert.deepEqual(await client.lookupSubmission(refusalOutcome.submissionRef), refusalOutcome,
+            'the same original submission retains its exact preparation refusal');
           assert.equal(readTwoSourceJournal(directory).length, 0, 'refusal accepts no Run');
           assert.equal(events.filter(event => event.name === 'acquisition_started').length, 0);
           assert.equal(events.filter(event => event.name === 'acquisition_completed').length, 0);
