@@ -92,6 +92,22 @@ structure. CID text length is not a JSON node count. Its parser, writer, output
 and failed-child overlap still acquire backing on the same Read under unchanged
 limits; the quote is neither a policy increase nor publication authority.
 
+Saved schema intake retains the existing admitted dependency body, its actual
+encoder byte/node/depth facts and object width. The same measured Read parser
+cursor feeds canonical admission once; the business constructor backs its
+canonical body and carriers before entry. A longer column label changes text
+bytes, not structural nodes or field count. The final durable binding borrows
+that same opaque body and still checks its kind, schema CID, exact wire, current
+limits and original result fields. Callers without that body retain the existing
+full schema admission path; independent Store verification is unchanged.
+
+Closed PublicationContract constructors retain their canonical return values
+and wires; parser/index/key-normalization scratch remains in their full original
+execution peak rather than a second returned Source forest. Each payload stream
+allocates at most its actual encoded payload size and the existing 64KiB chunk
+maximum; the Read quote uses the same selected chunk size. These are lifetime
+and representation correspondences, not a raised Read ticket or a new grant.
+
 ## Reviewer proof artifacts
 
 Approved Effect Resolutions already require both the same-key signed Approval

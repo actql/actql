@@ -10,6 +10,7 @@ struct NativeLocalSavedEffectApprovalOriginal {
   orderings : Array[@publication.PublicationContract]
   retentions : Array[@publication.PublicationContract]
   schema_wires : Array[String]
+  schema_originals : Array[@publication.CapturedEffectDependencyBody]
   codec_cids : Array[String]
   computation : @publication.RetainedEffectfulComputation
   wire_limits : @checkpoint.WireLimits
@@ -214,15 +215,31 @@ fn NativeLocalSavedEffectReview::saved_approval_current_for(
     self.saved_approval_original_live(original) else {
     return None
   }
-  let current = host.lookup_submitted_checkpoint_metadata(
-    self.capture.crypto,
-    self.principal,
-    self.connection,
-    self.selected.reference,
-    request,
-    now,
-  )
-  guard current is Ok(Some(actual)) &&
+  // The live predicate above requires this SAME active original Read. Carry
+  // its actual metadata/current ports through this subject callback as well;
+  // the public raw Host entrance would re-admit adoption for each scope read.
+  let current = self.capture.with_current_adoption_material_in_original_read((
+    actual,
+    _material,
+    operations,
+  ) => {
+    if !physical_equal(actual, host) {
+      return Err(CustodyLost)
+    }
+    Ok(
+      actual.lookup_submitted_checkpoint_metadata_with_operations(
+        self.capture.crypto,
+        self.principal,
+        self.connection,
+        self.selected.reference,
+        request,
+        now,
+        operations=Some(operations),
+        capture=Some(self.capture),
+      ),
+    )
+  })
+  guard current is Ok(Ok(Some(actual))) &&
     actual.checkpoint_cid == checkpoint_cid &&
     actual.run_definition_cid == run_definition_cid &&
     actual.revision == metadata.revision &&
@@ -245,6 +262,7 @@ fn saved_effect_approval_original_from_fields(
   wire_limits : @checkpoint.WireLimits,
   effect_limits : @host.ClientEffectComputationLimits,
   publication_present : Bool,
+  schema_cursors? : Array[@decode.Cursor] = [],
 ) -> Result[NativeLocalSavedEffectApprovalOriginal, NativeLocalAdoptionIssue] {
   if epoch_text(fields, "run_definition_wire") !=
     Some(@publication.publication_contract_json(materials.run_definition)) {
@@ -383,6 +401,39 @@ fn saved_effect_approval_original_from_fields(
     Err(_) => return Err(Journal(CustodyLost))
   }
   let authority = @effect.logical_request_scope_authority(scope)
+  let schema_originals = []
+  if publication_present {
+    if schema_cursors.length() != schema_wires.length() ||
+      schema_wires.length() !=
+      @publication.retained_effectful_computation_result_count(computation) {
+      return Err(Journal(CustodyLost))
+    }
+    for index in 0..<schema_wires.length() {
+      guard @publication.retained_effectful_computation_result_at(
+          computation, index,
+        )
+        is Some(snapshot) else {
+        return Err(Journal(CustodyLost))
+      }
+      let (_, _, schema_cid, _, _) = @publication.captured_result_snapshot_payload_identity(
+        snapshot,
+      )
+      let schema = match
+        @publication.admit_hashed_effect_dependency_body(
+          "relation_schema",
+          schema_cid,
+          schema_wires[index],
+          wire_limits.max_wire_bytes,
+          wire_limits.max_nodes,
+          wire_limits.max_depth,
+          cursor=Some(schema_cursors[index]),
+        ) {
+        Ok(value) => value
+        Err(_) => return Err(Journal(CustodyLost))
+      }
+      schema_originals.push(schema)
+    }
+  }
   if authority != @host.client_request_authority_scope_cid(request) {
     return Err(Journal(CustodyLost))
   }
@@ -438,6 +489,7 @@ fn saved_effect_approval_original_from_fields(
     orderings,
     retentions,
     schema_wires,
+    schema_originals,
     codec_cids,
     computation,
     wire_limits,

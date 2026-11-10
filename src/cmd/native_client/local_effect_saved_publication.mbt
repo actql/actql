@@ -260,6 +260,11 @@ fn LocalCommandPreparationOriginal::publish_saved_effect_files(
         limits.max_wire_bytes,
         limits.max_nodes,
         limits.max_depth,
+        schema_original=Some(
+          original
+          .result_schema_original(index)
+          .unwrap_or_else(() => stop("LocalSavedEffectResultUnavailable")),
+        ),
       ) {
       Ok(value) => value
       Err(issue) => {

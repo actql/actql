@@ -5,6 +5,24 @@ struct CapturedEffectDependencyBody {
   node : CapturedEffectDependencyNode
   wire : String
   value : @json.CanonicalValue
+  wire_usage : (Int, Int, Int)?
+}
+
+///|
+/// Original final encoder facts of this same admitted body. These DATA are
+/// neither permission nor a resource grant and do not traverse its tree.
+pub fn captured_effect_dependency_body_wire_usage(
+  body : CapturedEffectDependencyBody,
+) -> (Int, Int, Int)? {
+  body.wire_usage
+}
+
+///|
+/// Same admitted object width. Text length cannot supply this field count.
+pub fn captured_effect_dependency_body_field_count(
+  body : CapturedEffectDependencyBody,
+) -> Int? {
+  @json.object_field_count(body.value)
 }
 
 ///|
@@ -120,6 +138,7 @@ pub fn admit_publication_effect_dependency_body(
       },
       wire,
       value,
+      wire_usage: None,
     })
   }
   let table = kind == "table_input_artifact" ||
@@ -278,6 +297,7 @@ pub fn admit_publication_effect_dependency_body(
     },
     wire,
     value,
+    wire_usage: None,
   })
 }
 
@@ -397,6 +417,7 @@ pub fn admit_source_effect_dependency_body(
     },
     wire,
     value: evidence.value,
+    wire_usage: None,
   })
 }
 
@@ -629,6 +650,7 @@ pub fn admit_local_effect_dependency_body(
     },
     wire,
     value,
+    wire_usage: None,
   })
 }
 

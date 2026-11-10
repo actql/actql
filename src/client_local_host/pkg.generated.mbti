@@ -473,6 +473,8 @@ pub fn installed_duckdb_capture_capacity_accepts(ClientInstalledCaptureCapacity,
 
 pub fn installed_effect_content_provider(ClientInstalledEffectContentPreparation) -> @local.ManagedProvider
 
+pub fn installed_effect_contract_response_construction_capacity(Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn installed_effect_control_wire_bound(Int, Int) -> Result[Int, ClientInstalledManagedRunIssue]
 
 pub fn installed_effect_http_response_construction_capacity(Int, Int, response_read_quantum? : Int) -> @execution_relation.ExecutionCapacity?

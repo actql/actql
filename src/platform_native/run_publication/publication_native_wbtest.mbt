@@ -406,6 +406,17 @@ test "standard native publication reconciles one durable Run commit" {
     )
     is Err(Binding(_)),
   )
+  let (_, _, schema_cid, _, _) = @publication.captured_result_snapshot_payload_identity(
+    snapshot,
+  )
+  let schema_original = @publication.admit_hashed_effect_dependency_body(
+    "relation_schema",
+    schema_cid,
+    evidence.binding_schema_wires[0],
+    65536,
+    4096,
+    32,
+  ).unwrap()
   let restored = persist_effectful_result_snapshot_native(
     store,
     snapshot,
@@ -416,6 +427,7 @@ test "standard native publication reconciles one durable Run commit" {
     65536,
     4096,
     32,
+    schema_original=Some(schema_original),
   ).unwrap()
   assert_eq(restored.payload.row_count, 1L)
   assert_eq(restored.payload.generation.size, 13L)

@@ -136,6 +136,7 @@ pub fn issue_durable_result_binding_from_snapshot(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  schema_original? : CapturedEffectDependencyBody? = None,
 ) -> Result[PublicationContract, DurableResultBindingIssue] {
   let (_, _, _, rows, original_bytes) = captured_result_snapshot_payload_identity(
     snapshot,
@@ -161,5 +162,6 @@ pub fn issue_durable_result_binding_from_snapshot(
     max_wire_bytes,
     max_nodes,
     max_depth,
+    schema_original~,
   )
 }

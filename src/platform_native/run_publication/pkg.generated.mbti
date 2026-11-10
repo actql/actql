@@ -23,7 +23,7 @@ pub fn install_native_run_publication_context_authority((NativeRunPublicationAut
 
 pub fn install_native_run_publication_service(@publication_store.Store, NativeRunPublicationAuthority, Int, Int, Int, client_request? : @run_publication_host.ClientRequestIdentity?, commit_guard? : (() -> Result[NativeRunPublicationResult, NativeRunPublicationIssue]) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue]) -> Result[NativeRunPublicationService, NativeRunPublicationIssue]
 
-pub fn persist_effectful_result_snapshot_native(@publication_store.Store, @actql/actql/run_publication.CapturedResultSnapshot, NativeEffectfulSnapshotOutputContext, @actql/actql/run_publication.PublicationContract, String, String, Int, Int, Int) -> Result[NativePublishedEffectfulResult, NativePublicationOutputIssue]
+pub fn persist_effectful_result_snapshot_native(@publication_store.Store, @actql/actql/run_publication.CapturedResultSnapshot, NativeEffectfulSnapshotOutputContext, @actql/actql/run_publication.PublicationContract, String, String, Int, Int, Int, schema_original? : @actql/actql/run_publication.CapturedEffectDependencyBody?) -> Result[NativePublishedEffectfulResult, NativePublicationOutputIssue]
 
 pub fn persist_publication_output_native(@publication_store.Store, @run_publication_host.PublicationOutputExport, NativePublicationOutputContext, Int, Int, Int, publication? : @client_local_host.ClientProgramPublication?) -> Result[NativePublishedOutput, NativePublicationOutputIssue]
 
