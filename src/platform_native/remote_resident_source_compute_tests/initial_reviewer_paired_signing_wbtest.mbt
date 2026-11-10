@@ -357,6 +357,8 @@ fn paired_initial_reviewer_signing(
         fail("initial Host embedded Reviewer authentication")
       Err(@client.HostAttestationBody(issue)) =>
         fail("initial Host wrapper body: " + @debug.to_string(issue))
+      Err(@client.HostAttestationAuthorization(issue)) =>
+        fail("initial Host target authorization: " + @debug.to_string(issue))
       Err(@client.HostAttestationUnavailable) =>
         fail("initial Host original signature/current unavailable")
       Err(@client.HostAttestationOriginal(_)) =>
