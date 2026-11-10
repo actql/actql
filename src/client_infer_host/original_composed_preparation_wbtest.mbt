@@ -621,3 +621,65 @@ test "original composed producer work cannot renew an exhausted input allowance"
   assert_eq(calls.val, 0)
   original_composed_test_release(ledger, consumer)
 }
+
+///|
+test "original composed cancelled input retires prior work without Model dispatch" {
+  let prepared = fixture_prepared()
+  let (occurrence, prefix) = original_composed_test_input(prepared)
+  let plan = call_identity_plan(prepared)
+  let limits = standard_limits()
+  let calls = Ref(0)
+  let provider = original_funded_start_provider(calls)
+  let (compiled, definition, ledger, read) = original_funded_start_read(
+    prepared, plan, limits,
+  )
+  let consumer = @publication_host.claim_client_model_read_preparation(
+    read, compiled, definition, plan, 7L, 5L,
+  ).unwrap()
+  let active = start_original_composed(
+    occurrence,
+    plan,
+    prefix,
+    [],
+    provider,
+    limits,
+    compiled,
+    definition,
+    consumer,
+    7L,
+    5L,
+    100L,
+    5L,
+    prior_input_work=7L,
+  ).unwrap()
+  assert_eq(active.work, 7L)
+  assert_false(execution_stopped(active))
+  assert_true(advance_cancelled(active, 1) is Err(InvalidAdvance))
+  assert_eq(active.work, 7L)
+  assert_false(cleanup(active).unwrap())
+  assert_eq(calls.val, 0)
+  assert_true(cancel(active))
+  assert_false(execution_stopped(active))
+  assert_false(cleanup(active).unwrap())
+  let mut previous = active.work
+  for _ in 0..<2000 {
+    if execution_stopped(active) {
+      break
+    }
+    let poll = advance_cancelled(active, 1).unwrap()
+    let work = match poll {
+      Continue(work~) | Stopped(work~) => work
+      _ => abort("cancelled input must never enter Model dispatch")
+    }
+    assert_true(work >= previous && work - previous <= 1L)
+    previous = work
+  }
+  assert_true(execution_stopped(active))
+  assert_true(active.work >= 7L)
+  assert_eq(calls.val, 0)
+  assert_true(cleanup(active).unwrap())
+  assert_true(cleanup(active).unwrap())
+  assert_true(advance_cancelled(active, 1) is Err(InvalidAdvance))
+  assert_eq(calls.val, 0)
+  original_composed_test_release(ledger, consumer)
+}

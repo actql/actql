@@ -28,6 +28,8 @@ pub fn acquire_output(Execution) -> OutputUse?
 
 pub fn advance(Execution, Int) -> Result[Poll, Issue]
 
+pub fn advance_cancelled(Execution, Int) -> Result[Poll, Issue]
+
 pub fn advance_observation_issuance(ObservationIssuance, Int) -> Result[(Bool, Int64), Issue]
 
 pub fn advance_original_model_current_state_comparison(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalCurrentStateComparison[@run_publication_host.ClientModelReadOrigin], Int) -> Result[@physical_resources.OriginalStateComparisonPoll, @run_publication_host.ClientModelReadPreparationIssue]
