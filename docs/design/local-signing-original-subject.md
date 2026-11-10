@@ -129,12 +129,14 @@ Reviewer and key checks still run at the original callback boundaries. The
 same epoch Owner advances its watermark through that transaction's CAS; only
 the outer receipt transaction commits it. No uncommitted successor is cached,
 and ordinary lookup still cannot start a nested transaction.
-Before a saved file application claims or dispatches a row, its existing
-prepared business operation activates and opens only the already installed
-Store through the original writer constructor. The independent observation
-Store remains read custody. It is not cast into a publisher or replaced;
-both existing carriers retain their own partial acquisition and child-first
-cleanup obligations. Missing Store custody cannot initialize another namespace.
+Before a saved file application claims or dispatches a row, it checks the
+retained physical Store, namespace and original Read/SQLite route. Publication
+borrows that same Store and route; it does not acquire a second exclusive lock
+or replace the Store, Database or routing original. The existing publisher
+separately binds the same resumed Request, definition and current Account;
+observation custody is not publication authority. Pending publication children
+retire before the observation owner closes that original Store and its roots.
+Missing Store custody cannot initialize another namespace.
 The restoration-to-application boundary first retains the composed extent as
 data, then enters that same original constructor to acquire usable backing before
 resizing its byte token. A Read-side resize alone cannot acquire more business

@@ -37,12 +37,21 @@ fn LocalCommandPreparationOriginal::publish_saved_effect_files(
     work.reservation is None &&
     !work.response_pending &&
     work.publication is None &&
-    business.operation is Some(operation) &&
-    business.store is Some(store) &&
+    self.run_observation is Some(observation) &&
+    observation.effect_resume is Some(actual) &&
+    physical_equal(actual, continuation) &&
+    observation.selected_namespace == Some(run.namespace_id) &&
+    observation.store is Some(store) &&
+    observation.root_bridge is Some(bridge) &&
+    store.matches_original_operation(bridge) &&
+    store.retained_data_current() is Ok(_) &&
     self.host is Some(_) &&
     capture.original_host() is Some(host) else {
     stop("LocalSavedEffectPublicationUnavailable")
   }
+  // Borrow the SAME physical Store's original routing. The existing publisher
+  // below still checks the exact Host, Request, definition and current Account.
+  let operation = observation.operation
   let original = continuation
     .application_original_in_original_read()
     .unwrap_or_else(() => stop("LocalCheckpointOriginalUnavailable"))
@@ -319,7 +328,9 @@ fn LocalCommandPreparationOriginal::close_saved_effect_publication(
   work : LocalNativeSavedEffectFileWork,
 ) -> Result[Unit, LocalCommandPreparationIssue] {
   guard work.publication is Some(saved) else { return Ok(()) }
-  guard self.business is Some(business) && business.store is Some(store) else {
+  guard self.business is Some(_) &&
+    self.run_observation is Some(observation) &&
+    observation.store is Some(store) else {
     return Err(CommandBusinessPublication)
   }
   // A lost pending original cannot be reconstructed from an error flag.
