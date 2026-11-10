@@ -18,6 +18,10 @@ struct NativeLocalSavedEffectReview {
   mut _retained_continuation : String?
   mut _retained_original : NativeClientOriginalCheckpointMetadata?
   mut _retained_restoration : NativeLocalSavedEffectRestoration?
+  mut _retained_file_entry_control : Result[
+    Unit,
+    NativeLocalInitialHostAttestationIssue,
+  ]?
   mut _retained_constructor_bytes : Int64
 }
 
@@ -38,9 +42,9 @@ pub fn NativeLocalJournalCapture::prepare_saved_effect_review(
       additional_controls=Some({
         // Receiver, returned Some/Result and the restoration callback. All
         // input identity/Store/String fields remain original borrowed values.
-        record_headers: 5L,
-        reference_slots: 27L,
-        scalar_words: 6L,
+        record_headers: 7L,
+        reference_slots: 30L,
+        scalar_words: 7L,
         owned_utf16_units: 0L,
         owned_wire_bytes: 0L,
       }),
@@ -64,6 +68,7 @@ pub fn NativeLocalJournalCapture::prepare_saved_effect_review(
     _retained_continuation: None,
     _retained_original: None,
     _retained_restoration: None,
+    _retained_file_entry_control: None,
     _retained_constructor_bytes: 0L,
   })
 }
@@ -247,4 +252,5 @@ pub fn NativeLocalSavedEffectReview::retire_read_aliases(
   self.retained_persisted = None
   self.approval_original = None
   self._retained_restoration = None
+  self._retained_file_entry_control = None
 }
