@@ -103,7 +103,6 @@ fn local_command_installed_profile(
     native_storage: {
       source,
       max_snapshot_bytes: 8L * mib,
-      max_records: 32,
       read_selection: CommandReadFiniteFacility(read_ceiling),
       platform_selection: CommandPlatformInitialOsFacility,
       sqlite_domain_selection: CommandSqliteDomainFiniteFacility(sqlite_ceiling),

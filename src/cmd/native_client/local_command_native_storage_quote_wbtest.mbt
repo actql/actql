@@ -37,7 +37,6 @@ fn native_storage_finite_arithmetic_profile() -> LocalCommandPreparationProfile 
     native_storage: {
       source,
       max_snapshot_bytes: 32L,
-      max_records: 8,
       read_selection: CommandReadFiniteFacility(
         1048576L + 16L * native_storage_page_bytes(),
       ),
@@ -354,21 +353,28 @@ test "finite SQLite domain refuses fabricated external demand and absent physica
 }
 
 ///|
-test "actual Journal subset check preserves source and both captured ceilings" {
+test "actual Journal policy has no unrelated physical count ceiling" {
   let original = "0000000000000000000000000000000000000001"
-  assert_true(
-    native_storage_journal_bounds_cover(original, 8, 32L, original, 8, 32L),
-  )
+  for records in [1, 32, 1023, 1024, 1025, 2147483647] {
+    assert_true(
+      native_storage_journal_bounds_cover(original, 32L, original, records, 32L),
+    )
+    assert_false(
+      native_storage_journal_bounds_cover(original, 32L, original, records, 33L),
+    )
+    assert_false(
+      native_storage_journal_bounds_cover(
+        original, 32L, "0000000000000000000000000000000000000002", records, 32L,
+      ),
+    )
+  }
+  for records in [0, -1] {
+    assert_false(
+      native_storage_journal_bounds_cover(original, 32L, original, records, 32L),
+    )
+  }
   assert_false(
-    native_storage_journal_bounds_cover(original, 8, 32L, original, 9, 32L),
-  )
-  assert_false(
-    native_storage_journal_bounds_cover(original, 8, 32L, original, 8, 33L),
-  )
-  assert_false(
-    native_storage_journal_bounds_cover(
-      original, 8, 32L, "0000000000000000000000000000000000000002", 8, 32L,
-    ),
+    native_storage_journal_bounds_cover(original, 32L, original, 1, 0L),
   )
 }
 

@@ -149,3 +149,34 @@ test "CLI initial Host signing selection refuses null incomplete unknown and unb
     )
   }
 }
+
+///|
+test "CLI Journal record policy preserves checked Int boundaries above 1024" {
+  for records in [1L, 1023L, 1024L, 1025L, 2147483647L] {
+    assert_eq(local_host_journal_record_limit(records), Some(records.to_int()))
+    let selected = local_reviewer_cli_configuration.replace_all(
+      old="\"journal_record_limit\":8",
+      new="\"journal_record_limit\":" + records.to_string(),
+    )
+    let settings = local_host_settings(selected)
+    assert_eq(settings.record_limit, records.to_int())
+    assert_eq(settings.snapshot_bytes, 8388608L)
+    assert_eq(settings.principal, "original-client")
+    assert_eq(settings.connection, "original-cli")
+  }
+  for records in [0L, -1L, 2147483648L, 9223372036854775807L] {
+    assert_eq(local_host_journal_record_limit(records), None)
+    let selected = local_reviewer_cli_configuration.replace_all(
+      old="\"journal_record_limit\":8",
+      new="\"journal_record_limit\":" + records.to_string(),
+    )
+    assert_true(
+      try {
+        local_host_settings(selected) |> ignore
+        false
+      } catch {
+        ClientStop(message) => message == "InvalidLocalHostLimits"
+      },
+    )
+  }
+}

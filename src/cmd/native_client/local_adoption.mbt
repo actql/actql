@@ -36,6 +36,16 @@ fn local_settings_text(
 }
 
 ///|
+// The actual Journal policy uses the existing Int count representation. This
+// conversion grants no storage and does not reserve future record capacity.
+fn local_host_journal_record_limit(records : Int64) -> Int? {
+  if records < 1L || records > 2147483647L {
+    return None
+  }
+  Some(records.to_int())
+}
+
+///|
 // Finite physical settings are selected by the operator, never by a Program.
 // Limits are explicit; no existing Owner budget is silently increased.
 fn local_host_settings(text : String) -> LocalHostSettings raise ClientStop {
@@ -70,14 +80,12 @@ fn local_host_settings(text : String) -> LocalHostSettings raise ClientStop {
     value
   }
   let ttl = number("submission_ttl_ms")
-  let records = number("journal_record_limit")
+  let records = local_host_journal_record_limit(number("journal_record_limit")).unwrap_or_else(() => {
+      stop("InvalidLocalHostLimits")
+    },
+  )
   let snapshot = number("journal_snapshot_bytes")
-  if ttl < 1L ||
-    ttl > 86400000L ||
-    records < 1L ||
-    records > 1024L ||
-    snapshot < 1L ||
-    snapshot > 536870912L {
+  if ttl < 1L || ttl > 86400000L || snapshot < 1L || snapshot > 536870912L {
     stop("InvalidLocalHostLimits")
   }
   let installation_files : Array[String] = []
@@ -124,7 +132,7 @@ fn local_host_settings(text : String) -> LocalHostSettings raise ClientStop {
     sqlite_library: local_settings_text(fields, "sqlite_library"),
     signature_library: local_settings_text(fields, "signature_library"),
     ttl_ms: ttl.to_double(),
-    record_limit: records.to_int(),
+    record_limit: records,
     snapshot_bytes: snapshot,
     installation_files,
     initial_host_signing,

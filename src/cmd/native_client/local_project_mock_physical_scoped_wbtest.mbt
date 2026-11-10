@@ -1218,7 +1218,7 @@ fn native_mock_original_journal_body(
       material,
       @run_host.client_local_default_signing_bootstrap_policy(),
       100.0,
-      profile.native_storage.max_records,
+      32, // This fixture selects its own finite Journal policy.
       profile.native_storage.max_snapshot_bytes,
     )
     .native_mock_journal_required("retain original initial Journal capture")
