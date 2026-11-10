@@ -314,12 +314,18 @@ test "indexed append refuses missing stale noncanonical and exhausted quota with
   }
   assert_true(decide(None) is Err(Observation("custody")))
   for
-    body in [b"0:0", b"1:01", b"1:", b"1:-1", b"1:67108865", b"1:999999999999"] {
+    body in [
+      b"0:0", b"1:01", b"1:", b"1:-1", b"1:9223372036854775808", b"1:999999999999999999999",
+    ] {
     assert_true(
       decide(Some(inventory_row("retained", body)))
       is Err(Observation("custody")),
     )
   }
+  assert_true(
+    decide(Some(inventory_row("retained", b"1:67108865")))
+    is Err(CapacityExceeded),
+  )
   assert_true(
     decide(Some(inventory_row("retained", b"1:67108864")))
     is Err(CapacityExceeded),
@@ -363,7 +369,7 @@ test "selected journal count above 1024 preserves usage wire and exact append ex
   }
   for
     bytes in [
-      b"1025:67108865", b"1025:00", b"1025:-1", b"1025:", b"01025:0", b"1025:999999999999999999",
+      b"1025:00", b"1025:-1", b"1025:", b"01025:0", b"1025:9223372036854775808",
     ] {
     assert_eq(
       client_submitted_journal_usage(
@@ -440,4 +446,77 @@ test "selected journal count above 1024 preserves usage wire and exact append ex
   }
   assert_eq(client_saved_submission_revision(retained), 6L)
   assert_true(client_saved_submission_record(retained).run_admission is None)
+}
+
+///|
+test "selected retained byte budget governs fresh append while canonical usage remains history" {
+  for bytes in [67108863L, 67108864L, 67108865L, 9223372036854775807L] {
+    let wire = @utf8.encode("1:" + bytes.to_string())
+    assert_eq(client_submitted_journal_usage_body(1, bytes, 8), Ok(wire))
+    assert_eq(
+      client_submitted_journal_usage(inventory_row("retained", wire), 1, 8),
+      Ok(bytes),
+    )
+  }
+  let original = append_original_record()
+  let amount = @utf8.encode(saved_submission_intent).length().to_int64()
+  let previous = 67108865L
+  let decide = (budget, rows) => {
+    prepare_client_submitted_journal_append(
+      original.reference,
+      original.intent,
+      @request_scope.Admissible,
+      8,
+      (_, _) => Err("indexed append must not scan"),
+      (table, key) => inventory_read(rows, table, key),
+      _ => Err("no unrelated validation"),
+      _ => Err("no unrelated validation"),
+      "custody",
+      usage=Some(() => {
+        Ok(
+          Some(
+            inventory_row(
+              "retained",
+              @utf8.encode("1:" + previous.to_string()),
+              revision=17L,
+            ),
+          ),
+        )
+      }),
+      max_retained_intent_bytes=budget,
+    )
+  }
+  let rows = [
+    (
+      "client_submitted_intent_custody",
+      inventory_row("issued", b"1", revision=1L),
+    ),
+  ]
+  assert_true(decide(previous + amount - 1L, rows) is Err(CapacityExceeded))
+  guard decide(previous + amount, rows) is Ok(Append(plan)) else {
+    fail("exact selected byte policy refused")
+  }
+  assert_eq(
+    client_submitted_journal_append_usage(plan),
+    Some((17L, @utf8.encode("2:" + (previous + amount).to_string()))),
+  )
+  assert_true(decide(0L, rows) is Err(CapacityExceeded))
+  assert_true(decide(-1L, rows) is Err(CapacityExceeded))
+  // No giant intent is allocated. The trusted inventory port supplies only its
+  // existing cumulative usage metadata; the incoming original is unchanged.
+  let retained_rows = [
+    ..rows,
+    (
+      "client_submitted_intents",
+      inventory_row(
+        append_request_id,
+        @utf8.encode(saved_submission_preparing),
+        revision=6L,
+      ),
+    ),
+  ]
+  guard decide(0L, retained_rows) is Ok(Retained(retained)) else {
+    fail("lower selection hid retained history")
+  }
+  assert_eq(client_saved_submission_revision(retained), 6L)
 }

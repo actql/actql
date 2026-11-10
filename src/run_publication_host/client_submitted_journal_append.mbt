@@ -55,7 +55,6 @@ pub fn client_submitted_journal_usage_body(
     count < 0 ||
     count > max_records ||
     retained_bytes < 0L ||
-    retained_bytes > 67108864L ||
     (count == 0 && retained_bytes != 0L) {
     return Err(CustodyLost)
   }
@@ -70,14 +69,14 @@ pub fn client_submitted_journal_usage(
   count : Int,
   max_records : Int,
 ) -> Result[Int64, ClientJournalDecodingIssue] {
-  // Same count:bytes spelling; the selected Int count and existing eight-digit
-  // retained-byte policy bound the text before decoding.
+  // Same count:bytes spelling; the selected Int count and nonnegative Int64
+  // usage bound the text before decoding, independently of fresh admission.
   if max_records < 1 ||
     count < 0 ||
     count > max_records ||
     row.key != "retained" ||
     row.revision < 0L ||
-    row.body.length() > max_records.to_string().length() + 1 + 8 {
+    row.body.length() > max_records.to_string().length() + 1 + 19 {
     return Err(CustodyLost)
   }
   let text = @utf8.decode(row.body) catch { _ => return Err(CustodyLost) }
@@ -88,7 +87,9 @@ pub fn client_submitted_journal_usage(
   let mut bytes = 0L
   for unit in text[prefix.length():].to_owned() {
     let digit = unit.to_int() - 48
-    if digit < 0 || digit > 9 || bytes > 67108864L {
+    if digit < 0 ||
+      digit > 9 ||
+      bytes > (9223372036854775807L - digit.to_int64()) / 10L {
       return Err(CustodyLost)
     }
     bytes = bytes * 10L + digit.to_int64()
@@ -129,6 +130,7 @@ pub fn[E] prepare_client_submitted_journal_append(
     Unit,
     ClientJournalEncodingIssue,
   ])? = None,
+  max_retained_intent_bytes? : Int64 = 67108864L,
 ) -> Result[
   ClientSubmittedJournalAppendPlan,
   ClientSubmittedJournalAppendIssue[E],
@@ -189,7 +191,10 @@ pub fn[E] prepare_client_submitted_journal_append(
     return Err(EpochRejected(validity))
   }
   let bytes = intent.wire_bytes.to_int64()
-  if count == max_records || bytes > 67108864L - retained_bytes {
+  if max_retained_intent_bytes < 0L ||
+    count == max_records ||
+    retained_bytes > max_retained_intent_bytes ||
+    bytes > max_retained_intent_bytes - retained_bytes {
     return Err(CapacityExceeded)
   }
   let body = match

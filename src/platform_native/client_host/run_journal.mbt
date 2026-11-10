@@ -5,6 +5,7 @@
 struct NativeClientRunJournal {
   database : @sqlite.Database
   max_records : Int
+  max_retained_intent_bytes : Int64
   mut fenced : Bool
   // Same actual Database format; only acknowledged maintenance advances it.
   mut append_schema : Int
@@ -493,8 +494,13 @@ fn client_journal_issuance_anchor(
 pub fn open_native_client_run_journal(
   database : @sqlite.Database,
   max_records : Int,
+  max_retained_intent_bytes? : Int64 = 67108864L,
 ) -> Result[NativeClientRunJournal, NativeClientRunJournalIssue] {
-  open_native_client_run_journal_with_reads(database, max_records)
+  open_native_client_run_journal_with_reads(
+    database,
+    max_records,
+    max_retained_intent_bytes~,
+  )
 }
 
 ///|
@@ -502,11 +508,12 @@ fn open_native_client_run_journal_with_reads(
   database : @sqlite.Database,
   max_records : Int,
   reads? : NativeClientJournalReadAccess? = None,
+  max_retained_intent_bytes? : Int64 = 67108864L,
 ) -> Result[NativeClientRunJournal, NativeClientRunJournalIssue] {
   if client_journal_transaction_fenced(database, reads) {
     return Err(Fenced)
   }
-  if max_records < 1 {
+  if max_records < 1 || max_retained_intent_bytes < 0L {
     return Err(CapacityExceeded)
   }
   let append_schema = match
@@ -526,6 +533,7 @@ fn open_native_client_run_journal_with_reads(
       Ok({
         database,
         max_records,
+        max_retained_intent_bytes,
         append_schema,
         observed_evidence_schema: None,
         fenced: false,

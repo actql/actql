@@ -264,7 +264,21 @@ pub fn[E] inspect_client_run_journal_inventory(
 }
 
 ///|
-/// The existing submitted-intent inventory and cumulative canonical-value cap.
+// Actual original byte metadata only; no future policy is allocated as RAM.
+fn journal_retained_intent_bytes_add(
+  retained : Int64,
+  wire_bytes : Int,
+) -> Int64? {
+  let bytes = wire_bytes.to_int64()
+  if retained < 0L || bytes < 0L || retained > 9223372036854775807L - bytes {
+    None
+  } else {
+    Some(retained + bytes)
+  }
+}
+
+///|
+/// The existing submitted-intent inventory and actual cumulative canonical bytes.
 /// validate_submission uses the original reference/intent decoder and retained
 /// Run relationship before returning the original intent for byte accounting.
 pub fn[E] inspect_client_submitted_journal_inventory(
@@ -305,9 +319,13 @@ pub fn[E] inspect_client_submitted_journal_inventory(
       row.key {
       return Err(custody_lost)
     }
-    retained_bytes += record.intent.wire_bytes.to_int64()
-    if retained_bytes > 67108864L {
-      return Err(custody_lost)
+    retained_bytes = match
+      journal_retained_intent_bytes_add(
+        retained_bytes,
+        record.intent.wire_bytes,
+      ) {
+      Some(value) => value
+      None => return Err(custody_lost)
     }
     cursor = row.key
   }

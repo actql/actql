@@ -218,6 +218,7 @@ pub fn NativeLocalAdoptionCapture::capture_journal(
   ttl_ms : Double,
   max_records : Int,
   max_snapshot_bytes : Int64,
+  max_retained_intent_bytes? : Int64 = 67108864L,
 ) -> Result[NativeLocalJournalCapture, NativeLocalAdoptionCaptureIssue] {
   let session = match self.journal_capture_session() {
     Err(issue) => return Err(issue)
@@ -230,6 +231,7 @@ pub fn NativeLocalAdoptionCapture::capture_journal(
     ttl_ms,
     max_records,
     max_snapshot_bytes,
+    max_retained_intent_bytes~,
   )
   self.journal = Some(journal)
   Ok(journal)
@@ -267,6 +269,7 @@ pub fn NativeLocalAdoptionCapture::capture_journal_with_original_resources(
   ttl_ms : Double,
   max_records : Int,
   max_snapshot_bytes : Int64,
+  max_retained_intent_bytes? : Int64 = 67108864L,
 ) -> Result[NativeLocalJournalCapture, NativeLocalAdoptionCaptureIssue] {
   self.capture_original_journal_resources(
     host,
@@ -277,6 +280,7 @@ pub fn NativeLocalAdoptionCapture::capture_journal_with_original_resources(
     max_snapshot_bytes,
     false,
     None,
+    max_retained_intent_bytes~,
   )
 }
 
@@ -292,6 +296,7 @@ pub fn NativeLocalAdoptionCapture::capture_command_journal_with_original_resourc
   ttl_ms : Double,
   max_records : Int,
   max_snapshot_bytes : Int64,
+  max_retained_intent_bytes? : Int64 = 67108864L,
 ) -> Result[NativeLocalJournalCapture, NativeLocalAdoptionCaptureIssue] {
   self.capture_original_journal_resources(
     host,
@@ -302,6 +307,7 @@ pub fn NativeLocalAdoptionCapture::capture_command_journal_with_original_resourc
     max_snapshot_bytes,
     true,
     None,
+    max_retained_intent_bytes~,
   )
 }
 
@@ -319,6 +325,7 @@ fn NativeLocalAdoptionCapture::capture_original_journal_resources(
     NativeLocalInitialSigningMaterial,
     @host.ClientLocalSigningBootstrapPolicy,
   )?,
+  max_retained_intent_bytes? : Int64 = 67108864L,
 ) -> Result[NativeLocalJournalCapture, NativeLocalAdoptionCaptureIssue] {
   let session = match self.journal_capture_session() {
     Err(issue) => return Err(issue)
@@ -333,6 +340,7 @@ fn NativeLocalAdoptionCapture::capture_original_journal_resources(
     ttl_ms,
     max_records,
     max_snapshot_bytes,
+    max_retained_intent_bytes~,
   )
   let journal = { ..prepared, command_preparation_journal, initial_signing, }
   self.journal = Some(journal)
@@ -353,6 +361,7 @@ pub fn NativeLocalAdoptionCapture::capture_initial_journal_with_original_resourc
   ttl_ms : Double,
   max_records : Int,
   max_snapshot_bytes : Int64,
+  max_retained_intent_bytes? : Int64 = 67108864L,
 ) -> Result[NativeLocalJournalCapture, NativeLocalAdoptionCaptureIssue] {
   self.capture_original_journal_resources(
     host,
@@ -363,6 +372,7 @@ pub fn NativeLocalAdoptionCapture::capture_initial_journal_with_original_resourc
     max_snapshot_bytes,
     false,
     Some((material, policy)),
+    max_retained_intent_bytes~,
   )
 }
 
@@ -379,6 +389,7 @@ pub fn NativeLocalAdoptionCapture::capture_initial_command_journal_with_original
   ttl_ms : Double,
   max_records : Int,
   max_snapshot_bytes : Int64,
+  max_retained_intent_bytes? : Int64 = 67108864L,
 ) -> Result[NativeLocalJournalCapture, NativeLocalAdoptionCaptureIssue] {
   self.capture_original_journal_resources(
     host,
@@ -389,6 +400,7 @@ pub fn NativeLocalAdoptionCapture::capture_initial_command_journal_with_original
     max_snapshot_bytes,
     true,
     Some((material, policy)),
+    max_retained_intent_bytes~,
   )
 }
 

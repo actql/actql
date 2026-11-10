@@ -118,7 +118,10 @@ fn NativeLocalAdoptionSession::prepare_journal_file(
 
 ///|
 /// Finalize a new Host exactly once, or reopen its original adoption. The
-/// initializing marker precedes every schema/key write. Missing custody after
+/// retained-intent byte selection limits fresh admission only; 64 MiB is the
+/// compatibility default, not a reservation of future RAM. Existing history
+/// stays readable at a lower selection. The initializing marker precedes
+/// every schema/key write. Missing custody after
 /// that point stays unresolved and cannot regenerate keys or permissions.
 pub fn NativeLocalAdoptionSession::open_journal(
   self : NativeLocalAdoptionSession,
@@ -127,6 +130,7 @@ pub fn NativeLocalAdoptionSession::open_journal(
   ttl_ms : Double,
   max_records : Int,
   max_snapshot_bytes : Int64,
+  max_retained_intent_bytes? : Int64 = 67108864L,
 ) -> Result[NativeLocalHostConnection, NativeLocalAdoptionIssue] {
   self.open_journal_selected(
     library,
@@ -135,6 +139,7 @@ pub fn NativeLocalAdoptionSession::open_journal(
     max_records,
     max_snapshot_bytes,
     [],
+    max_retained_intent_bytes~,
   )
 }
 
@@ -152,8 +157,14 @@ fn NativeLocalAdoptionSession::open_journal_selected(
   signing : Array[NativeLocalSigningInstallationSelection],
   initial_signing? : NativeLocalInitialSigningMaterial? = None,
   initial_policy? : @host.ClientLocalSigningBootstrapPolicy? = None,
+  max_retained_intent_bytes? : Int64 = 67108864L,
 ) -> Result[NativeLocalHostConnection, NativeLocalAdoptionIssue] {
-  if !valid_local_journal_options(ttl_ms, max_records, max_snapshot_bytes) {
+  if !valid_local_journal_options(
+      ttl_ms,
+      max_records,
+      max_snapshot_bytes,
+      max_retained_intent_bytes~,
+    ) {
     return Err(InvalidInput)
   }
   let (ownership, adoption_body) = match self.prepare_journal_file(crypto) {
@@ -185,8 +196,17 @@ fn NativeLocalAdoptionSession::open_journal_selected(
     Err(issue) => return Err(Physical(issue))
   }
   let connected = self.bind_journal(
-    database, crypto, ownership, adoption_body, first, ttl_ms, max_records, signing,
-    initial_signing, initial_policy,
+    database,
+    crypto,
+    ownership,
+    adoption_body,
+    first,
+    ttl_ms,
+    max_records,
+    signing,
+    initial_signing,
+    initial_policy,
+    max_retained_intent_bytes~,
   )
   match connected {
     Ok(value) => Ok(value)
@@ -208,6 +228,7 @@ fn NativeLocalAdoptionSession::bind_journal(
   signing : Array[NativeLocalSigningInstallationSelection],
   initial_signing : NativeLocalInitialSigningMaterial?,
   initial_policy : @host.ClientLocalSigningBootstrapPolicy?,
+  max_retained_intent_bytes? : Int64 = 67108864L,
 ) -> Result[NativeLocalHostConnection, NativeLocalAdoptionIssue] {
   let initial = match (initial_signing, initial_policy) {
     (None, None) => None
@@ -223,7 +244,14 @@ fn NativeLocalAdoptionSession::bind_journal(
   }
   let (epoch, journal) = match
     self.bind_journal_sqlite_originals(
-      database, crypto, adoption_body, first, initial, ttl_ms, max_records,
+      database,
+      crypto,
+      adoption_body,
+      first,
+      initial,
+      ttl_ms,
+      max_records,
+      max_retained_intent_bytes~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -435,11 +463,13 @@ fn valid_local_journal_options(
   ttl_ms : Double,
   max_records : Int,
   max_snapshot_bytes : Int64,
+  max_retained_intent_bytes? : Int64 = 67108864L,
 ) -> Bool {
   !(!valid_epoch_clock(ttl_ms) ||
   ttl_ms < 1.0 ||
   ttl_ms > 86400000.0 ||
   max_records < 1 ||
+  max_retained_intent_bytes < 0L ||
   max_snapshot_bytes < 0L ||
   max_snapshot_bytes > 536870912L)
 }
