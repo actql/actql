@@ -164,7 +164,19 @@ test "CLI Journal record policy preserves checked Int boundaries above 1024" {
     assert_eq(settings.principal, "original-client")
     assert_eq(settings.connection, "original-cli")
   }
-  for records in [0L, -1L, 2147483648L, 9223372036854775807L] {
+  // JSON's safe-integer gate precedes the Journal's positive Int policy.
+  // The pure Int64 helper still refuses every value outside that policy.
+  for
+    (records, expected) in [
+      (0L, "InvalidLocalHostLimits"),
+      (-1L, "InvalidLocalHostLimits"),
+      (2147483648L, "InvalidLocalHostLimits"),
+      (9007199254740991L, "InvalidLocalHostLimits"),
+      (-9007199254740991L, "InvalidLocalHostLimits"),
+      (9007199254740992L, "InvalidLocalHostConfiguration"),
+      (-9007199254740992L, "InvalidLocalHostConfiguration"),
+      (9223372036854775807L, "InvalidLocalHostConfiguration"),
+    ] {
     assert_eq(local_host_journal_record_limit(records), None)
     let selected = local_reviewer_cli_configuration.replace_all(
       old="\"journal_record_limit\":8",
@@ -175,7 +187,7 @@ test "CLI Journal record policy preserves checked Int boundaries above 1024" {
         local_host_settings(selected) |> ignore
         false
       } catch {
-        ClientStop(message) => message == "InvalidLocalHostLimits"
+        ClientStop(message) => message == expected
       },
     )
   }
