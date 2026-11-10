@@ -2546,7 +2546,7 @@ test('public Effect dispatch waits for and obeys the Host barrier',
     await waitFor(async () => (await run.status()).status === 'succeeded');
     assert.equal(captures, 1);
     assert.deepEqual(sends, [[0, 0], [0, 1]]);
-    await first.close();
+    await closeRetainedStoreFixtureHost(first, t);
 
     let refusedCaptures = 0;
     const refused = createInstalledEffectSite({
