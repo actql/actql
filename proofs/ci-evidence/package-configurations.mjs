@@ -95,11 +95,11 @@ export const currentPackageConfigurations = Object.freeze({
   // The HTTP-header/native-control/discarded-projection/Definition and
   // empty-header regressions are JS-only. Removing
   // their selectors restores the reviewed scope-import descriptor exactly;
-  // The Model provider WB-import preimage is retained. The current successor
-  // adds only four JS-only Request regressions; deleting those four literal
-  // selectors restores that complete preimage, including all imports/options.
+  // The Model provider WB-import and four Request-selector preimages remain
+  // retained. The current successor adds one literal JS-only completed-task
+  // provenance regression; removing it restores the complete prior descriptor.
   // See docs/reviews/2026-11-12-session-local-host-js-selector-review.md.
-  'src/client_local_host/moon.pkg': Object.freeze({digest: '1f51429964f1bd98f0089a0f62b19d0f53bf1f0ea50c87b5ce80ac408af70946', rule: 'literal-target-selectors-with-bound-source-membership', revision: '112a38375c2f57f33424f018456f25f9920a044b'}),
+  'src/client_local_host/moon.pkg': Object.freeze({digest: '6ecd1471fc3ab3904b1d7cf2520bc4834c4fe3f3b257cc11663ac7baf927af55', rule: 'literal-target-selectors-with-bound-source-membership', revision: '705b8689c5a75e1c1a52aa33f178237bc7f2df3d'}),
   'src/connectors_builtin_node/moon.pkg': Object.freeze({digest: 'd515c9868140c30ef68b5778b71863813cad0d53cc7300e4ba8fcc3e00405d9d', rule: 'literal-js-foreign-library-with-bound-source-membership', revision: '6f27dfdf10aa232977277ec8580557463e44e81f'}),
   'src/execution_relation/moon.pkg': Object.freeze({digest: '2a223e06a52cbb8c01280e9d5c5132485434728f59271ff02900f74ea582d079', rule: 'literal-target-selectors-with-bound-source-membership', revision: '6813ab0330a17f99c8eef5c9f4a70480ecc7e96c'}),
   'src/native_values_integration/moon.pkg': Object.freeze({digest: 'aa3777f1835f552da0ea34a13bbcb0de9afeb6c96adeadfbb26b483ce683c54f', rule: 'literal-native-options-with-bound-source-membership'}),
