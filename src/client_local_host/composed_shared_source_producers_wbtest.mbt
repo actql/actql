@@ -15,10 +15,14 @@ test "restored Source custody binds the same completed producer without reopenin
 
 ///|
 #cfg(target="js")
-fn composed_shared_source_custody(restored? : Bool = false) -> Unit raise {
+fn composed_shared_source_custody(
+  restored? : Bool = false,
+  initial_identity_policy? : Bool = false,
+) -> Unit raise {
   original_composed_keyed_consumer(
     whole=true,
     shared_source_producers=true,
+    initial_identity_policy~,
     restored~,
     prepare_parent=Some((wire, selectedEnvironment) => {
       let (parent, child, _, input) = registration_parent_fixture(
@@ -39,4 +43,10 @@ fn composed_shared_source_custody(restored? : Bool = false) -> Unit raise {
       (parent, input, prepared)
     }),
   )
+}
+
+///|
+#cfg(target="js")
+test "initial managed identity policy accepts exact imported Source completions once" {
+  composed_shared_source_custody(initial_identity_policy=true)
 }

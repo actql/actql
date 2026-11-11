@@ -79,6 +79,12 @@ test "Local module snapshots its owned preparations without admitting or executi
     )
   }
   @strategy.execute_captured_synchronous_task(run, 1, compute).unwrap()
+  assert_eq(@strategy.captured_dag_generation(run), 1)
+  assert_false(
+    @strategy.configure_captured_managed_identity_policy(
+      run, false, false, false, false,
+    ),
+  )
   let output = @strategy.captured_task_output(run, 1, Step(1)).unwrap()
   assert_eq(@execution.completed_row_count(output), 1)
   @connector.close_capability_registry(registry)

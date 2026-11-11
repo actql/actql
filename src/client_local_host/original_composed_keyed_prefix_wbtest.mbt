@@ -61,6 +61,7 @@ fn original_composed_keyed_consumer(
   keyed_start_observer? : ((ClientInstalledKeyedSourceRead) -> Unit)? = None,
   retained_input_root? : Bool = false,
   shared_source_producers? : Bool = false,
+  initial_identity_policy? : Bool = false,
   large_lookup_policy? : Bool = false,
   publication_identity? : Bool = false,
   publication_early? : Bool = false,
@@ -1689,6 +1690,21 @@ fn original_composed_keyed_consumer(
       @strategy.captured_effect_run_matches_preparation(captured, dag, supplied),
     )
     assert_false(@strategy.captured_task_completed(dag, task))
+    if initial_identity_policy {
+      // These completions were checked/imported at construction, not computed
+      // by this new DAG. Its original Sources and output occurrence remain live.
+      assert_eq(@strategy.captured_dag_generation(dag), 0)
+      assert_true(
+        @strategy.configure_captured_managed_identity_policy(
+          dag, false, false, false, false,
+        ),
+      )
+      assert_false(
+        @strategy.configure_captured_managed_identity_policy(
+          dag, false, false, false, false,
+        ),
+      )
+    }
     if shared_source_producers {
       assert_eq(@strategy.next_captured_task(dag), Some(task))
       let proofs = @publication_host.client_composed_keyed_lookup_source_results(

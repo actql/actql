@@ -1096,9 +1096,15 @@ pub fn configure_captured_managed_identity_policy(
   host_policy : Bool,
 ) -> Bool {
   let mut started = false
-  for index in captured_compute_first_task(run)..<run.done.length() {
-    if run.done[index] {
-      started = true
+  // open_checked_dag admits original retained completions at generation zero.
+  // They did not execute on this DAG. Every actual committed task output
+  // advances this same generation; its completed slots still forbid policy
+  // installation even after the execution handle has retired.
+  if run.generation != 0 {
+    for index in captured_compute_first_task(run)..<run.done.length() {
+      if run.done[index] {
+        started = true
+      }
     }
   }
   if run.managed_identity_policy_sealed || run.running is Some(_) || started {
