@@ -6,7 +6,7 @@ import {fileURLToPath} from 'node:url';
 import {retainedParentCoreBound,checkParentCensus} from '../parent-control/bounds.mjs';
 import {inspectCurrentChain} from '../parent-control/current-inspect.mjs';
 import {currentChainSyntheticFixture} from '../parent-control/current-chain.synthetic.fixture.mjs';
-import {reviewedFunction} from '../parent-control/provider-construction-source-review.mjs';
+import {reviewedFunction, selectedBeforeCleanupContinuation} from '../parent-control/provider-construction-source-review.mjs';
 import {hash} from '../../inventory.mjs';
 const root=fileURLToPath(new URL('../../../../',import.meta.url));
 const read=p=>readFileSync(join(root,p));
@@ -31,7 +31,7 @@ test('current census binds state, metadata preparation and all provider construc
   // nor the parent state/callback owner, and add no constructor allocation.
   assert.equal(hash(reviewedFunction(source,'selected_relation_provider')),
     'f100dd3ac842dd087b494382c42be9dfb613184a35f26164f2788ba8ed6544b5');
-  assert.equal(hash(reviewedFunction(source,'bounded_relation_chain_execution_state')),
+  assert.equal(hash(reviewedFunction(selectedBeforeCleanupContinuation(source),'bounded_relation_chain_execution_state')),
     '509b289d59148096c04e8676a739df325281648d03f58fdabdac6ecb25d95695');
   assert.throws(()=>checkParentCensus(path=>path===p?source.replace('Array::make(count, None)','Array::make(count - 1, None)'):read(path)));
   const joined='Some(@lower.JoinStep(_)) | Some(@lower.CrossJoinStep(_)) => ()';
@@ -94,4 +94,17 @@ test('pending/error cleanup cannot lose the completed occurrence or nested curso
     r=>r[7].state.captures.find(c=>c.offset===8).id='1']) {
     const r=records(),before=structuredClone(r);mutate(r);assert.notDeepEqual(r,before);assert.throws(()=>inspectCurrentChain(r));
   }
+});
+
+for(const [name,mutate] of [
+  ['retained seven-slot owner',r=>r[0].owner.requestedBytes=64],
+  ['missing owner slot',r=>r[0].owner.captures.pop()],
+  ['extra owner slot',r=>r[0].owner.captures.push({offset:64,id:'999'})],
+  ['missing continuation',r=>r[0].cleanupContinuation=null],
+  ['substituted callback',r=>r[0].owner.captures.at(-1).id='999'],
+  ['different state',r=>r[0].cleanupContinuation.captures[0].id='999'],
+  ['extra capture',r=>r[0].cleanupContinuation.captures.push({offset:40,id:'999'})],
+  ['changed cleanup custody',r=>r[4].cleanupContinuation.id='999'],
+]) test('current owner census rejects '+name,()=>{
+  const r=records();mutate(r);assert.throws(()=>inspectCurrentChain(r));
 });

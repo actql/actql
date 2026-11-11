@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {checkChainCensus} from './bounds.mjs';
 import {checkChainSource} from './chain-source.mjs';
+import {reviewedFunction} from './provider-construction-source-review.mjs';
 import {currentOverlay} from './current-overlay.mjs';
 import {parentStartupLayout} from '../backing/parent-layout.mjs';
 const source=readFileSync(new URL('../../../../src/connectors/local/selected_relation_provider.mbt',import.meta.url),'utf8');
@@ -59,11 +60,15 @@ test('advance captures the audited Int prefix, not its callback-local Boolean',(
 test('the observer remains outside original callbacks and uses real state return',()=>{
   const overlay=currentOverlay(read);
   const actual=overlay['src/connectors/local/selected_relation_provider.mbt'];
-  assert(actual.includes('Ok((observed_parent, state))'));
+  assert(actual.includes('let (observed_parent, original_state) = pair'));
+  assert(actual.includes('    pair\n  })'));
   assert.equal(actual.split('println(current_chain_start_probe(').length,2);
-  const constructor=source.slice(source.indexOf('fn bounded_relation_chain_execution_state('));
-  const before=constructor.slice(constructor.indexOf('      quantum => {'),constructor.indexOf('    ),\n  ).map(active => (active, state))'));
+  const constructor=reviewedFunction(source,'bounded_relation_chain_execution_state');
+  const before=constructor.slice(constructor.indexOf('      quantum => {'),constructor.indexOf('    ),\n  ).map(active => {'));
   assert(actual.includes(before),'Observer must not add captures inside callbacks');
+  const continuation = constructor.slice(constructor.indexOf('  ).map(active => {'));
+  assert(actual.includes(continuation.slice(0, continuation.lastIndexOf('\n}'))),
+    'Observation must retain the complete original cleanup-continuation installation');
   assert(actual.includes('max_value_bytes, reclaimed_prefix))'));
   assert(!actual.includes('max_value_bytes, reclaims_scratch))'));
   assert(overlay['src/connectors/local/current_chain_capacity_native.mbt']
@@ -98,20 +103,45 @@ test('current provider census retains the original optional Infer prefix recipe'
     /Unreviewed parent\/edge field or type ManagedProvider/);
 });
 
-test('Native observer parent layout agrees with the typed execution census', () => {
+test('current Native observer binds all eight execution slots and separate continuation', () => {
   const fields=checkChainCensus(read).sourceFields
     .find(entry=>entry.struct==='ManagedProviderExecution').fields;
-  assert.deepEqual(fields.at(-1),{name:'retained_completion',type:'(() -> Bool)?'});
+  assert.deepEqual(fields.at(-2),{name:'retained_completion',type:'(() -> Bool)?'});
+  assert.deepEqual(fields.at(-1),{name:'cleanup_continuation',type:'(() -> Int64)?'});
   const reader=readFileSync(new URL('./current-reader.c',import.meta.url),'utf8');
   const shape=reader.match(/current_shape\(parent\);assert\(s\[0\]==(\d+) && s\[1\]==(\d+)\)/);
   assert(shape,'Missing exact parent layout refusal');
-  assert.equal(Number(shape[1]),(parentStartupLayout().blocks.owner-8)/4);
+  assert.equal(Number(shape[1]),fields.length*2);
   assert.equal(Number(shape[2]),fields.length);
   const references=reader.match(/for\(int i=0;i<(\d+);i\+\+\)assert\(s\[2\+i\]/);
-  assert(references,'Missing complete indexed pointer-layout refusal');
   assert.equal(Number(references[1]),fields.length);
-  assert(reader.includes(`assert(current_pointer(parent,${(fields.length-1)*8})==NULL);`),
-    'A live retained-completion callback cannot be omitted from the census');
+  assert(reader.includes('current_record(j,current_pointer(parent,56))'));
+  assert(reader.includes('assert(current_pointer(parent,48)==NULL);'));
+  // Preserve the retained conditional arithmetic, without using it to size
+  // the new owner and callback. Actual current extents are checked separately.
+  assert.equal(parentStartupLayout().blocks.owner,64);
+  assert.equal(checkChainSource(source).cleanupContinuation.includedInRetainedCoreBound,false);
+});
+
+for (const [name, from, to] of [
+  ['active child', '!terminal.val || reclaimed.val || cleanup_index.val < 0', 'reclaimed.val || cleanup_index.val < 0'],
+  ['reclaimed owner', '!terminal.val || reclaimed.val || cleanup_index.val < 0', '!terminal.val || cleanup_index.val < 0'],
+  ['different child', '.get(cleanup_index.val)', '.get(0)'],
+  ['invented progress', '.unwrap_or(-1L)', '.unwrap_or(1L)'],
+]) test('cleanup continuation source rejects '+name, () => {
+  const changed=source.replace(from,to);assert.notEqual(changed,source);
+  assert.throws(()=>checkChainSource(changed),/Changed reviewed representation delta/);
+});
+
+for (const [name, replacement] of [
+  ['missing', ''], ['retyped', '  mut cleanup_continuation : (() -> Bool)?\n'],
+  ['additional owner', '  mut cleanup_continuation : (() -> Int64)?\n  mut extra_continuation : (() -> Int64)?\n'],
+]) test('typed census rejects '+name+' cleanup continuation', () => {
+  const path='src/connectors/local/managed_provider.mbt', original=read(path).toString();
+  const field='  mut cleanup_continuation : (() -> Int64)?\n';
+  assert.equal(original.split(field).length,2);
+  assert.throws(()=>checkChainCensus(p=>p===path?original.replace(field,replacement):read(p)),
+    /Unreviewed parent\/edge field or type ManagedProviderExecution/);
 });
 
 test('current generated recipe borrows one original query-time identity', () => {

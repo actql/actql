@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {reviewedFunction} from './provider-construction-source-review.mjs';
+import {reviewedFunction, selectedBeforeCleanupContinuation} from './provider-construction-source-review.mjs';
 import {hash} from '../../inventory.mjs';
 
 // Exact source-side capture inventory, not a general MoonBit free-variable
@@ -45,7 +45,10 @@ export function checkChainSource(source) {
   // whole-parent lifetime qualification from this Source correspondence.
   assert.equal(hash(prefix), '7e2e7b6258cf147b15b58add0133399bb23fc3194b0c236d478d28ddfd36c2ef',
     'Changed reviewed reclaimed-prefix source body or arity');
-  const constructor = clean(reviewedFunction(source, 'bounded_relation_chain_execution_state'));
+  // Keep the original five lifecycle captures independently checked. The
+  // exact new observer borrows state/terminal/reclaimed/cleanup_index; its
+  // closure and eighth execution-owner slot have no Native extent admission.
+  const constructor = clean(reviewedFunction(selectedBeforeCleanupContinuation(source), 'bounded_relation_chain_execution_state'));
   const open = '  let start_next = fn(';
   const middle = '  Ok(\n    managed_provider_execution_with_child_work_issue(\n';
   const tail = '    ),\n  ).map(active => (active, state))\n}\n';
@@ -81,5 +84,7 @@ export function checkChainSource(source) {
   assert(!callbacks.cancel.includes('state.input_preparation = None'), 'Cancellation drops pending input custody');
   assert(!callbacks.cancel.includes('state.completed = []'), 'Cancellation drops completed output custody');
   return {captureRoles: chainCaptureRoles, sharedCapturesAreNotNewAllocations: true,
+    cleanupContinuation: {captureRoles: ['state', 'terminal', 'reclaimed', 'cleanup_index'],
+      nativeExtentEstablished: false, includedInRetainedCoreBound: false},
     completeNativeCorrespondence: false, completePhysicalUpper: false};
 }

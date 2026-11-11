@@ -52,11 +52,22 @@ test('current driver/common owner source and additive Native overlay are admitte
   }
 });
 
+for(const [name,from,to] of [
+  ['missing observation before cleanup', '}\n    observe()\n    let released', '}\n    let released'],
+  ['missing observation after cleanup', 'final_provider_work,\n    )\n    observe()', 'final_provider_work,\n    )'],
+  ['invented reclamation cursor', '@local.managed_provider_cleanup_continuation(active)', '1L'],
+  ['nonmonotonic cursor', 'if cursor > provider_reclamation_steps.val {', 'if cursor < provider_reclamation_steps.val {'],
+  ['cleanup refusal hidden', '    released\n  }', '    true\n  }'],
+]) test('provider progress source rejects '+name,()=>{
+  assert.throws(()=>checkDriverRetirementSource(changed(driverPath,from,to,
+    'let release_provider_scratch = fn()')),/Changed provider stop\/cleanup\/work\/root retirement ordering/);
+});
+
 // These valid source mutations preserve guard counts where possible. The
 // reviewed new import-current boundary must reject more than a missing call.
 for(const [name,from,to,anchor,reason] of [
   ['shared import latch bypass', 'if active.val {', 'if false {',
-    'fn with_local_managed_import_mutation(', /Changed shared import mutation fence/],
+    'fn[A] with_local_managed_import_mutation(', /Changed shared import mutation fence/],
   ['per-copy import latch', 'let copied_rows = Ref(0L)',
     'let import_mutating = Ref(false)\nlet copied_rows = Ref(0L)', undefined, /same Task mutation fence/],
   ['transfer current before import latch',

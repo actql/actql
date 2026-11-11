@@ -25,6 +25,9 @@ export function currentChainSyntheticFixture() {
     record('124',48,[[8,'107'],[16,'106'],[24,'105'],[32,'102']]),
     record('125',24,[[8,'102']]),
   ];
+  const cleanupContinuation=record('126',48,[[8,'102'],[16,'105'],[24,'106'],[32,'107']]);
+  const owner=record('101',72,[[0,'121'],[8,'122'],[16,'123'],[24,'124'],
+    [32,'127'],[40,'125'],[48,null],[56,'126']]);
   const state = (children, current, completed, preparation) => record('102',56,
     [[0,children],[8,current],[16,completed],[40,preparation]]);
   const initialChildren = {id:'200',backing:'201',length:1,slots:1,
@@ -48,11 +51,11 @@ export function currentChainSyntheticFixture() {
     kind:'phase',phase:number,parent:'101',position:number===0?0:1,
     pending:number!==0,reclaiming:false,
     state:state(children.id,children.elements.at(-1)??null,completed.id,preparation?.id??null),
-    callbacks,children,completed,preparation,read});
+    owner,cleanupContinuation,callbacks,children,completed,preparation,read});
   return {role:'synthetic-current-source-abi; no Native execution or physical-lifetime evidence',
     records:[structuredClone({kind:'startup',parent:'101',count:2,maxValueBytes:10000,
       reclaimsScratch:true,roots,state:state('200','204','202',null),
-      callbacks,environments:[environment]}),
+      owner,cleanupContinuation,callbacks,environments:[environment]}),
     phase(0,initialChildren,initialCompleted,null,null),
     ...[1,2,3,4].map(n=>phase(n,children,completed,preparation,read)),
     ...[5,6].map(n=>phase(n,emptyChildren,emptyCompleted,null,null))]};
