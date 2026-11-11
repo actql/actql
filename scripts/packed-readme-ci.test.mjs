@@ -9,6 +9,7 @@ import {gateJobs, gateJobRequired, selectTargets, verifyGate} from './ci-targets
 import {mockWorkflowMetrics} from './health-monitor-adapters.mjs';
 import {packedReadmeCases} from './test-packed-readme-workflows.mjs';
 import {nodeBenchmarkFailure} from './benchmark-node-operations.mjs';
+import {twoModelWholeDealReviewFiles} from './fixtures/deal-review-two-models.mjs';
 
 const workflow = parse(await readFile(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
 const name = 'client-readme-packed', job = workflow.jobs[name];
@@ -19,6 +20,56 @@ const explicitWork = phase => ({complete: true,
   sourceAcquisitionStarts: phase === 'capture' ? 1 : 0,
   modelCallStarts: phase === 'capture' ? 2 : 0,
   effectReplacementReturns: phase === 'approve' ? 2 : 0});
+
+test('distinct Whole producer fixture retains both Model Units and all public Result readers', async () => {
+  const files = twoModelWholeDealReviewFiles(), program = JSON.parse(files['deal-review.program.json']);
+  assert.deepEqual(program.stages.map(stage => stage.id), ['source_opportunities', 'review', 'confirm', 'apply']);
+  assert.deepEqual(program.stages[1].inputs.opportunities,
+    {result: {stage: 'source_opportunities', result: 'rows'}});
+  assert.deepEqual(program.stages[0].inputs,
+    {opportunities: {connector: 'salesforce', resource: 'Opportunity'}});
+  assert.equal(program.stages.flatMap(stage => stage.steps).filter(step => step.infer !== undefined).length, 2);
+  assert.deepEqual(Object.keys(program.results), ['source_rows', 'reviewed', 'confirmed', 'updates']);
+  const source = await readFile(new URL('../adapters/host-node/fixtures/mock-project-effect-public.mjs', import.meta.url), 'utf8');
+  const original = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
+    .find(node => node.id?.name === 'readWholeResults');
+  const read = new Function('assert', `return (${source.slice(original.start, original.end)});`)(assert);
+  const sourceRows = [
+    {id: '006Acme', name: 'Acme Corp - Renewal', StageName: 'Proposal', NextStep: null},
+    {id: '006Globex', name: 'Globex - Expansion', StageName: 'Negotiation', NextStep: 'Legal review'},
+  ];
+  const updates = sourceRows.map(({name, ...row}) => ({...row, review: {outcome: 'ok', value: {}},
+    confirmation: {outcome: 'ok', value: {confirmed: true}}}));
+  const reviewed = updates.map(({confirmation, ...row}) => row);
+  const roots = {source_rows: sourceRows, reviewed, confirmed: updates}, calls = [];
+  const execution = {result(name) {calls.push(name); return {all: async () => roots[name]};}};
+  assert.deepEqual(await read(execution, updates), roots);
+  assert.deepEqual(calls, ['source_rows', 'reviewed', 'confirmed']);
+  roots.reviewed = [];
+  await assert.rejects(read(execution, updates), {code: 'ERR_ASSERTION'});
+});
+
+test('existing collector keeps the distinct Whole fixture and original cold inputs separate', async t => {
+  const {root, consumer} = await scratch(t), phases = [];
+  const metric = await mockWorkflowMetrics({prepared: {consumer}, root, repository,
+    counts: {coldSamples: 1}, template: 'deal-review-mock', variant: 'two-models-whole', onMetric() {},
+    async command(executable, args, options) {
+      const phase = args[1]; phases.push(phase);
+      assert.equal(args.at(-1), 'two-models-whole');
+      const input = join(options.cwd, 'deal-review.program.json');
+      if (phase !== 'capture') await assert.rejects(readFile(input), {code: 'ENOENT'});
+      else assert.equal(JSON.parse(await readFile(input, 'utf8')).stages[0].id, 'source_opportunities');
+      const count = {capture: 10, approve: 11, recover: 7}[phase];
+      return {pid: 20000 + phases.length, code: 0, signal: null, wallNs: 100,
+        stdout: [...Array.from({length: count}, (_, index) => ({phase, step: `explicit-${index}`, status: 'passed'})),
+          {phase, status: 'passed', firstFailedStep: null, firstClose: {attempted: true, returned: true},
+            workObservation: explicitWork(phase)}]
+          .map(value => JSON.stringify(value)).join('\n')};
+    }});
+  assert.deepEqual(phases, ['capture', 'approve', 'recover']);
+  assert.equal(metric.variant, 'two-models-whole');
+  assert.equal(metric.samples[0].verified, true);
+});
 test('required README job reuses the exact single producer on Node 22 and 24 with failure retention', () => {
   assert(job); assert.deepEqual(job.needs, ['select-targets', 'preflight', 'client-packages']);
   assert.equal(job.strategy['fail-fast'], false);

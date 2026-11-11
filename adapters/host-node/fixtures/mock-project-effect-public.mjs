@@ -12,8 +12,8 @@ assert.ok(['capture', 'approve', 'recover'].includes(phase));
 assert.equal(typeof handoffPath, 'string');
 assert.ok(['churn-risk-mock', 'deal-review-mock'].includes(template));
 const dealReview = template === 'deal-review-mock';
-assert.ok(variant === 'readme' || variant === 'two-models' && dealReview);
-const twoModels = variant === 'two-models';
+assert.ok(variant === 'readme' || ['two-models', 'two-models-whole'].includes(variant) && dealReview);
+const twoModels = variant !== 'readme', wholeProducer = variant === 'two-models-whole';
 const C = /^sha256:[0-9a-f]{64}$/u;
 const expected = Object.freeze(dealReview ? {
   '006Acme': {changed: true, stage: 'Negotiation', next_step: 'Send revised pricing by Friday'},
@@ -158,6 +158,20 @@ function checkRows(rows) {
     }
   }
 }
+async function readWholeResults(execution, updates) {
+  const sourceRows = await execution.result('source_rows').all();
+  assert.deepEqual([...sourceRows].sort((left, right) => left.id.localeCompare(right.id)), [
+    {id: '006Acme', name: 'Acme Corp - Renewal', StageName: 'Proposal', NextStep: null},
+    {id: '006Globex', name: 'Globex - Expansion', StageName: 'Negotiation', NextStep: 'Legal review'},
+  ]);
+  const reviewed = await execution.result('reviewed').all();
+  const confirmed = await execution.result('confirmed').all();
+  const ordered = rows => [...rows].sort((left, right) => left.id.localeCompare(right.id));
+  assert.deepEqual(ordered(reviewed), ordered(updates.map(({confirmation, ...row}) => row)));
+  assert.deepEqual(ordered(confirmed), ordered(updates));
+  return {source_rows: sourceRows, reviewed, confirmed};
+}
+
 function checkReview(review, summary, ref) {
   assert.deepEqual(Object.keys(review).sort(), ['version', 'review_projection_cid',
     'effect_preview_cid', 'authority_scope_cid', 'approval_claims', 'authoring_context_cid',
@@ -316,16 +330,21 @@ try {
         assert.equal(state.run_id, captured.runId);
         return state;
       });
+      let allResults;
       const rows = await step('original Named Result', async () => {
         const rows = await execution.result('updates').all();
-        checkRows(rows); return rows;
+        checkRows(rows);
+        if (wholeProducer) allResults = await readWholeResults(execution, rows);
+        return rows;
       });
       const after = await step('exact conditional target bytes', async () => {
         const after = await targetState();
         assert.equal(after.bytes, captured.expectedBytes); return after;
       });
       await step('retain approved recovery reference', () => save(handoffPath + '.approved.json',
-        {ref: execution.ref, runId: terminal.run_id, rows, after, ...(dealReview ? {template} : {}), ...(twoModels ? {variant} : {})}));
+        {ref: execution.ref, runId: terminal.run_id, rows, after,
+          ...(wholeProducer ? {allResults} : {}),
+          ...(dealReview ? {template} : {}), ...(twoModels ? {variant} : {})}));
     } else {
       const approved = await step('read approved public recovery reference', async () => {
         const approved = JSON.parse(await readFile(handoffPath + '.approved.json', 'utf8'));
@@ -338,6 +357,7 @@ try {
       await step('recover original Named Result', async () => {
         const rows = await execution.result('updates').all();
         checkRows(rows); assert.deepEqual(rows, approved.rows);
+        if (wholeProducer) assert.deepEqual(await readWholeResults(execution, rows), approved.allResults);
       });
       await step('recover completed same Run', async () => {
         const state = await execution.status();

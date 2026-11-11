@@ -12,7 +12,7 @@ import {inventory, unpack} from './package-release.mjs';
 import {CLIENT_PACKAGES} from './packed-client-packages.mjs';
 import {verifyNodeBenchmarkPackages, nodeWarmSmallQueryFixtures, nodeBenchmarkFailure} from './benchmark-node-operations.mjs';
 import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
-import {twoModelDealReviewFiles} from './fixtures/deal-review-two-models.mjs';
+import {twoModelDealReviewFiles, twoModelWholeDealReviewFiles} from './fixtures/deal-review-two-models.mjs';
 import {digest, jsonDigest, nodeColdStateKinds, nodeColdPublicPhases} from './health-monitor-report.mjs';
 
 const self = fileURLToPath(import.meta.url);
@@ -334,10 +334,11 @@ export async function quickNodeMetrics({prepared, root, repository, command, cou
 
 export async function mockWorkflowMetrics({prepared, root, repository, command, counts, onMetric,
   template = 'churn-risk-mock', variant = 'readme'}) {
-  assert.ok(variant === 'readme' || variant === 'two-models' && template === 'deal-review-mock');
+  assert.ok(variant === 'readme' || ['two-models', 'two-models-whole'].includes(variant) && template === 'deal-review-mock');
   const fixture = await readFile(join(repository, healthFixtures.workflow));
-  const files = variant === 'two-models' ? twoModelDealReviewFiles() : projectTemplateFiles(template);
-  const program = variant === 'two-models' ? 'deal-review.program.json'
+  const files = variant === 'two-models-whole' ? twoModelWholeDealReviewFiles()
+    : variant === 'two-models' ? twoModelDealReviewFiles() : projectTemplateFiles(template);
+  const program = variant !== 'readme' ? 'deal-review.program.json'
     : template === 'deal-review-mock' ? 'deal-review.aql' : 'churn-risk.aql';
   const answers = Object.values(JSON.parse(files['actql.config.json']).mock.answers)
     .map(path => path.replace(/^\.\//u, ''));

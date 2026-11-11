@@ -38,6 +38,30 @@ answers:
   return Object.freeze(files);
 }
 
+// A distinct ordinary consumer: the first Model imports a real completed
+// Whole Source Unit, while its files/Content reads remain in the Model Unit.
+// Public roots expose both original Models and the separate producer so the
+// consumer must read every declared Result, including on cold Saved recovery.
+export function twoModelWholeDealReviewFiles() {
+  const files = {...twoModelDealReviewFiles()};
+  const program = JSON.parse(files['deal-review.program.json']);
+  const fields = ['id', 'name', 'StageName', 'NextStep'];
+  program.id = 'fixture.deal-review-dependent-models-whole';
+  program.stages[0].inputs.opportunities = {result: {stage: 'source_opportunities', result: 'rows'}};
+  program.stages.unshift({id: 'source_opportunities', inputs: {
+    opportunities: {connector: 'salesforce', resource: 'Opportunity'},
+  }, from: 'opportunities', steps: [{select: fields, as: 'original'}],
+  results: {rows: {from: 'original', fields}}});
+  program.results = {
+    source_rows: {from: {stage: 'source_opportunities', result: 'rows'}},
+    reviewed: {from: {stage: 'review', result: 'rows'}},
+    confirmed: {from: {stage: 'confirm', result: 'rows'}},
+    ...program.results,
+  };
+  files['deal-review.program.json'] = JSON.stringify(program, null, 2) + '\n';
+  return Object.freeze(files);
+}
+
 // Independently authored structured Program. A Pipe does not create a Unit:
 // the second Model consumes the retained first Stage Result in the SAME Run.
 // The MappingRef is closed declaration DATA under the existing mapping
