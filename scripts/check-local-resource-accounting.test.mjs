@@ -4381,6 +4381,39 @@ test('shared output reclamation requires installed custody and independent fixtu
   }
 });
 
+test('shared counted Cross Join reclamation requires its original completion and buffer custody', () => {
+  const baseline = validateResourceAccounting({root, manifest: manifestTemplate,
+    routes: routesTemplate, sources: sourceTemplate});
+  const message = 'cross_join: shared output reclamation custody connection is missing';
+  assert.ok(!baseline.errors.includes(message));
+  const mutations = [
+    ['src/execution_relation/bounded_cross_join.mbt',
+      'reclaim_bounded_admitted_output_counted(', 'missing_reclamation('],
+    ['src/execution_relation/bounded_cross_join.mbt',
+      '      state.accepted.val,', '      false,'],
+    ['src/execution_relation/bounded_cross_join.mbt',
+      'if !released {', 'if removed == 0 {'],
+    ['src/execution_relation/bounded_cross_join.mbt',
+      '    state.output = None', '    state.output = Some(output)'],
+    ['src/execution_relation/admitted_output.mbt',
+      'return (true, 0)', 'return (false, 0)'],
+    ['src/execution_relation/admitted_output.mbt',
+      'advance_admitted_buffer_reclamation_counted(output.buffer, 64)',
+      'advance_admitted_buffer_reclamation_counted(other.buffer, 64)'],
+    ['src/connectors/local/cross_join_provider.mbt',
+      '@execution.bounded_cross_join_cleanup_pending(', 'missing_cleanup_pending('],
+  ];
+  for (const [relative, marker, replacement] of mutations) {
+    const file = join(root, relative), source = sourceTemplate[file];
+    assert.ok(source?.exists && source.text.includes(marker), marker);
+    const sources = Object.freeze({...sourceTemplate,
+      [file]: Object.freeze({...source, text: source.text.replace(marker, replacement)})});
+    const result = validateResourceAccounting({root, manifest: manifestTemplate,
+      routes: routesTemplate, sources});
+    assert.ok(result.errors.includes(message), `${relative}: ${marker}`);
+  }
+});
+
 test('sequence position assurance requires boundary and retained public evidence', () => {
   for (const part of ['quantum','workspace','stop','cleanup','public']) {
     const role=`sequence_position_${part}`;
