@@ -1,4 +1,93 @@
 ///|
+test "initial signing public projection keeps exact role PEM and original public32 correspondence" {
+  let host = initial_signing_original_fixture("signing-projection-original")
+  let original = host.restore_initial_signing_original().unwrap()
+  let independent = host.restore_initial_host_signing_original().unwrap()
+  // Pure public DATA correspondence only. The entered-Read route has a
+  // separate actual-pair consumer; this fixture invents no Read or Allow.
+  assert_eq(
+    original
+    .decoded_initial_signing_public_key(
+      "reviewer_proof",
+      "local-signing-key.pem",
+      original.public_key_pem,
+      original.public_key,
+    )
+    .unwrap(),
+    original.public_key.raw32().unwrap(),
+  )
+  assert_eq(
+    original
+    .decoded_initial_signing_public_key(
+      "host_attestation",
+      "local-host-attestation-key.pem",
+      independent.public_key_pem,
+      independent.public_key,
+    )
+    .unwrap(),
+    independent.public_key.raw32().unwrap(),
+  )
+  assert_true(
+    original.decoded_initial_signing_public_key(
+      "host_attestation",
+      "local-signing-key.pem",
+      independent.public_key_pem,
+      independent.public_key,
+    )
+    is Err(CustodyLost),
+  )
+  assert_true(
+    original.decoded_initial_signing_public_key(
+      "reviewer_proof",
+      "local-signing-key.pem",
+      original.public_key_pem,
+      independent.public_key,
+    )
+    is Err(CustodyLost),
+  )
+  assert_true(
+    original.decoded_initial_signing_public_key(
+      "reviewer_proof",
+      "local-signing-key.pem",
+      original.public_key_pem + "\n",
+      original.public_key,
+    )
+    is Err(CustodyLost),
+  )
+  host.close().unwrap()
+}
+
+///|
+test "initial signing public projection refuses missing and foreign original Host key pairs" {
+  let host = initial_signing_original_fixture("signing-projection-owner")
+  let foreign = initial_signing_original_fixture("signing-projection-foreign")
+  let original = host.restore_initial_signing_original().unwrap()
+  let other = foreign.restore_initial_host_signing_original().unwrap()
+  assert_true(
+    original.decoded_initial_signing_public_key(
+      "host_attestation",
+      "local-host-attestation-key.pem",
+      other.public_key_pem,
+      other.public_key,
+    )
+    is Err(CustodyLost),
+  )
+  let absent = { ..original, host_public_key: None, }
+  let actual = host.restore_initial_host_signing_original().unwrap()
+  assert_true(
+    absent.decoded_initial_signing_public_key(
+      "host_attestation",
+      "local-host-attestation-key.pem",
+      actual.public_key_pem,
+      actual.public_key,
+    )
+    is Err(CustodyLost),
+  )
+  foreign.close().unwrap()
+  host.close().unwrap()
+}
+
+///|
 test "initial signing cannot turn copied callback metadata into an original Read or cached Allow" {
   let (host, _) = initial_reviewer_fixture("signing-read-no-fabricated-scope")
   let original = host.restore_initial_signing_original().unwrap()

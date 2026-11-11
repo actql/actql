@@ -30,6 +30,9 @@ struct NativeLocalInitialSigningOriginal {
   public_key : @credential.LocalSigningPublicKey
   public_key_pem : String
   issuer : String
+  // The independent Host key was decoded by this SAME control admission.
+  // Only the original active Read may reuse its immutable public projection.
+  host_public_key : (@credential.LocalSigningPublicKey, String)?
 }
 
 ///|
@@ -273,7 +276,34 @@ fn local_initial_signing_control_header(
 fn read_local_initial_signing_control(
   host : NativeLocalHostConnection,
   body : Bytes,
+  signing_original? : NativeLocalInitialSigningOriginal? = None,
 ) -> Result[NativeLocalInitialSigningFields?, NativeLocalAdoptionIssue] {
+  read_local_initial_signing_control_with_host_key(
+    host,
+    body,
+    signing_original~,
+  ).map(value => value.map(pair => pair.0))
+}
+
+///|
+// Return the already checked Host projection with the existing Reviewer
+// fields. This closed pair contains DATA, never an authorization decision.
+fn read_local_initial_signing_control_with_host_key(
+  host : NativeLocalHostConnection,
+  body : Bytes,
+  signing_original? : NativeLocalInitialSigningOriginal? = None,
+) -> Result[
+  (
+    NativeLocalInitialSigningFields,
+    (@credential.LocalSigningPublicKey, String)?,
+  )?,
+  NativeLocalAdoptionIssue,
+] {
+  if signing_original is Some(original) {
+    if !physical_equal(original.host, host) || body != original.control_body {
+      return Err(CustodyLost)
+    }
+  }
   if body == host.adoption_body {
     return Ok(None)
   }
@@ -292,9 +322,14 @@ fn read_local_initial_signing_control(
     }
     let reviewer = local_initial_signing_value(
       read_local_initial_signing_packet(
-        host, packet, "reviewer_proof", "local-signing-key.pem",
+        host,
+        packet,
+        "reviewer_proof",
+        "local-signing-key.pem",
+        signing_original~,
       ),
     )
+    let mut retained_host_key = None
     if header.length() >= 3 {
       let host_packet = @base64.decode(header[2]) catch {
         _ => return Err(CustodyLost)
@@ -304,7 +339,11 @@ fn read_local_initial_signing_control(
       }
       let host_key = local_initial_signing_value(
         read_local_initial_signing_packet(
-          host, host_packet, "host_attestation", "local-host-attestation-key.pem",
+          host,
+          host_packet,
+          "host_attestation",
+          "local-host-attestation-key.pem",
+          signing_original~,
         ),
       )
       guard reviewer.public_key.raw32() is Ok(reviewer_raw) &&
@@ -324,8 +363,9 @@ fn read_local_initial_signing_control(
           return Err(CustodyLost)
         }
       }
+      retained_host_key = Some((host_key.public_key, host_key.public_key_pem))
     }
-    Ok(Some(reviewer))
+    Ok(Some((reviewer, retained_host_key)))
   } catch {
     LocalInstallationAdoptionStop(issue) => Err(issue)
   }
@@ -339,6 +379,7 @@ fn read_local_initial_signing_packet(
   packet : Bytes,
   purpose : String,
   key_file : String,
+  signing_original? : NativeLocalInitialSigningOriginal? = None,
 ) -> Result[NativeLocalInitialSigningFields, NativeLocalAdoptionIssue] {
   try {
     let payload = local_initial_signing_value(
@@ -387,11 +428,46 @@ fn read_local_initial_signing_packet(
     if !valid_initial_signing_public_pem(fields.public_key_pem) {
       return Err(CustodyLost)
     }
-    let raw = local_initial_signing_value(
-      host.epoch.crypto
-      .ed25519_public_key_raw32(fields.public_key_pem)
-      .map_err(issue => Crypto(issue)),
-    )
+    let raw = match signing_original {
+      None =>
+        local_initial_signing_value(
+          host.epoch.crypto
+          .ed25519_public_key_raw32(fields.public_key_pem)
+          .map_err(issue => Crypto(issue)),
+        )
+      Some(original) => {
+        if !physical_equal(original.host, host) {
+          return Err(CustodyLost)
+        }
+        guard original.original_read is Some((capture, material)) &&
+          capture.opening is JournalAcquired(actual_host) &&
+          physical_equal(actual_host, host) &&
+          capture.read_callback_active &&
+          capture.read_facts_valid &&
+          capture.read_material is Some(actual_material) &&
+          physical_equal(actual_material, material) else {
+          return Err(OriginalResourceScopePending)
+        }
+        // The enclosing closed current frame already checks the physical DB
+        // and control row. Observe its SAME entered Read lifetime here, rather
+        // than issuing another heavyweight global-current/SQL pass per key.
+        local_initial_signing_value(capture.check_original_read_lifetime())
+        local_initial_signing_value(
+          host.epoch.crypto.require_current().map_err(issue => Crypto(issue)),
+        )
+        // HMAC, payload/policy admission and every closed-field check above
+        // still execute. Reuse only the SAME previously decoded public key;
+        // no EVP object, private key, permission or use result is retained.
+        local_initial_signing_value(
+          original.decoded_initial_signing_public_key(
+            purpose,
+            key_file,
+            fields.public_key_pem,
+            public_key,
+          ),
+        )
+      }
+    }
     guard public_key.raw32() is Ok(expected_raw) && expected_raw == raw else {
       return Err(CustodyLost)
     }
@@ -405,6 +481,33 @@ fn read_local_initial_signing_packet(
   } catch {
     LocalInstallationAdoptionStop(issue) => Err(issue)
   }
+}
+
+///|
+// Pure correspondence of an already admitted public projection. The caller
+// separately requires the actual original Read, Library and packet HMAC.
+fn NativeLocalInitialSigningOriginal::decoded_initial_signing_public_key(
+  self : NativeLocalInitialSigningOriginal,
+  purpose : String,
+  key_file : String,
+  pem : String,
+  public_key : @credential.LocalSigningPublicKey,
+) -> Result[Bytes, NativeLocalAdoptionIssue] {
+  let retained = match (purpose, key_file) {
+    ("reviewer_proof", "local-signing-key.pem") =>
+      Some((self.public_key, self.public_key_pem))
+    ("host_attestation", "local-host-attestation-key.pem") =>
+      self.host_public_key
+    _ => None
+  }
+  guard retained is Some((original, original_pem)) &&
+    pem == original_pem &&
+    original.raw32() is Ok(raw) &&
+    public_key.raw32() is Ok(actual) &&
+    raw == actual else {
+    return Err(CustodyLost)
+  }
+  Ok(raw)
 }
 
 ///|
@@ -499,9 +602,9 @@ pub fn NativeLocalHostConnection::restore_initial_signing_original(
         .map_err(issue => Physical(issue)),
       )
       guard local_initial_signing_value(
-          read_local_initial_signing_control(self, row.body),
+          read_local_initial_signing_control_with_host_key(self, row.body),
         )
-        is Some(fields) else {
+        is Some((fields, host_public_key)) else {
         return Err(CustodyLost)
       }
       local_initial_signing_value(
@@ -525,6 +628,7 @@ pub fn NativeLocalHostConnection::restore_initial_signing_original(
         public_key: fields.public_key,
         public_key_pem: fields.public_key_pem,
         issuer: fields.issuer,
+        host_public_key,
       })
     } catch {
       LocalInstallationAdoptionStop(issue) => {
@@ -573,7 +677,16 @@ fn NativeLocalInitialSigningOriginal::require_current_after_host_binding(
     row.body == self.control_body else {
     return Err(CustodyLost)
   }
-  guard read_local_initial_signing_control(self.host, row.body)
+  let signing_original = if self.original_read is Some(_) {
+    Some(self)
+  } else {
+    None
+  }
+  guard read_local_initial_signing_control(
+      self.host,
+      row.body,
+      signing_original~,
+    )
     is Ok(Some(fields)) else {
     return Err(CustodyLost)
   }

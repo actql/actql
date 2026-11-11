@@ -139,17 +139,25 @@ fn NativeLocalSavedEffectReview::resolve_initial_original(
         // Fund those transient pair headers/references before any constructor.
         // The Submission continuation adds one borrowed capture option and a
         // closure slot; strict Account selection adds only transient scalars.
+        // The SAME admitted control now retains one optional Host public-key
+        // pair. Its full-reader result, legacy wrapper and correspondence
+        // matcher overlap with that pair and four scoped forwarding options.
+        // The retained PublicKey owns encoded44/body<=256/CID71 characters;
+        // its SAME canonical PEM has113. Back all484 retained UTF16 units
+        // and their string/object controls, even where the reader aliases
+        // existing storage. No EVP/private key or wire buffer is retained.
         record_headers: saved_effect_decision_emission_controls.record_headers +
         measurement.record_headers +
-        6L,
+        26L,
         reference_slots: saved_effect_decision_emission_controls.reference_slots +
         measurement.reference_slots +
-        12L,
+        42L,
         scalar_words: saved_effect_decision_emission_controls.scalar_words +
         measurement.scalar_words +
-        4L,
+        12L,
         owned_utf16_units: saved_effect_decision_emission_controls.owned_utf16_units +
-        measurement.owned_utf16_units,
+        measurement.owned_utf16_units +
+        484L,
         owned_wire_bytes: saved_effect_decision_emission_controls.owned_wire_bytes,
       }),
     ) {

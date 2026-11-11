@@ -540,6 +540,17 @@ but cannot create a replacement key, policy or claim. Read failure retains its
 original typed cause; if transaction retirement also fails, both causes survive
 in the same existing Host error path, and the database remains fenced.
 
+Inside the same active captured Read, the initial original also retains the
+independent Host public-key/PEM pair admitted by that first full control read.
+Subsequent packet reads still verify the actual HMAC and closed payload/policy
+fields, then compare exact role, file, PEM and public32 against those retained
+public DATA. They observe the same Read/material identity and live Library;
+they do not recreate an EVP decoder for the same public key. Legacy and cold
+reads retain the full decoder. Physical private-file generation/separation,
+fresh Account roles, trusted clock, claims and pre/post-signing fences remain
+independent. The existing pre-restore construction allowance includes the
+bounded pair, optional wrappers and overlapping result/matcher references.
+
 This physical metadata seam is not default-signer selection, Account/Reviewer/
 Run authorization, first issue, use claim, signature or public approval. Those
 existing operational gates must independently bind the exact original purpose,

@@ -15,8 +15,10 @@ struct NativeLocalInitialHostSigningOriginal {
 fn read_local_initial_host_signing_control(
   host : NativeLocalHostConnection,
   body : Bytes,
+  signing_original? : NativeLocalInitialSigningOriginal? = None,
 ) -> Result[NativeLocalInitialSigningFields, NativeLocalAdoptionIssue] {
-  guard read_local_initial_signing_control(host, body) is Ok(Some(reviewer)) else {
+  guard read_local_initial_signing_control(host, body, signing_original~)
+    is Ok(Some(reviewer)) else {
     return Err(CustodyLost)
   }
   let header = match local_initial_signing_control_header(body) {
@@ -29,7 +31,11 @@ fn read_local_initial_host_signing_control(
   }
   let fields = match
     read_local_initial_signing_packet(
-      host, packet, "host_attestation", "local-host-attestation-key.pem",
+      host,
+      packet,
+      "host_attestation",
+      "local-host-attestation-key.pem",
+      signing_original~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -65,8 +71,17 @@ pub fn NativeLocalHostConnection::restore_initial_host_signing_original(
         Err(issue) => return Err(issue)
       }
   }
+  let signing_original = if reviewer.original_read is Some(_) {
+    Some(reviewer)
+  } else {
+    None
+  }
   let fields = match
-    read_local_initial_host_signing_control(self, reviewer.control_body) {
+    read_local_initial_host_signing_control(
+      self,
+      reviewer.control_body,
+      signing_original~,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -101,8 +116,17 @@ pub fn NativeLocalInitialHostSigningOriginal::require_current(
     Ok(_) => ()
   }
   let host = self.reviewer.host
+  let signing_original = if self.reviewer.original_read is Some(_) {
+    Some(self.reviewer)
+  } else {
+    None
+  }
   let fields = match
-    read_local_initial_host_signing_control(host, self.reviewer.control_body) {
+    read_local_initial_host_signing_control(
+      host,
+      self.reviewer.control_body,
+      signing_original~,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
