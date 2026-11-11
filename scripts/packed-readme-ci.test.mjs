@@ -608,6 +608,62 @@ test('collection saves its original primary before pending close and diagnostic 
   }
 });
 
+test('budget failure keeps delivered quantities and completed phase bounds before pending FIRST close', async () => {
+  // Execute the original child body with explicit public/filesystem ports.
+  // This checks evidence custody, not real Core admission or installed cleanup.
+  const source = await readFile(new URL('./fixtures/packed-result-collection.mjs', import.meta.url), 'utf8');
+  const first = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
+    .find(value => value.type !== 'ImportDeclaration');
+  const invoke = Function('ports', `return (async () => {
+    const {assert,readFile,writeFile,unlink,join,setTimeout,open,getSubmissionOutcome,
+      observeRecordApprovalDescriptors,process,console}=ports;
+    ${source.slice(first.start)}
+  })();`);
+  const fact = {phase: 'source_free_plan', dimension: 'execution', requiredRetentionBytes: '203770432',
+    requiredExecutionBytes: '703186240', availableRetentionBytes: '536870912', availableExecutionBytes: '536870912'};
+  for (const mode of ['unrelated-public-failure', 'unexpected-run']) {
+    const stored = [], events = [];
+    const primary = Object.assign(new Error('Actual unrelated public failure'), {code: 'ClientHostFailure'});
+    let release, entered, submissions = 0;
+    const closing = new Promise(resolve => {release = resolve;});
+    const started = new Promise(resolve => {entered = resolve;});
+    const result = invoke({assert,join,
+      process: {argv: ['node', 'fixture', 'budget', '/fresh-own/handoff.json'],
+        pid: 123, cwd: () => '/fresh-own', hrtime: process.hrtime, cpuUsage: process.cpuUsage},
+      console: {log() {}}, readFile: () => assert.fail('No Saved or input read'),
+      unlink: () => assert.fail('No failed input removal'), setTimeout: async () => {},
+      observeRecordApprovalDescriptors: async () => ({openPaths: []}),
+      async writeFile(path, bytes) {events.push(`save:${path}`); stored.push({path, value: JSON.parse(bytes)});},
+      getSubmissionOutcome(error) {assert.strictEqual(error, primary); return undefined;},
+      async open(options) {
+        return {async startSource() {
+          submissions++;
+          if (mode === 'unexpected-run') return {ref: {original: true}};
+          options.installation.authorization.observe('preparation_capacity_refused', fact);
+          throw primary;
+        }, async close() {events.push('FIRST-close'); entered(); await closing;}};
+      }});
+    const rejected = assert.rejects(result, error => mode === 'unexpected-run'
+      ? error.code === 'ERR_ASSERTION' : error === primary);
+    await started;
+    const pending = stored.find(value => value.path === 'budget.pending.json').value;
+    assert.equal(pending.firstClose, 'pending'); assert.equal(pending.complete, false);
+    assert.equal(pending.submits, 1); assert.equal(submissions, 1);
+    assert.deepEqual(pending.capacityObservations, mode === 'unexpected-run' ? [] : [fact]);
+    assert.deepEqual(pending.phases.map(value => value.name), ['open', 'submit-budget-refusal']);
+    assert(pending.phases.every(value => value.wallNs > 0 && value.endedAt !== undefined));
+    assert.equal(pending.budgetRefusal, undefined, 'Delivered quantities alone never certify a refusal');
+    assert.equal(pending.primary.code, mode === 'unexpected-run' ? 'ERR_ASSERTION' : primary.code);
+    assert(events.indexOf('save:budget.pending.json') < events.indexOf('FIRST-close'));
+    if (mode === 'unexpected-run') assert.deepEqual(stored[0],
+      {path: 'budget-unexpected-ref-before-close.json', value: {original: true}});
+    release(); await rejected;
+    const final = stored.at(-1).value;
+    assert.equal(final.firstClose, 'returned'); assert.equal(final.complete, false);
+    assert.deepEqual(final.capacityObservations, pending.capacityObservations);
+  }
+});
+
 test('collection full stream drains all 100k original rows and refuses truncation or changed rows', async () => {
   const source = await readFile(new URL('./fixtures/packed-result-collection.mjs', import.meta.url), 'utf8');
   const declaration = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'})

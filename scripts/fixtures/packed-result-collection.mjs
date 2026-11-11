@@ -74,7 +74,7 @@ function originalBudgetRefusal(observations, outcome, memory) {
 }
 let client, failed = false, primary;
 const cleanup = [], programs = [];
-const capacityObservations = [];
+const capacityObservations = report.capacityObservations = [];
 try {
   // Explicit finite policy for this authored SQL's measured semantic work.
   // Both capture and the same-original Saved process select the same Host input.
@@ -201,9 +201,8 @@ finally {
     try {await save(path, value);}
     catch (error) {report.diagnosticErrors.push({name: error?.name, code: error?.code});}
   };
-  await persist(`${phase}.pending.json`, {phase, pid: report.pid,
-    firstFailedStep: report.firstFailedStep ?? null, primary: report.primary,
-    submits: report.submits, firstClose: report.firstClose, complete: false});
+  await persist(`${phase}.pending.json`, {...report,
+    firstFailedStep: report.firstFailedStep ?? null, complete: false});
   if (client) try {
     await span('FIRST-close', () => client.close()); report.firstClose = 'returned';
   } catch (error) {report.firstClose = 'threw'; cleanup.push(error);}
@@ -225,9 +224,8 @@ finally {
   }
   report.cleanup = cleanup.map(error => ({name: error?.name, code: error?.code}));
   report.complete = !failed && cleanup.length === 0 && report.diagnosticErrors.length === 0;
-  await persist(`${phase}.pending.json`, {phase, pid: report.pid,
-    firstFailedStep: report.firstFailedStep ?? null, primary: report.primary,
-    submits: report.submits, firstClose: report.firstClose, complete: false});
+  await persist(`${phase}.pending.json`, {...report,
+    firstFailedStep: report.firstFailedStep ?? null, complete: false});
   report.complete &&= report.diagnosticErrors.length === 0;
   await persist(`${phase}.observation.json`, report);
   report.complete &&= report.diagnosticErrors.length === 0;
