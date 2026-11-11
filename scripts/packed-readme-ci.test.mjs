@@ -229,3 +229,40 @@ test('failed collection capture never runs its dependent Saved and returns its e
   assert.equal(report.collection[1].status, 'unexecuted');
   assert(!(await readdir(join(root, 'collection'))).includes('node_modules'));
 });
+
+test('required Native counter stays case-scoped and nonzero through the original dispatcher', async () => {
+  const source = await readFile(new URL('./test-native-core.mjs', import.meta.url), 'utf8');
+  const tree = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  const file = 'src/cmd/native_client/local_project_mock_physical_scoped_wbtest.mbt';
+  const matches = [];
+  function visit(node, parent) {
+    if (node === null || typeof node !== 'object') return;
+    if (node.type === 'CallExpression' && node.callee.name === 'spawnSync') {
+      const environment = node.arguments[2]?.properties?.find(value => value.key?.name === 'env')?.value;
+      const selected = environment?.properties?.find(value => value.type === 'SpreadElement' &&
+        value.argument.type === 'ConditionalExpression' &&
+        source.slice(value.argument.start, value.argument.end).includes('ACTQL_NATIVE_TIMINGS'));
+      if (selected) matches.push({node, parent, selected});
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(child => visit(child, node));
+      else if (value && typeof value === 'object') visit(value, node);
+    }
+  }
+  visit(tree, null); assert.equal(matches.length, 1);
+  const {node, parent, selected} = matches[0];
+  assert.equal(parent.callee.name, 'checkChild');
+  const expression = selected.argument;
+  const environment = Function('test', `return (${source.slice(expression.start, expression.end)});`);
+  assert.deepEqual(environment({source: file, index: 13}), {ACTQL_NATIVE_TIMINGS: '1'});
+  for (const test of [{source: file, index: 12}, {source: file, index: 14},
+    {source: 'src/platform_native/client_host/another.mbt', index: 13}]) {
+    assert.deepEqual(environment(test), {});
+  }
+  const command = source.slice(node.start, node.end);
+  assert(command.includes("runFocusedTests('moon'"));
+  assert(command.includes('expectedTests: 1'));
+  assert(gateJobs.includes('native')); assert(workflow.jobs.check.needs.includes('native'));
+  assert.equal(workflow.jobs.native.env?.ACTQL_NATIVE_TIMINGS, undefined);
+  assert(workflow.jobs.native.steps.every(step => step.env?.ACTQL_NATIVE_TIMINGS === undefined));
+});
