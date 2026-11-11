@@ -2127,8 +2127,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       const expectedRun = run.producer.preparation === undefined ? run.original : run.value;
       if (declared === undefined || declared < 0 || run.prepared !== prepared ||
           expectedRun === undefined || expectedRun !== originalRun ||
-          occurrence !== undefined && !['stage', 'input', 'task'].every(name =>
-            Number.isSafeInteger(occurrence[name]) && occurrence[name] >= 0) ||
+          occurrence !== undefined && (occurrence === null || !['stage', 'input', 'task'].every(name =>
+            Number.isSafeInteger(occurrence[name]) && occurrence[name] >= 0)) ||
           project && (!Number.isSafeInteger(index) || index < 0 || index >= 32 ||
             occurrence.stage !== index || occurrence.input !== 0) ||
           run.children.some(child => child.index === index)) fail('InstalledSourcePreparationMismatch');

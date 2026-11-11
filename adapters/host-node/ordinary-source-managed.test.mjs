@@ -111,7 +111,7 @@ test('ordinary Mock occurrence selection keeps foreign Run, declaration and malf
     assert.throws(() => f.view.prepareRead(f.prepared, f.declarations[0], {}, occurrence),
       {code: 'InstalledSourcePreparationMismatch'});
     for (const malformed of [{stage: -1, input: 0, task: 0},
-      {stage: 0, input: -1, task: 0}, {stage: 0, input: 0, task: 0.5}, {}]) {
+      {stage: 0, input: -1, task: 0}, {stage: 0, input: 0, task: 0.5}, {}, null]) {
       assert.throws(() => f.view.prepareRead(f.prepared, f.declarations[0], original, malformed),
         {code: 'InstalledSourcePreparationMismatch'});
     }
