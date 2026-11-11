@@ -144,6 +144,10 @@ pub fn[I] prepare_request_native_document_check(
     }
     owner.phase = Open
   }
+  let program_limits = {
+    ..standard,
+    checking: { ..standard.checking, input: limits, },
+  }
   if format == @frontend.Json || format == @frontend.Yaml {
     match
       prepare_request_document_computation_input(
@@ -161,6 +165,7 @@ pub fn[I] prepare_request_native_document_check(
       Ok(_) => ()
     }
   } else {
+    owner.computation_limits = Some(program_limits)
     match parse_request_query_syntax(owner, input, document, format) {
       Err(issue) => return Err(QuerySyntax(issue))
       Ok(_) => ()
@@ -179,10 +184,6 @@ pub fn[I] prepare_request_native_document_check(
       Ok(_) => ()
     }
   }
-  let program_limits = {
-    ..standard,
-    checking: { ..standard.checking, input: limits, },
-  }
   let catalog = match
     @source_publication.prepared_published_query_catalog(
       publication, environment,
@@ -190,6 +191,14 @@ pub fn[I] prepare_request_native_document_check(
     Err(issue) => return Err(Publication(issue))
     Ok(value) => value
   }
+  let (program_limits, effect_limits) = request_original_query_check_limits(
+    owner,
+    program_limits,
+    {
+      ..@publication_host.client_standard_effect_computation_limits(),
+      program: program_limits,
+    },
+  )
   let checked = prepare_request_original_computation_check_owned(
     owner,
     input,
@@ -197,10 +206,7 @@ pub fn[I] prepare_request_native_document_check(
     catalog,
     [],
     program_limits,
-    {
-      ..@publication_host.client_standard_effect_computation_limits(),
-      program: program_limits,
-    },
+    effect_limits,
     static_check~,
   )
   match checked {

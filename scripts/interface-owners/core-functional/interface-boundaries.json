@@ -43933,7 +43933,7 @@
     {
       "module": "src/client_local_host/preparation_request_native_computation.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "3875bb01be86c3349e7714b538d9c3d62ba258d509d55529f156ead3e1875f5e",
+      "sha256": "52f03120f0a6be0955c8edaf436a309c259c58234359b1f6874730399a722432",
       "role": "common-semantics",
       "owner": "Existing Request Source/check/compiler driver and actual normal Native caller",
       "exports": [],
@@ -43968,7 +43968,11 @@
         },
         {
           "name": "[I]prepare_request_original_computation_check_owned",
-          "declaration": "[ I ] prepare_request_original_computation_check_owned ( owner : ClientRequestPreparation [ I ] , input : I , environment : @ checked . CheckEnvironment , catalog : @ checked . PreparedSourceCatalog , evidence : Array [ @ context . StageCapacityInput ] , program_limits : @ publication_host . ClientProgramPreparationLimits , effect_limits : @ publication_host . ClientEffectComputationLimits , ) - > Result [ Unit , ClientRequestTerminalIssue ]"
+          "declaration": "[ I ] prepare_request_original_computation_check_owned ( owner : ClientRequestPreparation [ I ] , input : I , environment : @ checked . CheckEnvironment , catalog : @ checked . PreparedSourceCatalog , evidence : Array [ @ context . StageCapacityInput ] , program_limits : @ publication_host . ClientProgramPreparationLimits , effect_limits : @ publication_host . ClientEffectComputationLimits , static_check ? : Bool"
+        },
+        {
+          "name": "[I]request_original_query_check_limits",
+          "declaration": "[ I ] request_original_query_check_limits ( owner : ClientRequestPreparation [ I ] , program : @ publication_host . ClientProgramPreparationLimits , effect : @ publication_host . ClientEffectComputationLimits , ) - > ( @ publication_host . ClientProgramPreparationLimits , @ publication_host . ClientEffectComputationLimits , )"
         },
         {
           "name": "[I]request_preparation_parameters_original",
@@ -44003,6 +44007,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Native check-only input and original publication completion"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "inputsOutputs": [
@@ -44013,6 +44021,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Native check-only input and original publication completion"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "identity": [
@@ -44023,6 +44035,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Native check-only input and original publication completion"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "ownership": [
@@ -44033,6 +44049,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Native check-only input and original publication completion"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "synchronization": [
@@ -44043,6 +44063,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Native check-only input and original publication completion"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "failure": [
@@ -44053,6 +44077,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Native check-only input and original publication completion"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "cancellation": [
@@ -44063,6 +44091,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Native check-only input and original publication completion"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "resources": [
@@ -44073,6 +44105,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Native check-only input and original publication completion"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "extension": [
@@ -44083,6 +44119,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Native check-only input and original publication completion"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "verification": [
@@ -44105,13 +44145,22 @@
               {
                 "path": "src/client_local_host/preparation_request_native_computation_js_wbtest.mbt",
                 "anchor": "test \"native policy boundary"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_query_selection_js_wbtest.mbt",
+                "anchor": "test \"default Source large flat literal reaches the same compiler under selected finite memory\""
               }
             ]
           }
         },
         {
           "operations": [
-            "[I]finish_request_original_computation"
+            "[I]finish_request_original_computation",
+            "[I]request_original_query_check_limits"
           ],
           "exports": [],
           "attributes": {
@@ -44119,54 +44168,90 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "verification": [
@@ -44185,6 +44270,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_query_selection_js_wbtest.mbt",
+                "anchor": "test \"default Source large flat literal reaches the same compiler under selected finite memory\""
               }
             ]
           }
@@ -44375,7 +44468,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_native_query.mbt",
-      "sha256": "bf6579e9b59b0525a4b0e8ea1903ab5b82ebd57c488aae013aff613fe0e7a51e",
+      "sha256": "070e93184a0845481004e4adaa4339a7de1b6cc11d3dde722e895c728c1a14f6",
       "exports": [],
       "operations": [
         {
@@ -44384,7 +44477,7 @@
         },
         {
           "name": "[I,T]prepare_request_native_query_computation_input",
-          "declaration": "[ I , T ] prepare_request_native_query_computation_input ( owner : ClientRequestPreparation [ I ] , input : I , document : String , format : @ frontend . Format , reader : @ source . JsonDataReader [ T ] , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , binding_limits ? : @ admitted . Limits ?"
+          "declaration": "[ I , T ] prepare_request_native_query_computation_input ( owner : ClientRequestPreparation [ I ] , input : I , document : String , format : @ frontend . Format , reader : @ source . JsonDataReader [ T ] , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , program_limits : @ publication_host . ClientProgramPreparationLimits , binding_limits ? : @ admitted . Limits ?"
         },
         {
           "name": "[I,T]prepare_request_native_query_input",
@@ -44400,7 +44493,11 @@
         },
         {
           "name": "[I,T]prepare_request_native_source_computation_input",
-          "declaration": "[ I , T ] prepare_request_native_source_computation_input ( owner : ClientRequestPreparation [ I ] , input : I , captured : T , reader : @ source . JsonDataReader [ T ] , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , limits : @ checked . CheckLimits , supplied ? : T ?"
+          "declaration": "[ I , T ] prepare_request_native_source_computation_input ( owner : ClientRequestPreparation [ I ] , input : I , captured : T , reader : @ source . JsonDataReader [ T ] , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , program_limits : @ publication_host . ClientProgramPreparationLimits , supplied ? : T ?"
+        },
+        {
+          "name": "request_native_parameter_input_limits",
+          "declaration": "request_native_parameter_input_limits ( units : Int64 , values : Int64 , ) - > ( @ source . ParseLimits , @ decode . Limits ) ?"
         },
         {
           "name": "request_query_binding_limits",
@@ -44421,7 +44518,8 @@
             "[I,T]prepare_request_native_query_computation_input",
             "[I,T]prepare_request_native_source_computation_check",
             "[I,T]prepare_request_native_source_computation_input",
-            "request_query_binding_limits"
+            "request_query_binding_limits",
+            "request_native_parameter_input_limits"
           ],
           "exports": [],
           "attributes": {
@@ -44429,54 +44527,90 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "verification": [
@@ -44495,6 +44629,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_query_selection_js_wbtest.mbt",
+                "anchor": "test \"default Source large flat literal reaches the same compiler under selected finite memory\""
               }
             ]
           }
@@ -46598,7 +46740,7 @@
     {
       "module": "src/client_local_host/preparation_request_query_lowering.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "873f6377d0754bfded1fe077f6beda518c18efa5bf9ab279059bbd72478cd32d",
+      "sha256": "6eae30859ff3582c478ab8d2d14ae74d9dda65e5d84a6dbb66a161476c2f14e9",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -46642,6 +46784,10 @@
               {
                 "path": "src/client_source_publication/request-data-interface.md",
                 "anchor": "- Responsibility:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "inputsOutputs": [
@@ -46656,6 +46802,10 @@
               {
                 "path": "src/client_source_publication/request-data-interface.md",
                 "anchor": "- Inputs and outputs:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "identity": [
@@ -46670,6 +46820,10 @@
               {
                 "path": "src/client_source_publication/request-data-interface.md",
                 "anchor": "- Identity:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "ownership": [
@@ -46684,6 +46838,10 @@
               {
                 "path": "src/client_source_publication/request-data-interface.md",
                 "anchor": "- Ownership:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "synchronization": [
@@ -46698,6 +46856,10 @@
               {
                 "path": "src/client_source_publication/request-data-interface.md",
                 "anchor": "- Synchronization:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "failure": [
@@ -46712,6 +46874,10 @@
               {
                 "path": "src/client_source_publication/request-data-interface.md",
                 "anchor": "- Failure:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "cancellation": [
@@ -46726,6 +46892,10 @@
               {
                 "path": "src/client_source_publication/request-data-interface.md",
                 "anchor": "- Cancellation:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "resources": [
@@ -46740,6 +46910,10 @@
               {
                 "path": "src/client_source_publication/request-data-interface.md",
                 "anchor": "- Resources:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "extension": [
@@ -46754,6 +46928,10 @@
               {
                 "path": "src/client_source_publication/request-data-interface.md",
                 "anchor": "- Extension:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "verification": [
@@ -46772,6 +46950,14 @@
               {
                 "path": "src/client_source_publication/request-data-interface.md",
                 "anchor": "- Verification:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_query_selection_js_wbtest.mbt",
+                "anchor": "test \"default Source large flat literal reaches the same compiler under selected finite memory\""
               }
             ]
           }
@@ -46786,60 +46972,104 @@
               {
                 "path": "src/client_source_publication/request-data-interface.md",
                 "anchor": "- Responsibility:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "src/client_source_publication/request-data-interface.md",
                 "anchor": "- Inputs and outputs:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "identity": [
               {
                 "path": "src/client_source_publication/request-data-interface.md",
                 "anchor": "- Identity:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "ownership": [
               {
                 "path": "src/client_source_publication/request-data-interface.md",
                 "anchor": "- Ownership:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "synchronization": [
               {
                 "path": "src/client_source_publication/request-data-interface.md",
                 "anchor": "- Synchronization:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "failure": [
               {
                 "path": "src/client_source_publication/request-data-interface.md",
                 "anchor": "- Failure:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "cancellation": [
               {
                 "path": "src/client_source_publication/request-data-interface.md",
                 "anchor": "- Cancellation:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "resources": [
               {
                 "path": "src/client_source_publication/request-data-interface.md",
                 "anchor": "- Resources:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "extension": [
               {
                 "path": "src/client_source_publication/request-data-interface.md",
                 "anchor": "- Extension:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "verification": [
               {
                 "path": "src/client_source_publication/request-data-interface.md",
                 "anchor": "- Verification:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_query_selection_js_wbtest.mbt",
+                "anchor": "test \"default Source large flat literal reaches the same compiler under selected finite memory\""
               }
             ]
           }
@@ -46850,7 +47080,7 @@
     {
       "module": "src/client_local_host/preparation_request_query_syntax.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "6e24413eee136180d6e6fa175217e34fcc9865b037f50a612d3f9eb03ea4e2f3",
+      "sha256": "b5eaf15c1e1dee3c971e5dba11708dfd19dd870ff1a983ac0dfbe5a58870c268",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -46891,6 +47121,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "inputsOutputs": [
@@ -46901,6 +47135,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "identity": [
@@ -46911,6 +47149,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "ownership": [
@@ -46921,6 +47163,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "synchronization": [
@@ -46931,6 +47177,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "failure": [
@@ -46941,6 +47191,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "cancellation": [
@@ -46951,6 +47205,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "resources": [
@@ -46961,6 +47219,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "extension": [
@@ -46971,6 +47233,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "verification": [
@@ -46985,6 +47251,14 @@
               {
                 "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
                 "anchor": "test \"funded Source Request keeps same Parameter compiler and borrower through actual pending retirement\" {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_query_selection_js_wbtest.mbt",
+                "anchor": "test \"default Source large flat literal reaches the same compiler under selected finite memory\""
               }
             ]
           }
@@ -85490,7 +85764,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_default_document.mbt",
-      "sha256": "1dd03dd1bea5c8885b73489901192f84e6c6488e10af260c14efce3b8bd6b462",
+      "sha256": "a270602c6b2c9c99d60d8fce115eb586e8078394f2cfddf4734a1e045c7d7bac",
       "exports": [],
       "operations": [
         {
@@ -85519,54 +85793,90 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source document Request continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source document Request continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source document Request continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source document Request continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source document Request continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source document Request continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source document Request continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source document Request continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source document Request continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
               }
             ],
             "verification": [
@@ -85585,6 +85895,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source document Request continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_query_selection_js_wbtest.mbt",
+                "anchor": "test \"default Source large flat literal reaches the same compiler under selected finite memory\""
               }
             ]
           }
@@ -87241,6 +87559,161 @@
           }
         }
       ]
+    },
+    {
+      "module": "src/client_local_host/preparation_request_native_document.mbt",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Request native document/check continuation",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I,P]reserve_native_static_plan_capacity",
+          "declaration": "[ I , P ] reserve_native_static_plan_capacity ( capacity : @ resources . PreparationCapacity [ I , P ] , input : I , data : @ checked . ParsedCheckDataEstimate , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]prepare_request_native_document_check",
+          "declaration": "[ I ] prepare_request_native_document_check ( owner : ClientRequestPreparation [ I ] , input : I , document : String , format : @ frontend . Format , parameters : String ? , declarations : String ? , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , static_check ? : Bool"
+        },
+        {
+          "name": "[I]request_native_static_plan_view",
+          "declaration": "[ I ] request_native_static_plan_view ( owner : ClientRequestPreparation [ I ] , input : I , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , manifests : @ publication_host . ClientCompilationManifests , ) - > Result [ String , ClientRequestTerminalIssue ]"
+        },
+        {
+          "name": "[I]reserve_request_native_document_read",
+          "declaration": "[ I ] reserve_request_native_document_read ( owner : ClientRequestPreparation [ I ] , input : I , document : String , limits : @ syntax . Limits , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]reserve_request_native_static_observation",
+          "declaration": "[ I ] reserve_request_native_static_observation ( owner : ClientRequestPreparation [ I ] , input : I , publication : String , label_units : Int64 , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "request_native_document_limits",
+          "declaration": "request_native_document_limits ( document : String , limits : @ syntax . Limits , ) - > @ syntax . Limits ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I,P]reserve_native_static_plan_capacity",
+            "[I]prepare_request_native_document_check",
+            "[I]request_native_static_plan_view",
+            "[I]reserve_request_native_document_read",
+            "[I]reserve_request_native_static_observation",
+            "request_native_document_limits"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ordinary Native static commands"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ordinary Native static commands"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ordinary Native static commands"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ordinary Native static commands"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ordinary Native static commands"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ordinary Native static commands"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ordinary Native static commands"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ordinary Native static commands"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ordinary Native static commands"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ordinary Native static commands"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_query_selection_js_wbtest.mbt",
+                "anchor": "test \"default Source large flat literal reaches the same compiler under selected finite memory\""
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original same-Request raw/generated preparation selection and typed checking only; not installed Result-read, reopen or normal runtime acceptance.",
+      "sha256": "d1d4c8ea969a549c95e19c50bee3d8a808875999d3473dd21ecf93629c7289df"
     }
   ]
 }

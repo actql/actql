@@ -49,7 +49,7 @@ pub fn[I, T] prepare_request_default_source_computation_check(
       reader,
       environment,
       publication,
-      program_limits.checking,
+      program_limits,
       supplied~,
       default_json=true,
     ) {
@@ -62,7 +62,11 @@ pub fn[I, T] prepare_request_default_source_computation_check(
   // envelope here would reject already funded input. Query has no such child;
   // YAML retains the explicit bounds that its original parser selected.
   let program_limits = match owner.program_json {
-    None => program_limits
+    None =>
+      match (owner.query_syntax, owner.computation_limits) {
+        (Some(_), Some(selected)) => selected
+        _ => program_limits
+      }
     Some(source) =>
       {
         ..program_limits,

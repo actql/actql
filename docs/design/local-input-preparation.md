@@ -3078,6 +3078,17 @@ from the existing finite `ClientProgramPreparationLimits`. It forwards that
 same selection through the original Source-input parser when present. Its
 lowerer and canonical Program emitter use the selected compiler artifact
 envelope, since generated Program material is not the original SQL wire.
+The default captured Source caller obtains its raw-input byte/Text envelope
+from `request_default_program_preparation_limits` on the same observed snapshot.
+The explicit caller retains its supplied profile. Native document input keeps
+its existing document-derived profile. No path replaces those selections with
+the standard profile after parsing or rescans the captured input.
+
+After lowering, the same existing Request `computation_limits` slot retains
+the generated-Program envelope for the ordinary checker/compiler continuation.
+Reusing the generated Program must not apply the original raw SQL node bound
+to the expanded artifact. This transition changes only the input representation
+dimensions; generic explicit check/reuse APIs retain their supplied restrictions.
 Installed collection/join dimensions, depth, CTE policy and original target,
 Catalog, Parameter and Environment bindings remain independent.
 
@@ -3095,7 +3106,12 @@ remain on the same Request. A refused lexical prefix remains an incomplete
 observation, and a failed lowerer stays consumed rather than reparsing or
 retrying with larger limits. The Request large-literal component and the
 explicitly narrowed token/output tests exercise this connection separately
-from ordinary installed Result-read acceptance.
+from ordinary installed Result-read acceptance. A selected memory ceiling is
+still an independent finite admission: the large-literal compiler component
+checks a successful explicitly selected budget and the smaller original
+Ledger's exact refusal before compiler entry. Both retain the same original
+Program, and cleanup returns the original reservation; no full-ceiling
+allocation, replacement Ledger or increased product default is introduced.
 
 ### Source document Request continuation
 

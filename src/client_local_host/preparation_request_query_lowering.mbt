@@ -190,8 +190,11 @@ pub fn[I] lower_request_published_query(
     }
     Ok(_) => ()
   }
+  guard owner.computation_limits is Some(program_limits) else {
+    return Err(Request(WrongPhase))
+  }
   let limits = @publication_host.client_program_query_lowering_limits(
-    @publication_host.client_standard_program_preparation_limits(),
+    program_limits,
   )
   let calls = Ref(0L)
   let outcome = if source is Some(source) {
@@ -258,6 +261,13 @@ pub fn[I] lower_request_published_query(
         return Err(Request(WrongPhase))
       }
       owner.held_program = Some(program)
+      // The parser consumed the original SQL/Pipe wire envelope. The checker
+      // reuses this generated Program, admitted by the SAME lowerer envelope;
+      // it must not reapply a raw-document node/byte limit to that artifact.
+      owner.computation_limits = Some({
+        ..program_limits,
+        checking: { ..program_limits.checking, input: limits.program, },
+      })
       owner.phase = QueryLowered
       Ok(output)
     }

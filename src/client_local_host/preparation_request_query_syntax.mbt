@@ -153,8 +153,18 @@ pub fn[I] parse_request_query_syntax(
     }
     Ok(_) => ()
   }
+  let program_limits = match owner.computation_limits {
+    Some(selected) => selected
+    None => {
+      // Standalone legacy callers have no separately selected intake. Retain
+      // its default once in the same existing slot, after the actual grow.
+      let selected = @publication_host.client_standard_program_preparation_limits()
+      owner.computation_limits = Some(selected)
+      selected
+    }
+  }
   let syntax_limits = @publication_host.client_program_query_syntax_limits(
-    @publication_host.client_standard_program_preparation_limits(),
+    program_limits,
   )
   let work = match
     @resources.begin_preparation_phase_work64(
