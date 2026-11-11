@@ -357,7 +357,10 @@ pub fn generated_bounded_sequence_capacity(
       borrowed_binary ||
       borrowed_cross ||
       borrowed_join,
+    // Append uses the same workspace-funded binary input scan as CROSS JOIN;
+    // its constructor receives no physical measurement forest or wire buffer.
     bounded_measurement=(borrowed_row && !borrowed_group) ||
+      operation is @lower.AppendStep(_) ||
       borrowed_cross ||
       borrowed_join,
   )
