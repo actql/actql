@@ -40,17 +40,30 @@ export async function runCollectionPhase({collection, command, record, capturePi
     assert.equal(actual.phase, phase); assert.equal(actual.pid, observed.pid);
     if (phase === 'saved') assert.notEqual(actual.pid, capturePid);
     assert.equal(actual.sourceFreeMaxWork, 30000000);
-    const memory = phase === 'budget' ? 536870912 : 1073741824;
+    const memory = phase === 'budget' ? 32768 : 1073741824;
     assert.deepEqual(actual.requestMemory, {retainedBytes: memory, executionBytes: memory});
     assert(actual.complete); assert.equal(actual.firstClose, 'returned');
     assert.deepEqual(actual.aliveScopedFD, {before: 0, after: 0});
     assert.equal(actual.submits, phase === 'capture' ? 5 : phase === 'budget' ? 1 : 0);
     if (phase === 'budget') {
       assert.equal(actual.budgetRefusal?.verified, true);
-      assert.equal(actual.budgetRefusal.phase, 'source_free_plan');
-      assert.equal(actual.budgetRefusal.outcome, 'not_accepted');
-      assert.equal(actual.budgetRefusal.classification, 'operation_failed');
-      assert.deepEqual(actual.cases, [{count: 100000, expectedRefusal: 'source_free_plan', complete: true}]);
+      assert.equal(actual.budgetDisposition, 'pre_send_capture');
+      assert.equal(actual.budgetInputPublished, false);
+      assert.equal(actual.budgetPublicOutcome, undefined); assert.equal(actual.budgetPublicAttempt, undefined);
+      assert.equal(actual.budgetRefusal.phase, 'request_snapshot');
+      assert.equal(actual.budgetRefusal.outcome, 'pre_send_capture');
+      assert.equal(actual.budgetRefusal.classification, 'resource_limit');
+      assert.equal(actual.budgetRefusal.dimension, 'retention');
+      const amounts = ['requiredRetentionBytes', 'requiredExecutionBytes',
+        'availableRetentionBytes', 'availableExecutionBytes'].map(name => {
+        const text = actual.budgetRefusal[name];
+        assert(typeof text === 'string' && /^(?:0|[1-9][0-9]{0,18})$/u.test(text));
+        const amount = BigInt(text); assert(amount <= 9223372036854775807n); return amount;
+      });
+      assert(amounts[0] > amounts[2] && amounts[2] <= BigInt(memory) && amounts[3] <= BigInt(memory));
+      assert.deepEqual(actual.budgetInput, {utf8Bytes: 40017, utf16Units: 40017,
+        arrayElements: 20000, original: 'budget-input-before-submit.json'});
+      assert.deepEqual(actual.cases, [{inputUtf8Bytes: 40017, expectedRefusal: 'request_snapshot', complete: true}]);
     } else if (phase === 'capture') {
       assert.deepEqual(actual.cases.map(value => value.count), [9999, 10000, 10001, 100000]);
       assert.deepEqual(actual.fullStream, {rows: 100000, complete: true});

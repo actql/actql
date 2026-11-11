@@ -474,6 +474,36 @@ pub fn client_program_reserve_request_snapshot(
 }
 
 ///|
+#export_name("clientProgramRequestSnapshotCapacityRefusal")
+pub fn client_program_request_snapshot_capacity_refusal(
+  result : Result[Unit, @client_local_host.ClientRequestPreparationIssue],
+) -> (String, String, Int64, Int64, Int64, Int64)? {
+  match result {
+    Err(SnapshotCapacityExceeded(original, value)) => {
+      let dimension = match original {
+        Resource(RetentionLimit) => "retention"
+        Resource(ExecutionLimit) => "execution"
+        _ => return None
+      }
+      if value.phase != "request_snapshot" || value.dimension != dimension {
+        return None
+      }
+      Some(
+        (
+          value.phase,
+          value.dimension,
+          value.required_retention,
+          value.required_execution,
+          value.available_retention,
+          value.available_execution,
+        ),
+      )
+    }
+    _ => None
+  }
+}
+
+///|
 #export_name("clientProgramPrepareRequestNativeProgramInput")
 pub fn client_program_prepare_request_native_program_input(
   parent : @client_local_host.ClientRequestPreparation[

@@ -1,4 +1,39 @@
 ///|
+test "snapshot shortage bridge projects only original typed Resource kind and its matching phase" {
+  let value : @client_local_host.ClientPreparationCapacityRefusal = {
+    phase: "request_snapshot",
+    dimension: "retention",
+    required_retention: 128L,
+    required_execution: 64L,
+    available_retention: 64L,
+    available_execution: 64L,
+  }
+  assert_eq(
+    client_program_request_snapshot_capacity_refusal(
+      Err(SnapshotCapacityExceeded(Resource(RetentionLimit), value)),
+    ),
+    Some(("request_snapshot", "retention", 128L, 64L, 64L, 64L)),
+  )
+  assert_eq(client_program_request_snapshot_capacity_refusal(Ok(())), None)
+  assert_eq(
+    client_program_request_snapshot_capacity_refusal(Err(ForeignOriginal)),
+    None,
+  )
+  assert_eq(
+    client_program_request_snapshot_capacity_refusal(
+      Err(Capacity(Resource(RetentionLimit))),
+    ),
+    None,
+  )
+  assert_eq(
+    client_program_request_snapshot_capacity_refusal(
+      Err(SnapshotCapacityExceeded(Resource(ExecutionLimit), value)),
+    ),
+    None,
+  )
+}
+
+///|
 // Pure DATA inputs reconstructed from the original GCS source-qualified helpers.
 // They do not issue a Site, credential, acquisition ticket or execution grant.
 // The independent full-run estimate is 3 * 2 * 8192 = 49152. An estimate

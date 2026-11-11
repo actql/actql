@@ -27519,11 +27519,12 @@
     {
       "module": "adapters/host-node/client-program-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d605559583303caeedc4a7fdb542e62a683828d2707331a977e88e15869cbbeb",
+      "sha256": "338c1f635ed9ea2585da64703d03b317ee855c07421b76d0dc71ee1f6b0de216",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
         "checkedRequestProgramPreparation",
+        "checkedRequestSnapshotPreparation",
         "installNodeClientProgramPreparation",
         "requestProgramCapacityRefusal"
       ],
@@ -27536,11 +27537,41 @@
           "async": false
         },
         {
+          "name": "capacityRefusalValue",
+          "parameters": [
+            "value",
+            "expectedPhase"
+          ],
+          "async": false
+        },
+        {
+          "name": "capacityRefusalValue/amounts/amounts",
+          "parameters": [
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "capacityRefusalValue/capacityRefusalValue",
+          "parameters": [
+            "amount"
+          ],
+          "async": false
+        },
+        {
           "name": "checkedRequestProgramPreparation",
           "parameters": [
             "moon",
             "result",
             "projectIssue"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkedRequestSnapshotPreparation",
+          "parameters": [
+            "moon",
+            "result"
           ],
           "async": false
         },
@@ -27650,20 +27681,6 @@
           "parameters": [
             "moon",
             "result"
-          ],
-          "async": false
-        },
-        {
-          "name": "projectCapacityRefusal/amounts/amounts",
-          "parameters": [
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "projectCapacityRefusal/projectCapacityRefusal",
-          "parameters": [
-            "amount"
           ],
           "async": false
         },
@@ -28990,48 +29007,75 @@
         {
           "operations": [
             "projectCapacityRefusal",
-            "projectCapacityRefusal/amounts/amounts",
-            "projectCapacityRefusal/projectCapacityRefusal",
-            "requestProgramCapacityRefusal"
+            "requestProgramCapacityRefusal",
+            "capacityRefusalValue",
+            "capacityRefusalValue/amounts/amounts",
+            "capacityRefusalValue/capacityRefusalValue",
+            "checkedRequestSnapshotPreparation"
           ],
           "exports": [
-            "requestProgramCapacityRefusal"
+            "requestProgramCapacityRefusal",
+            "checkedRequestSnapshotPreparation"
           ],
           "attributes": {
             "responsibility": [
               {
                 "path": "docs/development.md",
                 "anchor": "For source-free Request preparation, the configured Plan's complete execution"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "An actual Request snapshot grow can separately retain its original typed"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
                 "anchor": "function projectCapacityRefusal(moon, result) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "An actual Request snapshot grow can separately retain its original typed"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
                 "anchor": "const capacityRefusals = new WeakMap();"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "An actual Request snapshot grow can separately retain its original typed"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
                 "anchor": "capacityRefusals.set(error, capacity);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "An actual Request snapshot grow can separately retain its original typed"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
                 "anchor": "const category = projectIssue.call(moon, result);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "An actual Request snapshot grow can separately retain its original typed"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
                 "anchor": "if (category === 'source_free_capacity_exceeded') {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "An actual Request snapshot grow can separately retain its original typed"
               }
             ],
             "cancellation": [
@@ -29042,6 +29086,10 @@
               {
                 "path": "docs/development.md",
                 "anchor": "uncertain rather than becoming capacity refusals."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "An actual Request snapshot grow can separately retain its original typed"
               }
             ],
             "resources": [
@@ -29056,12 +29104,20 @@
               {
                 "path": "docs/development.md",
                 "anchor": "capacity nor authorize a retry. The public submission wire retains its existing"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "An actual Request snapshot grow can separately retain its original typed"
               }
             ],
             "extension": [
               {
                 "path": "docs/development.md",
                 "anchor": "coarse Problem shape; saved older failed Runs keep their original terminal"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "An actual Request snapshot grow can separately retain its original typed"
               }
             ],
             "verification": [
@@ -29072,6 +29128,10 @@
               {
                 "path": "adapters/host-node/request-preparation-parent.test.mjs",
                 "anchor": "test('normal first Request Plan keeps its original typed row refusal"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "An actual Request snapshot grow can separately retain its original typed"
               }
             ]
           }
@@ -118095,7 +118155,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "06f433b417d10b67078ec65f6fa030851763c4ad221d05220d623c4593626325"
+      "sha256": "d21d987619c0685e2d0eff548d7f3bf1c246b9034aa906700601bd50d957580a"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",

@@ -440,75 +440,78 @@ async function collectionBudgetPorts() {
   const body = tree.body.find(value => value.type === 'TryStatement').block;
   // Execute the actual fixture with explicit public/diagnostic ports, not a
   // substitute Core, Ledger, installed acceptance, or successful budget run.
-  return {project: load('originalBudgetRefusal'), program: load('collectionProgram'),
+  return {project: load('originalBudgetRefusal'), program: load('collectionProgram'), budgetProgram: load('oversizedRowProgram'),
     run: Function('ports', `return (async () => {
       const {assert,report,span,open,phase,stateDir,capacityObservations,
-        originalBudgetRefusal,getSubmissionOutcome,collectionProgram,save}=ports;
+        originalBudgetRefusal,getSubmissionOutcome,getSubmissionInput,getSubmissionAttempt,
+        collectionProgram,oversizedRowProgram,save}=ports;
       let client; ${source.slice(body.start, body.end)}; return client;
     })();`)};
 }
 
-test('normal budget evidence requires original public refusal and exact exceeded Core quantities', async () => {
+test('normal budget evidence requires the original pre-send snapshot and exact exceeded Core quantities', async () => {
   const {project} = await collectionBudgetPorts();
-  const memory = {retainedBytes: 536870912, executionBytes: 536870912};
-  const outcome = {kind: 'not_accepted', problem: {code: 'ClientProgramRejected', classification: 'operation_failed'}};
-  const fact = {phase: 'source_free_plan', dimension: 'execution', requiredRetentionBytes: '203770432',
-    requiredExecutionBytes: '703186240', availableRetentionBytes: '536870912', availableExecutionBytes: '536870912'};
+  const memory = {retainedBytes: 32768, executionBytes: 32768};
+  const outcome = {};
+  const fact = {phase: 'request_snapshot', dimension: 'retention', requiredRetentionBytes: '131072',
+    requiredExecutionBytes: '65536', availableRetentionBytes: '32768', availableExecutionBytes: '32768'};
   assert.equal(project([fact], outcome, memory).verified, true);
   assert.equal(project([{...fact, dimension: 'retention', requiredRetentionBytes: '9223372036854775807'}],
     outcome, memory).requiredRetentionBytes, '9223372036854775807');
   for (const [observed, publicOutcome] of [
     [[], outcome], [[fact, fact], outcome], [[fact], undefined],
-    [[fact], {...outcome, kind: 'preparation_failed'}],
-    [[fact], {...outcome, problem: {...outcome.problem, classification: 'invalid_input'}}],
-    [[fact], {...outcome, problem: {...outcome.problem, code: 'StartupFailure'}}],
+    [[fact], {outcome: {kind: 'not_accepted'}}],
+    [[fact], {input: {original: true}}],
+    [[fact], {attempt: {kind: 'refused'}}],
     [[{...fact, token: 'not-a-diagnostic-field'}], outcome],
     [[{...fact, phase: 'initialization'}], outcome],
-    [[{...fact, requiredExecutionBytes: '536870912'}], outcome],
-    [[{...fact, requiredRetentionBytes: '536870913'}], outcome],
-    [[{...fact, availableExecutionBytes: '536870913'}], outcome],
+    [[{...fact, phase: 'source_free_plan'}], outcome],
+    [[{...fact, requiredRetentionBytes: '32768'}], outcome],
+    [[{...fact, dimension: 'execution'}], outcome],
+    [[{...fact, availableExecutionBytes: '32769'}], outcome],
     ...['-1', '+1', '01', '9223372036854775808', 703186240].map(value =>
       [[{...fact, requiredExecutionBytes: value}], outcome]),
   ]) assert.throws(() => project(observed, publicOutcome, memory));
 });
 
 test('normal budget fixture submits once and keeps unrelated public failure as primary', async () => {
-  const {project, program, run} = await collectionBudgetPorts();
+  const {project, budgetProgram, run} = await collectionBudgetPorts();
   for (const mode of ['exact', 'no-diagnostic', 'unrelated', 'unexpected-run']) {
     const report = {cases: [], submits: 0}, observations = [], saved = [];
-    const primary = Object.assign(new Error('Actual public refusal'), {code: 'SubmissionNotAccepted',
-      capacity: {phase: 'source_free_plan'}}); // A lookalike error field is insufficient.
+    const primary = Object.assign(new Error('Actual public refusal'), {code: 'MoonBitHostFailure',
+      capacity: {phase: 'request_snapshot'}}); // A lookalike error field is insufficient.
     let submissions = 0;
     const execute = () => run({assert, report, phase: 'budget', stateDir: '/fresh-own-budget',
-      capacityObservations: observations, originalBudgetRefusal: project, collectionProgram: program,
+      capacityObservations: observations, originalBudgetRefusal: project, oversizedRowProgram: budgetProgram,
       span: async (_name, action) => action(), save: async (path, value) => saved.push({path, value}),
       async open(options) {
         assert.equal(options.stateDir, '/fresh-own-budget');
-        assert.deepEqual(options.installation.requestMemory, {retainedBytes: 536870912, executionBytes: 536870912});
+        assert.deepEqual(options.installation.requestMemory, {retainedBytes: 32768, executionBytes: 32768});
         assert.deepEqual(Object.keys(options.installation.authorization), ['observe']);
         return {async startSource(text, selection) {
-          submissions++; assert.equal(text, program(100000)); assert.deepEqual(selection, {format: 'sql'});
+          submissions++; assert.equal(text, budgetProgram()); assert.deepEqual(selection, {format: 'sql'});
           if (mode === 'unexpected-run') return {ref: {original: true}};
           if (mode !== 'no-diagnostic') options.installation.authorization.observe('preparation_capacity_refused',
-            {phase: 'source_free_plan', dimension: 'execution', requiredRetentionBytes: '203770432',
-              requiredExecutionBytes: '703186240', availableRetentionBytes: '536870912', availableExecutionBytes: '536870912'});
+            {phase: 'request_snapshot', dimension: 'retention', requiredRetentionBytes: '131072',
+              requiredExecutionBytes: '65536', availableRetentionBytes: '32768', availableExecutionBytes: '32768'});
           throw primary;
         }};
       },
-      getSubmissionOutcome(error) {
-        assert.equal(error, primary);
-        return mode === 'unrelated' ? undefined : {kind: 'not_accepted',
-          problem: {code: 'ClientProgramRejected', classification: 'operation_failed'}};
-      }});
+      getSubmissionOutcome(value) {
+        if (mode === 'unexpected-run') return {kind: 'ready'};
+        assert.equal(value, primary); return mode === 'unrelated' ? {kind: 'not_accepted'} : undefined;
+      }, getSubmissionInput: () => undefined, getSubmissionAttempt: () => undefined});
     if (mode === 'exact') {await execute(); assert.equal(report.budgetRefusal.verified, true);}
     else if (mode === 'unexpected-run') {
       await assert.rejects(execute, {code: 'ERR_ASSERTION'});
-      assert.deepEqual(saved, [{path: 'budget-unexpected-ref-before-close.json', value: {original: true}}]);
+      assert.deepEqual(saved.at(-1), {path: 'budget-unexpected-ref-before-close.json', value: {original: true}});
+      assert.equal(report.budgetDisposition, 'run_returned'); assert.equal(report.budgetRunTerminal, 'unobserved');
     } else {
       await assert.rejects(execute, error => error === primary);
       assert.equal(report.budgetRefusal, undefined); assert(report.budgetControlFailure);
     }
     assert.equal(submissions, 1); assert.equal(report.submits, 1);
+    assert.deepEqual(saved[0], {path: 'budget-input-before-submit.json', value: {format: 'sql', document: budgetProgram()}});
   }
 });
 
@@ -517,10 +520,14 @@ test('normal budget parent refuses missing evidence pending close or wrong selec
   const run = load('runCollectionPhase', {readFile, join, assert, process, nodeBenchmarkFailure});
   for (const mode of ['exact', 'missing', 'outcome', 'memory', 'close', 'fd']) {
     const actual = {phase: 'budget', pid: 12001, sourceFreeMaxWork: 30000000,
-      requestMemory: {retainedBytes: 536870912, executionBytes: 536870912}, submits: 1,
+      requestMemory: {retainedBytes: 32768, executionBytes: 32768}, submits: 1,
       complete: true, firstClose: 'returned', aliveScopedFD: {before: 0, after: 0},
-      cases: [{count: 100000, expectedRefusal: 'source_free_plan', complete: true}],
-      budgetRefusal: {verified: true, phase: 'source_free_plan', outcome: 'not_accepted', classification: 'operation_failed'}};
+      cases: [{inputUtf8Bytes: 40017, expectedRefusal: 'request_snapshot', complete: true}],
+      budgetDisposition: 'pre_send_capture', budgetInputPublished: false,
+      budgetInput: {utf8Bytes: 40017, utf16Units: 40017, arrayElements: 20000, original: 'budget-input-before-submit.json'},
+      budgetRefusal: {verified: true, phase: 'request_snapshot', outcome: 'pre_send_capture', classification: 'resource_limit',
+        dimension: 'retention', requiredRetentionBytes: '131072', requiredExecutionBytes: '65536',
+        availableRetentionBytes: '32768', availableExecutionBytes: '32768'}};
     if (mode === 'missing') delete actual.budgetRefusal;
     if (mode === 'outcome') actual.budgetRefusal.outcome = 'unknown';
     if (mode === 'memory') actual.requestMemory.executionBytes = 1073741824;
@@ -615,7 +622,7 @@ test('budget failure keeps delivered quantities and completed phase bounds befor
   const first = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
     .find(value => value.type !== 'ImportDeclaration');
   const invoke = Function('ports', `return (async () => {
-    const {assert,readFile,writeFile,unlink,join,setTimeout,open,getSubmissionOutcome,
+    const {assert,readFile,writeFile,unlink,join,setTimeout,open,getSubmissionOutcome,getSubmissionInput,getSubmissionAttempt,
       observeRecordApprovalDescriptors,process,console}=ports;
     ${source.slice(first.start)}
   })();`);
@@ -634,7 +641,10 @@ test('budget failure keeps delivered quantities and completed phase bounds befor
       unlink: () => assert.fail('No failed input removal'), setTimeout: async () => {},
       observeRecordApprovalDescriptors: async () => ({openPaths: []}),
       async writeFile(path, bytes) {events.push(`save:${path}`); stored.push({path, value: JSON.parse(bytes)});},
-      getSubmissionOutcome(error) {assert.strictEqual(error, primary); return undefined;},
+      getSubmissionOutcome(value) {
+        if (mode !== 'unexpected-run') assert.strictEqual(value, primary);
+        return undefined;
+      }, getSubmissionInput: () => undefined, getSubmissionAttempt: () => undefined,
       async open(options) {
         return {async startSource() {
           submissions++;
@@ -655,7 +665,7 @@ test('budget failure keeps delivered quantities and completed phase bounds befor
     assert.equal(pending.budgetRefusal, undefined, 'Delivered quantities alone never certify a refusal');
     assert.equal(pending.primary.code, mode === 'unexpected-run' ? 'ERR_ASSERTION' : primary.code);
     assert(events.indexOf('save:budget.pending.json') < events.indexOf('FIRST-close'));
-    if (mode === 'unexpected-run') assert.deepEqual(stored[0],
+    if (mode === 'unexpected-run') assert.deepEqual(stored.find(value => value.path === 'budget-unexpected-ref-before-close.json'),
       {path: 'budget-unexpected-ref-before-close.json', value: {original: true}});
     release(); await rejected;
     const final = stored.at(-1).value;

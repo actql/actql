@@ -5,7 +5,8 @@ import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.
 import {open} from 'node:fs/promises';
 import {types} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
-import {checkedRequestProgramPreparation, requestProgramCapacityRefusal} from './client-program-preparation.mjs';
+import {checkedRequestProgramPreparation, checkedRequestSnapshotPreparation,
+  requestProgramCapacityRefusal} from './client-program-preparation.mjs';
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {runtimeIsError} from '../host-common/compiler-binding.generated.mjs';
 import {withOriginalFile} from './source-profile-json.mjs';
@@ -911,8 +912,9 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
             fail('ForeignInstalledSourceProducer');
           }
           if (state.snapshotUnits !== units || state.snapshotValues !== values) {
-            checked(state.context.runtime.clientProgramReserveRequestSnapshot(
-              state.parent, receipt, BigInt(units), BigInt(values)));
+            checkedRequestSnapshotPreparation(state.context.runtime,
+              state.context.runtime.clientProgramReserveRequestSnapshot(
+                state.parent, receipt, BigInt(units), BigInt(values)));
             state.snapshotUnits = units;state.snapshotValues = values;
           }
           // Retain the existing serializer's original wire before JSON.parse.
@@ -921,7 +923,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         });
         state.snapshot = captured;
         return captured;
-      } finally {state.snapshotting = false;}
+      } catch (cause) {reportCapacityRefusal(cause); throw cause;}
+      finally {state.snapshotting = false;}
     },
     bindSourceSnapshot(receipt, body) {
       current(); const producer = producerFor(receipt);

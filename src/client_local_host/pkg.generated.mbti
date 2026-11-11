@@ -1665,6 +1665,7 @@ pub(all) enum ClientRequestPreparationIssue {
   Policy
   Initial(@physical_resources.ImportedChildLedgerIssue)
   Capacity(@physical_resources.PreparationCapacityIssue)
+  SnapshotCapacityExceeded(@physical_resources.PreparationCapacityIssue, ClientPreparationCapacityRefusal)
   ProgramJson(ClientProgramJsonPreparationIssue)
   ProgramCheck(ClientProgramCheckPreparationIssue)
   Parameters(@client_local_preparation.LocalProgramInputIssue)

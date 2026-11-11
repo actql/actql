@@ -5,6 +5,10 @@ import resources from './ordinary-node-resource-runtime.cjs';
 import {openRequestPreparation, cleanupRequestInput} from '../local-node/request-preparation-adapter.mjs';
 import {snapshotClientRequest} from '../../packages/client-wire/index.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
+import {connectInProcess, getSubmissionInput, getSubmissionOutcome, getSubmissionAttempt}
+  from '../../packages/sdk/index.mjs';
+import {sourcePreparationPort} from '../../packages/sdk/internal/private-source-preparation.mjs';
+import {submissionEpoch} from '../../packages/sdk/submission-fixture.mjs';
 
 // Actual normal manager/adapter/Resource originals; Core phase/shape results
 // are explicit ports. This does not certify a matching Common or body tariff.
@@ -71,6 +75,50 @@ async function fixture({beginFailure, environment, observe, sourceFreeMaxWork, v
   },false);
   return {view,calls,shapes,context,originals,get parent(){return parent;},get original(){return admission?.original;}};
 }
+
+test('public Source capture preserves an original snapshot refusal before exchange and emits only its typed quantities', async t => {
+  const observed = [], f = await fixture({observe: (event, detail) => observed.push({event, detail})});
+  const issue = {}, result = {$tag: 0, _0: issue};
+  let captures = 0, projections = 0, exchanges = 0;
+  f.context.runtime.clientProgramReserveRequestSnapshot = function(parent, receipt, units, values) {
+    assert.strictEqual(parent, f.parent); assert(units > 0n && values > 0n);
+    captures++; return result;
+  };
+  f.context.runtime.clientProgramRequestSnapshotCapacityRefusal = function(original) {
+    assert.strictEqual(this, f.context.runtime); assert.strictEqual(original, result); projections++;
+    return {_0: 'request_snapshot', _1: 'retention', _2: 128n, _3: 64n, _4: 64n, _5: 64n};
+  };
+  const client = await connectInProcess({mode: 'local', owner: 'local'}, {
+    [sourcePreparationPort]: f.view,
+    async perform(operation) {
+      if (operation !== 'connect') {exchanges++; assert.fail('No exchange after failed capture');}
+      return {version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
+        durability: 'volatile', scopeRef: 'snapshot-refusal', capabilities: ['aql-document'], submissionEpoch,
+        limits: {maxReadWireBytes: 256, maxRowWireBytes: 128, maxRowRetainedValueBytes: 512,
+          maxRetainedValueBytes: 1024, maxRows: 10, maxBatchRows: 10, maxBatchRetainedValueBytes: 1024}};
+    },
+  });
+  t.after(async () => {await client.close(); await f.view.close();});
+  // The actual SDK never reaches its transport on this failed capture.
+  // The explicit Core result above does not qualify a real installed tariff.
+  let primary;
+  await assert.rejects(client.startSource('SELECT 1 AS n', {format: 'sql'}), error => {
+    primary = error;
+    assert.equal(error.code, 'MoonBitHostFailure'); assert.strictEqual(error.cause, issue);
+    assert.equal(getSubmissionInput(error), undefined);
+    assert.equal(getSubmissionOutcome(error), undefined);
+    assert.equal(getSubmissionAttempt(error), undefined);
+    return true;
+  });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(captures, 1); assert.equal(projections, 1); assert.equal(exchanges, 0);
+  assert.deepEqual(observed, [{event: 'preparation_capacity_refused', detail: {
+    phase: 'request_snapshot', dimension: 'retention', requiredRetentionBytes: '128',
+    requiredExecutionBytes: '64', availableRetentionBytes: '64', availableExecutionBytes: '64'}}]);
+  assert.equal(f.calls.includes('compiler-finish'), false);
+  assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
+  assert.equal(primary.cleanupPending, undefined);
+});
 
 async function policyRequestFixture(kind = 'program', projectOriginal) {
   const environment = {}, f = await fixture({environment}), moon = f.context.runtime;

@@ -69,9 +69,22 @@ test "Request snapshot short expansion retains its same high water until origina
         limits.execution_bytes - base.1 - bytes + 1L
       },
     ).unwrap()
-    assert_true(
-      reserve_request_snapshot(parent, input, 20L, 20L) is Err(Capacity(_)),
-    )
+    let refused = match reserve_request_snapshot(parent, input, 20L, 20L) {
+      Err(SnapshotCapacityExceeded(original, value)) => {
+        if retention {
+          assert_true(original is Resource(RetentionLimit))
+          assert_eq(value.dimension, "retention")
+          assert_eq(value.required_retention, value.available_retention + 1L)
+        } else {
+          assert_true(original is Resource(ExecutionLimit))
+          assert_eq(value.dimension, "execution")
+          assert_eq(value.required_execution, value.available_execution + 1L)
+        }
+        value
+      }
+      _ => fail("Expected the original snapshot shortage and exact amounts")
+    }
+    assert_eq(refused.phase, "request_snapshot")
     assert_eq(parent.snapshot_units, 10L)
     assert_true(parent.phase == Open)
     @resources.settle_capacity(parent.ledger, blocker).unwrap()
@@ -111,7 +124,16 @@ test "authored document lower bound refuses a small Request before snapshot capt
     let before = @resources.ledger_usage(parent.ledger)
     let result = reserve_request_snapshot(parent, input, units, 1L)
     if small {
-      assert_true(result is Err(Capacity(Resource(RetentionLimit))))
+      let refusal = match result {
+        Err(SnapshotCapacityExceeded(Resource(RetentionLimit), value)) => value
+        _ => fail("Expected the original Resource retention shortage")
+      }
+      assert_eq(refusal.phase, "request_snapshot")
+      assert_eq(refusal.dimension, "retention")
+      assert_eq(refusal.required_retention, controls + lower_bound)
+      assert_eq(refusal.required_execution, lower_bound)
+      assert_eq(refusal.available_retention, memory)
+      assert_eq(refusal.available_execution, memory)
       assert_eq(@resources.ledger_usage(parent.ledger), before)
       assert_eq(parent.snapshot_units, 0L)
       assert_eq(parent.snapshot_values, 0L)

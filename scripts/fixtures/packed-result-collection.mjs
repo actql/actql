@@ -5,7 +5,7 @@ import {readFile, writeFile, unlink} from 'node:fs/promises';
 import {join} from 'node:path';
 import {setTimeout} from 'node:timers/promises';
 import {open} from '@actql/node';
-import {getSubmissionOutcome} from '@actql/sdk';
+import {getSubmissionOutcome, getSubmissionInput, getSubmissionAttempt} from '@actql/sdk';
 import {observeRecordApprovalDescriptors} from './record-approval/scoped-fds.fixture.mjs';
 
 const [phase, handoffPath] = process.argv.slice(2);
@@ -33,6 +33,9 @@ function collectionProgram(count) {
   const digits = Array.from({length: 10}, (_, n) => `SELECT ${n} AS n`).join(' UNION ALL ');
   return `WITH d AS (${digits}) SELECT 0 AS n FROM d a CROSS JOIN d b CROSS JOIN d c CROSS JOIN d e CROSS JOIN d f WHERE a.n + 10*b.n + 100*c.n + 1000*e.n + 10000*f.n < ${count}`;
 }
+function oversizedRowProgram() {
+  return `SELECT [${new Array(20000).fill('0').join(',')}] AS cells`;
+}
 function exactRows(rows, count) {
   assert.equal(rows.length, count);
   for (const row of rows) assert.deepEqual(row, {n: 0});
@@ -46,13 +49,15 @@ async function drainOriginalRows(result, expected) {
 // The installed Host emits this existing typed Common projection. An error
 // code, an error.capacity property, or a failed quote without amounts is not
 // this witness. These comparisons check evidence, not resource admission.
-function originalBudgetRefusal(observations, outcome, memory) {
-  assert.equal(outcome?.kind, 'not_accepted');
-  assert.equal(outcome?.problem?.code, 'ClientProgramRejected');
-  assert.equal(outcome?.problem?.classification, 'operation_failed');
-  assert.equal(observations.length, 1, 'Require one actual Plan-capacity diagnostic');
+function originalBudgetRefusal(observations, receipt, memory) {
+  // These absences alone prove nothing. The same failed snapshot's typed
+  // diagnostic below identifies the pre-exchange boundary independently.
+  assert.equal(receipt.outcome, undefined);
+  assert.equal(receipt.input, undefined);
+  assert.equal(receipt.attempt, undefined);
+  assert.equal(observations.length, 1, 'Require one actual snapshot-capacity diagnostic');
   const original = observations[0];
-  assert.equal(original?.phase, 'source_free_plan');
+  assert.equal(original?.phase, 'request_snapshot');
   assert(['retention', 'execution'].includes(original.dimension));
   const fields = ['requiredRetentionBytes', 'requiredExecutionBytes',
     'availableRetentionBytes', 'availableExecutionBytes'];
@@ -70,7 +75,7 @@ function originalBudgetRefusal(observations, outcome, memory) {
   assert(availableExecution <= BigInt(memory.executionBytes));
   assert(original.dimension === 'retention' ? requiredRetention > availableRetention
     : requiredRetention <= availableRetention && requiredExecution > availableExecution);
-  return {...original, outcome: outcome.kind, classification: outcome.problem.classification, verified: true};
+  return {...original, outcome: 'pre_send_capture', classification: 'resource_limit', verified: true};
 }
 let client, failed = false, primary;
 const cleanup = [], programs = [];
@@ -79,7 +84,7 @@ try {
   // Explicit finite policy for this authored SQL's measured semantic work.
   // Both capture and the same-original Saved process select the same Host input.
   report.sourceFreeMaxWork = 30000000;
-  const memory = phase === 'budget' ? 536870912 : 1073741824;
+  const memory = phase === 'budget' ? 32768 : 1073741824;
   report.requestMemory = {retainedBytes: memory, executionBytes: memory};
   client = await span('open', () => open({stateDir, installation: {
     sourceFreeMaxWork: report.sourceFreeMaxWork,
@@ -94,21 +99,37 @@ try {
   }}));
   if (phase === 'budget') {
     await span('submit-budget-refusal', async () => {
+      const document = oversizedRowProgram();
+      report.budgetInput = {utf8Bytes: Buffer.byteLength(document, 'utf8'), utf16Units: document.length,
+        arrayElements: 20000, original: 'budget-input-before-submit.json'};
+      assert(report.budgetInput.utf8Bytes > memory);
+      await save(report.budgetInput.original, {format: 'sql', document});
       let refused = false, original;
       report.submits++;
       try {
-        const run = await client.startSource(collectionProgram(100000), {format: 'sql'});
+        const run = await client.startSource(document, {format: 'sql'});
+        report.budgetDisposition = 'run_returned';
+        report.budgetRunTerminal = 'unobserved';
+        report.budgetPublicOutcome = getSubmissionOutcome(run);
         await save('budget-unexpected-ref-before-close.json', run.ref);
       } catch (error) {refused = true; original = error;}
-      assert(refused, 'The bounded case requires actual pre-admission Plan refusal');
+      assert(refused, 'The input-derived case requires actual snapshot refusal, not an unobserved returned Run');
+      const receipt = {outcome: getSubmissionOutcome(original), input: getSubmissionInput(original),
+        attempt: getSubmissionAttempt(original)};
+      report.budgetPublicOutcome = receipt.outcome;
+      report.budgetPublicAttempt = receipt.attempt;
+      report.budgetInputPublished = receipt.input !== undefined;
+      report.budgetDisposition = receipt.outcome?.kind ?? receipt.attempt?.kind ?? 'unclassified_failure';
       try {
         report.budgetRefusal = originalBudgetRefusal(capacityObservations,
-          getSubmissionOutcome(original), report.requestMemory);
+          receipt, report.requestMemory);
+        report.budgetDisposition = 'pre_send_capture';
       } catch (error) {
         report.budgetControlFailure = {name: error?.name, code: error?.code};
         throw original; // Keep the actual public failure if its cause is unproved.
       }
-      report.cases.push({count: 100000, expectedRefusal: 'source_free_plan', complete: true});
+      report.cases.push({inputUtf8Bytes: report.budgetInput.utf8Bytes,
+        expectedRefusal: 'request_snapshot', complete: true});
     });
   } else if (phase === 'capture') {
     for (const count of counts) {
@@ -171,7 +192,7 @@ try {
     // Few rows can still exceed the decoded per-row budget. Keep wire small
     // while exercising the same public SQL array constructor and SDK guard.
     const oversizedProgram = join(process.cwd(), 'collection-oversized-row.sql');
-    await writeFile(oversizedProgram, `SELECT [${new Array(20000).fill('0').join(',')}] AS cells`, {flag: 'wx'});
+    await writeFile(oversizedProgram, oversizedRowProgram(), {flag: 'wx'});
     programs.push(oversizedProgram); report.submits++;
     const document = await readFile(oversizedProgram, 'utf8');
     const run = await span('submit-oversized-row', () => client.startSource(document, {format: 'sql'}));

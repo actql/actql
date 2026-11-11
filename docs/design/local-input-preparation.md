@@ -3223,6 +3223,23 @@ must still establish the actual audience and original input binding. It cannot
 replace that obligation with a generic error-code whitelist or treat an
 uncertain Host exception as known nonacceptance.
 
+An actual Request snapshot grow can separately retain its original typed
+Resource retention/execution refusal with scalar demand and available extents.
+The same failed attempt supplies those facts; a pure reservation observation
+excludes other live reservations and held bytes without a second current check,
+snapshot, parse, grow or retry. A supplier refusal that does not correspond to
+an exceeded local extent remains opaque. No new Owner, retained Request field,
+capacity allowance or permission is created by this failure DATA.
+
+The fixed Node/RelA bridge projects only that snapshot issue and matching
+dimension. The adapter retains the original checked exception/cause and uses
+the existing diagnostic association and bounded delivery. Copied exception
+properties and unrelated/current/cleanup failures cannot supply this witness.
+A failed SDK capture precedes completed snapshot publication and exchange;
+this boundary observation is distinct from a durable `not_accepted` receipt or
+an accepted Run's terminal failure. Missing public receipts alone do not prove
+the boundary, and diagnostic loss remains incomplete evidence.
+
 
 ### Run-held original compilation
 
