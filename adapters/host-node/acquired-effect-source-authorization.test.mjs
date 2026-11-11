@@ -145,3 +145,38 @@ test('original Source coordinates retain nonnegative integer refusal before any 
     } finally {await f.continuation.close();}
   }
 });
+
+
+test('continuation refuses substituted or incomplete registered Source coordinates before any gate', async () => {
+  for (const mutate of [
+    sources => [{...sources[0], occurrence: {...sources[0].occurrence, input: 1}}, sources[1]],
+    sources => [{...sources[0], preparedSource: sources[1].preparedSource}, sources[1]],
+    sources => [sources[0], sources[0]],
+    sources => [sources[0]],
+    sources => [{...sources[0], occurrence: {...sources[0].occurrence, computeTask: 1}}, sources[1]],
+  ]) {
+    const f = fixture([{stage: 0, input: 0, task: 0, computeTask: 0},
+      {stage: 0, input: 1, task: 1, computeTask: 0}]);
+    try {
+      await assert.rejects(f.continuation.prepared(mutate(f.sources)), {code: 'HeldAcquisitionChanged'});
+      assert.equal(f.gates.length, 0);
+    } finally {await f.continuation.close();}
+  }
+});
+
+
+test('prepared Source cannot substitute its registered reader or coordinates before entry', async () => {
+  for (const change of [
+    source => {source.occurrence = {...source.occurrence, input: 1};},
+    source => {source.preparedSource = {...source.preparedSource};},
+    source => {source.adapter = {...source.adapter};},
+  ]) {
+    const f = fixture([{stage: 0, input: 0, task: 0, computeTask: 0}]);
+    try {
+      await f.continuation.prepared(f.sources);
+      change(f.sources[0]);
+      await assert.rejects(f.continuation.beforeRead(f.sources[0]), {code: 'HeldAcquisitionChanged'});
+      assert.equal(f.gates.length, 0);
+    } finally {await f.continuation.close();}
+  }
+});

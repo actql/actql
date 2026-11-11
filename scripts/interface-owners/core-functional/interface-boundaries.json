@@ -18259,7 +18259,7 @@
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
-      "sha256": "cb705515875684ca77eb2d1bd46fbc020ba6ea2ae12b21f68623667a3a9531ea",
+      "sha256": "008434a969f2a00bce95ae597a0568ac0648dc2b475b266526101854942e4312",
       "role": "physical-io",
       "exports": [
         "runInstalledComposedInfers"
@@ -18593,6 +18593,7 @@
             "runInstalledComposedInfers/cleanup",
             "runInstalledComposedInfers/completeOriginal/completeOriginal",
             "runInstalledComposedInfers/context/context",
+            "runInstalledComposedInfers/context/context#2",
             "runInstalledComposedInfers/context/init:retainOperation/init:retainOperation",
             "runInstalledComposedInfers/declaredResults/declaredResults",
             "runInstalledComposedInfers/failed/failed",
@@ -18619,8 +18620,7 @@
             "runInstalledComposedInfers/runInstalledComposedInfers#9",
             "runInstalledComposedInfers/runInstalledComposedInfers/runInstalledComposedInfers",
             "runInstalledComposedInfers/setup/setup",
-            "runInstalledComposedInfers/setup/setup#5",
-            "runInstalledComposedInfers/context/context#2"
+            "runInstalledComposedInfers/setup/setup#5"
           ],
           "exports": [
             "runInstalledComposedInfers"
@@ -19474,7 +19474,7 @@
     },
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
-      "sha256": "b1195b677fecf549e0b27b807057e25afed6c981d41409f789d71a6e3a7e007a",
+      "sha256": "91af350a9c450be23a9ecea80ad5eb81ec39273decd8afcb08220b06aee015e9",
       "role": "physical-io",
       "exports": [
         "installNodeInferRun"

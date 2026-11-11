@@ -256,7 +256,7 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
       }
     }
     sourceContinuation = acquiredEffectContinuation({checkpoints, moon,
-      acquired: {kind: 'infer', prepared: preparedProgram, runDefinition: plan.runDefinition, control},
+      acquired: {kind: 'infer', prepared: preparedProgram, requestIdentity: plan.requestIdentity, runDefinition: plan.runDefinition, control},
       submission, declaredResults, principalId, unitId: 'composed-source-input', signal,
       currentRun: () => {try {assertCurrent(); return !signal.aborted;} catch {return false;}},
       restore: {view: {kind: 'model_invocation', prepareAttemptId: null, runId,
@@ -299,7 +299,7 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
     // matching array or a single Source's closure cannot stand in for them.
     if (historical !== undefined) throw new Error('ModelMultiSourceClosureCustodyUnavailable');
     sourceContinuation = acquiredEffectContinuation({checkpoints, moon,
-      acquired: {kind: 'infer', prepared: preparedProgram, runDefinition: plan.runDefinition, control},
+      acquired: {kind: 'infer', prepared: preparedProgram, requestIdentity: plan.requestIdentity, runDefinition: plan.runDefinition, control},
       submission, declaredResults, principalId, unitId: 'composed-source-input', signal,
       currentRun: () => {try {assertCurrent(); return !signal.aborted;} catch {return false;}}});
     const originals = input.sources.map(source => ({occurrence: source.occurrence,
@@ -324,7 +324,7 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
       }
     }
     sourceContinuation = acquiredEffectContinuation({checkpoints, moon,
-      acquired: {kind: 'infer', prepared: preparedProgram, runDefinition: plan.runDefinition, control},
+      acquired: {kind: 'infer', prepared: preparedProgram, requestIdentity: plan.requestIdentity, runDefinition: plan.runDefinition, control},
       submission, declaredResults, principalId, unitId: 'composed-source-input', signal,
       currentRun: () => {try {assertCurrent(); return !signal.aborted;} catch {return false;}},
       ...(saved === undefined ? {} : {restore: {

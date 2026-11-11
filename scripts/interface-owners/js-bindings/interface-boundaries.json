@@ -33772,7 +33772,7 @@
     {
       "module": "adapters/host-node/acquired-effect-continuation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "d3edabedbaf259facd3fb106e1d5c5a4979247ab7dbfd0c9e16162c0c307b0c9",
+      "sha256": "d7d3d14486d478986dd2fc31822e7e17a34665677b37fb234ceb678afff9730c",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -34098,6 +34098,13 @@
           "async": false
         },
         {
+          "name": "acquiredEffectContinuation/sourceState/sourceState",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
           "name": "bindingFor/bindingFor",
           "parameters": [
             "runDefinitionCid",
@@ -34125,7 +34132,8 @@
         {
           "name": "sourceScope/sourceScope",
           "parameters": [
-            "source"
+            "source",
+            "original"
           ],
           "async": false
         }
@@ -34164,8 +34172,13 @@
             "acquiredEffectContinuation/init:restore/init:restore/captured/captured",
             "acquiredEffectContinuation/init:restore/init:restore/captured/captured#2",
             "acquiredEffectContinuation/init:restore/init:restore/captured/captured#3",
+            "acquiredEffectContinuation/init:restore/init:restore/captured/init:originalCapturedInput/init:originalCapturedInput",
             "acquiredEffectContinuation/init:restore/init:restore/close/close",
+            "acquiredEffectContinuation/init:restore/init:restore/custodyAvailable/custodyAvailable",
             "acquiredEffectContinuation/init:restore/init:restore/init:restore",
+            "acquiredEffectContinuation/init:restore/init:restore/init:restore#2",
+            "acquiredEffectContinuation/init:restore/init:restore/init:restore#3",
+            "acquiredEffectContinuation/init:restore/init:restore/init:restore#4",
             "acquiredEffectContinuation/init:retainAll/init:retainAll",
             "acquiredEffectContinuation/nextJournal/nextJournal",
             "acquiredEffectContinuation/nextJournal/nextJournal#2",
@@ -34176,11 +34189,7 @@
             "acquiredEffectContinuation/sourceCurrent/sourceCurrent",
             "acquiredEffectContinuation/sourceOriginalCurrent/sourceOriginalCurrent",
             "acquiredEffectContinuation/sourceOriginalCurrent/sourceOriginalCurrent/sourceOriginalCurrent",
-            "acquiredEffectContinuation/init:restore/init:restore/custodyAvailable/custodyAvailable",
-            "acquiredEffectContinuation/init:restore/init:restore/init:restore#2",
-            "acquiredEffectContinuation/init:restore/init:restore/init:restore#3",
-            "acquiredEffectContinuation/init:restore/init:restore/init:restore#4",
-            "acquiredEffectContinuation/init:restore/init:restore/captured/init:originalCapturedInput/init:originalCapturedInput"
+            "acquiredEffectContinuation/sourceState/sourceState"
           ],
           "exports": [
             "acquiredEffectContinuation"
@@ -71021,7 +71030,7 @@
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "cb705515875684ca77eb2d1bd46fbc020ba6ea2ae12b21f68623667a3a9531ea",
+      "sha256": "008434a969f2a00bce95ae597a0568ac0648dc2b475b266526101854942e4312",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -71354,6 +71363,7 @@
             "runInstalledComposedInfers/cleanup",
             "runInstalledComposedInfers/completeOriginal/completeOriginal",
             "runInstalledComposedInfers/context/context",
+            "runInstalledComposedInfers/context/context#2",
             "runInstalledComposedInfers/context/init:retainOperation/init:retainOperation",
             "runInstalledComposedInfers/declaredResults/declaredResults",
             "runInstalledComposedInfers/failed/failed",
@@ -71380,8 +71390,7 @@
             "runInstalledComposedInfers/runInstalledComposedInfers#9",
             "runInstalledComposedInfers/runInstalledComposedInfers/runInstalledComposedInfers",
             "runInstalledComposedInfers/setup/setup",
-            "runInstalledComposedInfers/setup/setup#5",
-            "runInstalledComposedInfers/context/context#2"
+            "runInstalledComposedInfers/setup/setup#5"
           ],
           "exports": [
             "runInstalledComposedInfers"
@@ -72208,7 +72217,7 @@
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "b1195b677fecf549e0b27b807057e25afed6c981d41409f789d71a6e3a7e007a",
+      "sha256": "91af350a9c450be23a9ecea80ad5eb81ec39273decd8afcb08220b06aee015e9",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -89695,7 +89704,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "c511d4a745e3a6ea7f581fbaae434ae8e0765f77e1f3769e620cac740aab7f0d",
+      "sha256": "c0ab83379bf767e1c1ff844b6196da92feb7352149eadfa280ecf1becd500bb9",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -90369,12 +90378,20 @@
         {
           "name": "createInstalledRowSource/ordinaryRecoveryBinding",
           "parameters": [
-            "prepared"
+            "prepared",
+            "expected"
           ],
           "async": false
         },
         {
           "name": "createInstalledRowSource/ordinaryRecoveryBinding/ordinaryRecoveryBinding",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/ordinaryRecoveryBinding/ordinaryRecoveryBinding#2",
           "parameters": [
             "field",
             "index"
@@ -91538,7 +91555,8 @@
       "contracts": [
         {
           "operations": [
-            "<module>"
+            "<module>",
+            "createInstalledRowSource/ordinaryRecoveryBinding/ordinaryRecoveryBinding#2"
           ],
           "exports": [],
           "attributes": {
@@ -97006,7 +97024,7 @@
     {
       "module": "adapters/host-node/local-values-plan.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "486e19db4dd81294ed7e4a09970e7f99833e63dc9ddd0d6b0cafe505fc656622",
+      "sha256": "305d9e805a29273f0b9dd53979a39b630d67cf9b08daf221fd8bfbe72ba708c9",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [

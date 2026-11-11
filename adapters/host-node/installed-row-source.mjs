@@ -1716,9 +1716,13 @@ export async function createInstalledRowSource({moon, declaration, commands,
   };
   const installationBinding = Object.freeze({connectorId, connectorRegistration,
     connectorRevision, bindingCid});
-  function ordinaryRecoveryBinding(prepared) {
+  function ordinaryRecoveryBinding(prepared, expected) {
     const owner = preparations.get(prepared);
-    if (owner === undefined || !validInstallationBinding(installationBinding)) {
+    if (owner === undefined || !validInstallationBinding(installationBinding) ||
+        expected !== undefined && (owner.checkedOwner !== expected.checkedOwner ||
+          owner.requestIdentity !== expected.requestIdentity ||
+          ['stage', 'input', 'task', 'computeTask'].some(name =>
+            owner.occurrence?.[name] !== expected.occurrence?.[name]))) {
       fail('InstalledSourcePreparationMismatch');
     }
     if (immutableTargets === undefined
@@ -1964,7 +1968,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
       preparedProgram, occurrence.stage, occurrence.input, registry, values, fragment, ordered));
     const {prepared, resource} = describePreparedSource(requirement, Object.freeze({...occurrence}), preparedProgram);
     preparations.set(prepared, Object.freeze({checkedOwner: preparedProgram, effectful: false,
-      retainedOnly: true, requirement, resource, access, occurrence: prepared.occurrence,
+      retainedOnly: true, requirement, resource, access, requestIdentity, occurrence: prepared.occurrence,
       physicalBindingCid: valueCid(prepared.physicalBinding),
       ...(immutableTargets === undefined ? {} : {physicalBindingOriginal: prepared.physicalBinding,
         physicalTargetGeneration})}));

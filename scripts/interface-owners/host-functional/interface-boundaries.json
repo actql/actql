@@ -63166,7 +63166,7 @@
     {
       "module": "adapters/host-node/installed-duckdb-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c0aa1c535aeda1e0a6149e0972105cdcbcd27bb4c9211026d6679b9121ef6f49",
+      "sha256": "83dfb2345ac4b6b8e3c2f288599633094b1cd0615c8404df3fd2d28cc0136274",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -63327,7 +63327,15 @@
         {
           "name": "createInstalledDuckDBSource/adapter/init:ordinaryRecoveryBinding/init:ordinaryRecoveryBinding",
           "parameters": [
-            "prepared"
+            "prepared",
+            "expected"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledDuckDBSource/adapter/init:ordinaryRecoveryBinding/init:ordinaryRecoveryBinding/init:ordinaryRecoveryBinding",
+          "parameters": [
+            "name"
           ],
           "async": false
         },
@@ -63490,7 +63498,8 @@
           "parameters": [
             "prepared",
             "captureCapacity",
-            "retainedOnly"
+            "retainedOnly",
+            "original"
           ],
           "async": false
         },
@@ -63543,6 +63552,7 @@
             "checkInstalledDuckDBSourceProfile/checkInstalledDuckDBSourceProfile",
             "checkInstalledDuckDBSourceProfile/checkInstalledDuckDBSourceProfile#2",
             "cid",
+            "createInstalledDuckDBSource/adapter/init:ordinaryRecoveryBinding/init:ordinaryRecoveryBinding/init:ordinaryRecoveryBinding",
             "createInstalledDuckDBSource/authorizeWhole/authorizeWhole",
             "createInstalledDuckDBSource/current/current",
             "installDuckDBSourceProfile",
@@ -64328,6 +64338,7 @@
         "../connectors/duckdb/node/acquisition-planning.mjs",
         "../connectors/duckdb/node/native-runtime.mjs",
         "../connectors/duckdb/node/physical-capacity.mjs",
+        "../host-common/acquisition-outcome.mjs",
         "../host-common/authorization-gate.mjs",
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-result.mjs",
@@ -64335,6 +64346,7 @@
         "./captured-duckdb-source.mjs",
         "./duckdb-physical-target.mjs",
         "./installed-host-services.mjs",
+        "./installed-row-run.mjs",
         "./local-account-config.mjs",
         "./ordinary-source-binding.mjs",
         "node:crypto",

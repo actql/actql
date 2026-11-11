@@ -14208,7 +14208,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "c511d4a745e3a6ea7f581fbaae434ae8e0765f77e1f3769e620cac740aab7f0d",
+      "sha256": "c0ab83379bf767e1c1ff844b6196da92feb7352149eadfa280ecf1becd500bb9",
       "operations": [
         {
           "name": "byCid/byCid",
@@ -14869,12 +14869,20 @@
         {
           "name": "createInstalledRowSource/ordinaryRecoveryBinding",
           "parameters": [
-            "prepared"
+            "prepared",
+            "expected"
           ],
           "async": false
         },
         {
           "name": "createInstalledRowSource/ordinaryRecoveryBinding/ordinaryRecoveryBinding",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/ordinaryRecoveryBinding/ordinaryRecoveryBinding#2",
           "parameters": [
             "field",
             "index"
@@ -16117,6 +16125,7 @@
             "createInstalledRowSource/operationBindings/operationBindings",
             "createInstalledRowSource/ordinaryRecoveryBinding",
             "createInstalledRowSource/ordinaryRecoveryBinding/ordinaryRecoveryBinding",
+            "createInstalledRowSource/ordinaryRecoveryBinding/ordinaryRecoveryBinding#2",
             "createInstalledRowSource/ordinarySubject/ordinarySubject",
             "createInstalledRowSource/prepare",
             "createInstalledRowSource/prepare/authorizePreparation/authorizePreparation",

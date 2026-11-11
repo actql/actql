@@ -14,13 +14,13 @@ const CAPTURE = 'actql-host-source-capture/0.1';
 const ORIGINAL_INPUT = 'actql-host-source-original-input/0.1';
 const fail = code => { throw Object.assign(new Error(code), {code}); };
 const same = (left, right) => canonicalJson(left) === canonicalJson(right);
-const sourceScope = source => {
+const sourceScope = (source, original) => {
   const {preparedSource: prepared, adapter} = source;
   const scope = {...prepared.occurrence, checkedSource: prepared.checkedSource,
     readTuple: prepared.readTuple, physicalBinding: prepared.physicalBinding,
     physicalPolicy: prepared.physicalPolicy};
   if (typeof adapter.ordinaryRecoveryBinding === 'function') {
-    const binding = adapter.ordinaryRecoveryBinding(prepared);
+    const binding = adapter.ordinaryRecoveryBinding(prepared, {...original, occurrence: prepared.occurrence});
     if (!validInstallationBinding(binding)) fail('HeldAcquisitionChanged');
     scope.installationBinding = binding;
   }
@@ -37,6 +37,9 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
   if (resume !== undefined && restore !== undefined) fail('ConflictingSourceContinuation');
   const runDefinitionCid = acquired.runDefinition.identity;
   const runId = acquired.control.runDefinitionRunId(acquired.runDefinition);
+  // These remain the original nominal constructor inputs, not restored DATA.
+  const originalPreparation = Object.freeze({checkedOwner: acquired.prepared,
+    requestIdentity: acquired.requestIdentity});
   const states = new Map();
   const restorations = new Set();
   let pendingTask;
@@ -102,6 +105,14 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
       ? checkpoints.journal.completeResume(resume.claim, {checkpoint})
       : checkpoints.journal.persistCheckpoint(checkpoint),
     submitResolution: item => checkpoints.journal.submitResolution(item),
+  };
+  const sourceState = source => {
+    const state = states.get(source?.occurrence?.task);
+    if (state === undefined || state.source !== source ||
+        state.adapter !== source.adapter || state.preparedSource !== source.preparedSource ||
+        !same(state.occurrence, source.occurrence) ||
+        !same(state.occurrence, source.preparedSource?.occurrence)) fail('HeldAcquisitionChanged');
+    return state;
   };
   const ensureGate = async state => {
     current();
@@ -203,17 +214,25 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
     accessFor(base, occurrence) {
       current();
       if (states.has(occurrence.task)) fail('DuplicateSourceContinuationOccurrence');
-      const state = {base};
+      const state = {base, occurrence: JSON.parse(canonicalJson(occurrence))};
       state.access = approvedAccess(state);
       states.set(occurrence.task, state);
       return state.access;
     },
     async prepared(sources) {
       current();
+      if (!Array.isArray(sources) || sources.length !== states.size) fail('HeldAcquisitionChanged');
+      const seen = new Set();
       for (const source of sources) {
-        const state = states.get(source.occurrence.task);
-        state.scope = JSON.parse(canonicalJson(sourceScope(source)));
+        const state = states.get(source?.occurrence?.task);
+        if (state === undefined || seen.has(state) ||
+            !same(state.occurrence, source.occurrence) ||
+            !same(state.occurrence, source.preparedSource?.occurrence)) fail('HeldAcquisitionChanged');
+        seen.add(state);
+        state.scope = JSON.parse(canonicalJson(sourceScope(source, originalPreparation)));
         state.source = source;
+        state.adapter = source.adapter;
+        state.preparedSource = source.preparedSource;
       }
       // A newly retained installed binding has a distinct closed form. Never
       // promote an old binding-free scope using the current installation.
@@ -227,9 +246,12 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
           !Array.isArray(saved.sources) || saved.sources.length !== states.size ||
           (restore === undefined ? !Number.isSafeInteger(saved.pending_task)
             : saved.pending_task !== null)) fail('HeldAcquisitionChanged');
+      const savedSources = new Set();
       for (const item of saved.sources) {
         const state = states.get(item.scope?.task);
-        if (state === undefined || !same(state.scope, item.scope)) fail('HeldAcquisitionChanged');
+        if (state === undefined || savedSources.has(state) ||
+            !same(state.scope, item.scope)) fail('HeldAcquisitionChanged');
+        savedSources.add(state);
         state.captureCid = item.capture_cid;
       }
       captureStartedAt = saved.capture_started_at ?? undefined;
@@ -273,7 +295,7 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
     },
     async beforeRead(source) {
       current();
-      const state = states.get(source.occurrence.task);
+      const state = sourceState(source);
       const gate = await ensureGate(state);
       sourceCurrent(state);
       if (state.record !== undefined) {
@@ -316,7 +338,7 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
       return {enter: state.enter};
     },
     restore(source, record, ledger) {
-      const state = states.get(source.occurrence.task);
+      const state = sourceState(source);
       sourceCurrent(state);
       const {requirement, capacity, referenceIssuer, wholeInput = false} = source.adapter.retainedCapture(source.preparedSource);
       const binding = bindingFor(runDefinitionCid, state.scope, record.acquisition,
@@ -388,7 +410,7 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
       return {captured, sourceEvidenceWire: record.source_evidence_wire};
     },
     async captured(source, captured, sourceEvidenceWire, startedAt, completedAt, originalApproval) {
-      const state = states.get(source.occurrence.task);
+      const state = sourceState(source);
       sourceCurrent(state);
       if (originalApproval !== undefined) {
         const facts = checkpointApprovalFacts(originalApproval);

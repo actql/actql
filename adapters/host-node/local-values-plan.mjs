@@ -784,7 +784,7 @@ export function restoreInferTaskRunAdmission({control, preparedProgram, restored
   const queryInvocation=prepareQueryInvocation(control,preparedProgram,requestIdentity,
     JSON.parse(runDefinition.wire));
   const queryTime=bindQueryInvocation(control,queryInvocation,preparedProgram,compiled,runDefinition);
-  return Object.freeze({...compiled, compiled, runDefinition,
+  return Object.freeze({...compiled, compiled, runDefinition, requestIdentity,
     ...queryTime,
     createdAt: JSON.parse(runDefinition.wire).created_at, inferGraph: restored.graph});
 }
@@ -926,7 +926,7 @@ function checkedTaskRunAdmission({control, preparedProgram, inferGraph, serializ
   const queryTime=original === undefined
     ? bindQueryInvocation(control,queryInvocation,preparedProgram,compiled,runDefinition)
     : {queryTimePreparation:original.queryTimePreparation,queryTime:original.queryTime};
-  const admitted = Object.freeze({...compiled, compiled, runDefinition, createdAt, publicationPreparation,
+  const admitted = Object.freeze({...compiled, compiled, runDefinition, createdAt, publicationPreparation, requestIdentity,
     ...queryTime,
     ...(kind === 'infer' ? {inferGraph} : {}),
     ...(kind === 'serialization' ? {serializationGraph} : {})});
