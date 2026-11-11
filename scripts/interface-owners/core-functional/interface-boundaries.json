@@ -53021,7 +53021,7 @@
               },
               {
                 "path": "src/connectors/local/driver/managed_dispatch.mbt",
-                "anchor": "fn with_local_managed_import_mutation("
+                "anchor": "fn[A] with_local_managed_import_mutation("
               }
             ],
             "failure": [

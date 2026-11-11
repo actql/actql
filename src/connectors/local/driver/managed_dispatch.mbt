@@ -17,10 +17,10 @@ fn[A] with_managed_scratch_use(
 // Every input copy contributes to the same Task import extent. Keep its
 // computation, current callback, debit and append in one synchronous mutation
 // scope. Cancellation and cleanup remain independently callable.
-fn with_local_managed_import_mutation(
+fn[A] with_local_managed_import_mutation(
   active : Ref[Bool],
-  action : () -> Result[Unit, LocalDispatchIssue],
-) -> Result[Unit, LocalDispatchIssue] {
+  action : () -> Result[A, LocalDispatchIssue],
+) -> Result[A, LocalDispatchIssue] {
   if active.val {
     return Err(Configuration(InputUnavailable))
   }
@@ -356,6 +356,44 @@ fn local_managed_import_next_extent(
     return None
   }
   Some((next_rows, next_nodes, next_text, quoted - start))
+}
+
+///|
+// Only the exact finished export supplies these copy extents. They fund the
+// existing importer; all original admission and identity limits still apply.
+fn local_relation_snapshot_reload_capacity(
+  limits : @local.LocalImportLimits,
+  content : @execution.AdmittedOutputStreamReceipt,
+) -> Int64? {
+  let (_, bytes, nodes, rows) = @execution.output_stream_identity(content)
+  let values = @execution.output_stream_value_usage(content)
+  if bytes < 1 ||
+    rows < 0 ||
+    nodes < 1 ||
+    bytes > limits.wire.max_bytes ||
+    rows > limits.max_rows ||
+    values.nodes < 0 ||
+    values.nodes > limits.values.max_nodes ||
+    values.text_bytes < 0 ||
+    values.text_bytes > limits.values.max_text_bytes {
+    return None
+  }
+  @local.local_import_retention_capacity({
+    max_rows: rows,
+    values: {
+      ..limits.values,
+      max_nodes: values.nodes,
+      max_text_bytes: values.text_bytes,
+    },
+    wire: { ..limits.wire, max_bytes: bytes, max_nodes: nodes, },
+    row: {
+      ..limits.row,
+      max_bytes: Int::max(1, Int::min(limits.row.max_bytes, bytes)),
+      max_nodes: Int::min(limits.row.max_nodes, values.nodes),
+      max_text_bytes: Int::min(limits.row.max_text_bytes, values.text_bytes),
+    },
+    max_batch_bytes: Int::max(1, Int::min(limits.max_batch_bytes, bytes)),
+  })
 }
 
 ///|
@@ -1344,28 +1382,11 @@ pub fn[T] start_local_managed_dispatch(
     }
     Ok(())
   }
-  let export_frame_extent = fn(
-    receipt : @execution.ManagedOutputValueReceipt,
-    result : @execution.ManagedResultOccurrence?,
-  ) -> Result[Int, LocalDispatchIssue] {
-    guard @execution.managed_output_value_row_wire_bound(
-        receipt,
-        result,
-        output_wire.max_columns,
-        output_wire.max_bytes,
-      )
-      is Some(bytes) else {
-      return Err(Configuration(InvalidLimits))
-    }
-    let frame = Int::max(setup.imports.max_batch_bytes, bytes)
-    guard @execution.execution_capacity_inventory_add(
-        0L,
-        CanonicalWireBytes,
-        (frame - setup.imports.max_batch_bytes).to_int64(),
-        1,
-      )
-      is Some(extra) else {
-      return Err(Configuration(InvalidLimits))
+  let reserve_transport = fn(
+    extra : Int64,
+  ) -> Result[Unit, LocalDispatchIssue] {
+    if !live.val || disposed.val || extra < 0L {
+      return Err(Execution(Stopped))
     }
     if extra > transport_extra.val {
       guard @execution.execution_capacity_inventory_add(
@@ -1389,6 +1410,35 @@ pub fn[T] start_local_managed_dispatch(
       if !live.val || disposed.val {
         return Err(Execution(Stopped))
       }
+    }
+    Ok(())
+  }
+  let export_frame_extent = fn(
+    receipt : @execution.ManagedOutputValueReceipt,
+    result : @execution.ManagedResultOccurrence?,
+  ) -> Result[Int, LocalDispatchIssue] {
+    guard @execution.managed_output_value_row_wire_bound(
+        receipt,
+        result,
+        output_wire.max_columns,
+        output_wire.max_bytes,
+      )
+      is Some(bytes) else {
+      return Err(Configuration(InvalidLimits))
+    }
+    let frame = Int::max(setup.imports.max_batch_bytes, bytes)
+    guard @execution.execution_capacity_inventory_add(
+        0L,
+        CanonicalWireBytes,
+        (frame - setup.imports.max_batch_bytes).to_int64(),
+        1,
+      )
+      is Some(extra) else {
+      return Err(Configuration(InvalidLimits))
+    }
+    match reserve_transport(extra) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
     }
     Ok(frame)
   }
@@ -2755,14 +2805,21 @@ pub fn[T] start_local_managed_dispatch(
         provider_execution.val is Some(active) else {
         return Err(Configuration(InvalidLimits))
       }
-      let maximum_bytes = Int::min(
-        setup.imports.wire.max_bytes,
-        if setup.capacity.retained_bytes > 2147483647L {
-          2147483647
-        } else {
-          setup.capacity.retained_bytes.to_int()
-        },
-      )
+      // An actual-output task's startup quote is not a whole-snapshot wire
+      // ceiling. The original finite wire policy remains authoritative; each
+      // emitted body/frame is funded below on this same Task before transfer.
+      let maximum_bytes = if setup.metered_retention {
+        setup.imports.wire.max_bytes
+      } else {
+        Int::min(
+          setup.imports.wire.max_bytes,
+          if setup.capacity.retained_bytes > 2147483647L {
+            2147483647
+          } else {
+            setup.capacity.retained_bytes.to_int()
+          },
+        )
+      }
       if maximum_bytes < 2 {
         return Err(Configuration(InvalidLimits))
       }
@@ -2794,6 +2851,44 @@ pub fn[T] start_local_managed_dispatch(
       retained_imports.push(importing)
       let restored : Ref[@execution.CompletedOutput?] = Ref(None)
       let phase = Ref(SnapshotPhase::Saving)
+      let emitted_bytes = Ref(0L)
+      let frame_bytes = Ref(0L)
+      let reload_capacity : Ref[Int64?] = Ref(None)
+      let fund_part = fn(part : String) -> Result[Unit, LocalDispatchIssue] {
+        let bytes = match
+          managed_row_transfer_bytes(part, frames.maxFrameBytes) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+        if bytes > maximum_bytes.to_int64() - emitted_bytes.val {
+          return Err(Configuration(InputUnavailable))
+        }
+        let total = emitted_bytes.val + bytes
+        let frame = Int64::max(frame_bytes.val, bytes)
+        if setup.metered_retention {
+          // The saved body and the current outgoing/incoming frame overlap.
+          // Neither borrows the still-live completed cells' DATA allowance.
+          guard @execution.execution_capacity_inventory_add(
+              0L,
+              CanonicalWireBytes,
+              total + frame,
+              1,
+            )
+            is Some(quoted) else {
+            return Err(Configuration(InvalidLimits))
+          }
+          match reserve_transport(quoted) {
+            Ok(_) => ()
+            Err(issue) => return Err(issue)
+          }
+        }
+        if !live.val || phase.val != Saving {
+          return Err(Execution(Stopped))
+        }
+        emitted_bytes.val = total
+        frame_bytes.val = frame
+        Ok(())
+      }
       let remaining = Ref(0L)
       match @local.managed_provider_cumulative_work(active) {
         Ok(work) if work >= 0L && work <= setup.execution.max_work.to_int64() =>
@@ -2868,30 +2963,63 @@ pub fn[T] start_local_managed_dispatch(
           key: "relation-task-" + setup.task.to_string(),
           frames,
           next: () => {
-            if phase.val == Saved {
-              return Ok(None)
-            }
-            guard phase.val == Saving && stream.val is Some(value) else {
-              return Err(Configuration(InvalidLimits))
-            }
-            if charge() is Err(issue) {
-              return Err(issue)
-            }
-            match @execution.next_completed_output_export(value) {
-              Ok(Some(part)) => Ok(Some(part))
-              Ok(None) => {
-                let (finished, tail) = match
-                  @execution.finish_completed_output_export(value) {
-                  Ok(result) => result
-                  Err(_) => return Err(Configuration(InputUnavailable))
-                }
-                receipt.val = Some(finished)
-                stream.val = None
-                phase.val = Saved
-                Ok(Some(tail))
+            with_local_managed_import_mutation(import_mutating, fn() {
+              if phase.val == Saved {
+                return Ok(None)
               }
-              Err(_) => Err(Configuration(InputUnavailable))
-            }
+              guard phase.val == Saving && stream.val is Some(value) else {
+                return Err(Configuration(InvalidLimits))
+              }
+              if charge() is Err(issue) {
+                return Err(issue)
+              }
+              match @execution.next_completed_output_export(value) {
+                Ok(Some(part)) =>
+                  match fund_part(part) {
+                    Ok(_) => Ok(Some(part))
+                    Err(issue) => {
+                      phase.val = Failed
+                      if execution_failure.val is None {
+                        execution_failure.val = Some(issue)
+                      }
+                      Err(issue)
+                    }
+                  }
+                Ok(None) => {
+                  let (finished, tail) = match
+                    @execution.finish_completed_output_export(value) {
+                    Ok(result) => result
+                    Err(_) => return Err(Configuration(InputUnavailable))
+                  }
+                  receipt.val = Some(finished)
+                  stream.val = None
+                  match fund_part(tail) {
+                    Ok(_) => ()
+                    Err(issue) => {
+                      phase.val = Failed
+                      if execution_failure.val is None {
+                        execution_failure.val = Some(issue)
+                      }
+                      return Err(issue)
+                    }
+                  }
+                  let content = @execution.completed_export_content(finished)
+                  reload_capacity.val = local_relation_snapshot_reload_capacity(
+                    setup.imports,
+                    content,
+                  )
+                  if !live.val ||
+                    phase.val != Saving ||
+                    !(receipt.val is Some(actual) &&
+                    physical_equal(actual, finished)) {
+                    return Err(Execution(Stopped))
+                  }
+                  phase.val = Saved
+                  Ok(Some(tail))
+                }
+                Err(_) => Err(Configuration(InputUnavailable))
+              }
+            })
           },
           content: () => {
             guard phase.val == Saved && receipt.val is Some(value) else {
@@ -2934,24 +3062,54 @@ pub fn[T] start_local_managed_dispatch(
           },
           source_available: () => ordinary.val is Some(_),
           begin_reload: () => {
-            guard live.val && phase.val == Released && stored.val is Some(value) else {
-              return Err(Configuration(InvalidLimits))
-            }
-            let value = match
-              @execution.prepare_completed_output_import(
-                value,
-                setup.imports.max_rows,
-                setup.imports.values,
-                wire,
-                frames.maxFrameBytes,
-                deferred_reclamation=true,
-              ) {
-              Ok(result) => result
-              Err(_) => return Err(Configuration(InputUnavailable))
-            }
-            importing.val = Some(value)
-            phase.val = Reloading
-            Ok(())
+            with_local_managed_import_mutation(import_mutating, fn() {
+              guard live.val &&
+                phase.val == Released &&
+                stored.val is Some(value) else {
+                return Err(Configuration(InvalidLimits))
+              }
+              if setup.metered_retention {
+                guard reload_capacity.val is Some(quoted) &&
+                  @execution.checked_preparation_add_product(
+                    import_extra.val,
+                    quoted,
+                    1L,
+                  )
+                  is Some(next) else {
+                  return Err(Configuration(InvalidLimits))
+                }
+                match reserve_import(next) {
+                  Ok(_) => ()
+                  Err(issue) => {
+                    phase.val = Failed
+                    if execution_failure.val is None {
+                      execution_failure.val = Some(issue)
+                    }
+                    return Err(issue)
+                  }
+                }
+                if !live.val ||
+                  phase.val != Released ||
+                  !(stored.val is Some(actual) && physical_equal(actual, value)) {
+                  return Err(Execution(Stopped))
+                }
+              }
+              let value = match
+                @execution.prepare_completed_output_import(
+                  value,
+                  setup.imports.max_rows,
+                  setup.imports.values,
+                  wire,
+                  frames.maxFrameBytes,
+                  deferred_reclamation=true,
+                ) {
+                Ok(result) => result
+                Err(_) => return Err(Configuration(InputUnavailable))
+              }
+              importing.val = Some(value)
+              phase.val = Reloading
+              Ok(())
+            })
           },
           append_reload: row => {
             guard phase.val == Reloading && importing.val is Some(value) else {
