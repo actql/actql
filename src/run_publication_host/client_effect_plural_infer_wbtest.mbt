@@ -1,5 +1,7 @@
 ///|
-fn plural_effect_infer_fixture() -> (
+fn plural_effect_infer_fixture(
+  inline_models? : Bool = false,
+) -> (
   PreparedClientEffectComputation,
   ClientEffectAllowedRun,
   @publication.PublicationContract,
@@ -29,6 +31,20 @@ fn plural_effect_infer_fixture() -> (
   ).unwrap()
   let document =
     #|{"version":"actql/0.1","id":"plural-model-effect","stages":[{"id":"input","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"string","nullable":false},"text":{"type":"string","nullable":true},"value":{"type":"number","nullable":false}},"rows":[{"id":"a","text":"hello","value":1},{"id":"b","text":"world","value":2}]},"as":"items"}],"results":{"rows":{"from":"items","fields":["id","text","value"]}}},{"id":"first","inputs":{"rows":{"result":{"stage":"input","result":"rows"}}},"steps":[{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"assessment"}],"results":{"rows":{"from":"assessment","fields":["id","outcome","value"]}}},{"id":"second","inputs":{"rows":{"result":{"stage":"input","result":"rows"}}},"steps":[{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"assessment"}],"results":{"rows":{"from":"assessment","fields":["id","outcome","value"]}}},{"id":"combine","inputs":{"first":{"result":{"stage":"first","result":"rows"}},"second":{"result":{"stage":"second","result":"rows"}},"seed":{"result":{"stage":"input","result":"rows"}}},"steps":[{"from":"first","join":{"with":"second","kind":"inner","cardinality":"one_to_one","max_output_rows":2,"on":[{"left":"id","right":"id"}],"select":{"id":"left.id"}},"as":"joined"},{"join":{"with":"seed","kind":"inner","cardinality":"one_to_one","on":[{"left":"id","right":"id"}],"select":{"id":"right.id","value":"right.value"}},"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id","value"]}},"effects":{"save":{"update":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"rows"},"id":"id","set":{"Name":{"field":"value"}}}}}}],"results":{"rows":{"from":{"stage":"combine","result":"rows"}}}}
+  let document = if inline_models {
+    let values =
+      #|{"values":{"schema":{"id":{"type":"string","nullable":false},"text":{"type":"string","nullable":true},"value":{"type":"number","nullable":false}},"rows":[{"id":"a","text":"hello","value":1},{"id":"b","text":"world","value":2}]},"as":"items"},
+    let mut inline = document
+    for _ in 0..<2 {
+      inline = inline.replace(
+        old="\"inputs\":{\"rows\":{\"result\":{\"stage\":\"input\",\"result\":\"rows\"}}},\"steps\":[",
+        new="\"inputs\":{},\"steps\":[" + values,
+      )
+    }
+    inline
+  } else {
+    document
+  }
   let prepared = prepare_client_effect_computation(
     document,
     Json,

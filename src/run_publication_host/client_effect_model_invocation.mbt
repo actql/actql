@@ -37,13 +37,19 @@ fn issue_model_effect_local_invocation(
 ) -> Result[ClientEffectLocalInvocation, ClientEffectLocalInvocationIssue] {
   guard compiled.compilation is Effects(allowed) &&
     physical_equal(compiled.owner, scope.owner) &&
-    allowed.compilation.compiled.infers.length() <= 1 &&
-    client_effect_compilation_infer_original(allowed.compilation)
-    is Some((plan, occurrence)) &&
-    physical_equal(scope.plan, plan) &&
+    physical_equal(scope.plan.owner, compiled.owner) &&
+    allowed.compilation.compiled.infers.any(original => {
+      physical_equal(original, scope.plan)
+    }) &&
+    client_infer_occurrence_matches_effect(
+      scope.plan.occurrence,
+      allowed.compilation.owner,
+    ) &&
+    client_infer_occurrence_matches_plan(scope.plan.occurrence, scope.plan) &&
     client_infer_call_scope_matches(scope, compiled.owner, scope.input) else {
     return Err(ForeignCapturedInput)
   }
+  let occurrence = scope.plan.occurrence
   let owner = allowed.compilation.owner
   let unit = occurrence.stage
   let program = @checked.effect_program_static_checked_computation(
