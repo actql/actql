@@ -608,3 +608,17 @@ test('Native mock command capture cannot launder incomplete or foreign diagnosti
     assert.throws(() => nativeMockAcceptanceObservations(nativeLauncherEnvelope(result.stderr,'required').native));
   }
 });
+
+test('Native mock command capture stops continuous stderr growth before timeout', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'native-mock-live-limit-'));
+  t.after(() => rm(root, {recursive:true, force:true}));
+  await assert.rejects(captureNativeMockCommand(process.execPath,
+    ['-e',"setInterval(()=>require('node:fs').writeSync(2,Buffer.alloc(1024,120)),2)"],
+    {cwd:root,env:process.env,stderrPath:join(root,'live.stderr'),timeout:3000,maxBuffer:4096}), error => {
+    assert.equal(error.code,'ERR_CHILD_PROCESS_STDIO_MAXBUFFER');
+    assert.equal(error.signal,'SIGKILL');
+    assert.equal(error.killed,true);
+    assert(Buffer.byteLength(error.stderr)<=4096);
+    return true;
+  });
+});
