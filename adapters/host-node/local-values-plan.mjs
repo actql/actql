@@ -129,7 +129,6 @@ const policyCid = name => cid({version: 'actql-installed-local-policy/0.1',
   name});
 const valuesAdmissions = new WeakMap();
 const originalPlans = new WeakMap();
-const originalPlanLimits = Object.freeze({maxWireBytes: 65536, maxNodes: 4096, maxDepth: 64});
 export function sourceFreePlanOriginal(plan) {return originalPlans.get(plan)?.original;}
 export function sourceFreePlanExecutionOwner(plan) {return originalPlans.get(plan)?.executionOwner;}
 
@@ -138,8 +137,10 @@ function retainOriginalPlan(plan, compiled, preparedProgram, control, queryTime)
   // closed publication data bag. This replaces the larger timed Plan clone.
   originalPlans.set(plan, Object.freeze({
     executionOwner: Object.freeze({program: preparedProgram, compiled}),
+    // Original admission uses the same metadata codec as its invocation and
+    // publication. Later inspection keeps the reader's own explicit bounds.
     original: control.captureOriginalClientRunPlan(
-      compiled, preparedProgram, plan.runDefinition, originalPlanLimits),
+      compiled, preparedProgram, plan.runDefinition, limits),
     queryTimePreparation: queryTime?.queryTimePreparation,
     queryTime: queryTime?.queryTime,
   }));
