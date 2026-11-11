@@ -54,6 +54,52 @@ test "three original Direct Sources prepare the complete keyed Model graph under
       Some((slot, 0, slot)),
     )
   }
+  // Graph preparation alone must not conceal a later two-root compiler gate.
+  // The existing Model compiler retains this SAME checked graph/occurrence.
+  // This supplies no Model send, Source read or physical Host permission.
+  let component = @publication_host.issue_installed_client_composed_infer_plan_graph(
+    occurrence,
+    effect_model_plan_execution(occurrence),
+    @publication_host.client_standard_values_sequence_limits(),
+    1000000,
+    100000,
+    100,
+  ).unwrap()
+  let manifests = @publication_host.admit_client_compilation_manifests(
+    @environment.compiler_grammar_manifest_wire(),
+    @environment.compiler_barrier_contract_manifest_wire(),
+    100000,
+    10000,
+    100,
+  ).unwrap()
+  let compilation = match
+    @publication_host.issue_prepared_client_effect_compilation(
+      prepared,
+      manifests,
+      @publication_host.client_standard_values_sequence_limits(),
+      1000,
+      10000,
+      1000000,
+      100000,
+      100,
+      infer=Some(component),
+    ) {
+    Ok(value) => value
+    Err(@publication_host.UnsupportedProgram) =>
+      fail("three Direct compilation: UnsupportedProgram")
+    Err(_) => fail("three Direct compilation: another typed compiler issue")
+  }
+  assert_true(
+    physical_equal(
+      @publication_host.client_effect_compilation_owner(compilation),
+      prepared,
+    ),
+  )
+  assert_true(
+    @publication_host.client_infer_occurrence_matches_plan(
+      occurrence, component,
+    ),
+  )
   let bounded = { ..limits, program: { ..limits.program, max_tasks: 3, }, }
   assert_true(
     @publication_host.prepare_client_effect_computation(
