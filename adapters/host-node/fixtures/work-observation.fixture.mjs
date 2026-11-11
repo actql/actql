@@ -25,12 +25,36 @@ export function assertRecordWorkflowWork(work, {phase, variant} = {}) {
 export function workflowWorkObservation({trackOriginal = false} = {}) {
   const empty = () => ({sourceAcquisitionStarts: 0, modelCallStarts: 0, effectReplacementReturns: 0});
   const counts = empty(), unbound = empty(), runs = new Map();
-  let limited = false;
+  let limited = false, primaryFailure;
   const cid = value => typeof value === 'string' && /^sha256:[a-f0-9]{64}$/u.test(value);
   const connection = createHostObservationConnection({
-    include: ['source', 'infer', 'effect'], correlation: trackOriginal ? {include: ['run']} : false,
+    include: ['source', 'infer', 'effect', 'run'],
+    correlation: {include: trackOriginal ? ['run', 'task'] : ['task']},
     events: {level: 'diagnostic'},
     deliver(record) {
+      if (record.operation === 'run' && record.event === 'dispatch_failed') {
+        const a = record.attributes;
+        if (typeof a?.['error.type'] !== 'string' ||
+            typeof a?.['actql.failure.kind'] !== 'string' ||
+            typeof a?.['actql.failure.phase'] !== 'string' ||
+            !['actql.task.ordinal', 'actql.unit.ordinal', 'actql.step.ordinal']
+              .every(key => Number.isSafeInteger(a[key]) && a[key] >= 0)) return;
+        const failure = Object.freeze({available: true, code: a['error.type'],
+          kind: a['actql.failure.kind'], phase: a['actql.failure.phase'],
+          occurrence: Object.freeze({task: a['actql.task.ordinal'],
+            unit: a['actql.unit.ordinal'], step: a['actql.step.ordinal']})});
+        primaryFailure ??= failure;
+        if (trackOriginal) {
+          const key = a['actql.run.definition_cid'];
+          if (!cid(key)) return;
+          if (!runs.has(key)) {
+            if (runs.size === 8) {limited = true;return;}
+            runs.set(key, empty());
+          }
+          runs.get(key).primaryFailure ??= failure;
+        }
+        return;
+      }
       const field = record.operation === 'source' && record.event === 'attempt_started' ? 'sourceAcquisitionStarts'
         : record.operation === 'infer' && record.event === 'attempt_started' ? 'modelCallStarts'
           : record.operation === 'effect' && record.event === 'write_observed' ? 'effectReplacementReturns' : undefined;
@@ -49,7 +73,8 @@ export function workflowWorkObservation({trackOriginal = false} = {}) {
   function snapshot() {
     let status;
     try {status = connection.status();} catch {return {...counts, complete: false, unavailable: true};}
-    return {...counts, scope: 'Actual starts and returned Mock replacements; not durability ACK', status,
+    return {...counts, primaryFailure: primaryFailure ?? {available: false},
+      scope: 'Actual starts and returned Mock replacements; not durability ACK', status,
       complete: status !== undefined && status.closed === true && status.cleanupPending === false &&
         ['dropped', 'budgetUnavailable', 'queueOverflow', 'deliveryFailed', 'limited', 'repeated',
           'queued', 'active', 'activeSegments'].every(name => status[name] === 0) &&
@@ -59,6 +84,8 @@ export function workflowWorkObservation({trackOriginal = false} = {}) {
     forOriginal(ref) {
       const total = snapshot(), bound = trackOriginal && cid(ref?.runDefinitionCid);
       return {...total, totals: {...counts}, ...(bound ? runs.get(ref.runDefinitionCid) ?? empty() : empty()),
+        primaryFailure: bound ? runs.get(ref.runDefinitionCid)?.primaryFailure ?? {available: false}
+          : {available: false},
         scope: 'Same installed Host and original Run definition; other fresh verification Runs reported in totals',
         unbound: {...unbound}, complete: total.complete && bound && !limited && Object.values(unbound).every(value => value === 0)};
     }};

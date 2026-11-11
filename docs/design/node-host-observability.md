@@ -134,6 +134,15 @@ Unavailable measurements stay unavailable; no exporter derives logical work or
 usage from spans. Duration selection controls optional metric instruments, not
 the truthful timestamps of the finite span being represented.
 
+At the original Model acquired-evidence boundary, MoonBit may project a
+technical failure kind from the same returned Result. The JS bridge forwards
+that DATA with the already-read task, Unit and step through `dispatch_failed`;
+it does not decode a compiler tag, repeat validation or observe current again.
+Diagnostic selection may expose the code, phase and kind; task correlation
+also enables the three ordinals. No body, Account, path or credential is part
+of this projection. Missing or lost delivery remains unavailable, and neither
+projection nor delivery failure replaces the original outcome or cleanup.
+
 The optional Node package can explicitly select standard environment
 configuration. It never overlays an application-owned provider. Generic
 destinations enable traces only; signal-specific settings and exporter choices

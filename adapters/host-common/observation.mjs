@@ -29,7 +29,8 @@ const attributeNames = ['actql.operation', 'actql.event', 'actql.observation.ver
   'actql.physical_stop', 'actql.run.definition_cid', 'actql.run.id',
   'actql.model.attempt_cid', 'http.request.method', 'http.route',
   'http.response.status_code', 'error.type', 'service.name', 'service.version',
-  'deployment.environment.name'];
+  'deployment.environment.name', 'actql.failure.phase', 'actql.failure.kind',
+  'actql.unit.ordinal', 'actql.step.ordinal'];
 const mandatoryAttributes = ['actql.operation', 'actql.event', 'actql.observation.version'];
 // These are presentation-only public spellings. Field membership, primitive
 // width and private snapshot order belong to the actual Core declaration.
@@ -407,6 +408,18 @@ export function installHostObservation(connection, {journal, runId} = {}) {
       if (config.correlations.has('task') && Number.isSafeInteger(facts.task) && facts.task >= 0) {
         attributes['actql.task.ordinal'] = facts.task;
       }
+      if (event === 'dispatch_failed' && config.eventLevel === 'diagnostic' &&
+          facts.primaryDiagnostic !== undefined) {
+        const failure = facts.primaryDiagnostic;
+        attributes['error.type'] = failure.code;
+        attributes['actql.failure.phase'] = failure.phase;
+        attributes['actql.failure.kind'] = failure.kind;
+        if (config.correlations.has('task')) {
+          attributes['actql.task.ordinal'] = failure.task;
+          attributes['actql.unit.ordinal'] = failure.unit;
+          attributes['actql.step.ordinal'] = failure.step;
+        }
+      }
       if (config.correlations.has('attempt')) {
         if (Number.isSafeInteger(facts.attempt) && facts.attempt >= 0) attributes['actql.attempt.ordinal'] = facts.attempt;
         if (Number.isSafeInteger(facts.slot) && facts.slot >= 0) attributes['actql.model.slot.ordinal'] = facts.slot;
@@ -666,7 +679,8 @@ export function installHostObservation(connection, {journal, runId} = {}) {
       const mapping = events[name];
       if (mapping) emit(mapping[0], mapping[1], {ref: detail?.ref,
         task: detail?.task, attempt: detail?.attempt, slot: detail?.slot,
-        attemptCid: detail?.attemptCid, outcome: detail?.outcome});
+        attemptCid: detail?.attemptCid, outcome: detail?.outcome,
+        ...(name === 'dispatch_failed' ? {primaryDiagnostic: detail?.primaryDiagnostic} : {})});
     },
     status: () => Object.freeze({...counts, queued: queue.length,
       queuedBytes, active: pending.size, activeSegments, closed,

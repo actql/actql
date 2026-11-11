@@ -22,6 +22,46 @@ const main = ast.body.find(node => node.type === 'TryStatement');
 const branch = main.block.body.find(node => node.type === 'IfStatement');
 const captureBody = text.slice(branch.consequent.start, branch.consequent.end);
 
+test('workflow primary failure stays with its actual original Run instead of another verification Run', async () => {
+  const make = new Function('createHostObservationConnection',
+    `${declaration('workflowWorkObservation')};return workflowWorkObservation;`)(createHostObservationConnection);
+  const ref = value => ({namespaceId: 'fixture', authorityScopeCid: `sha256:${'a'.repeat(64)}`,
+    runDefinitionCid: `sha256:${value.repeat(64)}`});
+  const original = ref('1'), verification = ref('2'), work = make({trackOriginal: true});
+  const observer = installHostObservation(work.connection, {runId: () => 'same-host-fixture',
+    journal: {observationStorage: () => ({consume: () => ({accepted: true})})}});
+  const failure = {code: 'MoonBitHostFailure', phase: 'original_model_acquired_effect_evidence',
+    kind: 'invocation.foreign_captured_input', task: 4, unit: 2, step: 5};
+  observer.diagnostic('dispatch_failed', {ref: verification, primaryDiagnostic: {...failure, kind: 'dependency'}});
+  observer.diagnostic('dispatch_failed', {ref: original, primaryDiagnostic: failure});
+  observer.diagnostic('dispatch_failed', {ref: original, primaryDiagnostic: {...failure, kind: 'relation'}});
+  await observer.close();
+  assert.deepEqual(work.forOriginal(original).primaryFailure, {available: true,
+    code: failure.code, phase: failure.phase, kind: failure.kind, occurrence: {task: 4, unit: 2, step: 5}});
+  assert.equal(work.forOriginal(verification).primaryFailure.kind, 'dependency');
+  assert.deepEqual(work.forOriginal(ref('3')).primaryFailure, {available: false});
+  assert.deepEqual(work.forOriginal(undefined).primaryFailure, {available: false});
+  assert.equal(work.forOriginal(original).complete, true);
+  assert.equal(JSON.stringify(work.forOriginal(original)).includes('sha256:'), false);
+});
+
+test('workflow missing or lost primary delivery remains unavailable instead of becoming a fabricated cause', async () => {
+  const make = new Function('createHostObservationConnection',
+    `${declaration('workflowWorkObservation')};return workflowWorkObservation;`);
+  for (const lose of [false, true]) {
+    const work = make(options => createHostObservationConnection({...options,
+      ...(lose ? {limits: {queueRecords: 1}} : {})}))();
+    const observer = installHostObservation(work.connection);
+    if (lose) observer.diagnostic('model_call_entered', {});
+    observer.diagnostic('dispatch_failed', lose ? {primaryDiagnostic: {
+      code: 'MoonBitHostFailure', phase: 'original_model_acquired_effect_evidence',
+      kind: 'relation', task: 4, unit: 2, step: 5}} : {});
+    await observer.close();
+    assert.deepEqual(work.snapshot().primaryFailure, {available: false});
+    if (lose) {assert.equal(work.snapshot().complete, false); assert(work.snapshot().status.dropped > 0);}
+  }
+});
+
 test('workflow operation timers keep actual intervals and original failures even when logging fails', async () => {
   const make = new Function('ports', `
     const {console,process}=ports,phase='capture',stepDiagnosticFailures=ports.failures;

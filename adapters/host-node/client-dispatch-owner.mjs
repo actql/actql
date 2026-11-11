@@ -29,8 +29,31 @@ function dispatchFailureSnapshot(error) {
         typeof field.value === 'string' ? field.value : undefined;
     } catch { return undefined; }
   };
+  let primaryDiagnostic;
+  try {
+    const field = Object.getOwnPropertyDescriptor(error, 'primaryDiagnostic');
+    if (field !== undefined && Object.hasOwn(field, 'value')) {
+      const data = {};
+      let validOrdinals = true;
+      for (const key of ['code', 'phase', 'kind', 'task', 'unit', 'step']) {
+        const member = Object.getOwnPropertyDescriptor(field.value, key);
+        if (member !== undefined && Object.hasOwn(member, 'value')) data[key] = member.value;
+        if ((key === 'task' || key === 'unit' || key === 'step') &&
+            (!Number.isSafeInteger(data[key]) || data[key] < 0 || data[key] > 2147483647)) {
+          validOrdinals = false;
+        }
+      }
+      if (data.code === 'MoonBitHostFailure' &&
+          data.phase === 'original_model_acquired_effect_evidence' &&
+          typeof data.kind === 'string' && data.kind.length <= 96 &&
+          /^[a-z_]+(?:\.[a-z_]+)*$/u.test(data.kind) && validOrdinals) {
+        primaryDiagnostic = Object.freeze(data);
+      }
+    }
+  } catch { /* Optional inert DATA cannot mask execution or cleanup. */ }
   return Object.freeze({name: text('name') ?? 'Error', code: text('code'),
-    message: typeof error === 'string' ? error : text('message')});
+    message: typeof error === 'string' ? error : text('message'),
+    ...(primaryDiagnostic === undefined ? {} : {primaryDiagnostic})});
 }
 
 // Only diagnostic custody moves here. An Unknown result keeps its outcome,
@@ -1284,6 +1307,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         diagnostic('dispatch_failed', {ref: accepted.ref,
           code: cause?.code ?? cause?.message ?? 'ClientDispatchFailed',
           primaryCode: primaryFailure?.code,
+          primaryDiagnostic: dispatchFailureSnapshot(primaryFailure)?.primaryDiagnostic,
           issueTag: runtimeTag(primaryFailure?.cause),
           nestedIssueTag: runtimeTag(runtimeOptionalField(primaryFailure?.cause, 0))});
       } catch { /* Optional diagnostics cannot interrupt cleanup. */ }
@@ -1400,6 +1424,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         diagnostic('dispatch_failed', {ref: entry.ref,
           code: cause?.code ?? 'ClientDispatchFailed',
           primaryCode: primaryFailure?.code,
+          primaryDiagnostic: dispatchFailureSnapshot(primaryFailure)?.primaryDiagnostic,
           issueTag: runtimeTag(primaryFailure?.cause),
           nestedIssueTag: runtimeTag(runtimeOptionalField(primaryFailure?.cause, 0))});
       } catch { /* Optional diagnostics cannot interrupt original cleanup. */ }

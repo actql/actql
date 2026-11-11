@@ -148,7 +148,9 @@ pub fn invocation_binding_original_model_observation_capacity(
       retained: {
         record_headers: 6L + hash.record_headers + text.record_headers,
         reference_slots: 16L + hash.reference_slots + text.reference_slots,
-        scalar_words: 8L + hash.scalar_words + text.scalar_words,
+        // The existing JS Model observation also retains its already-read
+        // task and step beside Unit for optional failure diagnostics.
+        scalar_words: 10L + hash.scalar_words + text.scalar_words,
         owned_utf16_units: hash.owned_utf16_units + text.owned_utf16_units,
         owned_wire_bytes: hash.owned_wire_bytes,
       },

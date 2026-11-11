@@ -155,3 +155,37 @@ test('missing original Model receipt/body cannot create a fabricated dependency'
     assert.equal(f.calls.includes('model-acquired'),false);
   }
 });
+
+test('original Model publication failure projects the same failed Result and already-read occurrence once',()=>{
+  const f=fixture();let coordinates=0,issued=0,projected=0;
+  f.moon.clientProgramOriginalModelObservationCoordinates=()=>{coordinates++;return {_0:4,_1:2,_2:5};};
+  const model=f.capture(),original={},result={$tag:0,_0:original};
+  f.moon.clientProgramOriginalModelAcquiredEffectEvidence=()=>{issued++;return result;};
+  f.moon.clientProgramOriginalModelAcquiredEffectEvidenceIssueKind=actual=>{
+    projected++;assert.strictEqual(actual,result);return 'invocation.foreign_captured_input';
+  };
+  assert.throws(()=>f.control.issueOriginalModelEffectEvidence(model,f.run,undefined,f.limits),cause=>{
+    assert.equal(cause.code,'MoonBitHostFailure');assert.strictEqual(cause.cause,original);
+    assert.deepEqual(cause.primaryDiagnostic,{code:'MoonBitHostFailure',
+      phase:'original_model_acquired_effect_evidence',kind:'invocation.foreign_captured_input',task:4,unit:2,step:5});
+    assert(Object.isFrozen(cause.primaryDiagnostic));return true;
+  });
+  assert.deepEqual([coordinates,issued,projected],[1,1,1]);
+});
+
+test('optional Model failure projection cannot replace its actual Core failure or add validation',()=>{
+  const f=fixture(),model=f.capture(),original={},result={$tag:0,_0:original};let calls=0;
+  f.moon.clientProgramOriginalModelAcquiredEffectEvidence=()=>result;
+  f.moon.clientProgramOriginalModelAcquiredEffectEvidenceIssueKind=()=>{calls++;throw new Error('OptionalDiagnosticUnavailable');};
+  assert.throws(()=>f.control.issueOriginalModelEffectEvidence(model,f.run,undefined,f.limits),cause=>{
+    assert.equal(cause.code,'MoonBitHostFailure');assert.strictEqual(cause.cause,original);
+    assert.equal(cause.primaryDiagnostic,undefined);return true;
+  });
+  assert.equal(calls,1);
+});
+
+test('successful Model publication never calls the optional failure projection',()=>{
+  const f=fixture(),model=f.capture();
+  f.moon.clientProgramOriginalModelAcquiredEffectEvidenceIssueKind=()=>assert.fail('Success must not enter failure projection');
+  assert(f.control.issueOriginalModelEffectEvidence(model,f.run,undefined,f.limits));
+});

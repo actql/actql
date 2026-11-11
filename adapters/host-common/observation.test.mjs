@@ -9,6 +9,59 @@ const ref = {namespaceId: 'local', authorityScopeCid: `sha256:${'a'.repeat(64)}`
   runDefinitionCid: `sha256:${'b'.repeat(64)}`};
 const turn = () => new Promise(resolve => setImmediate(resolve));
 
+test('dispatch failure observation forwards typed primary DATA and original occurrence without private bodies', async () => {
+  const records = [], failure = Object.freeze({code: 'MoonBitHostFailure',
+    phase: 'original_model_acquired_effect_evidence', kind: 'invocation.foreign_captured_input',
+    task: 4, unit: 2, step: 5});
+  const observer = installHostObservation(createHostObservationConnection({
+    include: ['run'], correlation: {include: ['task']}, events: {level: 'diagnostic'},
+    deliver: record => records.push(record),
+  }));
+  observer.diagnostic('dispatch_failed', {primaryDiagnostic: failure,
+    code: 'private outer message', issueTag: 2, body: 'private body'});
+  await observer.close();
+  assert.equal(records.length, 1);
+  assert.equal(records[0].event, 'dispatch_failed');
+  assert.deepEqual(records[0].attributes, {
+    'actql.operation': 'run', 'actql.event': 'dispatch_failed',
+    'actql.observation.version': 'actql-observation/0.1',
+    'error.type': failure.code, 'actql.failure.phase': failure.phase,
+    'actql.failure.kind': failure.kind, 'actql.task.ordinal': 4,
+    'actql.unit.ordinal': 2, 'actql.step.ordinal': 5,
+  });
+  assert.equal(JSON.stringify(records).includes('private'), false);
+  assert.deepEqual(observer.status().loss, {});
+});
+
+test('dispatch primary DATA respects lifecycle operation correlation and attribute exclusions', async () => {
+  const failure = {code: 'MoonBitHostFailure', phase: 'original_model_acquired_effect_evidence',
+    kind: 'invocation.foreign_captured_input', task: 4, unit: 2, step: 5};
+  for (const selection of ['lifecycle', 'excluded-operation', 'no-correlation', 'excluded-attributes']) {
+    const records = [], observer = installHostObservation(createHostObservationConnection({
+      include: selection === 'excluded-operation' ? ['source'] : ['run'],
+      events: {level: selection === 'lifecycle' ? 'lifecycle' : 'diagnostic'},
+      correlation: selection === 'no-correlation' ? false : {include: ['task']},
+      attributes: {exclude: selection === 'excluded-attributes' ? ['actql.failure.kind', 'actql.step.ordinal'] : []},
+      deliver: record => records.push(record),
+    }));
+    observer.diagnostic('dispatch_failed', {primaryDiagnostic: failure});
+    await observer.close();
+    if (selection === 'excluded-operation') {assert.equal(records.length, 0); continue;}
+    for (const record of records) {
+      const a = record.attributes;
+      if (selection === 'lifecycle') assert.equal(a['actql.failure.kind'], undefined);
+      if (selection === 'no-correlation') {
+        for (const key of ['actql.task.ordinal', 'actql.unit.ordinal', 'actql.step.ordinal']) assert.equal(a[key], undefined);
+        assert.equal(a['actql.failure.kind'], failure.kind);
+      }
+      if (selection === 'excluded-attributes') {
+        assert.equal(a['actql.failure.kind'], undefined); assert.equal(a['actql.step.ordinal'], undefined);
+        assert.equal(a['actql.failure.phase'], failure.phase);
+      }
+    }
+  }
+});
+
 test('physical write diagnostics remain distinct from whole Effect application and Source Model starts', async () => {
   const records = [];
   const observer = installHostObservation(createHostObservationConnection({

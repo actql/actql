@@ -67,6 +67,36 @@ pub fn client_program_original_model_acquired_effect_evidence(
 }
 
 ///|
+/// Technical DATA from the SAME returned failure, without observing current,
+/// replaying validation or decoding the compiler representation in JavaScript.
+#export_name("clientProgramOriginalModelAcquiredEffectEvidenceIssueKind")
+pub fn client_program_original_model_acquired_effect_evidence_issue_kind(
+  result : Result[
+    @publication_host.ClientEffectModelAcquiredEvidence,
+    @publication_host.ClientEffectAcquiredEvidenceIssue,
+  ],
+) -> String? {
+  match result {
+    Ok(_) => None
+    Err(Invocation(issue)) =>
+      Some(
+        match issue {
+          MissingUnit => "invocation.missing_unit"
+          NotSourceFree => "invocation.not_source_free"
+          ForeignCapturedInput => "invocation.foreign_captured_input"
+          MissingCapturedInput => "invocation.missing_captured_input"
+          ForeignSourceObservation => "invocation.foreign_source_observation"
+          IncompleteResultImports => "invocation.incomplete_result_imports"
+          ForeignResultImport => "invocation.foreign_result_import"
+          Encoding => "invocation.encoding"
+        },
+      )
+    Err(Relation(_)) => Some("relation")
+    Err(Dependency(_)) => Some("dependency")
+  }
+}
+
+///|
 #export_name("clientProgramOriginalModelAcquiredEffectInvocation")
 pub fn client_program_original_model_acquired_effect_invocation(
   value : @publication_host.ClientEffectModelAcquiredEvidence,

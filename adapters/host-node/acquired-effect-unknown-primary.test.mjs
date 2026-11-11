@@ -12,6 +12,11 @@ const dispatchTree = parse(dispatch, {ecmaVersion: 'latest', sourceType: 'module
 const retainDeclaration = dispatchTree.body.find(node => node.type === 'FunctionDeclaration' &&
   node.id.name === 'retainDispatchPrimaryFailure');
 assert(retainDeclaration);
+const diagnosticDeclaration = dispatchTree.body.find(node => node.type === 'FunctionDeclaration' &&
+  node.id.name === 'dispatchFailureSnapshot');
+assert(diagnosticDeclaration);
+const dispatchFailureSnapshot = new Function(
+  `${dispatch.slice(diagnosticDeclaration.start, diagnosticDeclaration.end)};return dispatchFailureSnapshot;`)();
 const retainDispatchPrimaryFailure = new Function(
   `${dispatch.slice(retainDeclaration.start, retainDeclaration.end)};return retainDispatchPrimaryFailure;`)();
 function selectedBranch(text, marker, bodyMarker = '') {
@@ -135,7 +140,7 @@ test('the actual tracked Effect caller keeps the Model primary across a later cl
   await assert.rejects(next({status: 'needs_reconciliation', primaryFailure: primary}), error => error === cleanup);
   const diagnostics = [];
   const failed = make(trackedFailure, {entry, settleCleanup: async () => {throw cleanup;},
-    CapturedRunPublicationError: class ExplicitPublicationError extends Error {},
+    CapturedRunPublicationError: class ExplicitPublicationError extends Error {}, dispatchFailureSnapshot,
     diagnostic: (name, facts) => diagnostics.push({name, facts}), runtimeTag: () => undefined,
     runtimeOptionalField: () => undefined, barrierFailureOutcome: null});
   await assert.rejects(failed(cleanup), error => error === cleanup);
@@ -144,4 +149,19 @@ test('the actual tracked Effect caller keeps the Model primary across a later cl
   assert.equal(diagnostics.length, 1);assert.equal(diagnostics[0].name, 'dispatch_failed');
   assert.equal(diagnostics[0].facts.code, cleanup.code);
   assert.equal(diagnostics[0].facts.primaryCode, primary.code);
+});
+
+test('dispatch copies only inert typed primary diagnostic DATA without invoking failure getters',()=>{
+  const data=Object.freeze({code:'MoonBitHostFailure',phase:'original_model_acquired_effect_evidence',
+    kind:'invocation.foreign_captured_input',task:4,unit:2,step:5});
+  const primary=Object.assign(new Error('private original'),{code:'MoonBitHostFailure',primaryDiagnostic:data});
+  assert.deepEqual(dispatchFailureSnapshot(primary).primaryDiagnostic,data);
+  const accessor=Object.defineProperty(new Error('original'),'primaryDiagnostic',{
+    get(){assert.fail('Optional DATA must not invoke an accessor');}});
+  assert.equal(dispatchFailureSnapshot(accessor).primaryDiagnostic,undefined);
+  const invalid=Object.assign(new Error('original'),{primaryDiagnostic:{...data,kind:'private payload value'}});
+  assert.equal(dispatchFailureSnapshot(invalid).primaryDiagnostic,undefined);
+  const missing=Object.assign(new Error('original'),{primaryDiagnostic:{...data,task:undefined}});
+  assert.equal(dispatchFailureSnapshot(missing).primaryDiagnostic,undefined);
+  assert.equal(primary.code,'MoonBitHostFailure');assert.strictEqual(primary.primaryDiagnostic,data);
 });

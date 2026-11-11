@@ -4316,11 +4316,14 @@ function publicationControl(moon) {
           !Array.isArray(inputs) || typeof outcomes !== 'string') {
         throw new TypeError('Original Model dependency bodies unavailable');
       }
-      const unit = runtimeField(coordinates, 1);
-      if (!Number.isSafeInteger(unit) || unit < 0) {
+      const task = runtimeField(coordinates, 0), unit = runtimeField(coordinates, 1),
+        step = runtimeField(coordinates, 2);
+      if (!Number.isSafeInteger(task) || task < 0 ||
+          !Number.isSafeInteger(unit) || unit < 0 ||
+          !Number.isSafeInteger(step) || step < 0) {
         throw new TypeError('Foreign Model Unit coordinate');
       }
-      const value = Object.freeze({unit,
+      const value = Object.freeze({task, unit, step,
         bodies: Object.freeze([
           Object.freeze({kind: 'local_model_observation', cid: runtimeField(body, 0),
             wire: runtimeField(body, 1)}),
@@ -4343,9 +4346,22 @@ function publicationControl(moon) {
           imports !== undefined && imported?.kind !== 'imported') {
         throw new TypeError('Foreign Model Effect originals');
       }
-      const acquired = checked(moon.clientProgramOriginalModelAcquiredEffectEvidence(
+      const result = moon.clientProgramOriginalModelAcquiredEffectEvidence(
         retained.original, token(retention), limits.maxWireBytes, limits.maxNodes,
-        limits.maxDepth, imported?.issued));
+        limits.maxDepth, imported?.issued);
+      let acquired;
+      try { acquired = checked(result); }
+      catch (cause) {
+        try {
+          const kind = moon.clientProgramOriginalModelAcquiredEffectEvidenceIssueKind?.(result);
+          if (typeof kind === 'string') Object.defineProperty(cause, 'primaryDiagnostic', {
+            value: Object.freeze({code: 'MoonBitHostFailure',
+              phase: 'original_model_acquired_effect_evidence', kind,
+              task: model.task, unit: model.unit, step: model.step}),
+          });
+        } catch { /* Optional DATA projection cannot replace the original failure. */ }
+        throw cause;
+      }
       const direct = moon.clientProgramOriginalModelAcquiredEffectSources(acquired)
         .map(source => inspectAcquiredEffectEvidence(source, retention, limits));
       const barrier = moon.clientProgramOriginalModelAcquiredEffectLookupBarrier(acquired);
