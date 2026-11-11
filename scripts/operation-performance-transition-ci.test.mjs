@@ -211,7 +211,8 @@ test('Native approval only selects its original Native artifact without unrelate
       assert.equal(inputs[field].required, false); assert.equal(inputs[field].default, '');
     }
   }
-  assert.deepEqual(workflow.on.workflow_dispatch.inputs['native-approval-runner'].options, ['macos-15', 'ubuntu-24.04']);
+  assert.deepEqual(workflow.on.workflow_dispatch.inputs['native-approval-runner'].options, ['ubuntu-24.04']);
+  assert.equal(workflow.on.workflow_call.inputs['native-approval-runner'].default, 'ubuntu-24.04');
   assert.equal(ci.on.workflow_dispatch.inputs.performance_native_approval_only.default, false);
   assert.equal(ci.jobs['performance-matrix'].with['native-approval-only'], '${{ inputs.performance_native_approval_only }}');
   assert.equal(ci.jobs['performance-matrix'].with['native-approval-runner'], '${{ inputs.performance_native_approval_runner }}');
@@ -232,10 +233,10 @@ test('Native approval only selects its original Native artifact without unrelate
   assert.equal(job.steps[download].with['run-id'], '${{ inputs.native-package-run-id }}');
   assert.equal(job.steps[download].with['artifact-ids'], '${{ inputs.native-package-artifact-id }}');
   assert(!job.steps.some(step => /moon build|npm pack|pip wheel|benchmark-ordinary-processes/u.test(step.run ?? '')));
-  const runner = job['runs-on'].slice(3, -2);
-  for (const value of ['macos-15', 'ubuntu-24.04']) {
-    assert.equal(runInNewContext(runner, {inputs: {'native-approval-runner': value}}), value);
-  }
+  assert.equal(job['runs-on'], 'ubuntu-24.04');
+  const moon = job.steps.findIndex(step => step.name === 'Install pinned MoonBit for source and generation verification only');
+  assert(moon >= 0 && moon < collect);
+  assert.equal(job.steps[moon].run, ci.jobs.preflight.steps.find(step => step.name === 'Install pinned MoonBit').run);
 });
 
 test('Native approval formal shell keeps the existing thirty-each protocol and actual collector failure', t => {
@@ -247,17 +248,18 @@ test('Native approval formal shell keeps the existing thirty-each protocol and a
   const validate = job.steps.find(step => step.name === 'Validate the selected independent Native runner');
   const collect = job.steps.find(step => step.run?.includes('scripts/test-native-approval-performance.mjs'));
   assert.equal(collect['continue-on-error'], undefined); assert(!collect.run.includes('--diagnostic'));
-  for (const runner of ['macos-15', 'ubuntu-24.04']) for (const status of [0, 1, 124]) {
+  for (const runner of ['ubuntu-24.04']) for (const status of [0, 1, 124]) {
     const env = {PATH: `${bin}:${process.env.PATH}`, ARGV: argv, NATIVE_APPROVAL_RUNNER: runner, EXIT: String(status)};
     assert.equal(run(validate, root, env).status, 0);
     assert.equal(run(collect, root, env).status, status);
   }
   assert.equal(run(validate, root, {NATIVE_APPROVAL_RUNNER: 'foreign-runner'}).status, 1);
+  assert.equal(run(validate, root, {NATIVE_APPROVAL_RUNNER: 'macos-15'}).status, 1, 'No hosted Darwin Local producer is available');
   const calls = readFileSync(argv, 'utf8').trim().split('\n').map(JSON.parse);
-  assert.equal(calls.length, 6);
+  assert.equal(calls.length, 3);
   for (let index = 0; index < calls.length; index++) assert.deepEqual(calls[index], [
-    'scripts/test-native-approval-performance.mjs', '--normal', join(root, 'native-approval/packages'),
-    '--output', join(root, 'native-approval/assessment.json'), '--runner', index < 3 ? 'macos-15' : 'ubuntu-24.04',
+    'scripts/test-native-approval-performance.mjs', '--normal', join(root, 'native-approval/packages/release'),
+    '--output', join(root, 'native-approval/assessment.json'), '--runner', 'ubuntu-24.04',
   ]);
 });
 
@@ -269,8 +271,32 @@ test('Native approval upload always keeps partial assessment and actual receipts
   assert.equal(upload.with.name, 'native-approval-${{ inputs.native-approval-runner }}-${{ github.sha }}');
   assert.deepEqual(upload.with.path.trim().split('\n'), [
     '${{ runner.temp }}/native-approval/producer.json', '${{ runner.temp }}/native-approval/assessment.json',
-    '${{ runner.temp }}/native-approval/packages/release.json', '${{ runner.temp }}/native-approval/packages/mock-install-*.json',
+    '${{ runner.temp }}/native-approval/packages/release/release.json', '${{ runner.temp }}/native-approval/packages/release/mock-install-*.json',
   ]);
+});
+
+test('Native approval accepts only the successful Linux Local producer artifact namespace', t => {
+  const inspect = workflow.jobs['native-approval'].steps.find(step => step.env?.PACKAGE_ADAPTER === 'native');
+  for (const [producer, artifactName, expected] of [
+    ['native-cli-linux-local', 'native-cli-linux-local-42-3', 0],
+    ['native-cli-installed', 'native-cli-linux-local-42-3', 1],
+    ['native-cli-linux-local', 'native-cli-installed-42-3', 1],
+    ['native-cli-linux-local', 'native-cli-linux-local-99-3', 1],
+  ]) {
+    const root = temporary(t), bin = join(root, 'bin');mkdirSync(bin);
+    writeFileSync(join(bin, 'node'), `#!${process.execPath}\n
+      const args=process.argv.slice(2);
+      if(args[0]==='scripts/ordinary-operation-packages.mjs'){
+        process.stdout.write(process.env.PRODUCER_METADATA);process.exit(0);
+      }
+      const result=require('node:child_process').spawnSync(process.execPath,args,{stdio:'inherit'});
+      process.exit(result.status ?? 1);
+    `);
+    chmodSync(join(bin, 'node'), 0o755);
+    const result = run(inspect, root, {PATH: `${bin}:${process.env.PATH}`, PACKAGE_PRODUCER_JOB: producer,
+      PRODUCER_METADATA: JSON.stringify({adapter: 'native', runId: '42', attempt: 3, artifactName})});
+    assert.equal(result.status, expected, result.stderr);
+  }
 });
 
 test('priority report join preserves original collector failures and raw metadata', t => {

@@ -34,10 +34,10 @@ on:
         type: boolean
         default: false
       performance_native_approval_runner:
-        description: Independent runner matching the offered Native platform
+        description: Hosted Local acceptance runner; Darwin remains a separate local campaign
         type: choice
-        options: [macos-15, ubuntu-24.04]
-        default: macos-15
+        options: [ubuntu-24.04]
+        default: ubuntu-24.04
       performance_package_run_id:
         description: Completed same-source normal CI run supplying existing Client tarballs
         type: string
