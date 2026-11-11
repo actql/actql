@@ -17,34 +17,37 @@ fn read_local_initial_host_signing_control(
   body : Bytes,
   signing_original? : NativeLocalInitialSigningOriginal? = None,
 ) -> Result[NativeLocalInitialSigningFields, NativeLocalAdoptionIssue] {
-  guard read_local_initial_signing_control(host, body, signing_original~)
-    is Ok(Some(reviewer)) else {
-    return Err(CustodyLost)
-  }
-  let header = match local_initial_signing_control_header(body) {
-    Ok(value) if value.length() >= 3 => value
-    _ => return Err(CustodyLost)
-  }
-  let packet = @base64.decode(header[2]) catch { _ => return Err(CustodyLost) }
-  if @base64.encode(packet) != header[2] {
-    return Err(CustodyLost)
-  }
-  let fields = match
-    read_local_initial_signing_packet(
+  read_local_initial_host_signing_control_with_subject(
+    host,
+    body,
+    signing_original~,
+  ).map(pair => pair.0)
+}
+
+///|
+// Consume the Host fields/subject checked by this immediate control admission.
+// A later physical or current boundary must still perform its own fresh read.
+fn read_local_initial_host_signing_control_with_subject(
+  host : NativeLocalHostConnection,
+  body : Bytes,
+  signing_original? : NativeLocalInitialSigningOriginal? = None,
+) -> Result[
+  (NativeLocalInitialSigningFields, (String, String, String)?),
+  NativeLocalAdoptionIssue,
+] {
+  guard read_local_initial_signing_control_with_host_key(
       host,
-      packet,
-      "host_attestation",
-      "local-host-attestation-key.pem",
+      body,
       signing_original~,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
+    )
+    is Ok(Some((reviewer, Some((fields, subject))))) else {
+    return Err(CustodyLost)
   }
   if fields.policy.cid() != reviewer.policy.cid() ||
     fields.issuer != reviewer.issuer {
     return Err(CustodyLost)
   }
-  Ok(fields)
+  Ok((fields, subject))
 }
 
 ///|
@@ -126,20 +129,10 @@ pub fn NativeLocalInitialHostSigningOriginal::require_current(
   } else {
     None
   }
-  let fields = match
-    read_local_initial_host_signing_control(
+  let (fields, subject) = match
+    read_local_initial_host_signing_control_with_subject(
       host,
       self.reviewer.control_body,
-      signing_original~,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  let subject = match
-    read_initial_host_signing_subject(
-      host,
-      self.reviewer.control_body,
-      fields,
       signing_original~,
     ) {
     Ok(value) => value

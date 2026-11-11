@@ -286,8 +286,8 @@ fn read_local_initial_signing_control(
 }
 
 ///|
-// Return the already checked Host projection with the existing Reviewer
-// fields. This closed pair contains DATA, never an authorization decision.
+// Forward the checked Host fields and subject from this SAME control read.
+// These immediate values are DATA, never a retained authorization decision.
 fn read_local_initial_signing_control_with_host_key(
   host : NativeLocalHostConnection,
   body : Bytes,
@@ -295,7 +295,7 @@ fn read_local_initial_signing_control_with_host_key(
 ) -> Result[
   (
     NativeLocalInitialSigningFields,
-    (@credential.LocalSigningPublicKey, String)?,
+    (NativeLocalInitialSigningFields, (String, String, String)?)?,
   )?,
   NativeLocalAdoptionIssue,
 ] {
@@ -329,7 +329,7 @@ fn read_local_initial_signing_control_with_host_key(
         signing_original~,
       ),
     )
-    let mut retained_host_key = None
+    let mut host_fields = None
     if header.length() >= 3 {
       let host_packet = @base64.decode(header[2]) catch {
         _ => return Err(CustodyLost)
@@ -355,7 +355,7 @@ fn read_local_initial_signing_control_with_host_key(
         reviewer.issuer == host_key.issuer else {
         return Err(CustodyLost)
       }
-      if header.length() == 4 {
+      let subject = if header.length() == 4 {
         guard local_initial_signing_value(
             read_initial_host_signing_subject(
               host,
@@ -364,13 +364,16 @@ fn read_local_initial_signing_control_with_host_key(
               signing_original~,
             ),
           )
-          is Some(_) else {
+          is Some(subject) else {
           return Err(CustodyLost)
         }
+        Some(subject)
+      } else {
+        None
       }
-      retained_host_key = Some((host_key.public_key, host_key.public_key_pem))
+      host_fields = Some((host_key, subject))
     }
-    Ok(Some((reviewer, retained_host_key)))
+    Ok(Some((reviewer, host_fields)))
   } catch {
     LocalInstallationAdoptionStop(issue) => Err(issue)
   }
@@ -597,7 +600,7 @@ pub fn NativeLocalHostConnection::restore_initial_signing_original(
       guard local_initial_signing_value(
           read_local_initial_signing_control_with_host_key(self, row.body),
         )
-        is Some((fields, host_public_key)) else {
+        is Some((fields, host_fields)) else {
         return Err(CustodyLost)
       }
       local_initial_signing_value(
@@ -621,7 +624,9 @@ pub fn NativeLocalHostConnection::restore_initial_signing_original(
         public_key: fields.public_key,
         public_key_pem: fields.public_key_pem,
         issuer: fields.issuer,
-        host_public_key,
+        host_public_key: host_fields.map(pair => {
+          (pair.0.public_key, pair.0.public_key_pem)
+        }),
       })
     } catch {
       LocalInstallationAdoptionStop(issue) => {
